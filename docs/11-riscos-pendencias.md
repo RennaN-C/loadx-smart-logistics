@@ -10,6 +10,7 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 - `CONFIRMADO`: tecnologias oficiais descritas em `README.md` e `docs/02-arquitetura.md`.
 - `CONFIRMADO`: nomes técnicos em inglês.
 - `CONFIRMADO`: documentação oficial dentro da estrutura existente de `docs`.
+- `CONFIRMADO`: Alembic configurado em `backend/alembic.ini` e `backend/migrations/env.py`.
 
 ## Decisões necessárias
 
@@ -23,8 +24,6 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 
 ## Pendências técnicas
 
-- `PENDENTE DE DEFINIÇÃO`: configuração completa do Alembic ainda não existe no repositório.
-- `PENDENTE DE DEFINIÇÃO`: comando oficial para gerar, aplicar e validar migrations.
 - `PENDENTE DE DEFINIÇÃO`: CI real ainda não está implementada, apenas documentada em `infra/ci/README.md`.
 - `PENDENTE DE DEFINIÇÃO`: estratégia final de logging estruturado.
 - `PENDENTE DE DEFINIÇÃO`: tempo de expiração de token e fluxo de refresh.

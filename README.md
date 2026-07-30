@@ -27,7 +27,6 @@ O sistema também acompanhará o processo de carregamento e entrega, permitindo 
 
 Desenvolver um sistema inteligente capaz de planejar automaticamente a disposição de volumes em caminhões, melhorar o aproveitamento do espaço disponível e acompanhar o processo logístico desde o carregamento até a conclusão das entregas.
 
-<<<<<<< HEAD
 1. `AGENTS.md`
 2. `docs/00-visao-produto.md`
 3. `docs/01-escopo-mvp.md`
@@ -38,9 +37,6 @@ Desenvolver um sistema inteligente capaz de planejar automaticamente a disposiç
 8. `docs/08-padroes-desenvolvimento.md`
 9. `docs/09-guia-para-ia.md`
 10. `docs/11-riscos-pendencias.md`
-=======
-## Funcionalidades do MVP
->>>>>>> 951b75cc3937e883a81c1017cd86a60729194875
 
 A primeira versão do LoadX deverá permitir:
 

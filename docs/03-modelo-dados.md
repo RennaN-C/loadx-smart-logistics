@@ -360,7 +360,7 @@ Histórico auditável de mudanças de status.
 - Não alterar staging manualmente como solução definitiva.
 - Migrations devem ser pequenas e relacionadas a uma ocorrência.
 
-`PENDENTE DE DEFINIÇÃO`: ferramenta/comando oficial para gerar e aplicar migrations ainda não está documentado em script.
+`CONFIRMADO`: a configuração oficial do Alembic fica em `backend/alembic.ini` e `backend/migrations/env.py`. Os comandos estão documentados em `backend/migrations/README.md`.
 
 ## Observação
 
