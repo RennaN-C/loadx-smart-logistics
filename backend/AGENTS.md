@@ -9,3 +9,5 @@ Além do `AGENTS.md` da raiz:
 - mantenha serviços independentes de FastAPI quando possível;
 - escreva testes unitários para regras e testes de integração para rotas;
 - não crie modelos ou migrations sem atualizar `docs/03-modelo-dados.md`.
+- siga os padrões de camadas, nomes, erros, logs e testes em `docs/08-padroes-desenvolvimento.md`;
+- consulte `docs/09-guia-para-ia.md` antes de criar arquivos novos.

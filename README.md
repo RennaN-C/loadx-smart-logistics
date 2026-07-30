@@ -47,7 +47,9 @@ Antes de programar, humanos e agentes de IA devem ler:
 5. `docs/03-modelo-dados.md`
 6. `docs/04-regras-negocio.md`
 7. `docs/05-contratos-api.md`
-8. `docs/09-guia-para-ia.md`
+8. `docs/08-padroes-desenvolvimento.md`
+9. `docs/09-guia-para-ia.md`
+10. `docs/11-riscos-pendencias.md`
 
 ## Regra principal
 
