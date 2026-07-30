@@ -32,3 +32,26 @@ Implementa a heurística tridimensional do LoadX.
 ## Restrições
 
 O otimizador não acessa banco, HTTP, FastAPI ou provedor de IA. Ele recebe objetos simples e retorna resultado determinístico.
+
+## OC11 - capacidade do caminhão
+
+`CONFIRMADO`: o cálculo inicial de capacidade fica em `capacity.py`.
+
+Entrada:
+
+- `internal_width_cm`;
+- `internal_height_cm`;
+- `internal_length_cm`;
+- `max_weight_kg`.
+
+Saída:
+
+- dimensões internas preservadas em centímetros;
+- `internal_volume_cm3`;
+- `max_weight_kg`.
+
+Regras:
+
+- Dimensões internas devem ser maiores que zero.
+- Peso máximo deve ser maior que zero.
+- O cálculo é determinístico e não acessa banco, HTTP ou IA.

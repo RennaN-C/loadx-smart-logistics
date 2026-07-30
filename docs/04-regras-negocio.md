@@ -109,6 +109,13 @@ Estados recomendados:
 
 `PENDENTE DE DEFINIÇÃO`: política de versionamento quando um plano aprovado for recalculado.
 
+## Capacidade do caminhão
+
+- Capacidade volumétrica interna é calculada por `internal_width_cm * internal_height_cm * internal_length_cm`.
+- O resultado volumétrico inicial é registrado em `internal_volume_cm3`.
+- Dimensões internas e peso máximo devem ser maiores que zero antes do cálculo.
+- O cálculo de capacidade não acessa banco, HTTP ou IA.
+
 ## Otimizador
 
 - A IA generativa não posiciona volumes.
