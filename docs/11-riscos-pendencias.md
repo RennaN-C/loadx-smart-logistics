@@ -13,6 +13,7 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 - `CONFIRMADO`: Alembic configurado em `backend/alembic.ini` e `backend/migrations/env.py`.
 - `CONFIRMADO`: migration inicial `20260729_0001` cria `users`, `customers`, `drivers`, `trucks` e `products`.
 - `CONFIRMADO`: migration `20260730_0002` cria `orders` e `order_items`.
+- `CONFIRMADO`: autenticação inicial possui cadastro, login, token JWT e `/auth/me`.
 
 ## Decisões necessárias
 
@@ -29,7 +30,7 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 - `PENDENTE DE DEFINIÇÃO`: CI real ainda não está implementada, apenas documentada em `infra/ci/README.md`.
 - `PENDENTE DE DEFINIÇÃO`: models e migrations de planejamento, carregamento, entregas, ocorrências e histórico de status.
 - `PENDENTE DE DEFINIÇÃO`: estratégia final de logging estruturado.
-- `PENDENTE DE DEFINIÇÃO`: tempo de expiração de token e fluxo de refresh.
+- `PENDENTE DE DEFINIÇÃO`: política final de expiração de token, fluxo de refresh e bloqueio por tentativas inválidas.
 - `PENDENTE DE DEFINIÇÃO`: validação formal de CPF, CNPJ, telefone e CNH.
 - `PENDENTE DE DEFINIÇÃO`: política de armazenamento, expiração e proteção de fotos de ocorrência.
 - `PENDENTE DE DEFINIÇÃO`: metas de performance do otimizador.
@@ -41,6 +42,8 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 - `SUPOSIÇÃO TÉCNICA`: exclusões de cadastros principais serão lógicas por `active = false` quando houver histórico ou vínculo.
 - `SUPOSIÇÃO TÉCNICA`: IDs UUID podem ser gerados pela aplicação ou banco, desde que o padrão seja único e documentado na primeira migration.
 - `SUPOSIÇÃO TÉCNICA`: fotos de ocorrência no MVP podem usar URL mock ou storage local controlado até definição de provider.
+- `SUPOSIÇÃO TÉCNICA`: token JWT usa expiração configurável com default local de 60 minutos até decisão final de segurança.
+- `SUPOSIÇÃO TÉCNICA`: hash de senha usa `pbkdf2_sha256` via Passlib nesta etapa, sem adicionar dependência externa nova.
 
 ## Riscos identificados
 
@@ -50,6 +53,7 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 - `RISCO IDENTIFICADO`: aceitar resposta de IA sem schema pode atualizar status indevido.
 - `RISCO IDENTIFICADO`: criar migrations grandes com vários módulos aumenta conflito entre os 4 desenvolvedores.
 - `RISCO IDENTIFICADO`: seeds com dados pessoais reais violam as regras do projeto.
+- `RISCO IDENTIFICADO`: `SECRET_KEY=local-only` ou valor fraco só pode ser usado em ambiente local.
 
 ## Recomendações
 

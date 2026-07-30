@@ -22,6 +22,18 @@
 
 `PENDENTE DE DEFINIÇÃO`: matriz detalhada de permissões por endpoint.
 
+## Autenticação
+
+- Usuário deve autenticar com e-mail e senha.
+- Senha deve ser persistida somente como hash.
+- Respostas públicas de usuário nunca devem retornar `password_hash`.
+- Token JWT deve identificar o usuário pelo UUID em `sub`.
+- Usuário inativo não pode fazer login.
+
+`SUPOSIÇÃO TÉCNICA`: o backend usa `pbkdf2_sha256` via Passlib para hash de senha nesta etapa, evitando incompatibilidade local do bcrypt no ambiente Python usado para testes.
+
+`PENDENTE DE DEFINIÇÃO`: política final de expiração, refresh token, bloqueio por tentativas inválidas e força mínima de senha.
+
 ## Caminhão
 
 - Placa deve ser única.

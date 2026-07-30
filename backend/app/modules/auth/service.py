@@ -1,0 +1,75 @@
+import uuid
+
+from sqlalchemy.orm import Session
+
+from app.core.security import (
+    InvalidTokenError,
+    create_access_token,
+    decode_access_token,
+    verify_password,
+)
+from app.modules.auth.schemas import AuthLogin, TokenRead
+from app.modules.users.models import User
+from app.modules.users.schemas import UserCreate
+from app.modules.users.service import UserNotFoundError, UserService
+
+
+class AuthInvalidCredentialsError(Exception):
+    pass
+
+
+class AuthInvalidTokenError(Exception):
+    pass
+
+
+class AuthInactiveUserError(Exception):
+    pass
+
+
+class AuthService:
+    def __init__(self, db: Session) -> None:
+        self.user_service = UserService(db)
+
+    def register_user(self, data: UserCreate) -> User:
+        return self.user_service.create_user(data)
+
+    def login(self, data: AuthLogin) -> TokenRead:
+        user = self.user_service.get_user_by_email(data.email)
+        if user is None or not verify_password(data.password, user.password_hash):
+            raise AuthInvalidCredentialsError
+        if not user.active:
+            raise AuthInactiveUserError
+
+        access_token = create_access_token(
+            str(user.id),
+            {
+                "email": user.email,
+                "role": user.role,
+            },
+        )
+        return TokenRead(access_token=access_token)
+
+    def get_current_user_from_authorization(self, authorization: str | None) -> User:
+        token = self._extract_bearer_token(authorization)
+        try:
+            payload = decode_access_token(token)
+            subject = payload.get("sub")
+            if not isinstance(subject, str):
+                raise AuthInvalidTokenError
+            user_id = uuid.UUID(subject)
+            user = self.user_service.get_user(user_id)
+        except (InvalidTokenError, ValueError, UserNotFoundError) as exc:
+            raise AuthInvalidTokenError from exc
+
+        if not user.active:
+            raise AuthInactiveUserError
+        return user
+
+    def _extract_bearer_token(self, authorization: str | None) -> str:
+        if authorization is None:
+            raise AuthInvalidTokenError
+
+        scheme, separator, token = authorization.partition(" ")
+        if separator == "" or scheme.lower() != "bearer" or token.strip() == "":
+            raise AuthInvalidTokenError
+        return token.strip()
