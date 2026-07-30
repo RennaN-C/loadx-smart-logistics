@@ -2,6 +2,8 @@
 
 Esta pasta concentra decisões oficiais do produto, arquitetura, dados, contratos, processo e uso de IA. Código não deve contradizer estes documentos.
 
+Alterações nesta documentação devem ser rastreáveis por ocorrência, PR ou motivo técnico claro.
+
 ## Ordem de leitura
 
 - `00-visao-produto.md`: problema, usuários, objetivo e fonte de verdade.

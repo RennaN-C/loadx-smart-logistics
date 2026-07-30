@@ -22,6 +22,18 @@
 
 `PENDENTE DE DEFINIÇÃO`: matriz detalhada de permissões por endpoint.
 
+## Autenticação
+
+- Usuário deve autenticar com e-mail e senha.
+- Senha deve ser persistida somente como hash.
+- Respostas públicas de usuário nunca devem retornar `password_hash`.
+- Token JWT deve identificar o usuário pelo UUID em `sub`.
+- Usuário inativo não pode fazer login.
+
+`SUPOSIÇÃO TÉCNICA`: o backend usa `pbkdf2_sha256` via Passlib para hash de senha nesta etapa, evitando incompatibilidade local do bcrypt no ambiente Python usado para testes.
+
+`PENDENTE DE DEFINIÇÃO`: política final de expiração, refresh token, bloqueio por tentativas inválidas e força mínima de senha.
+
 ## Caminhão
 
 - Placa deve ser única.
@@ -97,6 +109,13 @@ Estados recomendados:
 
 `PENDENTE DE DEFINIÇÃO`: política de versionamento quando um plano aprovado for recalculado.
 
+## Capacidade do caminhão
+
+- Capacidade volumétrica interna é calculada por `internal_width_cm * internal_height_cm * internal_length_cm`.
+- O resultado volumétrico inicial é registrado em `internal_volume_cm3`.
+- Dimensões internas e peso máximo devem ser maiores que zero antes do cálculo.
+- O cálculo de capacidade não acessa banco, HTTP ou IA.
+
 ## Otimizador
 
 - A IA generativa não posiciona volumes.
@@ -145,6 +164,16 @@ Estados de viagem recomendados:
 - `IN_ROUTE`.
 - `FINISHED`.
 - `CANCELED`.
+
+## Histórico de status
+
+- Histórico deve registrar a entidade alterada, status anterior, novo status, usuário responsável quando houver e data/hora.
+- `old_status` pode ser nulo quando for o primeiro status conhecido da entidade.
+- `changed_by` é opcional para permitir registros automáticos do sistema.
+- Quando `changed_by` for informado, deve apontar para um usuário existente.
+- Histórico não deve ser removido ou sobrescrito por alterações de status futuras.
+
+`PENDENTE DE DEFINIÇÃO`: lista final de entidades auditáveis e perfis autorizados a consultar histórico.
 
 Estados de entrega recomendados:
 

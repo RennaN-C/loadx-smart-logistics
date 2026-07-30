@@ -20,6 +20,17 @@ Endpoints previstos:
 - `POST /auth/login`.
 - `GET /auth/me`.
 
+Exemplo de cadastro:
+
+```json
+{
+  "name": "Admin Local",
+  "email": "admin@example.test",
+  "password": "senha-local",
+  "role": "ADMIN"
+}
+```
+
 Exemplo de login:
 
 ```json
@@ -38,7 +49,22 @@ Resposta recomendada:
 }
 ```
 
-`PENDENTE DE DEFINIÇÃO`: tempo de expiração, refresh token e política de bloqueio de login.
+Para acessar `/auth/me`, envie:
+
+```text
+Authorization: Bearer <access_token>
+```
+
+Erros específicos:
+
+- `AUTH_INVALID_CREDENTIALS`: e-mail ou senha inválidos.
+- `AUTH_INVALID_TOKEN`: token ausente, inválido, expirado ou usuário inexistente.
+- `AUTH_USER_INACTIVE`: usuário inativo.
+- `USER_EMAIL_ALREADY_EXISTS`: e-mail já cadastrado.
+
+`SUPOSIÇÃO TÉCNICA`: `POST /auth/register` permanece aberto no MVP local até a equipe decidir se usuários serão criados apenas por administrador.
+
+`PENDENTE DE DEFINIÇÃO`: tempo final de expiração, refresh token e política de bloqueio de login.
 
 ## Saúde
 
@@ -57,6 +83,20 @@ Resposta recomendada:
 - `POST /users`.
 - `GET /users/{id}`.
 - `PATCH /users/{id}`.
+
+Regras atuais:
+
+- Campos públicos retornados: `id`, `name`, `email`, `role`, `active` e `created_at`.
+- `password_hash` nunca é retornado.
+- `role` aceita `ADMIN`, `CHECKER`, `DRIVER` e `LOGISTICS_MANAGER`.
+- `email` é normalizado para minúsculas.
+- `role` é normalizado para maiúsculas.
+- `password` deve ter no mínimo 8 caracteres na entrada.
+
+Erros específicos:
+
+- `USER_NOT_FOUND`: usuário não encontrado.
+- `USER_EMAIL_ALREADY_EXISTS`: e-mail já cadastrado.
 
 `PENDENTE DE DEFINIÇÃO`: se cadastro público de usuário será permitido ou se usuários serão criados apenas por administrador.
 
@@ -241,6 +281,12 @@ Outras rotas:
 - `GET /trips/{id}`.
 - `PATCH /trips/{id}/status`.
 - `PATCH /deliveries/{id}/status`.
+
+## Histórico de status
+
+`CONFIRMADO`: mudanças de status devem gravar registros em `status_history`.
+
+`PENDENTE DE DEFINIÇÃO`: endpoint público para consulta de histórico ainda não está aprovado.
 
 ## Ocorrências
 
