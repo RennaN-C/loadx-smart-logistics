@@ -2,7 +2,9 @@
 
 ## Estado atual
 
-`CONFIRMADO`: o repositório ainda não possui migrations Alembic geradas nem models SQLAlchemy dos módulos de negócio.
+`CONFIRMADO`: o repositório possui models SQLAlchemy e migration inicial para `users`, `customers`, `drivers`, `trucks` e `products`.
+
+`PENDENTE DE DEFINIÇÃO`: orders, order_items, load_plans, load_plan_orders, load_plan_items, loading_sessions, trips, deliveries, occurrences e status_history ainda não possuem models/migrations.
 
 `CONFIRMADO`: este documento é o contrato inicial para a criação do banco. Qualquer mudança estrutural deve ser registrada por migration e documentada aqui.
 

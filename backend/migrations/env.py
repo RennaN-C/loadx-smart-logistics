@@ -14,6 +14,17 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 
+def import_models() -> None:
+    from app.modules.customers import models as customers_models  # noqa: F401
+    from app.modules.drivers import models as drivers_models  # noqa: F401
+    from app.modules.products import models as products_models  # noqa: F401
+    from app.modules.trucks import models as trucks_models  # noqa: F401
+    from app.modules.users import models as users_models  # noqa: F401
+
+
+import_models()
+
+
 def get_database_url() -> str:
     return settings.database_url
 

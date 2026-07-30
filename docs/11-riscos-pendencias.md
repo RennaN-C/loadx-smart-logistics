@@ -11,6 +11,7 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 - `CONFIRMADO`: nomes técnicos em inglês.
 - `CONFIRMADO`: documentação oficial dentro da estrutura existente de `docs`.
 - `CONFIRMADO`: Alembic configurado em `backend/alembic.ini` e `backend/migrations/env.py`.
+- `CONFIRMADO`: migration inicial `20260729_0001` cria `users`, `customers`, `drivers`, `trucks` e `products`.
 
 ## Decisões necessárias
 
@@ -25,6 +26,7 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 ## Pendências técnicas
 
 - `PENDENTE DE DEFINIÇÃO`: CI real ainda não está implementada, apenas documentada em `infra/ci/README.md`.
+- `PENDENTE DE DEFINIÇÃO`: models e migrations de pedidos, planejamento, carregamento, entregas, ocorrências e histórico de status.
 - `PENDENTE DE DEFINIÇÃO`: estratégia final de logging estruturado.
 - `PENDENTE DE DEFINIÇÃO`: tempo de expiração de token e fluxo de refresh.
 - `PENDENTE DE DEFINIÇÃO`: validação formal de CPF, CNPJ, telefone e CNH.
