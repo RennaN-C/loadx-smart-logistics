@@ -2,9 +2,9 @@
 
 ## Estado atual
 
-`CONFIRMADO`: o repositório possui models SQLAlchemy e migration inicial para `users`, `customers`, `drivers`, `trucks` e `products`.
+`CONFIRMADO`: o repositório possui models SQLAlchemy e migrations para `users`, `customers`, `drivers`, `trucks`, `products`, `orders` e `order_items`.
 
-`PENDENTE DE DEFINIÇÃO`: orders, order_items, load_plans, load_plan_orders, load_plan_items, loading_sessions, trips, deliveries, occurrences e status_history ainda não possuem models/migrations.
+`PENDENTE DE DEFINIÇÃO`: load_plans, load_plan_orders, load_plan_items, loading_sessions, trips, deliveries, occurrences e status_history ainda não possuem models/migrations.
 
 `CONFIRMADO`: este documento é o contrato inicial para a criação do banco. Qualquer mudança estrutural deve ser registrada por migration e documentada aqui.
 
@@ -137,8 +137,8 @@ Pedidos de entrega.
 
 - `id`: UUID, PK.
 - `customer_id`: UUID, FK para `customers.id`, obrigatório.
-- `status`: texto ou enum, obrigatório.
-- `priority`: texto ou inteiro, obrigatório.
+- `status`: texto, obrigatório, valores permitidos atuais `DRAFT`, `READY`, `PLANNED`, `IN_TRANSIT`, `DELIVERED` e `CANCELED`.
+- `priority`: texto, obrigatório, normalizado em maiúsculas pela API.
 - `delivery_address`: texto, obrigatório.
 - `expected_delivery_at`: timestamptz UTC.
 - `created_at`: timestamptz UTC, obrigatório.
@@ -149,6 +149,7 @@ Pedidos de entrega.
 - `ix_orders__customer_id`.
 - `ix_orders__status`.
 - `ix_orders__expected_delivery_at` `RECOMENDAÇÃO`.
+- `ck_orders__status_allowed`.
 
 ### `order_items`
 
@@ -167,7 +168,7 @@ Itens de pedido e quantidades solicitadas.
 - `ix_order_items__order_id`.
 - `ix_order_items__product_id`.
 - `ck_order_items__quantity_positive`.
-- `ck_order_items__delivery_sequence_positive` `RECOMENDAÇÃO`.
+- `ck_order_items__delivery_sequence_positive`.
 
 ### `load_plans`
 
@@ -363,6 +364,8 @@ Histórico auditável de mudanças de status.
 - Migrations devem ser pequenas e relacionadas a uma ocorrência.
 
 `CONFIRMADO`: a configuração oficial do Alembic fica em `backend/alembic.ini` e `backend/migrations/env.py`. Os comandos estão documentados em `backend/migrations/README.md`.
+
+`CONFIRMADO`: a migration `20260730_0002` cria `orders` e `order_items` para a ocorrência `OC08`.
 
 ## Observação
 

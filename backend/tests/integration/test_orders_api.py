@@ -1,0 +1,214 @@
+import uuid
+from collections.abc import Generator
+
+import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import StaticPool
+
+from app.database.base import Base
+from app.database.session import get_db
+from app.main import app
+from app.modules.customers.models import Customer
+from app.modules.orders.models import Order, OrderItem
+from app.modules.products.models import Product
+
+
+@pytest.fixture
+def client() -> Generator[TestClient, None, None]:
+    engine = create_engine(
+        "sqlite+pysqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    tables = [Customer.__table__, Product.__table__, Order.__table__, OrderItem.__table__]
+    Base.metadata.create_all(engine, tables=tables)
+    testing_session_local = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+
+    def override_get_db() -> Generator[Session, None, None]:
+        db = testing_session_local()
+        try:
+            yield db
+        finally:
+            db.close()
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        yield TestClient(app)
+    finally:
+        app.dependency_overrides.clear()
+        Base.metadata.drop_all(engine, tables=list(reversed(tables)))
+
+
+def create_customer(client: TestClient) -> str:
+    response = client.post(
+        "/api/v1/customers",
+        json={
+            "name": "Cliente Demonstracao",
+            "document": uuid.uuid4().hex,
+            "phone": "5500000000000",
+            "address": "Rua Exemplo, 100",
+            "city": "Sao Paulo",
+            "state": "SP",
+            "notes": "Cliente ficticio para testes",
+        },
+    )
+    assert response.status_code == 201
+    return str(response.json()["id"])
+
+
+def create_product(client: TestClient, code: str = "CX-A") -> str:
+    response = client.post(
+        "/api/v1/products",
+        json={
+            "code": code,
+            "name": f"Produto {code}",
+            "description": "Produto ficticio para testes",
+            "width_cm": 60,
+            "height_cm": 50,
+            "length_cm": 40,
+            "weight_kg": 12.5,
+            "fragile": False,
+            "stackable": True,
+            "rotation_allowed": True,
+        },
+    )
+    assert response.status_code == 201
+    return str(response.json()["id"])
+
+
+def make_order_payload(customer_id: str, product_id: str) -> dict[str, object]:
+    return {
+        "customer_id": customer_id,
+        "priority": "normal",
+        "delivery_address": "Rua Exemplo, 100",
+        "expected_delivery_at": "2026-08-10T10:00:00-03:00",
+        "items": [
+            {
+                "product_id": product_id,
+                "quantity": 3,
+                "delivery_sequence": 1,
+            }
+        ],
+    }
+
+
+def create_order(client: TestClient) -> dict[str, object]:
+    customer_id = create_customer(client)
+    product_id = create_product(client)
+    response = client.post("/api/v1/orders", json=make_order_payload(customer_id, product_id))
+    assert response.status_code == 201
+    return response.json()
+
+
+def test_create_order_returns_created_resource(client: TestClient) -> None:
+    customer_id = create_customer(client)
+    product_id = create_product(client)
+
+    response = client.post("/api/v1/orders", json=make_order_payload(customer_id, product_id))
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["id"]
+    assert body["customer_id"] == customer_id
+    assert body["status"] == "DRAFT"
+    assert body["priority"] == "NORMAL"
+    assert body["expected_delivery_at"].startswith("2026-08-10T13:00:00")
+    assert body["items"][0]["product_id"] == product_id
+    assert body["items"][0]["quantity"] == 3
+
+
+def test_list_orders_returns_created_items(client: TestClient) -> None:
+    order = create_order(client)
+
+    response = client.get("/api/v1/orders")
+
+    assert response.status_code == 200
+    assert response.json()[0]["id"] == order["id"]
+
+
+def test_get_order_by_id_returns_created_item(client: TestClient) -> None:
+    order = create_order(client)
+
+    response = client.get(f"/api/v1/orders/{order['id']}")
+
+    assert response.status_code == 200
+    assert response.json()["id"] == order["id"]
+
+
+def test_patch_order_updates_header_and_replaces_items(client: TestClient) -> None:
+    order = create_order(client)
+    second_product_id = create_product(client, "CX-B")
+
+    response = client.patch(
+        f"/api/v1/orders/{order['id']}",
+        json={
+            "status": "ready",
+            "priority": "high",
+            "delivery_address": "Avenida Exemplo, 200",
+            "items": [
+                {
+                    "product_id": second_product_id,
+                    "quantity": 2,
+                    "delivery_sequence": 2,
+                }
+            ],
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "READY"
+    assert body["priority"] == "HIGH"
+    assert body["delivery_address"] == "Avenida Exemplo, 200"
+    assert len(body["items"]) == 1
+    assert body["items"][0]["product_id"] == second_product_id
+    assert body["items"][0]["quantity"] == 2
+    assert body["items"][0]["delivery_sequence"] == 2
+
+
+def test_create_order_returns_standard_error_for_missing_customer(client: TestClient) -> None:
+    product_id = create_product(client)
+
+    response = client.post("/api/v1/orders", json=make_order_payload(str(uuid.uuid4()), product_id))
+
+    assert response.status_code == 404
+    assert response.json() == {
+        "code": "ORDER_CUSTOMER_NOT_FOUND",
+        "message": "Cliente do pedido não encontrado.",
+        "details": [{"field": "customer_id"}],
+    }
+
+
+def test_create_order_returns_standard_error_for_missing_product(client: TestClient) -> None:
+    customer_id = create_customer(client)
+    missing_product_id = str(uuid.uuid4())
+
+    response = client.post("/api/v1/orders", json=make_order_payload(customer_id, missing_product_id))
+
+    assert response.status_code == 404
+    assert response.json() == {
+        "code": "ORDER_PRODUCT_NOT_FOUND",
+        "message": "Produto do pedido não encontrado.",
+        "details": [{"field": "items.product_id", "ids": [missing_product_id]}],
+    }
+
+
+def test_create_order_rejects_empty_items(client: TestClient) -> None:
+    customer_id = create_customer(client)
+    product_id = create_product(client)
+    payload = make_order_payload(customer_id, product_id)
+    payload["items"] = []
+
+    response = client.post("/api/v1/orders", json=payload)
+
+    assert response.status_code == 422
+
+
+def test_patch_order_rejects_invalid_status(client: TestClient) -> None:
+    order = create_order(client)
+
+    response = client.patch(f"/api/v1/orders/{order['id']}", json={"status": "invalid"})
+
+    assert response.status_code == 422

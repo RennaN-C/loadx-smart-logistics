@@ -20,13 +20,14 @@ def test_alembic_env_uses_application_metadata() -> None:
 
     assert "from app.database.base import Base" in env_content
     assert "target_metadata = Base.metadata" in env_content
+    assert "from app.modules.orders import models as orders_models" in env_content
 
 
-def test_alembic_has_single_initial_revision_head() -> None:
+def test_alembic_has_current_revision_head() -> None:
     config = Config(str(BACKEND_ROOT / "alembic.ini"))
     script = ScriptDirectory.from_config(config)
 
-    assert script.get_current_head() == "20260729_0001"
+    assert script.get_current_head() == "20260730_0002"
 
 
 def test_initial_migration_renders_expected_check_constraint_names() -> None:
@@ -41,6 +42,11 @@ def test_initial_migration_renders_expected_check_constraint_names() -> None:
     assert "CONSTRAINT ck_users__role_allowed" in result.stdout
     assert "CONSTRAINT ck_trucks__dimensions_positive" in result.stdout
     assert "CONSTRAINT ck_products__weight_positive" in result.stdout
+    assert "CREATE TABLE orders" in result.stdout
+    assert "CREATE TABLE order_items" in result.stdout
+    assert "CONSTRAINT ck_orders__status_allowed" in result.stdout
+    assert "CONSTRAINT fk_orders__customers" in result.stdout
+    assert "CONSTRAINT fk_order_items__products" in result.stdout
     assert "ck_users__ck_users" not in result.stdout
     assert "ck_trucks__ck_trucks" not in result.stdout
     assert "ck_products__ck_products" not in result.stdout

@@ -145,6 +145,24 @@ Exemplo de criação:
 }
 ```
 
+Regras atuais:
+
+- `POST /orders` cria o pedido com `status = "DRAFT"`.
+- `PATCH /orders/{id}` aceita alteração de `customer_id`, `status`, `priority`, `delivery_address`, `expected_delivery_at` e, quando `items` for enviado, substitui o conjunto de itens do pedido.
+- `status` aceita `DRAFT`, `READY`, `PLANNED`, `IN_TRANSIT`, `DELIVERED` e `CANCELED`.
+- `priority` é texto obrigatório e é normalizado para maiúsculas.
+- `expected_delivery_at` deve vir com timezone e é normalizado para UTC.
+- O pedido deve possuir pelo menos um item.
+- `quantity` e `delivery_sequence` devem ser maiores que zero.
+- `customer_id` deve existir em `customers`.
+- Todos os `product_id` dos itens devem existir em `products`.
+
+Erros específicos:
+
+- `ORDER_NOT_FOUND`: pedido não encontrado.
+- `ORDER_CUSTOMER_NOT_FOUND`: cliente do pedido não encontrado.
+- `ORDER_PRODUCT_NOT_FOUND`: produto do pedido não encontrado.
+
 ## Planos de carga
 
 ### POST `/load-plans`
