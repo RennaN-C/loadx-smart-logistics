@@ -2,13 +2,27 @@
 
 Dimensões internas, peso máximo, disponibilidade e validações do veículo.
 
-## Estrutura sugerida
+## Estrutura
 
-- `models.py`: entidades SQLAlchemy do módulo.
-- `schemas.py`: contratos Pydantic.
-- `repository.py`: consultas e persistência.
-- `service.py`: regras e casos de uso.
+- `models.py`: entidade SQLAlchemy `Truck`.
+- `schemas.py`: contratos Pydantic `TruckCreate`, `TruckUpdate` e `TruckRead`.
+- `repository.py`: consultas e persistência de caminhões.
+- `service.py`: regras de placa única, criação, consulta e atualização.
 - `router.py`: endpoints HTTP.
 - `domain/`: objetos e regras puras, quando necessário.
 
 Crie somente os arquivos necessários para a ocorrência atual.
+
+## Endpoints
+
+- `GET /api/v1/trucks`: lista caminhões.
+- `POST /api/v1/trucks`: cria caminhão.
+- `GET /api/v1/trucks/{id}`: consulta caminhão por ID.
+- `PATCH /api/v1/trucks/{id}`: atualiza campos enviados.
+
+## Regras implementadas
+
+- Placa é normalizada para maiúsculas.
+- Placa deve ser única.
+- Dimensões internas e peso máximo devem ser maiores que zero.
+- Exclusão física ainda não foi implementada; use `active = false` para indisponibilidade.

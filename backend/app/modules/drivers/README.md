@@ -1,8 +1,8 @@
 # Motoristas
 
-Cadastro do motorista e vínculo com viagens. GPS real não faz parte do MVP.
+Cadastro do motorista e vínculo futuro com viagens. GPS real não faz parte do MVP.
 
-## Estrutura sugerida
+## Estrutura
 
 - `models.py`: entidades SQLAlchemy do módulo.
 - `schemas.py`: contratos Pydantic.
@@ -12,3 +12,23 @@ Cadastro do motorista e vínculo com viagens. GPS real não faz parte do MVP.
 - `domain/`: objetos e regras puras, quando necessário.
 
 Crie somente os arquivos necessários para a ocorrência atual.
+
+## Endpoints
+
+- `GET /api/v1/drivers`: lista motoristas.
+- `POST /api/v1/drivers`: cria motorista.
+- `GET /api/v1/drivers/{id}`: consulta motorista por ID.
+- `PATCH /api/v1/drivers/{id}`: atualiza campos enviados.
+
+## Regras implementadas
+
+- Nome, documento, telefone e CNH são obrigatórios.
+- `document` deve ser único.
+- `license_number` deve ser único.
+- `license_category` é opcional e normalizada para maiúsculas quando informada.
+- `active = false` representa motorista indisponível para viagens futuras.
+
+## Pendências
+
+- `PENDENTE DE DEFINIÇÃO`: validação formal de CPF, telefone e categoria de CNH.
+- `PENDENTE DE DEFINIÇÃO`: bloqueio de vínculo de motorista inativo será aplicado no módulo de viagens.

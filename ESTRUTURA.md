@@ -119,6 +119,7 @@
 │   ├── 08-padroes-desenvolvimento.md
 │   ├── 09-guia-para-ia.md
 │   ├── 10-roadmap-inicial.md
+│   ├── 11-riscos-pendencias.md
 │   ├── README.md
 │   └── referencia-arquivo-original.md
 ├── frontend
