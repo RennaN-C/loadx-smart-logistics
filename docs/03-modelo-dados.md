@@ -2,9 +2,9 @@
 
 ## Estado atual
 
-`CONFIRMADO`: o repositório possui models SQLAlchemy e migrations para `users`, `customers`, `drivers`, `trucks`, `products`, `orders` e `order_items`.
+`CONFIRMADO`: o repositório possui models SQLAlchemy e migrations para `users`, `customers`, `drivers`, `trucks`, `products`, `orders`, `order_items` e `status_history`.
 
-`PENDENTE DE DEFINIÇÃO`: load_plans, load_plan_orders, load_plan_items, loading_sessions, trips, deliveries, occurrences e status_history ainda não possuem models/migrations.
+`PENDENTE DE DEFINIÇÃO`: load_plans, load_plan_orders, load_plan_items, loading_sessions, trips, deliveries e occurrences ainda não possuem models/migrations.
 
 `CONFIRMADO`: este documento é o contrato inicial para a criação do banco. Qualquer mudança estrutural deve ser registrada por migration e documentada aqui.
 
@@ -329,6 +329,10 @@ Histórico auditável de mudanças de status.
 - `ix_status_history__entity`.
 - `ix_status_history__created_at`.
 
+`CONFIRMADO`: `entity_type`, `old_status` e `new_status` são normalizados em maiúsculas pela camada de schema/service.
+
+`PENDENTE DE DEFINIÇÃO`: lista final de `entity_type` permitidos.
+
 ## Relacionamentos principais
 
 - `customers` 1:N `orders`.
@@ -366,6 +370,8 @@ Histórico auditável de mudanças de status.
 `CONFIRMADO`: a configuração oficial do Alembic fica em `backend/alembic.ini` e `backend/migrations/env.py`. Os comandos estão documentados em `backend/migrations/README.md`.
 
 `CONFIRMADO`: a migration `20260730_0002` cria `orders` e `order_items` para a ocorrência `OC08`.
+
+`CONFIRMADO`: a migration `20260730_0003` cria `status_history` para a ocorrência `OC10`.
 
 ## Observação
 

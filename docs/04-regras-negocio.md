@@ -158,6 +158,16 @@ Estados de viagem recomendados:
 - `FINISHED`.
 - `CANCELED`.
 
+## Histórico de status
+
+- Histórico deve registrar a entidade alterada, status anterior, novo status, usuário responsável quando houver e data/hora.
+- `old_status` pode ser nulo quando for o primeiro status conhecido da entidade.
+- `changed_by` é opcional para permitir registros automáticos do sistema.
+- Quando `changed_by` for informado, deve apontar para um usuário existente.
+- Histórico não deve ser removido ou sobrescrito por alterações de status futuras.
+
+`PENDENTE DE DEFINIÇÃO`: lista final de entidades auditáveis e perfis autorizados a consultar histórico.
+
 Estados de entrega recomendados:
 
 - `PENDING`.

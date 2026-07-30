@@ -27,7 +27,7 @@ def test_alembic_has_current_revision_head() -> None:
     config = Config(str(BACKEND_ROOT / "alembic.ini"))
     script = ScriptDirectory.from_config(config)
 
-    assert script.get_current_head() == "20260730_0002"
+    assert script.get_current_head() == "20260730_0003"
 
 
 def test_initial_migration_renders_expected_check_constraint_names() -> None:
@@ -47,6 +47,9 @@ def test_initial_migration_renders_expected_check_constraint_names() -> None:
     assert "CONSTRAINT ck_orders__status_allowed" in result.stdout
     assert "CONSTRAINT fk_orders__customers" in result.stdout
     assert "CONSTRAINT fk_order_items__products" in result.stdout
+    assert "CREATE TABLE status_history" in result.stdout
+    assert "CONSTRAINT fk_status_history__users" in result.stdout
+    assert "CREATE INDEX ix_status_history__entity" in result.stdout
     assert "ck_users__ck_users" not in result.stdout
     assert "ck_trucks__ck_trucks" not in result.stdout
     assert "ck_products__ck_products" not in result.stdout

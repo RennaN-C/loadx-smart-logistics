@@ -282,6 +282,12 @@ Outras rotas:
 - `PATCH /trips/{id}/status`.
 - `PATCH /deliveries/{id}/status`.
 
+## Histórico de status
+
+`CONFIRMADO`: mudanças de status devem gravar registros em `status_history`.
+
+`PENDENTE DE DEFINIÇÃO`: endpoint público para consulta de histórico ainda não está aprovado.
+
 ## Ocorrências
 
 - `POST /occurrences`.

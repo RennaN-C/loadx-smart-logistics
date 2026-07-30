@@ -13,6 +13,7 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 - `CONFIRMADO`: Alembic configurado em `backend/alembic.ini` e `backend/migrations/env.py`.
 - `CONFIRMADO`: migration inicial `20260729_0001` cria `users`, `customers`, `drivers`, `trucks` e `products`.
 - `CONFIRMADO`: migration `20260730_0002` cria `orders` e `order_items`.
+- `CONFIRMADO`: migration `20260730_0003` cria `status_history`.
 - `CONFIRMADO`: autenticação inicial possui cadastro, login, token JWT e `/auth/me`.
 
 ## Decisões necessárias
@@ -28,7 +29,8 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 ## Pendências técnicas
 
 - `PENDENTE DE DEFINIÇÃO`: CI real ainda não está implementada, apenas documentada em `infra/ci/README.md`.
-- `PENDENTE DE DEFINIÇÃO`: models e migrations de planejamento, carregamento, entregas, ocorrências e histórico de status.
+- `PENDENTE DE DEFINIÇÃO`: models e migrations de planejamento, carregamento, entregas e ocorrências.
+- `PENDENTE DE DEFINIÇÃO`: endpoint público e permissões para consulta de histórico de status.
 - `PENDENTE DE DEFINIÇÃO`: estratégia final de logging estruturado.
 - `PENDENTE DE DEFINIÇÃO`: política final de expiração de token, fluxo de refresh e bloqueio por tentativas inválidas.
 - `PENDENTE DE DEFINIÇÃO`: validação formal de CPF, CNPJ, telefone e CNH.

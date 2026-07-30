@@ -60,7 +60,7 @@ Responsabilidades por pasta:
 - `backend/migrations`: migrations Alembic.
 - `backend/tests`: testes unitários, integração e e2e.
 
-`CONFIRMADO`: no estado atual do código, existem base FastAPI, configurações, sessão SQLAlchemy, health check, migrations e módulos backend para autenticação, usuários, caminhões, produtos, clientes, motoristas e pedidos.
+`CONFIRMADO`: no estado atual do código, existem base FastAPI, configurações, sessão SQLAlchemy, health check, migrations e módulos backend para autenticação, usuários, caminhões, produtos, clientes, motoristas, pedidos e histórico de status.
 
 `PENDENTE DE DEFINIÇÃO`: planejamento de carga, carregamento, viagens, entregas, ocorrências, relatórios, permissões detalhadas e integrações ainda precisam ser implementados conforme suas ocorrências.
 
