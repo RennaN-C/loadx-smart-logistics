@@ -1,148 +1,249 @@
 <div align="center">
 
-# 🚚 Sistema Operacional Logístico Inteligente
+# 🚚 LOAD X - Sistema Operacional Logístico Inteligente
 
-### Planejamento e gestão de cargas com Inteligência Artificial
+### Planejamento e gestão inteligente de cargas utilizando Inteligência Artificial
 
 ![Status](https://img.shields.io/badge/status-em%20desenvolvimento-yellow)
 ![Equipe](https://img.shields.io/badge/equipe-4%20desenvolvedores-blue)
-![Python](https://img.shields.io/badge/Python-IA%20e%20Backend-3776AB)
+![Python](https://img.shields.io/badge/Python-Backend-3776AB)
+![FastAPI](https://img.shields.io/badge/FastAPI-API-009688)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Banco%20de%20Dados-336791)
 
 </div>
 
-## 📌 Sobre o projeto
+---
 
-O **Sistema Operacional Logístico Inteligente** é uma solução desenvolvida para auxiliar empresas de transporte e logística no planejamento, carregamento e acompanhamento de cargas.
+# 👥 Integrantes
 
-O sistema utilizará **Inteligência Artificial e algoritmos de otimização** para calcular a melhor disposição dos produtos dentro dos caminhões, considerando dimensões, peso e restrições de transporte.
+- Rennan de Oliveira Cardoso
+- Marlon Myszka
+- Marcelo Barbusa
+- Joao Victor Weber
+  
 
-Além do planejamento de cargas, a proposta inclui monitoramento do carregamento, comunicação com motoristas e acompanhamento das entregas em tempo real.
+---
 
-## 🎯 Objetivo
+# 📌 Resumo da automação proposta
 
-Automatizar e otimizar o processo logístico, reduzindo erros, retrabalho, custos de transporte e desperdício de espaço nos caminhões.
+O **LOAD X** é um sistema desenvolvido para automatizar o gerenciamento logístico de empresas de transporte.
 
-A solução busca oferecer maior controle sobre toda a operação, desde o recebimento dos pedidos até a conclusão das entregas.
+A proposta é centralizar o cadastro de clientes, motoristas, caminhões, produtos e pedidos, permitindo que futuramente algoritmos de Inteligência Artificial realizem a distribuição inteligente das cargas, considerando restrições de peso, dimensões e capacidade dos veículos.
 
-## ⚠️ Problema identificado
+Além disso, o sistema prevê recursos para monitoramento das operações, visualização do carregamento, acompanhamento das entregas e apoio à tomada de decisão.
 
-Atualmente, grande parte do planejamento de cargas é realizada manualmente, o que pode causar:
+---
 
-* Desperdício de espaço no caminhão.
-* Distribuição inadequada de peso.
-* Erros durante o carregamento.
-* Retrabalho da equipe.
-* Atrasos nas entregas.
-* Falhas na comunicação com motoristas.
-* Dificuldade para acompanhar a operação em tempo real.
+# 🎯 Objetivos
 
-## ✨ Funcionalidades previstas
+- Automatizar processos logísticos.
+- Reduzir erros operacionais.
+- Otimizar o espaço disponível nos caminhões.
+- Melhorar o planejamento das entregas.
+- Fornecer informações em tempo real para gestores.
 
-* 🚛 Cadastro de caminhões.
-* 📦 Cadastro de produtos e suas dimensões.
-* 🧾 Cadastro e gerenciamento de pedidos.
-* 🧠 Cálculo inteligente da disposição das cargas.
-* 🧊 Visualização 3D do carregamento.
-* 📷 Monitoramento do carregamento com câmera e IA.
-* ✅ Identificação de produtos incorretos ou ausentes.
-* 💬 Integração com WhatsApp.
-* 📍 Acompanhamento das entregas em tempo real.
-* ⚠️ Previsão de atrasos e riscos operacionais.
-* 📊 Painel de indicadores logísticos.
-* 📄 Geração de relatórios.
-* 🔄 Aprendizado com operações anteriores.
+---
 
-## 🛠️ Tecnologias previstas
+# ⚙ Tecnologias e ferramentas utilizadas
 
-| Tecnologia                 | Utilização                                    |
-| -------------------------- | --------------------------------------------- |
-| Python                     | Backend, automações e Inteligência Artificial |
-| FastAPI                    | Desenvolvimento da API                        |
-| PostgreSQL                 | Armazenamento dos dados                       |
-| OpenAI API ou modelo de IA | Análise e recomendações inteligentes          |
-| OpenCV                     | Monitoramento por câmera                      |
-| Three.js                   | Visualização 3D do carregamento               |
-| WhatsApp Business API      | Comunicação com motoristas e responsáveis     |
-| Docker                     | Padronização e execução dos ambientes         |
-| Git e GitHub               | Versionamento e colaboração da equipe         |
+## Backend
 
-## 🔄 Fluxo geral
+- Python 3.12
+- FastAPI
+- SQLAlchemy
+- Alembic
+- PostgreSQL
 
-```text
-Receber pedidos
-      ↓
-Buscar produtos e dimensões
-      ↓
-Calcular a melhor distribuição da carga
-      ↓
-Gerar visualização 3D
-      ↓
-Orientar e monitorar o carregamento
-      ↓
-Atualizar o motorista e os responsáveis
-      ↓
-Acompanhar a entrega
-      ↓
-Registrar os resultados
-      ↓
-Utilizar os dados para futuras melhorias
+## Testes
+
+- Pytest
+
+## Qualidade
+
+- Ruff
+- MyPy
+- SonarCloud
+
+## DevOps
+
+- Docker
+- Docker Compose
+- Git
+- GitHub
+- GitHub Actions
+
+## Documentação
+
+- Markdown
+
+## Tecnologias previstas
+
+- OpenAI API
+- OpenCV
+- Three.js
+- WhatsApp Business API
+
+---
+
+# ✅ Funcionalidades implementadas
+
+Atualmente o backend possui:
+
+- Cadastro de usuários
+- Autenticação
+- Cadastro de clientes
+- Cadastro de motoristas
+- Cadastro de caminhões
+- Cadastro de produtos
+- Cadastro de pedidos
+- Histórico de status
+- Estrutura inicial do banco de dados
+- Migrations utilizando Alembic
+- Testes unitários
+- Pipeline de integração contínua
+- Análise de qualidade com SonarCloud
+
+---
+
+# 🚀 Funcionalidades previstas
+
+- IA para distribuição inteligente de cargas
+- Visualização 3D do carregamento
+- Monitoramento por câmera
+- Integração com WhatsApp
+- Dashboard logístico
+- Rastreamento das entregas
+- Relatórios gerenciais
+- Algoritmos de otimização logística
+
+---
+
+# 🖥 Instalação
+
+## Pré-requisitos
+
+- Python 3.12+
+- PostgreSQL
+- Git
+- Docker (opcional)
+
+## Clonar o projeto
+
+```bash
+git clone https://github.com/RennaN-C/loadx-smart-logistics.git
+
+cd loadx-smart-logistics
 ```
 
-## 👥 Equipe
+## Criar ambiente virtual
 
-Projeto acadêmico desenvolvido por uma equipe de **4 desenvolvedores**.
+Windows
 
-O desenvolvimento seguirá padrões compartilhados de:
+```bash
+python -m venv .venv
 
-* Organização do código.
-* Nomenclatura de variáveis e métodos.
-* Estrutura do banco de dados.
-* Documentação.
-* Versionamento com Git.
-* Uso de Inteligência Artificial no desenvolvimento.
+.venv\Scripts\activate
+```
 
-## 🚧 Status do projeto
+Linux
 
-O projeto está atualmente em fase de **planejamento, documentação e definição da arquitetura**.
+```bash
+python3 -m venv .venv
 
-As instruções de instalação, configuração e execução serão adicionadas conforme a implementação do sistema avançar.
+source .venv/bin/activate
+```
 
-## 🤝 Contribuição
+## Instalar dependências
 
-Antes de realizar alterações, consulte a documentação técnica do projeto e siga os padrões definidos pela equipe.
+```bash
+pip install -r backend/requirements.txt
+```
 
-Toda nova funcionalidade deverá:
+## Configurar banco
 
-1. Respeitar a arquitetura existente.
-2. Seguir as convenções de código.
-3. Manter o banco de dados padronizado.
-4. Ser documentada.
-5. Ser revisada antes da integração com a branch principal.
+Criar o arquivo `.env` utilizando o `.env.example` e configurar os dados de conexão com o PostgreSQL.
 
-## 📚 Documentação
+## Executar as migrations
 
-A documentação detalhada do projeto será mantida na pasta `docs`, contendo informações sobre:
+```bash
+cd backend
 
-* Requisitos.
-* Regras de negócio.
-* Arquitetura.
-* Banco de dados.
-* Padrões de desenvolvimento.
-* Integrações.
-* Testes.
-* Decisões técnicas.
+alembic upgrade head
+```
 
-## 📄 Licença
+## Executar o backend
 
-Este projeto possui finalidade acadêmica.
+```bash
+uvicorn app.main:app --reload
+```
 
-A licença de uso e distribuição ainda será definida pela equipe.
+A API ficará disponível em:
+
+```
+http://localhost:8000
+```
+
+Documentação Swagger:
+
+```
+http://localhost:8000/docs
+```
+
+---
+
+# 📂 Estrutura do projeto
+
+```text
+backend/
+ ├── app/
+ ├── migrations/
+ ├── tests/
+ ├── requirements.txt
+ └── Dockerfile
+
+docs/
+
+.github/
+```
+
+---
+
+# 📈 Status do projeto
+
+O projeto encontra-se em desenvolvimento.
+
+Atualmente a equipe concluiu a estrutura inicial do backend, banco de dados, autenticação, cadastros principais e testes unitários.
+
+As próximas etapas envolvem a implementação da Inteligência Artificial, frontend, visualização 3D, integração com serviços externos e conclusão da documentação técnica.
+
+---
+
+# 🤝 Contribuição
+
+O projeto utiliza GitHub Flow adaptado para a equipe.
+
+Fluxo de desenvolvimento:
+
+1. Criar uma Issue.
+2. Criar uma branch própria.
+3. Desenvolver.
+4. Abrir Pull Request.
+5. Revisão de código.
+6. Merge para `desenvolvimento`.
+7. A cada módulo importante feito, Merge para `main`.
+
+---
+
+# 📄 Licença
+
+Projeto desenvolvido exclusivamente para fins acadêmicos.
 
 ---
 
 <div align="center">
 
-### 🚀 Tecnologia transformando logística em inteligência operacional
+### 🚚 LOAD X
+
+**Tecnologia transformando logística em inteligência operacional.**
 
 </div>
