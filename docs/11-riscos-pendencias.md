@@ -38,6 +38,29 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 - `PENDENTE DE DEFINIÇÃO`: metas de performance do otimizador.
 - `PENDENTE DE DEFINIÇÃO`: mensagens finais do WhatsApp para confirmação, erro e status.
 
+## Gates detalhados do otimizador e planejamento
+
+- `PENDENTE DE DEFINIÇÃO`: definir a ordem total da OC13, todos os desempates e a identidade estável final.
+- `PENDENTE DE DEFINIÇÃO`: definir todas as rotações válidas da OC14, a semântica dos códigos, sua prioridade e o tratamento de dimensões simétricas.
+- `PENDENTE DE DEFINIÇÃO`: definir pontos candidatos, ordem de varredura e desempates entre posição e rotação na OC15.
+- `PENDENTE DE DEFINIÇÃO`: definir tolerância geométrica e se contato de face, aresta ou vértice conta como colisão na OC16.
+- `PENDENTE DE DEFINIÇÃO`: definir percentual mínimo de apoio, apoio parcial, união de áreas e múltiplos suportes na OC17.
+- `PENDENTE DE DEFINIÇÃO`: definir o limite de peso sobre produto frágil e se a regra considera apoio direto ou carga transmitida.
+- `PENDENTE DE DEFINIÇÃO`: definir fórmula, precisão, tipo numérico e arredondamento de `occupancy_percent` na OC19.
+- `PENDENTE DE DEFINIÇÃO`: definir a posição da porta no eixo `z` e como posição, entrega e porta produzem `loading_sequence` na OC20.
+- `PENDENTE DE DEFINIÇÃO`: definir se `volume_index` começa em zero ou um.
+- `PENDENTE DE DEFINIÇÃO`: aprovar o catálogo estável de `rejection_reason` e a precedência quando mais de uma regra falhar.
+- `PENDENTE DE DEFINIÇÃO`: definir contrato público, endpoint e campos do schema de explicação da OC22.
+- `PENDENTE DE DEFINIÇÃO`: definir a política histórica para mudanças em caminhão, produto e itens de pedido já usados por um plano.
+
+`CONFIRMADO`: o núcleo atual mantém isolados OC11, OC12, primitivas geométricas da OC16 e o controle de peso da OC18; ainda não existe engine, `algorithm_version`, persistência ou rota de planejamento.
+
+`SUPOSIÇÃO TÉCNICA`: a base de `volume_index` é um parâmetro interno obrigatório da expansão apenas para permitir testes das duas alternativas. Ela não pode ser escolhida por service, API ou persistência antes de aprovação e versionamento da regra.
+
+`RECOMENDAÇÃO`: avaliar em conjunto as propostas de seis permutações deduplicadas, AABB com contato permitido, pontos nas faces positivas, ocupação por volume posicionado e identidade `(order_item_id, volume_index)`; nenhuma delas deve virar regra final apenas por estar sugerida.
+
+`RISCO IDENTIFICADO`: escolher implicitamente qualquer gate acima muda o resultado determinístico, o contrato de visualização e a futura `algorithm_version`.
+
 ## Suposições técnicas
 
 - `SUPOSIÇÃO TÉCNICA`: o backend seguirá sessão SQLAlchemy síncrona, conforme `backend/AGENTS.md`, até decisão explícita em contrário.
