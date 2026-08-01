@@ -18,6 +18,8 @@ Alterações nesta documentação devem ser rastreáveis por ocorrência, PR ou 
 - `09-guia-para-ia.md`: como orientar agentes de programação.
 - `10-roadmap-inicial.md`: sequência de sprints baseada no documento-base.
 - `11-riscos-pendencias.md`: decisões necessárias, riscos, dúvidas e pendências.
+- `12-ocorrencias-propostas-backend.md`: ocorrências de correção e melhoria preparadas para aprovação da equipe.
+- `decisoes-equipe-backend.txt`: pauta preenchível para decisões que bloqueiam ocorrências do backend.
 - `decisions/`: registros de decisões arquiteturais.
 - `diagrams/`: diagramas Mermaid, UML e banco.
 - `prompts/`: modelos de prompt para IA.
