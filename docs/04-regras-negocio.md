@@ -116,6 +116,29 @@ Estados recomendados:
 - Dimensões internas e peso máximo devem ser maiores que zero antes do cálculo.
 - O cálculo de capacidade não acessa banco, HTTP ou IA.
 
+## Volume individual e expansão
+
+- `CONFIRMADO`: o núcleo puro calcula o volume individual em centímetros cúbicos por `width_cm * height_cm * length_cm`.
+- `CONFIRMADO`: a expansão em memória materializa exatamente `quantity` unidades e usa a composição `order_item_id` mais `volume_index` como identidade individual.
+- `CONFIRMADO`: dimensões, quantidade e sequência devem ser inteiros positivos; peso deve ser `Decimal` positivo e finito.
+- `CONFIRMADO`: coleções não ordenadas e `order_item_id` duplicados são rejeitados para preservar identidade e reprodução.
+- `PENDENTE DE DEFINIÇÃO`: definir se `volume_index` começa em zero ou um.
+- `SUPOSIÇÃO TÉCNICA`: o núcleo exige a base explicitamente e suporta as duas alternativas apenas para testar a expansão sem antecipar a escolha da equipe.
+- `DECISÃO NECESSÁRIA`: definir se os volumes terão tabela própria ou serão materializados diretamente em `load_plan_items`; a expansão pura não resolve essa escolha de persistência.
+
+## Geometria incremental
+
+- `CONFIRMADO`: a validação pura de limites usa coordenadas não negativas e `x + width <= truck_width`, `y + height <= truck_height`, `z + length <= truck_length`.
+- `CONFIRMADO`: a classificação geométrica atual distingue separação, contato sem volume e interseção com volume positivo.
+- `SUPOSIÇÃO TÉCNICA`: as primitivas atuais usam inteiros em centímetros, de acordo com os models existentes; a precisão persistida continua pendente.
+- `PENDENTE DE DEFINIÇÃO`: decidir se contato de face, aresta ou vértice é colisão e definir eventual tolerância antes de criar o validador final.
+
+## Controle de peso incremental
+
+- `CONFIRMADO`: o validador puro soma `current_weight_kg + candidate_weight_kg` usando `Decimal`.
+- `CONFIRMADO`: peso exatamente igual ao máximo é aceito; excesso é rejeitado sem alterar o acumulado recebido.
+- `PENDENTE DE DEFINIÇÃO`: definir o código público e a precedência da rejeição antes de integrar o peso à engine.
+
 ## Otimizador
 
 - A IA generativa não posiciona volumes.
