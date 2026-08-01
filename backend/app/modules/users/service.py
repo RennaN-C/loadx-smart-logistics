@@ -5,6 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.security import hash_password
+from app.database.integrity import get_integrity_constraint_name
 from app.modules.users.models import User
 from app.modules.users.repository import UserRepository
 from app.modules.users.schemas import UserCreate, UserUpdate
@@ -69,5 +70,7 @@ class UserService:
             self.db.refresh(user)
         except IntegrityError as exc:
             self.db.rollback()
-            raise UserEmailAlreadyExistsError from exc
+            if get_integrity_constraint_name(exc) == "uq_users__email":
+                raise UserEmailAlreadyExistsError from exc
+            raise
         return user

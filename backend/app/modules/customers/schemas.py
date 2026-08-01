@@ -36,6 +36,13 @@ class CustomerUpdate(BaseModel):
 
     model_config = ConfigDict(str_strip_whitespace=True)
 
+    @field_validator("name", "document", "address", "city", "state", mode="before")
+    @classmethod
+    def reject_null_required_fields(cls, value: object) -> object:
+        if value is None:
+            raise ValueError("field must not be null")
+        return value
+
     @field_validator("state")
     @classmethod
     def normalize_state(cls, value: str | None) -> str | None:

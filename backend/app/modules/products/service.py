@@ -4,6 +4,7 @@ from collections.abc import Callable, Sequence
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.database.integrity import get_integrity_constraint_name
 from app.modules.products.models import Product
 from app.modules.products.repository import ProductRepository
 from app.modules.products.schemas import ProductCreate, ProductUpdate
@@ -60,5 +61,7 @@ class ProductService:
             self.db.refresh(product)
         except IntegrityError as exc:
             self.db.rollback()
-            raise ProductCodeAlreadyExistsError from exc
+            if get_integrity_constraint_name(exc) == "uq_products__code":
+                raise ProductCodeAlreadyExistsError from exc
+            raise
         return product

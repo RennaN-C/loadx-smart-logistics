@@ -11,6 +11,7 @@ Este documento é o contrato combinado entre backend, frontend, algoritmo e inte
 - `RECOMENDAÇÃO`: endpoints de listagem devem preparar paginação futura, mesmo que o MVP comece simples.
 - `RECOMENDAÇÃO`: filtros usam query params em snake_case.
 - `PENDENTE DE DEFINIÇÃO`: padrão final de paginação, ordenação e filtros.
+- `CONFIRMADO`: em atualizações parciais, campos omitidos permanecem inalterados; `null` só é aceito para campos anuláveis no modelo de dados.
 
 ## Autenticação
 
@@ -356,6 +357,7 @@ Regras:
 - `code`: string estável em UPPER_SNAKE_CASE.
 - `message`: texto claro para interface ou log operacional.
 - `details`: lista com campos, IDs ou motivos de validação.
+- `VALIDATION_ERROR`: payload, path ou query não atende ao schema; usa status `422` e identifica os campos inválidos em `details`.
 
 Mapeamento recomendado:
 

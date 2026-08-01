@@ -81,7 +81,9 @@ def test_patch_truck_updates_only_sent_fields(client: TestClient) -> None:
     create_response = client.post("/api/v1/trucks", json=make_truck_payload("ABC1D23"))
     truck_id = create_response.json()["id"]
 
-    response = client.patch(f"/api/v1/trucks/{truck_id}", json={"model": "Bau pequeno", "active": False})
+    response = client.patch(
+        f"/api/v1/trucks/{truck_id}", json={"model": "Bau pequeno", "active": False}
+    )
 
     assert response.status_code == 200
     body = response.json()
@@ -90,7 +92,23 @@ def test_patch_truck_updates_only_sent_fields(client: TestClient) -> None:
     assert body["active"] is False
 
 
-def test_create_truck_returns_standard_error_for_duplicate_plate(client: TestClient) -> None:
+def test_patch_truck_rejects_null_required_field_with_standard_error(
+    client: TestClient,
+) -> None:
+    create_response = client.post("/api/v1/trucks", json=make_truck_payload("ABC1D23"))
+    truck_id = create_response.json()["id"]
+
+    response = client.patch(f"/api/v1/trucks/{truck_id}", json={"max_weight_kg": None})
+
+    assert response.status_code == 422
+    body = response.json()
+    assert body["code"] == "VALIDATION_ERROR"
+    assert body["details"][0]["field"] == "max_weight_kg"
+
+
+def test_create_truck_returns_standard_error_for_duplicate_plate(
+    client: TestClient,
+) -> None:
     client.post("/api/v1/trucks", json=make_truck_payload("ABC1D23"))
 
     response = client.post("/api/v1/trucks", json=make_truck_payload("abc1d23"))

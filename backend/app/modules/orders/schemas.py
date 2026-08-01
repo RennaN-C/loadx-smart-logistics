@@ -3,7 +3,14 @@ from datetime import datetime, timezone
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-ORDER_STATUS_VALUES = {"DRAFT", "READY", "PLANNED", "IN_TRANSIT", "DELIVERED", "CANCELED"}
+ORDER_STATUS_VALUES = {
+    "DRAFT",
+    "READY",
+    "PLANNED",
+    "IN_TRANSIT",
+    "DELIVERED",
+    "CANCELED",
+}
 
 
 def normalize_required_upper(value: str) -> str:
@@ -81,6 +88,20 @@ class OrderUpdate(BaseModel):
 
     model_config = ConfigDict(str_strip_whitespace=True)
 
+    @field_validator(
+        "customer_id",
+        "status",
+        "priority",
+        "delivery_address",
+        "items",
+        mode="before",
+    )
+    @classmethod
+    def reject_null_required_fields(cls, value: object) -> object:
+        if value is None:
+            raise ValueError("field must not be null")
+        return value
+
     @field_validator("status")
     @classmethod
     def normalize_status(cls, value: str | None) -> str | None:
@@ -98,7 +119,9 @@ class OrderUpdate(BaseModel):
 
     @field_validator("items")
     @classmethod
-    def validate_items(cls, value: list[OrderItemCreate] | None) -> list[OrderItemCreate] | None:
+    def validate_items(
+        cls, value: list[OrderItemCreate] | None
+    ) -> list[OrderItemCreate] | None:
         if value is not None and len(value) == 0:
             raise ValueError("items must have at least one item")
         return value

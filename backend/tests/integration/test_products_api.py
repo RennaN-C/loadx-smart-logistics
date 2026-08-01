@@ -100,7 +100,36 @@ def test_patch_product_updates_only_sent_fields(client: TestClient) -> None:
     assert body["stackable"] is True
 
 
-def test_create_product_returns_standard_error_for_duplicate_code(client: TestClient) -> None:
+def test_patch_product_rejects_null_required_field_with_standard_error(
+    client: TestClient,
+) -> None:
+    create_response = client.post("/api/v1/products", json=make_product_payload("CX-A"))
+    product_id = create_response.json()["id"]
+
+    response = client.patch(f"/api/v1/products/{product_id}", json={"weight_kg": None})
+
+    assert response.status_code == 422
+    body = response.json()
+    assert body["code"] == "VALIDATION_ERROR"
+    assert body["details"][0]["field"] == "weight_kg"
+
+
+def test_patch_product_accepts_null_nullable_field(client: TestClient) -> None:
+    create_response = client.post("/api/v1/products", json=make_product_payload("CX-A"))
+    product_id = create_response.json()["id"]
+
+    response = client.patch(
+        f"/api/v1/products/{product_id}", json={"description": None}
+    )
+
+    assert response.status_code == 200
+    assert response.json()["description"] is None
+    assert response.json()["code"] == "CX-A"
+
+
+def test_create_product_returns_standard_error_for_duplicate_code(
+    client: TestClient,
+) -> None:
     client.post("/api/v1/products", json=make_product_payload("CX-A"))
 
     response = client.post("/api/v1/products", json=make_product_payload("cx-a"))

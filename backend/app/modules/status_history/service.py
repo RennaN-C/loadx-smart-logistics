@@ -4,6 +4,7 @@ from collections.abc import Callable, Sequence
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.database.integrity import get_integrity_constraint_name
 from app.modules.status_history.models import StatusHistory
 from app.modules.status_history.repository import StatusHistoryRepository
 from app.modules.status_history.schemas import StatusHistoryCreate
@@ -29,7 +30,9 @@ class StatusHistoryService:
         entity_type: str | None = None,
         entity_id: uuid.UUID | None = None,
     ) -> Sequence[StatusHistory]:
-        normalized_entity_type = entity_type.upper() if entity_type is not None else None
+        normalized_entity_type = (
+            entity_type.upper() if entity_type is not None else None
+        )
         return self.repository.list(normalized_entity_type, entity_id)
 
     def get_status_history(self, status_history_id: uuid.UUID) -> StatusHistory:
@@ -58,5 +61,7 @@ class StatusHistoryService:
             self.db.refresh(status_history)
         except IntegrityError as exc:
             self.db.rollback()
-            raise StatusHistoryChangedByNotFoundError from exc
+            if get_integrity_constraint_name(exc) == "fk_status_history__users":
+                raise StatusHistoryChangedByNotFoundError from exc
+            raise
         return status_history

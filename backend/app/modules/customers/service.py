@@ -4,6 +4,7 @@ from collections.abc import Callable, Sequence
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.database.integrity import get_integrity_constraint_name
 from app.modules.customers.models import Customer
 from app.modules.customers.repository import CustomerRepository
 from app.modules.customers.schemas import CustomerCreate, CustomerUpdate
@@ -60,5 +61,7 @@ class CustomerService:
             self.db.refresh(customer)
         except IntegrityError as exc:
             self.db.rollback()
-            raise CustomerDocumentAlreadyExistsError from exc
+            if get_integrity_constraint_name(exc) == "uq_customers__document":
+                raise CustomerDocumentAlreadyExistsError from exc
+            raise
         return customer

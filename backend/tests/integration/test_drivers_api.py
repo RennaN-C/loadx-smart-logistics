@@ -97,10 +97,46 @@ def test_patch_driver_updates_only_sent_fields(client: TestClient) -> None:
     assert body["active"] is False
 
 
-def test_create_driver_returns_standard_error_for_duplicate_document(client: TestClient) -> None:
-    client.post("/api/v1/drivers", json=make_driver_payload(document="00000000000", license_number="CNH0001"))
+def test_patch_driver_rejects_null_required_field_with_standard_error(
+    client: TestClient,
+) -> None:
+    create_response = client.post("/api/v1/drivers", json=make_driver_payload())
+    driver_id = create_response.json()["id"]
 
-    response = client.post("/api/v1/drivers", json=make_driver_payload(document="00000000000", license_number="CNH0002"))
+    response = client.patch(f"/api/v1/drivers/{driver_id}", json={"phone": None})
+
+    assert response.status_code == 422
+    body = response.json()
+    assert body["code"] == "VALIDATION_ERROR"
+    assert body["details"][0]["field"] == "phone"
+
+
+def test_patch_driver_accepts_null_nullable_field(client: TestClient) -> None:
+    create_response = client.post("/api/v1/drivers", json=make_driver_payload())
+    driver_id = create_response.json()["id"]
+
+    response = client.patch(
+        f"/api/v1/drivers/{driver_id}",
+        json={"license_category": None},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["license_category"] is None
+    assert response.json()["document"] == "00000000000"
+
+
+def test_create_driver_returns_standard_error_for_duplicate_document(
+    client: TestClient,
+) -> None:
+    client.post(
+        "/api/v1/drivers",
+        json=make_driver_payload(document="00000000000", license_number="CNH0001"),
+    )
+
+    response = client.post(
+        "/api/v1/drivers",
+        json=make_driver_payload(document="00000000000", license_number="CNH0002"),
+    )
 
     assert response.status_code == 409
     assert response.json() == {
@@ -110,10 +146,18 @@ def test_create_driver_returns_standard_error_for_duplicate_document(client: Tes
     }
 
 
-def test_create_driver_returns_standard_error_for_duplicate_license_number(client: TestClient) -> None:
-    client.post("/api/v1/drivers", json=make_driver_payload(document="00000000000", license_number="CNH0001"))
+def test_create_driver_returns_standard_error_for_duplicate_license_number(
+    client: TestClient,
+) -> None:
+    client.post(
+        "/api/v1/drivers",
+        json=make_driver_payload(document="00000000000", license_number="CNH0001"),
+    )
 
-    response = client.post("/api/v1/drivers", json=make_driver_payload(document="00000000001", license_number="CNH0001"))
+    response = client.post(
+        "/api/v1/drivers",
+        json=make_driver_payload(document="00000000001", license_number="CNH0001"),
+    )
 
     assert response.status_code == 409
     assert response.json() == {

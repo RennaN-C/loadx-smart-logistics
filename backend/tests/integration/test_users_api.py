@@ -84,7 +84,11 @@ def test_patch_user_updates_only_sent_fields(client: TestClient) -> None:
 
     response = client.patch(
         f"/api/v1/users/{user_id}",
-        json={"email": "MANAGER@EXAMPLE.TEST", "role": "logistics_manager", "active": False},
+        json={
+            "email": "MANAGER@EXAMPLE.TEST",
+            "role": "logistics_manager",
+            "active": False,
+        },
     )
 
     assert response.status_code == 200
@@ -95,10 +99,29 @@ def test_patch_user_updates_only_sent_fields(client: TestClient) -> None:
     assert "password_hash" not in body
 
 
-def test_create_user_returns_standard_error_for_duplicate_email(client: TestClient) -> None:
+def test_patch_user_rejects_null_required_field_with_standard_error(
+    client: TestClient,
+) -> None:
+    create_response = client.post("/api/v1/users", json=make_user_payload())
+    user_id = create_response.json()["id"]
+
+    response = client.patch(f"/api/v1/users/{user_id}", json={"name": None})
+
+    assert response.status_code == 422
+    body = response.json()
+    assert body["code"] == "VALIDATION_ERROR"
+    assert body["message"] == "Os dados informados são inválidos."
+    assert body["details"][0]["field"] == "name"
+
+
+def test_create_user_returns_standard_error_for_duplicate_email(
+    client: TestClient,
+) -> None:
     client.post("/api/v1/users", json=make_user_payload("admin@example.test"))
 
-    response = client.post("/api/v1/users", json=make_user_payload("ADMIN@EXAMPLE.TEST"))
+    response = client.post(
+        "/api/v1/users", json=make_user_payload("ADMIN@EXAMPLE.TEST")
+    )
 
     assert response.status_code == 409
     assert response.json() == {

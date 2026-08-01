@@ -94,10 +94,39 @@ def test_patch_customer_updates_only_sent_fields(client: TestClient) -> None:
     assert body["state"] == "SP"
 
 
-def test_create_customer_returns_standard_error_for_duplicate_document(client: TestClient) -> None:
+def test_patch_customer_rejects_null_required_field_with_standard_error(
+    client: TestClient,
+) -> None:
+    create_response = client.post("/api/v1/customers", json=make_customer_payload())
+    customer_id = create_response.json()["id"]
+
+    response = client.patch(f"/api/v1/customers/{customer_id}", json={"name": None})
+
+    assert response.status_code == 422
+    body = response.json()
+    assert body["code"] == "VALIDATION_ERROR"
+    assert body["details"][0]["field"] == "name"
+
+
+def test_patch_customer_accepts_null_nullable_field(client: TestClient) -> None:
+    create_response = client.post("/api/v1/customers", json=make_customer_payload())
+    customer_id = create_response.json()["id"]
+
+    response = client.patch(f"/api/v1/customers/{customer_id}", json={"notes": None})
+
+    assert response.status_code == 200
+    assert response.json()["notes"] is None
+    assert response.json()["document"] == "00000000000191"
+
+
+def test_create_customer_returns_standard_error_for_duplicate_document(
+    client: TestClient,
+) -> None:
     client.post("/api/v1/customers", json=make_customer_payload("00000000000191"))
 
-    response = client.post("/api/v1/customers", json=make_customer_payload("00000000000191"))
+    response = client.post(
+        "/api/v1/customers", json=make_customer_payload("00000000000191")
+    )
 
     assert response.status_code == 409
     assert response.json() == {

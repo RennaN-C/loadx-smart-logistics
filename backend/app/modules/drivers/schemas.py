@@ -36,6 +36,20 @@ class DriverUpdate(BaseModel):
 
     model_config = ConfigDict(str_strip_whitespace=True)
 
+    @field_validator(
+        "name",
+        "document",
+        "phone",
+        "license_number",
+        "active",
+        mode="before",
+    )
+    @classmethod
+    def reject_null_required_fields(cls, value: object) -> object:
+        if value is None:
+            raise ValueError("field must not be null")
+        return value
+
     @field_validator("license_category")
     @classmethod
     def normalize_license_category(cls, value: str | None) -> str | None:

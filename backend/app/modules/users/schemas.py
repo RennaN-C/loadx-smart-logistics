@@ -54,12 +54,21 @@ class UserCreate(UserBase):
 
 class UserUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=120)
-    email: str | None = Field(default=None, min_length=3, max_length=255, pattern=EMAIL_PATTERN)
+    email: str | None = Field(
+        default=None, min_length=3, max_length=255, pattern=EMAIL_PATTERN
+    )
     password: str | None = Field(default=None, min_length=8, max_length=128)
     role: str | None = Field(default=None, min_length=1, max_length=32)
     active: bool | None = None
 
     model_config = ConfigDict(str_strip_whitespace=True)
+
+    @field_validator("name", "email", "password", "role", "active", mode="before")
+    @classmethod
+    def reject_null_required_fields(cls, value: object) -> object:
+        if value is None:
+            raise ValueError("field must not be null")
+        return value
 
     @field_validator("email")
     @classmethod
