@@ -15,6 +15,8 @@ from app.modules.customers.schemas import CustomerCreate
 from app.modules.customers.service import CustomerService
 from app.modules.orders.models import Order, OrderItem
 from app.modules.products.models import Product
+from app.modules.products.schemas import ProductCreate
+from app.modules.products.service import ProductService
 
 SessionFactory = Callable[[], Session]
 
@@ -76,24 +78,29 @@ def create_customer(session_factory: SessionFactory) -> str:
         db.close()
 
 
-def create_product(client: TestClient, code: str = "CX-A") -> str:
-    response = client.post(
-        "/api/v1/products",
-        json={
-            "code": code,
-            "name": f"Produto {code}",
-            "description": "Produto ficticio para testes",
-            "width_cm": 60,
-            "height_cm": 50,
-            "length_cm": 40,
-            "weight_kg": 12.5,
-            "fragile": False,
-            "stackable": True,
-            "rotation_allowed": True,
-        },
-    )
-    assert response.status_code == 201
-    return str(response.json()["id"])
+def create_product(
+    session_factory: SessionFactory,
+    code: str = "CX-A",
+) -> str:
+    db = session_factory()
+    try:
+        product = ProductService(db).create_product(
+            ProductCreate(
+                code=code,
+                name=f"Produto {code}",
+                description="Produto ficticio para testes",
+                width_cm=60,
+                height_cm=50,
+                length_cm=40,
+                weight_kg=12.5,
+                fragile=False,
+                stackable=True,
+                rotation_allowed=True,
+            )
+        )
+        return str(product.id)
+    finally:
+        db.close()
 
 
 def make_order_payload(customer_id: str, product_id: str) -> dict[str, object]:
@@ -117,7 +124,7 @@ def create_order(
     session_factory: SessionFactory,
 ) -> dict[str, object]:
     customer_id = create_customer(session_factory)
-    product_id = create_product(client)
+    product_id = create_product(session_factory)
     response = client.post(
         "/api/v1/orders", json=make_order_payload(customer_id, product_id)
     )
@@ -130,7 +137,7 @@ def test_create_order_returns_created_resource(
     session_factory: SessionFactory,
 ) -> None:
     customer_id = create_customer(session_factory)
-    product_id = create_product(client)
+    product_id = create_product(session_factory)
 
     response = client.post(
         "/api/v1/orders", json=make_order_payload(customer_id, product_id)
@@ -176,7 +183,7 @@ def test_patch_order_updates_header_and_replaces_items(
     session_factory: SessionFactory,
 ) -> None:
     order = create_order(client, session_factory)
-    second_product_id = create_product(client, "CX-B")
+    second_product_id = create_product(session_factory, "CX-B")
 
     response = client.patch(
         f"/api/v1/orders/{order['id']}",
@@ -238,8 +245,9 @@ def test_patch_order_accepts_null_nullable_field(
 
 def test_create_order_returns_standard_error_for_missing_customer(
     client: TestClient,
+    session_factory: SessionFactory,
 ) -> None:
-    product_id = create_product(client)
+    product_id = create_product(session_factory)
 
     response = client.post(
         "/api/v1/orders", json=make_order_payload(str(uuid.uuid4()), product_id)
@@ -277,7 +285,7 @@ def test_create_order_rejects_empty_items(
     session_factory: SessionFactory,
 ) -> None:
     customer_id = create_customer(session_factory)
-    product_id = create_product(client)
+    product_id = create_product(session_factory)
     payload = make_order_payload(customer_id, product_id)
     payload["items"] = []
 

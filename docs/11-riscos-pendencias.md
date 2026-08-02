@@ -72,7 +72,7 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 
 ## Riscos identificados
 
-- `RISCO IDENTIFICADO`: a `OC51-E` protegeu clientes e motoristas, mas caminhões, produtos e pedidos ainda permitem acesso anônimo até a execução das próximas partes da `OC51`.
+- `RISCO IDENTIFICADO`: a `OC51-F` protegeu caminhões e produtos, mas pedidos ainda permitem acesso anônimo até a execução da próxima parte da `OC51`.
 - `RISCO IDENTIFICADO`: ainda não existe vínculo entre `users` e `drivers`; por segurança, `DRIVER` não recebe acesso operacional até que esse relacionamento seja aprovado e implementado.
 - `RISCO IDENTIFICADO`: o documento-base usa nomes de tabelas em português, enquanto o projeto já decidiu nomes técnicos em inglês. A documentação atual mantém inglês para evitar divergência no código.
 - `RISCO IDENTIFICADO`: o roadmap antigo usava outra numeração de ocorrências. A partir desta revisão, usar `OC01` a `OC48`.
