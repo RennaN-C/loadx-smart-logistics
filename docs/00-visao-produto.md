@@ -27,7 +27,7 @@ O MVP deve permitir:
 
 ## Usuários do MVP
 
-- Administrador: gerencia usuários e dados básicos.
+- Administrador: gerencia usuários e consulta dados operacionais para auditoria.
 - Responsável logístico: cria pedidos, seleciona caminhões e aprova planos.
 - Conferente: acompanha e confirma o carregamento.
 - Motorista: consulta entrega, atualiza status e registra ocorrência.

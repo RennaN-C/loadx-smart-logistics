@@ -15,22 +15,13 @@ Este documento é o contrato combinado entre backend, frontend, algoritmo e inte
 
 ## Autenticação
 
-Endpoints previstos:
+Endpoints públicos:
 
-- `POST /auth/register`.
 - `POST /auth/login`.
+
+Endpoint disponível para qualquer usuário autenticado:
+
 - `GET /auth/me`.
-
-Exemplo de cadastro:
-
-```json
-{
-  "name": "Admin Local",
-  "email": "admin@example.test",
-  "password": "senha-local",
-  "role": "ADMIN"
-}
-```
 
 Exemplo de login:
 
@@ -61,9 +52,13 @@ Erros específicos:
 - `AUTH_INVALID_CREDENTIALS`: e-mail ou senha inválidos.
 - `AUTH_INVALID_TOKEN`: token ausente, inválido, expirado ou usuário inexistente.
 - `AUTH_USER_INACTIVE`: usuário inativo.
-- `USER_EMAIL_ALREADY_EXISTS`: e-mail já cadastrado.
+- `AUTH_FORBIDDEN`: usuário autenticado sem permissão para a ação.
 
-`SUPOSIÇÃO TÉCNICA`: `POST /auth/register` permanece aberto no MVP local até a equipe decidir se usuários serão criados apenas por administrador.
+`CONFIRMADO`: `POST /auth/register` foi removido do contrato por `D03` e `ADR-004`. O primeiro `ADMIN` é criado por comando administrativo local; os usuários seguintes são criados por `ADMIN` em `POST /users`.
+
+`CONFIRMADO`: ausência ou invalidade de autenticação retorna `401 AUTH_INVALID_TOKEN`; autenticação válida sem permissão retorna `403 AUTH_FORBIDDEN`.
+
+`RISCO IDENTIFICADO`: até a implementação da `OC51`, o código ainda expõe rotas sem a proteção aprovada. O comportamento atual não substitui este contrato.
 
 `PENDENTE DE DEFINIÇÃO`: tempo final de expiração, refresh token e política de bloqueio de login.
 
@@ -85,8 +80,9 @@ Erros específicos:
 - `GET /users/{id}`.
 - `PATCH /users/{id}`.
 
-Regras atuais:
+Regras do contrato aprovado:
 
+- Todas as rotas de `/users` exigem perfil `ADMIN`.
 - Campos públicos retornados: `id`, `name`, `email`, `role`, `active` e `created_at`.
 - `password_hash` nunca é retornado.
 - `role` aceita `ADMIN`, `CHECKER`, `DRIVER` e `LOGISTICS_MANAGER`.
@@ -98,8 +94,9 @@ Erros específicos:
 
 - `USER_NOT_FOUND`: usuário não encontrado.
 - `USER_EMAIL_ALREADY_EXISTS`: e-mail já cadastrado.
+- `USER_LAST_ACTIVE_ADMIN_REQUIRED`: alteração deixaria o sistema sem `ADMIN` ativo.
 
-`PENDENTE DE DEFINIÇÃO`: se cadastro público de usuário será permitido ou se usuários serão criados apenas por administrador.
+`CONFIRMADO`: não existe cadastro público. O primeiro `ADMIN` usa bootstrap local e, depois, usuários são criados somente por `ADMIN`.
 
 ## Caminhões
 
@@ -373,10 +370,15 @@ Mapeamento recomendado:
 
 ## Segurança de API
 
+- Somente `GET /health` e `POST /api/v1/auth/login` são públicos.
+- Todos os demais endpoints de negócio exigem Bearer token e aplicam a matriz de `docs/04-regras-negocio.md`.
+- Documentação interativa e OpenAPI ficam disponíveis no ambiente local; em produção devem ser desabilitados ou protegidos.
 - Senhas nunca retornam na API.
 - Tokens e segredos nunca aparecem em logs.
 - Dados pessoais devem ser minimizados em respostas de listagem.
 - Endpoints que alteram status devem registrar histórico.
 - Integrações externas devem ser autenticadas quando saírem do modo mock.
 
-`PENDENTE DE DEFINIÇÃO`: esquema final de autorização por perfil e proteção do webhook de WhatsApp.
+`CONFIRMADO`: a autorização por perfil segue `ADR-004`; acesso não listado é negado.
+
+`PENDENTE DE DEFINIÇÃO`: autenticação própria e validação de assinatura do webhook de WhatsApp devem ser aprovadas antes de uma integração externa real.

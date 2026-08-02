@@ -13,9 +13,12 @@ Crie somente os arquivos necessários para a ocorrência atual.
 
 ## Endpoints
 
-- `POST /api/v1/auth/register`: cria usuário interno e retorna os dados públicos.
 - `POST /api/v1/auth/login`: valida e-mail/senha e retorna token Bearer.
 - `GET /api/v1/auth/me`: retorna o usuário autenticado pelo header `Authorization: Bearer <token>`.
+
+`CONFIRMADO`: `D03` e `ADR-004` removeram `POST /api/v1/auth/register` do contrato. O primeiro `ADMIN` usa bootstrap local e os usuários seguintes são criados por `ADMIN` em `/api/v1/users`.
+
+`RISCO IDENTIFICADO`: o router ainda expõe `/auth/register` até a implementação da `OC51`; esse comportamento não representa mais o contrato aprovado.
 
 ## Regras implementadas
 
@@ -27,6 +30,5 @@ Crie somente os arquivos necessários para a ocorrência atual.
 
 ## Pendências
 
-- `PENDENTE DE DEFINIÇÃO`: matriz final de permissões por perfil.
+- `CONFIRMADO`: a matriz de permissões e a negação por padrão seguem `docs/04-regras-negocio.md` e `ADR-004`; a aplicação nas rotas está pendente na `OC51`.
 - `PENDENTE DE DEFINIÇÃO`: política final de expiração, refresh token e bloqueio por tentativas inválidas.
-- `SUPOSIÇÃO TÉCNICA`: `POST /auth/register` permanece aberto no MVP local até a equipe decidir se usuários serão criados apenas por administrador.

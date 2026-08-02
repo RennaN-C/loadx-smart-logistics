@@ -20,6 +20,10 @@ Crie somente os arquivos necessários para a ocorrência atual.
 - `GET /api/v1/users/{id}`: consulta usuário por ID.
 - `PATCH /api/v1/users/{id}`: atualiza campos enviados.
 
+`CONFIRMADO`: todas essas rotas exigem `ADMIN` conforme `D02`, `D03` e `ADR-004`.
+
+`RISCO IDENTIFICADO`: o router ainda não aplica essa proteção até a implementação da `OC51`.
+
 ## Regras implementadas
 
 - `email` é normalizado para minúsculas.
@@ -29,8 +33,9 @@ Crie somente os arquivos necessários para a ocorrência atual.
 - `password` deve ter no mínimo 8 caracteres na entrada.
 - `password_hash` nunca é retornado pela API.
 - `active = false` bloqueia login.
+- O último `ADMIN` ativo não pode ser desativado ou rebaixado após a implementação da `OC51`.
 
 ## Pendências
 
-- `PENDENTE DE DEFINIÇÃO`: proteger endpoints de usuários por perfil quando a matriz RBAC for aprovada.
+- `CONFIRMADO`: proteger os endpoints e o último `ADMIN` ativo faz parte da `OC51`.
 - `PENDENTE DE DEFINIÇÃO`: política de senha definitiva.

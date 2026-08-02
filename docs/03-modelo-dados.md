@@ -87,6 +87,8 @@ Motoristas vinculados a viagens.
 - `uq_drivers__license_number` `RECOMENDAÇÃO`.
 - `ix_drivers__phone` `RECOMENDAÇÃO`.
 
+`RISCO IDENTIFICADO`: não existe relacionamento entre `users` e `drivers` no modelo aprovado. Até que uma ocorrência futura aprove esse vínculo, um usuário `DRIVER` não pode receber acesso baseado em motorista, viagem ou entrega própria.
+
 ### `trucks`
 
 Caminhões e sua capacidade interna.

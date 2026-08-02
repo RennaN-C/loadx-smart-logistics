@@ -14,7 +14,7 @@
 |---|---|---|---|
 | `OC49` | Alta | Desenvolvedor 1 | Implementada localmente; pendente de PR e revisão |
 | `OC50` | Alta | Desenvolvedor 1 | Implementada localmente; pendente de PR e revisão |
-| `OC51` | Alta | Desenvolvedor 1 | Bloqueada por `D01`, `D02` e `D03` |
+| `OC51` | Alta | Desenvolvedor 1 | Desbloqueada por `D01`, `D02` e `D03`; pronta para implementação |
 | `OC52` | Alta | Desenvolvedor 1 | Bloqueada por `D04` e `D05` |
 | `OC53` | Alta | Desenvolvedor 1, com revisão do Desenvolvedor 4 | Pronta para aprovação |
 | `OC54` | Média | Desenvolvedor 4, com apoio do Desenvolvedor 1 | Pronta para aprovação |
@@ -130,7 +130,7 @@ Exigir autenticação nos endpoints de negócio e aplicar a matriz de permissõe
 - Cada rota protegida aplica a matriz aprovada em `D02`.
 - A criação de usuários segue a decisão `D03`.
 - Token ausente, inválido ou expirado retorna `401 AUTH_INVALID_TOKEN`.
-- Usuário autenticado sem permissão retorna `403` com código estável.
+- Usuário autenticado sem permissão retorna `403 AUTH_FORBIDDEN`.
 - Usuário inativo não acessa endpoints protegidos.
 - O esquema Bearer aparece no OpenAPI e pode ser usado no Swagger.
 - Senha, token, documento completo e segredo não aparecem em logs.
@@ -138,9 +138,7 @@ Exigir autenticação nos endpoints de negócio e aplicar a matriz de permissõe
 
 ### Dependências
 
-- `D01`: fronteira entre endpoints públicos e protegidos.
-- `D02`: matriz RBAC.
-- `D03`: política de cadastro e bootstrap de usuários.
+- `D01`, `D02` e `D03`: decisões aprovadas e registradas em `ADR-004`.
 - Atualização simultânea de `docs/04`, `docs/05`, README de `auth` e README de `users`.
 
 ### Fora do escopo
