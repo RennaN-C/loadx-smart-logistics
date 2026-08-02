@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
-from app.core.responses import error_response
+from app.core.responses import error_response, openapi_error_responses
 from app.database.session import get_db
 from app.modules.trucks.models import Truck
 from app.modules.trucks.schemas import TruckCreate, TruckRead, TruckUpdate
@@ -29,7 +29,12 @@ def list_trucks(
     return list(service.list_trucks())
 
 
-@router.post("", response_model=TruckRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=TruckRead,
+    status_code=status.HTTP_201_CREATED,
+    responses=openapi_error_responses(409, 422),
+)
 def create_truck(
     data: TruckCreate,
     service: Annotated[TruckService, Depends(get_truck_service)],
@@ -45,7 +50,11 @@ def create_truck(
         )
 
 
-@router.get("/{truck_id}", response_model=TruckRead)
+@router.get(
+    "/{truck_id}",
+    response_model=TruckRead,
+    responses=openapi_error_responses(404, 422),
+)
 def get_truck(
     truck_id: uuid.UUID,
     service: Annotated[TruckService, Depends(get_truck_service)],
@@ -61,7 +70,11 @@ def get_truck(
         )
 
 
-@router.patch("/{truck_id}", response_model=TruckRead)
+@router.patch(
+    "/{truck_id}",
+    response_model=TruckRead,
+    responses=openapi_error_responses(404, 409, 422),
+)
 def update_truck(
     truck_id: uuid.UUID,
     data: TruckUpdate,

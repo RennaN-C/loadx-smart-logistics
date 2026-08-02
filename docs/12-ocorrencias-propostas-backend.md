@@ -13,7 +13,7 @@
 | Identificador sugerido | Prioridade | Responsável primário sugerido | Situação |
 |---|---|---|---|
 | `OC49` | Alta | Desenvolvedor 1 | Implementada localmente; pendente de PR e revisão |
-| `OC50` | Alta | Desenvolvedor 1 | Pronta para aprovação |
+| `OC50` | Alta | Desenvolvedor 1 | Implementada localmente; pendente de PR e revisão |
 | `OC51` | Alta | Desenvolvedor 1 | Bloqueada por `D01`, `D02` e `D03` |
 | `OC52` | Alta | Desenvolvedor 1 | Bloqueada por `D04` e `D05` |
 | `OC53` | Alta | Desenvolvedor 1, com revisão do Desenvolvedor 4 | Pronta para aprovação |
@@ -85,7 +85,7 @@ Garantir que validações de schema, UUID inválido, erros de domínio e falhas 
 
 ### Comportamento atual
 
-`CONFIRMADO`: a `OC49` padronizou erros automáticos de validação de schema, path e query como `VALIDATION_ERROR`. Os demais erros globais e a duplicação de `error_response` continuam pendentes nesta ocorrência.
+`CONFIRMADO`: a `OC49` padronizou erros automáticos de validação de schema, path e query como `VALIDATION_ERROR`. Nesta ocorrência, a construção das respostas foi centralizada, erros inesperados passaram a usar `INTERNAL_SERVER_ERROR` sem expor detalhes internos e o OpenAPI passou a referenciar o schema compartilhado `ErrorResponse`.
 
 ### Critérios de aceite
 

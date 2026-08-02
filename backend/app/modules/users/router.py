@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
-from app.core.responses import error_response
+from app.core.responses import error_response, openapi_error_responses
 from app.database.session import get_db
 from app.modules.users.models import User
 from app.modules.users.schemas import UserCreate, UserRead, UserUpdate
@@ -29,7 +29,12 @@ def list_users(
     return list(service.list_users())
 
 
-@router.post("", response_model=UserRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=UserRead,
+    status_code=status.HTTP_201_CREATED,
+    responses=openapi_error_responses(409, 422),
+)
 def create_user(
     data: UserCreate,
     service: Annotated[UserService, Depends(get_user_service)],
@@ -45,7 +50,11 @@ def create_user(
         )
 
 
-@router.get("/{user_id}", response_model=UserRead)
+@router.get(
+    "/{user_id}",
+    response_model=UserRead,
+    responses=openapi_error_responses(404, 422),
+)
 def get_user(
     user_id: uuid.UUID,
     service: Annotated[UserService, Depends(get_user_service)],
@@ -61,7 +70,11 @@ def get_user(
         )
 
 
-@router.patch("/{user_id}", response_model=UserRead)
+@router.patch(
+    "/{user_id}",
+    response_model=UserRead,
+    responses=openapi_error_responses(404, 409, 422),
+)
 def update_user(
     user_id: uuid.UUID,
     data: UserUpdate,

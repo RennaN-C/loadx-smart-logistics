@@ -359,6 +359,7 @@ Regras:
 - `details`: lista com campos, IDs ou motivos de validação.
 - `VALIDATION_ERROR`: payload, path ou query não atende ao schema; usa status `422` e identifica os campos inválidos em `details`.
 - `INTERNAL_SERVER_ERROR`: falha inesperada; usa status `500`, mensagem pública genérica e `details` vazio, sem expor informações internas.
+- `CONFIRMADO`: o OpenAPI referencia o mesmo schema `ErrorResponse` para os erros públicos documentados em cada operação.
 
 Mapeamento recomendado:
 

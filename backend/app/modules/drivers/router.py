@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
-from app.core.responses import error_response
+from app.core.responses import error_response, openapi_error_responses
 from app.database.session import get_db
 from app.modules.drivers.models import Driver
 from app.modules.drivers.schemas import DriverCreate, DriverRead, DriverUpdate
@@ -30,7 +30,12 @@ def list_drivers(
     return list(service.list_drivers())
 
 
-@router.post("", response_model=DriverRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=DriverRead,
+    status_code=status.HTTP_201_CREATED,
+    responses=openapi_error_responses(409, 422),
+)
 def create_driver(
     data: DriverCreate,
     service: Annotated[DriverService, Depends(get_driver_service)],
@@ -53,7 +58,11 @@ def create_driver(
         )
 
 
-@router.get("/{driver_id}", response_model=DriverRead)
+@router.get(
+    "/{driver_id}",
+    response_model=DriverRead,
+    responses=openapi_error_responses(404, 422),
+)
 def get_driver(
     driver_id: uuid.UUID,
     service: Annotated[DriverService, Depends(get_driver_service)],
@@ -69,7 +78,11 @@ def get_driver(
         )
 
 
-@router.patch("/{driver_id}", response_model=DriverRead)
+@router.patch(
+    "/{driver_id}",
+    response_model=DriverRead,
+    responses=openapi_error_responses(404, 409, 422),
+)
 def update_driver(
     driver_id: uuid.UUID,
     data: DriverUpdate,

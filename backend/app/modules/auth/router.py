@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Header, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
-from app.core.responses import error_response
+from app.core.responses import error_response, openapi_error_responses
 from app.database.session import get_db
 from app.modules.auth.schemas import AuthLogin, TokenRead
 from app.modules.auth.service import (
@@ -24,7 +24,12 @@ def get_auth_service(db: Annotated[Session, Depends(get_db)]) -> AuthService:
     return AuthService(db)
 
 
-@router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/register",
+    response_model=UserRead,
+    status_code=status.HTTP_201_CREATED,
+    responses=openapi_error_responses(409, 422),
+)
 def register_user(
     data: UserCreate,
     service: Annotated[AuthService, Depends(get_auth_service)],
@@ -40,7 +45,11 @@ def register_user(
         )
 
 
-@router.post("/login", response_model=TokenRead)
+@router.post(
+    "/login",
+    response_model=TokenRead,
+    responses=openapi_error_responses(401, 403, 422),
+)
 def login(
     data: AuthLogin,
     service: Annotated[AuthService, Depends(get_auth_service)],
@@ -61,7 +70,11 @@ def login(
         )
 
 
-@router.get("/me", response_model=UserRead)
+@router.get(
+    "/me",
+    response_model=UserRead,
+    responses=openapi_error_responses(401, 403, 422),
+)
 def get_me(
     service: Annotated[AuthService, Depends(get_auth_service)],
     authorization: Annotated[str | None, Header()] = None,
