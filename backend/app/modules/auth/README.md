@@ -35,5 +35,5 @@ Crie somente os arquivos necessários para a ocorrência atual.
 
 ## Pendências
 
-- `CONFIRMADO`: a matriz de permissões e a negação por padrão seguem `docs/04-regras-negocio.md` e `ADR-004`; `/users` já está protegido e os demais cadastros serão tratados nas próximas partes da `OC51`.
+- `CONFIRMADO`: a matriz de permissões e a negação por padrão seguem `docs/04-regras-negocio.md` e `ADR-004`; a `OC51-I` auditou todos os endpoints de negócio implementados.
 - `PENDENTE DE DEFINIÇÃO`: política final de expiração, refresh token e bloqueio por tentativas inválidas.

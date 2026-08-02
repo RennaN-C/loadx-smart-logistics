@@ -111,6 +111,14 @@ EXPECTED_ERROR_STATUSES = {
         "500",
     },
 }
+PUBLIC_OPERATIONS = frozenset(
+    {
+        ("/health", "get"),
+        ("/api/v1/auth/login", "post"),
+    }
+)
+PROTECTED_OPERATIONS = frozenset(EXPECTED_ERROR_STATUSES).difference(PUBLIC_OPERATIONS)
+HTTP_METHODS = frozenset({"get", "post", "patch", "put", "delete"})
 
 
 def get_openapi_schema() -> dict[str, Any]:
@@ -154,36 +162,24 @@ def test_openapi_documents_bearer_authentication_for_protected_routes() -> None:
 
     bearer_scheme = schema["components"]["securitySchemes"]["BearerAuth"]
     assert bearer_scheme == {"type": "http", "scheme": "bearer"}
-    assert schema["paths"]["/api/v1/auth/me"]["get"]["security"] == [{"BearerAuth": []}]
-    assert "security" not in schema["paths"]["/api/v1/auth/login"]["post"]
 
-    for path, method in (
-        ("/api/v1/users", "get"),
-        ("/api/v1/users", "post"),
-        ("/api/v1/users/{user_id}", "get"),
-        ("/api/v1/users/{user_id}", "patch"),
-        ("/api/v1/customers", "get"),
-        ("/api/v1/customers", "post"),
-        ("/api/v1/customers/{customer_id}", "get"),
-        ("/api/v1/customers/{customer_id}", "patch"),
-        ("/api/v1/drivers", "get"),
-        ("/api/v1/drivers", "post"),
-        ("/api/v1/drivers/{driver_id}", "get"),
-        ("/api/v1/drivers/{driver_id}", "patch"),
-        ("/api/v1/trucks", "get"),
-        ("/api/v1/trucks", "post"),
-        ("/api/v1/trucks/{truck_id}", "get"),
-        ("/api/v1/trucks/{truck_id}", "patch"),
-        ("/api/v1/products", "get"),
-        ("/api/v1/products", "post"),
-        ("/api/v1/products/{product_id}", "get"),
-        ("/api/v1/products/{product_id}", "patch"),
-        ("/api/v1/orders", "get"),
-        ("/api/v1/orders", "post"),
-        ("/api/v1/orders/{order_id}", "get"),
-        ("/api/v1/orders/{order_id}", "patch"),
-    ):
+    for path, method in PROTECTED_OPERATIONS:
         assert schema["paths"][path][method]["security"] == [{"BearerAuth": []}]
+
+    for path, method in PUBLIC_OPERATIONS:
+        assert "security" not in schema["paths"][path][method]
+
+
+def test_openapi_exposes_only_the_approved_public_and_protected_operations() -> None:
+    schema = get_openapi_schema()
+    documented_operations = frozenset(
+        (path, method)
+        for path, path_item in schema["paths"].items()
+        for method in path_item
+        if method in HTTP_METHODS
+    )
+
+    assert documented_operations == frozenset(EXPECTED_ERROR_STATUSES)
 
 
 def test_openapi_does_not_expose_public_registration() -> None:

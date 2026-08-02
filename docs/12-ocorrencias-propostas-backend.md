@@ -14,7 +14,7 @@
 |---|---|---|---|
 | `OC49` | Alta | Desenvolvedor 1 | Implementada localmente; pendente de PR e revisão |
 | `OC50` | Alta | Desenvolvedor 1 | Implementada localmente; pendente de PR e revisão |
-| `OC51` | Alta | Desenvolvedor 1 | Desbloqueada por `D01`, `D02` e `D03`; pronta para implementação |
+| `OC51` | Alta | Desenvolvedor 1 | Implementada localmente; pendente de PR e revisão |
 | `OC52` | Alta | Desenvolvedor 1 | Bloqueada por `D04` e `D05` |
 | `OC53` | Alta | Desenvolvedor 1, com revisão do Desenvolvedor 4 | Pronta para aprovação |
 | `OC54` | Média | Desenvolvedor 4, com apoio do Desenvolvedor 1 | Pronta para aprovação |
@@ -122,7 +122,7 @@ Exigir autenticação nos endpoints de negócio e aplicar a matriz de permissõe
 
 ### Comportamento atual
 
-`CONFIRMADO`: após a `OC51-H`, `/auth/me` e todos os endpoints de negócio atualmente implementados validam token e aplicam a matriz aprovada; `/auth/register` não existe mais; Swagger, ReDoc e OpenAPI são expostos somente no ambiente local.
+`CONFIRMADO`: a `OC51-I` auditou `/auth/me` e todos os endpoints de negócio atualmente implementados contra os quatro perfis aprovados; `/auth/register` não existe mais; Swagger, ReDoc e OpenAPI são expostos somente no ambiente local.
 
 ### Critérios de aceite
 
