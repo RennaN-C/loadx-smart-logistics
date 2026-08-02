@@ -7,6 +7,6 @@ Não coloque regras de caminhão, pedido ou carga aqui. O core deve conhecer inf
 ## Arquivos
 
 - `config.py`: variáveis de ambiente e configurações globais.
-- `exceptions.py`: handlers globais e serialização de erros de validação HTTP.
+- `exceptions.py`: handlers globais de validação e erros inesperados da API.
 - `responses.py`: construção compartilhada do envelope de erro HTTP.
 - `security.py`: hash de senha e JWT usados pela autenticação.

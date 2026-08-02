@@ -1,3 +1,4 @@
+import logging
 from typing import Any
 
 from fastapi import FastAPI, Request
@@ -5,6 +6,8 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from app.core.responses import error_response
+
+logger = logging.getLogger(__name__)
 
 
 def _validation_details(error: RequestValidationError) -> list[dict[str, Any]]:
@@ -35,4 +38,21 @@ def register_exception_handlers(app: FastAPI) -> None:
             code="VALIDATION_ERROR",
             message="Os dados informados são inválidos.",
             details=_validation_details(error),
+        )
+
+    @app.exception_handler(Exception)
+    async def handle_unexpected_error(
+        request: Request,
+        error: Exception,
+    ) -> JSONResponse:
+        logger.error(
+            "Unhandled application error: method=%s path=%s exception_type=%s",
+            request.method,
+            request.url.path,
+            type(error).__name__,
+        )
+        return error_response(
+            status_code=500,
+            code="INTERNAL_SERVER_ERROR",
+            message="Ocorreu um erro interno inesperado.",
         )
