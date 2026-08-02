@@ -60,7 +60,7 @@ Erros específicos:
 
 `CONFIRMADO`: ausência ou invalidade de autenticação retorna `401 AUTH_INVALID_TOKEN`; autenticação válida sem permissão retorna `403 AUTH_FORBIDDEN`.
 
-`RISCO IDENTIFICADO`: após a `OC51-F`, usuários, clientes, motoristas, caminhões e produtos estão protegidos, mas pedidos ainda aguardam a próxima parte da `OC51` para receber a proteção aprovada.
+`CONFIRMADO`: após a `OC51-G`, todos os endpoints de negócio atualmente implementados exigem autenticação e aplicam a matriz aprovada.
 
 `PENDENTE DE DEFINIÇÃO`: tempo final de expiração, refresh token e política de bloqueio de login.
 
@@ -190,6 +190,12 @@ Regras de autorização:
 - `POST /orders`.
 - `GET /orders/{id}`.
 - `PATCH /orders/{id}`.
+
+Regras de autorização:
+
+- `ADMIN`, `CHECKER` e `LOGISTICS_MANAGER` podem usar `GET`.
+- Somente `LOGISTICS_MANAGER` pode usar `POST` e `PATCH`.
+- `DRIVER` não acessa essas rotas enquanto não existir vínculo aprovado.
 
 Exemplo de criação:
 

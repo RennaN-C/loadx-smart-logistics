@@ -122,7 +122,7 @@ Exigir autenticação nos endpoints de negócio e aplicar a matriz de permissõe
 
 ### Comportamento atual
 
-`CONFIRMADO`: após a `OC51-F`, `/auth/me`, usuários, clientes, motoristas, caminhões e produtos validam token e aplicam a matriz aprovada; `/auth/register` não existe mais. Pedidos ainda aguardam a próxima parte da ocorrência.
+`CONFIRMADO`: após a `OC51-G`, `/auth/me` e todos os endpoints de negócio atualmente implementados validam token e aplicam a matriz aprovada; `/auth/register` não existe mais.
 
 ### Critérios de aceite
 

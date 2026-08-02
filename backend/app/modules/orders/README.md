@@ -20,6 +20,8 @@ Crie somente os arquivos necessários para a ocorrência atual.
 - `GET /api/v1/orders/{id}`: consulta pedido por ID.
 - `PATCH /api/v1/orders/{id}`: atualiza campos enviados.
 
+`CONFIRMADO`: `ADMIN`, `CHECKER` e `LOGISTICS_MANAGER` podem consultar. Somente `LOGISTICS_MANAGER` pode criar ou atualizar. `DRIVER` não acessa o módulo enquanto não existir vínculo aprovado com seus pedidos.
+
 ## Regras implementadas
 
 - Pedido criado começa com `status = "DRAFT"`.
@@ -30,6 +32,7 @@ Crie somente os arquivos necessários para a ocorrência atual.
 - `priority` é normalizado para maiúsculas.
 - `expected_delivery_at` deve vir com timezone e é normalizado para UTC.
 - `items`, quando enviado no `PATCH`, substitui o conjunto de itens do pedido.
+- Todas as rotas exigem autenticação Bearer e consultam o papel e o estado atual do usuário no banco.
 
 ## Pendências
 

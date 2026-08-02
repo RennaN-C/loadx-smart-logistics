@@ -93,10 +93,22 @@ EXPECTED_ERROR_STATUSES = {
         "422",
         "500",
     },
-    ("/api/v1/orders", "get"): {"500"},
-    ("/api/v1/orders", "post"): {"404", "422", "500"},
-    ("/api/v1/orders/{order_id}", "get"): {"404", "422", "500"},
-    ("/api/v1/orders/{order_id}", "patch"): {"404", "422", "500"},
+    ("/api/v1/orders", "get"): {"401", "403", "500"},
+    ("/api/v1/orders", "post"): {"401", "403", "404", "422", "500"},
+    ("/api/v1/orders/{order_id}", "get"): {
+        "401",
+        "403",
+        "404",
+        "422",
+        "500",
+    },
+    ("/api/v1/orders/{order_id}", "patch"): {
+        "401",
+        "403",
+        "404",
+        "422",
+        "500",
+    },
 }
 
 
@@ -164,6 +176,10 @@ def test_openapi_documents_bearer_authentication_for_protected_routes() -> None:
         ("/api/v1/products", "post"),
         ("/api/v1/products/{product_id}", "get"),
         ("/api/v1/products/{product_id}", "patch"),
+        ("/api/v1/orders", "get"),
+        ("/api/v1/orders", "post"),
+        ("/api/v1/orders/{order_id}", "get"),
+        ("/api/v1/orders/{order_id}", "patch"),
     ):
         assert schema["paths"][path][method]["security"] == [{"BearerAuth": []}]
 
