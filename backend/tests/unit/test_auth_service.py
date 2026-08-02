@@ -72,24 +72,24 @@ def test_login_rejects_inactive_user(db_session: Session) -> None:
         service.login(AuthLogin(email="admin@example.test", password="senha-local"))
 
 
-def test_get_current_user_from_authorization_returns_user(db_session: Session) -> None:
+def test_get_current_user_from_token_returns_user(db_session: Session) -> None:
     user = UserService(db_session).create_user(make_user_create())
     service = AuthService(db_session)
     token = service.login(AuthLogin(email="admin@example.test", password="senha-local"))
 
-    current_user = service.get_current_user_from_authorization(f"Bearer {token.access_token}")
+    current_user = service.get_current_user_from_token(token.access_token)
 
     assert current_user.id == user.id
 
 
-def test_get_current_user_from_authorization_rejects_invalid_header(db_session: Session) -> None:
+def test_get_current_user_from_token_rejects_invalid_token(db_session: Session) -> None:
     service = AuthService(db_session)
 
     with pytest.raises(AuthInvalidTokenError):
-        service.get_current_user_from_authorization("Token invalid")
+        service.get_current_user_from_token("invalid-token")
 
 
-def test_get_current_user_from_authorization_rejects_inactive_user(db_session: Session) -> None:
+def test_get_current_user_from_token_rejects_inactive_user(db_session: Session) -> None:
     user_service = UserService(db_session)
     user = user_service.create_user(make_user_create())
     service = AuthService(db_session)
@@ -97,4 +97,18 @@ def test_get_current_user_from_authorization_rejects_inactive_user(db_session: S
     user_service.update_user(user.id, UserUpdate(active=False))
 
     with pytest.raises(AuthInactiveUserError):
-        service.get_current_user_from_authorization(f"Bearer {token.access_token}")
+        service.get_current_user_from_token(token.access_token)
+
+
+def test_get_current_user_from_token_uses_current_database_role(
+    db_session: Session,
+) -> None:
+    user_service = UserService(db_session)
+    user = user_service.create_user(make_user_create())
+    service = AuthService(db_session)
+    token = service.login(AuthLogin(email="admin@example.test", password="senha-local"))
+    user_service.update_user(user.id, UserUpdate(role="CHECKER"))
+
+    current_user = service.get_current_user_from_token(token.access_token)
+
+    assert current_user.role == "CHECKER"

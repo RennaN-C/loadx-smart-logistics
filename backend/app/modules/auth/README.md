@@ -5,6 +5,7 @@ Login, hash de senha, token e autorização por perfil. Não cadastra regras esp
 ## Estrutura
 
 - `schemas.py`: contratos Pydantic `AuthLogin` e `TokenRead`.
+- `dependencies.py`: usuário autenticado e verificação reutilizável de papéis.
 - `service.py`: registro, autenticação, emissão de token e resolução do usuário atual.
 - `router.py`: endpoints HTTP.
 - `domain/`: objetos e regras puras, quando necessário.
@@ -27,6 +28,8 @@ Crie somente os arquivos necessários para a ocorrência atual.
 - Token JWT usa `sub` com o UUID do usuário.
 - Login de usuário inativo é bloqueado.
 - `/auth/me` rejeita token ausente, inválido, expirado ou de usuário inexistente.
+- `/auth/me` usa o esquema Bearer documentado no OpenAPI.
+- Papéis inválidos na configuração da autorização são rejeitados e acesso sem papel permitido usa `AUTH_FORBIDDEN`.
 
 ## Pendências
 

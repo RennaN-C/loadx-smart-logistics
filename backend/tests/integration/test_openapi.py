@@ -74,3 +74,13 @@ def test_openapi_uses_standard_schema_for_each_documented_error() -> None:
                 "schema"
             ]
             assert response_schema == {"$ref": "#/components/schemas/ErrorResponse"}
+
+
+def test_openapi_documents_bearer_authentication_for_me() -> None:
+    schema = get_openapi_schema()
+
+    bearer_scheme = schema["components"]["securitySchemes"]["BearerAuth"]
+    assert bearer_scheme == {"type": "http", "scheme": "bearer"}
+    assert schema["paths"]["/api/v1/auth/me"]["get"]["security"] == [{"BearerAuth": []}]
+    assert "security" not in schema["paths"]["/api/v1/auth/login"]["post"]
+    assert "security" not in schema["paths"]["/api/v1/auth/register"]["post"]

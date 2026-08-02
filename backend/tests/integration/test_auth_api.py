@@ -6,6 +6,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from app.core.security import create_access_token
 from app.database.base import Base
 from app.database.session import get_db
 from app.main import app
@@ -135,6 +136,7 @@ def test_me_returns_standard_error_for_missing_token(client: TestClient) -> None
     response = client.get("/api/v1/auth/me")
 
     assert response.status_code == 401
+    assert response.headers["www-authenticate"] == "Bearer"
     assert response.json() == {
         "code": "AUTH_INVALID_TOKEN",
         "message": "Token ausente ou inválido.",
@@ -146,8 +148,46 @@ def test_me_returns_standard_error_for_invalid_token(client: TestClient) -> None
     response = client.get("/api/v1/auth/me", headers={"Authorization": "Bearer invalid-token"})
 
     assert response.status_code == 401
+    assert response.headers["www-authenticate"] == "Bearer"
     assert response.json() == {
         "code": "AUTH_INVALID_TOKEN",
         "message": "Token ausente ou inválido.",
+        "details": [],
+    }
+
+
+def test_me_returns_standard_error_for_invalid_authentication_scheme(
+    client: TestClient,
+) -> None:
+    response = client.get(
+        "/api/v1/auth/me",
+        headers={"Authorization": "Basic invalid-credentials"},
+    )
+
+    assert response.status_code == 401
+    assert response.headers["www-authenticate"] == "Bearer"
+    assert response.json() == {
+        "code": "AUTH_INVALID_TOKEN",
+        "message": "Token ausente ou inválido.",
+        "details": [],
+    }
+
+
+def test_me_returns_standard_error_for_inactive_user(client: TestClient) -> None:
+    user = client.post(
+        "/api/v1/auth/register",
+        json=make_register_payload(active=False),
+    ).json()
+    token = create_access_token(str(user["id"]), {"role": "ADMIN"})
+
+    response = client.get(
+        "/api/v1/auth/me",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 403
+    assert response.json() == {
+        "code": "AUTH_USER_INACTIVE",
+        "message": "Usuário inativo.",
         "details": [],
     }

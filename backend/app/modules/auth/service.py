@@ -49,8 +49,7 @@ class AuthService:
         )
         return TokenRead(access_token=access_token)
 
-    def get_current_user_from_authorization(self, authorization: str | None) -> User:
-        token = self._extract_bearer_token(authorization)
+    def get_current_user_from_token(self, token: str) -> User:
         try:
             payload = decode_access_token(token)
             subject = payload.get("sub")
@@ -64,12 +63,3 @@ class AuthService:
         if not user.active:
             raise AuthInactiveUserError
         return user
-
-    def _extract_bearer_token(self, authorization: str | None) -> str:
-        if authorization is None:
-            raise AuthInvalidTokenError
-
-        scheme, separator, token = authorization.partition(" ")
-        if separator == "" or scheme.lower() != "bearer" or token.strip() == "":
-            raise AuthInvalidTokenError
-        return token.strip()
