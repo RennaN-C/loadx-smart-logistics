@@ -22,7 +22,12 @@ def client() -> Generator[TestClient, None, None]:
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
-    tables = [Customer.__table__, Product.__table__, Order.__table__, OrderItem.__table__]
+    tables = [
+        Customer.__table__,
+        Product.__table__,
+        Order.__table__,
+        OrderItem.__table__,
+    ]
     Base.metadata.create_all(engine, tables=tables)
     testing_session_local = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
@@ -97,7 +102,9 @@ def make_order_payload(customer_id: str, product_id: str) -> dict[str, object]:
 def create_order(client: TestClient) -> dict[str, object]:
     customer_id = create_customer(client)
     product_id = create_product(client)
-    response = client.post("/api/v1/orders", json=make_order_payload(customer_id, product_id))
+    response = client.post(
+        "/api/v1/orders", json=make_order_payload(customer_id, product_id)
+    )
     assert response.status_code == 201
     return response.json()
 
@@ -106,7 +113,9 @@ def test_create_order_returns_created_resource(client: TestClient) -> None:
     customer_id = create_customer(client)
     product_id = create_product(client)
 
-    response = client.post("/api/v1/orders", json=make_order_payload(customer_id, product_id))
+    response = client.post(
+        "/api/v1/orders", json=make_order_payload(customer_id, product_id)
+    )
 
     assert response.status_code == 201
     body = response.json()
@@ -168,10 +177,41 @@ def test_patch_order_updates_header_and_replaces_items(client: TestClient) -> No
     assert body["items"][0]["delivery_sequence"] == 2
 
 
-def test_create_order_returns_standard_error_for_missing_customer(client: TestClient) -> None:
+def test_patch_order_rejects_null_required_field_with_standard_error(
+    client: TestClient,
+) -> None:
+    order = create_order(client)
+
+    response = client.patch(f"/api/v1/orders/{order['id']}", json={"priority": None})
+
+    assert response.status_code == 422
+    body = response.json()
+    assert body["code"] == "VALIDATION_ERROR"
+    assert body["message"] == "Os dados informados são inválidos."
+    assert body["details"][0]["field"] == "priority"
+
+
+def test_patch_order_accepts_null_nullable_field(client: TestClient) -> None:
+    order = create_order(client)
+
+    response = client.patch(
+        f"/api/v1/orders/{order['id']}",
+        json={"expected_delivery_at": None},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["expected_delivery_at"] is None
+    assert response.json()["priority"] == "NORMAL"
+
+
+def test_create_order_returns_standard_error_for_missing_customer(
+    client: TestClient,
+) -> None:
     product_id = create_product(client)
 
-    response = client.post("/api/v1/orders", json=make_order_payload(str(uuid.uuid4()), product_id))
+    response = client.post(
+        "/api/v1/orders", json=make_order_payload(str(uuid.uuid4()), product_id)
+    )
 
     assert response.status_code == 404
     assert response.json() == {
@@ -181,11 +221,15 @@ def test_create_order_returns_standard_error_for_missing_customer(client: TestCl
     }
 
 
-def test_create_order_returns_standard_error_for_missing_product(client: TestClient) -> None:
+def test_create_order_returns_standard_error_for_missing_product(
+    client: TestClient,
+) -> None:
     customer_id = create_customer(client)
     missing_product_id = str(uuid.uuid4())
 
-    response = client.post("/api/v1/orders", json=make_order_payload(customer_id, missing_product_id))
+    response = client.post(
+        "/api/v1/orders", json=make_order_payload(customer_id, missing_product_id)
+    )
 
     assert response.status_code == 404
     assert response.json() == {

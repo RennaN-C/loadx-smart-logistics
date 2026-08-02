@@ -4,6 +4,7 @@ from collections.abc import Callable, Sequence
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.database.integrity import get_integrity_constraint_name
 from app.modules.customers.service import CustomerNotFoundError, CustomerService
 from app.modules.orders.models import Order, OrderItem
 from app.modules.orders.repository import OrderRepository
@@ -53,7 +54,10 @@ class OrderService:
             expected_delivery_at=data.expected_delivery_at,
             items=[self._build_order_item(item) for item in data.items],
         )
-        return self._persist(lambda: self.repository.add(order))
+        return self._persist(
+            lambda: self.repository.add(order),
+            product_ids=[item.product_id for item in data.items],
+        )
 
     def update_order(self, order_id: uuid.UUID, data: OrderUpdate) -> Order:
         order = self.get_order(order_id)
@@ -71,7 +75,15 @@ class OrderService:
         for field_name, value in update_data.items():
             setattr(order, field_name, value)
 
-        return self._persist(lambda: self.repository.update(order))
+        replacement_product_ids = (
+            [item.product_id for item in data.items]
+            if "items" in data.model_fields_set and data.items is not None
+            else []
+        )
+        return self._persist(
+            lambda: self.repository.update(order),
+            product_ids=replacement_product_ids,
+        )
 
     def _ensure_customer_exists(self, customer_id: uuid.UUID) -> None:
         try:
@@ -97,12 +109,22 @@ class OrderService:
     def _build_order_item(self, item: OrderItemCreate) -> OrderItem:
         return OrderItem(**item.model_dump())
 
-    def _persist(self, operation: Callable[[], Order]) -> Order:
+    def _persist(
+        self,
+        operation: Callable[[], Order],
+        *,
+        product_ids: Sequence[uuid.UUID],
+    ) -> Order:
         try:
             order = operation()
             self.db.commit()
             self.db.refresh(order)
         except IntegrityError as exc:
             self.db.rollback()
-            raise OrderCustomerNotFoundError from exc
+            constraint_name = get_integrity_constraint_name(exc)
+            if constraint_name == "fk_orders__customers":
+                raise OrderCustomerNotFoundError from exc
+            if constraint_name == "fk_order_items__products":
+                raise OrderProductNotFoundError(product_ids) from exc
+            raise
         return self.get_order(order.id)

@@ -1,10 +1,11 @@
 import uuid
-from typing import Annotated, Any
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
+from app.core.responses import error_response, openapi_error_responses
 from app.database.session import get_db
 from app.modules.products.models import Product
 from app.modules.products.schemas import ProductCreate, ProductRead, ProductUpdate
@@ -21,23 +22,19 @@ def get_product_service(db: Annotated[Session, Depends(get_db)]) -> ProductServi
     return ProductService(db)
 
 
-def error_response(status_code: int, code: str, message: str, details: list[Any] | None = None) -> JSONResponse:
-    return JSONResponse(
-        status_code=status_code,
-        content={
-            "code": code,
-            "message": message,
-            "details": details or [],
-        },
-    )
-
-
 @router.get("", response_model=list[ProductRead])
-def list_products(service: Annotated[ProductService, Depends(get_product_service)]) -> list[Product]:
+def list_products(
+    service: Annotated[ProductService, Depends(get_product_service)],
+) -> list[Product]:
     return list(service.list_products())
 
 
-@router.post("", response_model=ProductRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=ProductRead,
+    status_code=status.HTTP_201_CREATED,
+    responses=openapi_error_responses(409, 422),
+)
 def create_product(
     data: ProductCreate,
     service: Annotated[ProductService, Depends(get_product_service)],
@@ -53,7 +50,11 @@ def create_product(
         )
 
 
-@router.get("/{product_id}", response_model=ProductRead)
+@router.get(
+    "/{product_id}",
+    response_model=ProductRead,
+    responses=openapi_error_responses(404, 422),
+)
 def get_product(
     product_id: uuid.UUID,
     service: Annotated[ProductService, Depends(get_product_service)],
@@ -69,7 +70,11 @@ def get_product(
         )
 
 
-@router.patch("/{product_id}", response_model=ProductRead)
+@router.patch(
+    "/{product_id}",
+    response_model=ProductRead,
+    responses=openapi_error_responses(404, 409, 422),
+)
 def update_product(
     product_id: uuid.UUID,
     data: ProductUpdate,

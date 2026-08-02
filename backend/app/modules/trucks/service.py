@@ -4,6 +4,7 @@ from collections.abc import Callable, Sequence
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.database.integrity import get_integrity_constraint_name
 from app.modules.trucks.models import Truck
 from app.modules.trucks.repository import TruckRepository
 from app.modules.trucks.schemas import TruckCreate, TruckUpdate
@@ -60,5 +61,7 @@ class TruckService:
             self.db.refresh(truck)
         except IntegrityError as exc:
             self.db.rollback()
-            raise TruckPlateAlreadyExistsError from exc
+            if get_integrity_constraint_name(exc) == "uq_trucks__plate":
+                raise TruckPlateAlreadyExistsError from exc
+            raise
         return truck

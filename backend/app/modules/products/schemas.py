@@ -36,12 +36,32 @@ class ProductUpdate(BaseModel):
     width_cm: int | None = Field(default=None, gt=0)
     height_cm: int | None = Field(default=None, gt=0)
     length_cm: int | None = Field(default=None, gt=0)
-    weight_kg: Decimal | None = Field(default=None, gt=0, max_digits=10, decimal_places=3)
+    weight_kg: Decimal | None = Field(
+        default=None, gt=0, max_digits=10, decimal_places=3
+    )
     fragile: bool | None = None
     stackable: bool | None = None
     rotation_allowed: bool | None = None
 
     model_config = ConfigDict(str_strip_whitespace=True)
+
+    @field_validator(
+        "code",
+        "name",
+        "width_cm",
+        "height_cm",
+        "length_cm",
+        "weight_kg",
+        "fragile",
+        "stackable",
+        "rotation_allowed",
+        mode="before",
+    )
+    @classmethod
+    def reject_null_required_fields(cls, value: object) -> object:
+        if value is None:
+            raise ValueError("field must not be null")
+        return value
 
     @field_validator("code")
     @classmethod

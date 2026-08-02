@@ -1,10 +1,11 @@
 import uuid
-from typing import Annotated, Any
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
+from app.core.responses import error_response, openapi_error_responses
 from app.database.session import get_db
 from app.modules.trucks.models import Truck
 from app.modules.trucks.schemas import TruckCreate, TruckRead, TruckUpdate
@@ -21,23 +22,19 @@ def get_truck_service(db: Annotated[Session, Depends(get_db)]) -> TruckService:
     return TruckService(db)
 
 
-def error_response(status_code: int, code: str, message: str, details: list[Any] | None = None) -> JSONResponse:
-    return JSONResponse(
-        status_code=status_code,
-        content={
-            "code": code,
-            "message": message,
-            "details": details or [],
-        },
-    )
-
-
 @router.get("", response_model=list[TruckRead])
-def list_trucks(service: Annotated[TruckService, Depends(get_truck_service)]) -> list[Truck]:
+def list_trucks(
+    service: Annotated[TruckService, Depends(get_truck_service)],
+) -> list[Truck]:
     return list(service.list_trucks())
 
 
-@router.post("", response_model=TruckRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=TruckRead,
+    status_code=status.HTTP_201_CREATED,
+    responses=openapi_error_responses(409, 422),
+)
 def create_truck(
     data: TruckCreate,
     service: Annotated[TruckService, Depends(get_truck_service)],
@@ -53,7 +50,11 @@ def create_truck(
         )
 
 
-@router.get("/{truck_id}", response_model=TruckRead)
+@router.get(
+    "/{truck_id}",
+    response_model=TruckRead,
+    responses=openapi_error_responses(404, 422),
+)
 def get_truck(
     truck_id: uuid.UUID,
     service: Annotated[TruckService, Depends(get_truck_service)],
@@ -69,7 +70,11 @@ def get_truck(
         )
 
 
-@router.patch("/{truck_id}", response_model=TruckRead)
+@router.patch(
+    "/{truck_id}",
+    response_model=TruckRead,
+    responses=openapi_error_responses(404, 409, 422),
+)
 def update_truck(
     truck_id: uuid.UUID,
     data: TruckUpdate,

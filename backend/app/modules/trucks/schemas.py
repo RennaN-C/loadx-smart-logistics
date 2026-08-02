@@ -32,10 +32,28 @@ class TruckUpdate(BaseModel):
     internal_width_cm: int | None = Field(default=None, gt=0)
     internal_height_cm: int | None = Field(default=None, gt=0)
     internal_length_cm: int | None = Field(default=None, gt=0)
-    max_weight_kg: Decimal | None = Field(default=None, gt=0, max_digits=10, decimal_places=2)
+    max_weight_kg: Decimal | None = Field(
+        default=None, gt=0, max_digits=10, decimal_places=2
+    )
     active: bool | None = None
 
     model_config = ConfigDict(str_strip_whitespace=True)
+
+    @field_validator(
+        "plate",
+        "model",
+        "internal_width_cm",
+        "internal_height_cm",
+        "internal_length_cm",
+        "max_weight_kg",
+        "active",
+        mode="before",
+    )
+    @classmethod
+    def reject_null_required_fields(cls, value: object) -> object:
+        if value is None:
+            raise ValueError("field must not be null")
+        return value
 
     @field_validator("plate")
     @classmethod

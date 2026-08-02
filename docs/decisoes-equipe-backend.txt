@@ -1,0 +1,313 @@
+LOADX - DECISÕES NECESSÁRIAS DA EQUIPE PARA O BACKEND
+======================================================
+
+Objetivo
+--------
+Este arquivo é uma pauta de decisão. Ele não substitui docs/11-riscos-pendencias.md nem uma ADR.
+
+CONFIRMADO: uma escolha só passa a valer depois de registrada no documento oficial correspondente, revisada pela equipe e vinculada a uma ocorrência.
+
+Como usar
+---------
+1. Discutir cada item DXX.
+2. Registrar a opção escolhida, responsáveis e data.
+3. Atualizar docs/03, docs/04, docs/05 ou docs/11 conforme o assunto.
+4. Criar ADR quando a decisão alterar arquitetura, segurança, contrato permanente ou padrão transacional.
+5. Somente então desbloquear a ocorrência indicada.
+
+
+D01 - FRONTEIRA ENTRE ENDPOINTS PÚBLICOS E PROTEGIDOS
+-----------------------------------------------------
+Marcador: DECISÃO NECESSÁRIA
+Pergunta: quais endpoints podem ser chamados sem token?
+Opções mínimas:
+A) somente /health, /auth/login e o cadastro definido em D03;
+B) permitir também leituras públicas específicas, listadas nominalmente.
+RECOMENDAÇÃO: opção A; dados operacionais e pessoais devem exigir autenticação.
+Impacta: OC51, docs/05 e OpenAPI.
+Escolha da equipe:
+Responsáveis:
+Data:
+
+
+D02 - MATRIZ RBAC POR PERFIL
+---------------------------
+Marcador: DECISÃO NECESSÁRIA
+Pergunta: o que ADMIN, CHECKER, DRIVER e LOGISTICS_MANAGER podem ler ou alterar em cada endpoint?
+Decidir explicitamente para: usuários, clientes, motoristas, caminhões, produtos, pedidos, planos, carregamento, viagens, entregas, ocorrências, histórico e relatórios.
+RECOMENDAÇÃO: produzir tabela recurso x ação x perfil; negar por padrão o que não estiver autorizado.
+Impacta: OC51 e todas as rotas futuras.
+Escolha da equipe:
+Responsáveis:
+Data:
+
+
+D03 - CADASTRO DE USUÁRIOS E PRIMEIRO ADMINISTRADOR
+---------------------------------------------------
+Marcador: DECISÃO NECESSÁRIA
+Pergunta: /auth/register será público, restrito a ADMIN ou usado somente para bootstrap local?
+Opções mínimas:
+A) registro público com papel fixo e limitado;
+B) criação apenas por ADMIN;
+C) bootstrap controlado do primeiro ADMIN e, depois, somente ADMIN.
+RECOMENDAÇÃO: opção C; nunca aceitar criação pública livre com role ADMIN.
+Impacta: OC51, auth, users, seeds e documentação de ambiente.
+Escolha da equipe:
+Responsáveis:
+Data:
+
+
+D04 - TRANSIÇÕES E BLOQUEIOS DE EDIÇÃO DE PEDIDOS
+-------------------------------------------------
+Marcador: DECISÃO NECESSÁRIA
+Perguntas:
+- quais transições entre DRAFT, READY, PLANNED, IN_TRANSIT, DELIVERED e CANCELED são permitidas?
+- quais perfis executam cada transição?
+- quais campos e itens podem ser editados após READY, PLANNED ou IN_TRANSIT?
+- cancelar pedido planejado exige recálculo ou bloqueio?
+RECOMENDAÇÃO: registrar uma tabela de transições e rejeitar saltos não listados.
+Impacta: OC52, orders, load_planning, trips e status_history.
+Escolha da equipe:
+Responsáveis:
+Data:
+
+
+D05 - TRANSAÇÃO E AUTORIA DO HISTÓRICO DE STATUS
+------------------------------------------------
+Marcador: DECISÃO NECESSÁRIA
+Perguntas:
+- o service dono da operação controla commit/rollback de entidade e histórico?
+- changed_by será sempre o usuário autenticado nas ações manuais?
+- ações automáticas usarão changed_by nulo ou um usuário de sistema?
+- repetir o mesmo status cria histórico ou é operação sem efeito?
+RECOMENDAÇÃO: um único commit no caso de uso externo; histórico usa flush e participa da mesma transação.
+Impacta: OC52, OC09, loading, deliveries e occurrences.
+Escolha da equipe:
+Responsáveis:
+Data:
+
+
+D06 - REPRESENTAÇÃO JSON DE DECIMAL
+-----------------------------------
+Marcador: DECISÃO NECESSÁRIA
+Pergunta: weight_kg, max_weight_kg, total_weight_kg e occupancy_percent serão números JSON ou strings decimais?
+Opções mínimas:
+A) número JSON, com regra explícita de precisão e arredondamento;
+B) string decimal, convertida de forma explícita pelo frontend.
+RECOMENDAÇÃO: escolher um único padrão para entrada e saída e documentar exemplos e tipos OpenAPI.
+Impacta: OC56, frontend, planos, relatórios e contratos.
+Escolha da equipe:
+Responsáveis:
+Data:
+
+
+D07 - ESTADOS E TRANSIÇÕES DE VIAGEM E ENTREGA
+-----------------------------------------------
+Marcador: DECISÃO NECESSÁRIA
+Perguntas:
+- quais transições de SCHEDULED, IN_ROUTE, FINISHED e CANCELED são permitidas?
+- quais transições de PENDING, IN_DELIVERY, DELIVERED, DELAYED, CUSTOMER_ABSENT, FAILED e CANCELED são permitidas?
+- quais perfis ou comandos de WhatsApp executam cada ação?
+- quais transições registram started_at, delivered_at e finished_at?
+RECOMENDAÇÃO: aprovar tabelas de transição antes da migration e do service da OC09.
+Impacta: OC09, OC37 a OC44 e status_history.
+Escolha da equipe:
+Responsáveis:
+Data:
+
+
+D08 - FINALIZAÇÃO DE VIAGEM COM ENTREGAS PROBLEMÁTICAS
+------------------------------------------------------
+Marcador: DECISÃO NECESSÁRIA
+Pergunta: uma viagem pode terminar com entrega CANCELED, FAILED, CUSTOMER_ABSENT, DELAYED ou recusada?
+Definir também se exige ocorrência, justificativa, reentrega ou aprovação do responsável logístico.
+RECOMENDAÇÃO: listar combinações permitidas e o status final esperado do pedido.
+Impacta: OC09, relatórios e demonstração e2e.
+Escolha da equipe:
+Responsáveis:
+Data:
+
+
+D09 - DIVERGÊNCIA NO CHECKLIST DE CARREGAMENTO
+------------------------------------------------
+Marcador: DECISÃO NECESSÁRIA
+Pergunta: o que acontece quando o carregamento físico diverge do plano aprovado?
+Opções a combinar: bloquear finalização, registrar ocorrência, permitir exceção autorizada ou exigir novo plano.
+RECOMENDAÇÃO: nunca alterar coordenadas silenciosamente; divergência deve ficar auditável.
+Impacta: loading, OC09, occurrences e relatórios.
+Escolha da equipe:
+Responsáveis:
+Data:
+
+
+D10 - ESCOPO E CONSULTA DO HISTÓRICO DE STATUS
+-----------------------------------------------
+Marcador: DECISÃO NECESSÁRIA
+Perguntas:
+- quais entity_type são aceitos?
+- haverá endpoint público de consulta?
+- quais filtros, paginação e perfis serão permitidos?
+- o histórico de usuário e cadastro entra no MVP ou somente entidades operacionais?
+RECOMENDAÇÃO: começar com entidades operacionais confirmadas e catálogo fechado.
+Impacta: OC52, OC09, docs/03, docs/04 e docs/05.
+Escolha da equipe:
+Responsáveis:
+Data:
+
+
+D11 - CONTRATO DE READINESS
+---------------------------
+Marcador: DECISÃO NECESSÁRIA
+Perguntas:
+- qual será o caminho e payload da verificação de prontidão?
+- conexão disponível é suficiente ou a revisão Alembic também deve estar em head?
+- a resposta expõe somente estado geral ou detalhes técnicos controlados?
+RECOMENDAÇÃO: manter /health como liveness e criar readiness sem expor URL, credenciais ou stack trace.
+Impacta: OC58, Compose, CI e monitoramento futuro.
+Escolha da equipe:
+Responsáveis:
+Data:
+
+
+D12 - DADOS PESSOAIS EM LISTAGENS E PAGINAÇÃO
+----------------------------------------------
+Marcador: DECISÃO NECESSÁRIA
+Perguntas:
+- quais campos de cliente, motorista e usuário aparecem nas listagens?
+- documento, telefone, CNH e endereço serão mascarados ou omitidos conforme perfil?
+- qual padrão de paginação, ordenação e filtros será adotado?
+RECOMENDAÇÃO: respostas resumidas em listagens e detalhes completos apenas para perfis autorizados.
+Impacta: RBAC, schemas de leitura, frontend e docs/05.
+Escolha da equipe:
+Responsáveis:
+Data:
+
+
+D13 - PERSISTÊNCIA DE VOLUMES INDIVIDUAIS
+-----------------------------------------
+Marcador: DECISÃO NECESSÁRIA
+Pergunta: haverá tabela volumes ou as unidades serão geradas de order_items.quantity e persistidas somente em load_plan_items?
+RECOMENDAÇÃO existente: avaliar identidade determinística (order_item_id, volume_index) sem criar tabela adicional por antecipação.
+Impacta: load_planning, models, migrations, algoritmo e visualização 3D.
+Escolha da equipe:
+Responsáveis:
+Data:
+
+
+D14 - BASE DE VOLUME_INDEX
+--------------------------
+Marcador: DECISÃO NECESSÁRIA
+Pergunta: volume_index começa em zero ou um?
+RECOMENDAÇÃO: escolher antes de persistência, API ou algorithm_version e manter a base imutável por versão.
+Impacta: load_plan_items, otimizador, testes e frontend.
+Escolha da equipe:
+Responsáveis:
+Data:
+
+
+D15 - RECÁLCULO E VERSIONAMENTO DE PLANO APROVADO
+-------------------------------------------------
+Marcador: DECISÃO NECESSÁRIA
+Perguntas:
+- plano aprovado pode ser recalculado?
+- recálculo cria novo plano, nova versão ou altera o registro existente?
+- o plano anterior permanece consultável?
+- o que acontece com pedidos, carregamento e viagem vinculados?
+RECOMENDAÇÃO: não alterar plano aprovado; criar nova versão/registro e preservar auditoria.
+Impacta: load_planning, banco, API, loading e reports.
+Escolha da equipe:
+Responsáveis:
+Data:
+
+
+D16 - GATES DETERMINÍSTICOS DO OTIMIZADOR
+-----------------------------------------
+Marcador: DECISÃO NECESSÁRIA
+Decidir antes da engine:
+- ordem total e desempates da ordenação;
+- rotações válidas e prioridade;
+- pontos candidatos e ordem de varredura;
+- contato/tolerância de colisão;
+- apoio mínimo e múltiplos suportes;
+- peso permitido sobre item frágil;
+- fórmula e arredondamento da ocupação;
+- posição da porta e loading_sequence;
+- catálogo e precedência de rejection_reason.
+RECOMENDAÇÃO: registrar cada escolha em código, testes, docs/04 e algorithm_version.
+Impacta: OC13 a OC20 e contrato de visualização.
+Escolha da equipe:
+Responsáveis:
+Data:
+
+
+D17 - COMPARAÇÃO ENTRE CAMINHÕES NO MVP
+---------------------------------------
+Marcador: DECISÃO NECESSÁRIA
+Pergunta: OC21 faz parte do MVP ou fica para fase futura?
+RECOMENDAÇÃO: decidir antes de criar endpoint, tela ou persistência específica.
+Impacta: roadmap, load_planning, frontend e prazo do MVP.
+Escolha da equipe:
+Responsáveis:
+Data:
+
+
+D18 - POLÍTICA FINAL DE AUTENTICAÇÃO
+------------------------------------
+Marcador: DECISÃO NECESSÁRIA
+Decidir:
+- duração final do access token;
+- necessidade de refresh token no MVP;
+- bloqueio por tentativas inválidas;
+- força mínima e eventual troca de senha;
+- comportamento de tokens após desativação ou mudança de papel.
+RECOMENDAÇÃO: manter o MVP pequeno, mas documentar explicitamente os limites de segurança.
+Impacta: auth, users, frontend e testes de segurança.
+Escolha da equipe:
+Responsáveis:
+Data:
+
+
+D19 - VALIDAÇÃO FORMAL DE DOCUMENTOS E CONTATOS
+-----------------------------------------------
+Marcador: DECISÃO NECESSÁRIA
+Pergunta: o MVP validará formato e dígitos de CPF/CNPJ, telefone e CNH ou somente presença/tamanho?
+Definir também normalização e unicidade com ou sem pontuação.
+RECOMENDAÇÃO: normalizar antes de aplicar unicidade; não adicionar biblioteca sem aprovação.
+Impacta: customers, drivers, schemas, migrations apenas se necessário e dados de teste.
+Escolha da equipe:
+Responsáveis:
+Data:
+
+
+D20 - DECISÕES OPERACIONAIS RESTANTES
+-------------------------------------
+Marcador: DECISÃO NECESSÁRIA
+Registrar separadamente antes das ocorrências correspondentes:
+- formato e campos obrigatórios dos PDFs;
+- envio ou não por WhatsApp/e-mail no MVP;
+- retenção e proteção de fotos de ocorrência;
+- mensagens finais de confirmação/erro do WhatsApp;
+- estratégia de logging estruturado;
+- metas objetivas de performance do otimizador.
+RECOMENDAÇÃO: não agrupar implementações diferentes em uma única ocorrência; usar este item apenas como pauta.
+Impacta: OC22, OC36 a OC45, infraestrutura e demonstração final.
+Escolha da equipe:
+Responsáveis:
+Data:
+
+
+ENCERRAMENTO DA REUNIÃO
+=======================
+
+Decisões aprovadas e documentos atualizados:
+
+Ocorrências desbloqueadas:
+
+ADRs que precisam ser criadas:
+
+Pendências mantidas para próxima reunião:
+
+Participantes:
+
+Data:
+

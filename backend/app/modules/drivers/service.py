@@ -4,6 +4,7 @@ from collections.abc import Callable, Sequence
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.database.integrity import get_integrity_constraint_name
 from app.modules.drivers.models import Driver
 from app.modules.drivers.repository import DriverRepository
 from app.modules.drivers.schemas import DriverCreate, DriverUpdate
@@ -55,7 +56,10 @@ class DriverService:
                 raise DriverDocumentAlreadyExistsError
 
         new_license_number = update_data.get("license_number")
-        if new_license_number is not None and new_license_number != driver.license_number:
+        if (
+            new_license_number is not None
+            and new_license_number != driver.license_number
+        ):
             existing_driver = self.repository.get_by_license_number(new_license_number)
             if existing_driver is not None and existing_driver.id != driver.id:
                 raise DriverLicenseNumberAlreadyExistsError
@@ -72,7 +76,10 @@ class DriverService:
             self.db.refresh(driver)
         except IntegrityError as exc:
             self.db.rollback()
-            if "license_number" in str(exc.orig).lower():
+            constraint_name = get_integrity_constraint_name(exc)
+            if constraint_name == "uq_drivers__license_number":
                 raise DriverLicenseNumberAlreadyExistsError from exc
-            raise DriverDocumentAlreadyExistsError from exc
+            if constraint_name == "uq_drivers__document":
+                raise DriverDocumentAlreadyExistsError from exc
+            raise
         return driver

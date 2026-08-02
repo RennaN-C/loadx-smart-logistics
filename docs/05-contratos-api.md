@@ -11,6 +11,7 @@ Este documento é o contrato combinado entre backend, frontend, algoritmo e inte
 - `RECOMENDAÇÃO`: endpoints de listagem devem preparar paginação futura, mesmo que o MVP comece simples.
 - `RECOMENDAÇÃO`: filtros usam query params em snake_case.
 - `PENDENTE DE DEFINIÇÃO`: padrão final de paginação, ordenação e filtros.
+- `CONFIRMADO`: em atualizações parciais, campos omitidos permanecem inalterados; `null` só é aceito para campos anuláveis no modelo de dados.
 
 ## Autenticação
 
@@ -356,6 +357,9 @@ Regras:
 - `code`: string estável em UPPER_SNAKE_CASE.
 - `message`: texto claro para interface ou log operacional.
 - `details`: lista com campos, IDs ou motivos de validação.
+- `VALIDATION_ERROR`: payload, path ou query não atende ao schema; usa status `422` e identifica os campos inválidos em `details`.
+- `INTERNAL_SERVER_ERROR`: falha inesperada; usa status `500`, mensagem pública genérica e `details` vazio, sem expor informações internas.
+- `CONFIRMADO`: o OpenAPI referencia o mesmo schema `ErrorResponse` para os erros públicos documentados em cada operação.
 
 Mapeamento recomendado:
 
