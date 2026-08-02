@@ -20,9 +20,12 @@ Crie somente os arquivos necessários para a ocorrência atual.
 - `GET /api/v1/trucks/{id}`: consulta caminhão por ID.
 - `PATCH /api/v1/trucks/{id}`: atualiza campos enviados.
 
+`CONFIRMADO`: `ADMIN`, `CHECKER` e `LOGISTICS_MANAGER` podem consultar. Somente `LOGISTICS_MANAGER` pode criar ou atualizar. `DRIVER` não acessa o módulo enquanto não existir vínculo aprovado com o caminhão.
+
 ## Regras implementadas
 
 - Placa é normalizada para maiúsculas.
 - Placa deve ser única.
 - Dimensões internas e peso máximo devem ser maiores que zero.
 - Exclusão física ainda não foi implementada; use `active = false` para indisponibilidade.
+- Todas as rotas exigem autenticação Bearer e consultam o papel e o estado atual do usuário no banco.

@@ -15,22 +15,13 @@ Este documento é o contrato combinado entre backend, frontend, algoritmo e inte
 
 ## Autenticação
 
-Endpoints previstos:
+Endpoints públicos:
 
-- `POST /auth/register`.
 - `POST /auth/login`.
+
+Endpoint disponível para qualquer usuário autenticado:
+
 - `GET /auth/me`.
-
-Exemplo de cadastro:
-
-```json
-{
-  "name": "Admin Local",
-  "email": "admin@example.test",
-  "password": "senha-local",
-  "role": "ADMIN"
-}
-```
 
 Exemplo de login:
 
@@ -61,9 +52,15 @@ Erros específicos:
 - `AUTH_INVALID_CREDENTIALS`: e-mail ou senha inválidos.
 - `AUTH_INVALID_TOKEN`: token ausente, inválido, expirado ou usuário inexistente.
 - `AUTH_USER_INACTIVE`: usuário inativo.
-- `USER_EMAIL_ALREADY_EXISTS`: e-mail já cadastrado.
+- `AUTH_FORBIDDEN`: usuário autenticado sem permissão para a ação.
 
-`SUPOSIÇÃO TÉCNICA`: `POST /auth/register` permanece aberto no MVP local até a equipe decidir se usuários serão criados apenas por administrador.
+`CONFIRMADO`: `POST /auth/register` foi removido do contrato por `D03` e `ADR-004`. O primeiro `ADMIN` é criado por comando administrativo local; os usuários seguintes são criados por `ADMIN` em `POST /users`.
+
+`CONFIRMADO`: depois das migrations e antes de expor a API, o bootstrap é executado em `backend` com `python -m app.modules.auth.bootstrap` ou, pela raiz, com `docker compose run --rm backend python -m app.modules.auth.bootstrap`. A senha é lida de forma oculta e o comando recusa execução quando já existe qualquer usuário.
+
+`CONFIRMADO`: ausência ou invalidade de autenticação retorna `401 AUTH_INVALID_TOKEN`; autenticação válida sem permissão retorna `403 AUTH_FORBIDDEN`.
+
+`CONFIRMADO`: após a `OC51-G`, todos os endpoints de negócio atualmente implementados exigem autenticação e aplicam a matriz aprovada.
 
 `PENDENTE DE DEFINIÇÃO`: tempo final de expiração, refresh token e política de bloqueio de login.
 
@@ -85,8 +82,9 @@ Erros específicos:
 - `GET /users/{id}`.
 - `PATCH /users/{id}`.
 
-Regras atuais:
+Regras do contrato aprovado:
 
+- Todas as rotas de `/users` exigem perfil `ADMIN`.
 - Campos públicos retornados: `id`, `name`, `email`, `role`, `active` e `created_at`.
 - `password_hash` nunca é retornado.
 - `role` aceita `ADMIN`, `CHECKER`, `DRIVER` e `LOGISTICS_MANAGER`.
@@ -98,8 +96,9 @@ Erros específicos:
 
 - `USER_NOT_FOUND`: usuário não encontrado.
 - `USER_EMAIL_ALREADY_EXISTS`: e-mail já cadastrado.
+- `USER_LAST_ACTIVE_ADMIN_REQUIRED`: alteração deixaria o sistema sem `ADMIN` ativo.
 
-`PENDENTE DE DEFINIÇÃO`: se cadastro público de usuário será permitido ou se usuários serão criados apenas por administrador.
+`CONFIRMADO`: não existe cadastro público. O primeiro `ADMIN` usa bootstrap local e, depois, usuários são criados somente por `ADMIN`.
 
 ## Caminhões
 
@@ -107,6 +106,12 @@ Erros específicos:
 - `POST /trucks`.
 - `GET /trucks/{id}`.
 - `PATCH /trucks/{id}`.
+
+Regras de autorização:
+
+- `ADMIN`, `CHECKER` e `LOGISTICS_MANAGER` podem usar `GET`.
+- Somente `LOGISTICS_MANAGER` pode usar `POST` e `PATCH`.
+- `DRIVER` não acessa essas rotas enquanto não existir vínculo aprovado.
 
 Exemplo de criação:
 
@@ -129,6 +134,12 @@ Exemplo de criação:
 - `POST /products`.
 - `GET /products/{id}`.
 - `PATCH /products/{id}`.
+
+Regras de autorização:
+
+- `ADMIN`, `CHECKER` e `LOGISTICS_MANAGER` podem usar `GET`.
+- Somente `LOGISTICS_MANAGER` pode usar `POST` e `PATCH`.
+- `DRIVER` não acessa essas rotas enquanto não existir vínculo aprovado.
 
 Exemplo de criação:
 
@@ -154,6 +165,12 @@ Exemplo de criação:
 - `GET /customers/{id}`.
 - `PATCH /customers/{id}`.
 
+Regras de autorização:
+
+- `ADMIN` e `LOGISTICS_MANAGER` podem usar `GET`.
+- Somente `LOGISTICS_MANAGER` pode usar `POST` e `PATCH`.
+- `CHECKER` e `DRIVER` não acessam essas rotas.
+
 ## Motoristas
 
 - `GET /drivers`.
@@ -161,12 +178,24 @@ Exemplo de criação:
 - `GET /drivers/{id}`.
 - `PATCH /drivers/{id}`.
 
+Regras de autorização:
+
+- `ADMIN` e `LOGISTICS_MANAGER` podem usar `GET`.
+- Somente `LOGISTICS_MANAGER` pode usar `POST` e `PATCH`.
+- `CHECKER` e `DRIVER` não acessam essas rotas.
+
 ## Pedidos
 
 - `GET /orders`.
 - `POST /orders`.
 - `GET /orders/{id}`.
 - `PATCH /orders/{id}`.
+
+Regras de autorização:
+
+- `ADMIN`, `CHECKER` e `LOGISTICS_MANAGER` podem usar `GET`.
+- Somente `LOGISTICS_MANAGER` pode usar `POST` e `PATCH`.
+- `DRIVER` não acessa essas rotas enquanto não existir vínculo aprovado.
 
 Exemplo de criação:
 
@@ -373,10 +402,15 @@ Mapeamento recomendado:
 
 ## Segurança de API
 
+- Somente `GET /health` e `POST /api/v1/auth/login` são públicos.
+- Todos os demais endpoints de negócio exigem Bearer token e aplicam a matriz de `docs/04-regras-negocio.md`.
+- `CONFIRMADO`: com `APP_ENV=local`, `/docs`, `/docs/oauth2-redirect`, `/redoc` e `/openapi.json` ficam disponíveis. Com `APP_ENV=production` ou sem a variável, essas rotas não são registradas e retornam `404`.
 - Senhas nunca retornam na API.
 - Tokens e segredos nunca aparecem em logs.
 - Dados pessoais devem ser minimizados em respostas de listagem.
 - Endpoints que alteram status devem registrar histórico.
 - Integrações externas devem ser autenticadas quando saírem do modo mock.
 
-`PENDENTE DE DEFINIÇÃO`: esquema final de autorização por perfil e proteção do webhook de WhatsApp.
+`CONFIRMADO`: a autorização por perfil segue `ADR-004`; acesso não listado é negado.
+
+`PENDENTE DE DEFINIÇÃO`: autenticação própria e validação de assinatura do webhook de WhatsApp devem ser aprovadas antes de uma integração externa real.

@@ -20,6 +20,8 @@ Crie somente os arquivos necessários para a ocorrência atual.
 - `GET /api/v1/drivers/{id}`: consulta motorista por ID.
 - `PATCH /api/v1/drivers/{id}`: atualiza campos enviados.
 
+`CONFIRMADO`: `ADMIN` e `LOGISTICS_MANAGER` podem consultar. Somente `LOGISTICS_MANAGER` pode criar ou atualizar. `CHECKER` e `DRIVER` não acessam o módulo.
+
 ## Regras implementadas
 
 - Nome, documento, telefone e CNH são obrigatórios.
@@ -27,6 +29,7 @@ Crie somente os arquivos necessários para a ocorrência atual.
 - `license_number` deve ser único.
 - `license_category` é opcional e normalizada para maiúsculas quando informada.
 - `active = false` representa motorista indisponível para viagens futuras.
+- Todas as rotas exigem autenticação Bearer e consultam o papel e o estado atual do usuário no banco.
 
 ## Pendências
 

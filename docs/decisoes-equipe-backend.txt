@@ -18,33 +18,52 @@ Como usar
 
 D01 - FRONTEIRA ENTRE ENDPOINTS PÚBLICOS E PROTEGIDOS
 -----------------------------------------------------
-Marcador: DECISÃO NECESSÁRIA
+Marcador: CONFIRMADO
 Pergunta: quais endpoints podem ser chamados sem token?
 Opções mínimas:
 A) somente /health, /auth/login e o cadastro definido em D03;
 B) permitir também leituras públicas específicas, listadas nominalmente.
 RECOMENDAÇÃO: opção A; dados operacionais e pessoais devem exigir autenticação.
 Impacta: OC51, docs/05 e OpenAPI.
-Escolha da equipe:
-Responsáveis:
-Data:
+Escolha aprovada: opção A ajustada. Somente GET /health e
+POST /api/v1/auth/login são públicos. /auth/register será removido conforme
+D03. Os demais endpoints de negócio exigem Bearer token. /docs, /redoc e
+/openapi.json ficam disponíveis localmente e devem ser desabilitados ou
+protegidos em produção. Integração externa futura deve possuir autenticação
+própria aprovada e não será tratada como acesso anônimo.
+Responsável: Desenvolvedor 1.
+Data: 2026-08-02.
 
 
 D02 - MATRIZ RBAC POR PERFIL
 ---------------------------
-Marcador: DECISÃO NECESSÁRIA
+Marcador: CONFIRMADO
 Pergunta: o que ADMIN, CHECKER, DRIVER e LOGISTICS_MANAGER podem ler ou alterar em cada endpoint?
 Decidir explicitamente para: usuários, clientes, motoristas, caminhões, produtos, pedidos, planos, carregamento, viagens, entregas, ocorrências, histórico e relatórios.
 RECOMENDAÇÃO: produzir tabela recurso x ação x perfil; negar por padrão o que não estiver autorizado.
 Impacta: OC51 e todas as rotas futuras.
-Escolha da equipe:
-Responsáveis:
-Data:
+Escolha aprovada: opção B, separação por responsabilidade, menor privilégio e
+negação por padrão. A matriz completa está em docs/04-regras-negocio.md.
+
+Resumo aprovado:
+- ADMIN gerencia usuários e consulta dados operacionais para auditoria.
+- LOGISTICS_MANAGER gerencia cadastros e fluxos operacionais.
+- CHECKER consulta caminhões, produtos e pedidos e atua somente no
+  carregamento atribuído quando o vínculo existir.
+- DRIVER acessa somente recursos comprovadamente atribuídos. Como ainda não
+  existe vínculo entre users e drivers, seu acesso atual fica limitado a
+  /auth/me.
+- Acesso não listado é negado.
+- Papel e active são consultados no banco em cada requisição protegida.
+- Falta ou invalidade de token retorna 401 AUTH_INVALID_TOKEN.
+- Token válido sem permissão retorna 403 AUTH_FORBIDDEN.
+Responsável: Desenvolvedor 1.
+Data: 2026-08-02.
 
 
 D03 - CADASTRO DE USUÁRIOS E PRIMEIRO ADMINISTRADOR
 ---------------------------------------------------
-Marcador: DECISÃO NECESSÁRIA
+Marcador: CONFIRMADO
 Pergunta: /auth/register será público, restrito a ADMIN ou usado somente para bootstrap local?
 Opções mínimas:
 A) registro público com papel fixo e limitado;
@@ -52,9 +71,13 @@ B) criação apenas por ADMIN;
 C) bootstrap controlado do primeiro ADMIN e, depois, somente ADMIN.
 RECOMENDAÇÃO: opção C; nunca aceitar criação pública livre com role ADMIN.
 Impacta: OC51, auth, users, seeds e documentação de ambiente.
-Escolha da equipe:
-Responsáveis:
-Data:
+Escolha aprovada: opção C1. O primeiro ADMIN será criado por comando
+administrativo local, antes da exposição da API e somente quando não existirem
+usuários. A senha não poderá aparecer em argumentos ou logs. Depois disso,
+somente ADMIN cria usuários por POST /api/v1/users. POST /api/v1/auth/register
+será removido. O último ADMIN ativo não poderá ser desativado ou rebaixado.
+Responsável: Desenvolvedor 1.
+Data: 2026-08-02.
 
 
 D04 - TRANSIÇÕES E BLOQUEIOS DE EDIÇÃO DE PEDIDOS
@@ -148,6 +171,8 @@ Perguntas:
 - haverá endpoint público de consulta?
 - quais filtros, paginação e perfis serão permitidos?
 - o histórico de usuário e cadastro entra no MVP ou somente entidades operacionais?
+CONFIRMADO por D01 e D02: eventual consulta de histórico não será pública; a
+leitura geral ficará limitada a ADMIN e LOGISTICS_MANAGER.
 RECOMENDAÇÃO: começar com entidades operacionais confirmadas e catálogo fechado.
 Impacta: OC52, OC09, docs/03, docs/04 e docs/05.
 Escolha da equipe:
@@ -300,14 +325,18 @@ ENCERRAMENTO DA REUNIÃO
 =======================
 
 Decisões aprovadas e documentos atualizados:
+D01, D02 e D03, registradas em ADR-004, docs/04 e docs/05.
 
 Ocorrências desbloqueadas:
+OC51.
 
 ADRs que precisam ser criadas:
+Nenhuma para D01, D02 e D03; ADR-004 criada.
 
 Pendências mantidas para próxima reunião:
 
 Participantes:
+Desenvolvedor 1.
 
 Data:
-
+2026-08-02.

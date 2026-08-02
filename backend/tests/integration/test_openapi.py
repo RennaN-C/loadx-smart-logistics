@@ -2,47 +2,128 @@ from typing import Any
 
 from fastapi.testclient import TestClient
 
-from app.main import app
+from app.core.config import Settings
+from app.main import create_app
 
 EXPECTED_ERROR_STATUSES = {
     ("/health", "get"): {"500"},
-    ("/api/v1/auth/register", "post"): {"409", "422", "500"},
     ("/api/v1/auth/login", "post"): {"401", "403", "422", "500"},
     ("/api/v1/auth/me", "get"): {"401", "403", "422", "500"},
-    ("/api/v1/users", "get"): {"500"},
-    ("/api/v1/users", "post"): {"409", "422", "500"},
-    ("/api/v1/users/{user_id}", "get"): {"404", "422", "500"},
-    ("/api/v1/users/{user_id}", "patch"): {"404", "409", "422", "500"},
-    ("/api/v1/customers", "get"): {"500"},
-    ("/api/v1/customers", "post"): {"409", "422", "500"},
-    ("/api/v1/customers/{customer_id}", "get"): {"404", "422", "500"},
-    ("/api/v1/customers/{customer_id}", "patch"): {
+    ("/api/v1/users", "get"): {"401", "403", "500"},
+    ("/api/v1/users", "post"): {"401", "403", "409", "422", "500"},
+    ("/api/v1/users/{user_id}", "get"): {
+        "401",
+        "403",
+        "404",
+        "422",
+        "500",
+    },
+    ("/api/v1/users/{user_id}", "patch"): {
+        "401",
+        "403",
         "404",
         "409",
         "422",
         "500",
     },
-    ("/api/v1/drivers", "get"): {"500"},
-    ("/api/v1/drivers", "post"): {"409", "422", "500"},
-    ("/api/v1/drivers/{driver_id}", "get"): {"404", "422", "500"},
-    ("/api/v1/drivers/{driver_id}", "patch"): {"404", "409", "422", "500"},
-    ("/api/v1/products", "get"): {"500"},
-    ("/api/v1/products", "post"): {"409", "422", "500"},
-    ("/api/v1/products/{product_id}", "get"): {"404", "422", "500"},
-    ("/api/v1/products/{product_id}", "patch"): {"404", "409", "422", "500"},
-    ("/api/v1/trucks", "get"): {"500"},
-    ("/api/v1/trucks", "post"): {"409", "422", "500"},
-    ("/api/v1/trucks/{truck_id}", "get"): {"404", "422", "500"},
-    ("/api/v1/trucks/{truck_id}", "patch"): {"404", "409", "422", "500"},
-    ("/api/v1/orders", "get"): {"500"},
-    ("/api/v1/orders", "post"): {"404", "422", "500"},
-    ("/api/v1/orders/{order_id}", "get"): {"404", "422", "500"},
-    ("/api/v1/orders/{order_id}", "patch"): {"404", "422", "500"},
+    ("/api/v1/customers", "get"): {"401", "403", "500"},
+    ("/api/v1/customers", "post"): {"401", "403", "409", "422", "500"},
+    ("/api/v1/customers/{customer_id}", "get"): {
+        "401",
+        "403",
+        "404",
+        "422",
+        "500",
+    },
+    ("/api/v1/customers/{customer_id}", "patch"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
+    ("/api/v1/drivers", "get"): {"401", "403", "500"},
+    ("/api/v1/drivers", "post"): {"401", "403", "409", "422", "500"},
+    ("/api/v1/drivers/{driver_id}", "get"): {
+        "401",
+        "403",
+        "404",
+        "422",
+        "500",
+    },
+    ("/api/v1/drivers/{driver_id}", "patch"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
+    ("/api/v1/products", "get"): {"401", "403", "500"},
+    ("/api/v1/products", "post"): {"401", "403", "409", "422", "500"},
+    ("/api/v1/products/{product_id}", "get"): {
+        "401",
+        "403",
+        "404",
+        "422",
+        "500",
+    },
+    ("/api/v1/products/{product_id}", "patch"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
+    ("/api/v1/trucks", "get"): {"401", "403", "500"},
+    ("/api/v1/trucks", "post"): {"401", "403", "409", "422", "500"},
+    ("/api/v1/trucks/{truck_id}", "get"): {
+        "401",
+        "403",
+        "404",
+        "422",
+        "500",
+    },
+    ("/api/v1/trucks/{truck_id}", "patch"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
+    ("/api/v1/orders", "get"): {"401", "403", "500"},
+    ("/api/v1/orders", "post"): {"401", "403", "404", "422", "500"},
+    ("/api/v1/orders/{order_id}", "get"): {
+        "401",
+        "403",
+        "404",
+        "422",
+        "500",
+    },
+    ("/api/v1/orders/{order_id}", "patch"): {
+        "401",
+        "403",
+        "404",
+        "422",
+        "500",
+    },
 }
+PUBLIC_OPERATIONS = frozenset(
+    {
+        ("/health", "get"),
+        ("/api/v1/auth/login", "post"),
+    }
+)
+PROTECTED_OPERATIONS = frozenset(EXPECTED_ERROR_STATUSES).difference(PUBLIC_OPERATIONS)
+HTTP_METHODS = frozenset({"get", "post", "patch", "put", "delete"})
 
 
 def get_openapi_schema() -> dict[str, Any]:
-    with TestClient(app) as client:
+    local_app = create_app(Settings(app_env="local", _env_file=None))
+    with TestClient(local_app) as client:
         response = client.get("/openapi.json")
     assert response.status_code == 200
     return response.json()
@@ -74,3 +155,34 @@ def test_openapi_uses_standard_schema_for_each_documented_error() -> None:
                 "schema"
             ]
             assert response_schema == {"$ref": "#/components/schemas/ErrorResponse"}
+
+
+def test_openapi_documents_bearer_authentication_for_protected_routes() -> None:
+    schema = get_openapi_schema()
+
+    bearer_scheme = schema["components"]["securitySchemes"]["BearerAuth"]
+    assert bearer_scheme == {"type": "http", "scheme": "bearer"}
+
+    for path, method in PROTECTED_OPERATIONS:
+        assert schema["paths"][path][method]["security"] == [{"BearerAuth": []}]
+
+    for path, method in PUBLIC_OPERATIONS:
+        assert "security" not in schema["paths"][path][method]
+
+
+def test_openapi_exposes_only_the_approved_public_and_protected_operations() -> None:
+    schema = get_openapi_schema()
+    documented_operations = frozenset(
+        (path, method)
+        for path, path_item in schema["paths"].items()
+        for method in path_item
+        if method in HTTP_METHODS
+    )
+
+    assert documented_operations == frozenset(EXPECTED_ERROR_STATUSES)
+
+
+def test_openapi_does_not_expose_public_registration() -> None:
+    schema = get_openapi_schema()
+
+    assert "/api/v1/auth/register" not in schema["paths"]

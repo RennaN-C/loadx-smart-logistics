@@ -62,7 +62,7 @@ Responsabilidades por pasta:
 
 `CONFIRMADO`: no estado atual do código, existem base FastAPI, configurações, sessão SQLAlchemy, health check, migrations e módulos backend para autenticação, usuários, caminhões, produtos, clientes, motoristas, pedidos e histórico de status.
 
-`PENDENTE DE DEFINIÇÃO`: planejamento de carga, carregamento, viagens, entregas, ocorrências, relatórios, permissões detalhadas e integrações ainda precisam ser implementados conforme suas ocorrências.
+`PENDENTE DE DEFINIÇÃO`: planejamento de carga, carregamento, viagens, entregas, ocorrências, relatórios e integrações ainda precisam ser implementados conforme suas ocorrências. A matriz de permissões está aprovada, mas sua aplicação nas rotas depende da `OC51`.
 
 ## Frontend
 
@@ -117,4 +117,6 @@ Responsabilidades por pasta:
 - `RECOMENDAÇÃO`: logs devem registrar eventos técnicos e IDs de entidade, mas não senha, token, documento pessoal completo, payload sensível ou segredo.
 - `CONFIRMADO`: CORS vem de `BACKEND_CORS_ORIGINS`.
 - `CONFIRMADO`: `SECRET_KEY`, tokens de IA e WhatsApp vêm de `.env`.
-- `PENDENTE DE DEFINIÇÃO`: política de autenticação final, tempo de expiração de token, refresh token e matriz detalhada de permissões por perfil.
+- `CONFIRMADO`: `APP_ENV` aceita `local` ou `production`; a documentação HTTP da API é registrada somente em `local` e o valor padrão seguro é `production`.
+- `CONFIRMADO`: a fronteira de endpoints, a matriz RBAC e o bootstrap administrativo seguem `ADR-004`.
+- `PENDENTE DE DEFINIÇÃO`: duração final do token, refresh token, bloqueio por tentativas inválidas, força e recuperação de senha seguem em `D18`.

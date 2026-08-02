@@ -20,7 +20,39 @@
 
 `RECOMENDAÇÃO`: usar estes nomes em inglês no código e mapear para textos em português na interface.
 
-`PENDENTE DE DEFINIÇÃO`: matriz detalhada de permissões por endpoint.
+`CONFIRMADO`: a autorização segue menor privilégio e negação por padrão, conforme `ADR-004`. Acesso não listado é negado.
+
+Legenda:
+
+- `G`: gerenciar, incluindo criar, consultar, atualizar e executar as ações permitidas do recurso.
+- `R`: consultar.
+- `S`: acessar apenas registros vinculados ao usuário autenticado.
+- `-`: acesso negado.
+
+| Recurso | `ADMIN` | `LOGISTICS_MANAGER` | `CHECKER` | `DRIVER` |
+|---|---|---|---|---|
+| Usuários | G | Próprio em `/auth/me` | Próprio em `/auth/me` | Próprio em `/auth/me` |
+| Clientes | R | G | - | - |
+| Motoristas | R | G | - | - |
+| Caminhões | R | G | R | S futuro |
+| Produtos | R | G | R | S futuro |
+| Pedidos | R | G | R | S futuro |
+| Planos de carga | R | G, calcular e aprovar | S em plano aprovado | S em instruções atribuídas |
+| Carregamento | R | G e supervisionar | S em checklist atribuído | S para consulta |
+| Viagens | R | G e atribuir | - | S em transições permitidas |
+| Entregas | R | G e tratar exceções | - | S em transições permitidas |
+| Ocorrências | R | G, classificar e resolver | S em carregamento | S em viagem ou entrega |
+| Histórico geral | R | R | - | - |
+| Relatórios | R e gerar | R e gerar | S de carregamento | S da própria viagem |
+
+Regras complementares:
+
+- `ADMIN` administra identidades e consulta a operação; alterações operacionais pertencem ao `LOGISTICS_MANAGER`.
+- `CHECKER` pode consultar caminhões, produtos e pedidos necessários à conferência, sem acessar cadastros pessoais de clientes ou motoristas.
+- Permissão de consulta não libera automaticamente todos os campos pessoais; seleção, omissão e mascaramento de campos seguem `D12`.
+- Acesso `S` exige vínculo comprovado no banco e validação do objeto solicitado, não apenas do perfil.
+- Enquanto não existir vínculo aprovado entre `users` e `drivers`, `DRIVER` acessa somente `/auth/me` na API atual.
+- Papel e estado `active` são carregados do banco em cada requisição protegida; o papel gravado no JWT não é fonte única de autorização.
 
 ## Autenticação
 
@@ -29,10 +61,16 @@
 - Respostas públicas de usuário nunca devem retornar `password_hash`.
 - Token JWT deve identificar o usuário pelo UUID em `sub`.
 - Usuário inativo não pode fazer login.
+- Somente `GET /health` e `POST /api/v1/auth/login` são públicos.
+- Todos os demais endpoints de negócio exigem autenticação Bearer, salvo integração externa futura com autenticação própria aprovada.
+- O primeiro `ADMIN` é criado por comando administrativo local, executado antes da exposição da API e somente quando não existem usuários.
+- Depois do bootstrap, somente `ADMIN` cria usuários por `POST /api/v1/users`.
+- `POST /api/v1/auth/register` não faz parte do contrato aprovado e deve ser removido na `OC51`.
+- O último `ADMIN` ativo não pode ser desativado ou rebaixado.
 
 `SUPOSIÇÃO TÉCNICA`: o backend usa `pbkdf2_sha256` via Passlib para hash de senha nesta etapa, evitando incompatibilidade local do bcrypt no ambiente Python usado para testes.
 
-`PENDENTE DE DEFINIÇÃO`: política final de expiração, refresh token, bloqueio por tentativas inválidas e força mínima de senha.
+`PENDENTE DE DEFINIÇÃO`: política final de expiração, refresh token, bloqueio por tentativas inválidas, força mínima e recuperação de senha permanece em `D18`.
 
 ## Caminhão
 

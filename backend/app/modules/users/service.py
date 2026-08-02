@@ -19,6 +19,10 @@ class UserEmailAlreadyExistsError(Exception):
     pass
 
 
+class UserLastActiveAdminRequiredError(Exception):
+    pass
+
+
 class UserService:
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -26,6 +30,9 @@ class UserService:
 
     def list_users(self) -> Sequence[User]:
         return self.repository.list()
+
+    def has_users(self) -> bool:
+        return self.repository.has_any()
 
     def get_user(self, user_id: uuid.UUID) -> User:
         user = self.repository.get(user_id)
@@ -54,6 +61,8 @@ class UserService:
             if existing_user is not None and existing_user.id != user.id:
                 raise UserEmailAlreadyExistsError
 
+        self._ensure_active_admin_remains(user.id, update_data)
+
         password = update_data.pop("password", None)
         if password is not None:
             user.password_hash = hash_password(password)
@@ -62,6 +71,21 @@ class UserService:
             setattr(user, field_name, value)
 
         return self._persist(lambda: self.repository.update(user))
+
+    def _ensure_active_admin_remains(
+        self,
+        user_id: uuid.UUID,
+        update_data: dict[str, object],
+    ) -> None:
+        deactivates_user = update_data.get("active") is False
+        removes_admin_role = "role" in update_data and update_data["role"] != "ADMIN"
+        if not deactivates_user and not removes_admin_role:
+            return
+
+        active_admin_ids = set(self.repository.lock_active_admin_ids())
+        if user_id in active_admin_ids and len(active_admin_ids) == 1:
+            self.db.rollback()
+            raise UserLastActiveAdminRequiredError
 
     def _persist(self, operation: Callable[[], User]) -> User:
         try:

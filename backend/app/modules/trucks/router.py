@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.responses import error_response, openapi_error_responses
 from app.database.session import get_db
+from app.modules.auth.dependencies import require_roles
 from app.modules.trucks.models import Truck
 from app.modules.trucks.schemas import TruckCreate, TruckRead, TruckUpdate
 from app.modules.trucks.service import (
@@ -14,16 +15,30 @@ from app.modules.trucks.service import (
     TruckPlateAlreadyExistsError,
     TruckService,
 )
+from app.modules.users.models import User
 
 router = APIRouter(prefix="/trucks", tags=["trucks"])
+TruckReader = Annotated[
+    User,
+    Depends(require_roles("ADMIN", "CHECKER", "LOGISTICS_MANAGER")),
+]
+TruckManager = Annotated[
+    User,
+    Depends(require_roles("LOGISTICS_MANAGER")),
+]
 
 
 def get_truck_service(db: Annotated[Session, Depends(get_db)]) -> TruckService:
     return TruckService(db)
 
 
-@router.get("", response_model=list[TruckRead])
+@router.get(
+    "",
+    response_model=list[TruckRead],
+    responses=openapi_error_responses(401, 403),
+)
 def list_trucks(
+    _current_user: TruckReader,
     service: Annotated[TruckService, Depends(get_truck_service)],
 ) -> list[Truck]:
     return list(service.list_trucks())
@@ -33,10 +48,11 @@ def list_trucks(
     "",
     response_model=TruckRead,
     status_code=status.HTTP_201_CREATED,
-    responses=openapi_error_responses(409, 422),
+    responses=openapi_error_responses(401, 403, 409, 422),
 )
 def create_truck(
     data: TruckCreate,
+    _current_user: TruckManager,
     service: Annotated[TruckService, Depends(get_truck_service)],
 ) -> Truck | JSONResponse:
     try:
@@ -53,10 +69,11 @@ def create_truck(
 @router.get(
     "/{truck_id}",
     response_model=TruckRead,
-    responses=openapi_error_responses(404, 422),
+    responses=openapi_error_responses(401, 403, 404, 422),
 )
 def get_truck(
     truck_id: uuid.UUID,
+    _current_user: TruckReader,
     service: Annotated[TruckService, Depends(get_truck_service)],
 ) -> Truck | JSONResponse:
     try:
@@ -73,11 +90,12 @@ def get_truck(
 @router.patch(
     "/{truck_id}",
     response_model=TruckRead,
-    responses=openapi_error_responses(404, 409, 422),
+    responses=openapi_error_responses(401, 403, 404, 409, 422),
 )
 def update_truck(
     truck_id: uuid.UUID,
     data: TruckUpdate,
+    _current_user: TruckManager,
     service: Annotated[TruckService, Depends(get_truck_service)],
 ) -> Truck | JSONResponse:
     try:
