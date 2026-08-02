@@ -12,31 +12,9 @@ from app.modules.auth.service import (
     AuthService,
 )
 from app.modules.users.models import User
-from app.modules.users.schemas import UserCreate, UserRead
-from app.modules.users.service import UserEmailAlreadyExistsError
+from app.modules.users.schemas import UserRead
 
 router = APIRouter(prefix="/auth", tags=["auth"])
-
-
-@router.post(
-    "/register",
-    response_model=UserRead,
-    status_code=status.HTTP_201_CREATED,
-    responses=openapi_error_responses(409, 422),
-)
-def register_user(
-    data: UserCreate,
-    service: Annotated[AuthService, Depends(get_auth_service)],
-) -> User | JSONResponse:
-    try:
-        return service.register_user(data)
-    except UserEmailAlreadyExistsError:
-        return error_response(
-            status.HTTP_409_CONFLICT,
-            "USER_EMAIL_ALREADY_EXISTS",
-            "Já existe um usuário cadastrado com este e-mail.",
-            [{"field": "email"}],
-        )
 
 
 @router.post(

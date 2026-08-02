@@ -34,9 +34,6 @@ class AuthService:
     def __init__(self, db: Session) -> None:
         self.user_service = UserService(db)
 
-    def register_user(self, data: UserCreate) -> User:
-        return self.user_service.create_user(data)
-
     def bootstrap_first_admin(self, name: str, email: str, password: str) -> User:
         if self.user_service.has_users():
             raise AuthBootstrapAlreadyCompletedError

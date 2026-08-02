@@ -38,10 +38,13 @@ def db_session() -> Generator[Session, None, None]:
         Base.metadata.drop_all(engine, tables=[User.__table__])
 
 
-def make_user_create(active: bool = True) -> UserCreate:
+def make_user_create(
+    active: bool = True,
+    email: str = "admin@example.test",
+) -> UserCreate:
     return UserCreate(
         name="Admin Local",
-        email="admin@example.test",
+        email=email,
         password="senha-local",
         role="ADMIN",
         active=active,
@@ -130,6 +133,7 @@ def test_get_current_user_from_token_rejects_inactive_user(db_session: Session) 
     user = user_service.create_user(make_user_create())
     service = AuthService(db_session)
     token = service.login(AuthLogin(email="admin@example.test", password="senha-local"))
+    user_service.create_user(make_user_create(email="second-admin@example.test"))
     user_service.update_user(user.id, UserUpdate(active=False))
 
     with pytest.raises(AuthInactiveUserError):
@@ -143,6 +147,7 @@ def test_get_current_user_from_token_uses_current_database_role(
     user = user_service.create_user(make_user_create())
     service = AuthService(db_session)
     token = service.login(AuthLogin(email="admin@example.test", password="senha-local"))
+    user_service.create_user(make_user_create(email="second-admin@example.test"))
     user_service.update_user(user.id, UserUpdate(role="CHECKER"))
 
     current_user = service.get_current_user_from_token(token.access_token)

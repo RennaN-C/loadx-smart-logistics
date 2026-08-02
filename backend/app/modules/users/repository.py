@@ -26,6 +26,15 @@ class UserRepository:
         statement = select(User).where(User.email == email)
         return self.db.scalar(statement)
 
+    def lock_active_admin_ids(self) -> Sequence[uuid.UUID]:
+        statement = (
+            select(User.id)
+            .where(User.role == "ADMIN", User.active.is_(True))
+            .order_by(User.id.asc())
+            .with_for_update()
+        )
+        return self.db.scalars(statement).all()
+
     def add(self, user: User) -> User:
         self.db.add(user)
         self.db.flush()

@@ -6,13 +6,25 @@ from app.main import app
 
 EXPECTED_ERROR_STATUSES = {
     ("/health", "get"): {"500"},
-    ("/api/v1/auth/register", "post"): {"409", "422", "500"},
     ("/api/v1/auth/login", "post"): {"401", "403", "422", "500"},
     ("/api/v1/auth/me", "get"): {"401", "403", "422", "500"},
-    ("/api/v1/users", "get"): {"500"},
-    ("/api/v1/users", "post"): {"409", "422", "500"},
-    ("/api/v1/users/{user_id}", "get"): {"404", "422", "500"},
-    ("/api/v1/users/{user_id}", "patch"): {"404", "409", "422", "500"},
+    ("/api/v1/users", "get"): {"401", "403", "500"},
+    ("/api/v1/users", "post"): {"401", "403", "409", "422", "500"},
+    ("/api/v1/users/{user_id}", "get"): {
+        "401",
+        "403",
+        "404",
+        "422",
+        "500",
+    },
+    ("/api/v1/users/{user_id}", "patch"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
     ("/api/v1/customers", "get"): {"500"},
     ("/api/v1/customers", "post"): {"409", "422", "500"},
     ("/api/v1/customers/{customer_id}", "get"): {"404", "422", "500"},
@@ -76,11 +88,24 @@ def test_openapi_uses_standard_schema_for_each_documented_error() -> None:
             assert response_schema == {"$ref": "#/components/schemas/ErrorResponse"}
 
 
-def test_openapi_documents_bearer_authentication_for_me() -> None:
+def test_openapi_documents_bearer_authentication_for_protected_routes() -> None:
     schema = get_openapi_schema()
 
     bearer_scheme = schema["components"]["securitySchemes"]["BearerAuth"]
     assert bearer_scheme == {"type": "http", "scheme": "bearer"}
     assert schema["paths"]["/api/v1/auth/me"]["get"]["security"] == [{"BearerAuth": []}]
     assert "security" not in schema["paths"]["/api/v1/auth/login"]["post"]
-    assert "security" not in schema["paths"]["/api/v1/auth/register"]["post"]
+
+    for path, method in (
+        ("/api/v1/users", "get"),
+        ("/api/v1/users", "post"),
+        ("/api/v1/users/{user_id}", "get"),
+        ("/api/v1/users/{user_id}", "patch"),
+    ):
+        assert schema["paths"][path][method]["security"] == [{"BearerAuth": []}]
+
+
+def test_openapi_does_not_expose_public_registration() -> None:
+    schema = get_openapi_schema()
+
+    assert "/api/v1/auth/register" not in schema["paths"]

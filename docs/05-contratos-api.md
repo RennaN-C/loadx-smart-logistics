@@ -60,7 +60,7 @@ Erros específicos:
 
 `CONFIRMADO`: ausência ou invalidade de autenticação retorna `401 AUTH_INVALID_TOKEN`; autenticação válida sem permissão retorna `403 AUTH_FORBIDDEN`.
 
-`RISCO IDENTIFICADO`: até a implementação da `OC51`, o código ainda expõe rotas sem a proteção aprovada. O comportamento atual não substitui este contrato.
+`RISCO IDENTIFICADO`: após a `OC51-D`, `/users` está protegido e `/auth/register` foi removido, mas clientes, motoristas, caminhões, produtos e pedidos ainda aguardam as próximas partes da `OC51` para receber a proteção aprovada.
 
 `PENDENTE DE DEFINIÇÃO`: tempo final de expiração, refresh token e política de bloqueio de login.
 

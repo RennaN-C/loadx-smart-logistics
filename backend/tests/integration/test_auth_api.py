@@ -1,4 +1,4 @@
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 
 import pytest
 from fastapi.testclient import TestClient
@@ -11,10 +11,14 @@ from app.database.base import Base
 from app.database.session import get_db
 from app.main import app
 from app.modules.users.models import User
+from app.modules.users.schemas import UserCreate
+from app.modules.users.service import UserService
+
+SessionFactory = Callable[[], Session]
 
 
 @pytest.fixture
-def client() -> Generator[TestClient, None, None]:
+def session_factory() -> Generator[SessionFactory, None, None]:
     engine = create_engine(
         "sqlite+pysqlite:///:memory:",
         connect_args={"check_same_thread": False},
@@ -22,9 +26,16 @@ def client() -> Generator[TestClient, None, None]:
     )
     Base.metadata.create_all(engine, tables=[User.__table__])
     testing_session_local = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    try:
+        yield testing_session_local
+    finally:
+        Base.metadata.drop_all(engine, tables=[User.__table__])
 
+
+@pytest.fixture
+def client(session_factory: SessionFactory) -> Generator[TestClient, None, None]:
     def override_get_db() -> Generator[Session, None, None]:
-        db = testing_session_local()
+        db = session_factory()
         try:
             yield db
         finally:
@@ -35,59 +46,65 @@ def client() -> Generator[TestClient, None, None]:
         yield TestClient(app)
     finally:
         app.dependency_overrides.clear()
-        Base.metadata.drop_all(engine, tables=[User.__table__])
 
 
-def make_register_payload(email: str = "ADMIN@EXAMPLE.TEST", active: bool = True) -> dict[str, object]:
-    return {
-        "name": "Admin Local",
-        "email": email,
-        "password": "senha-local",
-        "role": "admin",
-        "active": active,
-    }
+def create_user(
+    session_factory: SessionFactory,
+    email: str = "ADMIN@EXAMPLE.TEST",
+    active: bool = True,
+) -> User:
+    db = session_factory()
+    try:
+        return UserService(db).create_user(
+            UserCreate(
+                name="Admin Local",
+                email=email,
+                password="senha-local",
+                role="admin",
+                active=active,
+            )
+        )
+    finally:
+        db.close()
 
 
-def register_user(client: TestClient) -> dict[str, object]:
-    response = client.post("/api/v1/auth/register", json=make_register_payload())
-    assert response.status_code == 201
-    return response.json()
-
-
-def login_user(client: TestClient, email: str = "admin@example.test", password: str = "senha-local") -> str:
-    response = client.post("/api/v1/auth/login", json={"email": email, "password": password})
+def login_user(
+    client: TestClient,
+    email: str = "admin@example.test",
+    password: str = "senha-local",
+) -> str:
+    response = client.post(
+        "/api/v1/auth/login",
+        json={"email": email, "password": password},
+    )
     assert response.status_code == 200
     return str(response.json()["access_token"])
 
 
-def test_register_returns_public_user(client: TestClient) -> None:
-    response = client.post("/api/v1/auth/register", json=make_register_payload())
+def test_register_route_is_removed(client: TestClient) -> None:
+    response = client.post(
+        "/api/v1/auth/register",
+        json={
+            "name": "Admin Local",
+            "email": "admin@example.test",
+            "password": "senha-local",
+            "role": "admin",
+        },
+    )
 
-    assert response.status_code == 201
-    body = response.json()
-    assert body["id"]
-    assert body["email"] == "admin@example.test"
-    assert body["role"] == "ADMIN"
-    assert "password_hash" not in body
-
-
-def test_register_returns_standard_error_for_duplicate_email(client: TestClient) -> None:
-    register_user(client)
-
-    response = client.post("/api/v1/auth/register", json=make_register_payload("ADMIN@EXAMPLE.TEST"))
-
-    assert response.status_code == 409
-    assert response.json() == {
-        "code": "USER_EMAIL_ALREADY_EXISTS",
-        "message": "Já existe um usuário cadastrado com este e-mail.",
-        "details": [{"field": "email"}],
-    }
+    assert response.status_code == 404
 
 
-def test_login_returns_bearer_token(client: TestClient) -> None:
-    register_user(client)
+def test_login_returns_bearer_token(
+    client: TestClient,
+    session_factory: SessionFactory,
+) -> None:
+    create_user(session_factory)
 
-    response = client.post("/api/v1/auth/login", json={"email": "ADMIN@EXAMPLE.TEST", "password": "senha-local"})
+    response = client.post(
+        "/api/v1/auth/login",
+        json={"email": "ADMIN@EXAMPLE.TEST", "password": "senha-local"},
+    )
 
     assert response.status_code == 200
     body = response.json()
@@ -95,20 +112,32 @@ def test_login_returns_bearer_token(client: TestClient) -> None:
     assert body["token_type"] == "bearer"
 
 
-def test_me_returns_authenticated_user(client: TestClient) -> None:
-    user = register_user(client)
+def test_me_returns_authenticated_user(
+    client: TestClient,
+    session_factory: SessionFactory,
+) -> None:
+    user = create_user(session_factory)
     token = login_user(client)
 
-    response = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
+    response = client.get(
+        "/api/v1/auth/me",
+        headers={"Authorization": f"Bearer {token}"},
+    )
 
     assert response.status_code == 200
-    assert response.json()["id"] == user["id"]
+    assert response.json()["id"] == str(user.id)
 
 
-def test_login_returns_standard_error_for_invalid_password(client: TestClient) -> None:
-    register_user(client)
+def test_login_returns_standard_error_for_invalid_password(
+    client: TestClient,
+    session_factory: SessionFactory,
+) -> None:
+    create_user(session_factory)
 
-    response = client.post("/api/v1/auth/login", json={"email": "admin@example.test", "password": "senha-errada"})
+    response = client.post(
+        "/api/v1/auth/login",
+        json={"email": "admin@example.test", "password": "senha-errada"},
+    )
 
     assert response.status_code == 401
     assert response.json() == {
@@ -118,11 +147,16 @@ def test_login_returns_standard_error_for_invalid_password(client: TestClient) -
     }
 
 
-def test_login_returns_standard_error_for_inactive_user(client: TestClient) -> None:
-    response = client.post("/api/v1/auth/register", json=make_register_payload(active=False))
-    assert response.status_code == 201
+def test_login_returns_standard_error_for_inactive_user(
+    client: TestClient,
+    session_factory: SessionFactory,
+) -> None:
+    create_user(session_factory, active=False)
 
-    response = client.post("/api/v1/auth/login", json={"email": "admin@example.test", "password": "senha-local"})
+    response = client.post(
+        "/api/v1/auth/login",
+        json={"email": "admin@example.test", "password": "senha-local"},
+    )
 
     assert response.status_code == 403
     assert response.json() == {
@@ -145,7 +179,10 @@ def test_me_returns_standard_error_for_missing_token(client: TestClient) -> None
 
 
 def test_me_returns_standard_error_for_invalid_token(client: TestClient) -> None:
-    response = client.get("/api/v1/auth/me", headers={"Authorization": "Bearer invalid-token"})
+    response = client.get(
+        "/api/v1/auth/me",
+        headers={"Authorization": "Bearer invalid-token"},
+    )
 
     assert response.status_code == 401
     assert response.headers["www-authenticate"] == "Bearer"
@@ -173,12 +210,12 @@ def test_me_returns_standard_error_for_invalid_authentication_scheme(
     }
 
 
-def test_me_returns_standard_error_for_inactive_user(client: TestClient) -> None:
-    user = client.post(
-        "/api/v1/auth/register",
-        json=make_register_payload(active=False),
-    ).json()
-    token = create_access_token(str(user["id"]), {"role": "ADMIN"})
+def test_me_returns_standard_error_for_inactive_user(
+    client: TestClient,
+    session_factory: SessionFactory,
+) -> None:
+    user = create_user(session_factory, active=False)
+    token = create_access_token(str(user.id), {"role": "ADMIN"})
 
     response = client.get(
         "/api/v1/auth/me",

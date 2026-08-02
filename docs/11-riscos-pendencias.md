@@ -72,7 +72,7 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 
 ## Riscos identificados
 
-- `RISCO IDENTIFICADO`: até a conclusão da `OC51`, o código ainda permite acessos anônimos e expõe `/auth/register`, em divergência temporária com `ADR-004`.
+- `RISCO IDENTIFICADO`: a `OC51-D` removeu `/auth/register` e protegeu `/users`, mas os cadastros operacionais ainda permitem acesso anônimo até a execução das próximas partes da `OC51`.
 - `RISCO IDENTIFICADO`: ainda não existe vínculo entre `users` e `drivers`; por segurança, `DRIVER` não recebe acesso operacional até que esse relacionamento seja aprovado e implementado.
 - `RISCO IDENTIFICADO`: o documento-base usa nomes de tabelas em português, enquanto o projeto já decidiu nomes técnicos em inglês. A documentação atual mantém inglês para evitar divergência no código.
 - `RISCO IDENTIFICADO`: o roadmap antigo usava outra numeração de ocorrências. A partir desta revisão, usar `OC01` a `OC48`.

@@ -22,7 +22,7 @@ Crie somente os arquivos necessários para a ocorrência atual.
 
 `CONFIRMADO`: todas essas rotas exigem `ADMIN` conforme `D02`, `D03` e `ADR-004`.
 
-`RISCO IDENTIFICADO`: o router ainda não aplica essa proteção até a implementação da `OC51`.
+`CONFIRMADO`: a `OC51-D` aplicou a proteção no router e documentou o esquema Bearer no OpenAPI.
 
 ## Regras implementadas
 
@@ -33,9 +33,9 @@ Crie somente os arquivos necessários para a ocorrência atual.
 - `password` deve ter no mínimo 8 caracteres na entrada.
 - `password_hash` nunca é retornado pela API.
 - `active = false` bloqueia login.
-- O último `ADMIN` ativo não pode ser desativado ou rebaixado após a implementação da `OC51`.
+- O último `ADMIN` ativo não pode ser desativado ou rebaixado.
+- A verificação do último administrador bloqueia os administradores ativos durante a transação para evitar alterações concorrentes incompatíveis.
 
 ## Pendências
 
-- `CONFIRMADO`: proteger os endpoints e o último `ADMIN` ativo faz parte da `OC51`.
 - `PENDENTE DE DEFINIÇÃO`: política de senha definitiva.
