@@ -141,6 +141,29 @@ Exigir autenticação nos endpoints de negócio e aplicar a matriz de permissõe
 - `D01`, `D02` e `D03`: decisões aprovadas e registradas em `ADR-004`.
 - Atualização simultânea de `docs/04`, `docs/05`, README de `auth` e README de `users`.
 
+### Divisão em subocorrências pequenas
+
+`CONFIRMADO`: a `OC51` será executada na ordem abaixo. Cada subocorrência possui um único objetivo, inclui os testes do próprio comportamento e pode virar um commit isolado. A `OC51` só será concluída depois da auditoria final.
+
+| Subocorrência | Objetivo único | Verificação mínima | Commit sugerido |
+|---|---|---|---|
+| `OC51-A` | Registrar `D01`, `D02`, `D03` e `ADR-004` | `git diff --check` | `docs: registra decisões de segurança da OC51` |
+| `OC51-B` | Centralizar usuário autenticado e verificação de papéis | `/auth/me`, token inválido, usuário inativo e papel negado | `refactor: centraliza autenticação e autorização` |
+| `OC51-C` | Criar bootstrap local do primeiro `ADMIN` | cria no banco vazio, oculta senha e recusa nova execução | `feat: adiciona bootstrap local do primeiro administrador` |
+| `OC51-D` | Remover `/auth/register` e restringir `/users` a `ADMIN` | rota removida, matriz de usuários e proteção do último administrador | `fix: restringe criação e administração de usuários` |
+| `OC51-E` | Proteger clientes e motoristas | `ADMIN` lê, `LOGISTICS_MANAGER` gerencia e demais recebem `403` | `feat: aplica permissões em clientes e motoristas` |
+| `OC51-F` | Proteger caminhões e produtos | `ADMIN` e `CHECKER` leem, `LOGISTICS_MANAGER` gerencia e `DRIVER` recebe `403` | `feat: aplica permissões em caminhões e produtos` |
+| `OC51-G` | Proteger pedidos | `ADMIN` e `CHECKER` leem, `LOGISTICS_MANAGER` gerencia e `DRIVER` recebe `403` | `feat: aplica permissões em pedidos` |
+| `OC51-H` | Restringir documentação da API por ambiente | Swagger/OpenAPI local funciona e produção não os expõe | `feat: restringe documentação da API em produção` |
+| `OC51-I` | Auditar o contrato completo de segurança | matriz parametrizada, OpenAPI, suíte completa e Ruff | `test: valida contrato de autorização da OC51` |
+
+Regras de execução:
+
+- Não iniciar a próxima subocorrência enquanto os testes da atual falharem.
+- Código e testes do mesmo comportamento ficam juntos; não separar um commit funcional de sua proteção mínima.
+- Não adicionar refresh token, MFA, vínculo `users`/`drivers` ou biblioteca externa nestas subocorrências.
+- Se todas as subocorrências ficarem no mesmo Pull Request, preservar um commit por linha da tabela para facilitar revisão e reversão.
+
 ### Fora do escopo
 
 - Refresh token, MFA ou provedor externo de identidade sem nova aprovação.
