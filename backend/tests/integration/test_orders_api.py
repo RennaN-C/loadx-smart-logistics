@@ -1,5 +1,5 @@
 import uuid
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 
 import pytest
 from fastapi.testclient import TestClient
@@ -11,12 +11,16 @@ from app.database.base import Base
 from app.database.session import get_db
 from app.main import app
 from app.modules.customers.models import Customer
+from app.modules.customers.schemas import CustomerCreate
+from app.modules.customers.service import CustomerService
 from app.modules.orders.models import Order, OrderItem
 from app.modules.products.models import Product
 
+SessionFactory = Callable[[], Session]
+
 
 @pytest.fixture
-def client() -> Generator[TestClient, None, None]:
+def session_factory() -> Generator[SessionFactory, None, None]:
     engine = create_engine(
         "sqlite+pysqlite:///:memory:",
         connect_args={"check_same_thread": False},
@@ -30,9 +34,17 @@ def client() -> Generator[TestClient, None, None]:
     ]
     Base.metadata.create_all(engine, tables=tables)
     testing_session_local = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    try:
+        yield testing_session_local
+    finally:
+        Base.metadata.drop_all(engine, tables=list(reversed(tables)))
+
+
+@pytest.fixture
+def client(session_factory: SessionFactory) -> Generator[TestClient, None, None]:
 
     def override_get_db() -> Generator[Session, None, None]:
-        db = testing_session_local()
+        db = session_factory()
         try:
             yield db
         finally:
@@ -43,24 +55,25 @@ def client() -> Generator[TestClient, None, None]:
         yield TestClient(app)
     finally:
         app.dependency_overrides.clear()
-        Base.metadata.drop_all(engine, tables=list(reversed(tables)))
 
 
-def create_customer(client: TestClient) -> str:
-    response = client.post(
-        "/api/v1/customers",
-        json={
-            "name": "Cliente Demonstracao",
-            "document": uuid.uuid4().hex,
-            "phone": "5500000000000",
-            "address": "Rua Exemplo, 100",
-            "city": "Sao Paulo",
-            "state": "SP",
-            "notes": "Cliente ficticio para testes",
-        },
-    )
-    assert response.status_code == 201
-    return str(response.json()["id"])
+def create_customer(session_factory: SessionFactory) -> str:
+    db = session_factory()
+    try:
+        customer = CustomerService(db).create_customer(
+            CustomerCreate(
+                name="Cliente Demonstracao",
+                document=uuid.uuid4().hex,
+                phone="5500000000000",
+                address="Rua Exemplo, 100",
+                city="Sao Paulo",
+                state="SP",
+                notes="Cliente ficticio para testes",
+            )
+        )
+        return str(customer.id)
+    finally:
+        db.close()
 
 
 def create_product(client: TestClient, code: str = "CX-A") -> str:
@@ -99,8 +112,11 @@ def make_order_payload(customer_id: str, product_id: str) -> dict[str, object]:
     }
 
 
-def create_order(client: TestClient) -> dict[str, object]:
-    customer_id = create_customer(client)
+def create_order(
+    client: TestClient,
+    session_factory: SessionFactory,
+) -> dict[str, object]:
+    customer_id = create_customer(session_factory)
     product_id = create_product(client)
     response = client.post(
         "/api/v1/orders", json=make_order_payload(customer_id, product_id)
@@ -109,8 +125,11 @@ def create_order(client: TestClient) -> dict[str, object]:
     return response.json()
 
 
-def test_create_order_returns_created_resource(client: TestClient) -> None:
-    customer_id = create_customer(client)
+def test_create_order_returns_created_resource(
+    client: TestClient,
+    session_factory: SessionFactory,
+) -> None:
+    customer_id = create_customer(session_factory)
     product_id = create_product(client)
 
     response = client.post(
@@ -128,8 +147,11 @@ def test_create_order_returns_created_resource(client: TestClient) -> None:
     assert body["items"][0]["quantity"] == 3
 
 
-def test_list_orders_returns_created_items(client: TestClient) -> None:
-    order = create_order(client)
+def test_list_orders_returns_created_items(
+    client: TestClient,
+    session_factory: SessionFactory,
+) -> None:
+    order = create_order(client, session_factory)
 
     response = client.get("/api/v1/orders")
 
@@ -137,8 +159,11 @@ def test_list_orders_returns_created_items(client: TestClient) -> None:
     assert response.json()[0]["id"] == order["id"]
 
 
-def test_get_order_by_id_returns_created_item(client: TestClient) -> None:
-    order = create_order(client)
+def test_get_order_by_id_returns_created_item(
+    client: TestClient,
+    session_factory: SessionFactory,
+) -> None:
+    order = create_order(client, session_factory)
 
     response = client.get(f"/api/v1/orders/{order['id']}")
 
@@ -146,8 +171,11 @@ def test_get_order_by_id_returns_created_item(client: TestClient) -> None:
     assert response.json()["id"] == order["id"]
 
 
-def test_patch_order_updates_header_and_replaces_items(client: TestClient) -> None:
-    order = create_order(client)
+def test_patch_order_updates_header_and_replaces_items(
+    client: TestClient,
+    session_factory: SessionFactory,
+) -> None:
+    order = create_order(client, session_factory)
     second_product_id = create_product(client, "CX-B")
 
     response = client.patch(
@@ -179,8 +207,9 @@ def test_patch_order_updates_header_and_replaces_items(client: TestClient) -> No
 
 def test_patch_order_rejects_null_required_field_with_standard_error(
     client: TestClient,
+    session_factory: SessionFactory,
 ) -> None:
-    order = create_order(client)
+    order = create_order(client, session_factory)
 
     response = client.patch(f"/api/v1/orders/{order['id']}", json={"priority": None})
 
@@ -191,8 +220,11 @@ def test_patch_order_rejects_null_required_field_with_standard_error(
     assert body["details"][0]["field"] == "priority"
 
 
-def test_patch_order_accepts_null_nullable_field(client: TestClient) -> None:
-    order = create_order(client)
+def test_patch_order_accepts_null_nullable_field(
+    client: TestClient,
+    session_factory: SessionFactory,
+) -> None:
+    order = create_order(client, session_factory)
 
     response = client.patch(
         f"/api/v1/orders/{order['id']}",
@@ -223,8 +255,9 @@ def test_create_order_returns_standard_error_for_missing_customer(
 
 def test_create_order_returns_standard_error_for_missing_product(
     client: TestClient,
+    session_factory: SessionFactory,
 ) -> None:
-    customer_id = create_customer(client)
+    customer_id = create_customer(session_factory)
     missing_product_id = str(uuid.uuid4())
 
     response = client.post(
@@ -239,8 +272,11 @@ def test_create_order_returns_standard_error_for_missing_product(
     }
 
 
-def test_create_order_rejects_empty_items(client: TestClient) -> None:
-    customer_id = create_customer(client)
+def test_create_order_rejects_empty_items(
+    client: TestClient,
+    session_factory: SessionFactory,
+) -> None:
+    customer_id = create_customer(session_factory)
     product_id = create_product(client)
     payload = make_order_payload(customer_id, product_id)
     payload["items"] = []
@@ -250,8 +286,11 @@ def test_create_order_rejects_empty_items(client: TestClient) -> None:
     assert response.status_code == 422
 
 
-def test_patch_order_rejects_invalid_status(client: TestClient) -> None:
-    order = create_order(client)
+def test_patch_order_rejects_invalid_status(
+    client: TestClient,
+    session_factory: SessionFactory,
+) -> None:
+    order = create_order(client, session_factory)
 
     response = client.patch(f"/api/v1/orders/{order['id']}", json={"status": "invalid"})
 

@@ -60,7 +60,7 @@ Erros específicos:
 
 `CONFIRMADO`: ausência ou invalidade de autenticação retorna `401 AUTH_INVALID_TOKEN`; autenticação válida sem permissão retorna `403 AUTH_FORBIDDEN`.
 
-`RISCO IDENTIFICADO`: após a `OC51-D`, `/users` está protegido e `/auth/register` foi removido, mas clientes, motoristas, caminhões, produtos e pedidos ainda aguardam as próximas partes da `OC51` para receber a proteção aprovada.
+`RISCO IDENTIFICADO`: após a `OC51-E`, usuários, clientes e motoristas estão protegidos, mas caminhões, produtos e pedidos ainda aguardam as próximas partes da `OC51` para receber a proteção aprovada.
 
 `PENDENTE DE DEFINIÇÃO`: tempo final de expiração, refresh token e política de bloqueio de login.
 
@@ -153,12 +153,24 @@ Exemplo de criação:
 - `GET /customers/{id}`.
 - `PATCH /customers/{id}`.
 
+Regras de autorização:
+
+- `ADMIN` e `LOGISTICS_MANAGER` podem usar `GET`.
+- Somente `LOGISTICS_MANAGER` pode usar `POST` e `PATCH`.
+- `CHECKER` e `DRIVER` não acessam essas rotas.
+
 ## Motoristas
 
 - `GET /drivers`.
 - `POST /drivers`.
 - `GET /drivers/{id}`.
 - `PATCH /drivers/{id}`.
+
+Regras de autorização:
+
+- `ADMIN` e `LOGISTICS_MANAGER` podem usar `GET`.
+- Somente `LOGISTICS_MANAGER` pode usar `POST` e `PATCH`.
+- `CHECKER` e `DRIVER` não acessam essas rotas.
 
 ## Pedidos
 

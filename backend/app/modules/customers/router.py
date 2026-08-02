@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.responses import error_response, openapi_error_responses
 from app.database.session import get_db
+from app.modules.auth.dependencies import require_roles
 from app.modules.customers.models import Customer
 from app.modules.customers.schemas import CustomerCreate, CustomerRead, CustomerUpdate
 from app.modules.customers.service import (
@@ -14,16 +15,30 @@ from app.modules.customers.service import (
     CustomerNotFoundError,
     CustomerService,
 )
+from app.modules.users.models import User
 
 router = APIRouter(prefix="/customers", tags=["customers"])
+CustomerReader = Annotated[
+    User,
+    Depends(require_roles("ADMIN", "LOGISTICS_MANAGER")),
+]
+CustomerManager = Annotated[
+    User,
+    Depends(require_roles("LOGISTICS_MANAGER")),
+]
 
 
 def get_customer_service(db: Annotated[Session, Depends(get_db)]) -> CustomerService:
     return CustomerService(db)
 
 
-@router.get("", response_model=list[CustomerRead])
+@router.get(
+    "",
+    response_model=list[CustomerRead],
+    responses=openapi_error_responses(401, 403),
+)
 def list_customers(
+    _current_user: CustomerReader,
     service: Annotated[CustomerService, Depends(get_customer_service)],
 ) -> list[Customer]:
     return list(service.list_customers())
@@ -33,10 +48,11 @@ def list_customers(
     "",
     response_model=CustomerRead,
     status_code=status.HTTP_201_CREATED,
-    responses=openapi_error_responses(409, 422),
+    responses=openapi_error_responses(401, 403, 409, 422),
 )
 def create_customer(
     data: CustomerCreate,
+    _current_user: CustomerManager,
     service: Annotated[CustomerService, Depends(get_customer_service)],
 ) -> Customer | JSONResponse:
     try:
@@ -53,10 +69,11 @@ def create_customer(
 @router.get(
     "/{customer_id}",
     response_model=CustomerRead,
-    responses=openapi_error_responses(404, 422),
+    responses=openapi_error_responses(401, 403, 404, 422),
 )
 def get_customer(
     customer_id: uuid.UUID,
+    _current_user: CustomerReader,
     service: Annotated[CustomerService, Depends(get_customer_service)],
 ) -> Customer | JSONResponse:
     try:
@@ -73,11 +90,12 @@ def get_customer(
 @router.patch(
     "/{customer_id}",
     response_model=CustomerRead,
-    responses=openapi_error_responses(404, 409, 422),
+    responses=openapi_error_responses(401, 403, 404, 409, 422),
 )
 def update_customer(
     customer_id: uuid.UUID,
     data: CustomerUpdate,
+    _current_user: CustomerManager,
     service: Annotated[CustomerService, Depends(get_customer_service)],
 ) -> Customer | JSONResponse:
     try:

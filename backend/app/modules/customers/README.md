@@ -20,9 +20,12 @@ Crie somente os arquivos necessários para a ocorrência atual.
 - `GET /api/v1/customers/{id}`: consulta cliente por ID.
 - `PATCH /api/v1/customers/{id}`: atualiza campos enviados.
 
+`CONFIRMADO`: `ADMIN` e `LOGISTICS_MANAGER` podem consultar. Somente `LOGISTICS_MANAGER` pode criar ou atualizar. `CHECKER` e `DRIVER` não acessam o módulo.
+
 ## Regras implementadas
 
 - Documento deve ser único.
 - Estado é normalizado para maiúsculas.
 - Validação formal de CPF/CNPJ ainda está pendente de definição.
 - Dados pessoais reais não devem ser usados em seeds, testes ou exemplos.
+- Todas as rotas exigem autenticação Bearer e consultam o papel e o estado atual do usuário no banco.

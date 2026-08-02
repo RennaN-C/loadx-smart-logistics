@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.responses import error_response, openapi_error_responses
 from app.database.session import get_db
+from app.modules.auth.dependencies import require_roles
 from app.modules.drivers.models import Driver
 from app.modules.drivers.schemas import DriverCreate, DriverRead, DriverUpdate
 from app.modules.drivers.service import (
@@ -15,16 +16,30 @@ from app.modules.drivers.service import (
     DriverNotFoundError,
     DriverService,
 )
+from app.modules.users.models import User
 
 router = APIRouter(prefix="/drivers", tags=["drivers"])
+DriverReader = Annotated[
+    User,
+    Depends(require_roles("ADMIN", "LOGISTICS_MANAGER")),
+]
+DriverManager = Annotated[
+    User,
+    Depends(require_roles("LOGISTICS_MANAGER")),
+]
 
 
 def get_driver_service(db: Annotated[Session, Depends(get_db)]) -> DriverService:
     return DriverService(db)
 
 
-@router.get("", response_model=list[DriverRead])
+@router.get(
+    "",
+    response_model=list[DriverRead],
+    responses=openapi_error_responses(401, 403),
+)
 def list_drivers(
+    _current_user: DriverReader,
     service: Annotated[DriverService, Depends(get_driver_service)],
 ) -> list[Driver]:
     return list(service.list_drivers())
@@ -34,10 +49,11 @@ def list_drivers(
     "",
     response_model=DriverRead,
     status_code=status.HTTP_201_CREATED,
-    responses=openapi_error_responses(409, 422),
+    responses=openapi_error_responses(401, 403, 409, 422),
 )
 def create_driver(
     data: DriverCreate,
+    _current_user: DriverManager,
     service: Annotated[DriverService, Depends(get_driver_service)],
 ) -> Driver | JSONResponse:
     try:
@@ -61,10 +77,11 @@ def create_driver(
 @router.get(
     "/{driver_id}",
     response_model=DriverRead,
-    responses=openapi_error_responses(404, 422),
+    responses=openapi_error_responses(401, 403, 404, 422),
 )
 def get_driver(
     driver_id: uuid.UUID,
+    _current_user: DriverReader,
     service: Annotated[DriverService, Depends(get_driver_service)],
 ) -> Driver | JSONResponse:
     try:
@@ -81,11 +98,12 @@ def get_driver(
 @router.patch(
     "/{driver_id}",
     response_model=DriverRead,
-    responses=openapi_error_responses(404, 409, 422),
+    responses=openapi_error_responses(401, 403, 404, 409, 422),
 )
 def update_driver(
     driver_id: uuid.UUID,
     data: DriverUpdate,
+    _current_user: DriverManager,
     service: Annotated[DriverService, Depends(get_driver_service)],
 ) -> Driver | JSONResponse:
     try:
