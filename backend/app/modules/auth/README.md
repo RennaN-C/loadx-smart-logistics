@@ -6,6 +6,7 @@ Login, hash de senha, token e autorização por perfil. Não cadastra regras esp
 
 - `schemas.py`: contratos Pydantic `AuthLogin` e `TokenRead`.
 - `dependencies.py`: usuário autenticado e verificação reutilizável de papéis.
+- `bootstrap.py`: comando interativo para criar o primeiro `ADMIN`.
 - `service.py`: registro, autenticação, emissão de token e resolução do usuário atual.
 - `router.py`: endpoints HTTP.
 - `domain/`: objetos e regras puras, quando necessário.
@@ -30,6 +31,7 @@ Crie somente os arquivos necessários para a ocorrência atual.
 - `/auth/me` rejeita token ausente, inválido, expirado ou de usuário inexistente.
 - `/auth/me` usa o esquema Bearer documentado no OpenAPI.
 - Papéis inválidos na configuração da autorização são rejeitados e acesso sem papel permitido usa `AUTH_FORBIDDEN`.
+- O bootstrap fixa `role = ADMIN` e `active = true`, lê a senha de forma oculta e recusa execução quando já existe qualquer usuário.
 
 ## Pendências
 

@@ -22,3 +22,19 @@ router -> service -> repository -> database
 ```
 
 Não coloque regras de negócio em `router.py` nem SQL direto nos serviços.
+
+## Primeiro administrador
+
+Depois de aplicar as migrations e antes de expor a API, crie o primeiro administrador com o comando interativo:
+
+```bash
+python -m app.modules.auth.bootstrap
+```
+
+Com Docker Compose, execute a partir da raiz sem publicar a porta do backend:
+
+```bash
+docker compose run --rm backend python -m app.modules.auth.bootstrap
+```
+
+A senha é solicitada de forma oculta e não deve ser informada em argumento, `.env`, seed ou log. O comando recusa nova execução quando o banco já possui qualquer usuário.

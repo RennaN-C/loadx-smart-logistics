@@ -27,6 +27,9 @@ class UserService:
     def list_users(self) -> Sequence[User]:
         return self.repository.list()
 
+    def has_users(self) -> bool:
+        return self.repository.has_any()
+
     def get_user(self, user_id: uuid.UUID) -> User:
         user = self.repository.get(user_id)
         if user is None:
