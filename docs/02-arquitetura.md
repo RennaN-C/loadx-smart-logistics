@@ -117,5 +117,6 @@ Responsabilidades por pasta:
 - `RECOMENDAÇÃO`: logs devem registrar eventos técnicos e IDs de entidade, mas não senha, token, documento pessoal completo, payload sensível ou segredo.
 - `CONFIRMADO`: CORS vem de `BACKEND_CORS_ORIGINS`.
 - `CONFIRMADO`: `SECRET_KEY`, tokens de IA e WhatsApp vêm de `.env`.
+- `CONFIRMADO`: `APP_ENV` aceita `local` ou `production`; a documentação HTTP da API é registrada somente em `local` e o valor padrão seguro é `production`.
 - `CONFIRMADO`: a fronteira de endpoints, a matriz RBAC e o bootstrap administrativo seguem `ADR-004`.
 - `PENDENTE DE DEFINIÇÃO`: duração final do token, refresh token, bloqueio por tentativas inválidas, força e recuperação de senha seguem em `D18`.

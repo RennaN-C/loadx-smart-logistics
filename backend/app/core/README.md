@@ -6,7 +6,11 @@ Não coloque regras de caminhão, pedido ou carga aqui. O core deve conhecer inf
 
 ## Arquivos
 
-- `config.py`: variáveis de ambiente e configurações globais.
+- `config.py`: variáveis de ambiente e configurações globais, incluindo `APP_ENV=local|production`.
 - `exceptions.py`: handlers globais de validação e erros inesperados da API.
 - `responses.py`: envelope de erro HTTP e metadados compartilhados do OpenAPI.
 - `security.py`: hash de senha e JWT usados pela autenticação.
+
+`CONFIRMADO`: Swagger, ReDoc e OpenAPI são expostos somente em `local`. Em `production`, `/docs`, `/docs/oauth2-redirect`, `/redoc` e `/openapi.json` não são registrados pela aplicação.
+
+`CONFIRMADO`: na ausência de `APP_ENV`, o backend assume `production` e mantém a documentação desabilitada.

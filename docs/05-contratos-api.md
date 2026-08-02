@@ -404,7 +404,7 @@ Mapeamento recomendado:
 
 - Somente `GET /health` e `POST /api/v1/auth/login` são públicos.
 - Todos os demais endpoints de negócio exigem Bearer token e aplicam a matriz de `docs/04-regras-negocio.md`.
-- Documentação interativa e OpenAPI ficam disponíveis no ambiente local; em produção devem ser desabilitados ou protegidos.
+- `CONFIRMADO`: com `APP_ENV=local`, `/docs`, `/docs/oauth2-redirect`, `/redoc` e `/openapi.json` ficam disponíveis. Com `APP_ENV=production` ou sem a variável, essas rotas não são registradas e retornam `404`.
 - Senhas nunca retornam na API.
 - Tokens e segredos nunca aparecem em logs.
 - Dados pessoais devem ser minimizados em respostas de listagem.

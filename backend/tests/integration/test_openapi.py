@@ -2,7 +2,8 @@ from typing import Any
 
 from fastapi.testclient import TestClient
 
-from app.main import app
+from app.core.config import Settings
+from app.main import create_app
 
 EXPECTED_ERROR_STATUSES = {
     ("/health", "get"): {"500"},
@@ -113,7 +114,8 @@ EXPECTED_ERROR_STATUSES = {
 
 
 def get_openapi_schema() -> dict[str, Any]:
-    with TestClient(app) as client:
+    local_app = create_app(Settings(app_env="local", _env_file=None))
+    with TestClient(local_app) as client:
         response = client.get("/openapi.json")
     assert response.status_code == 200
     return response.json()

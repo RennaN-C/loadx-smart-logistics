@@ -122,7 +122,7 @@ Exigir autenticação nos endpoints de negócio e aplicar a matriz de permissõe
 
 ### Comportamento atual
 
-`CONFIRMADO`: após a `OC51-G`, `/auth/me` e todos os endpoints de negócio atualmente implementados validam token e aplicam a matriz aprovada; `/auth/register` não existe mais.
+`CONFIRMADO`: após a `OC51-H`, `/auth/me` e todos os endpoints de negócio atualmente implementados validam token e aplicam a matriz aprovada; `/auth/register` não existe mais; Swagger, ReDoc e OpenAPI são expostos somente no ambiente local.
 
 ### Critérios de aceite
 
