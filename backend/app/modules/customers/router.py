@@ -1,10 +1,11 @@
 import uuid
-from typing import Annotated, Any
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
+from app.core.responses import error_response
 from app.database.session import get_db
 from app.modules.customers.models import Customer
 from app.modules.customers.schemas import CustomerCreate, CustomerRead, CustomerUpdate
@@ -21,19 +22,10 @@ def get_customer_service(db: Annotated[Session, Depends(get_db)]) -> CustomerSer
     return CustomerService(db)
 
 
-def error_response(status_code: int, code: str, message: str, details: list[Any] | None = None) -> JSONResponse:
-    return JSONResponse(
-        status_code=status_code,
-        content={
-            "code": code,
-            "message": message,
-            "details": details or [],
-        },
-    )
-
-
 @router.get("", response_model=list[CustomerRead])
-def list_customers(service: Annotated[CustomerService, Depends(get_customer_service)]) -> list[Customer]:
+def list_customers(
+    service: Annotated[CustomerService, Depends(get_customer_service)],
+) -> list[Customer]:
     return list(service.list_customers())
 
 

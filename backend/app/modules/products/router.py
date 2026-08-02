@@ -1,10 +1,11 @@
 import uuid
-from typing import Annotated, Any
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
+from app.core.responses import error_response
 from app.database.session import get_db
 from app.modules.products.models import Product
 from app.modules.products.schemas import ProductCreate, ProductRead, ProductUpdate
@@ -21,19 +22,10 @@ def get_product_service(db: Annotated[Session, Depends(get_db)]) -> ProductServi
     return ProductService(db)
 
 
-def error_response(status_code: int, code: str, message: str, details: list[Any] | None = None) -> JSONResponse:
-    return JSONResponse(
-        status_code=status_code,
-        content={
-            "code": code,
-            "message": message,
-            "details": details or [],
-        },
-    )
-
-
 @router.get("", response_model=list[ProductRead])
-def list_products(service: Annotated[ProductService, Depends(get_product_service)]) -> list[Product]:
+def list_products(
+    service: Annotated[ProductService, Depends(get_product_service)],
+) -> list[Product]:
     return list(service.list_products())
 
 

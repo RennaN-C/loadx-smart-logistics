@@ -4,6 +4,8 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
+from app.core.responses import error_response
+
 
 def _validation_details(error: RequestValidationError) -> list[dict[str, Any]]:
     details: list[dict[str, Any]] = []
@@ -28,11 +30,9 @@ def register_exception_handlers(app: FastAPI) -> None:
         _request: Request,
         error: RequestValidationError,
     ) -> JSONResponse:
-        return JSONResponse(
+        return error_response(
             status_code=422,
-            content={
-                "code": "VALIDATION_ERROR",
-                "message": "Os dados informados são inválidos.",
-                "details": _validation_details(error),
-            },
+            code="VALIDATION_ERROR",
+            message="Os dados informados são inválidos.",
+            details=_validation_details(error),
         )

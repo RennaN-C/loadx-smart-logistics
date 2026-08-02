@@ -1,10 +1,11 @@
 import uuid
-from typing import Annotated, Any
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
+from app.core.responses import error_response
 from app.database.session import get_db
 from app.modules.orders.models import Order
 from app.modules.orders.schemas import OrderCreate, OrderRead, OrderUpdate
@@ -22,19 +23,10 @@ def get_order_service(db: Annotated[Session, Depends(get_db)]) -> OrderService:
     return OrderService(db)
 
 
-def error_response(status_code: int, code: str, message: str, details: list[Any] | None = None) -> JSONResponse:
-    return JSONResponse(
-        status_code=status_code,
-        content={
-            "code": code,
-            "message": message,
-            "details": details or [],
-        },
-    )
-
-
 @router.get("", response_model=list[OrderRead])
-def list_orders(service: Annotated[OrderService, Depends(get_order_service)]) -> list[Order]:
+def list_orders(
+    service: Annotated[OrderService, Depends(get_order_service)],
+) -> list[Order]:
     return list(service.list_orders())
 
 
@@ -57,7 +49,12 @@ def create_order(
             status.HTTP_404_NOT_FOUND,
             "ORDER_PRODUCT_NOT_FOUND",
             "Produto do pedido não encontrado.",
-            [{"field": "items.product_id", "ids": [str(product_id) for product_id in exc.product_ids]}],
+            [
+                {
+                    "field": "items.product_id",
+                    "ids": [str(product_id) for product_id in exc.product_ids],
+                }
+            ],
         )
 
 
@@ -104,5 +101,10 @@ def update_order(
             status.HTTP_404_NOT_FOUND,
             "ORDER_PRODUCT_NOT_FOUND",
             "Produto do pedido não encontrado.",
-            [{"field": "items.product_id", "ids": [str(product_id) for product_id in exc.product_ids]}],
+            [
+                {
+                    "field": "items.product_id",
+                    "ids": [str(product_id) for product_id in exc.product_ids],
+                }
+            ],
         )

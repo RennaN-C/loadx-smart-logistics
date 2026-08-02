@@ -1,10 +1,11 @@
 import uuid
-from typing import Annotated, Any
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
+from app.core.responses import error_response
 from app.database.session import get_db
 from app.modules.trucks.models import Truck
 from app.modules.trucks.schemas import TruckCreate, TruckRead, TruckUpdate
@@ -21,19 +22,10 @@ def get_truck_service(db: Annotated[Session, Depends(get_db)]) -> TruckService:
     return TruckService(db)
 
 
-def error_response(status_code: int, code: str, message: str, details: list[Any] | None = None) -> JSONResponse:
-    return JSONResponse(
-        status_code=status_code,
-        content={
-            "code": code,
-            "message": message,
-            "details": details or [],
-        },
-    )
-
-
 @router.get("", response_model=list[TruckRead])
-def list_trucks(service: Annotated[TruckService, Depends(get_truck_service)]) -> list[Truck]:
+def list_trucks(
+    service: Annotated[TruckService, Depends(get_truck_service)],
+) -> list[Truck]:
     return list(service.list_trucks())
 
 

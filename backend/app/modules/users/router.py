@@ -1,10 +1,11 @@
 import uuid
-from typing import Annotated, Any
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
+from app.core.responses import error_response
 from app.database.session import get_db
 from app.modules.users.models import User
 from app.modules.users.schemas import UserCreate, UserRead, UserUpdate
@@ -21,19 +22,10 @@ def get_user_service(db: Annotated[Session, Depends(get_db)]) -> UserService:
     return UserService(db)
 
 
-def error_response(status_code: int, code: str, message: str, details: list[Any] | None = None) -> JSONResponse:
-    return JSONResponse(
-        status_code=status_code,
-        content={
-            "code": code,
-            "message": message,
-            "details": details or [],
-        },
-    )
-
-
 @router.get("", response_model=list[UserRead])
-def list_users(service: Annotated[UserService, Depends(get_user_service)]) -> list[User]:
+def list_users(
+    service: Annotated[UserService, Depends(get_user_service)],
+) -> list[User]:
     return list(service.list_users())
 
 

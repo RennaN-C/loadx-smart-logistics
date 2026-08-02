@@ -1,9 +1,10 @@
-from typing import Annotated, Any
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, Header, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
+from app.core.responses import error_response
 from app.database.session import get_db
 from app.modules.auth.schemas import AuthLogin, TokenRead
 from app.modules.auth.service import (
@@ -21,17 +22,6 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 def get_auth_service(db: Annotated[Session, Depends(get_db)]) -> AuthService:
     return AuthService(db)
-
-
-def error_response(status_code: int, code: str, message: str, details: list[Any] | None = None) -> JSONResponse:
-    return JSONResponse(
-        status_code=status_code,
-        content={
-            "code": code,
-            "message": message,
-            "details": details or [],
-        },
-    )
 
 
 @router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
