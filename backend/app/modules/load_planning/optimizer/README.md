@@ -105,15 +105,19 @@ Regras:
 
 `CONFIRMADO`: quando nenhuma rotação cabe nas dimensões internas, a busca usa `TRUCK_DIMENSIONS_EXCEEDED`. Quando há rotação dimensionalmente viável, mas nenhuma combinação é aceita, usa o fallback `NO_VALID_POSITION`.
 
-`RISCO IDENTIFICADO`: `PlacementCandidate` representa somente um candidato provisório. A OC15 não implementa colisão, contato, apoio, empilhamento ou fragilidade, e o resultado não pode ser publicado antes da composição das validações das OC16 e OC17.
+`RISCO IDENTIFICADO`: `PlacementCandidate` representa somente um candidato provisório. A OC15 delega colisão ao validador da OC16 e não implementa apoio, empilhamento ou fragilidade; mesmo com a política de colisão, o resultado não pode ser publicado antes da OC17 e da revalidação física integrada.
 
-## OC16 - primitivas geométricas parciais
+## OC16 - colisão AABB
 
 `CONFIRMADO`: `geometry.py` valida dimensões positivas, coordenadas não negativas e os limites exatos dos três eixos. Também classifica duas caixas como `SEPARATED`, `TOUCHING` ou `POSITIVE_OVERLAP`.
 
 `CONFIRMADO`: as primitivas e os futuros campos persistidos de dimensão e coordenada usam inteiros em centímetros, conforme as ADRs 002 e 008 e `docs/03-modelo-dados.md`.
 
-`PENDENTE DE DEFINIÇÃO`: `TOUCHING` é somente uma classificação geométrica. A equipe ainda deve decidir se contato de face, aresta ou vértice conta como colisão e se haverá tolerância. Não existe validador final de colisão nem catálogo de rejeição.
+`CONFIRMADO`: conforme a `ADR-009`, somente `POSITIVE_OVERLAP`, com extensão estritamente positiva nos eixos `x`, `y` e `z`, é colisão. `TOUCHING` por face, aresta ou vértice é permitido e a tolerância geométrica é zero.
+
+`CONFIRMADO`: `is_collision_free(candidate_box, placed_boxes)` aceita o candidato apenas quando nenhuma caixa da sequência já posicionada possui sobreposição positiva com ele. A decisão não depende da ordem dessas caixas.
+
+`CONFIRMADO`: a OC16 não implementa apoio, empilhamento, fragilidade, engine, persistência ou API e não cria um motivo público `COLLISION`. O catálogo de rejeições e sua precedência continuam pendentes.
 
 ## OC18 - controle de peso isolado
 
@@ -123,6 +127,6 @@ Regras:
 
 ## Gates para a engine
 
-`DECISÃO NECESSÁRIA`: não há `engine.py` nem `algorithm_version` enquanto as decisões de contato, apoio, fragilidade, ocupação, rejeições e sequência de carregamento estiverem abertas.
+`DECISÃO NECESSÁRIA`: não há `engine.py` nem `algorithm_version` enquanto as decisões de apoio, empilhamento, fragilidade, ocupação, rejeições e sequência de carregamento estiverem abertas.
 
-`RECOMENDAÇÃO`: integrar as primitivas somente depois que essas regras forem aprovadas e cobertas por uma revalidação final independente de todos os itens posicionados.
+`RECOMENDAÇÃO`: manter os validadores isolados até que essas regras sejam aprovadas e cobertas por uma revalidação final independente de todos os itens posicionados.

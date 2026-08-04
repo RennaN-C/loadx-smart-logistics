@@ -168,7 +168,8 @@ Estados recomendados:
 - `CONFIRMADO`: a validação pura de limites usa coordenadas não negativas e `x + width <= truck_width`, `y + height <= truck_height`, `z + length <= truck_length`.
 - `CONFIRMADO`: a classificação geométrica atual distingue separação, contato sem volume e interseção com volume positivo.
 - `CONFIRMADO`: dimensões e coordenadas geométricas usam inteiros em centímetros, conforme a `ADR-008` e o contrato de persistência em `docs/03-modelo-dados.md`.
-- `PENDENTE DE DEFINIÇÃO`: decidir se contato de face, aresta ou vértice é colisão e definir eventual tolerância antes de criar o validador final.
+- `CONFIRMADO`: conforme a `ADR-009`, colisão exige sobreposição com extensão estritamente positiva nos três eixos; contato por face, aresta ou vértice é permitido.
+- `CONFIRMADO`: a tolerância geométrica é zero e todas as comparações são exatas.
 
 ## Controle de peso incremental
 
@@ -217,7 +218,15 @@ Estados recomendados:
 
 `CONFIRMADO`: `TRUCK_DIMENSIONS_EXCEEDED` identifica o volume para o qual nenhuma rotação permitida cabe nas dimensões internas nem na origem. `NO_VALID_POSITION` é o fallback quando existe uma rotação dimensionalmente viável, mas nenhuma combinação é aceita e nenhuma regra física mais específica produz outro motivo.
 
-`RISCO IDENTIFICADO`: a posição retornada pela OC15 é somente um candidato provisório. Ela não pode ser persistida nem enviada ao frontend antes das validações de colisão da OC16, apoio e empilhamento da OC17 e da revalidação física integrada.
+`RISCO IDENTIFICADO`: a posição retornada pela OC15 é somente um candidato provisório. Mesmo quando a política obrigatória usa o validador de colisão da OC16, ela não pode ser persistida nem enviada ao frontend antes das validações de apoio e empilhamento da OC17 e da revalidação física integrada.
+
+### OC16 - colisão AABB
+
+`CONFIRMADO`: conforme a `ADR-009`, duas caixas colidem somente quando a relação entre elas é `POSITIVE_OVERLAP`, com extensão estritamente positiva nos eixos `x`, `y` e `z`.
+
+`CONFIRMADO`: `is_collision_free(candidate_box, placed_boxes)` aceita o candidato somente quando nenhuma caixa já posicionada possui sobreposição positiva com ele. Contato por face, aresta ou vértice é permitido e a tolerância geométrica é zero.
+
+`CONFIRMADO`: a OC16 não implementa apoio, empilhamento, fragilidade, engine, persistência ou API e não cria um motivo público `COLLISION`. O catálogo de rejeições e sua precedência permanecem pendentes para a integração.
 
 ## Carregamento
 

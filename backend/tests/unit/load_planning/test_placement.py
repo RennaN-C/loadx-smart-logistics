@@ -11,6 +11,7 @@ from app.modules.load_planning.optimizer.contracts import (
 from app.modules.load_planning.optimizer.geometry import (
     InternalDimensions,
     PositionedAABB,
+    is_collision_free,
 )
 from app.modules.load_planning.optimizer.placement import (
     CandidatePoint,
@@ -220,6 +221,26 @@ def test_selector_uses_frontier_from_multiple_preplaced_boxes() -> None:
     )
 
     assert candidate.box == PositionedAABB(20, 0, 0, 10, 10, 10)
+
+
+def test_selector_composes_with_collision_policy_without_an_engine() -> None:
+    placed_boxes = [make_box()]
+    candidate = select_first_valid_candidate(
+        make_volume(
+            original_width_cm=10,
+            original_height_cm=10,
+            original_length_cm=10,
+            volume_cm3=1_000,
+        ),
+        InternalDimensions(20, 10, 10),
+        placed_boxes,
+        validate_candidate=lambda item: is_collision_free(
+            item.box,
+            placed_boxes,
+        ),
+    )
+
+    assert candidate.box == PositionedAABB(10, 0, 0, 10, 10, 10)
 
 
 def test_selector_raises_stable_rejection_after_exhausting_candidates() -> None:

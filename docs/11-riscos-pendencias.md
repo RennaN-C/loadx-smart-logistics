@@ -11,6 +11,8 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 - `CONFIRMADO`: volumes individuais são expandidos de `order_items.quantity`, usam `volume_index` iniciado em `1` e serão persistidos em `load_plan_items`, sem tabela `volumes`, conforme `ADR-005`.
 - `CONFIRMADO`: volumes usam a ordem total determinística de volume, peso, empilhamento, fragilidade, entrega e identidade, conforme `ADR-006`.
 - `CONFIRMADO`: rotações usam seis permutações ortogonais priorizadas, deduplicam simetrias e respeitam bloqueio por produto, conforme `ADR-007`.
+- `CONFIRMADO`: o posicionamento usa pontos candidatos estáveis, ordem `(y, z, x, rotation_rank)` e first-fit com política física obrigatória, conforme `ADR-008`.
+- `CONFIRMADO`: colisão AABB exige sobreposição positiva nos três eixos, permite contato e usa tolerância zero, conforme `ADR-009`.
 - `CONFIRMADO`: tecnologias oficiais descritas em `README.md` e `docs/02-arquitetura.md`.
 - `CONFIRMADO`: nomes técnicos em inglês.
 - `CONFIRMADO`: documentação oficial dentro da estrutura existente de `docs`.
@@ -44,7 +46,7 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 ## Gates detalhados do otimizador e planejamento
 
 - `CONFIRMADO`: a `ADR-008` define os pontos candidatos da OC15, a ordem `(y, z, x, rotation_rank)`, o first-fit e os motivos `TRUCK_DIMENSIONS_EXCEEDED` e `NO_VALID_POSITION` próprios desta etapa.
-- `PENDENTE DE DEFINIÇÃO`: definir tolerância geométrica e se contato de face, aresta ou vértice conta como colisão na OC16.
+- `CONFIRMADO`: conforme a `ADR-009`, a OC16 considera colisão somente a sobreposição positiva nos três eixos, permite contato por face, aresta ou vértice, usa tolerância zero e valida o candidato contra todas as caixas já posicionadas.
 - `PENDENTE DE DEFINIÇÃO`: definir percentual mínimo de apoio, apoio parcial, união de áreas e múltiplos suportes na OC17.
 - `PENDENTE DE DEFINIÇÃO`: definir o limite de peso sobre produto frágil e se a regra considera apoio direto ou carga transmitida.
 - `PENDENTE DE DEFINIÇÃO`: definir fórmula, precisão, tipo numérico e arredondamento de `occupancy_percent` na OC19.
@@ -53,13 +55,13 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 - `PENDENTE DE DEFINIÇÃO`: definir contrato público, endpoint e campos do schema de explicação da OC22.
 - `PENDENTE DE DEFINIÇÃO`: definir a política histórica para mudanças em caminhão, produto e itens de pedido já usados por um plano.
 
-`CONFIRMADO`: o núcleo atual mantém isolados OC11, OC12, OC13, OC14, a busca provisória de posição da OC15, primitivas geométricas da OC16 e o controle de peso da OC18; ainda não existe engine, `algorithm_version`, persistência ou rota de planejamento.
+`CONFIRMADO`: o núcleo atual mantém isolados OC11, OC12, OC13, OC14, a busca provisória de posição da OC15, o validador de colisão da OC16 e o controle de peso da OC18; ainda não existe engine, `algorithm_version`, persistência ou rota de planejamento.
 
 `CONFIRMADO`: a expansão usa identidade `(order_item_id, volume_index)` com índice 1-based e não expõe política alternativa de base.
 
-`RECOMENDAÇÃO`: avaliar em conjunto as propostas de AABB com contato permitido e ocupação por volume posicionado; nenhuma delas deve virar regra final apenas por estar sugerida.
+`RECOMENDAÇÃO`: avaliar a proposta de ocupação por volume posicionado na OC19; ela não deve virar regra final apenas por estar sugerida.
 
-`RISCO IDENTIFICADO`: escolher implicitamente qualquer gate acima muda o resultado determinístico, o contrato de visualização e a futura `algorithm_version`.
+`RISCO IDENTIFICADO`: escolher implicitamente qualquer gate ainda pendente muda o resultado determinístico, o contrato de visualização e a futura `algorithm_version`.
 
 ## Suposições técnicas
 
