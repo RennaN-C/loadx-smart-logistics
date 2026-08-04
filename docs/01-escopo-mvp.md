@@ -56,7 +56,8 @@
 - `RF-11` `CONFIRMADO`: testar rotações permitidas e salvar dimensões usadas.
 - `RF-12` `CONFIRMADO`: posicionar volumes com coordenadas `x`, `y`, `z` válidas.
 - `RF-13` `CONFIRMADO`: rejeitar volumes que excedam limites, peso ou regras físicas.
-- `RF-14` `DECISÃO NECESSÁRIA`: comparar aproveitamento entre caminhões; o documento-base inclui `OC21`, mas também cita comparação automática como funcionalidade futura.
+- `RF-14` `CONFIRMADO`: a comparação básica da `OC21` integra o MVP depois da
+  publicação da `OC20` e avalia no máximo 10 caminhões por execução.
 - `RF-15` `CONFIRMADO`: explicar plano validado com IA sem permitir que a IA aprove a solução.
 - `RF-16` `CONFIRMADO`: exibir dashboard com indicadores do MVP.
 - `RF-17` `CONFIRMADO`: exibir planejamento, volumes carregados e volumes rejeitados.
@@ -79,7 +80,8 @@
 - `RNF-08` `CONFIRMADO`: dados pessoais reais não podem ser usados em seeds ou testes.
 - `RNF-09` `CONFIRMADO`: segredos devem vir de variáveis de ambiente e não do código.
 - `RNF-10` `RECOMENDAÇÃO`: toda alteração de contrato deve ser pequena, revisada e versionada em documentação antes de frontend/backend divergirem.
-- `RNF-11` `PENDENTE DE DEFINIÇÃO`: metas objetivas de performance para o otimizador, como número máximo de volumes e tempo-alvo de cálculo.
+- `RNF-11` `CONFIRMADO`: cada execução síncrona do otimizador aceita no máximo
+  200 volumes; o SLA de tempo continua `PENDENTE DE DEFINIÇÃO`.
 - `RNF-12` `PENDENTE DE DEFINIÇÃO`: política final de retenção de fotos de ocorrências.
 
 ## Critério de sucesso
@@ -99,6 +101,8 @@
 
 ## Funcionalidades futuras
 
-`CONFIRMADO`: o documento-base cita como futuras: reconhecimento de volumes por câmera, QR Code, previsão de atrasos, roteirização inteligente, controle de combustível, análise de peso por eixo, aplicativo móvel, realidade aumentada, aprendizado com viagens anteriores e comparação automática entre veículos.
+`CONFIRMADO`: o documento-base cita como futuras: reconhecimento de volumes por câmera, QR Code, previsão de atrasos, roteirização inteligente, controle de combustível, análise de peso por eixo, aplicativo móvel, realidade aumentada, aprendizado com viagens anteriores e comparação automática avançada entre veículos.
 
-`DECISÃO NECESSÁRIA`: comparar caminhões aparece como ocorrência do documento-base e também como funcionalidade futura. A equipe deve decidir se a comparação básica entre caminhões entra no MVP ou se fica para uma fase posterior.
+`CONFIRMADO`: `D17` distingue a comparação básica e determinística da `OC21`,
+incluída no MVP com até 10 caminhões, da comparação automática avançada mantida
+como evolução futura.

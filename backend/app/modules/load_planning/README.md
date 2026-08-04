@@ -2,14 +2,15 @@
 
 Núcleo do sistema: expansão de volumes, rotações, pontos candidatos, colisões, peso, ocupação e persistência do plano.
 
-## Estrutura sugerida
+## Estrutura
 
 - `models.py`: entidades SQLAlchemy do módulo.
 - `schemas.py`: contratos Pydantic.
 - `repository.py`: consultas e persistência.
 - `service.py`: regras e casos de uso.
+- `reference_service.py`: consulta pública e somente leitura usada por outros módulos.
 - `router.py`: endpoints HTTP.
-- `domain/`: objetos e regras puras, quando necessário.
+- `optimizer/`: contratos e regras puras, sem banco ou HTTP.
 
 Crie somente os arquivos necessários para a ocorrência atual.
 
@@ -24,7 +25,15 @@ Crie somente os arquivos necessários para a ocorrência atual.
 - `CONFIRMADO`: OC17 exige apoio integral pela união exata de múltiplos suportes e valida empilhamento e fragilidade por toda a cadeia de carga.
 - `CONFIRMADO`: OC18 controla o peso incremental com `Decimal`, formaliza os sete motivos públicos e seleciona o motivo final pela precedência fixa da `ADR-011`.
 - `CONFIRMADO`: OC19 calcula volume usado, peso colocado, ocupação com duas casas, contagens e `heuristic-v1` conforme a `ADR-012`.
-- `CONFIRMADO`: OC20 ainda não foi implementada e, por isso, os validadores e as métricas permanecem isolados até a composição da engine.
-- `CONFIRMADO`: persistência, service e API permanecem ausentes e pertencem à integração da OC20.
+- `CONFIRMADO`: OC20 compõe OC11 a OC19 em `optimizer/engine.py`, aplica a
+  profundidade em relação à porta, gera `loading_sequence` topológica e revalida
+  todos os invariantes antes de publicar o resultado.
+- `CONFIRMADO`: `load_plans`, `load_plan_orders` e `load_plan_items` persistem
+  métricas, posições, rejeições e snapshots históricos, sem tabela `volumes`.
+- `CONFIRMADO`: criação, detalhe, visualização, aprovação e recálculo estão
+  disponíveis em `/api/v1/load-plans` com o RBAC da ADR-014.
+- `CONFIRMADO`: a execução é síncrona e aceita no máximo 200 volumes expandidos.
 
-`RISCO IDENTIFICADO`: as regras isoladas atuais não representam um plano publicável. Nenhuma posição deve chegar ao frontend enquanto colisão, apoio, empilhamento, fragilidade, peso, motivo final e revalidação física não estiverem compostos pela engine.
+`RISCO IDENTIFICADO`: planos aprovados recalculados permanecem históricos e
+imutáveis. Uma integração operacional futura deve escolher o descendente ativo
+sem reescrever os anteriores.

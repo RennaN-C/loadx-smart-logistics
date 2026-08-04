@@ -2,9 +2,12 @@
 
 ## Estado atual
 
-`CONFIRMADO`: o repositório possui models SQLAlchemy e migrations para `users`, `customers`, `drivers`, `trucks`, `products`, `orders`, `order_items` e `status_history`.
+`CONFIRMADO`: o repositório possui models SQLAlchemy e migrations para `users`,
+`customers`, `drivers`, `trucks`, `products`, `orders`, `order_items`,
+`status_history`, `load_plans`, `load_plan_orders` e `load_plan_items`.
 
-`PENDENTE DE DEFINIÇÃO`: load_plans, load_plan_orders, load_plan_items, loading_sessions, trips, deliveries e occurrences ainda não possuem models/migrations.
+`PENDENTE DE DEFINIÇÃO`: `loading_sessions`, `trips`, `deliveries` e
+`occurrences` ainda não possuem models/migrations.
 
 `CONFIRMADO`: este documento é o contrato inicial para a criação do banco. Qualquer mudança estrutural deve ser registrada por migration e documentada aqui.
 
@@ -169,6 +172,8 @@ Itens de pedido e quantidades solicitadas.
 - `fk_order_items__products`.
 - `ix_order_items__order_id`.
 - `ix_order_items__product_id`.
+- `uq_order_items__id_order_product`, chave candidata para validar a proveniência
+  composta dos volumes persistidos.
 - `ck_order_items__quantity_positive`.
 - `ck_order_items__delivery_sequence_positive`.
 
@@ -178,7 +183,16 @@ Resultado calculado para uma carga.
 
 - `id`: UUID, PK.
 - `truck_id`: UUID, FK para `trucks.id`, obrigatório.
-- `status`: texto ou enum, obrigatório.
+- `recalculated_from_id`: UUID, FK autorreferente opcional para o plano de origem.
+- `status`: `VARCHAR`, obrigatório, limitado a `CALCULATED`, `APPROVED` e
+  `REJECTED`.
+- `truck_snapshot_plate` e `truck_snapshot_model`: textos obrigatórios.
+- `truck_snapshot_internal_width_cm`, `truck_snapshot_internal_height_cm` e
+  `truck_snapshot_internal_length_cm`: inteiros positivos.
+- `truck_snapshot_max_weight_kg`: numérico positivo com duas casas.
+- `internal_volume_cm3`: inteiro positivo igual ao produto das dimensões do
+  snapshot.
+- `used_volume_cm3`: inteiro entre zero e o volume interno.
 - `occupancy_percent`: `Decimal` de 0 a 100, com duas casas e `ROUND_HALF_UP`, calculado somente sobre o volume dos itens colocados.
 - `total_weight_kg`: numérico não negativo, obrigatório, soma somente dos volumes colocados.
 - `loaded_count`: inteiro, obrigatório.
@@ -190,10 +204,14 @@ Resultado calculado para uma carga.
 Índices e constraints:
 
 - `fk_load_plans__trucks`.
+- `fk_load_plans__load_plans` para `recalculated_from_id`, com exclusão restrita.
 - `ix_load_plans__truck_id`.
+- `ix_load_plans__recalculated_from_id`.
 - `ix_load_plans__status`.
 - `ck_load_plans__occupancy_percent_range`.
-- `ck_load_plans__counts_non_negative`.
+- `ck_load_plans__counts_valid`.
+- `ck_load_plans__status_metrics_consistent`.
+- `ck_load_plans__approval_consistent`.
 
 ### `load_plan_orders`
 
@@ -215,8 +233,15 @@ Volumes individuais posicionados ou rejeitados pelo plano.
 
 - `id`: UUID, PK.
 - `load_plan_id`: UUID, FK para `load_plans.id`, obrigatório.
+- `order_id`: UUID, FK para `orders.id`, obrigatório.
 - `order_item_id`: UUID, FK para `order_items.id`, obrigatório.
+- `product_id`: UUID, FK para `products.id`, obrigatório.
 - `volume_index`: inteiro positivo iniciado em `1`, obrigatório, identifica a unidade dentro da quantidade do item.
+- `order_item_snapshot_quantity` e
+  `order_item_snapshot_delivery_sequence`: inteiros positivos usados no cálculo.
+- `product_snapshot_code`, `product_snapshot_name`, dimensões originais, peso e
+  flags `fragile`, `stackable` e `rotation_allowed`: fotografia obrigatória do
+  produto usado no cálculo.
 - `position_x_cm`: inteiro não negativo, obrigatório quando `placed = true`.
 - `position_y_cm`: inteiro não negativo, obrigatório quando `placed = true`.
 - `position_z_cm`: inteiro não negativo, obrigatório quando `placed = true`.
@@ -231,16 +256,30 @@ Volumes individuais posicionados ou rejeitados pelo plano.
 Índices e constraints:
 
 - `fk_load_plan_items__load_plans`.
+- `fk_load_plan_items__orders`.
 - `fk_load_plan_items__order_items`.
+- `fk_load_plan_items__products`.
+- `fk_load_plan_items__load_plan_orders`, sobre `load_plan_id` e `order_id`.
+- `fk_load_plan_items__order_item_provenance`, sobre `order_item_id`, `order_id`
+  e `product_id`.
 - `ix_load_plan_items__load_plan_id`.
+- `ix_load_plan_items__order_id`.
 - `ix_load_plan_items__order_item_id`.
+- `ix_load_plan_items__product_id`.
 - `uq_load_plan_items__plan_item_volume`, sobre `load_plan_id`, `order_item_id` e `volume_index`.
 - `ck_load_plan_items__volume_index_positive`.
 - `ck_load_plan_items__rotation_code_allowed`, aceitando nulo para unidade rejeitada.
-- `ck_load_plan_items__rejection_reason_allowed` `RECOMENDAÇÃO`, aceitando nulo para unidade colocada e somente o catálogo da `ADR-011` para unidade rejeitada.
-- `ck_load_plan_items__positions_non_negative` `RECOMENDAÇÃO`.
-- `ck_load_plan_items__used_dimensions_positive` `RECOMENDAÇÃO`.
-- `ck_load_plan_items__placed_or_rejected` `RECOMENDAÇÃO`.
+- `uq_load_plan_items__plan_loading_sequence`.
+- `ck_load_plan_items__rejection_reason_allowed`, aceitando nulo para unidade
+  colocada e somente o catálogo da `ADR-011` para unidade rejeitada.
+- checks de coordenadas não negativas e dimensões usadas positivas.
+- `ck_load_plan_items__rotation_permission_consistent` e
+  `ck_load_plan_items__rotation_dimensions_consistent`.
+- `ck_load_plan_items__placed_or_rejected`.
+
+`CONFIRMADO`: todas as FKs históricas das três tabelas usam exclusão restrita.
+Em particular, um `order_item` referenciado não pode ser removido por uma
+substituição posterior do conjunto de itens do pedido.
 
 ### `loading_sessions`
 
@@ -360,7 +399,10 @@ Histórico auditável de mudanças de status.
 
 ## Volumes
 
-`CONFIRMADO`: conforme `ADR-005`, volumes individuais são gerados deterministicamente a partir de `order_items.quantity`, usam identidade `(order_item_id, volume_index)` com índice iniciado em `1` e serão persistidos em `load_plan_items`.
+`CONFIRMADO`: conforme `ADR-005`, volumes individuais são gerados
+deterministicamente a partir de `order_items.quantity`, usam identidade
+`(order_item_id, volume_index)` com índice iniciado em `1` e são persistidos em
+`load_plan_items`.
 
 `CONFIRMADO`: o MVP não terá tabela separada `volumes`.
 
@@ -377,6 +419,9 @@ Histórico auditável de mudanças de status.
 `CONFIRMADO`: a migration `20260730_0002` cria `orders` e `order_items` para a ocorrência `OC08`.
 
 `CONFIRMADO`: a migration `20260730_0003` cria `status_history` para a ocorrência `OC10`.
+
+`CONFIRMADO`: a migration `20260804_0004` cria `load_plans`,
+`load_plan_orders` e `load_plan_items` para a integração da `OC20`.
 
 ## Observação
 

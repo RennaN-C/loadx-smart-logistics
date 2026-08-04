@@ -12,6 +12,7 @@ from app.modules.orders.models import Order
 from app.modules.orders.schemas import OrderCreate, OrderRead, OrderUpdate
 from app.modules.orders.service import (
     OrderCustomerNotFoundError,
+    OrderItemsReferencedByLoadPlanError,
     OrderNotFoundError,
     OrderProductNotFoundError,
     OrderService,
@@ -103,7 +104,7 @@ def get_order(
 @router.patch(
     "/{order_id}",
     response_model=OrderRead,
-    responses=openapi_error_responses(401, 403, 404, 422),
+    responses=openapi_error_responses(401, 403, 404, 409, 422),
 )
 def update_order(
     order_id: uuid.UUID,
@@ -138,4 +139,12 @@ def update_order(
                     "ids": [str(product_id) for product_id in exc.product_ids],
                 }
             ],
+        )
+    except OrderItemsReferencedByLoadPlanError:
+        return error_response(
+            status.HTTP_409_CONFLICT,
+            "ORDER_ITEMS_REFERENCED_BY_LOAD_PLAN",
+            "Os itens deste pedido já pertencem a um plano de carga "
+            "e não podem ser substituídos.",
+            [{"field": "items"}],
         )

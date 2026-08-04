@@ -113,12 +113,16 @@ Regras complementares:
 - Quantidade de item deve ser maior que zero.
 - Pedido cancelado não pode entrar em plano novo.
 - `CONFIRMADO`: `delivery_sequence` é um inteiro positivo; valores maiores representam entregas posteriores e influenciam a ordem de carregamento.
+- `CONFIRMADO`: somente pedidos `READY` entram na criação comum de plano; eles
+  passam a `PLANNED` apenas na aprovação.
+- `CONFIRMADO`: o conjunto de itens não pode ser substituído depois que algum
+  `order_item` for referenciado por `load_plan_items`.
 
 Estados recomendados:
 
 - `DRAFT`: pedido em criação.
 - `READY`: pedido pronto para planejamento.
-- `PLANNED`: pedido associado a plano calculado ou aprovado.
+- `PLANNED`: pedido associado a plano aprovado.
 - `IN_TRANSIT`: pedido em viagem.
 - `DELIVERED`: pedido entregue.
 - `CANCELED`: pedido cancelado.
@@ -133,18 +137,23 @@ Estados recomendados:
 - Item sem posição deve ser registrado como não carregado.
 - O mesmo volume individual não pode aparecer duas vezes no mesmo plano.
 - Resultado deve registrar a versão do algoritmo.
-- Somente plano calculado pode ser aprovado.
+- Somente plano `CALCULATED` sem rejeições pode ser aprovado.
 - Plano aprovado não deve ser alterado sem gerar nova versão ou recálculo.
 
-Estados recomendados:
+Estados persistidos:
 
-- `CALCULATING`.
 - `CALCULATED`.
 - `APPROVED`.
 - `REJECTED`.
-- `RECALCULATED`.
 
-`PENDENTE DE DEFINIÇÃO`: política de versionamento quando um plano aprovado for recalculado.
+`CONFIRMADO`: plano parcial permanece `CALCULATED` para inspeção, mas não pode ser
+aprovado. `SUPOSIÇÃO TÉCNICA`: quando nenhum volume é colocado, o plano é
+`REJECTED`.
+
+`CONFIRMADO`: recálculo sempre cria novo plano com `recalculated_from_id`, usa os
+dados atuais e novos snapshots e não altera a origem. Para conciliar a origem
+aprovada com o estado do pedido, o recálculo herdado aceita seus pedidos exatos
+em `READY` ou `PLANNED`; a criação comum continua aceitando somente `READY`.
 
 ## Capacidade do caminhão
 
@@ -160,7 +169,7 @@ Estados recomendados:
 - `CONFIRMADO`: dimensões, quantidade e sequência devem ser inteiros positivos; peso deve ser `Decimal` positivo e finito.
 - `CONFIRMADO`: coleções não ordenadas e `order_item_id` duplicados são rejeitados para preservar identidade e reprodução.
 - `CONFIRMADO`: conforme `ADR-005`, `volume_index` começa em `1` para cada item e a identidade individual é `(order_item_id, volume_index)`.
-- `CONFIRMADO`: não haverá tabela separada `volumes`; cada unidade será persistida futuramente em `load_plan_items` quando a camada de planejamento for integrada.
+- `CONFIRMADO`: não existe tabela separada `volumes`; cada unidade é persistida em `load_plan_items` pela camada de planejamento.
 
 ## Geometria incremental
 
@@ -226,7 +235,8 @@ Estados recomendados:
 
 `CONFIRMADO`: `TRUCK_DIMENSIONS_EXCEEDED` identifica o volume para o qual nenhuma rotação permitida cabe nas dimensões internas nem na origem. `NO_VALID_POSITION` é o fallback quando existe uma rotação dimensionalmente viável, mas nenhuma combinação é aceita e nenhuma regra física mais específica produz outro motivo.
 
-`RISCO IDENTIFICADO`: a posição retornada pela OC15 é somente um candidato provisório. Mesmo quando a política obrigatória compõe os validadores de colisão da OC16 e de apoio estrutural da OC17, ela não pode ser persistida nem enviada ao frontend antes da composição do peso, do motivo final e da revalidação física integrada.
+`CONFIRMADO`: o candidato da OC15 só é publicado depois que a engine da OC20
+compõe colisão, apoio, peso, profundidade, motivo final e revalidação física.
 
 ### OC16 - colisão AABB
 
@@ -234,7 +244,8 @@ Estados recomendados:
 
 `CONFIRMADO`: `is_collision_free(candidate_box, placed_boxes)` aceita o candidato somente quando nenhuma caixa já posicionada possui sobreposição positiva com ele. Contato por face, aresta ou vértice é permitido e a tolerância geométrica é zero.
 
-`CONFIRMADO`: a OC16 não implementa apoio, empilhamento, fragilidade, engine, persistência ou API. `COLLISION` integra o catálogo aprovado na OC18, mas seu mapeamento a partir do validador booleano pertence à engine integrada.
+`CONFIRMADO`: `COLLISION` integra o catálogo aprovado na OC18 e seu mapeamento
+explicativo é realizado pela engine da OC20.
 
 ### OC17 - apoio, empilhamento e fragilidade
 
@@ -248,7 +259,27 @@ Estados recomendados:
 
 `CONFIRMADO`: `SupportAssessment`, `analyze_support_configuration`, `is_support_configuration_valid` e `is_candidate_support_valid` formam a API pura da OC17.
 
-`CONFIRMADO`: a OC17 não implementa engine, API HTTP ou persistência. `NON_STACKABLE_SUPPORT`, `FRAGILE_SUPPORT_WEIGHT_EXCEEDED` e `INSUFFICIENT_SUPPORT` integram o catálogo aprovado na OC18, mas seu mapeamento a partir do validador estrutural pertence à engine integrada.
+`CONFIRMADO`: `NON_STACKABLE_SUPPORT`,
+`FRAGILE_SUPPORT_WEIGHT_EXCEEDED` e `INSUFFICIENT_SUPPORT` integram o catálogo da
+OC18 e são mapeados pela engine da OC20.
+
+### OC20 - profundidade, engine e sequência
+
+`CONFIRMADO`: a porta fica no plano `z = internal_length_cm`. A distância até a
+porta usa a face do volume voltada a esse plano:
+`internal_length_cm - (position_z_cm + used_length_cm)`.
+
+`CONFIRMADO`: maior `delivery_sequence` exige distância até a porta maior ou
+igual. Igualdade permite volumes lado a lado. Quando somente essa regra bloqueia
+um candidato fisicamente válido, o motivo é `NO_VALID_POSITION`.
+
+`CONFIRMADO`: a `loading_sequence` é 1-based, contígua e topológica. Suportes
+diretos são carregados antes dos volumes apoiados; entre os disponíveis, a ordem
+usa entrega decrescente, distância da porta decrescente e identidade estável.
+
+`CONFIRMADO`: a execução é síncrona e aceita no máximo 200 volumes. A engine
+revalida partição, limites, rotações, colisões, apoio, peso, profundidade,
+sequência e métricas antes de retornar `heuristic-v1`.
 
 ## Carregamento
 

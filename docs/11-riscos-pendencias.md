@@ -8,12 +8,16 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 - `CONFIRMADO`: unidades em centímetros, quilogramas e coordenadas `x/y/z`, conforme `ADR-002`.
 - `CONFIRMADO`: IA como apoio, não como validadora física, conforme `ADR-003`.
 - `CONFIRMADO`: endpoints públicos, matriz RBAC e bootstrap do primeiro administrador, conforme `ADR-004`.
-- `CONFIRMADO`: volumes individuais são expandidos de `order_items.quantity`, usam `volume_index` iniciado em `1` e serão persistidos em `load_plan_items`, sem tabela `volumes`, conforme `ADR-005`.
+- `CONFIRMADO`: volumes individuais são expandidos de `order_items.quantity`, usam `volume_index` iniciado em `1` e são persistidos em `load_plan_items`, sem tabela `volumes`, conforme `ADR-005`.
 - `CONFIRMADO`: volumes usam a ordem total determinística de volume, peso, empilhamento, fragilidade, entrega e identidade, conforme `ADR-006`.
 - `CONFIRMADO`: rotações usam seis permutações ortogonais priorizadas, deduplicam simetrias e respeitam bloqueio por produto, conforme `ADR-007`.
 - `CONFIRMADO`: o posicionamento usa pontos candidatos estáveis, ordem `(y, z, x, rotation_rank)` e first-fit com política física obrigatória, conforme `ADR-008`.
 - `CONFIRMADO`: colisão AABB exige sobreposição positiva nos três eixos, permite contato e usa tolerância zero, conforme `ADR-009`.
 - `CONFIRMADO`: apoio exige cobertura integral pela união exata dos contatos e aplica empilhamento e fragilidade a toda a cadeia de carga, conforme `ADR-010`.
+- `CONFIRMADO`: engine, porta, profundidade e sequência topológica seguem a
+  `ADR-013`.
+- `CONFIRMADO`: snapshots, estados, aprovação e recálculo imutável seguem a
+  `ADR-014`.
 - `CONFIRMADO`: tecnologias oficiais descritas em `README.md` e `docs/02-arquitetura.md`.
 - `CONFIRMADO`: nomes técnicos em inglês.
 - `CONFIRMADO`: documentação oficial dentro da estrutura existente de `docs`.
@@ -21,13 +25,12 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 - `CONFIRMADO`: migration inicial `20260729_0001` cria `users`, `customers`, `drivers`, `trucks` e `products`.
 - `CONFIRMADO`: migration `20260730_0002` cria `orders` e `order_items`.
 - `CONFIRMADO`: migration `20260730_0003` cria `status_history`.
+- `CONFIRMADO`: migration `20260804_0004` cria as três tabelas de planejamento.
 - `CONFIRMADO`: o contrato aprovado mantém login, token JWT e `/auth/me`, remove `/auth/register` e restringe criação de usuários a `ADMIN` após bootstrap local.
 - `CONFIRMADO`: a `OC51-I` auditou a matriz completa de autorização e a fronteira pública de todos os endpoints atualmente implementados.
 
 ## Decisões necessárias
 
-- `DECISÃO NECESSÁRIA`: confirmar se comparação entre caminhões (`OC21`) faz parte do MVP obrigatório ou se fica para funcionalidade futura.
-- `DECISÃO NECESSÁRIA`: definir política de recálculo/versionamento para plano já aprovado.
 - `DECISÃO NECESSÁRIA`: definir comportamento quando checklist de carregamento tiver divergência.
 - `DECISÃO NECESSÁRIA`: definir regra para finalizar viagem com entregas canceladas, recusadas ou falhas.
 - `DECISÃO NECESSÁRIA`: definir formato final de relatório PDF e se haverá envio por e-mail/WhatsApp no MVP.
@@ -35,13 +38,15 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 ## Pendências técnicas
 
 - `PENDENTE DE DEFINIÇÃO`: CI real ainda não está implementada, apenas documentada em `infra/ci/README.md`.
-- `PENDENTE DE DEFINIÇÃO`: models e migrations de planejamento, carregamento, entregas e ocorrências.
+- `PENDENTE DE DEFINIÇÃO`: models e migrations de carregamento, entregas e
+  ocorrências.
 - `PENDENTE DE DEFINIÇÃO`: contrato, filtros e entidades aceitas na consulta protegida de histórico; `D01` impede consulta pública e `D02` limita a leitura geral a `ADMIN` e `LOGISTICS_MANAGER`.
 - `PENDENTE DE DEFINIÇÃO`: estratégia final de logging estruturado.
 - `PENDENTE DE DEFINIÇÃO`: política final de expiração de token, fluxo de refresh e bloqueio por tentativas inválidas.
 - `PENDENTE DE DEFINIÇÃO`: validação formal de CPF, CNPJ, telefone e CNH.
 - `PENDENTE DE DEFINIÇÃO`: política de armazenamento, expiração e proteção de fotos de ocorrência.
-- `PENDENTE DE DEFINIÇÃO`: metas de performance do otimizador.
+- `PENDENTE DE DEFINIÇÃO`: SLA rígido de tempo do otimizador; o limite funcional
+  aprovado é 200 volumes por cálculo síncrono.
 - `PENDENTE DE DEFINIÇÃO`: mensagens finais do WhatsApp para confirmação, erro e status.
 
 ## Gates detalhados do otimizador e planejamento
@@ -53,15 +58,22 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 - `CONFIRMADO`: conforme a `ADR-011`, o controle incremental usa `Decimal`, aceita igualdade ao peso máximo e não altera o acumulado em uma tentativa excedente.
 - `CONFIRMADO`: o catálogo estável segue a precedência `TRUCK_DIMENSIONS_EXCEEDED`, `TRUCK_WEIGHT_EXCEEDED`, `NON_STACKABLE_SUPPORT`, `FRAGILE_SUPPORT_WEIGHT_EXCEEDED`, `INSUFFICIENT_SUPPORT`, `COLLISION` e `NO_VALID_POSITION`; entrada inválida não é rejeição de volume.
 - `CONFIRMADO`: conforme a `ADR-012`, ocupação é a soma dos volumes colocados dividida pelo volume interno e multiplicada por 100, em `Decimal`, com duas casas e `ROUND_HALF_UP`; a versão inicial é `heuristic-v1`.
-- `PENDENTE DE DEFINIÇÃO`: definir a posição da porta no eixo `z` e como posição, entrega e porta produzem `loading_sequence` na OC20.
+- `CONFIRMADO`: conforme a `ADR-013`, a porta fica em `z = internal_length_cm`,
+  profundidade usa a face voltada à porta e `loading_sequence` é topológica com
+  suportes anteriores aos apoiados.
 - `PENDENTE DE DEFINIÇÃO`: definir contrato público, endpoint e campos do schema de explicação da OC22.
-- `PENDENTE DE DEFINIÇÃO`: definir a política histórica para mudanças em caminhão, produto e itens de pedido já usados por um plano.
+- `CONFIRMADO`: conforme a `ADR-014`, FKs preservam proveniência, snapshots
+  preservam valores calculados e itens referenciados não podem ser substituídos.
 
-`CONFIRMADO`: o núcleo atual mantém isolados OC11, OC12, OC13, OC14, a busca provisória de posição da OC15, o validador de colisão da OC16, a validação de apoio, empilhamento e fragilidade da OC17, o controle de peso e rejeições da OC18 e as métricas `heuristic-v1` da OC19; ainda não existe engine, persistência ou rota de planejamento.
+`CONFIRMADO`: a OC20 integra OC11 a OC19 em uma engine `heuristic-v1`, persiste
+o resultado com snapshots e expõe criação, detalhe, visualização, aprovação e
+recálculo protegidos por RBAC.
 
 `CONFIRMADO`: a expansão usa identidade `(order_item_id, volume_index)` com índice 1-based e não expõe política alternativa de base.
 
-`RISCO IDENTIFICADO`: escolher implicitamente qualquer gate ainda pendente muda o resultado determinístico, o contrato de visualização e a futura `algorithm_version`.
+`RISCO IDENTIFICADO`: mudança futura em gate determinístico exige testes, ADR e
+nova `algorithm_version`; a representação JSON de `Decimal` permanece fora da
+OC20.
 
 ## Suposições técnicas
 

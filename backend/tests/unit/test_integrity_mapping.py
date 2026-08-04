@@ -19,6 +19,7 @@ from app.modules.drivers.service import (
 )
 from app.modules.orders.service import (
     OrderCustomerNotFoundError,
+    OrderItemsReferencedByLoadPlanError,
     OrderProductNotFoundError,
     OrderService,
 )
@@ -96,6 +97,16 @@ def test_get_integrity_constraint_name_returns_none_without_named_constraint() -
         (ProductService, "uq_products__code", ProductCodeAlreadyExistsError),
         (TruckService, "uq_trucks__plate", TruckPlateAlreadyExistsError),
         (OrderService, "fk_orders__customers", OrderCustomerNotFoundError),
+        (
+            OrderService,
+            "fk_load_plan_items__order_items",
+            OrderItemsReferencedByLoadPlanError,
+        ),
+        (
+            OrderService,
+            "fk_load_plan_items__order_item_provenance",
+            OrderItemsReferencedByLoadPlanError,
+        ),
         (
             StatusHistoryService,
             "fk_status_history__users",

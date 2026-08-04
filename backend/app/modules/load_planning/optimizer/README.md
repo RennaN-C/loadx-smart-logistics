@@ -26,8 +26,10 @@ Implementa a heurística tridimensional do LoadX.
 5. validar limites;
 6. validar colisões;
 7. validar apoio e empilhamento;
-8. escolher posição;
-9. calcular métricas.
+8. validar peso e profundidade em relação à porta;
+9. escolher posição;
+10. gerar a sequência topológica de carregamento;
+11. calcular métricas e revalidar o resultado completo.
 
 ## Restrições
 
@@ -71,7 +73,7 @@ Regras:
 
 `CONFIRMADO`: conforme `ADR-005`, `expand_order_items` atribui `volume_index` de `1` a `quantity` para cada item, sem opção de base alternativa.
 
-`CONFIRMADO`: não existe tabela separada `volumes`; a persistência futura materializará cada unidade diretamente em `load_plan_items`.
+`CONFIRMADO`: não existe tabela separada `volumes`; cada unidade é persistida diretamente em `load_plan_items`.
 
 ## OC13 - ordenação determinística
 
@@ -111,7 +113,7 @@ Regras:
 
 `CONFIRMADO`: `geometry.py` valida dimensões positivas, coordenadas não negativas e os limites exatos dos três eixos. Também classifica duas caixas como `SEPARATED`, `TOUCHING` ou `POSITIVE_OVERLAP`.
 
-`CONFIRMADO`: as primitivas e os futuros campos persistidos de dimensão e coordenada usam inteiros em centímetros, conforme as ADRs 002 e 008 e `docs/03-modelo-dados.md`.
+`CONFIRMADO`: as primitivas e os campos persistidos de dimensão e coordenada usam inteiros em centímetros, conforme as ADRs 002 e 008 e `docs/03-modelo-dados.md`.
 
 `CONFIRMADO`: conforme a `ADR-009`, somente `POSITIVE_OVERLAP`, com extensão estritamente positiva nos eixos `x`, `y` e `z`, é colisão. `TOUCHING` por face, aresta ou vértice é permitido e a tolerância geométrica é zero.
 
@@ -151,8 +153,21 @@ Regras:
 
 `CONFIRMADO`: a versão inicial exposta pelo núcleo é `heuristic-v1`. Mudança futura em regra determinística que altere o resultado exige nova versão.
 
-## Gates para a engine
+## OC20 - engine e sequência de carregamento
 
-`CONFIRMADO`: ainda não há `engine.py`; `heuristic-v1` existe no núcleo de métricas, mas somente a engine integrada da OC20 poderá anexá-la a um plano completo.
+`CONFIRMADO`: `engine.py` compõe capacidade, expansão, ordenação, rotações,
+first-fit, colisão, apoio, peso, motivos e métricas. Dimensão e peso são gates
+universais; a busca espacial registra o estágio físico mais avançado alcançado
+para escolher um motivo explicativo.
 
-`RECOMENDAÇÃO`: manter validadores e métricas isolados até que carregamento e composição da engine sejam implementados e cobertos por uma revalidação final independente de todos os itens posicionados.
+`CONFIRMADO`: a porta fica em `z = internal_length_cm`. A profundidade usa a
+distância da face do volume voltada à porta, e maior `delivery_sequence` não pode
+ficar menos profunda que uma entrega anterior.
+
+`CONFIRMADO`: `loading_sequence.py` ordena o grafo de apoio por Kahn. Suportes
+sempre aparecem antes dos volumes apoiados; os disponíveis usam entrega
+decrescente, distância da porta decrescente e identidade estável.
+
+`CONFIRMADO`: a engine rejeita input vazio e mais de 200 volumes antes de alocar a
+expansão, retorna partição completa de colocados/rejeitados e revalida limites,
+rotações, colisões, apoio, peso, profundidade, sequência e métricas.

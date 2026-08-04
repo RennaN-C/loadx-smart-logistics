@@ -218,7 +218,9 @@ Exemplo de criação:
 Regras atuais:
 
 - `POST /orders` cria o pedido com `status = "DRAFT"`.
-- `PATCH /orders/{id}` aceita alteração de `customer_id`, `status`, `priority`, `delivery_address`, `expected_delivery_at` e, quando `items` for enviado, substitui o conjunto de itens do pedido.
+- `PATCH /orders/{id}` aceita alteração de `customer_id`, `status`, `priority`,
+  `delivery_address`, `expected_delivery_at` e, quando `items` for enviado,
+  substitui o conjunto somente se nenhum item estiver referenciado por plano.
 - `status` aceita `DRAFT`, `READY`, `PLANNED`, `IN_TRANSIT`, `DELIVERED` e `CANCELED`.
 - `priority` é texto obrigatório e é normalizado para maiúsculas.
 - `expected_delivery_at` deve vir com timezone e é normalizado para UTC.
@@ -232,8 +234,17 @@ Erros específicos:
 - `ORDER_NOT_FOUND`: pedido não encontrado.
 - `ORDER_CUSTOMER_NOT_FOUND`: cliente do pedido não encontrado.
 - `ORDER_PRODUCT_NOT_FOUND`: produto do pedido não encontrado.
+- `ORDER_ITEMS_REFERENCED_BY_LOAD_PLAN`: conflito `409`; os itens históricos não
+  podem ser substituídos.
 
 ## Planos de carga
+
+Regras de autorização:
+
+- Somente `LOGISTICS_MANAGER` usa criação, aprovação e recálculo.
+- `ADMIN` e `LOGISTICS_MANAGER` consultam qualquer plano.
+- `CHECKER` consulta somente plano `APPROVED`.
+- `DRIVER` não acessa enquanto não existir vínculo operacional aprovado.
 
 ### POST `/load-plans`
 
@@ -244,33 +255,96 @@ Erros específicos:
 }
 ```
 
-Resposta resumida:
+`order_ids` deve conter ao menos um UUID e não aceita duplicatas. O caminhão deve
+estar ativo, todos os pedidos devem estar em `READY` e a soma das quantidades não
+pode exceder 200 volumes.
+
+Resposta `201`, também usada por `GET /load-plans/{id}`:
 
 ```json
 {
   "id": "uuid",
+  "truck_id": "uuid",
+  "recalculated_from_id": null,
   "status": "CALCULATED",
-  "occupancy_percent": 86.4,
-  "total_weight_kg": 5420,
+  "internal_volume_cm3": 37440000,
+  "used_volume_cm3": 32400000,
+  "occupancy_percent": 86.54,
+  "total_weight_kg": 5420.000,
   "loaded_count": 28,
-  "unloaded_count": 2,
-  "algorithm_version": "heuristic-v1"
+  "unloaded_count": 0,
+  "algorithm_version": "heuristic-v1",
+  "created_at": "2026-08-04T12:00:00Z",
+  "approved_at": null,
+  "order_ids": ["uuid"],
+  "items": [
+    {
+      "id": "load-plan-item-uuid",
+      "order_id": "uuid",
+      "order_item_id": "uuid",
+      "product_id": "uuid",
+      "volume_index": 1,
+      "quantity": 1,
+      "delivery_sequence": 2,
+      "product_code": "CX-A",
+      "product_name": "Caixa A",
+      "original_width_cm": 60,
+      "original_height_cm": 50,
+      "original_length_cm": 40,
+      "weight_kg": 12.500,
+      "fragile": false,
+      "stackable": true,
+      "rotation_allowed": true,
+      "x_cm": 0,
+      "y_cm": 0,
+      "z_cm": 0,
+      "width_cm": 60,
+      "height_cm": 50,
+      "length_cm": 40,
+      "rotation_code": "XYZ",
+      "loading_sequence": 1,
+      "placed": true,
+      "rejection_reason": null
+    }
+  ]
 }
 ```
+
+Os campos físicos e descritivos de caminhão/produto/item são snapshots do momento
+do cálculo. `Decimal` permanece no schema; a decisão separada sobre representar
+Decimal como número ou string JSON não é alterada pela OC20.
 
 ### GET `/load-plans/{id}/visualization`
 
 ```json
 {
   "truck": {
+    "id": "uuid",
+    "plate": "ABC1D23",
+    "model": "Bau medio",
     "width_cm": 240,
     "height_cm": 260,
-    "length_cm": 600
+    "length_cm": 600,
+    "max_weight_kg": 8000.00
   },
   "items": [
     {
-      "id": "uuid",
+      "id": "load-plan-item-uuid",
+      "order_id": "uuid",
+      "order_item_id": "uuid",
+      "product_id": "uuid",
+      "volume_index": 1,
+      "quantity": 1,
+      "delivery_sequence": 2,
+      "product_code": "CX-A",
       "product_name": "Caixa A",
+      "original_width_cm": 60,
+      "original_height_cm": 50,
+      "original_length_cm": 40,
+      "weight_kg": 12.500,
+      "fragile": false,
+      "stackable": true,
+      "rotation_allowed": true,
       "x_cm": 0,
       "y_cm": 0,
       "z_cm": 0,
@@ -283,8 +357,22 @@ Resposta resumida:
   ],
   "unloaded_items": [
     {
-      "id": "uuid",
+      "id": "load-plan-item-uuid",
+      "order_id": "uuid",
+      "order_item_id": "uuid",
+      "product_id": "uuid",
+      "volume_index": 1,
+      "quantity": 1,
+      "delivery_sequence": 1,
+      "product_code": "CX-B",
       "product_name": "Caixa B",
+      "original_width_cm": 300,
+      "original_height_cm": 300,
+      "original_length_cm": 300,
+      "weight_kg": 20.000,
+      "fragile": false,
+      "stackable": true,
+      "rotation_allowed": false,
       "rejection_reason": "TRUCK_DIMENSIONS_EXCEEDED"
     }
   ]
@@ -295,12 +383,30 @@ Resposta resumida:
 
 `CONFIRMADO`: conforme `ADR-007`, `rotation_code` usa somente `XYZ`, `XZY`, `YXZ`, `YZX`, `ZXY` ou `ZYX`. As letras indicam quais eixos originais `width`, `height` e `length` ocupam, respectivamente, as dimensões usadas em `x`, `y` e `z`.
 
-Outras rotas:
+### POST `/load-plans/{id}/approve`
 
-- `GET /load-plans/{id}`.
-- `POST /load-plans/{id}/approve`.
-- `POST /load-plans/{id}/recalculate`.
-- `POST /load-plans/compare-trucks` `PENDENTE DE DEFINIÇÃO`.
+Sem body. Retorna `200` com o mesmo `LoadPlanRead`. Exige plano `CALCULATED` sem
+rejeições e muda plano/pedidos/histórico atomicamente; pedidos passam a `PLANNED`.
+
+### POST `/load-plans/{id}/recalculate`
+
+Sem body. Retorna `201`. Sempre cria outro plano com
+`recalculated_from_id = id` da origem, reutiliza caminhão/pedidos, recarrega os
+dados atuais e preserva a origem.
+
+Erros específicos:
+
+- `LOAD_PLAN_NOT_FOUND`.
+- `LOAD_PLAN_TRUCK_NOT_FOUND` e `LOAD_PLAN_TRUCK_INACTIVE`.
+- `LOAD_PLAN_ORDER_NOT_FOUND` e `LOAD_PLAN_ORDER_NOT_ELIGIBLE`.
+- `LOAD_PLAN_PRODUCT_NOT_FOUND`.
+- `LOAD_PLAN_VOLUME_LIMIT_EXCEEDED`.
+- `INVALID_LOAD_PLAN_INPUT`.
+- `LOAD_PLAN_INVALID_STATUS`, `LOAD_PLAN_HAS_REJECTIONS` e
+  `LOAD_PLAN_SOURCE_CHANGED`.
+
+`CONFIRMADO`: `POST /load-plans/compare-trucks` pertence à OC21 e não é exposto
+pela integração da OC20.
 
 ## Carregamento
 
