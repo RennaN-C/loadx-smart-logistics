@@ -105,7 +105,7 @@ Regras:
 
 `CONFIRMADO`: quando nenhuma rotação cabe nas dimensões internas, a busca usa `TRUCK_DIMENSIONS_EXCEEDED`. Quando há rotação dimensionalmente viável, mas nenhuma combinação é aceita, usa o fallback `NO_VALID_POSITION`.
 
-`RISCO IDENTIFICADO`: `PlacementCandidate` representa somente um candidato provisório. A OC15 delega colisão ao validador da OC16 e apoio, empilhamento e fragilidade ao validador da OC17; mesmo com essas políticas, o resultado não pode ser publicado antes do controle de peso, do catálogo de rejeições e da revalidação física integrada.
+`RISCO IDENTIFICADO`: `PlacementCandidate` representa somente um candidato provisório. A OC15 delega colisão ao validador da OC16 e apoio, empilhamento e fragilidade ao validador da OC17; mesmo com essas políticas, o resultado não pode ser publicado antes da composição do peso, do motivo final e da revalidação física integrada.
 
 ## OC16 - colisão AABB
 
@@ -117,7 +117,7 @@ Regras:
 
 `CONFIRMADO`: `is_collision_free(candidate_box, placed_boxes)` aceita o candidato apenas quando nenhuma caixa da sequência já posicionada possui sobreposição positiva com ele. A decisão não depende da ordem dessas caixas.
 
-`CONFIRMADO`: a OC16 não implementa apoio, empilhamento, fragilidade, engine, persistência ou API e não cria um motivo público `COLLISION`. O catálogo de rejeições e sua precedência continuam pendentes.
+`CONFIRMADO`: a OC16 não implementa apoio, empilhamento, fragilidade, engine, persistência ou API. `COLLISION` integra o catálogo aprovado na OC18, mas o validador permanece booleano e seu mapeamento para o motivo final pertence à engine.
 
 ## OC17 - apoio, empilhamento e fragilidade
 
@@ -131,16 +131,18 @@ Regras:
 
 `CONFIRMADO`: a API pura é formada por `SupportAssessment`, `analyze_support_configuration`, `is_support_configuration_valid` e `is_candidate_support_valid`. Ela valida a configuração completa para que um novo candidato também não torne inválidos volumes já posicionados.
 
-`CONFIRMADO`: a OC17 não implementa engine, código público de rejeição, API HTTP ou persistência. O catálogo de rejeições e sua precedência continuam pendentes.
+`CONFIRMADO`: a OC17 não implementa engine, API HTTP ou persistência. Seus motivos estruturais integram o catálogo aprovado na OC18, mas o mapeamento do resultado booleano para o motivo final pertence à engine.
 
 ## OC18 - controle de peso isolado
 
 `CONFIRMADO`: `weight.py` calcula o próximo peso com `Decimal`, aceita igualdade ao máximo e levanta exceção de domínio quando o candidato excede a capacidade, sem mutar o peso atual.
 
-`PENDENTE DE DEFINIÇÃO`: o código público de rejeição e sua precedência em relação a falhas geométricas/estruturais ainda não foram aprovados. Por isso, o validador não está integrado a uma engine.
+`CONFIRMADO`: excesso usa `TRUCK_WEIGHT_EXCEEDED`; entrada inválida usa `INVALID_WEIGHT_INPUT` e aborta o cálculo em vez de rejeitar um volume. O acumulado só deve ser substituído pelo valor retornado em uma tentativa aceita, garantindo que apenas volumes colocados componham o total.
+
+`CONFIRMADO`: `rejections.py` define o catálogo e a precedência total da `ADR-011`. `select_rejection_reason` escolhe o motivo de maior prioridade independentemente da ordem recebida e rejeita valores fora do catálogo.
 
 ## Gates para a engine
 
-`DECISÃO NECESSÁRIA`: não há `engine.py` nem `algorithm_version` enquanto as decisões de ocupação, rejeições e sequência de carregamento estiverem abertas.
+`CONFIRMADO`: ainda não há `engine.py` nem `algorithm_version`; a composição dos validadores ocorrerá somente após as implementações sequenciais de ocupação e carregamento.
 
-`RECOMENDAÇÃO`: manter os validadores isolados até que essas regras sejam aprovadas e cobertas por uma revalidação final independente de todos os itens posicionados.
+`RECOMENDAÇÃO`: manter os validadores isolados até que ocupação, carregamento e composição da engine sejam implementados e cobertos por uma revalidação final independente de todos os itens posicionados.

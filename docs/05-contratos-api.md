@@ -291,6 +291,8 @@ Resposta resumida:
 }
 ```
 
+`CONFIRMADO`: `rejection_reason` aceita somente, em ordem de precedência, `TRUCK_DIMENSIONS_EXCEEDED`, `TRUCK_WEIGHT_EXCEEDED`, `NON_STACKABLE_SUPPORT`, `FRAGILE_SUPPORT_WEIGHT_EXCEEDED`, `INSUFFICIENT_SUPPORT`, `COLLISION` ou `NO_VALID_POSITION`. Entrada inválida gera erro de domínio/API e não aparece como volume rejeitado.
+
 `CONFIRMADO`: conforme `ADR-007`, `rotation_code` usa somente `XYZ`, `XZY`, `YXZ`, `YZX`, `ZXY` ou `ZYX`. As letras indicam quais eixos originais `width`, `height` e `length` ocupam, respectivamente, as dimensões usadas em `x`, `y` e `z`.
 
 Outras rotas:

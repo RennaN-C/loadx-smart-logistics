@@ -14,7 +14,7 @@ O posicionamento first-fit da OC15 delega as regras físicas a uma política obr
 - `is_collision_free(candidate_box, placed_boxes)` aceita o candidato somente quando nenhuma caixa já posicionada possui `POSITIVE_OVERLAP` com ele.
 - A decisão de colisão não depende da ordem das caixas já posicionadas.
 - A OC16 não decide limites, apoio, empilhamento, fragilidade, peso ou sequência de carregamento.
-- A OC16 não cria um motivo público `COLLISION`; o catálogo de rejeições e sua precedência permanecem como gate da engine.
+- A OC16 não cria sozinha um motivo público `COLLISION`. A `ADR-011` posteriormente incluiu esse motivo no catálogo aprovado; seu mapeamento a partir do validador booleano pertence à engine integrada.
 
 ## Consequências
 

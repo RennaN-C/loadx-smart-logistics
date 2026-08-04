@@ -174,7 +174,8 @@ Estados recomendados:
 
 - `CONFIRMADO`: o validador puro soma `current_weight_kg + candidate_weight_kg` usando `Decimal`.
 - `CONFIRMADO`: peso exatamente igual ao máximo é aceito; excesso é rejeitado sem alterar o acumulado recebido.
-- `PENDENTE DE DEFINIÇÃO`: definir o código público e a precedência da rejeição antes de integrar o peso à engine.
+- `CONFIRMADO`: excesso usa `TRUCK_WEIGHT_EXCEEDED`. O acumulado da orquestração só pode ser substituído pelo total retornado em uma tentativa aceita, de modo que apenas volumes colocados componham o peso total.
+- `CONFIRMADO`: conforme a `ADR-011`, a precedência pública é `TRUCK_DIMENSIONS_EXCEEDED`, `TRUCK_WEIGHT_EXCEEDED`, `NON_STACKABLE_SUPPORT`, `FRAGILE_SUPPORT_WEIGHT_EXCEEDED`, `INSUFFICIENT_SUPPORT`, `COLLISION` e `NO_VALID_POSITION`. Entrada inválida é erro de domínio/API, não rejeição de volume.
 
 ## Otimizador
 
@@ -217,7 +218,7 @@ Estados recomendados:
 
 `CONFIRMADO`: `TRUCK_DIMENSIONS_EXCEEDED` identifica o volume para o qual nenhuma rotação permitida cabe nas dimensões internas nem na origem. `NO_VALID_POSITION` é o fallback quando existe uma rotação dimensionalmente viável, mas nenhuma combinação é aceita e nenhuma regra física mais específica produz outro motivo.
 
-`RISCO IDENTIFICADO`: a posição retornada pela OC15 é somente um candidato provisório. Mesmo quando a política obrigatória compõe os validadores de colisão da OC16 e de apoio estrutural da OC17, ela não pode ser persistida nem enviada ao frontend antes do controle de peso, do catálogo de rejeições e da revalidação física integrada.
+`RISCO IDENTIFICADO`: a posição retornada pela OC15 é somente um candidato provisório. Mesmo quando a política obrigatória compõe os validadores de colisão da OC16 e de apoio estrutural da OC17, ela não pode ser persistida nem enviada ao frontend antes da composição do peso, do motivo final e da revalidação física integrada.
 
 ### OC16 - colisão AABB
 
@@ -225,7 +226,7 @@ Estados recomendados:
 
 `CONFIRMADO`: `is_collision_free(candidate_box, placed_boxes)` aceita o candidato somente quando nenhuma caixa já posicionada possui sobreposição positiva com ele. Contato por face, aresta ou vértice é permitido e a tolerância geométrica é zero.
 
-`CONFIRMADO`: a OC16 não implementa apoio, empilhamento, fragilidade, engine, persistência ou API e não cria um motivo público `COLLISION`. O catálogo de rejeições e sua precedência permanecem pendentes para a integração.
+`CONFIRMADO`: a OC16 não implementa apoio, empilhamento, fragilidade, engine, persistência ou API. `COLLISION` integra o catálogo aprovado na OC18, mas seu mapeamento a partir do validador booleano pertence à engine integrada.
 
 ### OC17 - apoio, empilhamento e fragilidade
 
@@ -239,7 +240,7 @@ Estados recomendados:
 
 `CONFIRMADO`: `SupportAssessment`, `analyze_support_configuration`, `is_support_configuration_valid` e `is_candidate_support_valid` formam a API pura da OC17.
 
-`CONFIRMADO`: a OC17 não implementa engine, código público de rejeição, API HTTP ou persistência. O catálogo de rejeições e sua precedência permanecem como gate da integração.
+`CONFIRMADO`: a OC17 não implementa engine, API HTTP ou persistência. `NON_STACKABLE_SUPPORT`, `FRAGILE_SUPPORT_WEIGHT_EXCEEDED` e `INSUFFICIENT_SUPPORT` integram o catálogo aprovado na OC18, mas seu mapeamento a partir do validador estrutural pertence à engine integrada.
 
 ## Carregamento
 

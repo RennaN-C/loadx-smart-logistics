@@ -10,6 +10,7 @@ from app.modules.load_planning.optimizer.geometry import (
     PositionedAABB,
     fits_within_bounds,
 )
+from app.modules.load_planning.optimizer.rejections import RejectionReason
 from app.modules.load_planning.optimizer.rotations import (
     RotationCode,
     RotationOption,
@@ -31,7 +32,7 @@ class InvalidPlacementInputError(PlacementDomainError):
 
 
 class NoValidPositionError(PlacementDomainError):
-    code = "NO_VALID_POSITION"
+    code = RejectionReason.NO_VALID_POSITION.value
 
     def __init__(self, identity: VolumeIdentity) -> None:
         self.identity = identity
@@ -42,7 +43,7 @@ class NoValidPositionError(PlacementDomainError):
 
 
 class TruckDimensionsExceededError(PlacementDomainError):
-    code = "TRUCK_DIMENSIONS_EXCEEDED"
+    code = RejectionReason.TRUCK_DIMENSIONS_EXCEEDED.value
 
     def __init__(self, identity: VolumeIdentity) -> None:
         self.identity = identity

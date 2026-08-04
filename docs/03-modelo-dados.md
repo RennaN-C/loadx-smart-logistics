@@ -180,7 +180,7 @@ Resultado calculado para uma carga.
 - `truck_id`: UUID, FK para `trucks.id`, obrigatório.
 - `status`: texto ou enum, obrigatório.
 - `occupancy_percent`: numérico, de 0 a 100.
-- `total_weight_kg`: numérico, obrigatório.
+- `total_weight_kg`: numérico não negativo, obrigatório, soma somente dos volumes colocados.
 - `loaded_count`: inteiro, obrigatório.
 - `unloaded_count`: inteiro, obrigatório.
 - `algorithm_version`: texto, obrigatório.
@@ -226,7 +226,7 @@ Volumes individuais posicionados ou rejeitados pelo plano.
 - `rotation_code`: texto opcional, obrigatório quando `placed = true` e nulo quando `placed = false`, com um dos valores `XYZ`, `XZY`, `YXZ`, `YZX`, `ZXY` ou `ZYX`.
 - `loading_sequence`: inteiro, obrigatório quando `placed = true`.
 - `placed`: booleano, obrigatório.
-- `rejection_reason`: texto obrigatório quando `placed = false`.
+- `rejection_reason`: texto obrigatório quando `placed = false`, com um dos valores `TRUCK_DIMENSIONS_EXCEEDED`, `TRUCK_WEIGHT_EXCEEDED`, `NON_STACKABLE_SUPPORT`, `FRAGILE_SUPPORT_WEIGHT_EXCEEDED`, `INSUFFICIENT_SUPPORT`, `COLLISION` ou `NO_VALID_POSITION`.
 
 Índices e constraints:
 
@@ -237,6 +237,7 @@ Volumes individuais posicionados ou rejeitados pelo plano.
 - `uq_load_plan_items__plan_item_volume`, sobre `load_plan_id`, `order_item_id` e `volume_index`.
 - `ck_load_plan_items__volume_index_positive`.
 - `ck_load_plan_items__rotation_code_allowed`, aceitando nulo para unidade rejeitada.
+- `ck_load_plan_items__rejection_reason_allowed` `RECOMENDAÇÃO`, aceitando nulo para unidade colocada e somente o catálogo da `ADR-011` para unidade rejeitada.
 - `ck_load_plan_items__positions_non_negative` `RECOMENDAÇÃO`.
 - `ck_load_plan_items__used_dimensions_positive` `RECOMENDAÇÃO`.
 - `ck_load_plan_items__placed_or_rejected` `RECOMENDAÇÃO`.
