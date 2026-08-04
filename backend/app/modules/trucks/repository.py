@@ -18,6 +18,10 @@ class TruckRepository:
     def get(self, truck_id: uuid.UUID) -> Truck | None:
         return self.db.get(Truck, truck_id)
 
+    def get_for_update(self, truck_id: uuid.UUID) -> Truck | None:
+        statement = select(Truck).where(Truck.id == truck_id).with_for_update()
+        return self.db.scalar(statement)
+
     def get_by_plate(self, plate: str) -> Truck | None:
         statement = select(Truck).where(Truck.plate == plate)
         return self.db.scalar(statement)

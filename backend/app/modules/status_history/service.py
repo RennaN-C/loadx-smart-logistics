@@ -42,11 +42,16 @@ class StatusHistoryService:
         return status_history
 
     def record_status_change(self, data: StatusHistoryCreate) -> StatusHistory:
+        return self._persist(lambda: self.stage_status_change(data))
+
+    def stage_status_change(self, data: StatusHistoryCreate) -> StatusHistory:
+        """Stage one history row for an outer atomic domain transaction."""
+
         if data.changed_by is not None:
             self._ensure_changed_by_exists(data.changed_by)
 
         status_history = StatusHistory(**data.model_dump())
-        return self._persist(lambda: self.repository.add(status_history))
+        return self.repository.add(status_history)
 
     def _ensure_changed_by_exists(self, changed_by: uuid.UUID) -> None:
         try:

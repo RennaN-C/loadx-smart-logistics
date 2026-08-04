@@ -39,13 +39,21 @@ Conclusão e relatório
 1. Responsável logístico seleciona caminhão ativo.
 2. Responsável logístico seleciona pedidos elegíveis.
 3. Backend carrega dimensões, peso máximo, itens e regras físicas.
-4. Service do módulo `load_planning` expande quantidades em volumes individuais.
-5. Otimizador ordena volumes, testa rotações, gera pontos candidatos e valida cada posição.
-6. Volumes válidos recebem posição, dimensões usadas, rotação e sequência de carregamento.
+4. Service do módulo `load_planning` cria DTOs e snapshots imutáveis.
+5. Otimizador expande e ordena volumes, testa rotações, gera pontos candidatos e valida cada posição.
+6. Volumes válidos recebem posição, dimensões usadas, rotação e sequência topológica de carregamento.
 7. Volumes inválidos recebem `rejection_reason`.
-8. Service calcula ocupação, peso, totais e `algorithm_version`.
+8. Otimizador calcula ocupação, peso, totais e `algorithm_version`; o service orquestra e prepara a persistência.
 9. Repository persiste `load_plans`, `load_plan_orders` e `load_plan_items`.
 10. API retorna resumo para o frontend.
+
+`CONFIRMADO`: criação aceita somente caminhão ativo, pedidos `READY` e até 200
+volumes. O cálculo é síncrono. Pedido permanece `READY` até a aprovação de um
+plano completo.
+
+`CONFIRMADO`: aprovação grava plano `APPROVED`, pedidos `PLANNED` e históricos em
+um único commit. Recálculo cria outro plano com dados atuais e
+`recalculated_from_id`, sem alterar a origem.
 
 `CONFIRMADO`: o frontend não corrige nem recalcula posições.
 

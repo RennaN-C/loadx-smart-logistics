@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import Enum
 
@@ -91,3 +92,29 @@ def classify_aabb_relation(
     if all(extent_cm > 0 for extent_cm in overlap_extents_cm):
         return AABBRelation.POSITIVE_OVERLAP
     return AABBRelation.TOUCHING
+
+
+def is_collision_free(
+    candidate_box: PositionedAABB,
+    placed_boxes: Sequence[PositionedAABB],
+) -> bool:
+    if not isinstance(candidate_box, PositionedAABB):
+        raise InvalidGeometryInputError("candidate_box", "must be a PositionedAABB")
+    if not isinstance(placed_boxes, Sequence) or isinstance(
+        placed_boxes, (str, bytes, bytearray)
+    ):
+        raise InvalidGeometryInputError(
+            "placed_boxes", "must be an ordered sequence of PositionedAABB"
+        )
+
+    validated_boxes = tuple(placed_boxes)
+    for position, box in enumerate(validated_boxes):
+        if not isinstance(box, PositionedAABB):
+            raise InvalidGeometryInputError(
+                f"placed_boxes[{position}]", "must be a PositionedAABB"
+            )
+
+    return all(
+        classify_aabb_relation(candidate_box, box) is not AABBRelation.POSITIVE_OVERLAP
+        for box in validated_boxes
+    )

@@ -210,29 +210,32 @@ Data:
 
 D13 - PERSISTÊNCIA DE VOLUMES INDIVIDUAIS
 -----------------------------------------
-Marcador: DECISÃO NECESSÁRIA
+Marcador: CONFIRMADO
 Pergunta: haverá tabela volumes ou as unidades serão geradas de order_items.quantity e persistidas somente em load_plan_items?
 RECOMENDAÇÃO existente: avaliar identidade determinística (order_item_id, volume_index) sem criar tabela adicional por antecipação.
 Impacta: load_planning, models, migrations, algoritmo e visualização 3D.
-Escolha da equipe:
-Responsáveis:
-Data:
+Escolha da equipe: expandir order_items.quantity em memória e persistir cada
+unidade diretamente em load_plan_items; não criar tabela volumes. Identidade
+(order_item_id, volume_index), conforme ADR-005 e ADR-014.
+Responsáveis: equipe LoadX; aprovação explícita do pacote D1-D19 pelo usuário.
+Data: 2026-08-03
 
 
 D14 - BASE DE VOLUME_INDEX
 --------------------------
-Marcador: DECISÃO NECESSÁRIA
+Marcador: CONFIRMADO
 Pergunta: volume_index começa em zero ou um?
 RECOMENDAÇÃO: escolher antes de persistência, API ou algorithm_version e manter a base imutável por versão.
 Impacta: load_plan_items, otimizador, testes e frontend.
-Escolha da equipe:
-Responsáveis:
-Data:
+Escolha da equipe: volume_index começa em 1 e integra a identidade estável com
+order_item_id, conforme ADR-005.
+Responsáveis: equipe LoadX; aprovação explícita do pacote D1-D19 pelo usuário.
+Data: 2026-08-03
 
 
 D15 - RECÁLCULO E VERSIONAMENTO DE PLANO APROVADO
 -------------------------------------------------
-Marcador: DECISÃO NECESSÁRIA
+Marcador: CONFIRMADO
 Perguntas:
 - plano aprovado pode ser recalculado?
 - recálculo cria novo plano, nova versão ou altera o registro existente?
@@ -240,14 +243,16 @@ Perguntas:
 - o que acontece com pedidos, carregamento e viagem vinculados?
 RECOMENDAÇÃO: não alterar plano aprovado; criar nova versão/registro e preservar auditoria.
 Impacta: load_planning, banco, API, loading e reports.
-Escolha da equipe:
-Responsáveis:
-Data:
+Escolha da equipe: recálculo sempre cria novo load_plan ligado por
+recalculated_from_id, usa dados atuais e novos snapshots e preserva o plano
+anterior sem alteração, conforme ADR-014.
+Responsáveis: equipe LoadX; aprovação explícita do pacote D1-D19 pelo usuário.
+Data: 2026-08-03
 
 
 D16 - GATES DETERMINÍSTICOS DO OTIMIZADOR
 -----------------------------------------
-Marcador: DECISÃO NECESSÁRIA
+Marcador: CONFIRMADO
 Decidir antes da engine:
 - ordem total e desempates da ordenação;
 - rotações válidas e prioridade;
@@ -260,20 +265,23 @@ Decidir antes da engine:
 - catálogo e precedência de rejection_reason.
 RECOMENDAÇÃO: registrar cada escolha em código, testes, docs/04 e algorithm_version.
 Impacta: OC13 a OC20 e contrato de visualização.
-Escolha da equipe:
-Responsáveis:
-Data:
+Escolha da equipe: gates registrados nas ADR-006 a ADR-013; engine síncrona
+heuristic-v1, porta em z = internal_length_cm, loading_sequence topológica e
+catálogo/precedência fixos.
+Responsáveis: equipe LoadX; aprovação explícita do pacote D1-D19 pelo usuário.
+Data: 2026-08-03
 
 
 D17 - COMPARAÇÃO ENTRE CAMINHÕES NO MVP
 ---------------------------------------
-Marcador: DECISÃO NECESSÁRIA
+Marcador: CONFIRMADO
 Pergunta: OC21 faz parte do MVP ou fica para fase futura?
 RECOMENDAÇÃO: decidir antes de criar endpoint, tela ou persistência específica.
 Impacta: roadmap, load_planning, frontend e prazo do MVP.
-Escolha da equipe:
-Responsáveis:
-Data:
+Escolha da equipe: OC21 faz parte do trabalho e será implementada depois da
+publicação da OC20, comparando no máximo 10 caminhões por execução.
+Responsáveis: equipe LoadX; aprovação explícita do pacote D1-D19 pelo usuário.
+Data: 2026-08-03
 
 
 D18 - POLÍTICA FINAL DE AUTENTICAÇÃO

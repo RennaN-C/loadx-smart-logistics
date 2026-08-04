@@ -32,6 +32,14 @@ class ProductService:
             raise ProductNotFoundError
         return product
 
+    def get_products(
+        self,
+        product_ids: Sequence[uuid.UUID],
+        *,
+        for_update: bool = False,
+    ) -> Sequence[Product]:
+        return self.repository.get_many(product_ids, for_update=for_update)
+
     def create_product(self, data: ProductCreate) -> Product:
         if self.repository.get_by_code(data.code) is not None:
             raise ProductCodeAlreadyExistsError

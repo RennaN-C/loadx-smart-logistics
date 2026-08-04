@@ -2,6 +2,7 @@ from decimal import Decimal
 
 import pytest
 
+from app.modules.load_planning.optimizer.rejections import RejectionReason
 from app.modules.load_planning.optimizer.weight import (
     InvalidWeightInputError,
     WeightLimitExceededError,
@@ -70,6 +71,24 @@ def test_calculate_next_weight_rejects_excess_without_changing_the_current_weigh
     assert exc_info.value.candidate_weight_kg == Decimal("0.501")
     assert exc_info.value.max_weight_kg == Decimal("10.000")
     assert exc_info.value.next_total_weight_kg == Decimal("10.001")
+    assert exc_info.value.code == RejectionReason.TRUCK_WEIGHT_EXCEEDED.value
+
+
+def test_rejected_weight_attempt_keeps_the_previous_total_reusable() -> None:
+    current_weight = Decimal("9.500")
+
+    with pytest.raises(WeightLimitExceededError):
+        calculate_next_weight(
+            current_weight_kg=current_weight,
+            candidate_weight_kg=Decimal("0.501"),
+            max_weight_kg=Decimal("10.000"),
+        )
+
+    assert calculate_next_weight(
+        current_weight_kg=current_weight,
+        candidate_weight_kg=Decimal("0.500"),
+        max_weight_kg=Decimal("10.000"),
+    ) == Decimal("10.000")
 
 
 @pytest.mark.parametrize(
@@ -96,6 +115,7 @@ def test_calculate_next_weight_requires_finite_decimals(
     with pytest.raises(InvalidWeightInputError) as exc_info:
         calculate_next_weight(**arguments)  # type: ignore[arg-type]
 
+    assert exc_info.value.code == "INVALID_WEIGHT_INPUT"
     assert exc_info.value.field_name == field_name
 
 
@@ -104,6 +124,7 @@ def test_calculate_next_weight_requires_a_positive_maximum(max_weight: Decimal) 
     with pytest.raises(InvalidWeightInputError) as exc_info:
         calculate_next_weight(Decimal(0), Decimal(1), max_weight)
 
+    assert exc_info.value.code == "INVALID_WEIGHT_INPUT"
     assert exc_info.value.field_name == "max_weight_kg"
 
 
@@ -114,6 +135,7 @@ def test_calculate_next_weight_requires_a_valid_current_total(
     with pytest.raises(InvalidWeightInputError) as exc_info:
         calculate_next_weight(current_weight, Decimal(1), Decimal(10))
 
+    assert exc_info.value.code == "INVALID_WEIGHT_INPUT"
     assert exc_info.value.field_name == "current_weight_kg"
 
 
@@ -124,4 +146,5 @@ def test_calculate_next_weight_requires_a_positive_candidate(
     with pytest.raises(InvalidWeightInputError) as exc_info:
         calculate_next_weight(Decimal(0), candidate_weight, Decimal(10))
 
+    assert exc_info.value.code == "INVALID_WEIGHT_INPUT"
     assert exc_info.value.field_name == "candidate_weight_kg"

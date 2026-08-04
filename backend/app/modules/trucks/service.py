@@ -32,6 +32,12 @@ class TruckService:
             raise TruckNotFoundError
         return truck
 
+    def get_truck_for_update(self, truck_id: uuid.UUID) -> Truck:
+        truck = self.repository.get_for_update(truck_id)
+        if truck is None:
+            raise TruckNotFoundError
+        return truck
+
     def create_truck(self, data: TruckCreate) -> Truck:
         if self.repository.get_by_plate(data.plate) is not None:
             raise TruckPlateAlreadyExistsError

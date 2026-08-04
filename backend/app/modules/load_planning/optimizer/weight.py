@@ -1,11 +1,15 @@
 from decimal import Decimal
 
+from app.modules.load_planning.optimizer.rejections import RejectionReason
+
 
 class WeightDomainError(ValueError):
-    pass
+    code: str
 
 
 class InvalidWeightInputError(WeightDomainError):
+    code = "INVALID_WEIGHT_INPUT"
+
     def __init__(self, field_name: str, reason: str) -> None:
         self.field_name = field_name
         self.reason = reason
@@ -13,6 +17,8 @@ class InvalidWeightInputError(WeightDomainError):
 
 
 class WeightLimitExceededError(WeightDomainError):
+    code = RejectionReason.TRUCK_WEIGHT_EXCEEDED.value
+
     def __init__(
         self,
         current_weight_kg: Decimal,

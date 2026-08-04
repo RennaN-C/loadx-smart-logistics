@@ -11,15 +11,18 @@ from sqlalchemy.pool import StaticPool
 
 from app.database.base import Base
 from app.modules.customers.models import Customer
+from app.modules.load_planning.models import LoadPlan, LoadPlanItem, LoadPlanOrder
 from app.modules.orders.models import Order, OrderItem
 from app.modules.orders.schemas import OrderCreate, OrderUpdate
 from app.modules.orders.service import (
     OrderCustomerNotFoundError,
+    OrderItemsReferencedByLoadPlanError,
     OrderNotFoundError,
     OrderProductNotFoundError,
     OrderService,
 )
 from app.modules.products.models import Product
+from app.modules.trucks.models import Truck
 
 
 @pytest.fixture
@@ -29,7 +32,16 @@ def db_session() -> Generator[Session, None, None]:
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
-    tables = [Customer.__table__, Product.__table__, Order.__table__, OrderItem.__table__]
+    tables = [
+        Customer.__table__,
+        Truck.__table__,
+        Product.__table__,
+        Order.__table__,
+        OrderItem.__table__,
+        LoadPlan.__table__,
+        LoadPlanOrder.__table__,
+        LoadPlanItem.__table__,
+    ]
     Base.metadata.create_all(engine, tables=tables)
     testing_session_local = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
@@ -177,3 +189,38 @@ def test_get_order_raises_when_not_found(db_session: Session) -> None:
 
     with pytest.raises(OrderNotFoundError):
         service.get_order(uuid.uuid4())
+
+
+def test_update_order_rolls_back_validation_error_after_lock(
+    db_session: Session,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    customer = create_customer(db_session)
+    product = create_product(db_session)
+    service = OrderService(db_session)
+    order = service.create_order(make_order_create(customer.id, product.id))
+    order_id = order.id
+    monkeypatch.setattr(
+        service.load_plan_reference_service,
+        "has_order_item_references",
+        lambda _identifiers: True,
+    )
+
+    with pytest.raises(OrderItemsReferencedByLoadPlanError):
+        service.update_order(
+            order_id,
+            OrderUpdate(
+                items=[
+                    {
+                        "product_id": product.id,
+                        "quantity": 2,
+                        "delivery_sequence": 1,
+                    }
+                ]
+            ),
+        )
+
+    assert not db_session.in_transaction()
+    persisted = service.get_order(order_id)
+    assert len(persisted.items) == 1
+    assert persisted.items[0].quantity == 3

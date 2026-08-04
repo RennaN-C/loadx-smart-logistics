@@ -4,7 +4,7 @@ from collections.abc import Sequence
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from app.modules.orders.models import Order
+from app.modules.orders.models import Order, OrderItem
 
 
 class OrderRepository:
@@ -18,6 +18,41 @@ class OrderRepository:
     def get(self, order_id: uuid.UUID) -> Order | None:
         statement = select(Order).options(selectinload(Order.items)).where(Order.id == order_id)
         return self.db.scalar(statement)
+
+    def get_many(
+        self,
+        order_ids: Sequence[uuid.UUID],
+        *,
+        for_update: bool = False,
+    ) -> Sequence[Order]:
+        unique_ids = tuple(sorted(set(order_ids), key=lambda value: value.int))
+        if not unique_ids:
+            return ()
+        statement = (
+            select(Order)
+            .where(Order.id.in_(unique_ids))
+            .order_by(Order.id.asc())
+        )
+        if for_update:
+            statement = statement.with_for_update()
+        else:
+            statement = statement.options(selectinload(Order.items))
+        orders = self.db.scalars(statement).all()
+        if for_update:
+            item_lock = (
+                select(OrderItem.id)
+                .where(OrderItem.order_id.in_(unique_ids))
+                .order_by(OrderItem.id.asc())
+                .with_for_update()
+            )
+            self.db.scalars(item_lock).all()
+            for order in orders:
+                self.db.refresh(order, attribute_names=["items"])
+        return orders
+
+    def get_for_update(self, order_id: uuid.UUID) -> Order | None:
+        orders = self.get_many((order_id,), for_update=True)
+        return orders[0] if orders else None
 
     def add(self, order: Order) -> Order:
         self.db.add(order)

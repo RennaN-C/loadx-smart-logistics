@@ -6,7 +6,6 @@ import pytest
 from app.modules.load_planning.optimizer.contracts import (
     OrderItemInput,
     VolumeIdentity,
-    VolumeIndexBase,
 )
 from app.modules.load_planning.optimizer.volumes import (
     DuplicateOrderItemError,
@@ -95,7 +94,7 @@ def test_expand_order_items_materializes_every_unit_and_preserves_physical_data(
 ):
     order_item = make_order_item(quantity=3)
 
-    volumes = expand_order_items([order_item], volume_index_base=VolumeIndexBase.ONE)
+    volumes = expand_order_items([order_item])
 
     assert len(volumes) == 3
     assert [volume.identity for volume in volumes] == [
@@ -120,13 +119,10 @@ def test_expand_order_items_materializes_every_unit_and_preserves_physical_data(
         assert volume.rotation_allowed is True
 
 
-def test_expand_order_items_uses_an_explicit_zero_based_policy() -> None:
-    volumes = expand_order_items(
-        [make_order_item(quantity=2)],
-        volume_index_base=VolumeIndexBase.ZERO,
-    )
+def test_expand_order_items_uses_one_based_indexes() -> None:
+    volumes = expand_order_items([make_order_item(quantity=2)])
 
-    assert [volume.identity.volume_index for volume in volumes] == [0, 1]
+    assert [volume.identity.volume_index for volume in volumes] == [1, 2]
 
 
 def test_expand_order_items_expands_multiple_items_in_input_order() -> None:
@@ -142,7 +138,7 @@ def test_expand_order_items_expands_multiple_items_in_input_order() -> None:
     )
     items = [first_item, second_item]
 
-    volumes = expand_order_items(items, volume_index_base=VolumeIndexBase.ONE)
+    volumes = expand_order_items(items)
 
     assert len(volumes) == 3
     assert [volume.identity for volume in volumes] == [
@@ -157,32 +153,26 @@ def test_expand_order_items_expands_multiple_items_in_input_order() -> None:
 def test_expand_order_items_is_deterministic() -> None:
     items = [make_order_item(quantity=2)]
 
-    first_result = expand_order_items(items, volume_index_base=VolumeIndexBase.ONE)
-    second_result = expand_order_items(items, volume_index_base=VolumeIndexBase.ONE)
+    first_result = expand_order_items(items)
+    second_result = expand_order_items(items)
 
     assert first_result == second_result
 
 
 def test_expand_order_items_accepts_an_empty_sequence() -> None:
-    assert expand_order_items([], volume_index_base=VolumeIndexBase.ONE) == ()
+    assert expand_order_items([]) == ()
 
 
 def test_expand_order_items_rejects_an_unordered_collection() -> None:
     with pytest.raises(InvalidVolumeInputError) as exc_info:
-        expand_order_items(  # type: ignore[arg-type]
-            {make_order_item()},
-            volume_index_base=VolumeIndexBase.ONE,
-        )
+        expand_order_items({make_order_item()})  # type: ignore[arg-type]
 
     assert exc_info.value.field_name == "items"
 
 
 def test_expand_order_items_rejects_an_invalid_sequence_element() -> None:
     with pytest.raises(InvalidVolumeInputError) as exc_info:
-        expand_order_items(  # type: ignore[list-item]
-            [object()],
-            volume_index_base=VolumeIndexBase.ONE,
-        )
+        expand_order_items([object()])  # type: ignore[list-item]
 
     assert exc_info.value.field_name == "items[0]"
 
@@ -207,7 +197,7 @@ def test_expand_order_items_rejects_invalid_physical_input(
     order_item = make_order_item(**{field_name: invalid_value})
 
     with pytest.raises(InvalidVolumeInputError) as exc_info:
-        expand_order_items([order_item], volume_index_base=VolumeIndexBase.ONE)
+        expand_order_items([order_item])
 
     assert exc_info.value.code == "INVALID_VOLUME_INPUT"
     assert exc_info.value.field_name == field_name
@@ -241,7 +231,7 @@ def test_expand_order_items_rejects_invalid_contract_types(
     order_item = make_order_item(**{field_name: invalid_value})
 
     with pytest.raises(InvalidVolumeInputError) as exc_info:
-        expand_order_items([order_item], volume_index_base=VolumeIndexBase.ONE)
+        expand_order_items([order_item])
 
     assert exc_info.value.field_name == field_name
 
@@ -250,22 +240,7 @@ def test_expand_order_items_rejects_duplicate_order_item_identity() -> None:
     duplicate = make_order_item(product_id=SECOND_PRODUCT_ID)
 
     with pytest.raises(DuplicateOrderItemError) as exc_info:
-        expand_order_items(
-            [make_order_item(), duplicate],
-            volume_index_base=VolumeIndexBase.ONE,
-        )
+        expand_order_items([make_order_item(), duplicate])
 
     assert exc_info.value.code == "DUPLICATE_ORDER_ITEM_ID"
     assert exc_info.value.order_item_id == FIRST_ITEM_ID
-
-
-def test_expand_order_items_requires_a_volume_index_policy() -> None:
-    with pytest.raises(TypeError):
-        expand_order_items([make_order_item()])  # type: ignore[call-arg]
-
-
-def test_expand_order_items_rejects_an_untyped_volume_index_policy() -> None:
-    with pytest.raises(InvalidVolumeInputError) as exc_info:
-        expand_order_items([make_order_item()], volume_index_base=1)  # type: ignore[arg-type]
-
-    assert exc_info.value.field_name == "volume_index_base"

@@ -6,6 +6,11 @@ class InvalidTruckCapacityError(Exception):
     pass
 
 
+def _require_positive_int(value: object, field_name: str) -> None:
+    if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
+        raise InvalidTruckCapacityError(f"{field_name} must be a positive integer")
+
+
 @dataclass(frozen=True)
 class TruckCapacityInput:
     internal_width_cm: int
@@ -24,12 +29,9 @@ class TruckCapacityResult:
 
 
 def calculate_truck_capacity(truck: TruckCapacityInput) -> TruckCapacityResult:
-    if truck.internal_width_cm <= 0:
-        raise InvalidTruckCapacityError("internal_width_cm must be greater than zero")
-    if truck.internal_height_cm <= 0:
-        raise InvalidTruckCapacityError("internal_height_cm must be greater than zero")
-    if truck.internal_length_cm <= 0:
-        raise InvalidTruckCapacityError("internal_length_cm must be greater than zero")
+    _require_positive_int(truck.internal_width_cm, "internal_width_cm")
+    _require_positive_int(truck.internal_height_cm, "internal_height_cm")
+    _require_positive_int(truck.internal_length_cm, "internal_length_cm")
     if (
         not isinstance(truck.max_weight_kg, Decimal)
         or not truck.max_weight_kg.is_finite()

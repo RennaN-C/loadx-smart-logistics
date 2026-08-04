@@ -76,7 +76,9 @@ Entregável integrado:
 
 - Usuário calcula plano, visualiza carga em 3D e entende volumes posicionados/rejeitados.
 
-`DECISÃO NECESSÁRIA`: confirmar se `OC21` fica no MVP ou em fase posterior, pois também aparece como funcionalidade futura.
+`CONFIRMADO`: conforme `D17`, a `OC21` integra o MVP após a publicação da
+`OC20` e compara no máximo 10 caminhões por execução. Comparação automática
+avançada permanece evolução futura.
 
 ## Sprint 4: operação, WhatsApp e ocorrências
 
