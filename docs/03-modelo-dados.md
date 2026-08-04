@@ -179,11 +179,11 @@ Resultado calculado para uma carga.
 - `id`: UUID, PK.
 - `truck_id`: UUID, FK para `trucks.id`, obrigatório.
 - `status`: texto ou enum, obrigatório.
-- `occupancy_percent`: numérico, de 0 a 100.
+- `occupancy_percent`: `Decimal` de 0 a 100, com duas casas e `ROUND_HALF_UP`, calculado somente sobre o volume dos itens colocados.
 - `total_weight_kg`: numérico não negativo, obrigatório, soma somente dos volumes colocados.
 - `loaded_count`: inteiro, obrigatório.
 - `unloaded_count`: inteiro, obrigatório.
-- `algorithm_version`: texto, obrigatório.
+- `algorithm_version`: texto, obrigatório; versão inicial `heuristic-v1`.
 - `created_at`: timestamptz UTC, obrigatório.
 - `approved_at`: timestamptz UTC opcional.
 

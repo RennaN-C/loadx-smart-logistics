@@ -23,7 +23,8 @@ Crie somente os arquivos necessários para a ocorrência atual.
 - `CONFIRMADO`: OC16 rejeita candidatos com sobreposição positiva nos três eixos em relação a qualquer caixa já posicionada, permite contato e usa tolerância zero.
 - `CONFIRMADO`: OC17 exige apoio integral pela união exata de múltiplos suportes e valida empilhamento e fragilidade por toda a cadeia de carga.
 - `CONFIRMADO`: OC18 controla o peso incremental com `Decimal`, formaliza os sete motivos públicos e seleciona o motivo final pela precedência fixa da `ADR-011`.
-- `CONFIRMADO`: OC19 e OC20 ainda não foram implementadas e, por isso, os validadores permanecem isolados até a composição da engine.
+- `CONFIRMADO`: OC19 calcula volume usado, peso colocado, ocupação com duas casas, contagens e `heuristic-v1` conforme a `ADR-012`.
+- `CONFIRMADO`: OC20 ainda não foi implementada e, por isso, os validadores e as métricas permanecem isolados até a composição da engine.
 - `CONFIRMADO`: persistência, service e API permanecem ausentes e pertencem à integração da OC20.
 
 `RISCO IDENTIFICADO`: as regras isoladas atuais não representam um plano publicável. Nenhuma posição deve chegar ao frontend enquanto colisão, apoio, empilhamento, fragilidade, peso, motivo final e revalidação física não estiverem compostos pela engine.

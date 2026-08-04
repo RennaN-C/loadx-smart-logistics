@@ -141,8 +141,18 @@ Regras:
 
 `CONFIRMADO`: `rejections.py` define o catálogo e a precedência total da `ADR-011`. `select_rejection_reason` escolhe o motivo de maior prioridade independentemente da ordem recebida e rejeita valores fora do catálogo.
 
+## OC19 - aproveitamento e métricas
+
+`CONFIRMADO`: `metrics.py` recebe coleções explícitas e disjuntas de volumes colocados e rejeitados. `used_volume_cm3` e `total_weight_kg` somam somente os colocados; as contagens refletem o tamanho de cada coleção.
+
+`CONFIRMADO`: conforme a `ADR-012`, `occupancy_percent = used_volume_cm3 / internal_volume_cm3 * 100`. O cálculo usa `Decimal`, arredonda somente o resultado final para duas casas com `ROUND_HALF_UP` e não usa `float`.
+
+`CONFIRMADO`: carga sem colocados retorna `0.00`, ocupação integral retorna `100.00` e volume colocado acima da capacidade é erro de domínio, sem clamp silencioso. A API pura é formada por `LoadMetrics` e `calculate_load_metrics`.
+
+`CONFIRMADO`: a versão inicial exposta pelo núcleo é `heuristic-v1`. Mudança futura em regra determinística que altere o resultado exige nova versão.
+
 ## Gates para a engine
 
-`CONFIRMADO`: ainda não há `engine.py` nem `algorithm_version`; a composição dos validadores ocorrerá somente após as implementações sequenciais de ocupação e carregamento.
+`CONFIRMADO`: ainda não há `engine.py`; `heuristic-v1` existe no núcleo de métricas, mas somente a engine integrada da OC20 poderá anexá-la a um plano completo.
 
-`RECOMENDAÇÃO`: manter os validadores isolados até que ocupação, carregamento e composição da engine sejam implementados e cobertos por uma revalidação final independente de todos os itens posicionados.
+`RECOMENDAÇÃO`: manter validadores e métricas isolados até que carregamento e composição da engine sejam implementados e cobertos por uma revalidação final independente de todos os itens posicionados.

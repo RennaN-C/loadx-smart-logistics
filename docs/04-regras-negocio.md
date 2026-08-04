@@ -177,6 +177,14 @@ Estados recomendados:
 - `CONFIRMADO`: excesso usa `TRUCK_WEIGHT_EXCEEDED`. O acumulado da orquestração só pode ser substituído pelo total retornado em uma tentativa aceita, de modo que apenas volumes colocados componham o peso total.
 - `CONFIRMADO`: conforme a `ADR-011`, a precedência pública é `TRUCK_DIMENSIONS_EXCEEDED`, `TRUCK_WEIGHT_EXCEEDED`, `NON_STACKABLE_SUPPORT`, `FRAGILE_SUPPORT_WEIGHT_EXCEEDED`, `INSUFFICIENT_SUPPORT`, `COLLISION` e `NO_VALID_POSITION`. Entrada inválida é erro de domínio/API, não rejeição de volume.
 
+## Aproveitamento e métricas
+
+- `CONFIRMADO`: conforme a `ADR-012`, `used_volume_cm3` soma somente o volume físico dos itens colocados. Rejeitados não contribuem para volume usado nem peso total.
+- `CONFIRMADO`: `occupancy_percent = used_volume_cm3 / internal_volume_cm3 * 100`, usando `Decimal`, duas casas e `ROUND_HALF_UP`. O arredondamento ocorre uma única vez, depois da soma completa.
+- `CONFIRMADO`: carga sem colocados retorna `0.00`, ocupação integral retorna `100.00` e um total colocado acima do volume interno é erro de domínio, não percentual limitado silenciosamente.
+- `CONFIRMADO`: `loaded_count` e `unloaded_count` contam as coleções disjuntas de colocados e rejeitados. A engine deve comprovar que elas formam uma partição completa da entrada.
+- `CONFIRMADO`: a versão inicial é `heuristic-v1`; qualquer mudança de regra determinística que altere o resultado exige nova `algorithm_version`.
+
 ## Otimizador
 
 - A IA generativa não posiciona volumes.

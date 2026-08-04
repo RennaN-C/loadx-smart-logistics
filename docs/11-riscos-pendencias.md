@@ -52,16 +52,14 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 - `CONFIRMADO`: toda aresta de apoio transmite carga positiva por todos os ramos; suportes diretos devem ser empilháveis e nenhum suporte ou ancestral que receba carga pode ser frágil. O candidato pode ser frágil ou não empilhável no topo e não existe limite de volume "pesado".
 - `CONFIRMADO`: conforme a `ADR-011`, o controle incremental usa `Decimal`, aceita igualdade ao peso máximo e não altera o acumulado em uma tentativa excedente.
 - `CONFIRMADO`: o catálogo estável segue a precedência `TRUCK_DIMENSIONS_EXCEEDED`, `TRUCK_WEIGHT_EXCEEDED`, `NON_STACKABLE_SUPPORT`, `FRAGILE_SUPPORT_WEIGHT_EXCEEDED`, `INSUFFICIENT_SUPPORT`, `COLLISION` e `NO_VALID_POSITION`; entrada inválida não é rejeição de volume.
-- `PENDENTE DE DEFINIÇÃO`: definir fórmula, precisão, tipo numérico e arredondamento de `occupancy_percent` na OC19.
+- `CONFIRMADO`: conforme a `ADR-012`, ocupação é a soma dos volumes colocados dividida pelo volume interno e multiplicada por 100, em `Decimal`, com duas casas e `ROUND_HALF_UP`; a versão inicial é `heuristic-v1`.
 - `PENDENTE DE DEFINIÇÃO`: definir a posição da porta no eixo `z` e como posição, entrega e porta produzem `loading_sequence` na OC20.
 - `PENDENTE DE DEFINIÇÃO`: definir contrato público, endpoint e campos do schema de explicação da OC22.
 - `PENDENTE DE DEFINIÇÃO`: definir a política histórica para mudanças em caminhão, produto e itens de pedido já usados por um plano.
 
-`CONFIRMADO`: o núcleo atual mantém isolados OC11, OC12, OC13, OC14, a busca provisória de posição da OC15, o validador de colisão da OC16, a validação de apoio, empilhamento e fragilidade da OC17, o controle de peso da OC18 e o seletor de motivo final; ainda não existe engine, `algorithm_version`, persistência ou rota de planejamento.
+`CONFIRMADO`: o núcleo atual mantém isolados OC11, OC12, OC13, OC14, a busca provisória de posição da OC15, o validador de colisão da OC16, a validação de apoio, empilhamento e fragilidade da OC17, o controle de peso e rejeições da OC18 e as métricas `heuristic-v1` da OC19; ainda não existe engine, persistência ou rota de planejamento.
 
 `CONFIRMADO`: a expansão usa identidade `(order_item_id, volume_index)` com índice 1-based e não expõe política alternativa de base.
-
-`RECOMENDAÇÃO`: avaliar a proposta de ocupação por volume posicionado na OC19; ela não deve virar regra final apenas por estar sugerida.
 
 `RISCO IDENTIFICADO`: escolher implicitamente qualquer gate ainda pendente muda o resultado determinístico, o contrato de visualização e a futura `algorithm_version`.
 
