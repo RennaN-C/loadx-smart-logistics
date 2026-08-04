@@ -20,7 +20,7 @@
 | `OC54` | Média | Desenvolvedor 4, com apoio do Desenvolvedor 1 | Pronta para aprovação |
 | `OC55` | Média | Desenvolvedor 1, com revisão do Desenvolvedor 4 | Pronta para aprovação |
 | `OC56` | Média | Desenvolvedor 1 e Desenvolvedor 3 | Bloqueada por `D06` |
-| `OC57` | Média | Desenvolvedor 2 | Pronta para aprovação |
+| `OC57` | Média | Desenvolvedor 2 | Absorvida e resolvida pela revisão da `OC11` |
 | `OC58` | Baixa | Desenvolvedor 1, com apoio do Desenvolvedor 4 | Bloqueada por `D11` |
 | `OC59` | Média | Desenvolvedor 1 e Desenvolvedor 3 | Bloqueada por `D12` |
 
@@ -349,7 +349,7 @@ Garantir que dimensões do cálculo de capacidade sejam inteiros positivos e que
 
 ### Comportamento atual
 
-`CONFIRMADO`: `calculate_truck_capacity` aceita `bool` e `float` positivos nas dimensões; um `float` produz volume com tipo incompatível com o contrato.
+`CONFIRMADO`: esta proposta foi absorvida pela revisão da `OC11`. `calculate_truck_capacity` exige inteiros positivos, exclui `bool` e converte tipos inválidos em `InvalidTruckCapacityError`.
 
 ### Critérios de aceite
 
