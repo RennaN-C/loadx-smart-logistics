@@ -7,7 +7,6 @@ from app.modules.load_planning.optimizer.contracts import (
     IndividualVolume,
     OrderItemInput,
     VolumeIdentity,
-    VolumeIndexBase,
 )
 
 
@@ -90,14 +89,7 @@ def _validate_order_item(item: OrderItemInput) -> None:
 
 def expand_order_items(
     items: Sequence[OrderItemInput],
-    *,
-    volume_index_base: VolumeIndexBase,
 ) -> tuple[IndividualVolume, ...]:
-    if not isinstance(volume_index_base, VolumeIndexBase):
-        _raise_invalid(
-            "volume_index_base",
-            "must explicitly be VolumeIndexBase.ZERO or VolumeIndexBase.ONE",
-        )
     if not isinstance(items, Sequence) or isinstance(items, (str, bytes, bytearray)):
         _raise_invalid("items", "must be an ordered sequence of OrderItemInput")
 
@@ -121,7 +113,7 @@ def expand_order_items(
                 IndividualVolume(
                     identity=VolumeIdentity(
                         order_item_id=item.order_item_id,
-                        volume_index=volume_index_base.value + offset,
+                        volume_index=offset + 1,
                     ),
                     order_id=item.order_id,
                     product_id=item.product_id,

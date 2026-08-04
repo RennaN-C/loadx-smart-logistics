@@ -1,14 +1,6 @@
 from dataclasses import dataclass
 from decimal import Decimal
-from enum import IntEnum
 from uuid import UUID
-
-
-class VolumeIndexBase(IntEnum):
-    """Supported index policies while the persistence convention is pending."""
-
-    ZERO = 0
-    ONE = 1
 
 
 @dataclass(frozen=True)

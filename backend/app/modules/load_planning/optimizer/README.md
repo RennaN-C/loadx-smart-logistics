@@ -69,11 +69,9 @@ Regras:
 - preserva pedido, item, produto, nome opcional, dimensões originais, peso, flags físicas e sequência de entrega;
 - retorna uma tupla e não altera a sequência recebida.
 
-`PENDENTE DE DEFINIÇÃO`: a equipe ainda deve decidir se `volume_index` começa em zero ou um.
+`CONFIRMADO`: conforme `ADR-005`, `expand_order_items` atribui `volume_index` de `1` a `quantity` para cada item, sem opção de base alternativa.
 
-`SUPOSIÇÃO TÉCNICA`: enquanto essa decisão não existe, `expand_order_items` exige explicitamente `VolumeIndexBase.ZERO` ou `VolumeIndexBase.ONE`, sem default. As duas alternativas existem somente para manter a mecânica testável; não são uma configuração de negócio aprovada. Engine, persistência e `algorithm_version` não podem escolher uma delas silenciosamente.
-
-`DECISÃO NECESSÁRIA`: a expansão pura em memória não decide entre uma tabela `volumes` e a materialização direta em `load_plan_items`.
+`CONFIRMADO`: não existe tabela separada `volumes`; a persistência futura materializará cada unidade diretamente em `load_plan_items`.
 
 ## OC16 - primitivas geométricas parciais
 

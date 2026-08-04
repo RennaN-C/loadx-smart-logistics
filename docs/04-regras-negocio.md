@@ -160,9 +160,8 @@ Estados recomendados:
 - `CONFIRMADO`: a expansão em memória materializa exatamente `quantity` unidades e usa a composição `order_item_id` mais `volume_index` como identidade individual.
 - `CONFIRMADO`: dimensões, quantidade e sequência devem ser inteiros positivos; peso deve ser `Decimal` positivo e finito.
 - `CONFIRMADO`: coleções não ordenadas e `order_item_id` duplicados são rejeitados para preservar identidade e reprodução.
-- `PENDENTE DE DEFINIÇÃO`: definir se `volume_index` começa em zero ou um.
-- `SUPOSIÇÃO TÉCNICA`: o núcleo exige a base explicitamente e suporta as duas alternativas apenas para testar a expansão sem antecipar a escolha da equipe.
-- `DECISÃO NECESSÁRIA`: definir se os volumes terão tabela própria ou serão materializados diretamente em `load_plan_items`; a expansão pura não resolve essa escolha de persistência.
+- `CONFIRMADO`: conforme `ADR-005`, `volume_index` começa em `1` para cada item e a identidade individual é `(order_item_id, volume_index)`.
+- `CONFIRMADO`: não haverá tabela separada `volumes`; cada unidade será persistida futuramente em `load_plan_items` quando a camada de planejamento for integrada.
 
 ## Geometria incremental
 

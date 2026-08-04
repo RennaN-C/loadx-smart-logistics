@@ -216,7 +216,7 @@ Volumes individuais posicionados ou rejeitados pelo plano.
 - `id`: UUID, PK.
 - `load_plan_id`: UUID, FK para `load_plans.id`, obrigatório.
 - `order_item_id`: UUID, FK para `order_items.id`, obrigatório.
-- `volume_index`: inteiro, obrigatório, identifica a unidade dentro da quantidade do item.
+- `volume_index`: inteiro positivo iniciado em `1`, obrigatório, identifica a unidade dentro da quantidade do item.
 - `position_x_cm`: numérico, obrigatório quando `placed = true`.
 - `position_y_cm`: numérico, obrigatório quando `placed = true`.
 - `position_z_cm`: numérico, obrigatório quando `placed = true`.
@@ -234,7 +234,8 @@ Volumes individuais posicionados ou rejeitados pelo plano.
 - `fk_load_plan_items__order_items`.
 - `ix_load_plan_items__load_plan_id`.
 - `ix_load_plan_items__order_item_id`.
-- `uq_load_plan_items__plan_item_volume`.
+- `uq_load_plan_items__plan_item_volume`, sobre `load_plan_id`, `order_item_id` e `volume_index`.
+- `ck_load_plan_items__volume_index_positive`.
 - `ck_load_plan_items__placed_or_rejected` `RECOMENDAÇÃO`.
 
 ### `loading_sessions`
@@ -355,11 +356,9 @@ Histórico auditável de mudanças de status.
 
 ## Volumes
 
-`CONFIRMADO`: o MVP fala em produtos e volumes.
+`CONFIRMADO`: conforme `ADR-005`, volumes individuais são gerados deterministicamente a partir de `order_items.quantity`, usam identidade `(order_item_id, volume_index)` com índice iniciado em `1` e serão persistidos em `load_plan_items`.
 
-`SUPOSIÇÃO TÉCNICA`: no modelo atual, volumes individuais são materializados em `load_plan_items` a partir de `order_items.quantity`; não existe uma tabela separada `volumes`.
-
-`DECISÃO NECESSÁRIA`: o documento-base lista uma tabela `volumes`. A equipe deve decidir se cria uma tabela própria para volumes antes do planejamento ou se mantém a geração determinística por `order_items.quantity` e persistência em `load_plan_items`.
+`CONFIRMADO`: o MVP não terá tabela separada `volumes`.
 
 ## Migrations
 

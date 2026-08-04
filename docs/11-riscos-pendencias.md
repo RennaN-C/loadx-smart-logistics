@@ -8,6 +8,7 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 - `CONFIRMADO`: unidades em centímetros, quilogramas e coordenadas `x/y/z`, conforme `ADR-002`.
 - `CONFIRMADO`: IA como apoio, não como validadora física, conforme `ADR-003`.
 - `CONFIRMADO`: endpoints públicos, matriz RBAC e bootstrap do primeiro administrador, conforme `ADR-004`.
+- `CONFIRMADO`: volumes individuais são expandidos de `order_items.quantity`, usam `volume_index` iniciado em `1` e serão persistidos em `load_plan_items`, sem tabela `volumes`, conforme `ADR-005`.
 - `CONFIRMADO`: tecnologias oficiais descritas em `README.md` e `docs/02-arquitetura.md`.
 - `CONFIRMADO`: nomes técnicos em inglês.
 - `CONFIRMADO`: documentação oficial dentro da estrutura existente de `docs`.
@@ -21,7 +22,6 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 ## Decisões necessárias
 
 - `DECISÃO NECESSÁRIA`: confirmar se comparação entre caminhões (`OC21`) faz parte do MVP obrigatório ou se fica para funcionalidade futura.
-- `DECISÃO NECESSÁRIA`: decidir se haverá tabela separada `volumes` ou se volumes individuais continuarão gerados a partir de `order_items.quantity` e persistidos em `load_plan_items`.
 - `DECISÃO NECESSÁRIA`: definir política de recálculo/versionamento para plano já aprovado.
 - `DECISÃO NECESSÁRIA`: definir comportamento quando checklist de carregamento tiver divergência.
 - `DECISÃO NECESSÁRIA`: definir regra para finalizar viagem com entregas canceladas, recusadas ou falhas.
@@ -49,16 +49,15 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 - `PENDENTE DE DEFINIÇÃO`: definir o limite de peso sobre produto frágil e se a regra considera apoio direto ou carga transmitida.
 - `PENDENTE DE DEFINIÇÃO`: definir fórmula, precisão, tipo numérico e arredondamento de `occupancy_percent` na OC19.
 - `PENDENTE DE DEFINIÇÃO`: definir a posição da porta no eixo `z` e como posição, entrega e porta produzem `loading_sequence` na OC20.
-- `PENDENTE DE DEFINIÇÃO`: definir se `volume_index` começa em zero ou um.
 - `PENDENTE DE DEFINIÇÃO`: aprovar o catálogo estável de `rejection_reason` e a precedência quando mais de uma regra falhar.
 - `PENDENTE DE DEFINIÇÃO`: definir contrato público, endpoint e campos do schema de explicação da OC22.
 - `PENDENTE DE DEFINIÇÃO`: definir a política histórica para mudanças em caminhão, produto e itens de pedido já usados por um plano.
 
 `CONFIRMADO`: o núcleo atual mantém isolados OC11, OC12, primitivas geométricas da OC16 e o controle de peso da OC18; ainda não existe engine, `algorithm_version`, persistência ou rota de planejamento.
 
-`SUPOSIÇÃO TÉCNICA`: a base de `volume_index` é um parâmetro interno obrigatório da expansão apenas para permitir testes das duas alternativas. Ela não pode ser escolhida por service, API ou persistência antes de aprovação e versionamento da regra.
+`CONFIRMADO`: a expansão usa identidade `(order_item_id, volume_index)` com índice 1-based e não expõe política alternativa de base.
 
-`RECOMENDAÇÃO`: avaliar em conjunto as propostas de seis permutações deduplicadas, AABB com contato permitido, pontos nas faces positivas, ocupação por volume posicionado e identidade `(order_item_id, volume_index)`; nenhuma delas deve virar regra final apenas por estar sugerida.
+`RECOMENDAÇÃO`: avaliar em conjunto as propostas de seis permutações deduplicadas, AABB com contato permitido, pontos nas faces positivas e ocupação por volume posicionado; nenhuma delas deve virar regra final apenas por estar sugerida.
 
 `RISCO IDENTIFICADO`: escolher implicitamente qualquer gate acima muda o resultado determinístico, o contrato de visualização e a futura `algorithm_version`.
 
