@@ -87,6 +87,14 @@ Regras:
 
 `CONFIRMADO`: coleções não ordenadas, elementos com contrato incorreto e identidades duplicadas são rejeitados. A entrada não é alterada.
 
+## OC14 - rotações ortogonais
+
+`CONFIRMADO`: `rotations.py` gera orientações na ordem `XYZ`, `XZY`, `YXZ`, `YZX`, `ZXY`, `ZYX`, em que o código informa quais eixos originais ocupam os eixos usados `x`, `y` e `z`.
+
+`CONFIRMADO`: cada orientação registra `rotation_code`, `used_width_cm`, `used_height_cm` e `used_length_cm`.
+
+`CONFIRMADO`: `rotation_allowed = false` preserva somente `XYZ`. Orientações com dimensões usadas iguais são deduplicadas e mantêm o primeiro código da prioridade oficial, conforme `ADR-007`.
+
 ## OC16 - primitivas geométricas parciais
 
 `CONFIRMADO`: `geometry.py` valida dimensões positivas, coordenadas não negativas e os limites exatos dos três eixos. Também classifica duas caixas como `SEPARATED`, `TOUCHING` ou `POSITIVE_OVERLAP`.
@@ -103,6 +111,6 @@ Regras:
 
 ## Gates para a engine
 
-`DECISÃO NECESSÁRIA`: não há `engine.py` nem `algorithm_version` enquanto as decisões de rotação, posicionamento, contato, apoio, fragilidade, ocupação, rejeições e sequência de carregamento estiverem abertas.
+`DECISÃO NECESSÁRIA`: não há `engine.py` nem `algorithm_version` enquanto as decisões de posicionamento, contato, apoio, fragilidade, ocupação, rejeições e sequência de carregamento estiverem abertas.
 
 `RECOMENDAÇÃO`: integrar as primitivas somente depois que essas regras forem aprovadas e cobertas por uma revalidação final independente de todos os itens posicionados.

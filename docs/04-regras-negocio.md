@@ -199,6 +199,14 @@ Estados recomendados:
 
 `CONFIRMADO`: a prioridade de tentativa não define sozinha a profundidade no caminhão nem a `loading_sequence`; essas regras pertencem ao posicionamento e ao carregamento.
 
+### OC14 - rotações permitidas
+
+`CONFIRMADO`: conforme `ADR-007`, os códigos seguem a prioridade `XYZ`, `XZY`, `YXZ`, `YZX`, `ZXY`, `ZYX`. Cada letra indica qual eixo original ocupa, respectivamente, os eixos usados `x`, `y` e `z`.
+
+`CONFIRMADO`: `X`, `Y` e `Z` originais representam `width`, `height` e `length`. As dimensões usadas acompanham a permutação registrada no código.
+
+`CONFIRMADO`: produto com `rotation_allowed = false` gera somente `XYZ`. Orientações geometricamente iguais são deduplicadas, preservando o primeiro código da ordem oficial.
+
 ## Carregamento
 
 - Carregamento só começa com plano aprovado.

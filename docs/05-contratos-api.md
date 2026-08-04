@@ -291,6 +291,8 @@ Resposta resumida:
 }
 ```
 
+`CONFIRMADO`: conforme `ADR-007`, `rotation_code` usa somente `XYZ`, `XZY`, `YXZ`, `YZX`, `ZXY` ou `ZYX`. As letras indicam quais eixos originais `width`, `height` e `length` ocupam, respectivamente, as dimensões usadas em `x`, `y` e `z`.
+
 Outras rotas:
 
 - `GET /load-plans/{id}`.

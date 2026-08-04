@@ -223,7 +223,7 @@ Volumes individuais posicionados ou rejeitados pelo plano.
 - `used_width_cm`: numérico, obrigatório quando `placed = true`.
 - `used_height_cm`: numérico, obrigatório quando `placed = true`.
 - `used_length_cm`: numérico, obrigatório quando `placed = true`.
-- `rotation_code`: texto, obrigatório quando `placed = true`.
+- `rotation_code`: texto opcional, obrigatório quando `placed = true` e nulo quando `placed = false`, com um dos valores `XYZ`, `XZY`, `YXZ`, `YZX`, `ZXY` ou `ZYX`.
 - `loading_sequence`: inteiro, obrigatório quando `placed = true`.
 - `placed`: booleano, obrigatório.
 - `rejection_reason`: texto obrigatório quando `placed = false`.
@@ -236,6 +236,7 @@ Volumes individuais posicionados ou rejeitados pelo plano.
 - `ix_load_plan_items__order_item_id`.
 - `uq_load_plan_items__plan_item_volume`, sobre `load_plan_id`, `order_item_id` e `volume_index`.
 - `ck_load_plan_items__volume_index_positive`.
+- `ck_load_plan_items__rotation_code_allowed`, aceitando nulo para unidade rejeitada.
 - `ck_load_plan_items__placed_or_rejected` `RECOMENDAÇÃO`.
 
 ### `loading_sessions`
