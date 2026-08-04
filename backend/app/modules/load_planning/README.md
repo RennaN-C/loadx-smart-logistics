@@ -21,8 +21,9 @@ Crie somente os arquivos necessários para a ocorrência atual.
 - `CONFIRMADO`: OC14 gera rotações ortogonais permitidas, com códigos priorizados e simetrias deduplicadas.
 - `CONFIRMADO`: OC15 gera pontos candidatos estáveis e seleciona por first-fit uma posição provisória, com limites validados antes de uma política física obrigatória.
 - `CONFIRMADO`: OC16 rejeita candidatos com sobreposição positiva nos três eixos em relação a qualquer caixa já posicionada, permite contato e usa tolerância zero.
+- `CONFIRMADO`: OC17 exige apoio integral pela união exata de múltiplos suportes e valida empilhamento e fragilidade por toda a cadeia de carga.
 - `CONFIRMADO`: o controle de peso da OC18 permanece isolado.
-- `PENDENTE DE DEFINIÇÃO`: OC17, OC19 e OC20 ainda dependem das regras totais registradas em `docs/11-riscos-pendencias.md` antes de formar uma engine.
+- `PENDENTE DE DEFINIÇÃO`: OC19 e OC20 ainda dependem das regras totais registradas em `docs/11-riscos-pendencias.md` antes de formar uma engine.
 - `DECISÃO NECESSÁRIA`: persistência, service e API não podem ser iniciados antes da engine fisicamente completa e dos contratos de estado/transação.
 
 `RISCO IDENTIFICADO`: as regras isoladas atuais não representam um plano publicável. Nenhuma posição deve chegar ao frontend enquanto a colisão não estiver composta com apoio, empilhamento, fragilidade, peso e uma revalidação física final.

@@ -105,7 +105,7 @@ Regras:
 
 `CONFIRMADO`: quando nenhuma rotação cabe nas dimensões internas, a busca usa `TRUCK_DIMENSIONS_EXCEEDED`. Quando há rotação dimensionalmente viável, mas nenhuma combinação é aceita, usa o fallback `NO_VALID_POSITION`.
 
-`RISCO IDENTIFICADO`: `PlacementCandidate` representa somente um candidato provisório. A OC15 delega colisão ao validador da OC16 e não implementa apoio, empilhamento ou fragilidade; mesmo com a política de colisão, o resultado não pode ser publicado antes da OC17 e da revalidação física integrada.
+`RISCO IDENTIFICADO`: `PlacementCandidate` representa somente um candidato provisório. A OC15 delega colisão ao validador da OC16 e apoio, empilhamento e fragilidade ao validador da OC17; mesmo com essas políticas, o resultado não pode ser publicado antes do controle de peso, do catálogo de rejeições e da revalidação física integrada.
 
 ## OC16 - colisão AABB
 
@@ -119,6 +119,20 @@ Regras:
 
 `CONFIRMADO`: a OC16 não implementa apoio, empilhamento, fragilidade, engine, persistência ou API e não cria um motivo público `COLLISION`. O catálogo de rejeições e sua precedência continuam pendentes.
 
+## OC17 - apoio, empilhamento e fragilidade
+
+`CONFIRMADO`: conforme a `ADR-010`, `support.py` considera integralmente apoiado o volume no piso, em `y = 0`. Acima do piso, um suporte direto exige que seu topo coincida exatamente com a base do volume apoiado e que haja sobreposição com extensão positiva nos eixos `x` e `z`.
+
+`CONFIRMADO`: a área apoiada é a união geométrica exata dos retângulos de contato de todos os suportes diretos. Regiões sobrepostas são contadas uma única vez, e a união deve cobrir 100% da base, sem tolerância, arredondamento ou apoio parcial.
+
+`CONFIRMADO`: toda aresta de apoio transmite carga positiva por todos os ramos até os ancestrais. Cada suporte direto deve ter `stackable = true`, e nenhum suporte direto ou ancestral que receba carga pode ter `fragile = true`.
+
+`CONFIRMADO`: um candidato `fragile` ou `stackable = false` pode ficar no topo quando nenhum volume acima transmite carga para ele. Não existe conceito nem limite de volume "pesado" para a regra de fragilidade.
+
+`CONFIRMADO`: a API pura é formada por `SupportAssessment`, `analyze_support_configuration`, `is_support_configuration_valid` e `is_candidate_support_valid`. Ela valida a configuração completa para que um novo candidato também não torne inválidos volumes já posicionados.
+
+`CONFIRMADO`: a OC17 não implementa engine, código público de rejeição, API HTTP ou persistência. O catálogo de rejeições e sua precedência continuam pendentes.
+
 ## OC18 - controle de peso isolado
 
 `CONFIRMADO`: `weight.py` calcula o próximo peso com `Decimal`, aceita igualdade ao máximo e levanta exceção de domínio quando o candidato excede a capacidade, sem mutar o peso atual.
@@ -127,6 +141,6 @@ Regras:
 
 ## Gates para a engine
 
-`DECISÃO NECESSÁRIA`: não há `engine.py` nem `algorithm_version` enquanto as decisões de apoio, empilhamento, fragilidade, ocupação, rejeições e sequência de carregamento estiverem abertas.
+`DECISÃO NECESSÁRIA`: não há `engine.py` nem `algorithm_version` enquanto as decisões de ocupação, rejeições e sequência de carregamento estiverem abertas.
 
 `RECOMENDAÇÃO`: manter os validadores isolados até que essas regras sejam aprovadas e cobertas por uma revalidação final independente de todos os itens posicionados.

@@ -103,10 +103,9 @@ Regras complementares:
 - Dimensões e peso devem ser maiores que zero.
 - Quantidade pertence ao item do pedido, não ao cadastro do produto.
 - Produto com rotação bloqueada mantém sua orientação original.
-- Produto não empilhável não pode receber outro volume por cima.
-- Produto frágil não pode receber volume pesado por cima.
-
-`PENDENTE DE DEFINIÇÃO`: limite objetivo para considerar um volume "pesado" sobre item frágil.
+- `CONFIRMADO`: produto não empilhável pode ser colocado no topo, mas não pode atuar como suporte direto de outro volume.
+- `CONFIRMADO`: produto frágil pode ser colocado no topo, mas não pode receber carga positiva como suporte direto ou ancestral.
+- `CONFIRMADO`: não existe limite de volume "pesado"; qualquer carga transmitida possui peso positivo e aciona a regra de fragilidade.
 
 ## Pedido
 
@@ -218,7 +217,7 @@ Estados recomendados:
 
 `CONFIRMADO`: `TRUCK_DIMENSIONS_EXCEEDED` identifica o volume para o qual nenhuma rotação permitida cabe nas dimensões internas nem na origem. `NO_VALID_POSITION` é o fallback quando existe uma rotação dimensionalmente viável, mas nenhuma combinação é aceita e nenhuma regra física mais específica produz outro motivo.
 
-`RISCO IDENTIFICADO`: a posição retornada pela OC15 é somente um candidato provisório. Mesmo quando a política obrigatória usa o validador de colisão da OC16, ela não pode ser persistida nem enviada ao frontend antes das validações de apoio e empilhamento da OC17 e da revalidação física integrada.
+`RISCO IDENTIFICADO`: a posição retornada pela OC15 é somente um candidato provisório. Mesmo quando a política obrigatória compõe os validadores de colisão da OC16 e de apoio estrutural da OC17, ela não pode ser persistida nem enviada ao frontend antes do controle de peso, do catálogo de rejeições e da revalidação física integrada.
 
 ### OC16 - colisão AABB
 
@@ -227,6 +226,20 @@ Estados recomendados:
 `CONFIRMADO`: `is_collision_free(candidate_box, placed_boxes)` aceita o candidato somente quando nenhuma caixa já posicionada possui sobreposição positiva com ele. Contato por face, aresta ou vértice é permitido e a tolerância geométrica é zero.
 
 `CONFIRMADO`: a OC16 não implementa apoio, empilhamento, fragilidade, engine, persistência ou API e não cria um motivo público `COLLISION`. O catálogo de rejeições e sua precedência permanecem pendentes para a integração.
+
+### OC17 - apoio, empilhamento e fragilidade
+
+`CONFIRMADO`: conforme a `ADR-010`, um volume no piso, com `y = 0`, é integralmente apoiado. Acima do piso, um suporte direto exige coincidência exata entre seu topo e a base do volume apoiado, além de sobreposição com extensão positiva nos eixos `x` e `z`.
+
+`CONFIRMADO`: a base deve ter 100% de apoio pela união geométrica exata dos retângulos de contato de um ou mais suportes diretos. Áreas sobrepostas são contadas uma única vez; não existe tolerância, arredondamento nem apoio parcial aceito.
+
+`CONFIRMADO`: cada aresta de apoio transmite carga positiva por todos os ramos até todos os ancestrais. Todo suporte direto deve ser empilhável e nenhum suporte direto ou ancestral que receba carga pode ser frágil.
+
+`CONFIRMADO`: as flags do próprio candidato não impedem sua colocação no topo. Um candidato frágil ou não empilhável pode ser aceito quando nenhum volume acima transmite carga para ele. Não existe limite de volume "pesado" para aplicar a regra de fragilidade.
+
+`CONFIRMADO`: `SupportAssessment`, `analyze_support_configuration`, `is_support_configuration_valid` e `is_candidate_support_valid` formam a API pura da OC17.
+
+`CONFIRMADO`: a OC17 não implementa engine, código público de rejeição, API HTTP ou persistência. O catálogo de rejeições e sua precedência permanecem como gate da integração.
 
 ## Carregamento
 

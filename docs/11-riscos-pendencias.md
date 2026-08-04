@@ -13,6 +13,7 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 - `CONFIRMADO`: rotações usam seis permutações ortogonais priorizadas, deduplicam simetrias e respeitam bloqueio por produto, conforme `ADR-007`.
 - `CONFIRMADO`: o posicionamento usa pontos candidatos estáveis, ordem `(y, z, x, rotation_rank)` e first-fit com política física obrigatória, conforme `ADR-008`.
 - `CONFIRMADO`: colisão AABB exige sobreposição positiva nos três eixos, permite contato e usa tolerância zero, conforme `ADR-009`.
+- `CONFIRMADO`: apoio exige cobertura integral pela união exata dos contatos e aplica empilhamento e fragilidade a toda a cadeia de carga, conforme `ADR-010`.
 - `CONFIRMADO`: tecnologias oficiais descritas em `README.md` e `docs/02-arquitetura.md`.
 - `CONFIRMADO`: nomes técnicos em inglês.
 - `CONFIRMADO`: documentação oficial dentro da estrutura existente de `docs`.
@@ -47,15 +48,15 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 
 - `CONFIRMADO`: a `ADR-008` define os pontos candidatos da OC15, a ordem `(y, z, x, rotation_rank)`, o first-fit e os motivos `TRUCK_DIMENSIONS_EXCEEDED` e `NO_VALID_POSITION` próprios desta etapa.
 - `CONFIRMADO`: conforme a `ADR-009`, a OC16 considera colisão somente a sobreposição positiva nos três eixos, permite contato por face, aresta ou vértice, usa tolerância zero e valida o candidato contra todas as caixas já posicionadas.
-- `PENDENTE DE DEFINIÇÃO`: definir percentual mínimo de apoio, apoio parcial, união de áreas e múltiplos suportes na OC17.
-- `PENDENTE DE DEFINIÇÃO`: definir o limite de peso sobre produto frágil e se a regra considera apoio direto ou carga transmitida.
+- `CONFIRMADO`: conforme a `ADR-010`, a OC17 considera o piso válido e exige, acima dele, 100% da base coberta pela união exata dos contatos de um ou mais suportes, sem dupla contagem ou tolerância.
+- `CONFIRMADO`: toda aresta de apoio transmite carga positiva por todos os ramos; suportes diretos devem ser empilháveis e nenhum suporte ou ancestral que receba carga pode ser frágil. O candidato pode ser frágil ou não empilhável no topo e não existe limite de volume "pesado".
 - `PENDENTE DE DEFINIÇÃO`: definir fórmula, precisão, tipo numérico e arredondamento de `occupancy_percent` na OC19.
 - `PENDENTE DE DEFINIÇÃO`: definir a posição da porta no eixo `z` e como posição, entrega e porta produzem `loading_sequence` na OC20.
 - `PENDENTE DE DEFINIÇÃO`: aprovar o catálogo estável de `rejection_reason` e a precedência quando mais de uma regra falhar.
 - `PENDENTE DE DEFINIÇÃO`: definir contrato público, endpoint e campos do schema de explicação da OC22.
 - `PENDENTE DE DEFINIÇÃO`: definir a política histórica para mudanças em caminhão, produto e itens de pedido já usados por um plano.
 
-`CONFIRMADO`: o núcleo atual mantém isolados OC11, OC12, OC13, OC14, a busca provisória de posição da OC15, o validador de colisão da OC16 e o controle de peso da OC18; ainda não existe engine, `algorithm_version`, persistência ou rota de planejamento.
+`CONFIRMADO`: o núcleo atual mantém isolados OC11, OC12, OC13, OC14, a busca provisória de posição da OC15, o validador de colisão da OC16, a validação de apoio, empilhamento e fragilidade da OC17 e o controle de peso da OC18; ainda não existe engine, `algorithm_version`, persistência ou rota de planejamento.
 
 `CONFIRMADO`: a expansão usa identidade `(order_item_id, volume_index)` com índice 1-based e não expõe política alternativa de base.
 
