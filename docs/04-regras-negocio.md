@@ -167,7 +167,7 @@ Estados recomendados:
 
 - `CONFIRMADO`: a validação pura de limites usa coordenadas não negativas e `x + width <= truck_width`, `y + height <= truck_height`, `z + length <= truck_length`.
 - `CONFIRMADO`: a classificação geométrica atual distingue separação, contato sem volume e interseção com volume positivo.
-- `SUPOSIÇÃO TÉCNICA`: as primitivas atuais usam inteiros em centímetros, de acordo com os models existentes; a precisão persistida continua pendente.
+- `CONFIRMADO`: dimensões e coordenadas geométricas usam inteiros em centímetros, conforme a `ADR-008` e o contrato de persistência em `docs/03-modelo-dados.md`.
 - `PENDENTE DE DEFINIÇÃO`: decidir se contato de face, aresta ou vértice é colisão e definir eventual tolerância antes de criar o validador final.
 
 ## Controle de peso incremental
@@ -206,6 +206,18 @@ Estados recomendados:
 `CONFIRMADO`: `X`, `Y` e `Z` originais representam `width`, `height` e `length`. As dimensões usadas acompanham a permutação registrada no código.
 
 `CONFIRMADO`: produto com `rotation_allowed = false` gera somente `XYZ`. Orientações geometricamente iguais são deduplicadas, preservando o primeiro código da ordem oficial.
+
+### OC15 - posicionamento first-fit
+
+`CONFIRMADO`: conforme a `ADR-008`, os pontos candidatos incluem a origem `(0, 0, 0)` e as origens das faces positivas de cada caixa já posicionada. Para uma caixa em `(x, y, z)` com dimensões usadas `(w, h, l)`, os novos pontos são `(x + w, y, z)`, `(x, y + h, z)` e `(x, y, z + l)`.
+
+`CONFIRMADO`: pontos idênticos são deduplicados e as combinações de ponto e rotação são avaliadas pela chave total `(y, z, x, rotation_rank)`, com a prioridade de rotação definida na `ADR-007`.
+
+`CONFIRMADO`: o posicionamento usa first-fit. Cada candidato deve caber integralmente nos limites internos antes de ser submetido a uma política física obrigatória fornecida pelo chamador; não existe política permissiva padrão.
+
+`CONFIRMADO`: `TRUCK_DIMENSIONS_EXCEEDED` identifica o volume para o qual nenhuma rotação permitida cabe nas dimensões internas nem na origem. `NO_VALID_POSITION` é o fallback quando existe uma rotação dimensionalmente viável, mas nenhuma combinação é aceita e nenhuma regra física mais específica produz outro motivo.
+
+`RISCO IDENTIFICADO`: a posição retornada pela OC15 é somente um candidato provisório. Ela não pode ser persistida nem enviada ao frontend antes das validações de colisão da OC16, apoio e empilhamento da OC17 e da revalidação física integrada.
 
 ## Carregamento
 

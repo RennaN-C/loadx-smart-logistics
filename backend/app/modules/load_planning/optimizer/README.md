@@ -95,11 +95,23 @@ Regras:
 
 `CONFIRMADO`: `rotation_allowed = false` preserva somente `XYZ`. Orientações com dimensões usadas iguais são deduplicadas e mantêm o primeiro código da prioridade oficial, conforme `ADR-007`.
 
+## OC15 - posicionamento first-fit provisório
+
+`CONFIRMADO`: `placement.py` gera a origem `(0, 0, 0)` e as origens das três faces positivas de cada `PositionedAABB`: `(x + width, y, z)`, `(x, y + height, z)` e `(x, y, z + length)`. Coordenadas iguais são deduplicadas.
+
+`CONFIRMADO`: `select_first_valid_candidate` percorre as combinações pela chave `(y, z, x, rotation_rank)` e retorna a primeira que passa pelos limites internos e por `validate_candidate`. O rank das rotações segue a `ADR-007`.
+
+`CONFIRMADO`: `validate_candidate` é obrigatório, não possui default permissivo e só é chamado depois que o candidato passa por `fits_within_bounds`. O callback recebe um `PlacementCandidate` com o volume, a rotação e a caixa AABB.
+
+`CONFIRMADO`: quando nenhuma rotação cabe nas dimensões internas, a busca usa `TRUCK_DIMENSIONS_EXCEEDED`. Quando há rotação dimensionalmente viável, mas nenhuma combinação é aceita, usa o fallback `NO_VALID_POSITION`.
+
+`RISCO IDENTIFICADO`: `PlacementCandidate` representa somente um candidato provisório. A OC15 não implementa colisão, contato, apoio, empilhamento ou fragilidade, e o resultado não pode ser publicado antes da composição das validações das OC16 e OC17.
+
 ## OC16 - primitivas geométricas parciais
 
 `CONFIRMADO`: `geometry.py` valida dimensões positivas, coordenadas não negativas e os limites exatos dos três eixos. Também classifica duas caixas como `SEPARATED`, `TOUCHING` ou `POSITIVE_OVERLAP`.
 
-`SUPOSIÇÃO TÉCNICA`: essas primitivas usam inteiros em centímetros, coerentes com os models atuais e com a ADR-002. Isso não define a precisão futura dos campos persistidos.
+`CONFIRMADO`: as primitivas e os futuros campos persistidos de dimensão e coordenada usam inteiros em centímetros, conforme as ADRs 002 e 008 e `docs/03-modelo-dados.md`.
 
 `PENDENTE DE DEFINIÇÃO`: `TOUCHING` é somente uma classificação geométrica. A equipe ainda deve decidir se contato de face, aresta ou vértice conta como colisão e se haverá tolerância. Não existe validador final de colisão nem catálogo de rejeição.
 
@@ -111,6 +123,6 @@ Regras:
 
 ## Gates para a engine
 
-`DECISÃO NECESSÁRIA`: não há `engine.py` nem `algorithm_version` enquanto as decisões de posicionamento, contato, apoio, fragilidade, ocupação, rejeições e sequência de carregamento estiverem abertas.
+`DECISÃO NECESSÁRIA`: não há `engine.py` nem `algorithm_version` enquanto as decisões de contato, apoio, fragilidade, ocupação, rejeições e sequência de carregamento estiverem abertas.
 
 `RECOMENDAÇÃO`: integrar as primitivas somente depois que essas regras forem aprovadas e cobertas por uma revalidação final independente de todos os itens posicionados.

@@ -96,9 +96,9 @@ Caminhões e sua capacidade interna.
 - `id`: UUID, PK.
 - `plate`: texto, obrigatório, único.
 - `model`: texto, obrigatório.
-- `internal_width_cm`: inteiro ou numérico, obrigatório, maior que zero.
-- `internal_height_cm`: inteiro ou numérico, obrigatório, maior que zero.
-- `internal_length_cm`: inteiro ou numérico, obrigatório, maior que zero.
+- `internal_width_cm`: inteiro, obrigatório, maior que zero.
+- `internal_height_cm`: inteiro, obrigatório, maior que zero.
+- `internal_length_cm`: inteiro, obrigatório, maior que zero.
 - `max_weight_kg`: numérico, obrigatório, maior que zero.
 - `active`: booleano, obrigatório.
 - `created_at`: timestamptz UTC, obrigatório.
@@ -117,9 +117,9 @@ Produtos cadastrados com suas características físicas. Quantidade não pertenc
 - `code`: texto, obrigatório.
 - `name`: texto, obrigatório.
 - `description`: texto opcional.
-- `width_cm`: inteiro ou numérico, obrigatório, maior que zero.
-- `height_cm`: inteiro ou numérico, obrigatório, maior que zero.
-- `length_cm`: inteiro ou numérico, obrigatório, maior que zero.
+- `width_cm`: inteiro, obrigatório, maior que zero.
+- `height_cm`: inteiro, obrigatório, maior que zero.
+- `length_cm`: inteiro, obrigatório, maior que zero.
 - `weight_kg`: numérico, obrigatório, maior que zero.
 - `fragile`: booleano, obrigatório.
 - `stackable`: booleano, obrigatório.
@@ -217,12 +217,12 @@ Volumes individuais posicionados ou rejeitados pelo plano.
 - `load_plan_id`: UUID, FK para `load_plans.id`, obrigatório.
 - `order_item_id`: UUID, FK para `order_items.id`, obrigatório.
 - `volume_index`: inteiro positivo iniciado em `1`, obrigatório, identifica a unidade dentro da quantidade do item.
-- `position_x_cm`: numérico, obrigatório quando `placed = true`.
-- `position_y_cm`: numérico, obrigatório quando `placed = true`.
-- `position_z_cm`: numérico, obrigatório quando `placed = true`.
-- `used_width_cm`: numérico, obrigatório quando `placed = true`.
-- `used_height_cm`: numérico, obrigatório quando `placed = true`.
-- `used_length_cm`: numérico, obrigatório quando `placed = true`.
+- `position_x_cm`: inteiro não negativo, obrigatório quando `placed = true`.
+- `position_y_cm`: inteiro não negativo, obrigatório quando `placed = true`.
+- `position_z_cm`: inteiro não negativo, obrigatório quando `placed = true`.
+- `used_width_cm`: inteiro positivo, obrigatório quando `placed = true`.
+- `used_height_cm`: inteiro positivo, obrigatório quando `placed = true`.
+- `used_length_cm`: inteiro positivo, obrigatório quando `placed = true`.
 - `rotation_code`: texto opcional, obrigatório quando `placed = true` e nulo quando `placed = false`, com um dos valores `XYZ`, `XZY`, `YXZ`, `YZX`, `ZXY` ou `ZYX`.
 - `loading_sequence`: inteiro, obrigatório quando `placed = true`.
 - `placed`: booleano, obrigatório.
@@ -237,6 +237,8 @@ Volumes individuais posicionados ou rejeitados pelo plano.
 - `uq_load_plan_items__plan_item_volume`, sobre `load_plan_id`, `order_item_id` e `volume_index`.
 - `ck_load_plan_items__volume_index_positive`.
 - `ck_load_plan_items__rotation_code_allowed`, aceitando nulo para unidade rejeitada.
+- `ck_load_plan_items__positions_non_negative` `RECOMENDAÇÃO`.
+- `ck_load_plan_items__used_dimensions_positive` `RECOMENDAÇÃO`.
 - `ck_load_plan_items__placed_or_rejected` `RECOMENDAÇÃO`.
 
 ### `loading_sessions`
