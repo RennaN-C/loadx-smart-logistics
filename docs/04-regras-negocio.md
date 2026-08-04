@@ -113,7 +113,7 @@ Regras complementares:
 - Pedido deve possuir cliente e pelo menos um item.
 - Quantidade de item deve ser maior que zero.
 - Pedido cancelado não pode entrar em plano novo.
-- `delivery_sequence` orienta descarga e influencia a ordem de carregamento.
+- `CONFIRMADO`: `delivery_sequence` é um inteiro positivo; valores maiores representam entregas posteriores e influenciam a ordem de carregamento.
 
 Estados recomendados:
 
@@ -185,16 +185,19 @@ Estados recomendados:
 - Limites, colisão, rotação, peso, apoio e empilhamento devem ser validados por código.
 - O otimizador não acessa banco, HTTP, FastAPI, WhatsApp ou provedor de IA.
 
-Critérios de ordenação previstos:
+`CONFIRMADO`: conforme `ADR-006`, a prioridade de tentativa usa a chave total:
 
-- Maior volume primeiro.
-- Maior peso primeiro.
-- Produtos não empilháveis primeiro.
-- Produtos frágeis por último quando houver empilhamento.
-- Produtos da última entrega mais ao fundo.
-- Produtos da primeira entrega próximos da porta.
+1. maior `volume_cm3`;
+2. maior `weight_kg`;
+3. não empilhável antes de empilhável;
+4. não frágil antes de frágil;
+5. maior `delivery_sequence`, que representa entrega posterior;
+6. menor valor inteiro não assinado do UUID de `order_item_id`;
+7. menor `volume_index`.
 
-`RECOMENDAÇÃO`: quando critérios entrarem em conflito, registrar a ordem de desempate no código, nos testes e no `algorithm_version`.
+`CONFIRMADO`: entradas com as mesmas identidades e atributos produzem a mesma ordem, independentemente da ordem em que foram recebidas. Identidades duplicadas são rejeitadas.
+
+`CONFIRMADO`: a prioridade de tentativa não define sozinha a profundidade no caminhão nem a `loading_sequence`; essas regras pertencem ao posicionamento e ao carregamento.
 
 ## Carregamento
 

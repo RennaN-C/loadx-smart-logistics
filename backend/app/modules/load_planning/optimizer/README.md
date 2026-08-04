@@ -73,6 +73,20 @@ Regras:
 
 `CONFIRMADO`: não existe tabela separada `volumes`; a persistência futura materializará cada unidade diretamente em `load_plan_items`.
 
+## OC13 - ordenação determinística
+
+`CONFIRMADO`: `ordering.py` recebe uma sequência de volumes individuais e retorna uma nova tupla pela ordem total aprovada em `ADR-006`:
+
+1. `volume_cm3` decrescente;
+2. `weight_kg` decrescente;
+3. não empilhável primeiro;
+4. não frágil primeiro;
+5. `delivery_sequence` decrescente;
+6. valor inteiro não assinado do UUID de `order_item_id` crescente;
+7. `volume_index` crescente.
+
+`CONFIRMADO`: coleções não ordenadas, elementos com contrato incorreto e identidades duplicadas são rejeitados. A entrada não é alterada.
+
 ## OC16 - primitivas geométricas parciais
 
 `CONFIRMADO`: `geometry.py` valida dimensões positivas, coordenadas não negativas e os limites exatos dos três eixos. Também classifica duas caixas como `SEPARATED`, `TOUCHING` ou `POSITIVE_OVERLAP`.
@@ -89,6 +103,6 @@ Regras:
 
 ## Gates para a engine
 
-`DECISÃO NECESSÁRIA`: não há `engine.py` nem `algorithm_version` enquanto as decisões de ordenação, rotação, posicionamento, contato, apoio, fragilidade, ocupação, rejeições e sequência de carregamento estiverem abertas.
+`DECISÃO NECESSÁRIA`: não há `engine.py` nem `algorithm_version` enquanto as decisões de rotação, posicionamento, contato, apoio, fragilidade, ocupação, rejeições e sequência de carregamento estiverem abertas.
 
 `RECOMENDAÇÃO`: integrar as primitivas somente depois que essas regras forem aprovadas e cobertas por uma revalidação final independente de todos os itens posicionados.
