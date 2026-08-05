@@ -18,3 +18,14 @@ body {
   font-weight: 800;
   letter-spacing: 0.2em;
 }
+
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-header {
+  padding: 16px 32px;
+  border-bottom: 1px solid #dbe3ef;
+}
