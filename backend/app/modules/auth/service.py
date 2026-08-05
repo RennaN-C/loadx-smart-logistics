@@ -26,12 +26,27 @@ class AuthInactiveUserError(Exception):
     pass
 
 
+class AuthBootstrapAlreadyCompletedError(Exception):
+    pass
+
+
 class AuthService:
     def __init__(self, db: Session) -> None:
         self.user_service = UserService(db)
 
-    def register_user(self, data: UserCreate) -> User:
-        return self.user_service.create_user(data)
+    def bootstrap_first_admin(self, name: str, email: str, password: str) -> User:
+        if self.user_service.has_users():
+            raise AuthBootstrapAlreadyCompletedError
+
+        return self.user_service.create_user(
+            UserCreate(
+                name=name,
+                email=email,
+                password=password,
+                role="ADMIN",
+                active=True,
+            )
+        )
 
     def login(self, data: AuthLogin) -> TokenRead:
         user = self.user_service.get_user_by_email(data.email)
@@ -49,8 +64,7 @@ class AuthService:
         )
         return TokenRead(access_token=access_token)
 
-    def get_current_user_from_authorization(self, authorization: str | None) -> User:
-        token = self._extract_bearer_token(authorization)
+    def get_current_user_from_token(self, token: str) -> User:
         try:
             payload = decode_access_token(token)
             subject = payload.get("sub")
@@ -64,12 +78,3 @@ class AuthService:
         if not user.active:
             raise AuthInactiveUserError
         return user
-
-    def _extract_bearer_token(self, authorization: str | None) -> str:
-        if authorization is None:
-            raise AuthInvalidTokenError
-
-        scheme, separator, token = authorization.partition(" ")
-        if separator == "" or scheme.lower() != "bearer" or token.strip() == "":
-            raise AuthInvalidTokenError
-        return token.strip()

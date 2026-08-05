@@ -7,6 +7,7 @@ from sqlalchemy import (
     ForeignKey,
     Integer,
     String,
+    UniqueConstraint,
     Uuid,
     func,
 )
@@ -39,6 +40,12 @@ class OrderItem(Base):
     __table_args__ = (
         CheckConstraint("quantity > 0", name="quantity_positive"),
         CheckConstraint("delivery_sequence > 0", name="delivery_sequence_positive"),
+        UniqueConstraint(
+            "id",
+            "order_id",
+            "product_id",
+            name="uq_order_items__id_order_product",
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)

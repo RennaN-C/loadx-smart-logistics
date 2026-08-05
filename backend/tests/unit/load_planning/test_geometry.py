@@ -9,6 +9,7 @@ from app.modules.load_planning.optimizer.geometry import (
     PositionedAABB,
     classify_aabb_relation,
     fits_within_bounds,
+    is_collision_free,
 )
 
 
@@ -193,3 +194,124 @@ def test_aabb_relation_is_symmetric_and_deterministic(
 
     assert classify_aabb_relation(second, first) is expected
     assert classify_aabb_relation(first, second) is expected
+
+
+def test_empty_truck_is_collision_free() -> None:
+    assert is_collision_free(make_box(), [])
+
+
+@pytest.mark.parametrize(
+    "placed_box",
+    [
+        make_box(position_x_cm=10),
+        make_box(position_y_cm=10),
+        make_box(position_z_cm=10),
+        make_box(position_x_cm=10, position_y_cm=10),
+        make_box(position_x_cm=10, position_y_cm=10, position_z_cm=10),
+    ],
+)
+def test_face_edge_and_vertex_contact_are_collision_free(
+    placed_box: PositionedAABB,
+) -> None:
+    assert is_collision_free(make_box(), [placed_box])
+
+
+@pytest.mark.parametrize(
+    "placed_box",
+    [
+        make_box(),
+        make_box(position_x_cm=9),
+        make_box(position_x_cm=5, position_y_cm=5, position_z_cm=5),
+        make_box(used_width_cm=20, used_height_cm=20, used_length_cm=20),
+    ],
+)
+def test_positive_overlap_is_a_collision(
+    placed_box: PositionedAABB,
+) -> None:
+    assert not is_collision_free(make_box(), [placed_box])
+
+
+@pytest.mark.parametrize(
+    "placed_box",
+    [
+        make_box(position_x_cm=11),
+        make_box(position_y_cm=11),
+        make_box(position_z_cm=11),
+    ],
+)
+def test_one_centimeter_gap_is_collision_free_with_zero_tolerance(
+    placed_box: PositionedAABB,
+) -> None:
+    assert is_collision_free(make_box(), [placed_box])
+
+
+def test_candidate_is_checked_against_every_preplaced_box() -> None:
+    placed_boxes = [
+        make_box(position_x_cm=20),
+        make_box(position_x_cm=10),
+        make_box(position_x_cm=9),
+    ]
+
+    assert not is_collision_free(make_box(), placed_boxes)
+
+
+def test_multiple_separated_and_touching_boxes_are_collision_free() -> None:
+    placed_boxes = [
+        make_box(position_x_cm=10),
+        make_box(position_y_cm=20),
+        make_box(position_z_cm=30),
+    ]
+
+    assert is_collision_free(make_box(), placed_boxes)
+
+
+def test_collision_result_is_independent_of_preplaced_box_order() -> None:
+    placed_boxes = [
+        make_box(position_x_cm=20),
+        make_box(position_x_cm=10),
+        make_box(position_x_cm=9),
+    ]
+
+    assert not is_collision_free(make_box(), placed_boxes)
+    assert not is_collision_free(make_box(), list(reversed(placed_boxes)))
+
+
+def test_collision_check_does_not_mutate_input() -> None:
+    placed_boxes = [make_box(position_x_cm=10), make_box(position_x_cm=20)]
+    original = list(placed_boxes)
+
+    is_collision_free(make_box(), placed_boxes)
+
+    assert placed_boxes == original
+
+
+def test_collision_check_rejects_invalid_candidate() -> None:
+    with pytest.raises(InvalidGeometryInputError) as exc_info:
+        is_collision_free(object(), [])  # type: ignore[arg-type]
+
+    assert exc_info.value.code == "INVALID_GEOMETRY_INPUT"
+    assert exc_info.value.field_name == "candidate_box"
+
+
+def test_collision_check_rejects_unordered_collection() -> None:
+    with pytest.raises(InvalidGeometryInputError) as exc_info:
+        is_collision_free(make_box(), {make_box(position_x_cm=10)})  # type: ignore[arg-type]
+
+    assert exc_info.value.field_name == "placed_boxes"
+
+
+def test_collision_check_rejects_invalid_preplaced_box() -> None:
+    with pytest.raises(InvalidGeometryInputError) as exc_info:
+        is_collision_free(make_box(), [object()])  # type: ignore[list-item]
+
+    assert exc_info.value.field_name == "placed_boxes[0]"
+
+
+def test_invalid_preplaced_box_is_not_masked_by_an_earlier_collision() -> None:
+    with pytest.raises(InvalidGeometryInputError) as exc_info:
+        is_collision_free(
+            make_box(),
+            [make_box(), object()],  # type: ignore[list-item]
+        )
+
+    assert exc_info.value.field_name == "placed_boxes[1]"

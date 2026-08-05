@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.database.integrity import get_integrity_constraint_name
 from app.modules.customers.service import CustomerNotFoundError, CustomerService
+from app.modules.load_planning.reference_service import LoadPlanReferenceService
 from app.modules.orders.models import Order, OrderItem
 from app.modules.orders.repository import OrderRepository
 from app.modules.orders.schemas import OrderCreate, OrderItemCreate, OrderUpdate
@@ -26,11 +27,16 @@ class OrderProductNotFoundError(Exception):
         super().__init__("One or more order products were not found.")
 
 
+class OrderItemsReferencedByLoadPlanError(Exception):
+    pass
+
+
 class OrderService:
     def __init__(self, db: Session) -> None:
         self.db = db
         self.repository = OrderRepository(db)
         self.customer_service = CustomerService(db)
+        self.load_plan_reference_service = LoadPlanReferenceService(db)
         self.product_service = ProductService(db)
 
     def list_orders(self) -> Sequence[Order]:
@@ -41,6 +47,14 @@ class OrderService:
         if order is None:
             raise OrderNotFoundError
         return order
+
+    def get_orders(
+        self,
+        order_ids: Sequence[uuid.UUID],
+        *,
+        for_update: bool = False,
+    ) -> Sequence[Order]:
+        return self.repository.get_many(order_ids, for_update=for_update)
 
     def create_order(self, data: OrderCreate) -> Order:
         self._ensure_customer_exists(data.customer_id)
@@ -60,7 +74,20 @@ class OrderService:
         )
 
     def update_order(self, order_id: uuid.UUID, data: OrderUpdate) -> Order:
-        order = self.get_order(order_id)
+        try:
+            return self._update_order_locked(order_id, data)
+        except Exception:
+            self.db.rollback()
+            raise
+
+    def _update_order_locked(
+        self,
+        order_id: uuid.UUID,
+        data: OrderUpdate,
+    ) -> Order:
+        order = self.repository.get_for_update(order_id)
+        if order is None:
+            raise OrderNotFoundError
         update_data = data.model_dump(exclude_unset=True)
 
         new_customer_id = update_data.get("customer_id")
@@ -69,6 +96,10 @@ class OrderService:
 
         update_data.pop("items", None)
         if "items" in data.model_fields_set and data.items is not None:
+            if self.load_plan_reference_service.has_order_item_references(
+                [item.id for item in order.items]
+            ):
+                raise OrderItemsReferencedByLoadPlanError
             self._ensure_products_exist(data.items)
             order.items = [self._build_order_item(item) for item in data.items]
 
@@ -84,6 +115,24 @@ class OrderService:
             lambda: self.repository.update(order),
             product_ids=replacement_product_ids,
         )
+
+    def stage_orders_as_planned(self, orders: Sequence[Order]) -> None:
+        """Stage READY/PLANNED orders for an outer atomic planning transaction."""
+
+        staged_orders = tuple(orders)
+        if not staged_orders or any(
+            not isinstance(order, Order) for order in staged_orders
+        ):
+            raise ValueError("orders must be a non-empty sequence of Order")
+        if len({order.id for order in staged_orders}) != len(staged_orders):
+            raise ValueError("orders must contain unique ids")
+        if any(order.status not in {"READY", "PLANNED"} for order in staged_orders):
+            raise ValueError("orders must be READY or PLANNED")
+
+        for order in staged_orders:
+            order.status = "PLANNED"
+            self.db.add(order)
+        self.db.flush()
 
     def _ensure_customer_exists(self, customer_id: uuid.UUID) -> None:
         try:
@@ -126,5 +175,10 @@ class OrderService:
                 raise OrderCustomerNotFoundError from exc
             if constraint_name == "fk_order_items__products":
                 raise OrderProductNotFoundError(product_ids) from exc
+            if constraint_name in {
+                "fk_load_plan_items__order_items",
+                "fk_load_plan_items__order_item_provenance",
+            }:
+                raise OrderItemsReferencedByLoadPlanError from exc
             raise
         return self.get_order(order.id)

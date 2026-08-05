@@ -356,6 +356,7 @@ Preencha as variáveis necessárias no arquivo `.env`.
 Exemplo:
 
 ```env
+APP_ENV=local
 DATABASE_URL=postgresql://loadx:loadx@db:5432/loadx
 SECRET_KEY=altere-esta-chave
 WHATSAPP_TOKEN=
@@ -363,6 +364,8 @@ OPENAI_API_KEY=
 ```
 
 Nunca envie o arquivo `.env` para o GitHub.
+
+`APP_ENV` aceita somente `local` ou `production`. Use `local` no desenvolvimento. Em produção, configure `APP_ENV=production` para não expor `/docs`, `/redoc`, `/docs/oauth2-redirect` e `/openapi.json`. Se a variável não for informada, o backend assume `production` por segurança.
 
 ### Iniciar o sistema
 
@@ -405,6 +408,8 @@ http://localhost:8000/docs
 Verificação da API:
 http://localhost:8000/health
 ```
+
+A documentação da API acima existe somente com `APP_ENV=local`.
 
 ## Banco de dados
 

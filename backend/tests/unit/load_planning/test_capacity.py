@@ -27,6 +27,7 @@ def test_calculate_truck_capacity_returns_internal_volume_and_weight() -> None:
         internal_volume_cm3=37_440_000,
         max_weight_kg=Decimal("8000.00"),
     )
+    assert isinstance(result.internal_volume_cm3, int)
 
 
 def test_calculate_truck_capacity_is_deterministic() -> None:
@@ -125,6 +126,31 @@ def test_calculate_truck_capacity_rejects_non_decimal_weight(
         internal_length_cm=600,
         max_weight_kg=invalid_weight,  # type: ignore[arg-type]
     )
+
+    with pytest.raises(InvalidTruckCapacityError):
+        calculate_truck_capacity(truck)
+
+
+@pytest.mark.parametrize(
+    "field_name",
+    ["internal_width_cm", "internal_height_cm", "internal_length_cm"],
+)
+@pytest.mark.parametrize(
+    "invalid_dimension",
+    [1.5, "1", True, None, Decimal(1)],
+)
+def test_calculate_truck_capacity_requires_integer_dimensions(
+    field_name: str,
+    invalid_dimension: object,
+) -> None:
+    values: dict[str, object] = {
+        "internal_width_cm": 240,
+        "internal_height_cm": 260,
+        "internal_length_cm": 600,
+        "max_weight_kg": Decimal("8000.00"),
+    }
+    values[field_name] = invalid_dimension
+    truck = TruckCapacityInput(**values)  # type: ignore[arg-type]
 
     with pytest.raises(InvalidTruckCapacityError):
         calculate_truck_capacity(truck)

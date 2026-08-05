@@ -35,9 +35,11 @@ def error_response(
     code: str,
     message: str,
     details: list[Any] | None = None,
+    headers: dict[str, str] | None = None,
 ) -> JSONResponse:
     return JSONResponse(
         status_code=status_code,
+        headers=headers,
         content={
             "code": code,
             "message": message,

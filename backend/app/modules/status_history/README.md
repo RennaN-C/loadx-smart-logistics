@@ -23,7 +23,10 @@ Crie somente os arquivos necessários para a ocorrência atual.
 
 `PENDENTE DE DEFINIÇÃO`: não há endpoint público de consulta de histórico em `docs/05-contratos-api.md`.
 
-`RECOMENDAÇÃO`: até existir contrato aprovado, outros services devem usar `StatusHistoryService.record_status_change`.
+`CONFIRMADO`: operações independentes usam `record_status_change`. Uma operação
+que precisa compartilhar transação com outro agregado usa
+`stage_status_change` e deixa o service externo executar um único commit ou
+rollback.
 
 ## Pendências
 

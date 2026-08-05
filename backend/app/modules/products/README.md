@@ -20,6 +20,8 @@ Crie somente os arquivos necessários para a ocorrência atual.
 - `GET /api/v1/products/{id}`: consulta produto por ID.
 - `PATCH /api/v1/products/{id}`: atualiza campos enviados.
 
+`CONFIRMADO`: `ADMIN`, `CHECKER` e `LOGISTICS_MANAGER` podem consultar. Somente `LOGISTICS_MANAGER` pode criar ou atualizar. `DRIVER` não acessa o módulo enquanto não existir vínculo aprovado com sua operação.
+
 ## Regras implementadas
 
 - Código é normalizado para maiúsculas.
@@ -27,3 +29,4 @@ Crie somente os arquivos necessários para a ocorrência atual.
 - Dimensões e peso devem ser maiores que zero.
 - Quantidade não pertence ao cadastro de produto; ela será informada no item do pedido.
 - Fragilidade, empilhamento e permissão de rotação ficam no cadastro para uso posterior no planejamento.
+- Todas as rotas exigem autenticação Bearer e consultam o papel e o estado atual do usuário no banco.

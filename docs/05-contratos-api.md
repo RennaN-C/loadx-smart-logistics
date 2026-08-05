@@ -15,22 +15,13 @@ Este documento é o contrato combinado entre backend, frontend, algoritmo e inte
 
 ## Autenticação
 
-Endpoints previstos:
+Endpoints públicos:
 
-- `POST /auth/register`.
 - `POST /auth/login`.
+
+Endpoint disponível para qualquer usuário autenticado:
+
 - `GET /auth/me`.
-
-Exemplo de cadastro:
-
-```json
-{
-  "name": "Admin Local",
-  "email": "admin@example.test",
-  "password": "senha-local",
-  "role": "ADMIN"
-}
-```
 
 Exemplo de login:
 
@@ -61,9 +52,15 @@ Erros específicos:
 - `AUTH_INVALID_CREDENTIALS`: e-mail ou senha inválidos.
 - `AUTH_INVALID_TOKEN`: token ausente, inválido, expirado ou usuário inexistente.
 - `AUTH_USER_INACTIVE`: usuário inativo.
-- `USER_EMAIL_ALREADY_EXISTS`: e-mail já cadastrado.
+- `AUTH_FORBIDDEN`: usuário autenticado sem permissão para a ação.
 
-`SUPOSIÇÃO TÉCNICA`: `POST /auth/register` permanece aberto no MVP local até a equipe decidir se usuários serão criados apenas por administrador.
+`CONFIRMADO`: `POST /auth/register` foi removido do contrato por `D03` e `ADR-004`. O primeiro `ADMIN` é criado por comando administrativo local; os usuários seguintes são criados por `ADMIN` em `POST /users`.
+
+`CONFIRMADO`: depois das migrations e antes de expor a API, o bootstrap é executado em `backend` com `python -m app.modules.auth.bootstrap` ou, pela raiz, com `docker compose run --rm backend python -m app.modules.auth.bootstrap`. A senha é lida de forma oculta e o comando recusa execução quando já existe qualquer usuário.
+
+`CONFIRMADO`: ausência ou invalidade de autenticação retorna `401 AUTH_INVALID_TOKEN`; autenticação válida sem permissão retorna `403 AUTH_FORBIDDEN`.
+
+`CONFIRMADO`: após a `OC51-G`, todos os endpoints de negócio atualmente implementados exigem autenticação e aplicam a matriz aprovada.
 
 `PENDENTE DE DEFINIÇÃO`: tempo final de expiração, refresh token e política de bloqueio de login.
 
@@ -85,8 +82,9 @@ Erros específicos:
 - `GET /users/{id}`.
 - `PATCH /users/{id}`.
 
-Regras atuais:
+Regras do contrato aprovado:
 
+- Todas as rotas de `/users` exigem perfil `ADMIN`.
 - Campos públicos retornados: `id`, `name`, `email`, `role`, `active` e `created_at`.
 - `password_hash` nunca é retornado.
 - `role` aceita `ADMIN`, `CHECKER`, `DRIVER` e `LOGISTICS_MANAGER`.
@@ -98,8 +96,9 @@ Erros específicos:
 
 - `USER_NOT_FOUND`: usuário não encontrado.
 - `USER_EMAIL_ALREADY_EXISTS`: e-mail já cadastrado.
+- `USER_LAST_ACTIVE_ADMIN_REQUIRED`: alteração deixaria o sistema sem `ADMIN` ativo.
 
-`PENDENTE DE DEFINIÇÃO`: se cadastro público de usuário será permitido ou se usuários serão criados apenas por administrador.
+`CONFIRMADO`: não existe cadastro público. O primeiro `ADMIN` usa bootstrap local e, depois, usuários são criados somente por `ADMIN`.
 
 ## Caminhões
 
@@ -107,6 +106,12 @@ Erros específicos:
 - `POST /trucks`.
 - `GET /trucks/{id}`.
 - `PATCH /trucks/{id}`.
+
+Regras de autorização:
+
+- `ADMIN`, `CHECKER` e `LOGISTICS_MANAGER` podem usar `GET`.
+- Somente `LOGISTICS_MANAGER` pode usar `POST` e `PATCH`.
+- `DRIVER` não acessa essas rotas enquanto não existir vínculo aprovado.
 
 Exemplo de criação:
 
@@ -129,6 +134,12 @@ Exemplo de criação:
 - `POST /products`.
 - `GET /products/{id}`.
 - `PATCH /products/{id}`.
+
+Regras de autorização:
+
+- `ADMIN`, `CHECKER` e `LOGISTICS_MANAGER` podem usar `GET`.
+- Somente `LOGISTICS_MANAGER` pode usar `POST` e `PATCH`.
+- `DRIVER` não acessa essas rotas enquanto não existir vínculo aprovado.
 
 Exemplo de criação:
 
@@ -154,6 +165,12 @@ Exemplo de criação:
 - `GET /customers/{id}`.
 - `PATCH /customers/{id}`.
 
+Regras de autorização:
+
+- `ADMIN` e `LOGISTICS_MANAGER` podem usar `GET`.
+- Somente `LOGISTICS_MANAGER` pode usar `POST` e `PATCH`.
+- `CHECKER` e `DRIVER` não acessam essas rotas.
+
 ## Motoristas
 
 - `GET /drivers`.
@@ -161,12 +178,24 @@ Exemplo de criação:
 - `GET /drivers/{id}`.
 - `PATCH /drivers/{id}`.
 
+Regras de autorização:
+
+- `ADMIN` e `LOGISTICS_MANAGER` podem usar `GET`.
+- Somente `LOGISTICS_MANAGER` pode usar `POST` e `PATCH`.
+- `CHECKER` e `DRIVER` não acessam essas rotas.
+
 ## Pedidos
 
 - `GET /orders`.
 - `POST /orders`.
 - `GET /orders/{id}`.
 - `PATCH /orders/{id}`.
+
+Regras de autorização:
+
+- `ADMIN`, `CHECKER` e `LOGISTICS_MANAGER` podem usar `GET`.
+- Somente `LOGISTICS_MANAGER` pode usar `POST` e `PATCH`.
+- `DRIVER` não acessa essas rotas enquanto não existir vínculo aprovado.
 
 Exemplo de criação:
 
@@ -189,7 +218,9 @@ Exemplo de criação:
 Regras atuais:
 
 - `POST /orders` cria o pedido com `status = "DRAFT"`.
-- `PATCH /orders/{id}` aceita alteração de `customer_id`, `status`, `priority`, `delivery_address`, `expected_delivery_at` e, quando `items` for enviado, substitui o conjunto de itens do pedido.
+- `PATCH /orders/{id}` aceita alteração de `customer_id`, `status`, `priority`,
+  `delivery_address`, `expected_delivery_at` e, quando `items` for enviado,
+  substitui o conjunto somente se nenhum item estiver referenciado por plano.
 - `status` aceita `DRAFT`, `READY`, `PLANNED`, `IN_TRANSIT`, `DELIVERED` e `CANCELED`.
 - `priority` é texto obrigatório e é normalizado para maiúsculas.
 - `expected_delivery_at` deve vir com timezone e é normalizado para UTC.
@@ -203,8 +234,17 @@ Erros específicos:
 - `ORDER_NOT_FOUND`: pedido não encontrado.
 - `ORDER_CUSTOMER_NOT_FOUND`: cliente do pedido não encontrado.
 - `ORDER_PRODUCT_NOT_FOUND`: produto do pedido não encontrado.
+- `ORDER_ITEMS_REFERENCED_BY_LOAD_PLAN`: conflito `409`; os itens históricos não
+  podem ser substituídos.
 
 ## Planos de carga
+
+Regras de autorização:
+
+- Somente `LOGISTICS_MANAGER` usa criação, aprovação e recálculo.
+- `ADMIN` e `LOGISTICS_MANAGER` consultam qualquer plano.
+- `CHECKER` consulta somente plano `APPROVED`.
+- `DRIVER` não acessa enquanto não existir vínculo operacional aprovado.
 
 ### POST `/load-plans`
 
@@ -215,33 +255,96 @@ Erros específicos:
 }
 ```
 
-Resposta resumida:
+`order_ids` deve conter ao menos um UUID e não aceita duplicatas. O caminhão deve
+estar ativo, todos os pedidos devem estar em `READY` e a soma das quantidades não
+pode exceder 200 volumes.
+
+Resposta `201`, também usada por `GET /load-plans/{id}`:
 
 ```json
 {
   "id": "uuid",
+  "truck_id": "uuid",
+  "recalculated_from_id": null,
   "status": "CALCULATED",
-  "occupancy_percent": 86.4,
-  "total_weight_kg": 5420,
+  "internal_volume_cm3": 37440000,
+  "used_volume_cm3": 32400000,
+  "occupancy_percent": 86.54,
+  "total_weight_kg": 5420.000,
   "loaded_count": 28,
-  "unloaded_count": 2,
-  "algorithm_version": "heuristic-v1"
+  "unloaded_count": 0,
+  "algorithm_version": "heuristic-v1",
+  "created_at": "2026-08-04T12:00:00Z",
+  "approved_at": null,
+  "order_ids": ["uuid"],
+  "items": [
+    {
+      "id": "load-plan-item-uuid",
+      "order_id": "uuid",
+      "order_item_id": "uuid",
+      "product_id": "uuid",
+      "volume_index": 1,
+      "quantity": 1,
+      "delivery_sequence": 2,
+      "product_code": "CX-A",
+      "product_name": "Caixa A",
+      "original_width_cm": 60,
+      "original_height_cm": 50,
+      "original_length_cm": 40,
+      "weight_kg": 12.500,
+      "fragile": false,
+      "stackable": true,
+      "rotation_allowed": true,
+      "x_cm": 0,
+      "y_cm": 0,
+      "z_cm": 0,
+      "width_cm": 60,
+      "height_cm": 50,
+      "length_cm": 40,
+      "rotation_code": "XYZ",
+      "loading_sequence": 1,
+      "placed": true,
+      "rejection_reason": null
+    }
+  ]
 }
 ```
+
+Os campos físicos e descritivos de caminhão/produto/item são snapshots do momento
+do cálculo. `Decimal` permanece no schema; a decisão separada sobre representar
+Decimal como número ou string JSON não é alterada pela OC20.
 
 ### GET `/load-plans/{id}/visualization`
 
 ```json
 {
   "truck": {
+    "id": "uuid",
+    "plate": "ABC1D23",
+    "model": "Bau medio",
     "width_cm": 240,
     "height_cm": 260,
-    "length_cm": 600
+    "length_cm": 600,
+    "max_weight_kg": 8000.00
   },
   "items": [
     {
-      "id": "uuid",
+      "id": "load-plan-item-uuid",
+      "order_id": "uuid",
+      "order_item_id": "uuid",
+      "product_id": "uuid",
+      "volume_index": 1,
+      "quantity": 1,
+      "delivery_sequence": 2,
+      "product_code": "CX-A",
       "product_name": "Caixa A",
+      "original_width_cm": 60,
+      "original_height_cm": 50,
+      "original_length_cm": 40,
+      "weight_kg": 12.500,
+      "fragile": false,
+      "stackable": true,
+      "rotation_allowed": true,
       "x_cm": 0,
       "y_cm": 0,
       "z_cm": 0,
@@ -254,20 +357,56 @@ Resposta resumida:
   ],
   "unloaded_items": [
     {
-      "id": "uuid",
+      "id": "load-plan-item-uuid",
+      "order_id": "uuid",
+      "order_item_id": "uuid",
+      "product_id": "uuid",
+      "volume_index": 1,
+      "quantity": 1,
+      "delivery_sequence": 1,
+      "product_code": "CX-B",
       "product_name": "Caixa B",
+      "original_width_cm": 300,
+      "original_height_cm": 300,
+      "original_length_cm": 300,
+      "weight_kg": 20.000,
+      "fragile": false,
+      "stackable": true,
+      "rotation_allowed": false,
       "rejection_reason": "TRUCK_DIMENSIONS_EXCEEDED"
     }
   ]
 }
 ```
 
-Outras rotas:
+`CONFIRMADO`: `rejection_reason` aceita somente, em ordem de precedência, `TRUCK_DIMENSIONS_EXCEEDED`, `TRUCK_WEIGHT_EXCEEDED`, `NON_STACKABLE_SUPPORT`, `FRAGILE_SUPPORT_WEIGHT_EXCEEDED`, `INSUFFICIENT_SUPPORT`, `COLLISION` ou `NO_VALID_POSITION`. Entrada inválida gera erro de domínio/API e não aparece como volume rejeitado.
 
-- `GET /load-plans/{id}`.
-- `POST /load-plans/{id}/approve`.
-- `POST /load-plans/{id}/recalculate`.
-- `POST /load-plans/compare-trucks` `PENDENTE DE DEFINIÇÃO`.
+`CONFIRMADO`: conforme `ADR-007`, `rotation_code` usa somente `XYZ`, `XZY`, `YXZ`, `YZX`, `ZXY` ou `ZYX`. As letras indicam quais eixos originais `width`, `height` e `length` ocupam, respectivamente, as dimensões usadas em `x`, `y` e `z`.
+
+### POST `/load-plans/{id}/approve`
+
+Sem body. Retorna `200` com o mesmo `LoadPlanRead`. Exige plano `CALCULATED` sem
+rejeições e muda plano/pedidos/histórico atomicamente; pedidos passam a `PLANNED`.
+
+### POST `/load-plans/{id}/recalculate`
+
+Sem body. Retorna `201`. Sempre cria outro plano com
+`recalculated_from_id = id` da origem, reutiliza caminhão/pedidos, recarrega os
+dados atuais e preserva a origem.
+
+Erros específicos:
+
+- `LOAD_PLAN_NOT_FOUND`.
+- `LOAD_PLAN_TRUCK_NOT_FOUND` e `LOAD_PLAN_TRUCK_INACTIVE`.
+- `LOAD_PLAN_ORDER_NOT_FOUND` e `LOAD_PLAN_ORDER_NOT_ELIGIBLE`.
+- `LOAD_PLAN_PRODUCT_NOT_FOUND`.
+- `LOAD_PLAN_VOLUME_LIMIT_EXCEEDED`.
+- `INVALID_LOAD_PLAN_INPUT`.
+- `LOAD_PLAN_INVALID_STATUS`, `LOAD_PLAN_HAS_REJECTIONS` e
+  `LOAD_PLAN_SOURCE_CHANGED`.
+
+`CONFIRMADO`: `POST /load-plans/compare-trucks` pertence à OC21 e não é exposto
+pela integração da OC20.
 
 ## Carregamento
 
@@ -373,10 +512,15 @@ Mapeamento recomendado:
 
 ## Segurança de API
 
+- Somente `GET /health` e `POST /api/v1/auth/login` são públicos.
+- Todos os demais endpoints de negócio exigem Bearer token e aplicam a matriz de `docs/04-regras-negocio.md`.
+- `CONFIRMADO`: com `APP_ENV=local`, `/docs`, `/docs/oauth2-redirect`, `/redoc` e `/openapi.json` ficam disponíveis. Com `APP_ENV=production` ou sem a variável, essas rotas não são registradas e retornam `404`.
 - Senhas nunca retornam na API.
 - Tokens e segredos nunca aparecem em logs.
 - Dados pessoais devem ser minimizados em respostas de listagem.
 - Endpoints que alteram status devem registrar histórico.
 - Integrações externas devem ser autenticadas quando saírem do modo mock.
 
-`PENDENTE DE DEFINIÇÃO`: esquema final de autorização por perfil e proteção do webhook de WhatsApp.
+`CONFIRMADO`: a autorização por perfil segue `ADR-004`; acesso não listado é negado.
+
+`PENDENTE DE DEFINIÇÃO`: autenticação própria e validação de assinatura do webhook de WhatsApp devem ser aprovadas antes de uma integração externa real.

@@ -7,24 +7,40 @@ from sqlalchemy.orm import Session
 
 from app.core.responses import error_response, openapi_error_responses
 from app.database.session import get_db
+from app.modules.auth.dependencies import require_roles
 from app.modules.orders.models import Order
 from app.modules.orders.schemas import OrderCreate, OrderRead, OrderUpdate
 from app.modules.orders.service import (
     OrderCustomerNotFoundError,
+    OrderItemsReferencedByLoadPlanError,
     OrderNotFoundError,
     OrderProductNotFoundError,
     OrderService,
 )
+from app.modules.users.models import User
 
 router = APIRouter(prefix="/orders", tags=["orders"])
+OrderReader = Annotated[
+    User,
+    Depends(require_roles("ADMIN", "CHECKER", "LOGISTICS_MANAGER")),
+]
+OrderManager = Annotated[
+    User,
+    Depends(require_roles("LOGISTICS_MANAGER")),
+]
 
 
 def get_order_service(db: Annotated[Session, Depends(get_db)]) -> OrderService:
     return OrderService(db)
 
 
-@router.get("", response_model=list[OrderRead])
+@router.get(
+    "",
+    response_model=list[OrderRead],
+    responses=openapi_error_responses(401, 403),
+)
 def list_orders(
+    _current_user: OrderReader,
     service: Annotated[OrderService, Depends(get_order_service)],
 ) -> list[Order]:
     return list(service.list_orders())
@@ -34,10 +50,11 @@ def list_orders(
     "",
     response_model=OrderRead,
     status_code=status.HTTP_201_CREATED,
-    responses=openapi_error_responses(404, 422),
+    responses=openapi_error_responses(401, 403, 404, 422),
 )
 def create_order(
     data: OrderCreate,
+    _current_user: OrderManager,
     service: Annotated[OrderService, Depends(get_order_service)],
 ) -> Order | JSONResponse:
     try:
@@ -66,10 +83,11 @@ def create_order(
 @router.get(
     "/{order_id}",
     response_model=OrderRead,
-    responses=openapi_error_responses(404, 422),
+    responses=openapi_error_responses(401, 403, 404, 422),
 )
 def get_order(
     order_id: uuid.UUID,
+    _current_user: OrderReader,
     service: Annotated[OrderService, Depends(get_order_service)],
 ) -> Order | JSONResponse:
     try:
@@ -86,11 +104,12 @@ def get_order(
 @router.patch(
     "/{order_id}",
     response_model=OrderRead,
-    responses=openapi_error_responses(404, 422),
+    responses=openapi_error_responses(401, 403, 404, 409, 422),
 )
 def update_order(
     order_id: uuid.UUID,
     data: OrderUpdate,
+    _current_user: OrderManager,
     service: Annotated[OrderService, Depends(get_order_service)],
 ) -> Order | JSONResponse:
     try:
@@ -120,4 +139,12 @@ def update_order(
                     "ids": [str(product_id) for product_id in exc.product_ids],
                 }
             ],
+        )
+    except OrderItemsReferencedByLoadPlanError:
+        return error_response(
+            status.HTTP_409_CONFLICT,
+            "ORDER_ITEMS_REFERENCED_BY_LOAD_PLAN",
+            "Os itens deste pedido já pertencem a um plano de carga "
+            "e não podem ser substituídos.",
+            [{"field": "items"}],
         )

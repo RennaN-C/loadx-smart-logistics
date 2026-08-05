@@ -18,6 +18,24 @@ class ProductRepository:
     def get(self, product_id: uuid.UUID) -> Product | None:
         return self.db.get(Product, product_id)
 
+    def get_many(
+        self,
+        product_ids: Sequence[uuid.UUID],
+        *,
+        for_update: bool = False,
+    ) -> Sequence[Product]:
+        unique_ids = tuple(sorted(set(product_ids), key=lambda value: value.int))
+        if not unique_ids:
+            return ()
+        statement = (
+            select(Product)
+            .where(Product.id.in_(unique_ids))
+            .order_by(Product.id.asc())
+        )
+        if for_update:
+            statement = statement.with_for_update()
+        return self.db.scalars(statement).all()
+
     def get_by_code(self, code: str) -> Product | None:
         statement = select(Product).where(Product.code == code)
         return self.db.scalar(statement)

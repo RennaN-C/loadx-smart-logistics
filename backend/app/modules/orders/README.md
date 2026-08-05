@@ -20,6 +20,8 @@ Crie somente os arquivos necessários para a ocorrência atual.
 - `GET /api/v1/orders/{id}`: consulta pedido por ID.
 - `PATCH /api/v1/orders/{id}`: atualiza campos enviados.
 
+`CONFIRMADO`: `ADMIN`, `CHECKER` e `LOGISTICS_MANAGER` podem consultar. Somente `LOGISTICS_MANAGER` pode criar ou atualizar. `DRIVER` não acessa o módulo enquanto não existir vínculo aprovado com seus pedidos.
+
 ## Regras implementadas
 
 - Pedido criado começa com `status = "DRAFT"`.
@@ -29,9 +31,12 @@ Crie somente os arquivos necessários para a ocorrência atual.
 - `quantity` e `delivery_sequence` devem ser maiores que zero.
 - `priority` é normalizado para maiúsculas.
 - `expected_delivery_at` deve vir com timezone e é normalizado para UTC.
-- `items`, quando enviado no `PATCH`, substitui o conjunto de itens do pedido.
+- `items`, quando enviado no `PATCH`, substitui o conjunto somente enquanto seus
+  itens ainda não forem referenciados por um plano de carga.
+- `ORDER_ITEMS_REFERENCED_BY_LOAD_PLAN` retorna `409` quando a substituição
+  apagaria a proveniência histórica de `load_plan_items`.
+- Todas as rotas exigem autenticação Bearer e consultam o papel e o estado atual do usuário no banco.
 
 ## Pendências
 
 - `PENDENTE DE DEFINIÇÃO`: fluxo final de transição de status por perfil.
-- `PENDENTE DE DEFINIÇÃO`: regra de bloqueio para edição de pedidos já planejados ou em viagem.

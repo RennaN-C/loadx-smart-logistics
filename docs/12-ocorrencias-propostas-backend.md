@@ -14,13 +14,13 @@
 |---|---|---|---|
 | `OC49` | Alta | Desenvolvedor 1 | Implementada localmente; pendente de PR e revisão |
 | `OC50` | Alta | Desenvolvedor 1 | Implementada localmente; pendente de PR e revisão |
-| `OC51` | Alta | Desenvolvedor 1 | Bloqueada por `D01`, `D02` e `D03` |
+| `OC51` | Alta | Desenvolvedor 1 | Implementada localmente; pendente de PR e revisão |
 | `OC52` | Alta | Desenvolvedor 1 | Bloqueada por `D04` e `D05` |
 | `OC53` | Alta | Desenvolvedor 1, com revisão do Desenvolvedor 4 | Pronta para aprovação |
 | `OC54` | Média | Desenvolvedor 4, com apoio do Desenvolvedor 1 | Pronta para aprovação |
 | `OC55` | Média | Desenvolvedor 1, com revisão do Desenvolvedor 4 | Pronta para aprovação |
 | `OC56` | Média | Desenvolvedor 1 e Desenvolvedor 3 | Bloqueada por `D06` |
-| `OC57` | Média | Desenvolvedor 2 | Pronta para aprovação |
+| `OC57` | Média | Desenvolvedor 2 | Absorvida e resolvida pela revisão da `OC11` |
 | `OC58` | Baixa | Desenvolvedor 1, com apoio do Desenvolvedor 4 | Bloqueada por `D11` |
 | `OC59` | Média | Desenvolvedor 1 e Desenvolvedor 3 | Bloqueada por `D12` |
 
@@ -122,7 +122,7 @@ Exigir autenticação nos endpoints de negócio e aplicar a matriz de permissõe
 
 ### Comportamento atual
 
-`CONFIRMADO`: somente `/auth/me` valida token. Usuários sem autenticação podem acessar e alterar os cadastros existentes.
+`CONFIRMADO`: a `OC51-I` auditou `/auth/me` e todos os endpoints de negócio atualmente implementados contra os quatro perfis aprovados; `/auth/register` não existe mais; Swagger, ReDoc e OpenAPI são expostos somente no ambiente local.
 
 ### Critérios de aceite
 
@@ -130,7 +130,7 @@ Exigir autenticação nos endpoints de negócio e aplicar a matriz de permissõe
 - Cada rota protegida aplica a matriz aprovada em `D02`.
 - A criação de usuários segue a decisão `D03`.
 - Token ausente, inválido ou expirado retorna `401 AUTH_INVALID_TOKEN`.
-- Usuário autenticado sem permissão retorna `403` com código estável.
+- Usuário autenticado sem permissão retorna `403 AUTH_FORBIDDEN`.
 - Usuário inativo não acessa endpoints protegidos.
 - O esquema Bearer aparece no OpenAPI e pode ser usado no Swagger.
 - Senha, token, documento completo e segredo não aparecem em logs.
@@ -138,10 +138,31 @@ Exigir autenticação nos endpoints de negócio e aplicar a matriz de permissõe
 
 ### Dependências
 
-- `D01`: fronteira entre endpoints públicos e protegidos.
-- `D02`: matriz RBAC.
-- `D03`: política de cadastro e bootstrap de usuários.
+- `D01`, `D02` e `D03`: decisões aprovadas e registradas em `ADR-004`.
 - Atualização simultânea de `docs/04`, `docs/05`, README de `auth` e README de `users`.
+
+### Divisão em subocorrências pequenas
+
+`CONFIRMADO`: a `OC51` será executada na ordem abaixo. Cada subocorrência possui um único objetivo, inclui os testes do próprio comportamento e pode virar um commit isolado. A `OC51` só será concluída depois da auditoria final.
+
+| Subocorrência | Objetivo único | Verificação mínima | Commit sugerido |
+|---|---|---|---|
+| `OC51-A` | Registrar `D01`, `D02`, `D03` e `ADR-004` | `git diff --check` | `docs: registra decisões de segurança da OC51` |
+| `OC51-B` | Centralizar usuário autenticado e verificação de papéis | `/auth/me`, token inválido, usuário inativo e papel negado | `refactor: centraliza autenticação e autorização` |
+| `OC51-C` | Criar bootstrap local do primeiro `ADMIN` | cria no banco vazio, oculta senha e recusa nova execução | `feat: adiciona bootstrap local do primeiro administrador` |
+| `OC51-D` | Remover `/auth/register` e restringir `/users` a `ADMIN` | rota removida, matriz de usuários e proteção do último administrador | `fix: restringe criação e administração de usuários` |
+| `OC51-E` | Proteger clientes e motoristas | `ADMIN` lê, `LOGISTICS_MANAGER` gerencia e demais recebem `403` | `feat: aplica permissões em clientes e motoristas` |
+| `OC51-F` | Proteger caminhões e produtos | `ADMIN` e `CHECKER` leem, `LOGISTICS_MANAGER` gerencia e `DRIVER` recebe `403` | `feat: aplica permissões em caminhões e produtos` |
+| `OC51-G` | Proteger pedidos | `ADMIN` e `CHECKER` leem, `LOGISTICS_MANAGER` gerencia e `DRIVER` recebe `403` | `feat: aplica permissões em pedidos` |
+| `OC51-H` | Restringir documentação da API por ambiente | Swagger/OpenAPI local funciona e produção não os expõe | `feat: restringe documentação da API em produção` |
+| `OC51-I` | Auditar o contrato completo de segurança | matriz parametrizada, OpenAPI, suíte completa e Ruff | `test: valida contrato de autorização da OC51` |
+
+Regras de execução:
+
+- Não iniciar a próxima subocorrência enquanto os testes da atual falharem.
+- Código e testes do mesmo comportamento ficam juntos; não separar um commit funcional de sua proteção mínima.
+- Não adicionar refresh token, MFA, vínculo `users`/`drivers` ou biblioteca externa nestas subocorrências.
+- Se todas as subocorrências ficarem no mesmo Pull Request, preservar um commit por linha da tabela para facilitar revisão e reversão.
 
 ### Fora do escopo
 
@@ -328,7 +349,7 @@ Garantir que dimensões do cálculo de capacidade sejam inteiros positivos e que
 
 ### Comportamento atual
 
-`CONFIRMADO`: `calculate_truck_capacity` aceita `bool` e `float` positivos nas dimensões; um `float` produz volume com tipo incompatível com o contrato.
+`CONFIRMADO`: esta proposta foi absorvida pela revisão da `OC11`. `calculate_truck_capacity` exige inteiros positivos, exclui `bool` e converte tipos inválidos em `InvalidTruckCapacityError`.
 
 ### Critérios de aceite
 

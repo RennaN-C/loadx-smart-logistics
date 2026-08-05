@@ -17,6 +17,7 @@ target_metadata = Base.metadata
 def import_models() -> None:
     from app.modules.customers import models as customers_models  # noqa: F401
     from app.modules.drivers import models as drivers_models  # noqa: F401
+    from app.modules.load_planning import models as load_planning_models  # noqa: F401
     from app.modules.orders import models as orders_models  # noqa: F401
     from app.modules.products import models as products_models  # noqa: F401
     from app.modules.status_history import models as status_history_models  # noqa: F401

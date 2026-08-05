@@ -8,7 +8,6 @@ from app.modules.load_planning.optimizer.contracts import (
     IndividualVolume,
     OrderItemInput,
     VolumeIdentity,
-    VolumeIndexBase,
 )
 
 
@@ -50,8 +49,3 @@ def test_optimizer_contracts_are_immutable() -> None:
         volume.identity.volume_index = 2
     with pytest.raises(FrozenInstanceError):
         volume.volume_cm3 = 1
-
-
-def test_volume_index_base_exposes_both_pending_policies() -> None:
-    assert VolumeIndexBase.ZERO.value == 0
-    assert VolumeIndexBase.ONE.value == 1
