@@ -195,7 +195,13 @@ Backend:
 - E2E em `backend/tests/e2e`.
 - Health check atual em `backend/tests/test_health.py`.
 - Regras puras e otimizador devem ter testes unitários sem banco externo.
-- Rotas, repositories e migrations devem ter testes de integração quando implementados.
+- Rotas, repositories e migrations usam PostgreSQL 16 exclusivo nos testes de
+  integração, com estrutura criada por `alembic upgrade head`, nunca por
+  `Base.metadata.create_all`.
+- A URL de integração vem somente de `TEST_DATABASE_URL`, deve apontar para
+  `loadx_test` e nunca pode reutilizar desenvolvimento, staging ou produção.
+- O ambiente e os comandos locais estão em `backend/tests/README.md` e
+  `backend/tests/integration/README.md`.
 
 Frontend:
 

@@ -1,8 +1,34 @@
 # Testes do backend
 
-- `unit`: regras puras e otimizador, sem banco externo.
-- `integration`: API, repositories e PostgreSQL de teste.
+- `unit`: regras puras, services e otimizador, sem banco externo. Os poucos
+  testes unitários de persistência usam SQLite isolado e nunca substituem a
+  validação oficial das migrations.
+- `integration`: API, repositories e PostgreSQL 16 exclusivo de teste, criado
+  pelas migrations Alembic.
 - `e2e`: fluxo completo quando o MVP estiver integrado.
+
+## Comandos
+
+Testes unitários, sem PostgreSQL:
+
+```powershell
+python -m pytest -q tests/unit tests/test_health.py
+```
+
+Testes de integração:
+
+```powershell
+docker compose -f compose.test.yaml up -d --wait
+$env:TEST_DATABASE_URL = "postgresql+psycopg://loadx_test:loadx_test_local@localhost:55432/loadx_test"
+Set-Location backend
+python -m pytest -q tests/integration
+Set-Location ..
+docker compose -f compose.test.yaml down -v
+```
+
+Os comandos Docker são executados na raiz. O `pytest` é executado na pasta
+`backend`. A fixture recusa banco diferente de `loadx_test`, recusa a mesma URL
+da aplicação e exige PostgreSQL 16.
 
 Cenários mínimos do otimizador:
 

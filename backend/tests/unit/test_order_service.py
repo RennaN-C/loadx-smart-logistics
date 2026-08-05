@@ -1,19 +1,15 @@
 import uuid
-from collections.abc import Generator
 from datetime import UTC, datetime, timedelta, timezone
 from decimal import Decimal
 
 import pytest
 from pydantic import ValidationError
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy.pool import StaticPool
+from sqlalchemy.orm import Session
 
-from app.database.base import Base
 from app.modules.customers.models import Customer
 from app.modules.load_planning.models import LoadPlan, LoadPlanItem, LoadPlanOrder
 from app.modules.orders.models import Order, OrderItem
-from app.modules.orders.schemas import OrderCreate, OrderUpdate
+from app.modules.orders.schemas import OrderCreate, OrderRead, OrderUpdate
 from app.modules.orders.service import (
     OrderCustomerNotFoundError,
     OrderItemsReferencedByLoadPlanError,
@@ -24,33 +20,16 @@ from app.modules.orders.service import (
 from app.modules.products.models import Product
 from app.modules.trucks.models import Truck
 
-
-@pytest.fixture
-def db_session() -> Generator[Session, None, None]:
-    engine = create_engine(
-        "sqlite+pysqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    tables = [
-        Customer.__table__,
-        Truck.__table__,
-        Product.__table__,
-        Order.__table__,
-        OrderItem.__table__,
-        LoadPlan.__table__,
-        LoadPlanOrder.__table__,
-        LoadPlanItem.__table__,
-    ]
-    Base.metadata.create_all(engine, tables=tables)
-    testing_session_local = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-
-    db = testing_session_local()
-    try:
-        yield db
-    finally:
-        db.close()
-        Base.metadata.drop_all(engine, tables=list(reversed(tables)))
+SQLITE_TABLES = (
+    Customer.__table__,
+    Truck.__table__,
+    Product.__table__,
+    Order.__table__,
+    OrderItem.__table__,
+    LoadPlan.__table__,
+    LoadPlanOrder.__table__,
+    LoadPlanItem.__table__,
+)
 
 
 def create_customer(db: Session) -> Customer:
@@ -93,7 +72,9 @@ def make_order_create(customer_id: uuid.UUID, product_id: uuid.UUID) -> OrderCre
         customer_id=customer_id,
         priority="normal",
         delivery_address="Rua Exemplo, 100",
-        expected_delivery_at=datetime(2026, 8, 10, 10, 0, tzinfo=timezone(timedelta(hours=-3))),
+        expected_delivery_at=datetime(
+            2026, 8, 10, 10, 0, tzinfo=timezone(timedelta(hours=-3))
+        ),
         items=[
             {
                 "product_id": product_id,
@@ -112,6 +93,26 @@ def test_order_create_normalizes_priority_and_expected_delivery_at() -> None:
 
     assert data.priority == "NORMAL"
     assert data.expected_delivery_at == datetime(2026, 8, 10, 13, 0, tzinfo=UTC)
+
+
+def test_order_read_normalizes_database_datetimes_to_utc() -> None:
+    local_timezone = timezone(timedelta(hours=-3))
+
+    data = OrderRead.model_validate(
+        {
+            "id": uuid.uuid4(),
+            "customer_id": uuid.uuid4(),
+            "status": "DRAFT",
+            "priority": "NORMAL",
+            "delivery_address": "Rua Exemplo, 100",
+            "expected_delivery_at": datetime(2026, 8, 10, 10, 0, tzinfo=local_timezone),
+            "created_at": datetime(2026, 8, 4, 20, 0, tzinfo=local_timezone),
+            "items": [],
+        }
+    )
+
+    assert data.expected_delivery_at == datetime(2026, 8, 10, 13, 0, tzinfo=UTC)
+    assert data.created_at == datetime(2026, 8, 4, 23, 0, tzinfo=UTC)
 
 
 def test_order_update_rejects_invalid_status() -> None:

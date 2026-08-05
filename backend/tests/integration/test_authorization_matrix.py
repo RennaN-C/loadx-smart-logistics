@@ -1,29 +1,19 @@
-from collections.abc import Callable, Generator
+from collections.abc import Callable
 from dataclasses import dataclass
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy.pool import StaticPool
+from sqlalchemy.orm import Session
 
 from app.core.security import create_access_token
-from app.database.base import Base
-from app.database.session import get_db
-from app.main import app
-from app.modules.customers.models import Customer
 from app.modules.customers.schemas import CustomerCreate
 from app.modules.customers.service import CustomerService
-from app.modules.drivers.models import Driver
 from app.modules.drivers.schemas import DriverCreate
 from app.modules.drivers.service import DriverService
-from app.modules.orders.models import Order, OrderItem
 from app.modules.orders.schemas import OrderCreate
 from app.modules.orders.service import OrderService
-from app.modules.products.models import Product
 from app.modules.products.schemas import ProductCreate
 from app.modules.products.service import ProductService
-from app.modules.trucks.models import Truck
 from app.modules.trucks.schemas import TruckCreate
 from app.modules.trucks.service import TruckService
 from app.modules.users.models import User
@@ -191,46 +181,6 @@ AUTHORIZATION_CASES = (
         "order_update",
     ),
 )
-
-
-@pytest.fixture
-def session_factory() -> Generator[SessionFactory, None, None]:
-    engine = create_engine(
-        "sqlite+pysqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    tables = [
-        User.__table__,
-        Customer.__table__,
-        Driver.__table__,
-        Truck.__table__,
-        Product.__table__,
-        Order.__table__,
-        OrderItem.__table__,
-    ]
-    Base.metadata.create_all(engine, tables=tables)
-    testing_session_local = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-    try:
-        yield testing_session_local
-    finally:
-        Base.metadata.drop_all(engine, tables=list(reversed(tables)))
-
-
-@pytest.fixture
-def client(session_factory: SessionFactory) -> Generator[TestClient, None, None]:
-    def override_get_db() -> Generator[Session, None, None]:
-        db = session_factory()
-        try:
-            yield db
-        finally:
-            db.close()
-
-    app.dependency_overrides[get_db] = override_get_db
-    try:
-        yield TestClient(app)
-    finally:
-        app.dependency_overrides.clear()
 
 
 def create_user(

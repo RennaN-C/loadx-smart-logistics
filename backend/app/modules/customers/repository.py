@@ -12,7 +12,9 @@ class CustomerRepository:
         self.db = db
 
     def list(self) -> Sequence[Customer]:
-        statement = select(Customer).order_by(Customer.created_at.desc(), Customer.name.asc())
+        statement = select(Customer).order_by(
+            Customer.created_at.desc(), Customer.name.asc()
+        )
         return self.db.scalars(statement).all()
 
     def get(self, customer_id: uuid.UUID) -> Customer | None:

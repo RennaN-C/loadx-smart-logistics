@@ -138,3 +138,12 @@ class OrderRead(BaseModel):
     items: list[OrderItemRead]
 
     model_config = ConfigDict(from_attributes=True, str_strip_whitespace=True)
+
+    @field_validator("expected_delivery_at", "created_at")
+    @classmethod
+    def normalize_response_datetimes(cls, value: datetime | None) -> datetime | None:
+        if value is None:
+            return None
+        if value.tzinfo is None or value.tzinfo.utcoffset(value) is None:
+            return value.replace(tzinfo=timezone.utc)
+        return value.astimezone(timezone.utc)

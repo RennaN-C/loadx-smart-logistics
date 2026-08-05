@@ -8,17 +8,22 @@
 
 `CONFIRMADO`: nenhuma ocorrência abaixo está aprovada apenas por constar neste documento. Cada uma deve receber responsável, revisão de escopo e aceite da equipe antes da implementação.
 
+`CONFIRMADO`: `OC49`, `OC50` e `OC51` já foram integradas em
+`desenvolvimento`. `OC55` e `OC53` foram aprovadas por solicitação explícita do
+responsável em 2026-08-04 e estão implementadas e validadas localmente, pendentes
+de PR e revisão.
+
 ## Resumo de prioridade
 
 | Identificador sugerido | Prioridade | Responsável primário sugerido | Situação |
 |---|---|---|---|
-| `OC49` | Alta | Desenvolvedor 1 | Implementada localmente; pendente de PR e revisão |
-| `OC50` | Alta | Desenvolvedor 1 | Implementada localmente; pendente de PR e revisão |
-| `OC51` | Alta | Desenvolvedor 1 | Implementada localmente; pendente de PR e revisão |
+| `OC49` | Alta | Desenvolvedor 1 | Integrada em `desenvolvimento` |
+| `OC50` | Alta | Desenvolvedor 1 | Integrada em `desenvolvimento` |
+| `OC51` | Alta | Desenvolvedor 1 | Integrada em `desenvolvimento` |
 | `OC52` | Alta | Desenvolvedor 1 | Bloqueada por `D04` e `D05` |
-| `OC53` | Alta | Desenvolvedor 1, com revisão do Desenvolvedor 4 | Pronta para aprovação |
+| `OC53` | Alta | Desenvolvedor 1, com revisão do Desenvolvedor 4 | Implementada e validada localmente; pendente de PR e revisão |
 | `OC54` | Média | Desenvolvedor 4, com apoio do Desenvolvedor 1 | Pronta para aprovação |
-| `OC55` | Média | Desenvolvedor 1, com revisão do Desenvolvedor 4 | Pronta para aprovação |
+| `OC55` | Média | Desenvolvedor 1, com revisão do Desenvolvedor 4 | Implementada e validada localmente; pendente de PR e revisão |
 | `OC56` | Média | Desenvolvedor 1 e Desenvolvedor 3 | Bloqueada por `D06` |
 | `OC57` | Média | Desenvolvedor 2 | Absorvida e resolvida pela revisão da `OC11` |
 | `OC58` | Baixa | Desenvolvedor 1, com apoio do Desenvolvedor 4 | Bloqueada por `D11` |
@@ -220,7 +225,10 @@ Fazer os testes de integração usarem PostgreSQL 16 e a cadeia real de migratio
 
 ### Comportamento atual
 
-`CONFIRMADO`: os testes de integração usam SQLite em memória e `Base.metadata.create_all`, sem aplicar as migrations oficiais.
+`CONFIRMADO`: a `OC53` substituiu SQLite por PostgreSQL 16 exclusivo na suíte de
+integração. A fixture valida o alvo, recria somente o schema de teste, aplica a
+cadeia Alembic, exercita `downgrade -1`, reaplica o head e isola cada teste em
+transação externa com savepoints.
 
 ### Critérios de aceite
 
@@ -236,7 +244,7 @@ Fazer os testes de integração usarem PostgreSQL 16 e a cadeia real de migratio
 ### Dependências
 
 - PostgreSQL 16 já confirmado como tecnologia oficial.
-- Migrations `20260729_0001` a `20260730_0003`.
+- Migrations `20260729_0001` a `20260804_0004`.
 
 ### Testes mínimos
 
@@ -289,7 +297,9 @@ Eliminar warnings de recursos, reduzir fixtures duplicadas e deixar os arquivos 
 
 ### Comportamento atual
 
-`CONFIRMADO`: fixtures repetem criação de engine e cliente, não executam `engine.dispose()` e não usam `TestClient` como context manager. `ruff format --check` indica arquivos fora do padrão.
+`CONFIRMADO`: a `OC55` centralizou as fixtures no menor escopo coerente, passou a
+encerrar `TestClient`, sessions, conexões e engines e normalizou a base Python com
+Ruff. A validação final não apresentou `ResourceWarning` causado pelos testes.
 
 ### Critérios de aceite
 
@@ -299,7 +309,8 @@ Eliminar warnings de recursos, reduzir fixtures duplicadas e deixar os arquivos 
 - A suíte não emite `ResourceWarning` causado pelo código de teste.
 - `ruff check .` e `ruff format --check .` passam.
 - A mudança de formatação não altera contratos ou regras de negócio.
-- Os 225 cenários existentes continuam passando, além dos testes adicionados pelas demais ocorrências.
+- Todos os cenários existentes continuam passando, além dos testes adicionados
+  pelas demais ocorrências; não fixar uma contagem que ficará obsoleta.
 
 ### Dependências
 

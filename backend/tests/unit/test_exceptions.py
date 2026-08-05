@@ -24,9 +24,10 @@ def test_unexpected_error_returns_safe_standard_response(
     caplog: LogCaptureFixture,
 ) -> None:
     test_app = build_test_app()
-    client = TestClient(test_app, raise_server_exceptions=False)
-
-    with caplog.at_level(logging.ERROR, logger="app.core.exceptions"):
+    with (
+        TestClient(test_app, raise_server_exceptions=False) as client,
+        caplog.at_level(logging.ERROR, logger="app.core.exceptions"),
+    ):
         response = client.get("/unexpected?token=should-not-leak")
 
     assert response.status_code == 500

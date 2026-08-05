@@ -1,5 +1,4 @@
 import uuid
-from collections.abc import Generator
 from decimal import Decimal
 
 import pytest
@@ -7,12 +6,9 @@ from sqlalchemy import (
     CheckConstraint,
     ForeignKeyConstraint,
     UniqueConstraint,
-    create_engine,
-    event,
 )
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy.pool import StaticPool
+from sqlalchemy.orm import Session
 
 from app.database.base import Base
 from app.modules.customers.models import Customer
@@ -22,44 +18,16 @@ from app.modules.orders.models import Order, OrderItem
 from app.modules.products.models import Product
 from app.modules.trucks.models import Truck
 
-
-@pytest.fixture
-def db_session() -> Generator[Session, None, None]:
-    engine = create_engine(
-        "sqlite+pysqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-
-    @event.listens_for(engine, "connect")
-    def enable_foreign_keys(dbapi_connection, _connection_record) -> None:
-        cursor = dbapi_connection.cursor()
-        cursor.execute("PRAGMA foreign_keys=ON")
-        cursor.close()
-
-    tables = [
-        Customer.__table__,
-        Truck.__table__,
-        Product.__table__,
-        Order.__table__,
-        OrderItem.__table__,
-        LoadPlan.__table__,
-        LoadPlanOrder.__table__,
-        LoadPlanItem.__table__,
-    ]
-    Base.metadata.create_all(engine, tables=tables)
-    testing_session_local = sessionmaker(
-        bind=engine,
-        autoflush=False,
-        autocommit=False,
-    )
-
-    db = testing_session_local()
-    try:
-        yield db
-    finally:
-        db.close()
-        Base.metadata.drop_all(engine, tables=list(reversed(tables)))
+SQLITE_TABLES = (
+    Customer.__table__,
+    Truck.__table__,
+    Product.__table__,
+    Order.__table__,
+    OrderItem.__table__,
+    LoadPlan.__table__,
+    LoadPlanOrder.__table__,
+    LoadPlanItem.__table__,
+)
 
 
 def seed_sources(db: Session) -> tuple[Truck, Product, Order, OrderItem]:

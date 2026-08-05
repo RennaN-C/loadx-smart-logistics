@@ -28,6 +28,11 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 - `CONFIRMADO`: migration `20260804_0004` cria as três tabelas de planejamento.
 - `CONFIRMADO`: o contrato aprovado mantém login, token JWT e `/auth/me`, remove `/auth/register` e restringe criação de usuários a `ADMIN` após bootstrap local.
 - `CONFIRMADO`: a `OC51-I` auditou a matriz completa de autorização e a fronteira pública de todos os endpoints atualmente implementados.
+- `CONFIRMADO`: a `OC53` executa os testes de integração em PostgreSQL 16
+  exclusivo, aplica migrations Alembic do banco vazio, exercita downgrade mínimo
+  e isola cada cenário em transação externa.
+- `CONFIRMADO`: a `OC55` centralizou fixtures, encerra clients, sessions e engines
+  e deixou toda a base Python conforme Ruff.
 
 ## Decisões necessárias
 

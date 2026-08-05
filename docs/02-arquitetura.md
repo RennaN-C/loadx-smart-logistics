@@ -62,7 +62,12 @@ Responsabilidades por pasta:
 
 `CONFIRMADO`: no estado atual do código, existem base FastAPI, configurações, sessão SQLAlchemy, health check, migrations e módulos backend para autenticação, usuários, caminhões, produtos, clientes, motoristas, pedidos e histórico de status.
 
-`PENDENTE DE DEFINIÇÃO`: planejamento de carga, carregamento, viagens, entregas, ocorrências, relatórios e integrações ainda precisam ser implementados conforme suas ocorrências. A matriz de permissões está aprovada, mas sua aplicação nas rotas depende da `OC51`.
+`CONFIRMADO`: o planejamento de carga está implementado até a `OC20`, com
+persistência, API protegida e engine determinística. A `OC51` aplica a matriz de
+permissões em todas as rotas atuais.
+
+`PENDENTE DE DEFINIÇÃO`: carregamento, viagens, entregas, ocorrências, relatórios
+e integrações ainda precisam ser implementados conforme suas ocorrências.
 
 ## Frontend
 

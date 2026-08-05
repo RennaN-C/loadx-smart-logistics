@@ -141,9 +141,7 @@ class LoadPlanRead(BaseModel):
             raise ValueError("order_ids must not contain duplicates")
 
         item_ids = [item.id for item in self.items]
-        identities = [
-            (item.order_item_id, item.volume_index) for item in self.items
-        ]
+        identities = [(item.order_item_id, item.volume_index) for item in self.items]
         if len(set(item_ids)) != len(item_ids):
             raise ValueError("items must not contain duplicate ids")
         if len(set(identities)) != len(identities):

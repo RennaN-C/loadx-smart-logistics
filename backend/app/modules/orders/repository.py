@@ -12,11 +12,17 @@ class OrderRepository:
         self.db = db
 
     def list(self) -> Sequence[Order]:
-        statement = select(Order).options(selectinload(Order.items)).order_by(Order.created_at.desc())
+        statement = (
+            select(Order)
+            .options(selectinload(Order.items))
+            .order_by(Order.created_at.desc())
+        )
         return self.db.scalars(statement).all()
 
     def get(self, order_id: uuid.UUID) -> Order | None:
-        statement = select(Order).options(selectinload(Order.items)).where(Order.id == order_id)
+        statement = (
+            select(Order).options(selectinload(Order.items)).where(Order.id == order_id)
+        )
         return self.db.scalar(statement)
 
     def get_many(
@@ -29,9 +35,7 @@ class OrderRepository:
         if not unique_ids:
             return ()
         statement = (
-            select(Order)
-            .where(Order.id.in_(unique_ids))
-            .order_by(Order.id.asc())
+            select(Order).where(Order.id.in_(unique_ids)).order_by(Order.id.asc())
         )
         if for_update:
             statement = statement.with_for_update()

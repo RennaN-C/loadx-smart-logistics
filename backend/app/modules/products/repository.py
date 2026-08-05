@@ -12,7 +12,9 @@ class ProductRepository:
         self.db = db
 
     def list(self) -> Sequence[Product]:
-        statement = select(Product).order_by(Product.created_at.desc(), Product.code.asc())
+        statement = select(Product).order_by(
+            Product.created_at.desc(), Product.code.asc()
+        )
         return self.db.scalars(statement).all()
 
     def get(self, product_id: uuid.UUID) -> Product | None:
@@ -28,9 +30,7 @@ class ProductRepository:
         if not unique_ids:
             return ()
         statement = (
-            select(Product)
-            .where(Product.id.in_(unique_ids))
-            .order_by(Product.id.asc())
+            select(Product).where(Product.id.in_(unique_ids)).order_by(Product.id.asc())
         )
         if for_update:
             statement = statement.with_for_update()

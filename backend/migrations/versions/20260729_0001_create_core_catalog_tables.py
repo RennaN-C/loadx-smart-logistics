@@ -24,8 +24,15 @@ def upgrade() -> None:
         sa.Column("email", sa.String(length=255), nullable=False),
         sa.Column("password_hash", sa.String(length=255), nullable=False),
         sa.Column("role", sa.String(length=32), nullable=False),
-        sa.Column("active", sa.Boolean(), server_default=sa.text("true"), nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "active", sa.Boolean(), server_default=sa.text("true"), nullable=False
+        ),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
         sa.CheckConstraint(
             "role IN ('ADMIN', 'CHECKER', 'DRIVER', 'LOGISTICS_MANAGER')",
             name=op.f("ck_users__role_allowed"),
@@ -45,7 +52,12 @@ def upgrade() -> None:
         sa.Column("city", sa.String(length=120), nullable=False),
         sa.Column("state", sa.String(length=2), nullable=False),
         sa.Column("notes", sa.Text(), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
         sa.PrimaryKeyConstraint("id", name="pk_customers"),
         sa.UniqueConstraint("document", name="uq_customers__document"),
     )
@@ -59,8 +71,15 @@ def upgrade() -> None:
         sa.Column("phone", sa.String(length=32), nullable=False),
         sa.Column("license_number", sa.String(length=32), nullable=False),
         sa.Column("license_category", sa.String(length=8), nullable=True),
-        sa.Column("active", sa.Boolean(), server_default=sa.text("true"), nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "active", sa.Boolean(), server_default=sa.text("true"), nullable=False
+        ),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
         sa.PrimaryKeyConstraint("id", name="pk_drivers"),
         sa.UniqueConstraint("document", name="uq_drivers__document"),
         sa.UniqueConstraint("license_number", name="uq_drivers__license_number"),
@@ -76,13 +95,22 @@ def upgrade() -> None:
         sa.Column("internal_height_cm", sa.Integer(), nullable=False),
         sa.Column("internal_length_cm", sa.Integer(), nullable=False),
         sa.Column("max_weight_kg", sa.Numeric(precision=10, scale=2), nullable=False),
-        sa.Column("active", sa.Boolean(), server_default=sa.text("true"), nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "active", sa.Boolean(), server_default=sa.text("true"), nullable=False
+        ),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
         sa.CheckConstraint(
             "internal_width_cm > 0 AND internal_height_cm > 0 AND internal_length_cm > 0",
             name=op.f("ck_trucks__dimensions_positive"),
         ),
-        sa.CheckConstraint("max_weight_kg > 0", name=op.f("ck_trucks__max_weight_positive")),
+        sa.CheckConstraint(
+            "max_weight_kg > 0", name=op.f("ck_trucks__max_weight_positive")
+        ),
         sa.PrimaryKeyConstraint("id", name="pk_trucks"),
         sa.UniqueConstraint("plate", name="uq_trucks__plate"),
     )
@@ -97,10 +125,24 @@ def upgrade() -> None:
         sa.Column("height_cm", sa.Integer(), nullable=False),
         sa.Column("length_cm", sa.Integer(), nullable=False),
         sa.Column("weight_kg", sa.Numeric(precision=10, scale=3), nullable=False),
-        sa.Column("fragile", sa.Boolean(), server_default=sa.text("false"), nullable=False),
-        sa.Column("stackable", sa.Boolean(), server_default=sa.text("true"), nullable=False),
-        sa.Column("rotation_allowed", sa.Boolean(), server_default=sa.text("true"), nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "fragile", sa.Boolean(), server_default=sa.text("false"), nullable=False
+        ),
+        sa.Column(
+            "stackable", sa.Boolean(), server_default=sa.text("true"), nullable=False
+        ),
+        sa.Column(
+            "rotation_allowed",
+            sa.Boolean(),
+            server_default=sa.text("true"),
+            nullable=False,
+        ),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
         sa.CheckConstraint(
             "width_cm > 0 AND height_cm > 0 AND length_cm > 0",
             name=op.f("ck_products__dimensions_positive"),

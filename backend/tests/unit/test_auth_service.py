@@ -1,12 +1,7 @@
-from collections.abc import Generator
-
 import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy.pool import StaticPool
+from sqlalchemy.orm import Session
 
 from app.core.security import verify_password
-from app.database.base import Base
 from app.modules.auth.schemas import AuthLogin
 from app.modules.auth.service import (
     AuthBootstrapAlreadyCompletedError,
@@ -19,23 +14,7 @@ from app.modules.users.models import User
 from app.modules.users.schemas import UserCreate, UserUpdate
 from app.modules.users.service import UserService
 
-
-@pytest.fixture
-def db_session() -> Generator[Session, None, None]:
-    engine = create_engine(
-        "sqlite+pysqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    Base.metadata.create_all(engine, tables=[User.__table__])
-    testing_session_local = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-
-    db = testing_session_local()
-    try:
-        yield db
-    finally:
-        db.close()
-        Base.metadata.drop_all(engine, tables=[User.__table__])
+SQLITE_TABLES = (User.__table__,)
 
 
 def make_user_create(
