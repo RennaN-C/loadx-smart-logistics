@@ -1,12 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { notifyIfSessionInvalidated, setSessionInvalidatedHandler, toApiErrorResponse } from "./api";
+import { ApiError } from "../types/api";
+import { notifyIfSessionInvalidated, setSessionInvalidatedHandler, toApiError } from "./api";
 
 function fakeAxiosError(overrides: { response?: unknown }): unknown {
   return { isAxiosError: true, ...overrides };
 }
 
-describe("toApiErrorResponse", () => {
+describe("toApiError", () => {
   it("repassa o corpo de erro quando já está no formato da API", () => {
     const error = fakeAxiosError({
       response: {
@@ -18,21 +19,23 @@ describe("toApiErrorResponse", () => {
       },
     });
 
-    expect(toApiErrorResponse(error)).toEqual({
-      code: "VALIDATION_ERROR",
-      message: "Campo inválido.",
-      details: [{ field: "email" }],
-    });
+    const result = toApiError(error);
+
+    expect(result).toBeInstanceOf(ApiError);
+    expect(result).toBeInstanceOf(Error);
+    expect(result.code).toBe("VALIDATION_ERROR");
+    expect(result.message).toBe("Campo inválido.");
+    expect(result.details).toEqual([{ field: "email" }]);
   });
 
   it("retorna NETWORK_ERROR quando o erro do axios não tem resposta", () => {
     const error = fakeAxiosError({});
 
-    expect(toApiErrorResponse(error).code).toBe("NETWORK_ERROR");
+    expect(toApiError(error).code).toBe("NETWORK_ERROR");
   });
 
   it("retorna UNKNOWN_ERROR para qualquer outro tipo de erro", () => {
-    expect(toApiErrorResponse(new Error("algo inesperado")).code).toBe("UNKNOWN_ERROR");
+    expect(toApiError(new Error("algo inesperado")).code).toBe("UNKNOWN_ERROR");
   });
 });
 
@@ -47,7 +50,7 @@ describe("notifyIfSessionInvalidated", () => {
       const handler = vi.fn();
       setSessionInvalidatedHandler(handler);
 
-      notifyIfSessionInvalidated({ code, message: "x", details: [] });
+      notifyIfSessionInvalidated(new ApiError(code, "x"));
 
       expect(handler).toHaveBeenCalledWith(code);
     },
@@ -59,7 +62,7 @@ describe("notifyIfSessionInvalidated", () => {
       const handler = vi.fn();
       setSessionInvalidatedHandler(handler);
 
-      notifyIfSessionInvalidated({ code, message: "x", details: [] });
+      notifyIfSessionInvalidated(new ApiError(code, "x"));
 
       expect(handler).not.toHaveBeenCalled();
     },

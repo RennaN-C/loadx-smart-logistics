@@ -2,6 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { clearToken, getToken, setToken } from "../../../services/tokenStorage";
+import { ApiError } from "../../../types/api";
 import { getCurrentUser } from "../api/authApi";
 import { useAuth } from "../hooks/useAuth";
 import { AuthProvider } from "./AuthProvider";
@@ -10,6 +11,16 @@ vi.mock("../api/authApi", () => ({
   getCurrentUser: vi.fn(),
   login: vi.fn(),
 }));
+
+function base64Url(value: unknown): string {
+  return btoa(JSON.stringify(value)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function makeJwt(): string {
+  const header = base64Url({ alg: "HS256", typ: "JWT" });
+  const payload = base64Url({ sub: "user-1", exp: Math.floor(Date.now() / 1000) + 3600 });
+  return `${header}.${payload}.fake-signature`;
+}
 
 function Probe() {
   const { status, user } = useAuth();
@@ -42,7 +53,7 @@ describe("AuthProvider", () => {
   });
 
   it("com token salvo e sessão válida, restaura o usuário autenticado", async () => {
-    setToken("token-valido");
+    setToken(makeJwt());
     vi.mocked(getCurrentUser).mockResolvedValue({
       id: "1",
       name: "Ana Souza",
@@ -65,12 +76,8 @@ describe("AuthProvider", () => {
   });
 
   it("com token salvo mas sessão inválida, limpa o token e cai para unauthenticated", async () => {
-    setToken("token-expirado");
-    vi.mocked(getCurrentUser).mockRejectedValue({
-      code: "AUTH_INVALID_TOKEN",
-      message: "Token inválido.",
-      details: [],
-    });
+    setToken(makeJwt());
+    vi.mocked(getCurrentUser).mockRejectedValue(new ApiError("AUTH_INVALID_TOKEN", "Token inválido."));
 
     render(
       <AuthProvider>

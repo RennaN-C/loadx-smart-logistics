@@ -1,14 +1,8 @@
 import { useState, type FormEvent } from "react";
 
-import { isApiErrorResponse, type ApiErrorResponse } from "../../../types/api";
+import { ApiError } from "../../../types/api";
 import { useAuth } from "../hooks/useAuth";
 import { mapLoginErrorToMessage } from "./loginErrorMessages";
-
-const UNKNOWN_ERROR: ApiErrorResponse = {
-  code: "UNKNOWN_ERROR",
-  message: "Ocorreu um erro inesperado.",
-  details: [],
-};
 
 export function LoginForm() {
   const { login } = useAuth();
@@ -26,7 +20,8 @@ export function LoginForm() {
     try {
       await login(email, password);
     } catch (error) {
-      const apiError = isApiErrorResponse(error) ? error : UNKNOWN_ERROR;
+      const apiError =
+        error instanceof ApiError ? error : new ApiError("UNKNOWN_ERROR", "Ocorreu um erro inesperado.");
       setErrorMessage(mapLoginErrorToMessage(apiError));
       setIsSubmitting(false);
     }
@@ -94,7 +89,7 @@ export function LoginForm() {
         {isSubmitting ? (
           <>
             <span className="spinner" aria-hidden="true" />
-            Entrando…
+            <span>Entrando…</span>
           </>
         ) : (
           "Entrar"

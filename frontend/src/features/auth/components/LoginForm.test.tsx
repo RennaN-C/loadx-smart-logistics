@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+import { ApiError } from "../../../types/api";
 import { useAuth } from "../hooks/useAuth";
 import { LoginForm } from "./LoginForm";
 import { mapLoginErrorToMessage } from "./loginErrorMessages";
@@ -10,27 +11,19 @@ vi.mock("../hooks/useAuth");
 describe("mapLoginErrorToMessage", () => {
   it("traduz AUTH_INVALID_CREDENTIALS", () => {
     expect(
-      mapLoginErrorToMessage({
-        code: "AUTH_INVALID_CREDENTIALS",
-        message: "E-mail ou senha inválidos.",
-        details: [],
-      }),
+      mapLoginErrorToMessage(new ApiError("AUTH_INVALID_CREDENTIALS", "E-mail ou senha inválidos.")),
     ).toBe("E-mail ou senha inválidos. Verifique e tente novamente.");
   });
 
   it("traduz AUTH_USER_INACTIVE", () => {
-    expect(
-      mapLoginErrorToMessage({ code: "AUTH_USER_INACTIVE", message: "Usuário inativo.", details: [] }),
-    ).toBe("Este usuário está inativo. Fale com o administrador do sistema.");
+    expect(mapLoginErrorToMessage(new ApiError("AUTH_USER_INACTIVE", "Usuário inativo."))).toBe(
+      "Este usuário está inativo. Fale com o administrador do sistema.",
+    );
   });
 
   it("usa a mensagem do backend para qualquer outro código", () => {
     expect(
-      mapLoginErrorToMessage({
-        code: "NETWORK_ERROR",
-        message: "Não foi possível conectar ao servidor.",
-        details: [],
-      }),
+      mapLoginErrorToMessage(new ApiError("NETWORK_ERROR", "Não foi possível conectar ao servidor.")),
     ).toBe("Não foi possível conectar ao servidor.");
   });
 });
@@ -60,11 +53,9 @@ describe("LoginForm", () => {
   });
 
   it("mostra a mensagem mapeada quando o login falha", async () => {
-    const login = vi.fn().mockRejectedValue({
-      code: "AUTH_INVALID_CREDENTIALS",
-      message: "E-mail ou senha inválidos.",
-      details: [],
-    });
+    const login = vi
+      .fn()
+      .mockRejectedValue(new ApiError("AUTH_INVALID_CREDENTIALS", "E-mail ou senha inválidos."));
     vi.mocked(useAuth).mockReturnValue({ status: "unauthenticated", user: null, login, logout: vi.fn() });
 
     render(<LoginForm />);

@@ -1,6 +1,6 @@
-import type { ApiErrorResponse } from "../../../types/api";
+import type { ApiError } from "../../../types/api";
 
-export function mapLoginErrorToMessage(error: ApiErrorResponse): string {
+export function mapLoginErrorToMessage(error: ApiError): string {
   if (error.code === "AUTH_INVALID_CREDENTIALS") {
     return "E-mail ou senha inválidos. Verifique e tente novamente.";
   }

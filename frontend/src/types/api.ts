@@ -17,3 +17,15 @@ export function isApiErrorResponse(value: unknown): value is ApiErrorResponse {
     Array.isArray(candidate.details)
   );
 }
+
+export class ApiError extends Error {
+  readonly code: string;
+  readonly details: readonly unknown[];
+
+  constructor(code: string, message: string, details: readonly unknown[] = []) {
+    super(message);
+    this.name = "ApiError";
+    this.code = code;
+    this.details = details;
+  }
+}

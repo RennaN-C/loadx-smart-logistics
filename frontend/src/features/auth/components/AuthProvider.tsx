@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { setSessionInvalidatedHandler } from "../../../services/api";
 import { clearToken, getToken, setToken } from "../../../services/tokenStorage";
@@ -11,7 +11,11 @@ interface AuthState {
   user: AuthenticatedUser | null;
 }
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+interface AuthProviderProps {
+  readonly children: ReactNode;
+}
+
+export function AuthProvider({ children }: AuthProviderProps) {
   const [state, setState] = useState<AuthState>(() => ({
     status: getToken() ? "loading" : "unauthenticated",
     user: null,
@@ -64,12 +68,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setState({ status: "unauthenticated", user: null });
   }, []);
 
-  const value: AuthContextValue = {
-    status: state.status,
-    user: state.user,
-    login,
-    logout,
-  };
+  const value = useMemo<AuthContextValue>(
+    () => ({
+      status: state.status,
+      user: state.user,
+      login,
+      logout,
+    }),
+    [state.status, state.user, login, logout],
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

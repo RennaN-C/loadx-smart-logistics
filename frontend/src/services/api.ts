@@ -1,6 +1,6 @@
 import axios from "axios";
 
-import { isApiErrorResponse, type ApiErrorResponse } from "../types/api";
+import { ApiError, isApiErrorResponse } from "../types/api";
 import { getToken } from "./tokenStorage";
 
 export const api = axios.create({
@@ -17,26 +17,19 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-export function toApiErrorResponse(error: unknown): ApiErrorResponse {
+export function toApiError(error: unknown): ApiError {
   if (axios.isAxiosError(error)) {
     if (isApiErrorResponse(error.response?.data)) {
-      return error.response.data;
+      const { code, message, details } = error.response.data;
+      return new ApiError(code, message, details);
     }
 
     if (!error.response) {
-      return {
-        code: "NETWORK_ERROR",
-        message: "Não foi possível conectar ao servidor.",
-        details: [],
-      };
+      return new ApiError("NETWORK_ERROR", "Não foi possível conectar ao servidor.");
     }
   }
 
-  return {
-    code: "UNKNOWN_ERROR",
-    message: "Ocorreu um erro inesperado.",
-    details: [],
-  };
+  return new ApiError("UNKNOWN_ERROR", "Ocorreu um erro inesperado.");
 }
 
 let sessionInvalidatedHandler: ((code: string) => void) | null = null;
@@ -47,7 +40,7 @@ export function setSessionInvalidatedHandler(handler: ((code: string) => void) |
 
 const SESSION_INVALIDATING_CODES = new Set(["AUTH_INVALID_TOKEN", "AUTH_USER_INACTIVE"]);
 
-export function notifyIfSessionInvalidated(apiError: ApiErrorResponse): void {
+export function notifyIfSessionInvalidated(apiError: ApiError): void {
   if (SESSION_INVALIDATING_CODES.has(apiError.code)) {
     sessionInvalidatedHandler?.(apiError.code);
   }
@@ -56,7 +49,7 @@ export function notifyIfSessionInvalidated(apiError: ApiErrorResponse): void {
 api.interceptors.response.use(
   (response) => response,
   (error: unknown) => {
-    const apiError = toApiErrorResponse(error);
+    const apiError = toApiError(error);
     notifyIfSessionInvalidated(apiError);
     return Promise.reject(apiError);
   },
