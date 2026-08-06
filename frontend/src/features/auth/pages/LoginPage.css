@@ -11,6 +11,8 @@
   }
   .login-brand {
     padding: 28px 24px;
+  }
+  .login-brand-main {
     gap: 20px;
   }
   .login-brand-diagram {
@@ -23,9 +25,19 @@
   color: var(--brand-fg);
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  gap: 32px;
+  align-items: center;
   padding: 48px 40px;
+  text-align: center;
+}
+
+.login-brand-main {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
 }
 
 .login-brand-eyebrow,
@@ -60,7 +72,7 @@
   color: var(--brand-muted);
   line-height: 1.55;
   font-size: 0.95rem;
-  margin: 0 0 16px;
+  margin: 0 auto 16px;
 }
 
 .login-brand-diagram {
