@@ -39,7 +39,25 @@ export function toApiErrorResponse(error: unknown): ApiErrorResponse {
   };
 }
 
+let sessionInvalidatedHandler: ((code: string) => void) | null = null;
+
+export function setSessionInvalidatedHandler(handler: ((code: string) => void) | null): void {
+  sessionInvalidatedHandler = handler;
+}
+
+const SESSION_INVALIDATING_CODES = new Set(["AUTH_INVALID_TOKEN", "AUTH_USER_INACTIVE"]);
+
+export function notifyIfSessionInvalidated(apiError: ApiErrorResponse): void {
+  if (SESSION_INVALIDATING_CODES.has(apiError.code)) {
+    sessionInvalidatedHandler?.(apiError.code);
+  }
+}
+
 api.interceptors.response.use(
   (response) => response,
-  (error: unknown) => Promise.reject(toApiErrorResponse(error)),
+  (error: unknown) => {
+    const apiError = toApiErrorResponse(error);
+    notifyIfSessionInvalidated(apiError);
+    return Promise.reject(apiError);
+  },
 );

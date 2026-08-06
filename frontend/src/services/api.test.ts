@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { toApiErrorResponse } from "./api";
+import { notifyIfSessionInvalidated, setSessionInvalidatedHandler, toApiErrorResponse } from "./api";
 
 function fakeAxiosError(overrides: { response?: unknown }): unknown {
   return { isAxiosError: true, ...overrides };
@@ -34,4 +34,34 @@ describe("toApiErrorResponse", () => {
   it("retorna UNKNOWN_ERROR para qualquer outro tipo de erro", () => {
     expect(toApiErrorResponse(new Error("algo inesperado")).code).toBe("UNKNOWN_ERROR");
   });
+});
+
+describe("notifyIfSessionInvalidated", () => {
+  afterEach(() => {
+    setSessionInvalidatedHandler(null);
+  });
+
+  it.each(["AUTH_INVALID_TOKEN", "AUTH_USER_INACTIVE"])(
+    "aciona o handler para %s (sessão inválida)",
+    (code) => {
+      const handler = vi.fn();
+      setSessionInvalidatedHandler(handler);
+
+      notifyIfSessionInvalidated({ code, message: "x", details: [] });
+
+      expect(handler).toHaveBeenCalledWith(code);
+    },
+  );
+
+  it.each(["AUTH_INVALID_CREDENTIALS", "AUTH_FORBIDDEN"])(
+    "não aciona o handler para %s (login errado ou sem permissão, sessão continua válida)",
+    (code) => {
+      const handler = vi.fn();
+      setSessionInvalidatedHandler(handler);
+
+      notifyIfSessionInvalidated({ code, message: "x", details: [] });
+
+      expect(handler).not.toHaveBeenCalled();
+    },
+  );
 });

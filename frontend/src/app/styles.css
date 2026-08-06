@@ -1,7 +1,37 @@
 :root {
-  font-family: Inter, system-ui, sans-serif;
-  color: #172033;
-  background: #f4f7fb;
+  --ink: #14181d;
+  --paper: #edebe3;
+  --card: #faf9f5;
+  --line: #d9d5c7;
+  --muted: #5f5b52;
+  --accent: #c97a22;
+  --accent-contrast: #14181d;
+  --danger: #a63a2e;
+  --danger-bg: #f3e4df;
+  --danger-line: #dcb6ac;
+
+  --brand-bg: #12181d;
+  --brand-fg: #edeae1;
+  --brand-muted: rgba(237, 234, 225, 0.68);
+  --brand-line: rgba(237, 234, 225, 0.18);
+
+  font-family: "Poppins", system-ui, sans-serif;
+  color: var(--ink);
+  background: var(--paper);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #edeae1;
+    --paper: #171b20;
+    --card: #1f252c;
+    --line: rgba(255, 255, 255, 0.12);
+    --muted: #a09b8f;
+    --accent: #e2a24a;
+    --danger: #e0685a;
+    --danger-bg: rgba(224, 104, 90, 0.14);
+    --danger-line: rgba(224, 104, 90, 0.4);
+  }
 }
 
 body {
@@ -27,5 +57,67 @@ body {
 
 .app-header {
   padding: 16px 32px;
-  border-bottom: 1px solid #dbe3ef;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.app-header-account {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.app-header-logout {
+  font-family: inherit;
+  font-size: 0.85rem;
+  color: var(--muted);
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+.app-header-logout:hover {
+  color: var(--ink);
+  border-color: var(--ink);
+}
+.app-header-logout:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(201, 122, 34, 0.35);
+}
+
+.session-loading {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  border-top-color: var(--accent);
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }

@@ -1,34 +1,42 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 
+import { AuthProvider } from "../features/auth/components/AuthProvider";
+import { RequireAuth } from "../features/auth/components/RequireAuth";
+import { LoginPage } from "../features/auth/pages/LoginPage";
 import { AppLayout } from "./AppLayout";
 
 export function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route element={<AppLayout />}>
-          <Route
-            index
-            element={
-              <div className="shell">
-                <h1>Base inicial pronta</h1>
-                <p>
-                  Consulte os READMEs e a documentação antes de iniciar as ocorrências do MVP.
-                </p>
-              </div>
-            }
-          />
-          <Route
-            path="*"
-            element={
-              <div className="shell">
-                <h1>Página não encontrada</h1>
-                <p>Verifique o endereço digitado.</p>
-              </div>
-            }
-          />
-        </Route>
-      </Routes>
+      <AuthProvider>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route element={<RequireAuth />}>
+            <Route element={<AppLayout />}>
+              <Route
+                index
+                element={
+                  <div className="shell">
+                    <h1>Base inicial pronta</h1>
+                    <p>
+                      Consulte os READMEs e a documentação antes de iniciar as ocorrências do MVP.
+                    </p>
+                  </div>
+                }
+              />
+              <Route
+                path="*"
+                element={
+                  <div className="shell">
+                    <h1>Página não encontrada</h1>
+                    <p>Verifique o endereço digitado.</p>
+                  </div>
+                }
+              />
+            </Route>
+          </Route>
+        </Routes>
+      </AuthProvider>
     </BrowserRouter>
   );
 }
