@@ -91,6 +91,14 @@ OC20.
 
 ## Riscos identificados
 
+- `RISCO IDENTIFICADO`: o backend possui intervalos de versão em
+  `requirements.txt`, mas ainda não possui lockfile; uma imagem limpa pode
+  instalar versões diferentes das usadas anteriormente e deve sempre executar a
+  suíte completa antes de ser publicada.
+- `RISCO IDENTIFICADO`: o `package-lock.json` atual do frontend apresentou duas
+  vulnerabilidades moderadas em dependências de produção e sete no total no
+  `npm audit` de 2026-08-06. A atualização deve ser tratada em ocorrência própria
+  e validada contra login, navegação, caminhões, lint, testes e build.
 - `RISCO IDENTIFICADO`: ainda não existe vínculo entre `users` e `drivers`; por segurança, `DRIVER` não recebe acesso operacional até que esse relacionamento seja aprovado e implementado.
 - `RISCO IDENTIFICADO`: o documento-base usa nomes de tabelas em português, enquanto o projeto já decidiu nomes técnicos em inglês. A documentação atual mantém inglês para evitar divergência no código.
 - `RISCO IDENTIFICADO`: o roadmap antigo usava outra numeração de ocorrências. A partir desta revisão, usar `OC01` a `OC48`.

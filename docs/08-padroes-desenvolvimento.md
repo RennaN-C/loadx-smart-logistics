@@ -153,6 +153,17 @@ Antes de criar migration:
 5. Revisar upgrade/downgrade.
 6. Adicionar teste mínimo.
 
+## Docker
+
+- `CONFIRMADO`: os contextos de build de `backend` e `frontend` mantêm
+  `.dockerignore` próprios para não enviar ambientes virtuais, `node_modules`,
+  caches, cobertura ou artefatos de build ao daemon.
+- `CONFIRMADO`: a imagem do frontend usa `npm ci` e o `package-lock.json` para
+  instalar exatamente a árvore de dependências versionada.
+- `CONFIRMADO`: a imagem do backend normaliza arquivos Python como não
+  executáveis para preservar o mesmo resultado do Ruff quando o contexto vem do
+  Docker Desktop no Windows.
+
 ## Endpoints
 
 - Prefixo de negócio: `/api/v1`.
