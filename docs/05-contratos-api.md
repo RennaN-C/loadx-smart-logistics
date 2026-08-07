@@ -5,7 +5,8 @@ Este documento é o contrato combinado entre backend, frontend, algoritmo e inte
 ## Convenções
 
 - `CONFIRMADO`: prefixo oficial da API de negócio: `/api/v1`.
-- `CONFIRMADO`: health check atual fica em `/health`, fora do prefixo.
+- `CONFIRMADO`: os endpoints operacionais `/health` e `/ready` ficam fora do
+  prefixo de negócio.
 - `CONFIRMADO`: JSON usa campos em snake_case.
 - `CONFIRMADO` por D06 e `ADR-016`: campos decimais públicos usam número JSON
   na entrada e na saída. Strings numéricas e booleanos são inválidos. O backend
@@ -25,9 +26,14 @@ Este documento é o contrato combinado entre backend, frontend, algoritmo e inte
 
 ## Autenticação
 
-Endpoints públicos:
+Endpoint público de negócio:
 
 - `POST /auth/login`.
+
+Endpoints públicos operacionais:
+
+- `GET /health`.
+- `GET /ready`.
 
 Endpoint disponível para qualquer usuário autenticado:
 
@@ -84,6 +90,35 @@ Erros específicos:
   "service": "loadx-api"
 }
 ```
+
+`CONFIRMADO`: `/health` é liveness e não consulta PostgreSQL ou Alembic.
+
+### GET `/ready`
+
+Resposta `200` quando PostgreSQL está acessível e `alembic_version` corresponde
+exatamente aos heads entregues com a aplicação:
+
+```json
+{
+  "status": "ready",
+  "service": "loadx-api"
+}
+```
+
+Resposta `503` para banco indisponível, timeout, tabela de versão ausente ou
+revisão divergente:
+
+```json
+{
+  "code": "SERVICE_NOT_READY",
+  "message": "O serviço não está pronto.",
+  "details": []
+}
+```
+
+`CONFIRMADO` por D11 e `ADR-018`: a verificação é somente leitura, não aplica
+migrations, possui orçamento total de 2 segundos e não expõe componente, URL,
+credencial, revisão, exceção ou stack trace.
 
 ## Usuários
 
@@ -548,7 +583,7 @@ Mapeamento recomendado:
 
 ## Segurança de API
 
-- Somente `GET /health` e `POST /api/v1/auth/login` são públicos.
+- Somente `GET /health`, `GET /ready` e `POST /api/v1/auth/login` são públicos.
 - Todos os demais endpoints de negócio exigem Bearer token e aplicam a matriz de `docs/04-regras-negocio.md`.
 - `CONFIRMADO`: com `APP_ENV=local`, `/docs`, `/docs/oauth2-redirect`, `/redoc` e `/openapi.json` ficam disponíveis. Com `APP_ENV=production` ou sem a variável, essas rotas não são registradas e retornam `404`.
 - Senhas nunca retornam na API.

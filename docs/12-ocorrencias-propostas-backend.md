@@ -30,7 +30,7 @@ e `OC59` foram integradas em `desenvolvimento` pelo PR #14.
 | `OC55` | Média | Desenvolvedor 1, com revisão do Desenvolvedor 4 | Integrada em `desenvolvimento` |
 | `OC56` | Média | Desenvolvedor 1 e Desenvolvedor 3 | Integrada em `desenvolvimento` |
 | `OC57` | Média | Desenvolvedor 2 | Absorvida e resolvida pela revisão da `OC11` |
-| `OC58` | Baixa | Desenvolvedor 1, com apoio do Desenvolvedor 4 | Bloqueada por `D11` |
+| `OC58` | Baixa | Desenvolvedor 1, com apoio do Desenvolvedor 4 | Desbloqueada por D11; pronta para implementação |
 | `OC59` | Média | Desenvolvedor 1 e Desenvolvedor 3 | Integrada em `desenvolvimento` |
 
 As referências `DXX` apontam para `docs/decisoes-equipe-backend.txt`.
@@ -414,6 +414,9 @@ Distinguir aplicação em execução de aplicação pronta para atender operaç�
 
 `CONFIRMADO`: `/health` retorna `ok` sem verificar conexão com PostgreSQL ou estado das migrations.
 
+`CONFIRMADO`: D11 foi aprovada em 2026-08-07 e registrada na `ADR-018`. A
+ocorrência está desbloqueada para implementação.
+
 ### Critérios de aceite
 
 - `/health` mantém o contrato atual de liveness, salvo decisão explícita diferente.
@@ -426,7 +429,7 @@ Distinguir aplicação em execução de aplicação pronta para atender operaç�
 
 ### Dependências
 
-- `D11`: caminho, payload e profundidade da verificação.
+- `D11` e `ADR-018`: caminho, payload, timeout e profundidade da verificação.
 - Atualização de `docs/05-contratos-api.md` e documentação de infraestrutura.
 
 ---

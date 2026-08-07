@@ -61,7 +61,9 @@ Regras complementares:
 - Respostas públicas de usuário nunca devem retornar `password_hash`.
 - Token JWT deve identificar o usuário pelo UUID em `sub`.
 - Usuário inativo não pode fazer login.
-- Somente `GET /health` e `POST /api/v1/auth/login` são públicos.
+- Somente `GET /health`, `GET /ready` e `POST /api/v1/auth/login` são públicos.
+- `/health` mede apenas liveness. `/ready` exige PostgreSQL acessível e revisão
+  Alembic exatamente no head, conforme D11 e `ADR-018`.
 - Todos os demais endpoints de negócio exigem autenticação Bearer, salvo integração externa futura com autenticação própria aprovada.
 - O primeiro `ADMIN` é criado por comando administrativo local, executado antes da exposição da API e somente quando não existem usuários.
 - Depois do bootstrap, somente `ADMIN` cria usuários por `POST /api/v1/users`.

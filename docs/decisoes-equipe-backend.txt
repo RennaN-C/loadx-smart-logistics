@@ -222,7 +222,7 @@ Data:
 
 D11 - CONTRATO DE READINESS
 ---------------------------
-Marcador: DECISÃO NECESSÁRIA
+Marcador: CONFIRMADO
 Perguntas:
 - qual será o caminho e payload da verificação de prontidão?
 - conexão disponível é suficiente ou a revisão Alembic também deve estar em head?
@@ -230,8 +230,17 @@ Perguntas:
 RECOMENDAÇÃO: manter /health como liveness e criar readiness sem expor URL, credenciais ou stack trace.
 Impacta: OC58, Compose, CI e monitoramento futuro.
 Escolha da equipe:
-Responsáveis:
-Data:
+- manter GET /health como liveness sem dependências externas;
+- criar GET /ready, público e fora de /api/v1;
+- retornar 200 somente após SELECT 1 somente leitura e igualdade exata entre as
+  revisões de alembic_version e os heads entregues com a aplicação;
+- impor orçamento total de 2 segundos e nunca aplicar migrations pela rota;
+- retornar sucesso com status e nome do serviço;
+- retornar 503 SERVICE_NOT_READY no envelope de erro oficial, sem revelar o
+  componente, URL, credencial, revisão, exceção ou stack trace;
+- permitir que Compose, CI e monitoramento consumam /ready sem token de usuário.
+Responsáveis: Desenvolvedor 1, com revisão do Desenvolvedor 4.
+Data: 2026-08-07.
 
 
 D12 - DADOS PESSOAIS EM LISTAGENS E PAGINAÇÃO
@@ -386,12 +395,14 @@ D01, D02 e D03, registradas em ADR-004, docs/04 e docs/05.
 D04 e D05, registradas em ADR-015, docs/04 e docs/05.
 D06, registrada em ADR-016 e docs/05.
 D12, registrada em ADR-017 e docs/05.
+D11, registrada em ADR-018, docs/02, docs/04, docs/05 e docs/08.
 
 Ocorrências desbloqueadas:
-OC51, OC52, OC56 e OC59.
+OC51, OC52, OC56, OC58 e OC59.
 
 ADRs que precisam ser criadas:
-Nenhuma para as decisões aprovadas; ADR-004, ADR-015, ADR-016 e ADR-017 criadas.
+Nenhuma para as decisões aprovadas; ADR-004, ADR-015, ADR-016, ADR-017 e
+ADR-018 criadas.
 
 Pendências mantidas para próxima reunião:
 

@@ -167,13 +167,17 @@ Antes de criar migration:
 ## Endpoints
 
 - Prefixo de negócio: `/api/v1`.
-- Health check: `/health`.
+- Liveness: `/health`.
+- Readiness: `/ready`, com PostgreSQL acessível e Alembic exatamente no head.
 - Caminhos em kebab-case.
 - Recursos no plural: `/trucks`, `/load-plans`, `/loading-sessions`.
 - IDs no path: `/{id}`.
 - Ações explícitas por verbo quando não forem CRUD simples: `/load-plans/{id}/approve`.
 - Payloads e respostas em snake_case.
 - Erros no formato de `docs/05-contratos-api.md`.
+
+`CONFIRMADO` por D11 e `ADR-018`: readiness é somente leitura, possui orçamento
+total de 2 segundos e retorna falha genérica sem detalhes de infraestrutura.
 
 ## Erros e logs
 

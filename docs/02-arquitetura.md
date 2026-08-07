@@ -44,7 +44,8 @@ router -> schemas -> service -> repository -> model
 
 Responsabilidades por pasta:
 
-- `backend/app/main.py`: cria a aplicação FastAPI, configura CORS, registra o `api_router` e expõe `/health`.
+- `backend/app/main.py`: cria a aplicação FastAPI, configura CORS, registra o
+  `api_router` e expõe `/health` e `/ready`.
 - `backend/app/api`: agrega routers públicos da versão `/api/v1`; não implementa regra de negócio.
 - `backend/app/core`: configurações globais, segurança, logging e exceções compartilhadas.
 - `backend/app/database`: engine, sessão SQLAlchemy, base declarativa e utilidades de persistência.
@@ -124,4 +125,6 @@ Responsabilidades por pasta:
 - `CONFIRMADO`: `SECRET_KEY`, tokens de IA e WhatsApp vêm de `.env`.
 - `CONFIRMADO`: `APP_ENV` aceita `local` ou `production`; a documentação HTTP da API é registrada somente em `local` e o valor padrão seguro é `production`.
 - `CONFIRMADO`: a fronteira de endpoints, a matriz RBAC e o bootstrap administrativo seguem `ADR-004`.
+- `CONFIRMADO`: D11 e `ADR-018` mantêm `/health` como liveness e definem
+  `/ready` como verificação pública e genérica de PostgreSQL e Alembic.
 - `PENDENTE DE DEFINIÇÃO`: duração final do token, refresh token, bloqueio por tentativas inválidas, força e recuperação de senha seguem em `D18`.
