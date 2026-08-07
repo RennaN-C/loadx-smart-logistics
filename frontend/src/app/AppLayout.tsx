@@ -1,4 +1,4 @@
-import { Outlet } from "react-router-dom";
+import { NavLink, Outlet } from "react-router-dom";
 
 import { useAuth } from "../features/auth/hooks/useAuth";
 
@@ -9,6 +9,9 @@ export function AppLayout() {
     <div className="app-shell">
       <header className="app-header">
         <p className="eyebrow">LOADX</p>
+        <nav className="app-nav">
+          <NavLink to="/trucks">Caminhões</NavLink>
+        </nav>
         {user ? (
           <div className="app-header-account">
             <span>{user.name}</span>

@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "../features/auth/components/AuthProvider";
 import { RequireAuth } from "../features/auth/components/RequireAuth";
 import { LoginPage } from "../features/auth/pages/LoginPage";
+import { TruckListPage } from "../features/trucks/pages/TruckListPage";
 import { AppLayout } from "./AppLayout";
 
 export function App() {
@@ -24,6 +25,7 @@ export function App() {
                   </div>
                 }
               />
+              <Route path="trucks" element={<TruckListPage />} />
               <Route
                 path="*"
                 element={
