@@ -1,12 +1,13 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { makePage } from "../../../tests/makePage";
 import { ApiError } from "../../../types/api";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { listCustomers } from "../../customers/api/customersApi";
 import { listProducts } from "../../products/api/productsApi";
-import { listOrders } from "../api/ordersApi";
-import type { Order } from "../types";
+import { getOrder, listOrders } from "../api/ordersApi";
+import type { OrderListItem } from "../types";
 import { OrderListPage } from "./OrderListPage";
 
 vi.mock("../api/ordersApi");
@@ -14,31 +15,32 @@ vi.mock("../../customers/api/customersApi");
 vi.mock("../../products/api/productsApi");
 vi.mock("../../auth/hooks/useAuth");
 
-const ORDERS: Order[] = [
+const ORDERS: OrderListItem[] = [
   {
     id: "o1",
     customerId: "c1",
     status: "DRAFT",
     priority: "NORMAL",
-    deliveryAddress: "Av. Brasil, 500",
     expectedDeliveryAt: null,
     createdAt: "2026-08-01T00:00:00Z",
-    items: [
-      { id: "i1", orderId: "o1", productId: "p1", quantity: 4, deliverySequence: 2 },
-      { id: "i2", orderId: "o1", productId: "p2", quantity: 1, deliverySequence: 1 },
-    ],
+    itemCount: 2,
   },
   {
     id: "o2",
     customerId: "c2",
     status: "DELIVERED",
     priority: "URGENT",
-    deliveryAddress: "Rua das Flores, 10",
     expectedDeliveryAt: null,
     createdAt: "2026-08-02T00:00:00Z",
-    items: [{ id: "i3", orderId: "o2", productId: "p1", quantity: 2, deliverySequence: 1 }],
+    itemCount: 1,
   },
 ];
+
+const ORDER_FULL = {
+  ...ORDERS[0],
+  deliveryAddress: "Av. Brasil, 500",
+  items: [{ id: "i1", orderId: "o1", productId: "p1", quantity: 4, deliverySequence: 1 }],
+};
 
 function mockRole(role: "LOGISTICS_MANAGER" | "CHECKER") {
   vi.mocked(useAuth).mockReturnValue({
@@ -58,10 +60,11 @@ function mockRole(role: "LOGISTICS_MANAGER" | "CHECKER") {
 
 describe("OrderListPage", () => {
   beforeEach(() => {
-    vi.mocked(listOrders).mockReset().mockResolvedValue(ORDERS);
+    vi.mocked(listOrders).mockReset().mockResolvedValue(makePage(ORDERS));
+    vi.mocked(getOrder).mockReset().mockResolvedValue(ORDER_FULL);
     vi.mocked(listCustomers)
       .mockReset()
-      .mockResolvedValue([
+      .mockResolvedValue(makePage([
         {
           id: "c1",
           name: "Distribuidora Aurora",
@@ -73,10 +76,10 @@ describe("OrderListPage", () => {
           notes: null,
           createdAt: "2026-08-01T00:00:00Z",
         },
-      ]);
+      ]));
     vi.mocked(listProducts)
       .mockReset()
-      .mockResolvedValue([
+      .mockResolvedValue(makePage([
         {
           id: "p1",
           code: "CX-100",
@@ -91,33 +94,43 @@ describe("OrderListPage", () => {
           rotationAllowed: true,
           createdAt: "2026-08-01T00:00:00Z",
         },
-      ]);
+      ]));
     mockRole("LOGISTICS_MANAGER");
   });
 
-  it("resolve o nome do cliente e o rótulo do produto a partir dos ids", async () => {
+  it("resolve o nome do cliente a partir do id, que é tudo que a listagem traz", async () => {
     render(<OrderListPage />);
 
     expect(await screen.findByText("Distribuidora Aurora")).toBeInTheDocument();
-    expect(screen.getAllByText("CX-100 — Caixa média").length).toBeGreaterThan(0);
   });
 
-  it("avisa quando o id referenciado não está mais nas listas", async () => {
+  it("avisa quando o cliente não está na página carregada, em vez de deixar vazio", async () => {
     render(<OrderListPage />);
     await screen.findByText("Distribuidora Aurora");
 
-    // c2 e p2 não existem nos mocks
+    // c2 não veio na listagem paginada de clientes
     expect(screen.getByText("Cliente não encontrado")).toBeInTheDocument();
-    expect(screen.getByText("Produto não encontrado")).toBeInTheDocument();
   });
 
-  it("ordena os itens do card pela sequência de entrega, não pela ordem da API", async () => {
+  it("mostra a contagem de itens, já que a listagem não devolve os itens", async () => {
     render(<OrderListPage />);
     await screen.findByText("Distribuidora Aurora");
 
-    const sequences = [...document.querySelectorAll(".order-card-seq")].map((el) => el.textContent);
+    const grid = within(document.querySelector(".entity-grid") as HTMLElement);
 
-    expect(sequences.slice(0, 2)).toEqual(["1", "2"]);
+    expect(grid.getByText("2")).toBeInTheDocument();
+  });
+
+  it("busca o pedido completo antes de abrir a edição", async () => {
+    render(<OrderListPage />);
+    await screen.findByText("Distribuidora Aurora");
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Editar" })[0]);
+
+    await waitFor(() => expect(getOrder).toHaveBeenCalledWith("o1"));
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+    // endereço e itens só existem no detalhe
+    expect(screen.getByLabelText("ENDEREÇO DE ENTREGA")).toHaveValue("Av. Brasil, 500");
   });
 
   it("traduz situação e prioridade para português nos cards", async () => {
@@ -139,19 +152,17 @@ describe("OrderListPage", () => {
     fireEvent.change(screen.getByLabelText("Filtrar por situação"), { target: { value: "DELIVERED" } });
 
     expect(screen.queryByText("Distribuidora Aurora")).not.toBeInTheDocument();
-    expect(screen.getByText("Rua das Flores, 10")).toBeInTheDocument();
+    expect(screen.getByText("Cliente não encontrado")).toBeInTheDocument();
   });
 
-  it("busca por cliente ou endereço sem chamar o backend de novo", async () => {
+  it("busca por cliente sem chamar o backend de novo", async () => {
     render(<OrderListPage />);
     await screen.findByText("Distribuidora Aurora");
 
-    fireEvent.change(screen.getByLabelText("Buscar por cliente ou endereço"), {
-      target: { value: "flores" },
-    });
+    fireEvent.change(screen.getByLabelText("Buscar por cliente"), { target: { value: "aurora" } });
 
-    expect(screen.queryByText("Distribuidora Aurora")).not.toBeInTheDocument();
-    expect(screen.getByText("Rua das Flores, 10")).toBeInTheDocument();
+    expect(screen.getByText("Distribuidora Aurora")).toBeInTheDocument();
+    expect(screen.queryByText("Cliente não encontrado")).not.toBeInTheDocument();
     expect(listOrders).toHaveBeenCalledOnce();
   });
 

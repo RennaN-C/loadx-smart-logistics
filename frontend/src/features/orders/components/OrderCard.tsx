@@ -1,5 +1,5 @@
 import { StatusPill } from "../../../components/StatusPill";
-import type { Order } from "../types";
+import type { OrderListItem } from "../types";
 import { priorityLabel, STATUS_LABELS, statusTone } from "./orderLabels";
 
 const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
@@ -8,25 +8,23 @@ const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
 });
 
 interface OrderCardProps {
-  readonly order: Order;
-  /** Resolvidos na página: o pedido só traz os ids. */
+  readonly order: OrderListItem;
+  /** Resolvido na página: a listagem só traz o id do cliente. */
   readonly customerName: string;
-  readonly productLabelOf: (productId: string) => string;
   readonly canManage: boolean;
-  readonly onEdit: (order: Order) => void;
+  readonly isOpening: boolean;
+  readonly onEdit: (id: string) => void;
 }
 
-export function OrderCard({ order, customerName, productLabelOf, canManage, onEdit }: OrderCardProps) {
-  const totalUnits = order.items.reduce((sum, item) => sum + item.quantity, 0);
-  const sortedItems = [...order.items].sort((a, b) => a.deliverySequence - b.deliverySequence);
-
+/**
+ * Mostra só o que a listagem entrega. Endereço e itens ficam no detalhe
+ * (`GET /orders/{id}`), então o card exibe a contagem em vez da lista.
+ */
+export function OrderCard({ order, customerName, canManage, isOpening, onEdit }: OrderCardProps) {
   return (
     <article className="order-card">
       <div className="order-card-head">
-        <div>
-          <p className="order-card-customer">{customerName}</p>
-          <p className="order-card-address">{order.deliveryAddress}</p>
-        </div>
+        <p className="order-card-customer">{customerName}</p>
         <StatusPill tone={statusTone(order.status)}>{STATUS_LABELS[order.status]}</StatusPill>
       </div>
 
@@ -37,9 +35,7 @@ export function OrderCard({ order, customerName, productLabelOf, canManage, onEd
         </div>
         <div>
           <dt>ITENS</dt>
-          <dd>
-            {order.items.length} ({totalUnits} un.)
-          </dd>
+          <dd>{order.itemCount}</dd>
         </div>
         <div>
           <dt>PREVISÃO</dt>
@@ -49,20 +45,15 @@ export function OrderCard({ order, customerName, productLabelOf, canManage, onEd
         </div>
       </dl>
 
-      <ol className="order-card-items">
-        {sortedItems.map((item) => (
-          <li key={item.id}>
-            <span className="order-card-seq">{item.deliverySequence}</span>
-            <span className="order-card-product">{productLabelOf(item.productId)}</span>
-            <span className="order-card-qty">×{item.quantity}</span>
-          </li>
-        ))}
-      </ol>
-
       {canManage ? (
         <div className="order-card-foot">
-          <button type="button" className="btn-link" onClick={() => onEdit(order)}>
-            Editar
+          <button
+            type="button"
+            className="btn-link"
+            disabled={isOpening}
+            onClick={() => onEdit(order.id)}
+          >
+            {isOpening ? "Abrindo…" : "Editar"}
           </button>
         </div>
       ) : null}

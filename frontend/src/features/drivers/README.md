@@ -4,7 +4,7 @@ Cadastro de motoristas (OC28). Consome `GET/POST/PATCH /drivers`.
 
 ## O que existe hoje
 
-- `components/DriverPanel.tsx`: busca, filtro por status, grade e modal de motoristas.
+- `components/DriverPanel.tsx`: busca, filtro por status, grade paginada e modal de motoristas.
 - `components/DriverForm.tsx`: criação e edição.
 - `components/driversErrorMessages.ts`: tradução dos códigos de erro — o backend distingue
   documento duplicado de CNH duplicada, e as mensagens seguem essa distinção.
@@ -12,7 +12,13 @@ Cadastro de motoristas (OC28). Consome `GET/POST/PATCH /drivers`.
 
 Esta feature **não tem página própria**: o painel é montado na aba "Motoristas" de
 `features/customers/pages/ContactsPage.tsx`, conforme a OC28 pede uma tela só para os dois cadastros.
-A listagem usa `hooks/useResourceList` (compartilhado).
+
+## A listagem devolve um resumo
+
+`GET /drivers` responde `DriverListRead`: só `id`, `name`, `license_category`, `active` e `created_at`.
+**Documento, telefone e número da CNH não saem na listagem.** Por isso o card mostra nome, categoria e
+status; a busca cobre só o nome; e editar exige `GET /drivers/{id}` antes de abrir o formulário
+(`hooks/useEditTarget`).
 
 ## Decisões
 
@@ -30,6 +36,6 @@ pessoais. Criar e editar é exclusivo do `LOGISTICS_MANAGER`.
 
 ## Fora de escopo
 
-Paginação e busca server-side (não suportadas pelo backend) e exclusão (não existe rota; desativar
-é `active: false` via PATCH). O vínculo entre `users` e `drivers` não existe no backend, então o
-perfil `DRIVER` ainda não enxerga nada além de `/auth/me`.
+Busca e filtro server-side (D12): atuam só na página carregada. Exclusão não existe rota; desativar é
+`active: false` via PATCH. O vínculo entre `users` e `drivers` não existe no backend, então o perfil
+`DRIVER` ainda não enxerga nada além de `/auth/me`.

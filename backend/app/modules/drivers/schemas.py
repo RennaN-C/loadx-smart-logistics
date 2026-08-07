@@ -63,3 +63,13 @@ class DriverRead(DriverBase):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True, str_strip_whitespace=True)
+
+
+class DriverListRead(BaseModel):
+    id: uuid.UUID
+    name: str
+    license_category: str | None
+    active: bool
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True, str_strip_whitespace=True)

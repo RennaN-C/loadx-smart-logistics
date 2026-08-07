@@ -6,6 +6,7 @@ import { useAuth } from "../../auth/hooks/useAuth";
 import { TruckCard } from "../components/TruckCard";
 import { TruckForm } from "../components/TruckForm";
 import { mapTruckErrorToMessage } from "../components/trucksErrorMessages";
+import { Pagination } from "../../../components/Pagination";
 import { useResourceList } from "../../../hooks/useResourceList";
 import { listTrucks } from "../api/trucksApi";
 import type { Truck } from "../types";
@@ -21,7 +22,16 @@ function matchesStatus(truck: Truck, filter: StatusFilter): boolean {
 
 export function TruckListPage() {
   const { user } = useAuth();
-  const { status, items: trucks, error, refetch } = useResourceList(listTrucks);
+  const {
+    status,
+    items: trucks,
+    error,
+    refetch,
+    page,
+    total,
+    totalPages,
+    goToPage,
+  } = useResourceList(listTrucks);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [editingTruck, setEditingTruck] = useState<Truck | null>(null);
@@ -30,7 +40,7 @@ export function TruckListPage() {
   const canManage = user?.role === "LOGISTICS_MANAGER";
   const isFormOpen = isCreating || editingTruck !== null;
 
-  // O backend ainda não aceita busca nem filtro por query param: ambos são client-side.
+  // D12 não permite busca ou filtros server-side: ambos operam somente na página atual.
   const visibleTrucks = useMemo(() => {
     const term = search.trim().toLowerCase();
 
@@ -87,6 +97,12 @@ export function TruckListPage() {
         </select>
       </div>
 
+      {status === "success" && total > 0 ? (
+        <p className="entity-summary">
+          Exibindo {trucks.length} de {total} caminhões. Busca e filtro atuam nesta página.
+        </p>
+      ) : null}
+
       {status === "loading" ? (
         <p className="entity-state">
           <span className="spinner" aria-hidden="true" />
@@ -112,6 +128,10 @@ export function TruckListPage() {
             <TruckCard key={truck.id} truck={truck} canManage={canManage} onEdit={setEditingTruck} />
           ))}
         </div>
+      ) : null}
+
+      {status === "success" ? (
+        <Pagination page={page} totalPages={totalPages} onChange={goToPage} label="caminhões" />
       ) : null}
 
       {isFormOpen ? (

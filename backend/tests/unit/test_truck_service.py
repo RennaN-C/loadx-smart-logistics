@@ -1,13 +1,9 @@
 import uuid
-from collections.abc import Generator
 from decimal import Decimal
 
 import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy.pool import StaticPool
+from sqlalchemy.orm import Session
 
-from app.database.base import Base
 from app.modules.trucks.models import Truck
 from app.modules.trucks.schemas import TruckCreate, TruckUpdate
 from app.modules.trucks.service import (
@@ -16,23 +12,7 @@ from app.modules.trucks.service import (
     TruckService,
 )
 
-
-@pytest.fixture
-def db_session() -> Generator[Session, None, None]:
-    engine = create_engine(
-        "sqlite+pysqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    Base.metadata.create_all(engine, tables=[Truck.__table__])
-    testing_session_local = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-
-    db = testing_session_local()
-    try:
-        yield db
-    finally:
-        db.close()
-        Base.metadata.drop_all(engine, tables=[Truck.__table__])
+SQLITE_TABLES = (Truck.__table__,)
 
 
 def make_truck_create(plate: str = "ABC1D23") -> TruckCreate:

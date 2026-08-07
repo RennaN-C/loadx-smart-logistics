@@ -407,10 +407,34 @@ body {
   padding: 32px 0;
 }
 
+/* D12 mantém busca e filtro fora do contrato da API: eles agem só na página
+   carregada. A tela precisa dizer isso, senão o usuário acha que buscou na
+   base inteira e conclui que o registro não existe. */
+.entity-summary {
+  color: var(--muted);
+  font-size: 0.82rem;
+  margin: -8px 0 20px;
+}
+
 .entity-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 20px;
+}
+
+.entity-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 28px;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.entity-pagination button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 @media (max-width: 720px) {

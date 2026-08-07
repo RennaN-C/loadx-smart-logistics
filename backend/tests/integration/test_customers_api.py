@@ -1,15 +1,10 @@
-from collections.abc import Callable, Generator
+from collections.abc import Callable
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy.pool import StaticPool
+from sqlalchemy.orm import Session
 
 from app.core.security import create_access_token
-from app.database.base import Base
-from app.database.session import get_db
-from app.main import app
 from app.modules.customers.models import Customer
 from app.modules.customers.schemas import CustomerCreate
 from app.modules.customers.service import CustomerService
@@ -24,38 +19,6 @@ CUSTOMER_ROUTE_CASES = [
     ("GET", "detail"),
     ("PATCH", "detail"),
 ]
-
-
-@pytest.fixture
-def session_factory() -> Generator[SessionFactory, None, None]:
-    engine = create_engine(
-        "sqlite+pysqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    tables = [User.__table__, Customer.__table__]
-    Base.metadata.create_all(engine, tables=tables)
-    testing_session_local = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-    try:
-        yield testing_session_local
-    finally:
-        Base.metadata.drop_all(engine, tables=tables)
-
-
-@pytest.fixture
-def client(session_factory: SessionFactory) -> Generator[TestClient, None, None]:
-    def override_get_db() -> Generator[Session, None, None]:
-        db = session_factory()
-        try:
-            yield db
-        finally:
-            db.close()
-
-    app.dependency_overrides[get_db] = override_get_db
-    try:
-        yield TestClient(app)
-    finally:
-        app.dependency_overrides.clear()
 
 
 def create_user_in_db(
@@ -171,7 +134,33 @@ def test_list_customers_returns_created_items(
     response = client.get("/api/v1/customers", headers=manager_headers)
 
     assert response.status_code == 200
-    assert response.json()[0]["document"] == "00000000000191"
+    body = response.json()
+    assert body["page"] == 1
+    assert body["page_size"] == 20
+    assert body["total"] == 1
+    assert body["total_pages"] == 1
+    customer = body["items"][0]
+    assert set(customer) == {"id", "name", "city", "state", "created_at"}
+    assert "document" not in customer
+    assert "phone" not in customer
+    assert "address" not in customer
+    assert "notes" not in customer
+
+
+def test_list_customers_returns_empty_page_metadata(
+    client: TestClient,
+    manager_headers: dict[str, str],
+) -> None:
+    response = client.get("/api/v1/customers", headers=manager_headers)
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "items": [],
+        "page": 1,
+        "page_size": 20,
+        "total": 0,
+        "total_pages": 0,
+    }
 
 
 def test_get_customer_by_id_returns_created_item(

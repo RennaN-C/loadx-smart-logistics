@@ -68,8 +68,7 @@ class LoadPlan(Base):
             name="occupancy_percent_range",
         ),
         CheckConstraint(
-            "total_weight_kg >= 0 "
-            "AND total_weight_kg <= truck_snapshot_max_weight_kg",
+            "total_weight_kg >= 0 AND total_weight_kg <= truck_snapshot_max_weight_kg",
             name="total_weight_valid",
         ),
         CheckConstraint(

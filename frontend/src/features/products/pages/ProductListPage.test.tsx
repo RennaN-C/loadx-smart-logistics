@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { makePage } from "../../../tests/makePage";
 import { ApiError } from "../../../types/api";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { listProducts } from "../api/productsApi";
@@ -64,7 +65,7 @@ describe("ProductListPage", () => {
   });
 
   it("lista os produtos retornados pelo backend", async () => {
-    vi.mocked(listProducts).mockResolvedValue(PRODUCTS);
+    vi.mocked(listProducts).mockResolvedValue(makePage(PRODUCTS));
 
     render(<ProductListPage />);
 
@@ -73,7 +74,7 @@ describe("ProductListPage", () => {
   });
 
   it("mostra só as restrições reais de cada produto", async () => {
-    vi.mocked(listProducts).mockResolvedValue(PRODUCTS);
+    vi.mocked(listProducts).mockResolvedValue(makePage(PRODUCTS));
 
     render(<ProductListPage />);
     await screen.findByText("CX-100");
@@ -85,7 +86,7 @@ describe("ProductListPage", () => {
   });
 
   it("filtra por código ou nome sem chamar o backend de novo", async () => {
-    vi.mocked(listProducts).mockResolvedValue(PRODUCTS);
+    vi.mocked(listProducts).mockResolvedValue(makePage(PRODUCTS));
 
     render(<ProductListPage />);
     await screen.findByText("CX-100");
@@ -100,7 +101,7 @@ describe("ProductListPage", () => {
   });
 
   it("filtra por restrição", async () => {
-    vi.mocked(listProducts).mockResolvedValue(PRODUCTS);
+    vi.mocked(listProducts).mockResolvedValue(makePage(PRODUCTS));
 
     render(<ProductListPage />);
     await screen.findByText("CX-100");
@@ -114,7 +115,7 @@ describe("ProductListPage", () => {
   });
 
   it("esconde as ações de gestão para quem só tem leitura", async () => {
-    vi.mocked(listProducts).mockResolvedValue(PRODUCTS);
+    vi.mocked(listProducts).mockResolvedValue(makePage(PRODUCTS));
     mockRole("CHECKER");
 
     render(<ProductListPage />);
@@ -125,7 +126,7 @@ describe("ProductListPage", () => {
   });
 
   it("mostra o estado vazio quando não há produtos", async () => {
-    vi.mocked(listProducts).mockResolvedValue([]);
+    vi.mocked(listProducts).mockResolvedValue(makePage([]));
 
     render(<ProductListPage />);
 

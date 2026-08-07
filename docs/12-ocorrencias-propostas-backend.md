@@ -8,21 +8,28 @@
 
 `CONFIRMADO`: nenhuma ocorrência abaixo está aprovada apenas por constar neste documento. Cada uma deve receber responsável, revisão de escopo e aceite da equipe antes da implementação.
 
+`CONFIRMADO`: `OC49`, `OC50` e `OC51` já foram integradas em
+`desenvolvimento`. `OC55` e `OC53` foram aprovadas por solicitação explícita do
+responsável em 2026-08-04. `OC52` foi desbloqueada pela aprovação formal de D04
+e D05 em 2026-08-06. `OC56` foi desbloqueada por D06 na mesma data. D12 foi
+aprovada em 2026-08-07 e desbloqueou a `OC59`. `OC52`, `OC53`, `OC55`, `OC56`
+e `OC59` estão implementadas e validadas localmente, pendentes de PR e revisão.
+
 ## Resumo de prioridade
 
 | Identificador sugerido | Prioridade | Responsável primário sugerido | Situação |
 |---|---|---|---|
-| `OC49` | Alta | Desenvolvedor 1 | Implementada localmente; pendente de PR e revisão |
-| `OC50` | Alta | Desenvolvedor 1 | Implementada localmente; pendente de PR e revisão |
-| `OC51` | Alta | Desenvolvedor 1 | Implementada localmente; pendente de PR e revisão |
-| `OC52` | Alta | Desenvolvedor 1 | Bloqueada por `D04` e `D05` |
-| `OC53` | Alta | Desenvolvedor 1, com revisão do Desenvolvedor 4 | Pronta para aprovação |
+| `OC49` | Alta | Desenvolvedor 1 | Integrada em `desenvolvimento` |
+| `OC50` | Alta | Desenvolvedor 1 | Integrada em `desenvolvimento` |
+| `OC51` | Alta | Desenvolvedor 1 | Integrada em `desenvolvimento` |
+| `OC52` | Alta | Desenvolvedor 1 | Implementada e validada localmente; pendente de PR e revisão |
+| `OC53` | Alta | Desenvolvedor 1, com revisão do Desenvolvedor 4 | Implementada e validada localmente; pendente de PR e revisão |
 | `OC54` | Média | Desenvolvedor 4, com apoio do Desenvolvedor 1 | Pronta para aprovação |
-| `OC55` | Média | Desenvolvedor 1, com revisão do Desenvolvedor 4 | Pronta para aprovação |
-| `OC56` | Média | Desenvolvedor 1 e Desenvolvedor 3 | Bloqueada por `D06` |
+| `OC55` | Média | Desenvolvedor 1, com revisão do Desenvolvedor 4 | Implementada e validada localmente; pendente de PR e revisão |
+| `OC56` | Média | Desenvolvedor 1 e Desenvolvedor 3 | Implementada e validada localmente; pendente de PR e revisão |
 | `OC57` | Média | Desenvolvedor 2 | Absorvida e resolvida pela revisão da `OC11` |
 | `OC58` | Baixa | Desenvolvedor 1, com apoio do Desenvolvedor 4 | Bloqueada por `D11` |
-| `OC59` | Média | Desenvolvedor 1 e Desenvolvedor 3 | Bloqueada por `D12` |
+| `OC59` | Média | Desenvolvedor 1 e Desenvolvedor 3 | Implementada e validada localmente; pendente de PR e revisão |
 
 As referências `DXX` apontam para `docs/decisoes-equipe-backend.txt`.
 
@@ -182,7 +189,11 @@ Fazer com que toda mudança permitida de status registre `old_status`, `new_stat
 
 ### Comportamento atual
 
-`CONFIRMADO`: pedidos podem trocar de status sem gravar `status_history`. O service de histórico executa `commit()` próprio, o que impede composição transacional segura.
+`CONFIRMADO`: a OC52 está implementada localmente. O status saiu do `PATCH`
+genérico, as transições manuais de D04 usam caso de uso explícito e pedido e
+histórico são confirmados ou desfeitos juntos conforme D05. O método independente
+de histórico mantém seu próprio `commit`, enquanto operações compostas usam
+`stage_status_change` sob a transação do service dono.
 
 ### Critérios de aceite
 
@@ -220,7 +231,10 @@ Fazer os testes de integração usarem PostgreSQL 16 e a cadeia real de migratio
 
 ### Comportamento atual
 
-`CONFIRMADO`: os testes de integração usam SQLite em memória e `Base.metadata.create_all`, sem aplicar as migrations oficiais.
+`CONFIRMADO`: a `OC53` substituiu SQLite por PostgreSQL 16 exclusivo na suíte de
+integração. A fixture valida o alvo, recria somente o schema de teste, aplica a
+cadeia Alembic, exercita `downgrade -1`, reaplica o head e isola cada teste em
+transação externa com savepoints.
 
 ### Critérios de aceite
 
@@ -236,7 +250,7 @@ Fazer os testes de integração usarem PostgreSQL 16 e a cadeia real de migratio
 ### Dependências
 
 - PostgreSQL 16 já confirmado como tecnologia oficial.
-- Migrations `20260729_0001` a `20260730_0003`.
+- Migrations `20260729_0001` a `20260804_0004`.
 
 ### Testes mínimos
 
@@ -289,7 +303,9 @@ Eliminar warnings de recursos, reduzir fixtures duplicadas e deixar os arquivos 
 
 ### Comportamento atual
 
-`CONFIRMADO`: fixtures repetem criação de engine e cliente, não executam `engine.dispose()` e não usam `TestClient` como context manager. `ruff format --check` indica arquivos fora do padrão.
+`CONFIRMADO`: a `OC55` centralizou as fixtures no menor escopo coerente, passou a
+encerrar `TestClient`, sessions, conexões e engines e normalizou a base Python com
+Ruff. A validação final não apresentou `ResourceWarning` causado pelos testes.
 
 ### Critérios de aceite
 
@@ -299,7 +315,8 @@ Eliminar warnings de recursos, reduzir fixtures duplicadas e deixar os arquivos 
 - A suíte não emite `ResourceWarning` causado pelo código de teste.
 - `ruff check .` e `ruff format --check .` passam.
 - A mudança de formatação não altera contratos ou regras de negócio.
-- Os 225 cenários existentes continuam passando, além dos testes adicionados pelas demais ocorrências.
+- Todos os cenários existentes continuam passando, além dos testes adicionados
+  pelas demais ocorrências; não fixar uma contagem que ficará obsoleta.
 
 ### Dependências
 
@@ -319,7 +336,10 @@ Definir e aplicar uma representação JSON única para campos `Decimal`, especia
 
 ### Comportamento atual
 
-`CONFIRMADO`: o backend responde pesos como strings, enquanto os exemplos de `docs/05-contratos-api.md` usam números JSON.
+`CONFIRMADO`: a OC56 está implementada localmente. Schemas de entrada e saída,
+OpenAPI, exemplos e o consumidor de caminhões usam exclusivamente número JSON.
+Strings decimais são rejeitadas; `Decimal` e `Numeric` permanecem no domínio e
+na persistência, sem mudança na aritmética do otimizador.
 
 ### Critérios de aceite
 
@@ -332,8 +352,19 @@ Definir e aplicar uma representação JSON única para campos `Decimal`, especia
 
 ### Dependências
 
-- `D06`: número JSON ou string decimal.
+- `D06`: número JSON aprovado em 2026-08-06.
 - Revisão conjunta entre backend e frontend.
+
+### Divisão de execução aprovada
+
+1. **OC56-A — decisão e contrato:** registrar D06, ADR-016, precisão, escala e
+   exemplos oficiais.
+2. **OC56-B — backend:** criar o tipo compartilhado da fronteira HTTP, aplicar
+   nos schemas, rejeitar strings e validar JSON e OpenAPI.
+3. **OC56-C — frontend:** remover a compatibilidade ambígua `number | string` e
+   consumir o contrato como `number` sem coerção silenciosa.
+4. **OC56-D — encerramento:** executar as suítes completas, atualizar READMEs e
+   registrar a ocorrência como validada localmente.
 
 ---
 
@@ -408,9 +439,32 @@ Distinguir aplicação em execução de aplicação pronta para atender operaç�
 
 Evitar exposição desnecessária de dados pessoais e impedir listagens sem limite, preservando acesso detalhado apenas para perfis autorizados.
 
-### Comportamento atual
+### Comportamento anterior
 
 `CONFIRMADO`: endpoints de listagem retornam coleções completas sem paginação. Os mesmos schemas usados em detalhes podem expor e-mail, documento, telefone, CNH, endereço e observações.
+
+### Decisão e divisão aprovada
+
+`CONFIRMADO`: D12 foi aprovada em 2026-08-07 e registrada na `ADR-017`.
+
+1. Registrar o contrato e a infraestrutura compartilhada de paginação.
+2. Minimizar e paginar usuários, clientes, motoristas e pedidos.
+3. Paginar caminhões e produtos e adaptar o consumidor frontend de caminhões.
+4. Executar testes completos e encerrar a ocorrência na documentação.
+
+### Resultado
+
+`CONFIRMADO`: as seis coleções atualmente implementadas usam `COUNT`, `LIMIT` e
+`OFFSET`, respeitam o limite máximo de 100 e retornam o envelope da ADR-017.
+Usuários, clientes, motoristas e pedidos usam schemas resumidos; os endpoints de
+detalhe mantêm os schemas completos protegidos pelo RBAC existente.
+
+`CONFIRMADO`: o consumidor frontend de caminhões usa os metadados do backend e
+oferece navegação entre páginas. A busca e o filtro continuam restritos à página
+atual porque D12 não aprovou filtros server-side.
+
+`CONFIRMADO`: a validação final executou 883 testes do backend sobre PostgreSQL
+16, a suíte completa do frontend, Ruff, ESLint e build de produção.
 
 ### Critérios de aceite
 

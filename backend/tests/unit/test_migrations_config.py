@@ -62,8 +62,7 @@ def test_initial_migration_renders_expected_check_constraint_names() -> None:
     assert "CONSTRAINT ck_load_plan_items__placed_or_rejected" in result.stdout
     assert "CONSTRAINT ck_load_plan_items__rotation_code_allowed" in result.stdout
     assert (
-        "CONSTRAINT ck_load_plan_items__rotation_permission_consistent"
-        in result.stdout
+        "CONSTRAINT ck_load_plan_items__rotation_permission_consistent" in result.stdout
     )
     assert "CONSTRAINT ck_load_plan_items__rejection_reason_allowed" in result.stdout
     assert "CONSTRAINT fk_load_plan_items__order_items" in result.stdout

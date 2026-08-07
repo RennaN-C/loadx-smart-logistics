@@ -3,7 +3,7 @@ import { useRef, useState, type FormEvent } from "react";
 import { AlertBanner } from "../../../components/AlertBanner";
 import { FormField } from "../../../components/FormField";
 import { ApiError } from "../../../types/api";
-import type { Customer } from "../../customers/types";
+import type { CustomerListItem } from "../../customers/types";
 import type { Product } from "../../products/types";
 import { createOrder, updateOrder } from "../api/ordersApi";
 import { ORDER_PRIORITIES, ORDER_STATUSES, type Order, type OrderStatus } from "../types";
@@ -26,7 +26,7 @@ function toInt(value: string): number {
 interface OrderFormProps {
   /** Ausente = criação. Presente = edição do pedido informado. */
   readonly order?: Order;
-  readonly customers: readonly Customer[];
+  readonly customers: readonly CustomerListItem[];
   readonly products: readonly Product[];
   readonly onSaved: () => void;
   readonly onCancel: () => void;

@@ -8,6 +8,16 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 - `CONFIRMADO`: unidades em centímetros, quilogramas e coordenadas `x/y/z`, conforme `ADR-002`.
 - `CONFIRMADO`: IA como apoio, não como validadora física, conforme `ADR-003`.
 - `CONFIRMADO`: endpoints públicos, matriz RBAC e bootstrap do primeiro administrador, conforme `ADR-004`.
+- `CONFIRMADO`: transições, bloqueios de edição e histórico atômico de pedidos
+  seguem D04, D05 e `ADR-015`.
+- `CONFIRMADO`: campos decimais públicos usam exclusivamente número JSON, com
+  `Decimal` preservado no domínio e precisão limitada conforme D06 e `ADR-016`.
+- `CONFIRMADO`: D12 e `ADR-017` definem resumos sem dados pessoais
+  desnecessários, paginação 1-based limitada a 100 registros e ordenação
+  cronológica determinística para todas as coleções atuais.
+- `CONFIRMADO`: a OC59 aplica D12 no banco e na API de usuários, clientes,
+  motoristas, pedidos, caminhões e produtos; o frontend de caminhões consome o
+  envelope e permite navegar pelas páginas.
 - `CONFIRMADO`: volumes individuais são expandidos de `order_items.quantity`, usam `volume_index` iniciado em `1` e são persistidos em `load_plan_items`, sem tabela `volumes`, conforme `ADR-005`.
 - `CONFIRMADO`: volumes usam a ordem total determinística de volume, peso, empilhamento, fragilidade, entrega e identidade, conforme `ADR-006`.
 - `CONFIRMADO`: rotações usam seis permutações ortogonais priorizadas, deduplicam simetrias e respeitam bloqueio por produto, conforme `ADR-007`.
@@ -28,6 +38,11 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 - `CONFIRMADO`: migration `20260804_0004` cria as três tabelas de planejamento.
 - `CONFIRMADO`: o contrato aprovado mantém login, token JWT e `/auth/me`, remove `/auth/register` e restringe criação de usuários a `ADMIN` após bootstrap local.
 - `CONFIRMADO`: a `OC51-I` auditou a matriz completa de autorização e a fronteira pública de todos os endpoints atualmente implementados.
+- `CONFIRMADO`: a `OC53` executa os testes de integração em PostgreSQL 16
+  exclusivo, aplica migrations Alembic do banco vazio, exercita downgrade mínimo
+  e isola cada cenário em transação externa.
+- `CONFIRMADO`: a `OC55` centralizou fixtures, encerra clients, sessions e engines
+  e deixou toda a base Python conforme Ruff.
 
 ## Decisões necessárias
 
@@ -73,8 +88,8 @@ recálculo protegidos por RBAC.
 `CONFIRMADO`: a expansão usa identidade `(order_item_id, volume_index)` com índice 1-based e não expõe política alternativa de base.
 
 `RISCO IDENTIFICADO`: mudança futura em gate determinístico exige testes, ADR e
-nova `algorithm_version`; a representação JSON de `Decimal` permanece fora da
-OC20.
+nova `algorithm_version`; a representação JSON de `Decimal` segue D06 e
+`ADR-016`, sem alterar a aritmética determinística da OC20.
 
 ## Suposições técnicas
 
@@ -87,6 +102,14 @@ OC20.
 
 ## Riscos identificados
 
+- `RISCO IDENTIFICADO`: o backend possui intervalos de versão em
+  `requirements.txt`, mas ainda não possui lockfile; uma imagem limpa pode
+  instalar versões diferentes das usadas anteriormente e deve sempre executar a
+  suíte completa antes de ser publicada.
+- `RISCO IDENTIFICADO`: o `package-lock.json` atual do frontend apresentou duas
+  vulnerabilidades moderadas em dependências de produção e sete no total no
+  `npm audit` de 2026-08-06. A atualização deve ser tratada em ocorrência própria
+  e validada contra login, navegação, caminhões, lint, testes e build.
 - `RISCO IDENTIFICADO`: ainda não existe vínculo entre `users` e `drivers`; por segurança, `DRIVER` não recebe acesso operacional até que esse relacionamento seja aprovado e implementado.
 - `RISCO IDENTIFICADO`: o documento-base usa nomes de tabelas em português, enquanto o projeto já decidiu nomes técnicos em inglês. A documentação atual mantém inglês para evitar divergência no código.
 - `RISCO IDENTIFICADO`: o roadmap antigo usava outra numeração de ocorrências. A partir desta revisão, usar `OC01` a `OC48`.

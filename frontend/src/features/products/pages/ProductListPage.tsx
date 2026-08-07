@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 
 import { AlertBanner } from "../../../components/AlertBanner";
 import { Modal } from "../../../components/Modal";
+import { Pagination } from "../../../components/Pagination";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { ProductCard } from "../components/ProductCard";
 import { ProductForm } from "../components/ProductForm";
@@ -22,7 +23,16 @@ function matchesRestriction(product: Product, filter: RestrictionFilter): boolea
 
 export function ProductListPage() {
   const { user } = useAuth();
-  const { status, items: products, error, refetch } = useResourceList(listProducts);
+  const {
+    status,
+    items: products,
+    error,
+    refetch,
+    page,
+    total,
+    totalPages,
+    goToPage,
+  } = useResourceList(listProducts);
   const [search, setSearch] = useState("");
   const [restrictionFilter, setRestrictionFilter] = useState<RestrictionFilter>("all");
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -31,7 +41,7 @@ export function ProductListPage() {
   const canManage = user?.role === "LOGISTICS_MANAGER";
   const isFormOpen = isCreating || editingProduct !== null;
 
-  // GET /products não aceita query param nenhum: busca e filtro são client-side.
+  // D12 mantém filtro server-side fora do contrato: busca e filtro agem só na página atual.
   const visibleProducts = useMemo(() => {
     const term = search.trim().toLowerCase();
 
@@ -88,6 +98,12 @@ export function ProductListPage() {
         </select>
       </div>
 
+      {status === "success" && total > 0 ? (
+        <p className="entity-summary">
+          Exibindo {products.length} de {total} produtos. Busca e filtro atuam nesta página.
+        </p>
+      ) : null}
+
       {status === "loading" ? (
         <p className="entity-state">
           <span className="spinner" aria-hidden="true" />
@@ -116,6 +132,10 @@ export function ProductListPage() {
             />
           ))}
         </div>
+      ) : null}
+
+      {status === "success" ? (
+        <Pagination page={page} totalPages={totalPages} onChange={goToPage} label="produtos" />
       ) : null}
 
       {isFormOpen ? (

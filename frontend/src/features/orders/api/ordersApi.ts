@@ -1,5 +1,14 @@
 import { api } from "../../../services/api";
-import type { Order, OrderInput, OrderItem, OrderStatus, OrderUpdateInput } from "../types";
+import { mapPageFromDto, toPageQuery, type ListParams, type PageDto } from "../../../services/pagination";
+import type { Page } from "../../../types/api";
+import type {
+  Order,
+  OrderInput,
+  OrderItem,
+  OrderListItem,
+  OrderStatus,
+  OrderUpdateInput,
+} from "../types";
 
 interface OrderItemDto {
   id: string;
@@ -7,6 +16,17 @@ interface OrderItemDto {
   product_id: string;
   quantity: number;
   delivery_sequence: number;
+}
+
+/** Resumo da listagem: sem endereço e sem itens (ver OrderListRead no backend). */
+interface OrderListDto {
+  id: string;
+  customer_id: string;
+  status: OrderStatus;
+  priority: string;
+  expected_delivery_at: string | null;
+  created_at: string;
+  item_count: number;
 }
 
 interface OrderDto {
@@ -18,6 +38,18 @@ interface OrderDto {
   expected_delivery_at: string | null;
   created_at: string;
   items: OrderItemDto[];
+}
+
+export function mapOrderListItemFromDto(dto: OrderListDto): OrderListItem {
+  return {
+    id: dto.id,
+    customerId: dto.customer_id,
+    status: dto.status,
+    priority: dto.priority,
+    expectedDeliveryAt: dto.expected_delivery_at,
+    createdAt: dto.created_at,
+    itemCount: dto.item_count,
+  };
 }
 
 function mapItemFromDto(dto: OrderItemDto): OrderItem {
@@ -62,10 +94,17 @@ function mapOrderToDto(input: OrderUpdateInput): Record<string, unknown> {
   return dto;
 }
 
-export async function listOrders(): Promise<Order[]> {
-  const { data } = await api.get<OrderDto[]>("/orders");
+export async function listOrders(params: ListParams = {}): Promise<Page<OrderListItem>> {
+  const { data } = await api.get<PageDto<OrderListDto>>("/orders", { params: toPageQuery(params) });
 
-  return data.map(mapOrderFromDto);
+  return mapPageFromDto(data, mapOrderListItemFromDto);
+}
+
+/** Necessário para editar: a listagem não traz endereço nem os itens. */
+export async function getOrder(id: string): Promise<Order> {
+  const { data } = await api.get<OrderDto>(`/orders/${id}`);
+
+  return mapOrderFromDto(data);
 }
 
 export async function createOrder(input: OrderInput): Promise<Order> {

@@ -1,36 +1,14 @@
-from collections.abc import Callable, Generator
+from collections.abc import Callable
 
-import pytest
-from sqlalchemy import create_engine, select
-from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy.pool import StaticPool
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from app.core.security import verify_password
-from app.database.base import Base
 from app.modules.auth.bootstrap import run_bootstrap
 from app.modules.auth.service import AuthService
 from app.modules.users.models import User
 
 SessionFactory = Callable[[], Session]
-
-
-@pytest.fixture
-def session_factory() -> Generator[SessionFactory, None, None]:
-    engine = create_engine(
-        "sqlite+pysqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    Base.metadata.create_all(engine, tables=[User.__table__])
-    testing_session_local = sessionmaker(
-        bind=engine,
-        autoflush=False,
-        autocommit=False,
-    )
-    try:
-        yield testing_session_local
-    finally:
-        Base.metadata.drop_all(engine, tables=[User.__table__])
 
 
 def test_run_bootstrap_creates_admin_without_exposing_password(

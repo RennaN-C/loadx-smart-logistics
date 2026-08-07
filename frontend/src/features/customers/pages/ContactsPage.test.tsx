@@ -1,37 +1,47 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { makePage } from "../../../tests/makePage";
 import { ApiError } from "../../../types/api";
 import { useAuth } from "../../auth/hooks/useAuth";
-import { listDrivers } from "../../drivers/api/driversApi";
-import { listCustomers } from "../api/customersApi";
+import { getDriver, listDrivers } from "../../drivers/api/driversApi";
+import { getCustomer, listCustomers } from "../api/customersApi";
 import { ContactsPage } from "./ContactsPage";
 
 vi.mock("../api/customersApi");
 vi.mock("../../drivers/api/driversApi");
 vi.mock("../../auth/hooks/useAuth");
 
-const CUSTOMER = {
+/** Resumo devolvido pela listagem: sem documento, telefone, endereço nem notas. */
+const CUSTOMER_ITEM = {
   id: "c1",
   name: "Distribuidora Aurora",
-  document: "12.345.678/0001-90",
-  phone: "(11) 90000-0000",
-  address: "Rua das Palmeiras, 120",
   city: "Campinas",
   state: "SP",
-  notes: "Recebe carga só até as 16h",
   createdAt: "2026-08-01T12:00:00Z",
 };
 
-const DRIVER = {
+const CUSTOMER_FULL = {
+  ...CUSTOMER_ITEM,
+  document: "12.345.678/0001-90",
+  phone: "(11) 90000-0000",
+  address: "Rua das Palmeiras, 120",
+  notes: "Recebe carga só até as 16h",
+};
+
+const DRIVER_ITEM = {
   id: "d1",
   name: "Carlos Pereira",
-  document: "123.456.789-00",
-  phone: "(11) 91111-1111",
-  licenseNumber: "01234567890",
   licenseCategory: "E",
   active: true,
   createdAt: "2026-08-01T12:00:00Z",
+};
+
+const DRIVER_FULL = {
+  ...DRIVER_ITEM,
+  document: "123.456.789-00",
+  phone: "(11) 91111-1111",
+  licenseNumber: "01234567890",
 };
 
 function mockRole(role: "LOGISTICS_MANAGER" | "ADMIN") {
@@ -52,8 +62,10 @@ function mockRole(role: "LOGISTICS_MANAGER" | "ADMIN") {
 
 describe("ContactsPage", () => {
   beforeEach(() => {
-    vi.mocked(listCustomers).mockReset().mockResolvedValue([CUSTOMER]);
-    vi.mocked(listDrivers).mockReset().mockResolvedValue([DRIVER]);
+    vi.mocked(listCustomers).mockReset().mockResolvedValue(makePage([CUSTOMER_ITEM]));
+    vi.mocked(listDrivers).mockReset().mockResolvedValue(makePage([DRIVER_ITEM]));
+    vi.mocked(getCustomer).mockReset().mockResolvedValue(CUSTOMER_FULL);
+    vi.mocked(getDriver).mockReset().mockResolvedValue(DRIVER_FULL);
     mockRole("LOGISTICS_MANAGER");
   });
 
@@ -82,16 +94,48 @@ describe("ContactsPage", () => {
     expect(screen.getByRole("tab", { name: "Motoristas" })).toHaveAttribute("aria-selected", "false");
   });
 
-  it("busca cliente por cidade sem chamar o backend de novo", async () => {
-    vi.mocked(listCustomers).mockResolvedValue([
-      CUSTOMER,
-      { ...CUSTOMER, id: "c2", name: "Mercado Central", city: "Sorocaba" },
-    ]);
+  it("não expõe dado pessoal no card, porque a listagem não traz", async () => {
+    render(<ContactsPage />);
+    await screen.findByText("Distribuidora Aurora");
+
+    expect(screen.queryByText("12.345.678/0001-90")).not.toBeInTheDocument();
+    expect(screen.queryByText("Rua das Palmeiras, 120")).not.toBeInTheDocument();
+    expect(screen.getByText("Campinas · SP")).toBeInTheDocument();
+  });
+
+  it("busca o cliente completo antes de abrir a edição", async () => {
+    render(<ContactsPage />);
+    await screen.findByText("Distribuidora Aurora");
+
+    fireEvent.click(screen.getByRole("button", { name: "Editar" }));
+
+    await waitFor(() => expect(getCustomer).toHaveBeenCalledWith("c1"));
+    // só depois do detalhe é que os campos pessoais aparecem no formulário
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByLabelText("DOCUMENTO")).toHaveValue("12.345.678/0001-90");
+  });
+
+  it("avisa quando não consegue carregar o detalhe para edição", async () => {
+    vi.mocked(getCustomer).mockRejectedValue(new ApiError("CUSTOMER_NOT_FOUND", "x"));
 
     render(<ContactsPage />);
     await screen.findByText("Distribuidora Aurora");
 
-    fireEvent.change(screen.getByLabelText("Buscar cliente por nome, documento ou cidade"), {
+    fireEvent.click(screen.getByRole("button", { name: "Editar" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Este cliente não foi encontrado.");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("busca cliente por cidade sem chamar o backend de novo", async () => {
+    vi.mocked(listCustomers).mockResolvedValue(
+      makePage([CUSTOMER_ITEM, { ...CUSTOMER_ITEM, id: "c2", name: "Mercado Central", city: "Sorocaba" }]),
+    );
+
+    render(<ContactsPage />);
+    await screen.findByText("Distribuidora Aurora");
+
+    fireEvent.change(screen.getByLabelText("Buscar cliente por nome ou cidade"), {
       target: { value: "sorocaba" },
     });
 
@@ -101,7 +145,9 @@ describe("ContactsPage", () => {
   });
 
   it("filtra motoristas por status", async () => {
-    vi.mocked(listDrivers).mockResolvedValue([DRIVER, { ...DRIVER, id: "d2", name: "Rita Alves", active: false }]);
+    vi.mocked(listDrivers).mockResolvedValue(
+      makePage([DRIVER_ITEM, { ...DRIVER_ITEM, id: "d2", name: "Rita Alves", active: false }]),
+    );
 
     render(<ContactsPage />);
     fireEvent.click(screen.getByRole("tab", { name: "Motoristas" }));

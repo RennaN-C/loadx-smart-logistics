@@ -28,17 +28,28 @@ def test_order_foreign_keys_follow_documented_names() -> None:
 
     for table_name, expected_names in expected_foreign_keys.items():
         table = Base.metadata.tables[table_name]
-        actual_names = {constraint.name for constraint in table.constraints if isinstance(constraint, ForeignKeyConstraint)}
+        actual_names = {
+            constraint.name
+            for constraint in table.constraints
+            if isinstance(constraint, ForeignKeyConstraint)
+        }
         assert expected_names <= actual_names
 
 
 def test_order_check_constraints_follow_documented_names() -> None:
     expected_check_constraints = {
         "orders": {"ck_orders__status_allowed"},
-        "order_items": {"ck_order_items__quantity_positive", "ck_order_items__delivery_sequence_positive"},
+        "order_items": {
+            "ck_order_items__quantity_positive",
+            "ck_order_items__delivery_sequence_positive",
+        },
     }
 
     for table_name, expected_names in expected_check_constraints.items():
         table = Base.metadata.tables[table_name]
-        actual_names = {constraint.name for constraint in table.constraints if isinstance(constraint, CheckConstraint)}
+        actual_names = {
+            constraint.name
+            for constraint in table.constraints
+            if isinstance(constraint, CheckConstraint)
+        }
         assert expected_names <= actual_names

@@ -11,7 +11,9 @@ class StatusHistoryRepository:
     def __init__(self, db: Session) -> None:
         self.db = db
 
-    def list(self, entity_type: str | None = None, entity_id: uuid.UUID | None = None) -> Sequence[StatusHistory]:
+    def list(
+        self, entity_type: str | None = None, entity_id: uuid.UUID | None = None
+    ) -> Sequence[StatusHistory]:
         statement = select(StatusHistory).order_by(StatusHistory.created_at.desc())
         if entity_type is not None:
             statement = statement.where(StatusHistory.entity_type == entity_type)

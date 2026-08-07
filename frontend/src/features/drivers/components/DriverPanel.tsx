@@ -2,17 +2,19 @@ import { useMemo, useState } from "react";
 
 import { AlertBanner } from "../../../components/AlertBanner";
 import { Modal } from "../../../components/Modal";
+import { Pagination } from "../../../components/Pagination";
 import { StatusPill } from "../../../components/StatusPill";
+import { useEditTarget } from "../../../hooks/useEditTarget";
 import { useResourceList } from "../../../hooks/useResourceList";
 import { useAuth } from "../../auth/hooks/useAuth";
-import { listDrivers } from "../api/driversApi";
-import type { Driver } from "../types";
+import { getDriver, listDrivers } from "../api/driversApi";
+import type { Driver, DriverListItem } from "../types";
 import { DriverForm } from "./DriverForm";
 import { mapDriverErrorToMessage } from "./driversErrorMessages";
 
 type StatusFilter = "all" | "active" | "inactive";
 
-function matchesStatus(driver: Driver, filter: StatusFilter): boolean {
+function matchesStatus(driver: DriverListItem, filter: StatusFilter): boolean {
   if (filter === "active") return driver.active;
   if (filter === "inactive") return !driver.active;
   return true;
@@ -20,32 +22,37 @@ function matchesStatus(driver: Driver, filter: StatusFilter): boolean {
 
 export function DriverPanel() {
   const { user } = useAuth();
-  const { status, items: drivers, error, refetch } = useResourceList(listDrivers);
+  const {
+    status,
+    items: drivers,
+    error,
+    refetch,
+    page,
+    total,
+    totalPages,
+    goToPage,
+  } = useResourceList(listDrivers);
+  const edit = useEditTarget<Driver>(getDriver);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const [editingDriver, setEditingDriver] = useState<Driver | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
   const canManage = user?.role === "LOGISTICS_MANAGER";
-  const isFormOpen = isCreating || editingDriver !== null;
+  const isFormOpen = isCreating || edit.target !== null;
 
+  // Só nome: a listagem não traz documento nem CNH.
   const visibleDrivers = useMemo(() => {
     const term = search.trim().toLowerCase();
 
-    return drivers.filter((driver) => {
-      const matchesTerm =
-        term === "" ||
-        driver.name.toLowerCase().includes(term) ||
-        driver.document.toLowerCase().includes(term) ||
-        driver.licenseNumber.toLowerCase().includes(term);
-
-      return matchesTerm && matchesStatus(driver, statusFilter);
-    });
+    return drivers.filter(
+      (driver) =>
+        (term === "" || driver.name.toLowerCase().includes(term)) && matchesStatus(driver, statusFilter),
+    );
   }, [drivers, search, statusFilter]);
 
   function closeForm() {
     setIsCreating(false);
-    setEditingDriver(null);
+    edit.close();
   }
 
   async function handleSaved() {
@@ -58,8 +65,8 @@ export function DriverPanel() {
       <div className="entity-toolbar">
         <input
           type="search"
-          aria-label="Buscar motorista por nome, documento ou CNH"
-          placeholder="Buscar por nome, documento ou CNH"
+          aria-label="Buscar motorista por nome"
+          placeholder="Buscar por nome"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
         />
@@ -79,6 +86,12 @@ export function DriverPanel() {
         ) : null}
       </div>
 
+      {status === "success" && total > 0 ? (
+        <p className="entity-summary">
+          Exibindo {drivers.length} de {total} motoristas. Busca e filtro atuam nesta página.
+        </p>
+      ) : null}
+
       {status === "loading" ? (
         <p className="entity-state">
           <span className="spinner" aria-hidden="true" />
@@ -87,6 +100,7 @@ export function DriverPanel() {
       ) : null}
 
       {status === "error" && error ? <AlertBanner>{mapDriverErrorToMessage(error)}</AlertBanner> : null}
+      {edit.error ? <AlertBanner>{mapDriverErrorToMessage(edit.error)}</AlertBanner> : null}
 
       {status === "success" && visibleDrivers.length === 0 ? (
         <p className="entity-state">
@@ -106,13 +120,7 @@ export function DriverPanel() {
                   {driver.active ? "Ativo" : "Inativo"}
                 </StatusPill>
               </div>
-              <p className="contact-card-line">{driver.document}</p>
-              <p className="contact-card-line">{driver.phone}</p>
               <dl className="contact-card-license">
-                <div>
-                  <dt>CNH</dt>
-                  <dd>{driver.licenseNumber}</dd>
-                </div>
                 <div>
                   <dt>CATEGORIA</dt>
                   <dd>{driver.licenseCategory ?? "—"}</dd>
@@ -120,8 +128,13 @@ export function DriverPanel() {
               </dl>
               {canManage ? (
                 <div className="contact-card-foot">
-                  <button type="button" className="btn-link" onClick={() => setEditingDriver(driver)}>
-                    Editar
+                  <button
+                    type="button"
+                    className="btn-link"
+                    disabled={edit.loadingId === driver.id}
+                    onClick={() => void edit.open(driver.id)}
+                  >
+                    {edit.loadingId === driver.id ? "Abrindo…" : "Editar"}
                   </button>
                 </div>
               ) : null}
@@ -130,13 +143,17 @@ export function DriverPanel() {
         </div>
       ) : null}
 
+      {status === "success" ? (
+        <Pagination page={page} totalPages={totalPages} onChange={goToPage} label="motoristas" />
+      ) : null}
+
       {isFormOpen ? (
         <Modal
-          title={editingDriver ? "Editar motorista" : "Novo motorista"}
+          title={edit.target ? "Editar motorista" : "Novo motorista"}
           subtitle="Condutor da viagem"
           onClose={closeForm}
         >
-          <DriverForm driver={editingDriver ?? undefined} onSaved={handleSaved} onCancel={closeForm} />
+          <DriverForm driver={edit.target ?? undefined} onSaved={handleSaved} onCancel={closeForm} />
         </Modal>
       ) : null}
     </>

@@ -1,4 +1,6 @@
 import { api } from "../../../services/api";
+import { mapPageFromDto, toPageQuery, type ListParams, type PageDto } from "../../../services/pagination";
+import type { Page } from "../../../types/api";
 import type { Product, ProductInput, ProductUpdateInput } from "../types";
 
 interface ProductDto {
@@ -9,8 +11,7 @@ interface ProductDto {
   width_cm: number;
   height_cm: number;
   length_cm: number;
-  /** Decimal(10,3) no backend: chega como string, igual max_weight_kg em trucks. */
-  weight_kg: number | string;
+  weight_kg: number;
   fragile: boolean;
   stackable: boolean;
   rotation_allowed: boolean;
@@ -26,7 +27,7 @@ export function mapProductFromDto(dto: ProductDto): Product {
     widthCm: dto.width_cm,
     heightCm: dto.height_cm,
     lengthCm: dto.length_cm,
-    weightKg: Number(dto.weight_kg),
+    weightKg: dto.weight_kg,
     fragile: dto.fragile,
     stackable: dto.stackable,
     rotationAllowed: dto.rotation_allowed,
@@ -51,10 +52,14 @@ function mapProductToDto(input: ProductUpdateInput): Partial<ProductDto> {
   return dto;
 }
 
-export async function listProducts(): Promise<Product[]> {
-  const { data } = await api.get<ProductDto[]>("/products");
+export function mapProductPageFromDto(dto: PageDto<ProductDto>): Page<Product> {
+  return mapPageFromDto(dto, mapProductFromDto);
+}
 
-  return data.map(mapProductFromDto);
+export async function listProducts(params: ListParams = {}): Promise<Page<Product>> {
+  const { data } = await api.get<PageDto<ProductDto>>("/products", { params: toPageQuery(params) });
+
+  return mapProductPageFromDto(data);
 }
 
 export async function createProduct(input: ProductInput): Promise<Product> {

@@ -15,7 +15,8 @@ Crie somente os arquivos necessários para a ocorrência atual.
 
 ## Endpoints
 
-- `GET /api/v1/drivers`: lista motoristas.
+- `GET /api/v1/drivers`: lista paginada com `id`, `name`, `license_category`,
+  `active` e `created_at`; omite documento, telefone e número da CNH.
 - `POST /api/v1/drivers`: cria motorista.
 - `GET /api/v1/drivers/{id}`: consulta motorista por ID.
 - `PATCH /api/v1/drivers/{id}`: atualiza campos enviados.

@@ -106,9 +106,7 @@ class SequencedPlacement:
 
 def _validate_identity(identity: object, field_name: str) -> VolumeIdentity:
     if not isinstance(identity, VolumeIdentity):
-        raise InvalidLoadingSequenceInputError(
-            field_name, "must be a VolumeIdentity"
-        )
+        raise InvalidLoadingSequenceInputError(field_name, "must be a VolumeIdentity")
     if not isinstance(identity.order_item_id, UUID):
         raise InvalidLoadingSequenceInputError(
             f"{field_name}.order_item_id", "must be a UUID"
@@ -130,9 +128,7 @@ def _validate_placements(
     field_name: str,
 ) -> tuple[PlacementCandidate, ...]:
     if not isinstance(bounds, InternalDimensions):
-        raise InvalidLoadingSequenceInputError(
-            "bounds", "must be InternalDimensions"
-        )
+        raise InvalidLoadingSequenceInputError("bounds", "must be InternalDimensions")
     if not isinstance(placements, Sequence) or isinstance(
         placements, (str, bytes, bytearray)
     ):
@@ -253,9 +249,7 @@ def assign_loading_sequences(
             "placements", "must follow delivery depth monotonicity"
         )
 
-    placements_by_identity = {
-        placement.identity: placement for placement in validated
-    }
+    placements_by_identity = {placement.identity: placement for placement in validated}
     assessments = analyze_support_configuration(validated)
     in_degree = {
         assessment.identity: len(assessment.direct_supporter_identities)
@@ -287,23 +281,17 @@ def assign_loading_sequences(
 
     ordered_identities: list[VolumeIdentity] = []
     while ready:
-        _delivery_rank, _distance_rank, order_item_rank, volume_index = heappop(
-            ready
-        )
+        _delivery_rank, _distance_rank, order_item_rank, volume_index = heappop(ready)
         identity = VolumeIdentity(UUID(int=order_item_rank), volume_index)
         ordered_identities.append(identity)
 
-        for dependent_identity in sorted(
-            dependents[identity], key=_identity_key
-        ):
+        for dependent_identity in sorted(dependents[identity], key=_identity_key):
             in_degree[dependent_identity] -= 1
             if in_degree[dependent_identity] == 0:
                 push_ready(dependent_identity)
 
     if len(ordered_identities) != len(validated):
-        raise LoadingSequenceInvariantError(
-            "support dependency graph must be acyclic"
-        )
+        raise LoadingSequenceInvariantError("support dependency graph must be acyclic")
 
     return tuple(
         SequencedPlacement(

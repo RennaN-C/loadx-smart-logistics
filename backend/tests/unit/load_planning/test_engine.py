@@ -105,9 +105,7 @@ def test_dimension_rejection_precedes_weight_rejection() -> None:
         ],
     )
 
-    assert rejection_reasons(result) == (
-        RejectionReason.TRUCK_DIMENSIONS_EXCEEDED,
-    )
+    assert rejection_reasons(result) == (RejectionReason.TRUCK_DIMENSIONS_EXCEEDED,)
 
 
 def test_weight_rejection_does_not_change_total_for_the_next_volume() -> None:
@@ -122,9 +120,7 @@ def test_weight_rejection_does_not_change_total_for_the_next_volume() -> None:
     assert [item.identity.order_item_id for item in result.placed_volumes] == [
         UUID(int=2)
     ]
-    assert rejection_reasons(result) == (
-        RejectionReason.TRUCK_WEIGHT_EXCEEDED,
-    )
+    assert rejection_reasons(result) == (RejectionReason.TRUCK_WEIGHT_EXCEEDED,)
     assert result.metrics.total_weight_kg == Decimal("1.000")
 
 
@@ -192,9 +188,7 @@ def test_engine_reports_insufficient_support_at_the_furthest_frontier() -> None:
     )
 
     assert result.metrics.loaded_count == 2
-    assert rejection_reasons(result) == (
-        RejectionReason.INSUFFICIENT_SUPPORT,
-    )
+    assert rejection_reasons(result) == (RejectionReason.INSUFFICIENT_SUPPORT,)
 
 
 def test_depth_only_block_uses_no_valid_position_not_incidental_collision() -> None:
@@ -214,9 +208,7 @@ def test_depth_only_block_uses_no_valid_position_not_incidental_collision() -> N
     assert [item.identity.order_item_id for item in result.placed_volumes] == [
         UUID(int=1)
     ]
-    assert rejection_reasons(result) == (
-        RejectionReason.NO_VALID_POSITION,
-    )
+    assert rejection_reasons(result) == (RejectionReason.NO_VALID_POSITION,)
 
 
 def test_later_delivery_is_placed_deeper_and_loaded_first_on_the_floor() -> None:
@@ -333,9 +325,7 @@ def test_engine_accepts_exactly_the_approved_volume_limit() -> None:
 
     assert result.metrics.loaded_count == 0
     assert result.metrics.unloaded_count == 200
-    assert set(rejection_reasons(result)) == {
-        RejectionReason.TRUCK_DIMENSIONS_EXCEEDED
-    }
+    assert set(rejection_reasons(result)) == {RejectionReason.TRUCK_DIMENSIONS_EXCEEDED}
 
 
 def test_volume_limit_is_checked_before_expansion_or_large_allocation(

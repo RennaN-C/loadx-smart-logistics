@@ -1,9 +1,10 @@
 import uuid
 from collections.abc import Sequence
 
-from sqlalchemy import select
+from sqlalchemy import asc, desc, func, select
 from sqlalchemy.orm import Session, selectinload
 
+from app.core.pagination import PageResult, PaginationParams
 from app.modules.orders.models import Order, OrderItem
 
 
@@ -11,12 +12,26 @@ class OrderRepository:
     def __init__(self, db: Session) -> None:
         self.db = db
 
-    def list(self) -> Sequence[Order]:
-        statement = select(Order).options(selectinload(Order.items)).order_by(Order.created_at.desc())
-        return self.db.scalars(statement).all()
+    def list(self, pagination: PaginationParams) -> PageResult[Order]:
+        direction = asc if pagination.sort_order == "asc" else desc
+        total = self.db.scalar(select(func.count()).select_from(Order)) or 0
+        statement = (
+            select(Order)
+            .options(selectinload(Order.items))
+            .order_by(direction(Order.created_at), direction(Order.id))
+            .offset(pagination.offset)
+            .limit(pagination.page_size)
+        )
+        return PageResult.create(
+            self.db.scalars(statement).all(),
+            pagination,
+            total,
+        )
 
     def get(self, order_id: uuid.UUID) -> Order | None:
-        statement = select(Order).options(selectinload(Order.items)).where(Order.id == order_id)
+        statement = (
+            select(Order).options(selectinload(Order.items)).where(Order.id == order_id)
+        )
         return self.db.scalar(statement)
 
     def get_many(
@@ -29,9 +44,7 @@ class OrderRepository:
         if not unique_ids:
             return ()
         statement = (
-            select(Order)
-            .where(Order.id.in_(unique_ids))
-            .order_by(Order.id.asc())
+            select(Order).where(Order.id.in_(unique_ids)).order_by(Order.id.asc())
         )
         if for_update:
             statement = statement.with_for_update()

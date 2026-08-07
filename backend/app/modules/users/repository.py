@@ -1,9 +1,10 @@
 import uuid
 from collections.abc import Sequence
 
-from sqlalchemy import select
+from sqlalchemy import asc, desc, func, select
 from sqlalchemy.orm import Session
 
+from app.core.pagination import PageResult, PaginationParams
 from app.modules.users.models import User
 
 
@@ -11,9 +12,20 @@ class UserRepository:
     def __init__(self, db: Session) -> None:
         self.db = db
 
-    def list(self) -> Sequence[User]:
-        statement = select(User).order_by(User.created_at.desc(), User.email.asc())
-        return self.db.scalars(statement).all()
+    def list(self, pagination: PaginationParams) -> PageResult[User]:
+        direction = asc if pagination.sort_order == "asc" else desc
+        total = self.db.scalar(select(func.count()).select_from(User)) or 0
+        statement = (
+            select(User)
+            .order_by(direction(User.created_at), direction(User.id))
+            .offset(pagination.offset)
+            .limit(pagination.page_size)
+        )
+        return PageResult.create(
+            self.db.scalars(statement).all(),
+            pagination,
+            total,
+        )
 
     def has_any(self) -> bool:
         statement = select(User.id).limit(1)

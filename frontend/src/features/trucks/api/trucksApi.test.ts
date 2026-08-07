@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { mapTruckFromDto } from "./trucksApi";
+import { mapTruckFromDto, mapTruckPageFromDto } from "./trucksApi";
 
 const DTO = {
   id: "22222222-2222-2222-2222-222222222222",
@@ -29,9 +29,30 @@ describe("mapTruckFromDto", () => {
     });
   });
 
-  it("aceita max_weight_kg como string, já que o campo é Decimal no backend", () => {
-    const result = mapTruckFromDto({ ...DTO, max_weight_kg: "8000.50" });
+  it("preserva max_weight_kg como número sem coerção", () => {
+    const result = mapTruckFromDto({ ...DTO, max_weight_kg: 8000.5 });
 
     expect(result.maxWeightKg).toBe(8000.5);
+    expect(typeof result.maxWeightKg).toBe("number");
+  });
+});
+
+describe("mapTruckPageFromDto", () => {
+  it("converte o envelope paginado para camelCase", () => {
+    expect(
+      mapTruckPageFromDto({
+        items: [DTO],
+        page: 2,
+        page_size: 20,
+        total: 21,
+        total_pages: 2,
+      }),
+    ).toEqual({
+      items: [mapTruckFromDto(DTO)],
+      page: 2,
+      pageSize: 20,
+      total: 21,
+      totalPages: 2,
+    });
   });
 });

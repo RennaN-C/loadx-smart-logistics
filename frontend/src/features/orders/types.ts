@@ -26,15 +26,24 @@ export interface OrderItem {
   deliverySequence: number;
 }
 
-export interface Order {
+/**
+ * A listagem devolve um resumo (`OrderListRead`): sem endereço de entrega e sem
+ * os itens, só a contagem. O card usa `OrderListItem`; o formulário exige
+ * `Order` completo, buscado por `GET /orders/{id}` na hora de editar.
+ */
+export interface OrderListItem {
   id: string;
   customerId: string;
   status: OrderStatus;
   priority: string;
-  deliveryAddress: string;
   /** ISO 8601 em UTC, ou null. O backend exige fuso ao receber. */
   expectedDeliveryAt: string | null;
   createdAt: string;
+  itemCount: number;
+}
+
+export interface Order extends Omit<OrderListItem, "itemCount"> {
+  deliveryAddress: string;
   items: OrderItem[];
 }
 

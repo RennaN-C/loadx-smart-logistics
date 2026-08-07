@@ -1,29 +1,41 @@
 import { api } from "../../../services/api";
-import type { Customer, CustomerInput, CustomerUpdateInput } from "../types";
+import { mapPageFromDto, toPageQuery, type ListParams, type PageDto } from "../../../services/pagination";
+import type { Page } from "../../../types/api";
+import type { Customer, CustomerInput, CustomerListItem, CustomerUpdateInput } from "../types";
 
-interface CustomerDto {
+/** Resumo da listagem: sem dado pessoal (ver CustomerListRead no backend). */
+interface CustomerListDto {
   id: string;
   name: string;
+  city: string;
+  state: string;
+  created_at: string;
+}
+
+interface CustomerDto extends CustomerListDto {
   document: string;
   phone: string | null;
   address: string;
-  city: string;
-  state: string;
   notes: string | null;
-  created_at: string;
+}
+
+export function mapCustomerListItemFromDto(dto: CustomerListDto): CustomerListItem {
+  return {
+    id: dto.id,
+    name: dto.name,
+    city: dto.city,
+    state: dto.state,
+    createdAt: dto.created_at,
+  };
 }
 
 export function mapCustomerFromDto(dto: CustomerDto): Customer {
   return {
-    id: dto.id,
-    name: dto.name,
+    ...mapCustomerListItemFromDto(dto),
     document: dto.document,
     phone: dto.phone,
     address: dto.address,
-    city: dto.city,
-    state: dto.state,
     notes: dto.notes,
-    createdAt: dto.created_at,
   };
 }
 
@@ -41,10 +53,19 @@ function mapCustomerToDto(input: CustomerUpdateInput): Partial<CustomerDto> {
   return dto;
 }
 
-export async function listCustomers(): Promise<Customer[]> {
-  const { data } = await api.get<CustomerDto[]>("/customers");
+export async function listCustomers(params: ListParams = {}): Promise<Page<CustomerListItem>> {
+  const { data } = await api.get<PageDto<CustomerListDto>>("/customers", {
+    params: toPageQuery(params),
+  });
 
-  return data.map(mapCustomerFromDto);
+  return mapPageFromDto(data, mapCustomerListItemFromDto);
+}
+
+/** Necessário para editar: a listagem não traz os campos pessoais. */
+export async function getCustomer(id: string): Promise<Customer> {
+  const { data } = await api.get<CustomerDto>(`/customers/${id}`);
+
+  return mapCustomerFromDto(data);
 }
 
 export async function createCustomer(input: CustomerInput): Promise<Customer> {

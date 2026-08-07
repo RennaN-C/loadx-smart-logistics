@@ -2,11 +2,13 @@ import { useMemo, useState } from "react";
 
 import { AlertBanner } from "../../../components/AlertBanner";
 import { Modal } from "../../../components/Modal";
+import { Pagination } from "../../../components/Pagination";
+import { useEditTarget } from "../../../hooks/useEditTarget";
 import { useResourceList } from "../../../hooks/useResourceList";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { listCustomers } from "../../customers/api/customersApi";
 import { listProducts } from "../../products/api/productsApi";
-import { listOrders } from "../api/ordersApi";
+import { getOrder, listOrders } from "../api/ordersApi";
 import { OrderCard } from "../components/OrderCard";
 import { OrderForm } from "../components/OrderForm";
 import { STATUS_LABELS } from "../components/orderLabels";
@@ -18,51 +20,50 @@ type StatusFilter = OrderStatus | "all";
 
 export function OrderListPage() {
   const { user } = useAuth();
-  const { status, items: orders, error, refetch } = useResourceList(listOrders);
-  // O pedido só traz customer_id e product_id, e não existe endpoint de busca:
-  // as duas listas são carregadas inteiras para resolver os nomes no cliente.
+  const {
+    status,
+    items: orders,
+    error,
+    refetch,
+    page,
+    total,
+    totalPages,
+    goToPage,
+  } = useResourceList(listOrders);
+  // O pedido só traz customer_id: a listagem de clientes resolve o nome. Ela é
+  // paginada, então nomes fora da primeira página podem não resolver — por isso
+  // o fallback explícito no lugar de um espaço vazio.
   const { items: customers } = useResourceList(listCustomers);
   const { items: products } = useResourceList(listProducts);
+  const edit = useEditTarget<Order>(getOrder);
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const [editingOrder, setEditingOrder] = useState<Order | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
   const canManage = user?.role === "LOGISTICS_MANAGER";
-  const isFormOpen = isCreating || editingOrder !== null;
+  const isFormOpen = isCreating || edit.target !== null;
 
   const customerNames = useMemo(
     () => new Map(customers.map((customer) => [customer.id, customer.name])),
     [customers],
   );
-  const productLabels = useMemo(
-    () => new Map(products.map((product) => [product.id, `${product.code} — ${product.name}`])),
-    [products],
-  );
-
-  const nameOf = (customerId: string) => customerNames.get(customerId) ?? "Cliente não encontrado";
-  const productLabelOf = (productId: string) => productLabels.get(productId) ?? "Produto não encontrado";
 
   const visibleOrders = useMemo(() => {
     const term = search.trim().toLowerCase();
 
     return orders.filter((order) => {
-      const matchesTerm =
-        term === "" ||
-        nameOf(order.customerId).toLowerCase().includes(term) ||
-        order.deliveryAddress.toLowerCase().includes(term);
+      const name = customerNames.get(order.customerId) ?? "";
+      const matchesTerm = term === "" || name.toLowerCase().includes(term);
       const matchesStatus = statusFilter === "all" || order.status === statusFilter;
 
       return matchesTerm && matchesStatus;
     });
-    // nameOf depende de customerNames, que já está nas dependências
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orders, search, statusFilter, customerNames]);
 
   function closeForm() {
     setIsCreating(false);
-    setEditingOrder(null);
+    edit.close();
   }
 
   async function handleSaved() {
@@ -87,8 +88,8 @@ export function OrderListPage() {
       <div className="entity-toolbar">
         <input
           type="search"
-          aria-label="Buscar por cliente ou endereço"
-          placeholder="Buscar por cliente ou endereço"
+          aria-label="Buscar por cliente"
+          placeholder="Buscar por cliente"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
         />
@@ -106,6 +107,12 @@ export function OrderListPage() {
         </select>
       </div>
 
+      {status === "success" && total > 0 ? (
+        <p className="entity-summary">
+          Exibindo {orders.length} de {total} pedidos. Busca e filtro atuam nesta página.
+        </p>
+      ) : null}
+
       {status === "loading" ? (
         <p className="entity-state">
           <span className="spinner" aria-hidden="true" />
@@ -114,6 +121,7 @@ export function OrderListPage() {
       ) : null}
 
       {status === "error" && error ? <AlertBanner>{mapOrderErrorToMessage(error)}</AlertBanner> : null}
+      {edit.error ? <AlertBanner>{mapOrderErrorToMessage(edit.error)}</AlertBanner> : null}
 
       {status === "success" && visibleOrders.length === 0 ? (
         <p className="entity-state">
@@ -129,23 +137,27 @@ export function OrderListPage() {
             <OrderCard
               key={order.id}
               order={order}
-              customerName={nameOf(order.customerId)}
-              productLabelOf={productLabelOf}
+              customerName={customerNames.get(order.customerId) ?? "Cliente não encontrado"}
               canManage={canManage}
-              onEdit={setEditingOrder}
+              isOpening={edit.loadingId === order.id}
+              onEdit={(id) => void edit.open(id)}
             />
           ))}
         </div>
       ) : null}
 
+      {status === "success" ? (
+        <Pagination page={page} totalPages={totalPages} onChange={goToPage} label="pedidos" />
+      ) : null}
+
       {isFormOpen ? (
         <Modal
-          title={editingOrder ? "Editar pedido" : "Novo pedido"}
+          title={edit.target ? "Editar pedido" : "Novo pedido"}
           subtitle="Itens e entrega"
           onClose={closeForm}
         >
           <OrderForm
-            order={editingOrder ?? undefined}
+            order={edit.target ?? undefined}
             customers={customers}
             products={products}
             onSaved={handleSaved}

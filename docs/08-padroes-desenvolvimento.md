@@ -153,6 +153,17 @@ Antes de criar migration:
 5. Revisar upgrade/downgrade.
 6. Adicionar teste mínimo.
 
+## Docker
+
+- `CONFIRMADO`: os contextos de build de `backend` e `frontend` mantêm
+  `.dockerignore` próprios para não enviar ambientes virtuais, `node_modules`,
+  caches, cobertura ou artefatos de build ao daemon.
+- `CONFIRMADO`: a imagem do frontend usa `npm ci` e o `package-lock.json` para
+  instalar exatamente a árvore de dependências versionada.
+- `CONFIRMADO`: a imagem do backend normaliza arquivos Python como não
+  executáveis para preservar o mesmo resultado do Ruff quando o contexto vem do
+  Docker Desktop no Windows.
+
 ## Endpoints
 
 - Prefixo de negócio: `/api/v1`.
@@ -195,7 +206,13 @@ Backend:
 - E2E em `backend/tests/e2e`.
 - Health check atual em `backend/tests/test_health.py`.
 - Regras puras e otimizador devem ter testes unitários sem banco externo.
-- Rotas, repositories e migrations devem ter testes de integração quando implementados.
+- Rotas, repositories e migrations usam PostgreSQL 16 exclusivo nos testes de
+  integração, com estrutura criada por `alembic upgrade head`, nunca por
+  `Base.metadata.create_all`.
+- A URL de integração vem somente de `TEST_DATABASE_URL`, deve apontar para
+  `loadx_test` e nunca pode reutilizar desenvolvimento, staging ou produção.
+- O ambiente e os comandos locais estão em `backend/tests/README.md` e
+  `backend/tests/integration/README.md`.
 
 Frontend:
 

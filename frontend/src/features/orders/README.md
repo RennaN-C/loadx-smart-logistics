@@ -4,10 +4,9 @@ Listagem e cadastro de pedidos (OC29). Consome `GET/POST/PATCH /orders`.
 
 ## O que existe hoje
 
-- `pages/OrderListPage.tsx` (+ `.css`): grid de cards, busca por cliente/endereço e filtro por
-  situação, ambos client-side, estados de carregando/vazio/erro e o modal.
-- `components/OrderCard.tsx`: cliente, endereço, situação, prioridade, previsão e os itens em ordem
-  de entrega.
+- `pages/OrderListPage.tsx` (+ `.css`): grid **paginado** de cards, busca por cliente e filtro por
+  situação, ambos client-side **na página carregada**, estados de carregando/vazio/erro e o modal.
+- `components/OrderCard.tsx`: cliente, situação, prioridade, previsão e a **contagem** de itens.
 - `components/OrderForm.tsx`: formulário mestre-detalhe — o primeiro do projeto com lista de itens.
 - `components/orderDateTime.ts`: ponte entre o `<input type="datetime-local">` e o contrato da API.
 - `components/orderLabels.ts`: rótulos em português para situação e prioridade.
@@ -26,10 +25,15 @@ datetime ingênuo, mas o `<input type="datetime-local">` devolve exatamente isso
 hora local). `orderDateTime.ts` converte nos dois sentidos e é testado por ida e volta, para o teste
 não depender do fuso da máquina que roda a suíte.
 
-**Ids crus.** O pedido devolve só `customer_id` e `product_id`, e não há endpoint de busca. A página
-carrega as listas completas de clientes e produtos e resolve os nomes em memória. Quando o id não está
-mais na lista, o card mostra "Cliente não encontrado" / "Produto não encontrado" em vez de um espaço
-vazio.
+**A listagem devolve um resumo.** `GET /orders` responde `OrderListRead`: sem `delivery_address` e sem
+`items` — só `item_count`. O card mostra a contagem, e editar exige `GET /orders/{id}` antes de abrir o
+formulário (`hooks/useEditTarget`), senão o PATCH iria sem os itens.
+
+**Ids crus.** O pedido traz só `customer_id`. A página carrega a listagem de clientes para resolver o
+nome, mas essa listagem também é paginada: um cliente fora da página carregada não resolve, e o card
+mostra "Cliente não encontrado" em vez de um espaço vazio. `RISCO IDENTIFICADO`: com muitos clientes
+isso vai aparecer com frequência, e o caminho certo é o backend devolver o nome no `OrderListRead` ou
+abrir busca por id.
 
 ## Prioridade: convenção, não contrato
 

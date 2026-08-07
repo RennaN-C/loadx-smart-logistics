@@ -7,10 +7,20 @@ Este documento é o contrato combinado entre backend, frontend, algoritmo e inte
 - `CONFIRMADO`: prefixo oficial da API de negócio: `/api/v1`.
 - `CONFIRMADO`: health check atual fica em `/health`, fora do prefixo.
 - `CONFIRMADO`: JSON usa campos em snake_case.
+- `CONFIRMADO` por D06 e `ADR-016`: campos decimais públicos usam número JSON
+  na entrada e na saída. Strings numéricas e booleanos são inválidos. O backend
+  preserva `Decimal` internamente e cada campo mantém a precisão e escala do
+  modelo aprovado; zeros finais não fazem parte do valor JSON.
 - `RECOMENDAÇÃO`: caminhos usam kebab-case quando tiverem mais de uma palavra, como `/load-plans`.
-- `RECOMENDAÇÃO`: endpoints de listagem devem preparar paginação futura, mesmo que o MVP comece simples.
-- `RECOMENDAÇÃO`: filtros usam query params em snake_case.
-- `PENDENTE DE DEFINIÇÃO`: padrão final de paginação, ordenação e filtros.
+- `CONFIRMADO` por D12 e `ADR-017`: coleções usam `page` 1-based (default `1`),
+  `page_size` (default `20`, mínimo `1`, máximo `100`) e `sort_order`
+  (`asc` ou `desc`, default `desc`). A ordenação é por `created_at`, com `id`
+  como desempate na mesma direção.
+- `CONFIRMADO`: coleções retornam `items`, `page`, `page_size`, `total` e
+  `total_pages`. Página além do fim retorna `items` vazio; coleção vazia retorna
+  `total_pages = 0`.
+- `CONFIRMADO`: não há `sort_by`, busca livre ou filtros por dados pessoais na
+  OC59. Todo filtro futuro usa query param em snake_case e whitelist documentada.
 - `CONFIRMADO`: em atualizações parciais, campos omitidos permanecem inalterados; `null` só é aceito para campos anuláveis no modelo de dados.
 
 ## Autenticação
@@ -85,7 +95,9 @@ Erros específicos:
 Regras do contrato aprovado:
 
 - Todas as rotas de `/users` exigem perfil `ADMIN`.
-- Campos públicos retornados: `id`, `name`, `email`, `role`, `active` e `created_at`.
+- A listagem retorna somente `id`, `name`, `role`, `active` e `created_at`.
+- Detalhe e respostas de escrita retornam `id`, `name`, `email`, `role`, `active`
+  e `created_at`.
 - `password_hash` nunca é retornado.
 - `role` aceita `ADMIN`, `CHECKER`, `DRIVER` e `LOGISTICS_MANAGER`.
 - `email` é normalizado para minúsculas.
@@ -171,6 +183,10 @@ Regras de autorização:
 - Somente `LOGISTICS_MANAGER` pode usar `POST` e `PATCH`.
 - `CHECKER` e `DRIVER` não acessam essas rotas.
 
+Campos de `GET /customers`: `id`, `name`, `city`, `state` e `created_at`.
+Documento, telefone, endereço e observações aparecem somente no detalhe e nas
+respostas de escrita já protegidas pelo RBAC.
+
 ## Motoristas
 
 - `GET /drivers`.
@@ -184,12 +200,17 @@ Regras de autorização:
 - Somente `LOGISTICS_MANAGER` pode usar `POST` e `PATCH`.
 - `CHECKER` e `DRIVER` não acessam essas rotas.
 
+Campos de `GET /drivers`: `id`, `name`, `license_category`, `active` e
+`created_at`. Documento, telefone e número da CNH aparecem somente no detalhe e
+nas respostas de escrita já protegidas pelo RBAC.
+
 ## Pedidos
 
 - `GET /orders`.
 - `POST /orders`.
 - `GET /orders/{id}`.
 - `PATCH /orders/{id}`.
+- `PATCH /orders/{id}/status`.
 
 Regras de autorização:
 
@@ -217,10 +238,18 @@ Exemplo de criação:
 
 Regras atuais:
 
+- `GET /orders` retorna `id`, `customer_id`, `status`, `priority`,
+  `expected_delivery_at`, `created_at` e `item_count`; omite
+  `delivery_address` e os itens completos.
+
 - `POST /orders` cria o pedido com `status = "DRAFT"`.
-- `PATCH /orders/{id}` aceita alteração de `customer_id`, `status`, `priority`,
+- `PATCH /orders/{id}` aceita alteração de `customer_id`, `priority`,
   `delivery_address`, `expected_delivery_at` e, quando `items` for enviado,
-  substitui o conjunto somente se nenhum item estiver referenciado por plano.
+  substitui o conjunto somente em `DRAFT` e se nenhum item estiver referenciado
+  por plano. O payload rejeita `status` e campos desconhecidos.
+- `PATCH /orders/{id}/status` recebe `{"status": "READY"}` e aplica somente a
+  matriz de transições manuais de D04. Aprovação de plano, início de viagem e
+  conclusão de entrega mantêm seus próprios casos de uso.
 - `status` aceita `DRAFT`, `READY`, `PLANNED`, `IN_TRANSIT`, `DELIVERED` e `CANCELED`.
 - `priority` é texto obrigatório e é normalizado para maiúsculas.
 - `expected_delivery_at` deve vir com timezone e é normalizado para UTC.
@@ -236,6 +265,13 @@ Erros específicos:
 - `ORDER_PRODUCT_NOT_FOUND`: produto do pedido não encontrado.
 - `ORDER_ITEMS_REFERENCED_BY_LOAD_PLAN`: conflito `409`; os itens históricos não
   podem ser substituídos.
+- `ORDER_EDIT_NOT_ALLOWED`: conflito `409`; o pedido não está em `DRAFT`.
+- `ORDER_STATUS_TRANSITION_NOT_ALLOWED`: conflito `409`; a origem e o destino
+  não formam uma transição manual aprovada.
+
+`CONFIRMADO`: criação e cada transição efetiva persistem pedido e histórico em
+uma única transação. A criação registra `null -> DRAFT`; repetir o estado atual
+retorna o pedido sem criar histórico duplicado.
 
 ## Planos de carga
 
@@ -311,8 +347,8 @@ Resposta `201`, também usada por `GET /load-plans/{id}`:
 ```
 
 Os campos físicos e descritivos de caminhão/produto/item são snapshots do momento
-do cálculo. `Decimal` permanece no schema; a decisão separada sobre representar
-Decimal como número ou string JSON não é alterada pela OC20.
+do cálculo. `Decimal` permanece no domínio, no schema interno e na persistência;
+a fronteira HTTP usa número JSON conforme D06 e `ADR-016`.
 
 ### GET `/load-plans/{id}/visualization`
 

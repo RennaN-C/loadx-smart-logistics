@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { mapProductFromDto } from "./productsApi";
+import { mapProductFromDto, mapProductPageFromDto } from "./productsApi";
 
 const DTO = {
   id: "33333333-3333-3333-3333-333333333333",
@@ -35,11 +35,28 @@ describe("mapProductFromDto", () => {
     });
   });
 
-  it("aceita weight_kg como string, já que o campo é Decimal no backend", () => {
-    expect(mapProductFromDto({ ...DTO, weight_kg: "12.500" }).weightKg).toBe(12.5);
+  it("preserva weight_kg como número, sem coerção (D06/ADR-016)", () => {
+    const result = mapProductFromDto({ ...DTO, weight_kg: 12.5 });
+
+    expect(result.weightKg).toBe(12.5);
+    expect(typeof result.weightKg).toBe("number");
   });
 
   it("preserva description nula", () => {
     expect(mapProductFromDto({ ...DTO, description: null }).description).toBeNull();
+  });
+});
+
+describe("mapProductPageFromDto", () => {
+  it("converte o envelope paginado para camelCase", () => {
+    expect(
+      mapProductPageFromDto({ items: [DTO], page: 2, page_size: 20, total: 21, total_pages: 2 }),
+    ).toEqual({
+      items: [mapProductFromDto(DTO)],
+      page: 2,
+      pageSize: 20,
+      total: 21,
+      totalPages: 2,
+    });
   });
 });
