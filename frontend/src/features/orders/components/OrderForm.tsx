@@ -5,8 +5,8 @@ import { FormField } from "../../../components/FormField";
 import { ApiError } from "../../../types/api";
 import type { CustomerListItem } from "../../customers/types";
 import type { Product } from "../../products/types";
-import { createOrder, updateOrder } from "../api/ordersApi";
-import { ORDER_PRIORITIES, ORDER_STATUSES, type Order, type OrderStatus } from "../types";
+import { changeOrderStatus, createOrder, updateOrder } from "../api/ordersApi";
+import { MANUAL_STATUS_TRANSITIONS, ORDER_PRIORITIES, type Order, type OrderStatus } from "../types";
 import { isoToLocalInput, localInputToIso } from "./orderDateTime";
 import { PRIORITY_LABELS, STATUS_LABELS } from "./orderLabels";
 import { mapOrderErrorToMessage } from "./ordersErrorMessages";
@@ -21,6 +21,44 @@ interface ItemDraft {
 function toInt(value: string): number {
   const parsed = Number.parseInt(value, 10);
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+/**
+ * Só as transições que o backend aceita manualmente aparecem. A partir de
+ * PLANNED, IN_TRANSIT, DELIVERED ou CANCELED não há saída manual — quem move
+ * dali é o planejamento, a viagem ou a entrega —, então o campo vira leitura.
+ */
+function renderStatusField(
+  current: OrderStatus,
+  selected: OrderStatus,
+  onChange: (status: OrderStatus) => void,
+) {
+  const targets = MANUAL_STATUS_TRANSITIONS[current];
+
+  if (!targets) {
+    return (
+      <FormField id="order-status" label="SITUAÇÃO" hint="Só o sistema altera esta situação." narrow>
+        <input id="order-status" value={STATUS_LABELS[current]} readOnly />
+      </FormField>
+    );
+  }
+
+  return (
+    <FormField id="order-status" label="SITUAÇÃO" narrow>
+      <select
+        id="order-status"
+        name="status"
+        value={selected}
+        onChange={(event) => onChange(event.target.value as OrderStatus)}
+      >
+        {[current, ...targets].map((value) => (
+          <option key={value} value={value}>
+            {STATUS_LABELS[value]}
+          </option>
+        ))}
+      </select>
+    </FormField>
+  );
 }
 
 interface OrderFormProps {
@@ -94,7 +132,11 @@ export function OrderForm({ order, customers, products, onSaved, onCancel }: Ord
 
     try {
       if (order) {
-        await updateOrder(order.id, { ...payload, status });
+        await updateOrder(order.id, payload);
+        // Situação tem endpoint próprio (OC52); o PATCH genérico recusa `status`.
+        if (status !== order.status) {
+          await changeOrderStatus(order.id, status);
+        }
       } else {
         await createOrder(payload);
       }
@@ -173,22 +215,7 @@ export function OrderForm({ order, customers, products, onSaved, onCancel }: Ord
           </FormField>
         </div>
 
-        {isEditing ? (
-          <FormField id="order-status" label="SITUAÇÃO" narrow>
-            <select
-              id="order-status"
-              name="status"
-              value={status}
-              onChange={(event) => setStatus(event.target.value as OrderStatus)}
-            >
-              {ORDER_STATUSES.map((value) => (
-                <option key={value} value={value}>
-                  {STATUS_LABELS[value]}
-                </option>
-              ))}
-            </select>
-          </FormField>
-        ) : null}
+        {isEditing && order ? renderStatusField(order.status, status, setStatus) : null}
 
         <p className="field-label">ITENS DO PEDIDO</p>
         <div className="entity-form-box">

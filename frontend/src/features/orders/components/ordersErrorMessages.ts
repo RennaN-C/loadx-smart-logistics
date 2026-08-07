@@ -17,6 +17,10 @@ export function mapOrderErrorToMessage(error: ApiError): string {
     return "Os itens deste pedido já estão em um plano de carga e não podem ser alterados.";
   }
 
+  if (error.code === "ORDER_STATUS_TRANSITION_NOT_ALLOWED") {
+    return "Esta mudança de situação não é permitida a partir da situação atual do pedido.";
+  }
+
   if (error.code === "AUTH_FORBIDDEN") {
     return "Seu perfil não tem permissão para esta ação.";
   }

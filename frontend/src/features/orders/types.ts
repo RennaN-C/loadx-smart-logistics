@@ -61,4 +61,14 @@ export interface OrderInput {
   items: OrderItemInput[];
 }
 
-export type OrderUpdateInput = Partial<OrderInput> & { status?: OrderStatus };
+export type OrderUpdateInput = Partial<OrderInput>;
+
+/**
+ * Transições manuais permitidas pelo backend (MANUAL_ORDER_STATUS_TRANSITIONS).
+ * PLANNED, IN_TRANSIT, DELIVERED e CANCELED não têm saída manual: quem move
+ * dali é o planejamento, a viagem ou a entrega.
+ */
+export const MANUAL_STATUS_TRANSITIONS: Partial<Record<OrderStatus, readonly OrderStatus[]>> = {
+  DRAFT: ["READY", "CANCELED"],
+  READY: ["DRAFT", "CANCELED"],
+};

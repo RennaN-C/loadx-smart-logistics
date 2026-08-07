@@ -11,7 +11,25 @@ Listagem e cadastro de pedidos (OC29). Consome `GET/POST/PATCH /orders`.
 - `components/orderDateTime.ts`: ponte entre o `<input type="datetime-local">` e o contrato da API.
 - `components/orderLabels.ts`: rótulos em português para situação e prioridade.
 - `components/ordersErrorMessages.ts`: tradução dos códigos de erro.
-- `api/ordersApi.ts`: mapeamento snake_case ↔ camelCase, incluindo os itens aninhados.
+- `api/ordersApi.ts`: mapeamento snake_case ↔ camelCase, incluindo os itens aninhados, e
+  `changeOrderStatus` para o endpoint dedicado de situação.
+
+## Situação tem endpoint próprio (OC52)
+
+`PATCH /orders/{id}` usa `extra="forbid"` e **recusa `status` com 422** — a troca de situação vai por
+`PATCH /orders/{id}/status`. O formulário chama os dois: primeiro os campos, depois a situação, e só
+quando ela mudou.
+
+As transições manuais permitidas pelo backend (`MANUAL_ORDER_STATUS_TRANSITIONS`) são apenas:
+
+| de | para |
+|---|---|
+| `DRAFT` | `READY`, `CANCELED` |
+| `READY` | `DRAFT`, `CANCELED` |
+
+A partir de `PLANNED`, `IN_TRANSIT`, `DELIVERED` ou `CANCELED` não há saída manual: quem move dali é o
+planejamento, a viagem ou a entrega. Nesses casos o campo vira somente leitura, em vez de oferecer uma
+opção que voltaria 409 `ORDER_STATUS_TRANSITION_NOT_ALLOWED`.
 
 ## Três coisas que não existiam nas telas anteriores
 

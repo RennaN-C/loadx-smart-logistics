@@ -79,7 +79,6 @@ function mapOrderToDto(input: OrderUpdateInput): Record<string, unknown> {
   const dto: Record<string, unknown> = {};
 
   if (input.customerId !== undefined) dto.customer_id = input.customerId;
-  if (input.status !== undefined) dto.status = input.status;
   if (input.priority !== undefined) dto.priority = input.priority;
   if (input.deliveryAddress !== undefined) dto.delivery_address = input.deliveryAddress;
   if (input.expectedDeliveryAt !== undefined) dto.expected_delivery_at = input.expectedDeliveryAt;
@@ -115,6 +114,16 @@ export async function createOrder(input: OrderInput): Promise<Order> {
 
 export async function updateOrder(id: string, input: OrderUpdateInput): Promise<Order> {
   const { data } = await api.patch<OrderDto>(`/orders/${id}`, mapOrderToDto(input));
+
+  return mapOrderFromDto(data);
+}
+
+/**
+ * Situação tem endpoint próprio desde a OC52: `OrderUpdate` usa `extra="forbid"`
+ * e recusa `status` com 422. Transição inválida volta 409.
+ */
+export async function changeOrderStatus(id: string, status: OrderStatus): Promise<Order> {
+  const { data } = await api.patch<OrderDto>(`/orders/${id}/status`, { status });
 
   return mapOrderFromDto(data);
 }

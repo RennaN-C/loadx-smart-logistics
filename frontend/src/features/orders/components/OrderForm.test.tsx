@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../../../types/api";
 import type { Customer } from "../../customers/types";
 import type { Product } from "../../products/types";
-import { createOrder, updateOrder } from "../api/ordersApi";
+import { changeOrderStatus, createOrder, updateOrder } from "../api/ordersApi";
 import type { Order } from "../types";
 import { OrderForm } from "./OrderForm";
 import { mapOrderErrorToMessage } from "./ordersErrorMessages";
@@ -96,6 +96,7 @@ describe("OrderForm", () => {
   beforeEach(() => {
     vi.mocked(createOrder).mockReset();
     vi.mocked(updateOrder).mockReset();
+    vi.mocked(changeOrderStatus).mockReset();
   });
 
   it("nasce com um item, porque o backend exige no mínimo um", () => {
@@ -175,19 +176,67 @@ describe("OrderForm", () => {
     expect(vi.mocked(createOrder).mock.calls[0][0].expectedDeliveryAt).toMatch(/Z$/);
   });
 
-  it("só expõe a situação na edição, e a envia junto", async () => {
-    const { unmount } = renderForm();
+  it("não expõe a situação na criação", () => {
+    renderForm();
+
     expect(screen.queryByLabelText("SITUAÇÃO")).not.toBeInTheDocument();
-    unmount();
+  });
 
-    vi.mocked(updateOrder).mockResolvedValue({ ...ORDER, status: "READY" });
+  it("oferece só as transições manuais permitidas a partir da situação atual", () => {
+    renderForm(ORDER); // DRAFT -> READY | CANCELED
+
+    const options = [...screen.getByLabelText("SITUAÇÃO").querySelectorAll("option")].map((o) => o.value);
+
+    expect(options).toEqual(["DRAFT", "READY", "CANCELED"]);
+    expect(options).not.toContain("PLANNED");
+    expect(options).not.toContain("DELIVERED");
+  });
+
+  it("deixa a situação só de leitura quando não há transição manual", () => {
+    renderForm({ ...ORDER, status: "PLANNED" });
+
+    const field = screen.getByLabelText("SITUAÇÃO");
+
+    expect(field).toHaveAttribute("readonly");
+    expect(field).toHaveValue("Planejado");
+  });
+
+  it("manda a situação pelo endpoint dedicado, nunca no PATCH genérico", async () => {
+    vi.mocked(updateOrder).mockResolvedValue(ORDER);
+    vi.mocked(changeOrderStatus).mockResolvedValue({ ...ORDER, status: "READY" });
+
     renderForm(ORDER);
-
     fireEvent.change(screen.getByLabelText("SITUAÇÃO"), { target: { value: "READY" } });
     fireEvent.click(screen.getByRole("button", { name: "Salvar alterações" }));
 
+    await waitFor(() => expect(changeOrderStatus).toHaveBeenCalledWith(ORDER.id, "READY"));
+    // OrderUpdate usa extra="forbid": mandar status ali volta 422
+    expect(vi.mocked(updateOrder).mock.calls[0][1]).not.toHaveProperty("status");
+  });
+
+  it("não chama o endpoint de situação quando ela não mudou", async () => {
+    vi.mocked(updateOrder).mockResolvedValue(ORDER);
+
+    renderForm(ORDER);
+    fireEvent.click(screen.getByRole("button", { name: "Salvar alterações" }));
+
     await waitFor(() => expect(updateOrder).toHaveBeenCalled());
-    expect(updateOrder).toHaveBeenCalledWith(ORDER.id, expect.objectContaining({ status: "READY" }));
+    expect(changeOrderStatus).not.toHaveBeenCalled();
+  });
+
+  it("traduz a recusa de transição do backend", async () => {
+    vi.mocked(updateOrder).mockResolvedValue(ORDER);
+    vi.mocked(changeOrderStatus).mockRejectedValue(
+      new ApiError("ORDER_STATUS_TRANSITION_NOT_ALLOWED", "x"),
+    );
+
+    renderForm(ORDER);
+    fireEvent.change(screen.getByLabelText("SITUAÇÃO"), { target: { value: "CANCELED" } });
+    fireEvent.click(screen.getByRole("button", { name: "Salvar alterações" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Esta mudança de situação não é permitida",
+    );
   });
 
   it("mostra a mensagem mapeada quando o backend recusa", async () => {
