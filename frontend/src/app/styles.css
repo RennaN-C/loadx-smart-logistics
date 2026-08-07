@@ -9,11 +9,15 @@
   --danger: #a63a2e;
   --danger-bg: #f3e4df;
   --danger-line: #dcb6ac;
+  --good: #3f6b4a;
+  --good-bg: #e4ece3;
 
   --brand-bg: #12181d;
   --brand-fg: #edeae1;
   --brand-muted: rgba(237, 234, 225, 0.68);
   --brand-line: rgba(237, 234, 225, 0.18);
+
+  --font-mono: ui-monospace, "Cascadia Mono", "Consolas", "SFMono-Regular", Menlo, monospace;
 
   font-family: "Poppins", system-ui, sans-serif;
   color: var(--ink);
@@ -31,6 +35,8 @@
     --danger: #e0685a;
     --danger-bg: rgba(224, 104, 90, 0.14);
     --danger-line: rgba(224, 104, 90, 0.4);
+    --good: #7fb98c;
+    --good-bg: rgba(127, 185, 140, 0.14);
   }
 }
 
@@ -67,6 +73,33 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 24px;
+}
+
+.app-nav {
+  display: flex;
+  gap: 18px;
+  margin-right: auto;
+}
+
+.app-nav a {
+  font-size: 0.88rem;
+  color: var(--muted);
+  text-decoration: none;
+  padding: 4px 0;
+  border-bottom: 2px solid transparent;
+}
+.app-nav a:hover {
+  color: var(--ink);
+}
+.app-nav a[aria-current="page"] {
+  color: var(--ink);
+  border-bottom-color: var(--accent);
+}
+.app-nav a:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(201, 122, 34, 0.35);
+  border-radius: 2px;
 }
 
 .app-header-account {
@@ -126,4 +159,196 @@ body {
   to {
     transform: rotate(360deg);
   }
+}
+
+/* ---- primitivos compartilhados ---- */
+
+.field-label {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  margin: 0;
+}
+
+.btn-primary,
+.btn-secondary {
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 0.92rem;
+  border-radius: 3px;
+  padding: 11px 18px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: filter 0.15s ease;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border: 1px solid var(--accent);
+}
+.btn-primary:hover {
+  filter: brightness(1.06);
+}
+.btn-primary:disabled {
+  cursor: wait;
+  filter: brightness(0.97);
+}
+.btn-primary .spinner {
+  border-color: rgba(20, 24, 29, 0.35);
+  border-top-color: var(--accent-contrast);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--line);
+}
+.btn-secondary:hover {
+  color: var(--ink);
+  border-color: var(--ink);
+}
+
+.btn-link {
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--accent);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+.btn-link:hover {
+  text-decoration: underline;
+}
+
+.btn-primary:focus-visible,
+.btn-secondary:focus-visible,
+.btn-link:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(201, 122, 34, 0.35);
+  border-radius: 3px;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.status-pill-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentcolor;
+}
+
+.status-pill-good {
+  background: var(--good-bg);
+  color: var(--good);
+}
+
+.status-pill-neutral {
+  background: var(--line);
+  color: var(--muted);
+}
+
+.alert-banner {
+  padding: 10px 12px;
+  border-radius: 3px;
+  font-size: 0.83rem;
+  line-height: 1.45;
+  background: var(--danger-bg);
+  color: var(--danger);
+  border: 1px solid var(--danger-line);
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 32px 20px;
+  overflow-y: auto;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  border: none;
+  padding: 0;
+  cursor: default;
+  background: rgba(20, 24, 29, 0.45);
+}
+
+.modal-dialog {
+  position: relative;
+  width: 100%;
+  max-width: 720px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+}
+
+.modal-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 22px 26px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.modal-header h2 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.modal-subtitle {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin: 0;
+}
+
+.modal-body {
+  padding: 22px 26px 26px;
+}
+
+/* ---- desenho técnico do caminhão ---- */
+
+.schematic-label,
+.schematic-caption {
+  font-family: "Poppins", sans-serif;
+  font-weight: 600;
+  fill: var(--muted);
+}
+
+.schematic-label {
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
+
+.schematic-caption {
+  font-size: 8.5px;
+  letter-spacing: 0.1em;
+}
+
+.schematic-value {
+  font-family: var(--font-mono);
+  font-size: 17px;
+  font-weight: 700;
+  fill: var(--ink);
 }
