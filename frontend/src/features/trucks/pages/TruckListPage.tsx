@@ -6,7 +6,9 @@ import { useAuth } from "../../auth/hooks/useAuth";
 import { TruckCard } from "../components/TruckCard";
 import { TruckForm } from "../components/TruckForm";
 import { mapTruckErrorToMessage } from "../components/trucksErrorMessages";
-import { useTrucks } from "../hooks/useTrucks";
+import { Pagination } from "../../../components/Pagination";
+import { useResourceList } from "../../../hooks/useResourceList";
+import { listTrucks } from "../api/trucksApi";
 import type { Truck } from "../types";
 import "./TruckListPage.css";
 
@@ -20,7 +22,16 @@ function matchesStatus(truck: Truck, filter: StatusFilter): boolean {
 
 export function TruckListPage() {
   const { user } = useAuth();
-  const { status, trucks, error, refetch, page, total, totalPages, goToPage } = useTrucks();
+  const {
+    status,
+    items: trucks,
+    error,
+    refetch,
+    page,
+    total,
+    totalPages,
+    goToPage,
+  } = useResourceList(listTrucks);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [editingTruck, setEditingTruck] = useState<Truck | null>(null);
@@ -54,11 +65,11 @@ export function TruckListPage() {
   }
 
   return (
-    <div className="trucks-page">
-      <header className="trucks-header">
+    <div className="entity-page">
+      <header className="entity-header">
         <div>
           <h1>Caminhões</h1>
-          <p className="trucks-lede">Baús cadastrados para planejamento de carga.</p>
+          <p className="entity-lede">Baús cadastrados para planejamento de carga.</p>
         </div>
         {canManage ? (
           <button type="button" className="btn-primary" onClick={() => setIsCreating(true)}>
@@ -67,7 +78,7 @@ export function TruckListPage() {
         ) : null}
       </header>
 
-      <div className="trucks-toolbar">
+      <div className="entity-toolbar">
         <input
           type="search"
           aria-label="Buscar por placa ou modelo"
@@ -87,13 +98,13 @@ export function TruckListPage() {
       </div>
 
       {status === "success" && total > 0 ? (
-        <p className="trucks-page-summary">
+        <p className="entity-summary">
           Exibindo {trucks.length} de {total} caminhões. Busca e filtro atuam nesta página.
         </p>
       ) : null}
 
       {status === "loading" ? (
-        <p className="trucks-state">
+        <p className="entity-state">
           <span className="spinner" aria-hidden="true" />
           <span>Carregando caminhões…</span>
         </p>
@@ -104,7 +115,7 @@ export function TruckListPage() {
       ) : null}
 
       {status === "success" && visibleTrucks.length === 0 ? (
-        <p className="trucks-state">
+        <p className="entity-state">
           {trucks.length === 0
             ? "Nenhum caminhão cadastrado ainda."
             : "Nenhum caminhão encontrado com esses filtros."}
@@ -112,35 +123,15 @@ export function TruckListPage() {
       ) : null}
 
       {visibleTrucks.length > 0 ? (
-        <div className="trucks-grid">
+        <div className="entity-grid">
           {visibleTrucks.map((truck) => (
             <TruckCard key={truck.id} truck={truck} canManage={canManage} onEdit={setEditingTruck} />
           ))}
         </div>
       ) : null}
 
-      {status === "success" && totalPages > 1 ? (
-        <nav className="trucks-pagination" aria-label="Paginação de caminhões">
-          <button
-            type="button"
-            className="btn-secondary"
-            disabled={page <= 1}
-            onClick={() => goToPage(page - 1)}
-          >
-            Anterior
-          </button>
-          <span>
-            Página {page} de {totalPages}
-          </span>
-          <button
-            type="button"
-            className="btn-secondary"
-            disabled={page >= totalPages}
-            onClick={() => goToPage(page + 1)}
-          >
-            Próxima
-          </button>
-        </nav>
+      {status === "success" ? (
+        <Pagination page={page} totalPages={totalPages} onChange={goToPage} label="caminhões" />
       ) : null}
 
       {isFormOpen ? (

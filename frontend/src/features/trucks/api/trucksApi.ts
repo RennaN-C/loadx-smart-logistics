@@ -1,4 +1,5 @@
 import { api } from "../../../services/api";
+import { mapPageFromDto, toPageQuery, type ListParams, type PageDto } from "../../../services/pagination";
 import type { Page } from "../../../types/api";
 import type { Truck, TruckInput, TruckUpdateInput } from "../types";
 
@@ -12,20 +13,6 @@ interface TruckDto {
   max_weight_kg: number;
   active: boolean;
   created_at: string;
-}
-
-interface PageDto<T> {
-  items: T[];
-  page: number;
-  page_size: number;
-  total: number;
-  total_pages: number;
-}
-
-interface ListTrucksParams {
-  page?: number;
-  pageSize?: number;
-  sortOrder?: "asc" | "desc";
 }
 
 export function mapTruckFromDto(dto: TruckDto): Truck {
@@ -57,27 +44,11 @@ function mapTruckToDto(input: TruckUpdateInput): Partial<TruckDto> {
 }
 
 export function mapTruckPageFromDto(dto: PageDto<TruckDto>): Page<Truck> {
-  return {
-    items: dto.items.map(mapTruckFromDto),
-    page: dto.page,
-    pageSize: dto.page_size,
-    total: dto.total,
-    totalPages: dto.total_pages,
-  };
+  return mapPageFromDto(dto, mapTruckFromDto);
 }
 
-export async function listTrucks({
-  page = 1,
-  pageSize = 20,
-  sortOrder = "desc",
-}: ListTrucksParams = {}): Promise<Page<Truck>> {
-  const { data } = await api.get<PageDto<TruckDto>>("/trucks", {
-    params: {
-      page,
-      page_size: pageSize,
-      sort_order: sortOrder,
-    },
-  });
+export async function listTrucks(params: ListParams = {}): Promise<Page<Truck>> {
+  const { data } = await api.get<PageDto<TruckDto>>("/trucks", { params: toPageQuery(params) });
 
   return mapTruckPageFromDto(data);
 }
