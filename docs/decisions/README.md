@@ -21,3 +21,4 @@ Registros aceitos relevantes:
 - `ADR-016`: representação de campos decimais como número JSON da OC56.
 - `ADR-017`: minimização de dados pessoais e paginação uniforme da OC59.
 - `ADR-018`: liveness separado de readiness com PostgreSQL e Alembic da OC58.
+- `ADR-019`: inicialização segura, migration gate e isolamento dos containers.

@@ -21,16 +21,16 @@ Antes da suíte, a fixture:
 Execute a partir da raiz e depois de `backend`:
 
 ```powershell
-docker compose -f compose.test.yaml up -d --wait
+docker compose -p loadx-tests -f compose.test.yaml up -d --wait
 Set-Location backend
-$env:TEST_DATABASE_URL = "postgresql+psycopg://loadx_test:loadx_test_local@localhost:55432/loadx_test"
+$env:TEST_DATABASE_URL = "postgresql+psycopg://loadx_test:loadx_test_local@127.0.0.1:55432/loadx_test"
 python -m pytest -q tests/integration
 ```
 
 Ao terminar, a partir da raiz:
 
 ```powershell
-docker compose -f compose.test.yaml down -v
+docker compose -p loadx-tests -f compose.test.yaml down -v
 ```
 
 As credenciais acima são exclusivamente locais e fictícias. Uma URL ausente ou

@@ -15,3 +15,7 @@ Conexão SQLAlchemy, sessão, base declarativa e utilidades de persistência.
 `CONFIRMADO`: a verificação de readiness nunca aplica migrations e não propaga
 URL, credencial, revisão ou mensagem bruta do driver para a resposta pública ou
 para logs.
+
+`CONFIRMADO`: a aplicação das migrations no ambiente local é responsabilidade
+do serviço isolado `migrate` do Compose, executado antes do backend conforme
+`ADR-019`.

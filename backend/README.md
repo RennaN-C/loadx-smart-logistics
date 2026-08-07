@@ -48,3 +48,15 @@ A senha é solicitada de forma oculta e não deve ser informada em argumento, `.
 `CONFIRMADO`: `/ready` é público para Compose e monitoramento, executa somente
 leitura, possui orçamento de 2 segundos e retorna falha genérica sem detalhes de
 infraestrutura, conforme D11 e `ADR-018`.
+
+## Configuração segura
+
+`CONFIRMADO`: conforme `ADR-019`, produção exige `SECRET_KEY` exclusiva com ao
+menos 32 caracteres e `DATABASE_URL` explícita, aceita somente JWT `HS256`,
+limita a expiração a 1–1440 minutos e rejeita CORS curinga. Os valores fracos de
+`.env.example` existem somente para desenvolvimento local e não permitem iniciar
+em produção.
+
+`CONFIRMADO`: no Compose, o serviço one-shot `migrate` aplica o head Alembic
+antes do backend. A API e a migration executam como usuário sem privilégio, sem
+capabilities Linux e sem possibilidade de elevar privilégios.

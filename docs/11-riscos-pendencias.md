@@ -48,6 +48,12 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
   e isola cada cenário em transação externa.
 - `CONFIRMADO`: a `OC55` centralizou fixtures, encerra clients, sessions e engines
   e deixou toda a base Python conforme Ruff.
+- `CONFIRMADO`: `ADR-019` define inicialização segura em produção, migrations
+  automáticas antes do backend, processos de aplicação sem privilégio e portas
+  locais restritas a loopback.
+- `CONFIRMADO`: a auditoria de 2026-08-07 removeu a dependência transitiva
+  vulnerável do `python-jose`, atualizou Router/Vite/Vitest e terminou com zero
+  achados em `pip-audit`, `npm audit` e Bandit.
 
 ## Decisões necessárias
 
@@ -111,10 +117,9 @@ nova `algorithm_version`; a representação JSON de `Decimal` segue D06 e
   `requirements.txt`, mas ainda não possui lockfile; uma imagem limpa pode
   instalar versões diferentes das usadas anteriormente e deve sempre executar a
   suíte completa antes de ser publicada.
-- `RISCO IDENTIFICADO`: o `package-lock.json` atual do frontend apresentou duas
-  vulnerabilidades moderadas em dependências de produção e sete no total no
-  `npm audit` de 2026-08-06. A atualização deve ser tratada em ocorrência própria
-  e validada contra login, navegação, caminhões, lint, testes e build.
+- `CONFIRMADO`: o risco de dependências vulneráveis registrado em 2026-08-06 foi
+  corrigido em 2026-08-07; o `package-lock.json` atualizado retorna zero achados
+  no `npm audit` e passou por lint, 156 testes e build de produção.
 - `RISCO IDENTIFICADO`: ainda não existe vínculo entre `users` e `drivers`; por segurança, `DRIVER` não recebe acesso operacional até que esse relacionamento seja aprovado e implementado.
 - `RISCO IDENTIFICADO`: o documento-base usa nomes de tabelas em português, enquanto o projeto já decidiu nomes técnicos em inglês. A documentação atual mantém inglês para evitar divergência no código.
 - `RISCO IDENTIFICADO`: o roadmap antigo usava outra numeração de ocorrências. A partir desta revisão, usar `OC01` a `OC48`.
@@ -122,7 +127,8 @@ nova `algorithm_version`; a representação JSON de `Decimal` segue D06 e
 - `RISCO IDENTIFICADO`: aceitar resposta de IA sem schema pode atualizar status indevido.
 - `RISCO IDENTIFICADO`: criar migrations grandes com vários módulos aumenta conflito entre os 4 desenvolvedores.
 - `RISCO IDENTIFICADO`: seeds com dados pessoais reais violam as regras do projeto.
-- `RISCO IDENTIFICADO`: `SECRET_KEY=local-only` ou valor fraco só pode ser usado em ambiente local.
+- `CONFIRMADO`: `SECRET_KEY=local-only` ou valor fraco só funciona em ambiente
+  local; a validação impede inicialização em produção.
 
 ## Recomendações
 

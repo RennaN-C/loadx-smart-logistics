@@ -163,8 +163,13 @@ Antes de criar migration:
 - `CONFIRMADO`: a imagem do backend normaliza arquivos Python como não
   executáveis para preservar o mesmo resultado do Ruff quando o contexto vem do
   Docker Desktop no Windows.
-- `CONFIRMADO`: o healthcheck do container backend consome `/ready`; banco novo
-  permanece não pronto até `alembic upgrade head`, sem migration automática.
+- `CONFIRMADO`: o serviço one-shot `migrate` aplica `alembic upgrade head` após
+  o PostgreSQL ficar saudável; o backend depende de sua conclusão e seu
+  healthcheck consome `/ready`.
+- `CONFIRMADO`: `/ready` continua somente leitura. Automatizar a migration no
+  Compose não transfere essa responsabilidade para o endpoint.
+- `CONFIRMADO`: backend, migration e frontend executam sem root, sem capabilities
+  Linux e com `no-new-privileges`; portas publicadas ficam em loopback por padrão.
 
 ## Endpoints
 

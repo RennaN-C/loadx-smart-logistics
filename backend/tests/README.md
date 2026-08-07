@@ -22,12 +22,12 @@ python -m pytest -q tests/unit tests/test_health.py
 Testes de integração:
 
 ```powershell
-docker compose -f compose.test.yaml up -d --wait
-$env:TEST_DATABASE_URL = "postgresql+psycopg://loadx_test:loadx_test_local@localhost:55432/loadx_test"
+docker compose -p loadx-tests -f compose.test.yaml up -d --wait
+$env:TEST_DATABASE_URL = "postgresql+psycopg://loadx_test:loadx_test_local@127.0.0.1:55432/loadx_test"
 Set-Location backend
 python -m pytest -q tests/integration
 Set-Location ..
-docker compose -f compose.test.yaml down -v
+docker compose -p loadx-tests -f compose.test.yaml down -v
 ```
 
 Os comandos Docker são executados na raiz. O `pytest` é executado na pasta
