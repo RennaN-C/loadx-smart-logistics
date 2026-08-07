@@ -1,83 +1,5 @@
-.trucks-page {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 40px 32px 64px;
-}
-
-.trucks-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 24px;
-  flex-wrap: wrap;
-}
-
-.trucks-header h1 {
-  font-size: clamp(1.9rem, 4vw, 2.4rem);
-  font-weight: 700;
-  letter-spacing: 0.01em;
-  margin: 0;
-}
-
-.trucks-lede {
-  color: var(--muted);
-  font-size: 0.9rem;
-  margin: 6px 0 0;
-}
-
-.trucks-toolbar {
-  display: flex;
-  gap: 12px;
-  margin: 28px 0 20px;
-  flex-wrap: wrap;
-}
-
-.trucks-toolbar input[type="search"] {
-  flex: 1;
-  min-width: 220px;
-}
-
-.trucks-toolbar input[type="search"],
-.trucks-toolbar select {
-  font-family: inherit;
-  font-size: 0.92rem;
-  padding: 10px 12px;
-  border: 1px solid var(--line);
-  border-radius: 3px;
-  background: var(--card);
-  color: var(--ink);
-}
-
-.trucks-toolbar input:focus-visible,
-.trucks-toolbar select:focus-visible {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(201, 122, 34, 0.35);
-}
-
-.trucks-state {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--muted);
-  font-size: 0.9rem;
-  padding: 32px 0;
-}
-
-.trucks-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 20px;
-}
-
-@media (max-width: 720px) {
-  .trucks-page {
-    padding: 28px 20px 48px;
-  }
-  .trucks-grid {
-    grid-template-columns: 1fr;
-  }
-}
+/* A casca da tela (.entity-*) e o formulário (.entity-form-*) vêm de app/styles.css.
+   Aqui fica só o que é específico de caminhão: o card com foto e a ilustração com cotas. */
 
 .truck-card {
   background: var(--card);
@@ -102,16 +24,13 @@
   height: 96px;
 }
 
-.truck-photo {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
 /* As artes já vêm recortadas na silhueta do caminhão (fundo transparente),
    então basta encaixar inteiras e apoiar na base para as duas vistas
    ficarem no mesmo chão. */
 .truck-photo {
+  display: block;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
   object-position: bottom;
 }
@@ -191,58 +110,7 @@
   color: var(--ink);
 }
 
-/* ---- formulário ---- */
-
-.truck-form {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-.truck-form-fieldset {
-  border: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-.truck-form-fieldset:disabled {
-  opacity: 0.6;
-}
-
-.truck-form-row {
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.truck-form-field {
-  flex: 1;
-  min-width: 150px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.truck-form input[type="text"],
-.truck-form input[type="number"],
-.truck-form input:not([type]) {
-  font-family: inherit;
-  font-size: 0.95rem;
-  padding: 10px 12px;
-  border: 1px solid var(--line);
-  border-radius: 3px;
-  background: transparent;
-  color: var(--ink);
-  width: 100%;
-}
-
-.truck-form input:focus-visible {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(201, 122, 34, 0.35);
-}
+/* ---- ilustração + cotas ---- */
 
 .truck-form-figure {
   display: flex;
@@ -255,8 +123,6 @@
   border-radius: 4px;
   padding: 16px 18px;
 }
-
-/* ---- ilustração + cotas ---- */
 
 /*
  * As cotas são ancoradas no BAÚ, não na imagem: o comprimento não inclui a
@@ -272,11 +138,11 @@
 .truck-figure {
   /* 132px mantém lateral + cotas + traseira numa linha só dentro do modal (~626px úteis) */
   --fig-h: 132px;
-  flex: 0 0 auto;
   --side-bau-esq: 25.67%;
   --side-bau-dir: 1.28%;
   --side-bau-piso: 0.5;
   --rear-bau-lado: 1.63%;
+  flex: 0 0 auto;
   display: grid;
   gap: 8px 12px;
   margin: 0;
@@ -413,68 +279,4 @@
 .dim-v .dim-text {
   display: flex;
   flex-direction: column;
-}
-
-.truck-form-help {
-  font-size: 0.82rem;
-  line-height: 1.5;
-  color: var(--muted);
-  margin: 0;
-}
-
-.truck-form-measures {
-  background: var(--paper);
-  border: 1px solid var(--line);
-  border-radius: 4px;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.truck-form-derived {
-  display: flex;
-  justify-content: flex-end;
-  gap: 28px;
-  margin: 0;
-  padding-top: 12px;
-  border-top: 1px solid var(--line);
-  font-family: var(--font-mono);
-  font-size: 0.85rem;
-}
-
-.truck-form-derived div {
-  display: flex;
-  gap: 10px;
-  align-items: baseline;
-}
-
-.truck-form-derived dt {
-  color: var(--muted);
-}
-
-.truck-form-derived dd {
-  font-weight: 700;
-  margin: 0;
-}
-
-.truck-form-toggle label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.9rem;
-  cursor: pointer;
-}
-
-.truck-form-toggle input {
-  width: auto;
-  accent-color: var(--accent);
-}
-
-.truck-form-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  border-top: 1px solid var(--line);
-  padding-top: 18px;
 }

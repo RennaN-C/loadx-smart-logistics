@@ -54,11 +54,11 @@ export function TruckListPage() {
   }
 
   return (
-    <div className="trucks-page">
-      <header className="trucks-header">
+    <div className="entity-page">
+      <header className="entity-header">
         <div>
           <h1>Caminhões</h1>
-          <p className="trucks-lede">Baús cadastrados para planejamento de carga.</p>
+          <p className="entity-lede">Baús cadastrados para planejamento de carga.</p>
         </div>
         {canManage ? (
           <button type="button" className="btn-primary" onClick={() => setIsCreating(true)}>
@@ -67,7 +67,7 @@ export function TruckListPage() {
         ) : null}
       </header>
 
-      <div className="trucks-toolbar">
+      <div className="entity-toolbar">
         <input
           type="search"
           aria-label="Buscar por placa ou modelo"
@@ -87,7 +87,7 @@ export function TruckListPage() {
       </div>
 
       {status === "loading" ? (
-        <p className="trucks-state">
+        <p className="entity-state">
           <span className="spinner" aria-hidden="true" />
           <span>Carregando caminhões…</span>
         </p>
@@ -98,7 +98,7 @@ export function TruckListPage() {
       ) : null}
 
       {status === "success" && visibleTrucks.length === 0 ? (
-        <p className="trucks-state">
+        <p className="entity-state">
           {trucks.length === 0
             ? "Nenhum caminhão cadastrado ainda."
             : "Nenhum caminhão encontrado com esses filtros."}
@@ -106,7 +106,7 @@ export function TruckListPage() {
       ) : null}
 
       {visibleTrucks.length > 0 ? (
-        <div className="trucks-grid">
+        <div className="entity-grid">
           {visibleTrucks.map((truck) => (
             <TruckCard key={truck.id} truck={truck} canManage={canManage} onEdit={setEditingTruck} />
           ))}

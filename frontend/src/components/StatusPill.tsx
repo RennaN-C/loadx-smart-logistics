@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-export type StatusTone = "good" | "neutral";
+export type StatusTone = "good" | "warn" | "neutral";
 
 interface StatusPillProps {
   readonly tone: StatusTone;

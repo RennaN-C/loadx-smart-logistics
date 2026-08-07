@@ -11,6 +11,8 @@
   --danger-line: #dcb6ac;
   --good: #3f6b4a;
   --good-bg: #e4ece3;
+  --accent-strong: #8a5115;
+  --accent-bg: #f4e6d4;
 
   --brand-bg: #12181d;
   --brand-fg: #edeae1;
@@ -37,6 +39,8 @@
     --danger-line: rgba(224, 104, 90, 0.4);
     --good: #7fb98c;
     --good-bg: rgba(127, 185, 140, 0.14);
+    --accent-strong: #e2a24a;
+    --accent-bg: rgba(226, 162, 74, 0.16);
   }
 }
 
@@ -258,6 +262,11 @@ body {
   color: var(--good);
 }
 
+.status-pill-warn {
+  background: var(--accent-bg);
+  color: var(--accent-strong);
+}
+
 .status-pill-neutral {
   background: var(--line);
   color: var(--muted);
@@ -325,5 +334,255 @@ body {
 
 .modal-body {
   padding: 22px 26px 26px;
+}
+
+/* ---- casca das telas de cadastro ----
+   Compartilhada por caminhões, produtos, clientes/motoristas e pedidos: todas
+   têm o mesmo esqueleto (título + ação, busca + filtro, grade de cards, estados
+   de carregando/vazio/erro). O que muda em cada feature é só o card. */
+
+.entity-page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 40px 32px 64px;
+}
+
+.entity-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.entity-header h1 {
+  font-size: clamp(1.9rem, 4vw, 2.4rem);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  margin: 0;
+}
+
+.entity-lede {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin: 6px 0 0;
+}
+
+.entity-toolbar {
+  display: flex;
+  gap: 12px;
+  margin: 28px 0 20px;
+  flex-wrap: wrap;
+}
+
+.entity-toolbar input[type="search"] {
+  flex: 1;
+  min-width: 220px;
+}
+
+.entity-toolbar input[type="search"],
+.entity-toolbar select {
+  font-family: inherit;
+  font-size: 0.92rem;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--card);
+  color: var(--ink);
+}
+
+.entity-toolbar input:focus-visible,
+.entity-toolbar select:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(201, 122, 34, 0.35);
+}
+
+.entity-state {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  padding: 32px 0;
+}
+
+.entity-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+@media (max-width: 720px) {
+  .entity-page {
+    padding: 28px 20px 48px;
+  }
+  .entity-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.entity-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+}
+
+.entity-code {
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 4px 8px;
+  display: inline-block;
+  margin: 0;
+}
+
+/* ---- formulários de cadastro ---- */
+
+.entity-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.entity-form-fieldset {
+  border: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.entity-form-fieldset:disabled {
+  opacity: 0.6;
+}
+
+.entity-form-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.entity-form-field {
+  flex: 1;
+  min-width: 150px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.entity-form-field-narrow {
+  flex: 0 1 180px;
+}
+
+.entity-form input[type="text"],
+.entity-form input[type="number"],
+.entity-form input[type="datetime-local"],
+.entity-form input:not([type]),
+.entity-form select,
+.entity-form textarea {
+  font-family: inherit;
+  font-size: 0.95rem;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--ink);
+  width: 100%;
+}
+
+.entity-form textarea {
+  resize: vertical;
+}
+
+.entity-form input:focus-visible,
+.entity-form select:focus-visible,
+.entity-form textarea:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(201, 122, 34, 0.35);
+}
+
+.entity-form-box {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.entity-form-help {
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--muted);
+  margin: 0;
+}
+
+.entity-form-derived {
+  display: flex;
+  justify-content: flex-end;
+  gap: 28px;
+  margin: 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+}
+
+.entity-form-derived div {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+}
+
+.entity-form-derived dt {
+  color: var(--muted);
+}
+
+.entity-form-derived dd {
+  font-weight: 700;
+  margin: 0;
+}
+
+.entity-form-checks {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.entity-form-checks label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.entity-form-checks input {
+  width: auto;
+  margin-top: 3px;
+  accent-color: var(--accent);
+}
+
+.entity-form-checks small {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.entity-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  border-top: 1px solid var(--line);
+  padding-top: 18px;
 }
 

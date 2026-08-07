@@ -72,12 +72,12 @@ export function TruckForm({ truck, onSaved, onCancel }: TruckFormProps) {
   }
 
   return (
-    <form className="truck-form" onSubmit={handleSubmit}>
+    <form className="entity-form" onSubmit={handleSubmit}>
       {errorMessage ? <AlertBanner>{errorMessage}</AlertBanner> : null}
 
-      <fieldset disabled={isSubmitting} className="truck-form-fieldset">
-        <div className="truck-form-row">
-          <div className="truck-form-field">
+      <fieldset disabled={isSubmitting} className="entity-form-fieldset">
+        <div className="entity-form-row">
+          <div className="entity-form-field">
             <label className="field-label" htmlFor="truck-plate">
               PLACA
             </label>
@@ -91,7 +91,7 @@ export function TruckForm({ truck, onSaved, onCancel }: TruckFormProps) {
               onChange={(event) => setPlate(event.target.value.toUpperCase())}
             />
           </div>
-          <div className="truck-form-field">
+          <div className="entity-form-field">
             <label className="field-label" htmlFor="truck-model">
               MODELO
             </label>
@@ -112,14 +112,14 @@ export function TruckForm({ truck, onSaved, onCancel }: TruckFormProps) {
           <TruckSchematic dimensions={{ widthCm, heightCm, lengthCm }} view="side" variant="detailed" />
           <TruckSchematic dimensions={{ widthCm, heightCm, lengthCm }} view="rear" variant="detailed" />
         </div>
-        <p className="truck-form-help">
+        <p className="entity-form-help">
           Meça pelo lado interno do baú: da parede frontal à face interna da porta traseira, entre as laterais, e
           do piso ao teto. É essa medida que o otimizador usa para calcular o encaixe da carga.
         </p>
 
-        <div className="truck-form-measures">
-          <div className="truck-form-row">
-            <div className="truck-form-field">
+        <div className="entity-form-box">
+          <div className="entity-form-row">
+            <div className="entity-form-field">
               <label className="field-label" htmlFor="truck-width">
                 LARGURA (CM)
               </label>
@@ -134,7 +134,7 @@ export function TruckForm({ truck, onSaved, onCancel }: TruckFormProps) {
                 onChange={(event) => setWidth(event.target.value)}
               />
             </div>
-            <div className="truck-form-field">
+            <div className="entity-form-field">
               <label className="field-label" htmlFor="truck-height">
                 ALTURA (CM)
               </label>
@@ -149,7 +149,7 @@ export function TruckForm({ truck, onSaved, onCancel }: TruckFormProps) {
                 onChange={(event) => setHeight(event.target.value)}
               />
             </div>
-            <div className="truck-form-field">
+            <div className="entity-form-field">
               <label className="field-label" htmlFor="truck-length">
                 COMPRIMENTO (CM)
               </label>
@@ -166,7 +166,7 @@ export function TruckForm({ truck, onSaved, onCancel }: TruckFormProps) {
             </div>
           </div>
 
-          <dl className="truck-form-derived">
+          <dl className="entity-form-derived">
             <div>
               <dt>Volume interno</dt>
               <dd>{decimalFormatter.format(volumeM3)} m³</dd>
@@ -178,8 +178,8 @@ export function TruckForm({ truck, onSaved, onCancel }: TruckFormProps) {
           </dl>
         </div>
 
-        <div className="truck-form-row">
-          <div className="truck-form-field">
+        <div className="entity-form-row">
+          <div className="entity-form-field">
             <label className="field-label" htmlFor="truck-weight">
               PESO MÁXIMO (KG)
             </label>
@@ -196,7 +196,7 @@ export function TruckForm({ truck, onSaved, onCancel }: TruckFormProps) {
             />
           </div>
           {isEditing ? (
-            <div className="truck-form-field truck-form-toggle">
+            <div className="entity-form-checks">
               <label htmlFor="truck-active">
                 <input
                   id="truck-active"
@@ -207,13 +207,13 @@ export function TruckForm({ truck, onSaved, onCancel }: TruckFormProps) {
                 />
                 <span>Caminhão ativo</span>
               </label>
-              <p className="truck-form-help">Caminhões inativos continuam no histórico, mas saem do planejamento.</p>
+              <p className="entity-form-help">Caminhões inativos continuam no histórico, mas saem do planejamento.</p>
             </div>
           ) : null}
         </div>
       </fieldset>
 
-      <div className="truck-form-actions">
+      <div className="entity-form-actions">
         <button type="button" className="btn-secondary" onClick={onCancel} disabled={isSubmitting}>
           Cancelar
         </button>
