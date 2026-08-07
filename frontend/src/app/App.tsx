@@ -4,6 +4,7 @@ import { AuthProvider } from "../features/auth/components/AuthProvider";
 import { RequireAuth } from "../features/auth/components/RequireAuth";
 import { LoginPage } from "../features/auth/pages/LoginPage";
 import { ContactsPage } from "../features/customers/pages/ContactsPage";
+import { DashboardPage } from "../features/dashboard/pages/DashboardPage";
 import { PlanningPage } from "../features/load-planning/pages/PlanningPage";
 import { OrderListPage } from "../features/orders/pages/OrderListPage";
 import { ProductListPage } from "../features/products/pages/ProductListPage";
@@ -18,17 +19,7 @@ export function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route element={<RequireAuth />}>
             <Route element={<AppLayout />}>
-              <Route
-                index
-                element={
-                  <div className="shell">
-                    <h1>Base inicial pronta</h1>
-                    <p>
-                      Consulte os READMEs e a documentação antes de iniciar as ocorrências do MVP.
-                    </p>
-                  </div>
-                }
-              />
+              <Route index element={<DashboardPage />} />
               <Route path="trucks" element={<TruckListPage />} />
               <Route path="products" element={<ProductListPage />} />
               <Route path="contacts" element={<ContactsPage />} />
