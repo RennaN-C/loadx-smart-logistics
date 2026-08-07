@@ -236,16 +236,25 @@ Data:
 
 D12 - DADOS PESSOAIS EM LISTAGENS E PAGINAÇÃO
 ----------------------------------------------
-Marcador: DECISÃO NECESSÁRIA
+Marcador: CONFIRMADO
 Perguntas:
 - quais campos de cliente, motorista e usuário aparecem nas listagens?
 - documento, telefone, CNH e endereço serão mascarados ou omitidos conforme perfil?
 - qual padrão de paginação, ordenação e filtros será adotado?
 RECOMENDAÇÃO: respostas resumidas em listagens e detalhes completos apenas para perfis autorizados.
 Impacta: RBAC, schemas de leitura, frontend e docs/05.
-Escolha da equipe:
-Responsáveis:
-Data:
+Escolha da equipe: omitir campos pessoais desnecessários nas listagens, sem
+mascaramento; manter detalhes completos apenas nos endpoints protegidos pelo
+RBAC. Usuários listam id, name, role, active e created_at; clientes listam id,
+name, city, state e created_at; motoristas listam id, name, license_category,
+active e created_at; pedidos listam id, customer_id, status, priority,
+expected_delivery_at, created_at e item_count. Todas as coleções atuais usam
+page 1-based, page_size default 20 e máximo 100, sort_order asc/desc sobre
+created_at com id como desempate e envelope items/page/page_size/total/
+total_pages. Não haverá busca livre, sort_by ou filtros por dados pessoais nesta
+ocorrência. Regras completas na ADR-017.
+Responsáveis: Desenvolvedor 1 e Desenvolvedor 3; aprovação explícita do usuário.
+Data: 2026-08-07.
 
 
 D13 - PERSISTÊNCIA DE VOLUMES INDIVIDUAIS

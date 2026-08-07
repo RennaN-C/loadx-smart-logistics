@@ -12,9 +12,15 @@ Este documento é o contrato combinado entre backend, frontend, algoritmo e inte
   preserva `Decimal` internamente e cada campo mantém a precisão e escala do
   modelo aprovado; zeros finais não fazem parte do valor JSON.
 - `RECOMENDAÇÃO`: caminhos usam kebab-case quando tiverem mais de uma palavra, como `/load-plans`.
-- `RECOMENDAÇÃO`: endpoints de listagem devem preparar paginação futura, mesmo que o MVP comece simples.
-- `RECOMENDAÇÃO`: filtros usam query params em snake_case.
-- `PENDENTE DE DEFINIÇÃO`: padrão final de paginação, ordenação e filtros.
+- `CONFIRMADO` por D12 e `ADR-017`: coleções usam `page` 1-based (default `1`),
+  `page_size` (default `20`, mínimo `1`, máximo `100`) e `sort_order`
+  (`asc` ou `desc`, default `desc`). A ordenação é por `created_at`, com `id`
+  como desempate na mesma direção.
+- `CONFIRMADO`: coleções retornam `items`, `page`, `page_size`, `total` e
+  `total_pages`. Página além do fim retorna `items` vazio; coleção vazia retorna
+  `total_pages = 0`.
+- `CONFIRMADO`: não há `sort_by`, busca livre ou filtros por dados pessoais na
+  OC59. Todo filtro futuro usa query param em snake_case e whitelist documentada.
 - `CONFIRMADO`: em atualizações parciais, campos omitidos permanecem inalterados; `null` só é aceito para campos anuláveis no modelo de dados.
 
 ## Autenticação
@@ -89,7 +95,9 @@ Erros específicos:
 Regras do contrato aprovado:
 
 - Todas as rotas de `/users` exigem perfil `ADMIN`.
-- Campos públicos retornados: `id`, `name`, `email`, `role`, `active` e `created_at`.
+- A listagem retorna somente `id`, `name`, `role`, `active` e `created_at`.
+- Detalhe e respostas de escrita retornam `id`, `name`, `email`, `role`, `active`
+  e `created_at`.
 - `password_hash` nunca é retornado.
 - `role` aceita `ADMIN`, `CHECKER`, `DRIVER` e `LOGISTICS_MANAGER`.
 - `email` é normalizado para minúsculas.
@@ -175,6 +183,10 @@ Regras de autorização:
 - Somente `LOGISTICS_MANAGER` pode usar `POST` e `PATCH`.
 - `CHECKER` e `DRIVER` não acessam essas rotas.
 
+Campos de `GET /customers`: `id`, `name`, `city`, `state` e `created_at`.
+Documento, telefone, endereço e observações aparecem somente no detalhe e nas
+respostas de escrita já protegidas pelo RBAC.
+
 ## Motoristas
 
 - `GET /drivers`.
@@ -187,6 +199,10 @@ Regras de autorização:
 - `ADMIN` e `LOGISTICS_MANAGER` podem usar `GET`.
 - Somente `LOGISTICS_MANAGER` pode usar `POST` e `PATCH`.
 - `CHECKER` e `DRIVER` não acessam essas rotas.
+
+Campos de `GET /drivers`: `id`, `name`, `license_category`, `active` e
+`created_at`. Documento, telefone e número da CNH aparecem somente no detalhe e
+nas respostas de escrita já protegidas pelo RBAC.
 
 ## Pedidos
 
@@ -221,6 +237,10 @@ Exemplo de criação:
 ```
 
 Regras atuais:
+
+- `GET /orders` retorna `id`, `customer_id`, `status`, `priority`,
+  `expected_delivery_at`, `created_at` e `item_count`; omite
+  `delivery_address` e os itens completos.
 
 - `POST /orders` cria o pedido com `status = "DRAFT"`.
 - `PATCH /orders/{id}` aceita alteração de `customer_id`, `priority`,

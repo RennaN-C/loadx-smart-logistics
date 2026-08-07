@@ -11,8 +11,9 @@
 `CONFIRMADO`: `OC49`, `OC50` e `OC51` já foram integradas em
 `desenvolvimento`. `OC55` e `OC53` foram aprovadas por solicitação explícita do
 responsável em 2026-08-04. `OC52` foi desbloqueada pela aprovação formal de D04
-e D05 em 2026-08-06. `OC56` foi desbloqueada por D06 na mesma data. As quatro
-estão implementadas e validadas localmente, pendentes de PR e revisão.
+e D05 em 2026-08-06. `OC56` foi desbloqueada por D06 na mesma data. D12 foi
+aprovada em 2026-08-07 e desbloqueou a `OC59`. As quatro primeiras estão
+implementadas e validadas localmente, pendentes de PR e revisão.
 
 ## Resumo de prioridade
 
@@ -28,7 +29,7 @@ estão implementadas e validadas localmente, pendentes de PR e revisão.
 | `OC56` | Média | Desenvolvedor 1 e Desenvolvedor 3 | Implementada e validada localmente; pendente de PR e revisão |
 | `OC57` | Média | Desenvolvedor 2 | Absorvida e resolvida pela revisão da `OC11` |
 | `OC58` | Baixa | Desenvolvedor 1, com apoio do Desenvolvedor 4 | Bloqueada por `D11` |
-| `OC59` | Média | Desenvolvedor 1 e Desenvolvedor 3 | Bloqueada por `D12` |
+| `OC59` | Média | Desenvolvedor 1 e Desenvolvedor 3 | Em implementação; D12 aprovada |
 
 As referências `DXX` apontam para `docs/decisoes-equipe-backend.txt`.
 
@@ -441,6 +442,15 @@ Evitar exposição desnecessária de dados pessoais e impedir listagens sem limi
 ### Comportamento atual
 
 `CONFIRMADO`: endpoints de listagem retornam coleções completas sem paginação. Os mesmos schemas usados em detalhes podem expor e-mail, documento, telefone, CNH, endereço e observações.
+
+### Decisão e divisão aprovada
+
+`CONFIRMADO`: D12 foi aprovada em 2026-08-07 e registrada na `ADR-017`.
+
+1. Registrar o contrato e a infraestrutura compartilhada de paginação.
+2. Minimizar e paginar usuários, clientes, motoristas e pedidos.
+3. Paginar caminhões e produtos e adaptar o consumidor frontend de caminhões.
+4. Executar testes completos e encerrar a ocorrência na documentação.
 
 ### Critérios de aceite
 
