@@ -13,6 +13,10 @@ import type { LoadPlan, LoadPlanItem } from "../types";
 import { PlanningPage } from "./PlanningPage";
 
 vi.mock("../api/loadPlansApi");
+// WebGL nao existe em jsdom: a cena e testada pela geometria pura, em sceneGeometry.test.ts
+vi.mock("../../load-visualization/components/LoadViewer", () => ({
+  LoadViewer: ({ planId }: { planId: string }) => <div data-testid="viewer">cena de {planId}</div>,
+}));
 vi.mock("../../trucks/api/trucksApi");
 vi.mock("../../orders/api/ordersApi");
 vi.mock("../../customers/api/customersApi");
@@ -300,5 +304,18 @@ describe("PlanningPage", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Este plano de carga não foi encontrado.",
     );
+  });
+
+  it("mostra a cena 3D na aba de visualização", async () => {
+    vi.mocked(getLoadPlan).mockResolvedValue(makePlan());
+
+    renderAt("/planning/lp1");
+    await screen.findByText("Calculado");
+
+    expect(screen.queryByTestId("viewer")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Visualização 3D" }));
+
+    expect(await screen.findByTestId("viewer")).toHaveTextContent("cena de lp1");
   });
 });

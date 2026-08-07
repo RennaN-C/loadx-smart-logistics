@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { AlertBanner } from "../../../components/AlertBanner";
+import { Tabs, type TabItem } from "../../../components/Tabs";
 import { ApiError } from "../../../types/api";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { approveLoadPlan, getLoadPlan, recalculateLoadPlan } from "../api/loadPlansApi";
@@ -11,6 +12,21 @@ import { PlanSummary } from "../components/PlanSummary";
 import { mapLoadPlanErrorToMessage } from "../components/loadPlansErrorMessages";
 import type { LoadPlan } from "../types";
 import "./PlanningPage.css";
+
+/**
+ * O three.js pesa ~600 kB. Carregar sob demanda mantém o pacote principal leve
+ * para quem nunca abre a aba 3D — que é a maioria das visitas às outras telas.
+ */
+const LoadViewer = lazy(() =>
+  import("../../load-visualization/components/LoadViewer").then((m) => ({ default: m.LoadViewer })),
+);
+
+type PlanTab = "summary" | "scene";
+
+const PLAN_TABS: readonly TabItem<PlanTab>[] = [
+  { id: "summary", label: "Resumo e sequência" },
+  { id: "scene", label: "Visualização 3D" },
+];
 
 /**
  * O backend não tem listagem de planos — só criar e buscar por id. Por isso o
@@ -25,6 +41,7 @@ export function PlanningPage() {
   const [plan, setPlan] = useState<LoadPlan | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isWorking, setIsWorking] = useState(false);
+  const [tab, setTab] = useState<PlanTab>("summary");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const canManage = user?.role === "LOGISTICS_MANAGER";
@@ -123,7 +140,25 @@ export function PlanningPage() {
             onApprove={() => void runAction(approveLoadPlan)}
             onRecalculate={() => void runAction(recalculateLoadPlan)}
           />
-          <PlanItemsTable items={plan.items} />
+
+          <Tabs items={PLAN_TABS} active={tab} onChange={setTab} label="Formato do resultado" />
+
+          <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
+            {tab === "summary" ? (
+              <PlanItemsTable items={plan.items} />
+            ) : (
+              <Suspense
+                fallback={
+                  <p className="entity-state">
+                    <span className="spinner" aria-hidden="true" />
+                    <span>Carregando visualização 3D…</span>
+                  </p>
+                }
+              >
+                <LoadViewer planId={plan.id} />
+              </Suspense>
+            )}
+          </div>
         </>
       ) : null}
     </div>
