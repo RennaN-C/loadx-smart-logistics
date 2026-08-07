@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ApiError } from "../../../types/api";
+import type { Page } from "../../../types/api";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { listTrucks } from "../api/trucksApi";
 import type { Truck } from "../types";
@@ -35,6 +36,20 @@ const TRUCKS: Truck[] = [
   },
 ];
 
+function makePage(
+  items: Truck[],
+  page = 1,
+  totalPages = items.length === 0 ? 0 : 1,
+): Page<Truck> {
+  return {
+    items,
+    page,
+    pageSize: 20,
+    total: totalPages <= 1 ? items.length : 21,
+    totalPages,
+  };
+}
+
 function mockRole(role: "LOGISTICS_MANAGER" | "ADMIN") {
   vi.mocked(useAuth).mockReturnValue({
     status: "authenticated",
@@ -58,7 +73,7 @@ describe("TruckListPage", () => {
   });
 
   it("lista os caminhões retornados pelo backend", async () => {
-    vi.mocked(listTrucks).mockResolvedValue(TRUCKS);
+    vi.mocked(listTrucks).mockResolvedValue(makePage(TRUCKS));
 
     render(<TruckListPage />);
 
@@ -69,7 +84,7 @@ describe("TruckListPage", () => {
   });
 
   it("filtra por placa ou modelo sem chamar o backend de novo", async () => {
-    vi.mocked(listTrucks).mockResolvedValue(TRUCKS);
+    vi.mocked(listTrucks).mockResolvedValue(makePage(TRUCKS));
 
     render(<TruckListPage />);
     await screen.findByText("ABC1D23");
@@ -84,7 +99,7 @@ describe("TruckListPage", () => {
   });
 
   it("filtra por status", async () => {
-    vi.mocked(listTrucks).mockResolvedValue(TRUCKS);
+    vi.mocked(listTrucks).mockResolvedValue(makePage(TRUCKS));
 
     render(<TruckListPage />);
     await screen.findByText("ABC1D23");
@@ -96,7 +111,7 @@ describe("TruckListPage", () => {
   });
 
   it("esconde as ações de gestão para quem só tem leitura", async () => {
-    vi.mocked(listTrucks).mockResolvedValue(TRUCKS);
+    vi.mocked(listTrucks).mockResolvedValue(makePage(TRUCKS));
     mockRole("ADMIN");
 
     render(<TruckListPage />);
@@ -107,7 +122,7 @@ describe("TruckListPage", () => {
   });
 
   it("abre o formulário de cadastro para o gestor de logística", async () => {
-    vi.mocked(listTrucks).mockResolvedValue(TRUCKS);
+    vi.mocked(listTrucks).mockResolvedValue(makePage(TRUCKS));
 
     render(<TruckListPage />);
     await screen.findByText("ABC1D23");
@@ -119,7 +134,7 @@ describe("TruckListPage", () => {
   });
 
   it("mostra o estado vazio quando não há caminhões", async () => {
-    vi.mocked(listTrucks).mockResolvedValue([]);
+    vi.mocked(listTrucks).mockResolvedValue(makePage([]));
 
     render(<TruckListPage />);
 
@@ -134,5 +149,22 @@ describe("TruckListPage", () => {
     await waitFor(() =>
       expect(screen.getByRole("alert")).toHaveTextContent("Seu perfil não tem permissão para esta ação."),
     );
+  });
+
+  it("navega entre páginas usando os metadados do backend", async () => {
+    vi.mocked(listTrucks)
+      .mockResolvedValueOnce(makePage([TRUCKS[0]], 1, 2))
+      .mockResolvedValueOnce(makePage([TRUCKS[1]], 2, 2));
+
+    render(<TruckListPage />);
+
+    expect(await screen.findByText("ABC1D23")).toBeInTheDocument();
+    expect(screen.getByText("Página 1 de 2")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Próxima" }));
+
+    expect(await screen.findByText("QRT2B88")).toBeInTheDocument();
+    expect(screen.getByText("Página 2 de 2")).toBeInTheDocument();
+    expect(listTrucks).toHaveBeenLastCalledWith({ page: 2, pageSize: 20 });
   });
 });

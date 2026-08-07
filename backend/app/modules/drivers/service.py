@@ -1,9 +1,10 @@
 import uuid
-from collections.abc import Callable, Sequence
+from collections.abc import Callable
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core.pagination import PageResult, PaginationParams
 from app.database.integrity import get_integrity_constraint_name
 from app.modules.drivers.models import Driver
 from app.modules.drivers.repository import DriverRepository
@@ -27,8 +28,8 @@ class DriverService:
         self.db = db
         self.repository = DriverRepository(db)
 
-    def list_drivers(self) -> Sequence[Driver]:
-        return self.repository.list()
+    def list_drivers(self, pagination: PaginationParams) -> PageResult[Driver]:
+        return self.repository.list(pagination)
 
     def get_driver(self, driver_id: uuid.UUID) -> Driver:
         driver = self.repository.get(driver_id)

@@ -20,7 +20,7 @@ function matchesStatus(truck: Truck, filter: StatusFilter): boolean {
 
 export function TruckListPage() {
   const { user } = useAuth();
-  const { status, trucks, error, refetch } = useTrucks();
+  const { status, trucks, error, refetch, page, total, totalPages, goToPage } = useTrucks();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [editingTruck, setEditingTruck] = useState<Truck | null>(null);
@@ -29,7 +29,7 @@ export function TruckListPage() {
   const canManage = user?.role === "LOGISTICS_MANAGER";
   const isFormOpen = isCreating || editingTruck !== null;
 
-  // O backend ainda não aceita busca nem filtro por query param: ambos são client-side.
+  // D12 não permite busca ou filtros server-side: ambos operam somente na página atual.
   const visibleTrucks = useMemo(() => {
     const term = search.trim().toLowerCase();
 
@@ -86,6 +86,12 @@ export function TruckListPage() {
         </select>
       </div>
 
+      {status === "success" && total > 0 ? (
+        <p className="trucks-page-summary">
+          Exibindo {trucks.length} de {total} caminhões. Busca e filtro atuam nesta página.
+        </p>
+      ) : null}
+
       {status === "loading" ? (
         <p className="trucks-state">
           <span className="spinner" aria-hidden="true" />
@@ -111,6 +117,30 @@ export function TruckListPage() {
             <TruckCard key={truck.id} truck={truck} canManage={canManage} onEdit={setEditingTruck} />
           ))}
         </div>
+      ) : null}
+
+      {status === "success" && totalPages > 1 ? (
+        <nav className="trucks-pagination" aria-label="Paginação de caminhões">
+          <button
+            type="button"
+            className="btn-secondary"
+            disabled={page <= 1}
+            onClick={() => goToPage(page - 1)}
+          >
+            Anterior
+          </button>
+          <span>
+            Página {page} de {totalPages}
+          </span>
+          <button
+            type="button"
+            className="btn-secondary"
+            disabled={page >= totalPages}
+            onClick={() => goToPage(page + 1)}
+          >
+            Próxima
+          </button>
+        </nav>
       ) : null}
 
       {isFormOpen ? (

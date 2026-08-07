@@ -1,27 +1,21 @@
 import uuid
-from collections.abc import Callable, Generator
+from collections.abc import Callable
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy.pool import StaticPool
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from app.core.security import create_access_token
-from app.database.base import Base
-from app.database.session import get_db
-from app.main import app
-from app.modules.customers.models import Customer
 from app.modules.customers.schemas import CustomerCreate
 from app.modules.customers.service import CustomerService
-from app.modules.load_planning.models import LoadPlan, LoadPlanItem, LoadPlanOrder
-from app.modules.orders.models import Order, OrderItem
+from app.modules.orders.models import Order
 from app.modules.orders.schemas import OrderCreate
 from app.modules.orders.service import OrderService
-from app.modules.products.models import Product
 from app.modules.products.schemas import ProductCreate
 from app.modules.products.service import ProductService
-from app.modules.trucks.models import Truck
+from app.modules.status_history.models import StatusHistory
+from app.modules.status_history.service import StatusHistoryService
 from app.modules.users.models import User
 from app.modules.users.schemas import UserCreate
 from app.modules.users.service import UserService
@@ -32,50 +26,8 @@ ORDER_ROUTE_CASES = [
     ("POST", "collection"),
     ("GET", "detail"),
     ("PATCH", "detail"),
+    ("PATCH", "status"),
 ]
-
-
-@pytest.fixture
-def session_factory() -> Generator[SessionFactory, None, None]:
-    engine = create_engine(
-        "sqlite+pysqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    tables = [
-        User.__table__,
-        Customer.__table__,
-        Truck.__table__,
-        Product.__table__,
-        Order.__table__,
-        OrderItem.__table__,
-        LoadPlan.__table__,
-        LoadPlanOrder.__table__,
-        LoadPlanItem.__table__,
-    ]
-    Base.metadata.create_all(engine, tables=tables)
-    testing_session_local = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-    try:
-        yield testing_session_local
-    finally:
-        Base.metadata.drop_all(engine, tables=list(reversed(tables)))
-
-
-@pytest.fixture
-def client(session_factory: SessionFactory) -> Generator[TestClient, None, None]:
-
-    def override_get_db() -> Generator[Session, None, None]:
-        db = session_factory()
-        try:
-            yield db
-        finally:
-            db.close()
-
-    app.dependency_overrides[get_db] = override_get_db
-    try:
-        yield TestClient(app)
-    finally:
-        app.dependency_overrides.clear()
 
 
 def create_user_in_db(
@@ -193,10 +145,16 @@ def create_order(
 def create_order_in_db(session_factory: SessionFactory) -> Order:
     customer_id = create_customer(session_factory)
     product_id = create_product(session_factory)
+    actor = create_user_in_db(
+        session_factory,
+        f"setup-manager-{uuid.uuid4()}@example.test",
+        "LOGISTICS_MANAGER",
+    )
     db = session_factory()
     try:
         return OrderService(db).create_order(
-            OrderCreate.model_validate(make_order_payload(customer_id, product_id))
+            OrderCreate.model_validate(make_order_payload(customer_id, product_id)),
+            changed_by=actor.id,
         )
     finally:
         db.close()
@@ -213,6 +171,8 @@ def request_order_route(
     path = "/api/v1/orders"
     if route == "detail":
         path = f"{path}/{order.id}"
+    elif route == "status":
+        path = f"{path}/{order.id}/status"
 
     payload = None
     if method == "POST":
@@ -220,7 +180,7 @@ def request_order_route(
         product_id = create_product(session_factory, "CX-B")
         payload = make_order_payload(customer_id, product_id)
     elif method == "PATCH":
-        payload = {"priority": "high"}
+        payload = {"status": "READY"} if route == "status" else {"priority": "high"}
 
     request_options: dict[str, object] = {}
     if payload is not None:
@@ -253,6 +213,22 @@ def test_create_order_returns_created_resource(
     assert body["expected_delivery_at"].startswith("2026-08-10T13:00:00")
     assert body["items"][0]["product_id"] == product_id
     assert body["items"][0]["quantity"] == 3
+    db = session_factory()
+    try:
+        manager = db.scalar(select(User).where(User.email == "manager@example.test"))
+        history = db.scalars(
+            select(StatusHistory).where(
+                StatusHistory.entity_id == uuid.UUID(body["id"])
+            )
+        ).all()
+        assert manager is not None
+        assert len(history) == 1
+        assert history[0].entity_type == "ORDER"
+        assert history[0].old_status is None
+        assert history[0].new_status == "DRAFT"
+        assert history[0].changed_by == manager.id
+    finally:
+        db.close()
 
 
 def test_list_orders_returns_created_items(
@@ -265,7 +241,13 @@ def test_list_orders_returns_created_items(
     response = client.get("/api/v1/orders", headers=manager_headers)
 
     assert response.status_code == 200
-    assert response.json()[0]["id"] == order["id"]
+    body = response.json()
+    assert body["total"] == 1
+    listed_order = body["items"][0]
+    assert listed_order["id"] == order["id"]
+    assert listed_order["item_count"] == 1
+    assert "delivery_address" not in listed_order
+    assert "items" not in listed_order
 
 
 def test_get_order_by_id_returns_created_item(
@@ -295,7 +277,6 @@ def test_patch_order_updates_header_and_replaces_items(
     response = client.patch(
         f"/api/v1/orders/{order['id']}",
         json={
-            "status": "ready",
             "priority": "high",
             "delivery_address": "Avenida Exemplo, 200",
             "items": [
@@ -311,7 +292,7 @@ def test_patch_order_updates_header_and_replaces_items(
 
     assert response.status_code == 200
     body = response.json()
-    assert body["status"] == "READY"
+    assert body["status"] == "DRAFT"
     assert body["priority"] == "HIGH"
     assert body["delivery_address"] == "Avenida Exemplo, 200"
     assert len(body["items"]) == 1
@@ -420,7 +401,7 @@ def test_create_order_rejects_empty_items(
     assert response.status_code == 422
 
 
-def test_patch_order_rejects_invalid_status(
+def test_generic_patch_order_rejects_status_field(
     client: TestClient,
     session_factory: SessionFactory,
     manager_headers: dict[str, str],
@@ -429,11 +410,161 @@ def test_patch_order_rejects_invalid_status(
 
     response = client.patch(
         f"/api/v1/orders/{order['id']}",
-        json={"status": "invalid"},
+        json={"status": "READY"},
         headers=manager_headers,
     )
 
     assert response.status_code == 422
+
+
+def test_patch_order_status_persists_transition_and_actor(
+    client: TestClient,
+    session_factory: SessionFactory,
+    manager_headers: dict[str, str],
+) -> None:
+    order = create_order(client, session_factory, manager_headers)
+
+    response = client.patch(
+        f"/api/v1/orders/{order['id']}/status",
+        json={"status": "ready"},
+        headers=manager_headers,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "READY"
+    db = session_factory()
+    try:
+        manager = db.scalar(select(User).where(User.email == "manager@example.test"))
+        history = db.scalars(
+            select(StatusHistory).where(
+                StatusHistory.entity_id == uuid.UUID(order["id"])
+            )
+        ).all()
+        assert manager is not None
+        assert len(history) == 2
+        transition = next(item for item in history if item.old_status == "DRAFT")
+        assert transition.new_status == "READY"
+        assert transition.changed_by == manager.id
+    finally:
+        db.close()
+
+
+def test_patch_order_status_is_idempotent_without_duplicate_history(
+    client: TestClient,
+    session_factory: SessionFactory,
+    manager_headers: dict[str, str],
+) -> None:
+    order = create_order(client, session_factory, manager_headers)
+
+    response = client.patch(
+        f"/api/v1/orders/{order['id']}/status",
+        json={"status": "DRAFT"},
+        headers=manager_headers,
+    )
+
+    assert response.status_code == 200
+    db = session_factory()
+    try:
+        history = db.scalars(
+            select(StatusHistory).where(
+                StatusHistory.entity_id == uuid.UUID(order["id"])
+            )
+        ).all()
+        assert len(history) == 1
+    finally:
+        db.close()
+
+
+def test_patch_order_status_rejects_transition_reserved_for_plan_approval(
+    client: TestClient,
+    session_factory: SessionFactory,
+    manager_headers: dict[str, str],
+) -> None:
+    order = create_order(client, session_factory, manager_headers)
+
+    response = client.patch(
+        f"/api/v1/orders/{order['id']}/status",
+        json={"status": "PLANNED"},
+        headers=manager_headers,
+    )
+
+    assert response.status_code == 409
+    assert response.json() == {
+        "code": "ORDER_STATUS_TRANSITION_NOT_ALLOWED",
+        "message": "A transição de status do pedido não é permitida.",
+        "details": [
+            {
+                "field": "status",
+                "current_status": "DRAFT",
+                "requested_status": "PLANNED",
+            }
+        ],
+    }
+
+
+def test_patch_order_rejects_edit_after_draft(
+    client: TestClient,
+    session_factory: SessionFactory,
+    manager_headers: dict[str, str],
+) -> None:
+    order = create_order(client, session_factory, manager_headers)
+    status_response = client.patch(
+        f"/api/v1/orders/{order['id']}/status",
+        json={"status": "READY"},
+        headers=manager_headers,
+    )
+    assert status_response.status_code == 200
+
+    response = client.patch(
+        f"/api/v1/orders/{order['id']}",
+        json={"priority": "HIGH"},
+        headers=manager_headers,
+    )
+
+    assert response.status_code == 409
+    assert response.json()["code"] == "ORDER_EDIT_NOT_ALLOWED"
+    assert response.json()["details"] == [
+        {"field": "status", "current_status": "READY"}
+    ]
+
+
+def test_status_transition_rolls_back_when_history_persistence_fails(
+    client: TestClient,
+    session_factory: SessionFactory,
+    manager_headers: dict[str, str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    order = create_order(client, session_factory, manager_headers)
+
+    def fail_history(
+        _service: StatusHistoryService,
+        _data: object,
+    ) -> None:
+        raise RuntimeError("simulated history persistence failure")
+
+    monkeypatch.setattr(StatusHistoryService, "stage_status_change", fail_history)
+
+    response = client.patch(
+        f"/api/v1/orders/{order['id']}/status",
+        json={"status": "READY"},
+        headers=manager_headers,
+    )
+
+    assert response.status_code == 500
+    assert response.json()["code"] == "INTERNAL_SERVER_ERROR"
+    db = session_factory()
+    try:
+        persisted_order = db.get(Order, uuid.UUID(order["id"]))
+        history = db.scalars(
+            select(StatusHistory).where(
+                StatusHistory.entity_id == uuid.UUID(order["id"])
+            )
+        ).all()
+        assert persisted_order is not None
+        assert persisted_order.status == "DRAFT"
+        assert len(history) == 1
+    finally:
+        db.close()
 
 
 @pytest.mark.parametrize("role", ["ADMIN", "CHECKER"])
@@ -464,11 +595,15 @@ def test_read_only_roles_can_read_orders(
 
 
 @pytest.mark.parametrize("role", ["ADMIN", "CHECKER"])
-@pytest.mark.parametrize("method", ["POST", "PATCH"])
+@pytest.mark.parametrize(
+    ("method", "route"),
+    [("POST", "collection"), ("PATCH", "detail"), ("PATCH", "status")],
+)
 def test_read_only_roles_cannot_manage_orders(
     client: TestClient,
     session_factory: SessionFactory,
     method: str,
+    route: str,
     role: str,
 ) -> None:
     order = create_order_in_db(session_factory)
@@ -477,8 +612,6 @@ def test_read_only_roles_cannot_manage_orders(
         f"{role.lower()}@example.test",
         role,
     )
-    route = "collection" if method == "POST" else "detail"
-
     response = request_order_route(
         client,
         session_factory,

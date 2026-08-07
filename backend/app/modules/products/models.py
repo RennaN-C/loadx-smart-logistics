@@ -35,7 +35,15 @@ class Product(Base):
     height_cm: Mapped[int] = mapped_column(nullable=False)
     length_cm: Mapped[int] = mapped_column(nullable=False)
     weight_kg: Mapped[Decimal] = mapped_column(Numeric(10, 3), nullable=False)
-    fragile: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
-    stackable: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
-    rotation_allowed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    fragile: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
+    stackable: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default="true"
+    )
+    rotation_allowed: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default="true"
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )

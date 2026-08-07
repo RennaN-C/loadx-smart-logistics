@@ -80,10 +80,13 @@ def make_placement(
 def test_door_distance_uses_the_face_toward_z_internal_length() -> None:
     placement = make_placement(1, position_z_cm=60, used_length_cm=30)
 
-    assert calculate_door_distance_cm(
-        placement,
-        InternalDimensions(20, 20, 100),
-    ) == 10
+    assert (
+        calculate_door_distance_cm(
+            placement,
+            InternalDimensions(20, 20, 100),
+        )
+        == 10
+    )
 
 
 def test_later_delivery_must_be_at_least_as_deep_as_earlier_delivery() -> None:
@@ -102,12 +105,8 @@ def test_later_delivery_must_be_at_least_as_deep_as_earlier_delivery() -> None:
         position_z_cm=90,
     )
 
-    assert is_delivery_depth_configuration_valid(
-        [earlier, later_deeper], bounds
-    )
-    assert not is_delivery_depth_configuration_valid(
-        [earlier, later_shallower], bounds
-    )
+    assert is_delivery_depth_configuration_valid([earlier, later_deeper], bounds)
+    assert not is_delivery_depth_configuration_valid([earlier, later_shallower], bounds)
 
 
 def test_equal_depth_is_allowed_for_different_deliveries() -> None:

@@ -1,9 +1,10 @@
 import uuid
-from collections.abc import Callable, Sequence
+from collections.abc import Callable
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core.pagination import PageResult, PaginationParams
 from app.database.integrity import get_integrity_constraint_name
 from app.modules.trucks.models import Truck
 from app.modules.trucks.repository import TruckRepository
@@ -23,8 +24,8 @@ class TruckService:
         self.db = db
         self.repository = TruckRepository(db)
 
-    def list_trucks(self) -> Sequence[Truck]:
-        return self.repository.list()
+    def list_trucks(self, pagination: PaginationParams) -> PageResult[Truck]:
+        return self.repository.list(pagination)
 
     def get_truck(self, truck_id: uuid.UUID) -> Truck:
         truck = self.repository.get(truck_id)

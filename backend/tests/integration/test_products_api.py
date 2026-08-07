@@ -1,16 +1,10 @@
-from collections.abc import Callable, Generator
-from decimal import Decimal
+from collections.abc import Callable
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy.pool import StaticPool
+from sqlalchemy.orm import Session
 
 from app.core.security import create_access_token
-from app.database.base import Base
-from app.database.session import get_db
-from app.main import app
 from app.modules.products.models import Product
 from app.modules.products.schemas import ProductCreate
 from app.modules.products.service import ProductService
@@ -25,38 +19,6 @@ PRODUCT_ROUTE_CASES = [
     ("GET", "detail"),
     ("PATCH", "detail"),
 ]
-
-
-@pytest.fixture
-def session_factory() -> Generator[SessionFactory, None, None]:
-    engine = create_engine(
-        "sqlite+pysqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    tables = [User.__table__, Product.__table__]
-    Base.metadata.create_all(engine, tables=tables)
-    testing_session_local = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-    try:
-        yield testing_session_local
-    finally:
-        Base.metadata.drop_all(engine, tables=tables)
-
-
-@pytest.fixture
-def client(session_factory: SessionFactory) -> Generator[TestClient, None, None]:
-    def override_get_db() -> Generator[Session, None, None]:
-        db = session_factory()
-        try:
-            yield db
-        finally:
-            db.close()
-
-    app.dependency_overrides[get_db] = override_get_db
-    try:
-        yield TestClient(app)
-    finally:
-        app.dependency_overrides.clear()
 
 
 def create_user_in_db(
@@ -103,7 +65,7 @@ def make_product_payload(code: str = "CX-A") -> dict[str, object]:
         "width_cm": 60,
         "height_cm": 50,
         "length_cm": 40,
-        "weight_kg": "12.500",
+        "weight_kg": 12.500,
         "fragile": False,
         "stackable": True,
         "rotation_allowed": True,
@@ -159,8 +121,27 @@ def test_create_product_returns_created_resource(
     body = response.json()
     assert body["id"]
     assert body["code"] == "CX-A"
-    assert Decimal(str(body["weight_kg"])) == Decimal("12.500")
+    assert body["weight_kg"] == 12.5
+    assert isinstance(body["weight_kg"], float)
     assert body["stackable"] is True
+
+
+def test_create_product_rejects_decimal_string(
+    client: TestClient,
+    manager_headers: dict[str, str],
+) -> None:
+    payload = make_product_payload()
+    payload["weight_kg"] = "12.500"
+
+    response = client.post(
+        "/api/v1/products",
+        json=payload,
+        headers=manager_headers,
+    )
+
+    assert response.status_code == 422
+    assert response.json()["code"] == "VALIDATION_ERROR"
+    assert response.json()["details"][0]["field"] == "weight_kg"
 
 
 def test_list_products_returns_created_items(
@@ -176,7 +157,12 @@ def test_list_products_returns_created_items(
     response = client.get("/api/v1/products", headers=manager_headers)
 
     assert response.status_code == 200
-    assert response.json()[0]["code"] == "CX-A"
+    body = response.json()
+    assert body["items"][0]["code"] == "CX-A"
+    assert body["page"] == 1
+    assert body["page_size"] == 20
+    assert body["total"] == 1
+    assert body["total_pages"] == 1
 
 
 def test_get_product_by_id_returns_created_item(

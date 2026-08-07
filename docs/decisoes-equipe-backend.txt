@@ -82,7 +82,7 @@ Data: 2026-08-02.
 
 D04 - TRANSIÇÕES E BLOQUEIOS DE EDIÇÃO DE PEDIDOS
 -------------------------------------------------
-Marcador: DECISÃO NECESSÁRIA
+Marcador: CONFIRMADO
 Perguntas:
 - quais transições entre DRAFT, READY, PLANNED, IN_TRANSIT, DELIVERED e CANCELED são permitidas?
 - quais perfis executam cada transição?
@@ -90,14 +90,30 @@ Perguntas:
 - cancelar pedido planejado exige recálculo ou bloqueio?
 RECOMENDAÇÃO: registrar uma tabela de transições e rejeitar saltos não listados.
 Impacta: OC52, orders, load_planning, trips e status_history.
-Escolha da equipe:
-Responsáveis:
-Data:
+Escolha aprovada:
+- LOGISTICS_MANAGER pode executar manualmente DRAFT -> READY,
+  DRAFT -> CANCELED, READY -> DRAFT e READY -> CANCELED.
+- READY -> PLANNED ocorre somente na aprovação atômica de plano de carga.
+- PLANNED -> IN_TRANSIT ocorrerá somente no início válido de viagem, depois do
+  carregamento finalizado.
+- IN_TRANSIT -> DELIVERED ocorrerá somente na conclusão válida da entrega.
+- DELIVERED e CANCELED são terminais. Saltos não listados são rejeitados.
+- DRAFT permite editar cliente, prioridade, endereço, previsão e itens. READY
+  exige retorno explícito a DRAFT antes de qualquer edição. PLANNED, IN_TRANSIT,
+  DELIVERED e CANCELED são imutáveis.
+- Itens referenciados por qualquer plano permanecem imutáveis mesmo em DRAFT,
+  conforme ADR-014.
+- Pedido PLANNED não pode ser cancelado enquanto não existir fluxo aprovado de
+  invalidação/substituição de plano. Exceções de viagem permanecem em D08.
+- Status não é alterado pelo PATCH genérico do pedido; cada mudança usa caso de
+  uso explícito e a matriz aprovada.
+Responsável: Desenvolvedor 1.
+Data: 2026-08-06.
 
 
 D05 - TRANSAÇÃO E AUTORIA DO HISTÓRICO DE STATUS
 ------------------------------------------------
-Marcador: DECISÃO NECESSÁRIA
+Marcador: CONFIRMADO
 Perguntas:
 - o service dono da operação controla commit/rollback de entidade e histórico?
 - changed_by será sempre o usuário autenticado nas ações manuais?
@@ -105,23 +121,47 @@ Perguntas:
 - repetir o mesmo status cria histórico ou é operação sem efeito?
 RECOMENDAÇÃO: um único commit no caso de uso externo; histórico usa flush e participa da mesma transação.
 Impacta: OC52, OC09, loading, deliveries e occurrences.
-Escolha da equipe:
-Responsáveis:
-Data:
+Escolha aprovada:
+- o service dono do caso de uso bloqueia a entidade, controla um único commit ou
+  rollback e inclui entidade e histórico na mesma transação;
+- status_history usa stage_status_change e flush nas operações compostas, sem
+  commit próprio;
+- ações manuais exigem changed_by igual ao usuário autenticado; ações realmente
+  automáticas usam changed_by nulo e não criam usuário artificial de sistema;
+- a criação registra old_status nulo e new_status DRAFT com o ator autenticado;
+- repetir o estado atual é idempotente, não altera a entidade e não cria
+  histórico duplicado;
+- qualquer falha ao persistir ou validar o histórico desfaz também a mudança da
+  entidade;
+- cada transição efetiva cria exatamente um registro de histórico.
+Responsável: Desenvolvedor 1.
+Data: 2026-08-06.
 
 
 D06 - REPRESENTAÇÃO JSON DE DECIMAL
 -----------------------------------
-Marcador: DECISÃO NECESSÁRIA
+Marcador: CONFIRMADO
 Pergunta: weight_kg, max_weight_kg, total_weight_kg e occupancy_percent serão números JSON ou strings decimais?
 Opções mínimas:
 A) número JSON, com regra explícita de precisão e arredondamento;
 B) string decimal, convertida de forma explícita pelo frontend.
 RECOMENDAÇÃO: escolher um único padrão para entrada e saída e documentar exemplos e tipos OpenAPI.
 Impacta: OC56, frontend, planos, relatórios e contratos.
-Escolha da equipe:
-Responsáveis:
-Data:
+Escolha aprovada: opção A, número JSON.
+- Entrada e saída HTTP usam exclusivamente número JSON; string numérica e bool
+  são rejeitados para impedir contrato ambíguo.
+- Backend, PostgreSQL e otimizador preservam Decimal/Numeric; conversão para
+  número acontece somente na serialização HTTP.
+- Cada campo mantém a escala já aprovada: max_weight_kg com 2 casas; weight_kg e
+  total_weight_kg com 3; occupancy_percent com 2 e ROUND_HALF_UP no cálculo.
+- Zeros finais não são significativos em JSON: 12.500 pode ser transmitido como
+  12.5 sem mudança de valor.
+- Campos decimais públicos devem declarar precisão e escala e ficar em até 15
+  dígitos significativos para consumo seguro como Number no frontend. Exceder
+  esse limite exige nova decisão de contrato.
+- OpenAPI declara type number, sem alternativa string.
+Responsáveis: Desenvolvedor 1 e Desenvolvedor 3.
+Data: 2026-08-06.
 
 
 D07 - ESTADOS E TRANSIÇÕES DE VIAGEM E ENTREGA
@@ -196,16 +236,25 @@ Data:
 
 D12 - DADOS PESSOAIS EM LISTAGENS E PAGINAÇÃO
 ----------------------------------------------
-Marcador: DECISÃO NECESSÁRIA
+Marcador: CONFIRMADO
 Perguntas:
 - quais campos de cliente, motorista e usuário aparecem nas listagens?
 - documento, telefone, CNH e endereço serão mascarados ou omitidos conforme perfil?
 - qual padrão de paginação, ordenação e filtros será adotado?
 RECOMENDAÇÃO: respostas resumidas em listagens e detalhes completos apenas para perfis autorizados.
 Impacta: RBAC, schemas de leitura, frontend e docs/05.
-Escolha da equipe:
-Responsáveis:
-Data:
+Escolha da equipe: omitir campos pessoais desnecessários nas listagens, sem
+mascaramento; manter detalhes completos apenas nos endpoints protegidos pelo
+RBAC. Usuários listam id, name, role, active e created_at; clientes listam id,
+name, city, state e created_at; motoristas listam id, name, license_category,
+active e created_at; pedidos listam id, customer_id, status, priority,
+expected_delivery_at, created_at e item_count. Todas as coleções atuais usam
+page 1-based, page_size default 20 e máximo 100, sort_order asc/desc sobre
+created_at com id como desempate e envelope items/page/page_size/total/
+total_pages. Não haverá busca livre, sort_by ou filtros por dados pessoais nesta
+ocorrência. Regras completas na ADR-017.
+Responsáveis: Desenvolvedor 1 e Desenvolvedor 3; aprovação explícita do usuário.
+Data: 2026-08-07.
 
 
 D13 - PERSISTÊNCIA DE VOLUMES INDIVIDUAIS
@@ -334,12 +383,15 @@ ENCERRAMENTO DA REUNIÃO
 
 Decisões aprovadas e documentos atualizados:
 D01, D02 e D03, registradas em ADR-004, docs/04 e docs/05.
+D04 e D05, registradas em ADR-015, docs/04 e docs/05.
+D06, registrada em ADR-016 e docs/05.
+D12, registrada em ADR-017 e docs/05.
 
 Ocorrências desbloqueadas:
-OC51.
+OC51, OC52, OC56 e OC59.
 
 ADRs que precisam ser criadas:
-Nenhuma para D01, D02 e D03; ADR-004 criada.
+Nenhuma para as decisões aprovadas; ADR-004, ADR-015, ADR-016 e ADR-017 criadas.
 
 Pendências mantidas para próxima reunião:
 
@@ -347,4 +399,4 @@ Participantes:
 Desenvolvedor 1.
 
 Data:
-2026-08-02.
+2026-08-07.

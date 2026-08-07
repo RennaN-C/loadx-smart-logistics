@@ -1,9 +1,10 @@
 import uuid
-from collections.abc import Callable, Sequence
+from collections.abc import Callable
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core.pagination import PageResult, PaginationParams
 from app.database.integrity import get_integrity_constraint_name
 from app.modules.customers.models import Customer
 from app.modules.customers.repository import CustomerRepository
@@ -23,8 +24,8 @@ class CustomerService:
         self.db = db
         self.repository = CustomerRepository(db)
 
-    def list_customers(self) -> Sequence[Customer]:
-        return self.repository.list()
+    def list_customers(self, pagination: PaginationParams) -> PageResult[Customer]:
+        return self.repository.list(pagination)
 
     def get_customer(self, customer_id: uuid.UUID) -> Customer:
         customer = self.repository.get(customer_id)

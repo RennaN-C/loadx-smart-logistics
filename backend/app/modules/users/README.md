@@ -15,7 +15,8 @@ Crie somente os arquivos necessários para a ocorrência atual.
 
 ## Endpoints
 
-- `GET /api/v1/users`: lista usuários.
+- `GET /api/v1/users`: lista paginada com `id`, `name`, `role`, `active` e
+  `created_at`; omite `email`.
 - `POST /api/v1/users`: cria usuário.
 - `GET /api/v1/users/{id}`: consulta usuário por ID.
 - `PATCH /api/v1/users/{id}`: atualiza campos enviados.

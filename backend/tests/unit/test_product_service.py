@@ -1,13 +1,9 @@
 import uuid
-from collections.abc import Generator
 from decimal import Decimal
 
 import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy.pool import StaticPool
+from sqlalchemy.orm import Session
 
-from app.database.base import Base
 from app.modules.products.models import Product
 from app.modules.products.schemas import ProductCreate, ProductUpdate
 from app.modules.products.service import (
@@ -16,23 +12,7 @@ from app.modules.products.service import (
     ProductService,
 )
 
-
-@pytest.fixture
-def db_session() -> Generator[Session, None, None]:
-    engine = create_engine(
-        "sqlite+pysqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    Base.metadata.create_all(engine, tables=[Product.__table__])
-    testing_session_local = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-
-    db = testing_session_local()
-    try:
-        yield db
-    finally:
-        db.close()
-        Base.metadata.drop_all(engine, tables=[Product.__table__])
+SQLITE_TABLES = (Product.__table__,)
 
 
 def make_product_create(code: str = "CX-A") -> ProductCreate:

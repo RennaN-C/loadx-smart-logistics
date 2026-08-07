@@ -86,3 +86,13 @@ class UserRead(UserBase):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True, str_strip_whitespace=True)
+
+
+class UserListRead(BaseModel):
+    id: uuid.UUID
+    name: str
+    role: str
+    active: bool
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True, str_strip_whitespace=True)

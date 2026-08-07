@@ -21,20 +21,34 @@ def upgrade() -> None:
         "orders",
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("customer_id", sa.Uuid(), nullable=False),
-        sa.Column("status", sa.String(length=32), server_default="DRAFT", nullable=False),
+        sa.Column(
+            "status", sa.String(length=32), server_default="DRAFT", nullable=False
+        ),
         sa.Column("priority", sa.String(length=32), nullable=False),
         sa.Column("delivery_address", sa.String(length=255), nullable=False),
         sa.Column("expected_delivery_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
         sa.CheckConstraint(
             "status IN ('DRAFT', 'READY', 'PLANNED', 'IN_TRANSIT', 'DELIVERED', 'CANCELED')",
             name=op.f("ck_orders__status_allowed"),
         ),
-        sa.ForeignKeyConstraint(["customer_id"], ["customers.id"], name="fk_orders__customers"),
+        sa.ForeignKeyConstraint(
+            ["customer_id"], ["customers.id"], name="fk_orders__customers"
+        ),
         sa.PrimaryKeyConstraint("id", name="pk_orders"),
     )
     op.create_index("ix_orders__customer_id", "orders", ["customer_id"], unique=False)
-    op.create_index("ix_orders__expected_delivery_at", "orders", ["expected_delivery_at"], unique=False)
+    op.create_index(
+        "ix_orders__expected_delivery_at",
+        "orders",
+        ["expected_delivery_at"],
+        unique=False,
+    )
     op.create_index("ix_orders__status", "orders", ["status"], unique=False)
 
     op.create_table(
@@ -44,14 +58,27 @@ def upgrade() -> None:
         sa.Column("product_id", sa.Uuid(), nullable=False),
         sa.Column("quantity", sa.Integer(), nullable=False),
         sa.Column("delivery_sequence", sa.Integer(), nullable=False),
-        sa.CheckConstraint("delivery_sequence > 0", name=op.f("ck_order_items__delivery_sequence_positive")),
-        sa.CheckConstraint("quantity > 0", name=op.f("ck_order_items__quantity_positive")),
-        sa.ForeignKeyConstraint(["order_id"], ["orders.id"], name="fk_order_items__orders"),
-        sa.ForeignKeyConstraint(["product_id"], ["products.id"], name="fk_order_items__products"),
+        sa.CheckConstraint(
+            "delivery_sequence > 0",
+            name=op.f("ck_order_items__delivery_sequence_positive"),
+        ),
+        sa.CheckConstraint(
+            "quantity > 0", name=op.f("ck_order_items__quantity_positive")
+        ),
+        sa.ForeignKeyConstraint(
+            ["order_id"], ["orders.id"], name="fk_order_items__orders"
+        ),
+        sa.ForeignKeyConstraint(
+            ["product_id"], ["products.id"], name="fk_order_items__products"
+        ),
         sa.PrimaryKeyConstraint("id", name="pk_order_items"),
     )
-    op.create_index("ix_order_items__order_id", "order_items", ["order_id"], unique=False)
-    op.create_index("ix_order_items__product_id", "order_items", ["product_id"], unique=False)
+    op.create_index(
+        "ix_order_items__order_id", "order_items", ["order_id"], unique=False
+    )
+    op.create_index(
+        "ix_order_items__product_id", "order_items", ["product_id"], unique=False
+    )
 
 
 def downgrade() -> None:

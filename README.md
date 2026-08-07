@@ -546,7 +546,7 @@ Planejamento: concluído
 Estrutura inicial: concluída
 Backend: em desenvolvimento
 Frontend: em desenvolvimento
-Algoritmo: não iniciado
+Algoritmo: implementado até a OC20
 Integrações: não iniciadas
 ```
 

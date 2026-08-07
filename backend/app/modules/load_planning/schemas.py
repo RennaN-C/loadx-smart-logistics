@@ -1,10 +1,10 @@
 import uuid
 from datetime import datetime
-from decimal import Decimal
 from typing import Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from app.core.json_decimal import JsonDecimal
 from app.modules.load_planning.models import LoadPlan, LoadPlanItem
 
 LoadPlanStatus = Literal["CALCULATED", "APPROVED", "REJECTED"]
@@ -48,7 +48,7 @@ class _LoadPlanItemSnapshotRead(BaseModel):
     original_width_cm: int = Field(gt=0)
     original_height_cm: int = Field(gt=0)
     original_length_cm: int = Field(gt=0)
-    weight_kg: Decimal = Field(gt=0, max_digits=10, decimal_places=3)
+    weight_kg: JsonDecimal = Field(gt=0, max_digits=10, decimal_places=3)
     fragile: bool
     stackable: bool
     rotation_allowed: bool
@@ -121,8 +121,8 @@ class LoadPlanRead(BaseModel):
     status: LoadPlanStatus
     internal_volume_cm3: int = Field(gt=0)
     used_volume_cm3: int = Field(ge=0)
-    occupancy_percent: Decimal = Field(ge=0, le=100, decimal_places=2)
-    total_weight_kg: Decimal = Field(ge=0, decimal_places=3)
+    occupancy_percent: JsonDecimal = Field(ge=0, le=100, decimal_places=2)
+    total_weight_kg: JsonDecimal = Field(ge=0, max_digits=11, decimal_places=3)
     loaded_count: int = Field(ge=0)
     unloaded_count: int = Field(ge=0)
     algorithm_version: str = Field(min_length=1, max_length=64)
@@ -141,9 +141,7 @@ class LoadPlanRead(BaseModel):
             raise ValueError("order_ids must not contain duplicates")
 
         item_ids = [item.id for item in self.items]
-        identities = [
-            (item.order_item_id, item.volume_index) for item in self.items
-        ]
+        identities = [(item.order_item_id, item.volume_index) for item in self.items]
         if len(set(item_ids)) != len(item_ids):
             raise ValueError("items must not contain duplicate ids")
         if len(set(identities)) != len(identities):
@@ -190,7 +188,7 @@ class TruckSnapshotRead(BaseModel):
     width_cm: int = Field(gt=0)
     height_cm: int = Field(gt=0)
     length_cm: int = Field(gt=0)
-    max_weight_kg: Decimal = Field(gt=0, max_digits=10, decimal_places=2)
+    max_weight_kg: JsonDecimal = Field(gt=0, max_digits=10, decimal_places=2)
 
     model_config = ConfigDict(str_strip_whitespace=True)
 

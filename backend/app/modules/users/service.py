@@ -1,9 +1,10 @@
 import uuid
-from collections.abc import Callable, Sequence
+from collections.abc import Callable
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core.pagination import PageResult, PaginationParams
 from app.core.security import hash_password
 from app.database.integrity import get_integrity_constraint_name
 from app.modules.users.models import User
@@ -28,8 +29,8 @@ class UserService:
         self.db = db
         self.repository = UserRepository(db)
 
-    def list_users(self) -> Sequence[User]:
-        return self.repository.list()
+    def list_users(self, pagination: PaginationParams) -> PageResult[User]:
+        return self.repository.list(pagination)
 
     def has_users(self) -> bool:
         return self.repository.has_any()

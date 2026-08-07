@@ -5,11 +5,17 @@ from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
+from app.core.pagination import PageResponse, Pagination, to_page_response
 from app.core.responses import error_response, openapi_error_responses
 from app.database.session import get_db
 from app.modules.auth.dependencies import require_roles
 from app.modules.customers.models import Customer
-from app.modules.customers.schemas import CustomerCreate, CustomerRead, CustomerUpdate
+from app.modules.customers.schemas import (
+    CustomerCreate,
+    CustomerListRead,
+    CustomerRead,
+    CustomerUpdate,
+)
 from app.modules.customers.service import (
     CustomerDocumentAlreadyExistsError,
     CustomerNotFoundError,
@@ -34,14 +40,19 @@ def get_customer_service(db: Annotated[Session, Depends(get_db)]) -> CustomerSer
 
 @router.get(
     "",
-    response_model=list[CustomerRead],
-    responses=openapi_error_responses(401, 403),
+    response_model=PageResponse[CustomerListRead],
+    responses=openapi_error_responses(401, 403, 422),
 )
 def list_customers(
+    pagination: Pagination,
     _current_user: CustomerReader,
     service: Annotated[CustomerService, Depends(get_customer_service)],
-) -> list[Customer]:
-    return list(service.list_customers())
+) -> PageResponse[CustomerListRead]:
+    result = service.list_customers(pagination)
+    return to_page_response(
+        result,
+        (CustomerListRead.model_validate(customer) for customer in result.items),
+    )
 
 
 @router.post(

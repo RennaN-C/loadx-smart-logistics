@@ -4,6 +4,14 @@ export interface ApiErrorResponse {
   details: unknown[];
 }
 
+export interface Page<T> {
+  items: T[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}
+
 export function isApiErrorResponse(value: unknown): value is ApiErrorResponse {
   if (typeof value !== "object" || value === null) {
     return false;

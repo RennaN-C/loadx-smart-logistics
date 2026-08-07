@@ -1,12 +1,8 @@
 import uuid
-from collections.abc import Generator
 
 import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy.pool import StaticPool
+from sqlalchemy.orm import Session
 
-from app.database.base import Base
 from app.modules.customers.models import Customer
 from app.modules.customers.schemas import CustomerCreate, CustomerUpdate
 from app.modules.customers.service import (
@@ -15,23 +11,7 @@ from app.modules.customers.service import (
     CustomerService,
 )
 
-
-@pytest.fixture
-def db_session() -> Generator[Session, None, None]:
-    engine = create_engine(
-        "sqlite+pysqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    Base.metadata.create_all(engine, tables=[Customer.__table__])
-    testing_session_local = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-
-    db = testing_session_local()
-    try:
-        yield db
-    finally:
-        db.close()
-        Base.metadata.drop_all(engine, tables=[Customer.__table__])
+SQLITE_TABLES = (Customer.__table__,)
 
 
 def make_customer_create(document: str = "00000000000191") -> CustomerCreate:
@@ -70,7 +50,9 @@ def test_update_customer_rejects_duplicate_document(db_session: Session) -> None
     service.create_customer(make_customer_create("00000000000272"))
 
     with pytest.raises(CustomerDocumentAlreadyExistsError):
-        service.update_customer(first_customer.id, CustomerUpdate(document="00000000000272"))
+        service.update_customer(
+            first_customer.id, CustomerUpdate(document="00000000000272")
+        )
 
 
 def test_get_customer_raises_when_not_found(db_session: Session) -> None:

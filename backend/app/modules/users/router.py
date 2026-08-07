@@ -5,11 +5,12 @@ from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
+from app.core.pagination import PageResponse, Pagination, to_page_response
 from app.core.responses import error_response, openapi_error_responses
 from app.database.session import get_db
 from app.modules.auth.dependencies import require_roles
 from app.modules.users.models import User
-from app.modules.users.schemas import UserCreate, UserRead, UserUpdate
+from app.modules.users.schemas import UserCreate, UserListRead, UserRead, UserUpdate
 from app.modules.users.service import (
     UserEmailAlreadyExistsError,
     UserLastActiveAdminRequiredError,
@@ -27,14 +28,19 @@ def get_user_service(db: Annotated[Session, Depends(get_db)]) -> UserService:
 
 @router.get(
     "",
-    response_model=list[UserRead],
-    responses=openapi_error_responses(401, 403),
+    response_model=PageResponse[UserListRead],
+    responses=openapi_error_responses(401, 403, 422),
 )
 def list_users(
+    pagination: Pagination,
     _current_admin: AdminUser,
     service: Annotated[UserService, Depends(get_user_service)],
-) -> list[User]:
-    return list(service.list_users())
+) -> PageResponse[UserListRead]:
+    result = service.list_users(pagination)
+    return to_page_response(
+        result,
+        (UserListRead.model_validate(user) for user in result.items),
+    )
 
 
 @router.post(

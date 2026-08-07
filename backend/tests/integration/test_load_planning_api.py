@@ -1,19 +1,15 @@
 import uuid
-from collections.abc import Callable, Generator
+from collections.abc import Callable
 from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, event, select
-from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy.pool import StaticPool
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from app.core.security import create_access_token
-from app.database.base import Base
-from app.database.session import get_db
-from app.main import app
 from app.modules.customers.models import Customer
 from app.modules.load_planning.models import LoadPlan, LoadPlanItem, LoadPlanOrder
 from app.modules.orders.models import Order, OrderItem
@@ -42,65 +38,6 @@ class PlanningScenario:
     product_code: str
     order_id: uuid.UUID
     order_item_id: uuid.UUID
-
-
-@pytest.fixture
-def session_factory() -> Generator[SessionFactory, None, None]:
-    engine = create_engine(
-        "sqlite+pysqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-
-    @event.listens_for(engine, "connect")
-    def enable_foreign_keys(dbapi_connection, _connection_record) -> None:
-        cursor = dbapi_connection.cursor()
-        cursor.execute("PRAGMA foreign_keys=ON")
-        cursor.close()
-
-    tables = [
-        User.__table__,
-        Customer.__table__,
-        Product.__table__,
-        Truck.__table__,
-        Order.__table__,
-        OrderItem.__table__,
-        StatusHistory.__table__,
-        LoadPlan.__table__,
-        LoadPlanOrder.__table__,
-        LoadPlanItem.__table__,
-    ]
-    Base.metadata.create_all(engine, tables=tables)
-    with engine.connect() as connection:
-        assert connection.exec_driver_sql("PRAGMA foreign_keys").scalar_one() == 1
-    testing_session_local = sessionmaker(
-        bind=engine,
-        autoflush=False,
-        autocommit=False,
-    )
-    try:
-        yield testing_session_local
-    finally:
-        with engine.connect() as connection:
-            connection.exec_driver_sql("PRAGMA foreign_keys=OFF")
-            Base.metadata.drop_all(connection, tables=list(reversed(tables)))
-        engine.dispose()
-
-
-@pytest.fixture
-def client(session_factory: SessionFactory) -> Generator[TestClient, None, None]:
-    def override_get_db() -> Generator[Session, None, None]:
-        db = session_factory()
-        try:
-            yield db
-        finally:
-            db.close()
-
-    app.dependency_overrides[get_db] = override_get_db
-    try:
-        yield TestClient(app, raise_server_exceptions=False)
-    finally:
-        app.dependency_overrides.clear()
 
 
 def create_authenticated_user(
@@ -299,7 +236,13 @@ def test_create_get_and_visualization_return_persisted_snapshot(
     assert created["loaded_count"] == 1
     assert created["unloaded_count"] == 0
     assert created["algorithm_version"] == "heuristic-v1"
+    assert isinstance(created["occupancy_percent"], (int, float))
+    assert not isinstance(created["occupancy_percent"], bool)
+    assert isinstance(created["total_weight_kg"], (int, float))
+    assert not isinstance(created["total_weight_kg"], bool)
     assert created["items"][0]["order_item_id"] == str(scenario.order_item_id)
+    assert isinstance(created["items"][0]["weight_kg"], (int, float))
+    assert not isinstance(created["items"][0]["weight_kg"], bool)
     assert created["items"][0]["placed"] is True
     assert created["items"][0]["loading_sequence"] == 1
 
@@ -323,7 +266,8 @@ def test_create_get_and_visualization_return_persisted_snapshot(
     assert truck_snapshot["width_cm"] == 20
     assert truck_snapshot["height_cm"] == 10
     assert truck_snapshot["length_cm"] == 10
-    assert Decimal(str(truck_snapshot["max_weight_kg"])) == Decimal("100.00")
+    assert truck_snapshot["max_weight_kg"] == 100.0
+    assert isinstance(truck_snapshot["max_weight_kg"], float)
     assert len(visualization["items"]) == 1
     item_snapshot = visualization["items"][0]
     assert item_snapshot["order_item_id"] == str(scenario.order_item_id)
@@ -465,10 +409,7 @@ def test_plan_with_zero_placed_volumes_is_rejected(
     assert created["unloaded_count"] == 1
     assert created["used_volume_cm3"] == 0
     assert created["items"][0]["placed"] is False
-    assert (
-        created["items"][0]["rejection_reason"]
-        == "TRUCK_DIMENSIONS_EXCEEDED"
-    )
+    assert created["items"][0]["rejection_reason"] == "TRUCK_DIMENSIONS_EXCEEDED"
 
 
 def test_create_maps_missing_and_inactive_sources(
@@ -824,9 +765,7 @@ def test_read_access_follows_plan_status_and_role(
     visualization_path = f"{detail_path}/visualization"
 
     assert client.get(detail_path, headers=admin.headers).status_code == 200
-    assert (
-        client.get(visualization_path, headers=admin.headers).status_code == 200
-    )
+    assert client.get(visualization_path, headers=admin.headers).status_code == 200
     for path in (detail_path, visualization_path):
         checker_response = client.get(path, headers=checker.headers)
         driver_response = client.get(path, headers=driver.headers)
@@ -842,9 +781,7 @@ def test_read_access_follows_plan_status_and_role(
     assert approve_response.status_code == 200
 
     assert client.get(detail_path, headers=checker.headers).status_code == 200
-    assert (
-        client.get(visualization_path, headers=checker.headers).status_code == 200
-    )
+    assert client.get(visualization_path, headers=checker.headers).status_code == 200
     for path in (detail_path, visualization_path):
         driver_response = client.get(path, headers=driver.headers)
         assert driver_response.status_code == 403
@@ -957,6 +894,13 @@ def test_patch_order_items_is_blocked_after_plan_snapshot(
     scenario = seed_planning_scenario(session_factory)
     created = create_load_plan(client, scenario, manager)
 
+    draft_response = client.patch(
+        f"/api/v1/orders/{scenario.order_id}/status",
+        json={"status": "DRAFT"},
+        headers=manager.headers,
+    )
+    assert draft_response.status_code == 200
+
     header_response = client.patch(
         f"/api/v1/orders/{scenario.order_id}",
         json={"priority": "high"},
@@ -964,9 +908,7 @@ def test_patch_order_items_is_blocked_after_plan_snapshot(
     )
     assert header_response.status_code == 200
     assert header_response.json()["priority"] == "HIGH"
-    assert header_response.json()["items"][0]["id"] == str(
-        scenario.order_item_id
-    )
+    assert header_response.json()["items"][0]["id"] == str(scenario.order_item_id)
 
     response = client.patch(
         f"/api/v1/orders/{scenario.order_id}",
@@ -1090,9 +1032,12 @@ def test_recalculate_rolls_back_child_when_history_write_fails(
         assert plans[0].id == source_id
         assert persisted_source is not None
         assert persisted_source.status == "APPROVED"
-        assert db.scalars(
-            select(LoadPlan).where(LoadPlan.recalculated_from_id == source_id)
-        ).all() == []
+        assert (
+            db.scalars(
+                select(LoadPlan).where(LoadPlan.recalculated_from_id == source_id)
+            ).all()
+            == []
+        )
         assert len(db.scalars(select(StatusHistory)).all()) == history_count_before
     finally:
         db.close()

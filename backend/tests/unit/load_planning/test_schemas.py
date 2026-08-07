@@ -351,8 +351,7 @@ def test_map_visualization_uses_snapshot_and_orders_each_result_collection() -> 
         unloaded_later_identity.order_item_id,
     ]
     assert all(
-        isinstance(item, UnloadedLoadPlanItemRead)
-        for item in result.unloaded_items
+        isinstance(item, UnloadedLoadPlanItemRead) for item in result.unloaded_items
     )
     assert result.unloaded_items[0].rejection_reason == "TRUCK_WEIGHT_EXCEEDED"
     assert "placed" not in result.items[0].model_dump()

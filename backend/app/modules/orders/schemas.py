@@ -80,17 +80,15 @@ class OrderCreate(BaseModel):
 
 class OrderUpdate(BaseModel):
     customer_id: uuid.UUID | None = None
-    status: str | None = Field(default=None, min_length=1, max_length=32)
     priority: str | None = Field(default=None, min_length=1, max_length=32)
     delivery_address: str | None = Field(default=None, min_length=1, max_length=255)
     expected_delivery_at: datetime | None = None
     items: list[OrderItemCreate] | None = None
 
-    model_config = ConfigDict(str_strip_whitespace=True)
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
 
     @field_validator(
         "customer_id",
-        "status",
         "priority",
         "delivery_address",
         "items",
@@ -101,11 +99,6 @@ class OrderUpdate(BaseModel):
         if value is None:
             raise ValueError("field must not be null")
         return value
-
-    @field_validator("status")
-    @classmethod
-    def normalize_status(cls, value: str | None) -> str | None:
-        return validate_order_status(value)
 
     @field_validator("priority")
     @classmethod
@@ -127,6 +120,41 @@ class OrderUpdate(BaseModel):
         return value
 
 
+class OrderStatusChange(BaseModel):
+    status: str = Field(min_length=1, max_length=32)
+
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+
+    @field_validator("status")
+    @classmethod
+    def normalize_status(cls, value: str) -> str:
+        normalized_status = validate_order_status(value)
+        if normalized_status is None:  # pragma: no cover - required by the field type
+            raise ValueError("status must not be null")
+        return normalized_status
+
+
+class OrderListRead(BaseModel):
+    id: uuid.UUID
+    customer_id: uuid.UUID
+    status: str
+    priority: str
+    expected_delivery_at: datetime | None
+    created_at: datetime
+    item_count: int = Field(ge=0)
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    @field_validator("expected_delivery_at", "created_at")
+    @classmethod
+    def normalize_response_datetimes(cls, value: datetime | None) -> datetime | None:
+        if value is None:
+            return None
+        if value.tzinfo is None or value.tzinfo.utcoffset(value) is None:
+            return value.replace(tzinfo=timezone.utc)
+        return value.astimezone(timezone.utc)
+
+
 class OrderRead(BaseModel):
     id: uuid.UUID
     customer_id: uuid.UUID
@@ -138,3 +166,12 @@ class OrderRead(BaseModel):
     items: list[OrderItemRead]
 
     model_config = ConfigDict(from_attributes=True, str_strip_whitespace=True)
+
+    @field_validator("expected_delivery_at", "created_at")
+    @classmethod
+    def normalize_response_datetimes(cls, value: datetime | None) -> datetime | None:
+        if value is None:
+            return None
+        if value.tzinfo is None or value.tzinfo.utcoffset(value) is None:
+            return value.replace(tzinfo=timezone.utc)
+        return value.astimezone(timezone.utc)

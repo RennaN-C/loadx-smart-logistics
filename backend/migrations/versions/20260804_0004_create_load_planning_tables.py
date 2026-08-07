@@ -87,8 +87,7 @@ def upgrade() -> None:
             name=op.f("ck_load_plans__occupancy_percent_range"),
         ),
         sa.CheckConstraint(
-            "total_weight_kg >= 0 "
-            "AND total_weight_kg <= truck_snapshot_max_weight_kg",
+            "total_weight_kg >= 0 AND total_weight_kg <= truck_snapshot_max_weight_kg",
             name=op.f("ck_load_plans__total_weight_valid"),
         ),
         sa.CheckConstraint(
@@ -145,12 +144,8 @@ def upgrade() -> None:
         ["recalculated_from_id"],
         unique=False,
     )
-    op.create_index(
-        "ix_load_plans__status", "load_plans", ["status"], unique=False
-    )
-    op.create_index(
-        "ix_load_plans__truck_id", "load_plans", ["truck_id"], unique=False
-    )
+    op.create_index("ix_load_plans__status", "load_plans", ["status"], unique=False)
+    op.create_index("ix_load_plans__truck_id", "load_plans", ["truck_id"], unique=False)
 
     op.create_table(
         "load_plan_orders",
@@ -168,9 +163,7 @@ def upgrade() -> None:
             name="fk_load_plan_orders__orders",
             ondelete="RESTRICT",
         ),
-        sa.PrimaryKeyConstraint(
-            "load_plan_id", "order_id", name="pk_load_plan_orders"
-        ),
+        sa.PrimaryKeyConstraint("load_plan_id", "order_id", name="pk_load_plan_orders"),
     )
     op.create_index(
         "ix_load_plan_orders__order_id",
@@ -209,9 +202,7 @@ def upgrade() -> None:
         ),
         sa.Column("product_snapshot_fragile", sa.Boolean(), nullable=False),
         sa.Column("product_snapshot_stackable", sa.Boolean(), nullable=False),
-        sa.Column(
-            "product_snapshot_rotation_allowed", sa.Boolean(), nullable=False
-        ),
+        sa.Column("product_snapshot_rotation_allowed", sa.Boolean(), nullable=False),
         sa.Column("position_x_cm", sa.Integer(), nullable=True),
         sa.Column("position_y_cm", sa.Integer(), nullable=True),
         sa.Column("position_z_cm", sa.Integer(), nullable=True),
@@ -229,15 +220,11 @@ def upgrade() -> None:
         sa.CheckConstraint(
             "order_item_snapshot_quantity > 0 "
             "AND order_item_snapshot_delivery_sequence > 0",
-            name=op.f(
-                "ck_load_plan_items__order_item_snapshot_values_positive"
-            ),
+            name=op.f("ck_load_plan_items__order_item_snapshot_values_positive"),
         ),
         sa.CheckConstraint(
             "volume_index <= order_item_snapshot_quantity",
-            name=op.f(
-                "ck_load_plan_items__volume_index_within_snapshot_quantity"
-            ),
+            name=op.f("ck_load_plan_items__volume_index_within_snapshot_quantity"),
         ),
         sa.CheckConstraint(
             "product_snapshot_width_cm > 0 "
@@ -440,7 +427,5 @@ def downgrade() -> None:
 
     op.drop_index("ix_load_plans__truck_id", table_name="load_plans")
     op.drop_index("ix_load_plans__status", table_name="load_plans")
-    op.drop_index(
-        "ix_load_plans__recalculated_from_id", table_name="load_plans"
-    )
+    op.drop_index("ix_load_plans__recalculated_from_id", table_name="load_plans")
     op.drop_table("load_plans")

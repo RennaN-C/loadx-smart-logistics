@@ -97,9 +97,7 @@ class RejectedVolume:
 
     def __post_init__(self) -> None:
         if not isinstance(self.volume, IndividualVolume):
-            raise InvalidEngineInputError(
-                "volume", "must be an IndividualVolume"
-            )
+            raise InvalidEngineInputError("volume", "must be an IndividualVolume")
         if not isinstance(self.rejection_reason, RejectionReason):
             raise InvalidEngineInputError(
                 "rejection_reason", "must be a RejectionReason"
@@ -188,9 +186,7 @@ def _preflight_volume_count(order_items: object) -> None:
 def _weight_context(*weights: Decimal) -> Context:
     minimum_exponent = min(weight.as_tuple().exponent for weight in weights)
     highest_adjusted = max(weight.adjusted() for weight in weights)
-    required_precision = (
-        highest_adjusted - minimum_exponent + len(str(MAX_VOLUMES)) + 2
-    )
+    required_precision = highest_adjusted - minimum_exponent + len(str(MAX_VOLUMES)) + 2
     return Context(prec=max(28, required_precision), rounding=ROUND_HALF_UP)
 
 
@@ -404,9 +400,7 @@ def calculate_load_plan(
     expanded_volumes = expand_order_items(order_items)
 
     ordering_weights = tuple(volume.weight_kg for volume in expanded_volumes)
-    with localcontext(
-        _weight_context(*(ordering_weights + (capacity.max_weight_kg,)))
-    ):
+    with localcontext(_weight_context(*(ordering_weights + (capacity.max_weight_kg,)))):
         ordered_volumes = order_volumes(expanded_volumes)
     bounds = InternalDimensions(
         capacity.internal_width_cm,

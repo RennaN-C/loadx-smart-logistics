@@ -19,14 +19,22 @@ def test_status_history_table_uses_uuid_primary_key() -> None:
 
 def test_status_history_foreign_key_follows_documented_name() -> None:
     table = Base.metadata.tables["status_history"]
-    actual_names = {constraint.name for constraint in table.constraints if isinstance(constraint, ForeignKeyConstraint)}
+    actual_names = {
+        constraint.name
+        for constraint in table.constraints
+        if isinstance(constraint, ForeignKeyConstraint)
+    }
 
     assert "fk_status_history__users" in actual_names
 
 
 def test_status_history_indexes_follow_documented_names() -> None:
     table = Base.metadata.tables["status_history"]
-    actual_indexes = {index.name: [column.name for column in index.columns] for index in table.indexes if isinstance(index, Index)}
+    actual_indexes = {
+        index.name: [column.name for column in index.columns]
+        for index in table.indexes
+        if isinstance(index, Index)
+    }
 
     assert actual_indexes["ix_status_history__entity"] == ["entity_type", "entity_id"]
     assert actual_indexes["ix_status_history__created_at"] == ["created_at"]
