@@ -11,8 +11,8 @@
 `CONFIRMADO`: `OC49`, `OC50` e `OC51` já foram integradas em
 `desenvolvimento`. `OC55` e `OC53` foram aprovadas por solicitação explícita do
 responsável em 2026-08-04. `OC52` foi desbloqueada pela aprovação formal de D04
-e D05 em 2026-08-06. As três estão implementadas e validadas localmente,
-pendentes de PR e revisão.
+e D05 em 2026-08-06. `OC56` foi desbloqueada por D06 na mesma data. As quatro
+estão implementadas e validadas localmente, pendentes de PR e revisão.
 
 ## Resumo de prioridade
 
@@ -25,7 +25,7 @@ pendentes de PR e revisão.
 | `OC53` | Alta | Desenvolvedor 1, com revisão do Desenvolvedor 4 | Implementada e validada localmente; pendente de PR e revisão |
 | `OC54` | Média | Desenvolvedor 4, com apoio do Desenvolvedor 1 | Pronta para aprovação |
 | `OC55` | Média | Desenvolvedor 1, com revisão do Desenvolvedor 4 | Implementada e validada localmente; pendente de PR e revisão |
-| `OC56` | Média | Desenvolvedor 1 e Desenvolvedor 3 | D06 aprovada; implementação dividida em partes |
+| `OC56` | Média | Desenvolvedor 1 e Desenvolvedor 3 | Implementada e validada localmente; pendente de PR e revisão |
 | `OC57` | Média | Desenvolvedor 2 | Absorvida e resolvida pela revisão da `OC11` |
 | `OC58` | Baixa | Desenvolvedor 1, com apoio do Desenvolvedor 4 | Bloqueada por `D11` |
 | `OC59` | Média | Desenvolvedor 1 e Desenvolvedor 3 | Bloqueada por `D12` |
@@ -335,7 +335,10 @@ Definir e aplicar uma representação JSON única para campos `Decimal`, especia
 
 ### Comportamento atual
 
-`CONFIRMADO`: o backend responde pesos como strings, enquanto os exemplos de `docs/05-contratos-api.md` usam números JSON.
+`CONFIRMADO`: a OC56 está implementada localmente. Schemas de entrada e saída,
+OpenAPI, exemplos e o consumidor de caminhões usam exclusivamente número JSON.
+Strings decimais são rejeitadas; `Decimal` e `Numeric` permanecem no domínio e
+na persistência, sem mudança na aritmética do otimizador.
 
 ### Critérios de aceite
 
