@@ -111,6 +111,14 @@ EXPECTED_ERROR_STATUSES = {
         "422",
         "500",
     },
+    ("/api/v1/orders/{order_id}/status", "patch"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
     ("/api/v1/load-plans", "post"): {
         "401",
         "403",

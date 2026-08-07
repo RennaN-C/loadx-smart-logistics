@@ -9,13 +9,20 @@ from app.core.responses import error_response, openapi_error_responses
 from app.database.session import get_db
 from app.modules.auth.dependencies import require_roles
 from app.modules.orders.models import Order
-from app.modules.orders.schemas import OrderCreate, OrderRead, OrderUpdate
+from app.modules.orders.schemas import (
+    OrderCreate,
+    OrderRead,
+    OrderStatusChange,
+    OrderUpdate,
+)
 from app.modules.orders.service import (
     OrderCustomerNotFoundError,
+    OrderEditNotAllowedError,
     OrderItemsReferencedByLoadPlanError,
     OrderNotFoundError,
     OrderProductNotFoundError,
     OrderService,
+    OrderStatusTransitionNotAllowedError,
 )
 from app.modules.users.models import User
 
@@ -54,11 +61,11 @@ def list_orders(
 )
 def create_order(
     data: OrderCreate,
-    _current_user: OrderManager,
+    current_user: OrderManager,
     service: Annotated[OrderService, Depends(get_order_service)],
 ) -> Order | JSONResponse:
     try:
-        return service.create_order(data)
+        return service.create_order(data, changed_by=current_user.id)
     except OrderCustomerNotFoundError:
         return error_response(
             status.HTTP_404_NOT_FOUND,
@@ -147,4 +154,50 @@ def update_order(
             "Os itens deste pedido já pertencem a um plano de carga "
             "e não podem ser substituídos.",
             [{"field": "items"}],
+        )
+    except OrderEditNotAllowedError as exc:
+        return error_response(
+            status.HTTP_409_CONFLICT,
+            "ORDER_EDIT_NOT_ALLOWED",
+            "O pedido precisa estar em DRAFT para ser editado.",
+            [{"field": "status", "current_status": exc.current_status}],
+        )
+
+
+@router.patch(
+    "/{order_id}/status",
+    response_model=OrderRead,
+    responses=openapi_error_responses(401, 403, 404, 409, 422),
+)
+def change_order_status(
+    order_id: uuid.UUID,
+    data: OrderStatusChange,
+    current_user: OrderManager,
+    service: Annotated[OrderService, Depends(get_order_service)],
+) -> Order | JSONResponse:
+    try:
+        return service.change_order_status(
+            order_id,
+            data.status,
+            changed_by=current_user.id,
+        )
+    except OrderNotFoundError:
+        return error_response(
+            status.HTTP_404_NOT_FOUND,
+            "ORDER_NOT_FOUND",
+            "Pedido não encontrado.",
+            [{"field": "id"}],
+        )
+    except OrderStatusTransitionNotAllowedError as exc:
+        return error_response(
+            status.HTTP_409_CONFLICT,
+            "ORDER_STATUS_TRANSITION_NOT_ALLOWED",
+            "A transição de status do pedido não é permitida.",
+            [
+                {
+                    "field": "status",
+                    "current_status": exc.current_status,
+                    "requested_status": exc.requested_status,
+                }
+            ],
         )

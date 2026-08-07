@@ -12,8 +12,9 @@ Decisão
 Consequências
 ```
 
-Registros aceitos do otimizador:
+Registros aceitos relevantes:
 
 - `ADR-005` a `ADR-012`: regras incrementais das OC12 a OC19.
 - `ADR-013`: engine integrada e sequência de carregamento da OC20.
 - `ADR-014`: persistência e ciclo de vida dos planos da OC20.
+- `ADR-015`: transições de pedidos e histórico atômico da OC52.

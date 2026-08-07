@@ -10,8 +10,9 @@
 
 `CONFIRMADO`: `OC49`, `OC50` e `OC51` já foram integradas em
 `desenvolvimento`. `OC55` e `OC53` foram aprovadas por solicitação explícita do
-responsável em 2026-08-04 e estão implementadas e validadas localmente, pendentes
-de PR e revisão.
+responsável em 2026-08-04. `OC52` foi desbloqueada pela aprovação formal de D04
+e D05 em 2026-08-06. As três estão implementadas e validadas localmente,
+pendentes de PR e revisão.
 
 ## Resumo de prioridade
 
@@ -20,7 +21,7 @@ de PR e revisão.
 | `OC49` | Alta | Desenvolvedor 1 | Integrada em `desenvolvimento` |
 | `OC50` | Alta | Desenvolvedor 1 | Integrada em `desenvolvimento` |
 | `OC51` | Alta | Desenvolvedor 1 | Integrada em `desenvolvimento` |
-| `OC52` | Alta | Desenvolvedor 1 | Bloqueada por `D04` e `D05` |
+| `OC52` | Alta | Desenvolvedor 1 | Implementada e validada localmente; pendente de PR e revisão |
 | `OC53` | Alta | Desenvolvedor 1, com revisão do Desenvolvedor 4 | Implementada e validada localmente; pendente de PR e revisão |
 | `OC54` | Média | Desenvolvedor 4, com apoio do Desenvolvedor 1 | Pronta para aprovação |
 | `OC55` | Média | Desenvolvedor 1, com revisão do Desenvolvedor 4 | Implementada e validada localmente; pendente de PR e revisão |
@@ -187,7 +188,11 @@ Fazer com que toda mudança permitida de status registre `old_status`, `new_stat
 
 ### Comportamento atual
 
-`CONFIRMADO`: pedidos podem trocar de status sem gravar `status_history`. O service de histórico executa `commit()` próprio, o que impede composição transacional segura.
+`CONFIRMADO`: a OC52 está implementada localmente. O status saiu do `PATCH`
+genérico, as transições manuais de D04 usam caso de uso explícito e pedido e
+histórico são confirmados ou desfeitos juntos conforme D05. O método independente
+de histórico mantém seu próprio `commit`, enquanto operações compostas usam
+`stage_status_change` sob a transação do service dono.
 
 ### Critérios de aceite
 

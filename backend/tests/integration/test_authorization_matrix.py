@@ -180,6 +180,14 @@ AUTHORIZATION_CASES = (
         200,
         "order_update",
     ),
+    AuthorizationCase(
+        "orders_status",
+        "PATCH",
+        "/api/v1/orders/{order_id}/status",
+        MANAGER_ONLY,
+        200,
+        "order_status",
+    ),
 )
 
 
@@ -266,7 +274,8 @@ def seed_resources(session_factory: SessionFactory) -> dict[str, str]:
                         }
                     ],
                 }
-            )
+            ),
+            changed_by=target_user.id,
         )
         return {
             "user_id": str(target_user.id),
@@ -337,6 +346,7 @@ def get_payload(payload_name: str | None, resource_ids: dict[str, str]):
             ],
         },
         "order_update": {"priority": "high"},
+        "order_status": {"status": "READY"},
     }
     return payloads.get(payload_name)
 

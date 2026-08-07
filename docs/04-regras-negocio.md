@@ -129,6 +129,25 @@ Estados recomendados:
 
 `RECOMENDAÇÃO`: estados devem ser armazenados em inglês e apresentados em português no frontend.
 
+`CONFIRMADO` por D04 e ADR-015: as transições manuais do
+`LOGISTICS_MANAGER` são:
+
+- `DRAFT -> READY` ou `DRAFT -> CANCELED`;
+- `READY -> DRAFT` ou `READY -> CANCELED`.
+
+`CONFIRMADO`: `READY -> PLANNED` pertence somente à aprovação de plano;
+`PLANNED -> IN_TRANSIT` pertence ao início válido da viagem; e
+`IN_TRANSIT -> DELIVERED` pertence à conclusão válida da entrega. `DELIVERED` e
+`CANCELED` são terminais. Exceções de viagem continuam dependentes de D08.
+
+`CONFIRMADO`: somente `DRAFT` aceita edição de cliente, prioridade, endereço,
+previsão e itens. `READY` deve voltar a `DRAFT` antes de qualquer edição;
+`PLANNED`, `IN_TRANSIT`, `DELIVERED` e `CANCELED` são imutáveis. Itens já
+referenciados por plano permanecem imutáveis mesmo em `DRAFT`.
+
+`CONFIRMADO`: repetir o estado atual é idempotente e não cria histórico. Status
+não é alterado pelo `PATCH` genérico de pedido.
+
 ## Plano de carga
 
 - Nenhum item pode ultrapassar os limites internos do baú.
@@ -317,6 +336,12 @@ Estados de viagem recomendados:
 - `changed_by` é opcional para permitir registros automáticos do sistema.
 - Quando `changed_by` for informado, deve apontar para um usuário existente.
 - Histórico não deve ser removido ou sobrescrito por alterações de status futuras.
+
+`CONFIRMADO` por D05 e ADR-015: o service dono bloqueia a entidade e controla um
+único commit ou rollback para entidade e histórico. Operações compostas usam
+`stage_status_change` e `flush`; ações manuais registram o usuário autenticado,
+ações realmente automáticas podem usar `changed_by = null`, e a criação do
+pedido registra `null -> DRAFT`.
 
 `PENDENTE DE DEFINIÇÃO`: lista final de entidades auditáveis e perfis autorizados a consultar histórico.
 

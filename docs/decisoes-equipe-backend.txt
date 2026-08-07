@@ -82,7 +82,7 @@ Data: 2026-08-02.
 
 D04 - TRANSIÇÕES E BLOQUEIOS DE EDIÇÃO DE PEDIDOS
 -------------------------------------------------
-Marcador: DECISÃO NECESSÁRIA
+Marcador: CONFIRMADO
 Perguntas:
 - quais transições entre DRAFT, READY, PLANNED, IN_TRANSIT, DELIVERED e CANCELED são permitidas?
 - quais perfis executam cada transição?
@@ -90,14 +90,30 @@ Perguntas:
 - cancelar pedido planejado exige recálculo ou bloqueio?
 RECOMENDAÇÃO: registrar uma tabela de transições e rejeitar saltos não listados.
 Impacta: OC52, orders, load_planning, trips e status_history.
-Escolha da equipe:
-Responsáveis:
-Data:
+Escolha aprovada:
+- LOGISTICS_MANAGER pode executar manualmente DRAFT -> READY,
+  DRAFT -> CANCELED, READY -> DRAFT e READY -> CANCELED.
+- READY -> PLANNED ocorre somente na aprovação atômica de plano de carga.
+- PLANNED -> IN_TRANSIT ocorrerá somente no início válido de viagem, depois do
+  carregamento finalizado.
+- IN_TRANSIT -> DELIVERED ocorrerá somente na conclusão válida da entrega.
+- DELIVERED e CANCELED são terminais. Saltos não listados são rejeitados.
+- DRAFT permite editar cliente, prioridade, endereço, previsão e itens. READY
+  exige retorno explícito a DRAFT antes de qualquer edição. PLANNED, IN_TRANSIT,
+  DELIVERED e CANCELED são imutáveis.
+- Itens referenciados por qualquer plano permanecem imutáveis mesmo em DRAFT,
+  conforme ADR-014.
+- Pedido PLANNED não pode ser cancelado enquanto não existir fluxo aprovado de
+  invalidação/substituição de plano. Exceções de viagem permanecem em D08.
+- Status não é alterado pelo PATCH genérico do pedido; cada mudança usa caso de
+  uso explícito e a matriz aprovada.
+Responsável: Desenvolvedor 1.
+Data: 2026-08-06.
 
 
 D05 - TRANSAÇÃO E AUTORIA DO HISTÓRICO DE STATUS
 ------------------------------------------------
-Marcador: DECISÃO NECESSÁRIA
+Marcador: CONFIRMADO
 Perguntas:
 - o service dono da operação controla commit/rollback de entidade e histórico?
 - changed_by será sempre o usuário autenticado nas ações manuais?
@@ -105,9 +121,21 @@ Perguntas:
 - repetir o mesmo status cria histórico ou é operação sem efeito?
 RECOMENDAÇÃO: um único commit no caso de uso externo; histórico usa flush e participa da mesma transação.
 Impacta: OC52, OC09, loading, deliveries e occurrences.
-Escolha da equipe:
-Responsáveis:
-Data:
+Escolha aprovada:
+- o service dono do caso de uso bloqueia a entidade, controla um único commit ou
+  rollback e inclui entidade e histórico na mesma transação;
+- status_history usa stage_status_change e flush nas operações compostas, sem
+  commit próprio;
+- ações manuais exigem changed_by igual ao usuário autenticado; ações realmente
+  automáticas usam changed_by nulo e não criam usuário artificial de sistema;
+- a criação registra old_status nulo e new_status DRAFT com o ator autenticado;
+- repetir o estado atual é idempotente, não altera a entidade e não cria
+  histórico duplicado;
+- qualquer falha ao persistir ou validar o histórico desfaz também a mudança da
+  entidade;
+- cada transição efetiva cria exatamente um registro de histórico.
+Responsável: Desenvolvedor 1.
+Data: 2026-08-06.
 
 
 D06 - REPRESENTAÇÃO JSON DE DECIMAL
@@ -334,12 +362,13 @@ ENCERRAMENTO DA REUNIÃO
 
 Decisões aprovadas e documentos atualizados:
 D01, D02 e D03, registradas em ADR-004, docs/04 e docs/05.
+D04 e D05, registradas em ADR-015, docs/04 e docs/05.
 
 Ocorrências desbloqueadas:
-OC51.
+OC51 e OC52.
 
 ADRs que precisam ser criadas:
-Nenhuma para D01, D02 e D03; ADR-004 criada.
+Nenhuma para D01 a D05; ADR-004 e ADR-015 criadas.
 
 Pendências mantidas para próxima reunião:
 
@@ -347,4 +376,4 @@ Participantes:
 Desenvolvedor 1.
 
 Data:
-2026-08-02.
+2026-08-06.

@@ -887,6 +887,13 @@ def test_patch_order_items_is_blocked_after_plan_snapshot(
     scenario = seed_planning_scenario(session_factory)
     created = create_load_plan(client, scenario, manager)
 
+    draft_response = client.patch(
+        f"/api/v1/orders/{scenario.order_id}/status",
+        json={"status": "DRAFT"},
+        headers=manager.headers,
+    )
+    assert draft_response.status_code == 200
+
     header_response = client.patch(
         f"/api/v1/orders/{scenario.order_id}",
         json={"priority": "high"},

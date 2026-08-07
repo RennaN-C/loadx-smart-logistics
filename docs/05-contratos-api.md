@@ -190,6 +190,7 @@ Regras de autorização:
 - `POST /orders`.
 - `GET /orders/{id}`.
 - `PATCH /orders/{id}`.
+- `PATCH /orders/{id}/status`.
 
 Regras de autorização:
 
@@ -218,9 +219,13 @@ Exemplo de criação:
 Regras atuais:
 
 - `POST /orders` cria o pedido com `status = "DRAFT"`.
-- `PATCH /orders/{id}` aceita alteração de `customer_id`, `status`, `priority`,
+- `PATCH /orders/{id}` aceita alteração de `customer_id`, `priority`,
   `delivery_address`, `expected_delivery_at` e, quando `items` for enviado,
-  substitui o conjunto somente se nenhum item estiver referenciado por plano.
+  substitui o conjunto somente em `DRAFT` e se nenhum item estiver referenciado
+  por plano. O payload rejeita `status` e campos desconhecidos.
+- `PATCH /orders/{id}/status` recebe `{"status": "READY"}` e aplica somente a
+  matriz de transições manuais de D04. Aprovação de plano, início de viagem e
+  conclusão de entrega mantêm seus próprios casos de uso.
 - `status` aceita `DRAFT`, `READY`, `PLANNED`, `IN_TRANSIT`, `DELIVERED` e `CANCELED`.
 - `priority` é texto obrigatório e é normalizado para maiúsculas.
 - `expected_delivery_at` deve vir com timezone e é normalizado para UTC.
@@ -236,6 +241,13 @@ Erros específicos:
 - `ORDER_PRODUCT_NOT_FOUND`: produto do pedido não encontrado.
 - `ORDER_ITEMS_REFERENCED_BY_LOAD_PLAN`: conflito `409`; os itens históricos não
   podem ser substituídos.
+- `ORDER_EDIT_NOT_ALLOWED`: conflito `409`; o pedido não está em `DRAFT`.
+- `ORDER_STATUS_TRANSITION_NOT_ALLOWED`: conflito `409`; a origem e o destino
+  não formam uma transição manual aprovada.
+
+`CONFIRMADO`: criação e cada transição efetiva persistem pedido e histórico em
+uma única transação. A criação registra `null -> DRAFT`; repetir o estado atual
+retorna o pedido sem criar histórico duplicado.
 
 ## Planos de carga
 
