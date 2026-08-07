@@ -29,9 +29,10 @@ describe("mapTruckFromDto", () => {
     });
   });
 
-  it("aceita max_weight_kg como string, já que o campo é Decimal no backend", () => {
-    const result = mapTruckFromDto({ ...DTO, max_weight_kg: "8000.50" });
+  it("preserva max_weight_kg como número sem coerção", () => {
+    const result = mapTruckFromDto({ ...DTO, max_weight_kg: 8000.5 });
 
     expect(result.maxWeightKg).toBe(8000.5);
+    expect(typeof result.maxWeightKg).toBe("number");
   });
 });

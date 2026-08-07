@@ -8,8 +8,7 @@ interface TruckDto {
   internal_width_cm: number;
   internal_height_cm: number;
   internal_length_cm: number;
-  /** Decimal no backend: pode chegar como número ou como string, dependendo da serialização. */
-  max_weight_kg: number | string;
+  max_weight_kg: number;
   active: boolean;
   created_at: string;
 }
@@ -22,7 +21,7 @@ export function mapTruckFromDto(dto: TruckDto): Truck {
     internalWidthCm: dto.internal_width_cm,
     internalHeightCm: dto.internal_height_cm,
     internalLengthCm: dto.internal_length_cm,
-    maxWeightKg: Number(dto.max_weight_kg),
+    maxWeightKg: dto.max_weight_kg,
     active: dto.active,
     createdAt: dto.created_at,
   };

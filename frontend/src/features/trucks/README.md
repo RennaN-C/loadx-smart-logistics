@@ -15,6 +15,9 @@ Listagem e cadastro de caminhões (OC26). Consome `GET/POST/PATCH /trucks`.
 - `api/trucksApi.ts`: mapeamento snake_case ↔ camelCase.
 - `hooks/useTrucks.ts`: carga da lista + `refetch`.
 
+`CONFIRMADO`: `max_weight_kg` é consumido e enviado como `number`, sem união com
+`string` ou coerção no adapter, conforme D06 e ADR-016.
+
 ## Permissões
 
 `ADMIN`, `CHECKER` e `LOGISTICS_MANAGER` leem a lista. Só `LOGISTICS_MANAGER` cria e edita — a UI
