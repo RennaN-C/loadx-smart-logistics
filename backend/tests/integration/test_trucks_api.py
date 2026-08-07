@@ -64,7 +64,7 @@ def make_truck_payload(plate: str = "ABC1D23") -> dict[str, object]:
         "internal_width_cm": 240,
         "internal_height_cm": 260,
         "internal_length_cm": 600,
-        "max_weight_kg": "8000.00",
+        "max_weight_kg": 8000.00,
     }
 
 
@@ -118,6 +118,26 @@ def test_create_truck_returns_created_resource(
     assert body["id"]
     assert body["plate"] == "ABC1D23"
     assert body["active"] is True
+    assert body["max_weight_kg"] == 8000.0
+    assert isinstance(body["max_weight_kg"], float)
+
+
+def test_create_truck_rejects_decimal_string(
+    client: TestClient,
+    manager_headers: dict[str, str],
+) -> None:
+    payload = make_truck_payload()
+    payload["max_weight_kg"] = "8000.00"
+
+    response = client.post(
+        "/api/v1/trucks",
+        json=payload,
+        headers=manager_headers,
+    )
+
+    assert response.status_code == 422
+    assert response.json()["code"] == "VALIDATION_ERROR"
+    assert response.json()["details"][0]["field"] == "max_weight_kg"
 
 
 def test_list_trucks_returns_created_items(

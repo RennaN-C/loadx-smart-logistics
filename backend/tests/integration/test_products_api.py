@@ -1,5 +1,4 @@
 from collections.abc import Callable
-from decimal import Decimal
 
 import pytest
 from fastapi.testclient import TestClient
@@ -66,7 +65,7 @@ def make_product_payload(code: str = "CX-A") -> dict[str, object]:
         "width_cm": 60,
         "height_cm": 50,
         "length_cm": 40,
-        "weight_kg": "12.500",
+        "weight_kg": 12.500,
         "fragile": False,
         "stackable": True,
         "rotation_allowed": True,
@@ -122,8 +121,27 @@ def test_create_product_returns_created_resource(
     body = response.json()
     assert body["id"]
     assert body["code"] == "CX-A"
-    assert Decimal(str(body["weight_kg"])) == Decimal("12.500")
+    assert body["weight_kg"] == 12.5
+    assert isinstance(body["weight_kg"], float)
     assert body["stackable"] is True
+
+
+def test_create_product_rejects_decimal_string(
+    client: TestClient,
+    manager_headers: dict[str, str],
+) -> None:
+    payload = make_product_payload()
+    payload["weight_kg"] = "12.500"
+
+    response = client.post(
+        "/api/v1/products",
+        json=payload,
+        headers=manager_headers,
+    )
+
+    assert response.status_code == 422
+    assert response.json()["code"] == "VALIDATION_ERROR"
+    assert response.json()["details"][0]["field"] == "weight_kg"
 
 
 def test_list_products_returns_created_items(

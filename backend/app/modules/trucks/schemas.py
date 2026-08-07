@@ -1,8 +1,9 @@
 import uuid
 from datetime import datetime
-from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from app.core.json_decimal import JsonDecimal
 
 
 class TruckBase(BaseModel):
@@ -11,7 +12,7 @@ class TruckBase(BaseModel):
     internal_width_cm: int = Field(gt=0)
     internal_height_cm: int = Field(gt=0)
     internal_length_cm: int = Field(gt=0)
-    max_weight_kg: Decimal = Field(gt=0, max_digits=10, decimal_places=2)
+    max_weight_kg: JsonDecimal = Field(gt=0, max_digits=10, decimal_places=2)
     active: bool = True
 
     model_config = ConfigDict(str_strip_whitespace=True)
@@ -32,7 +33,7 @@ class TruckUpdate(BaseModel):
     internal_width_cm: int | None = Field(default=None, gt=0)
     internal_height_cm: int | None = Field(default=None, gt=0)
     internal_length_cm: int | None = Field(default=None, gt=0)
-    max_weight_kg: Decimal | None = Field(
+    max_weight_kg: JsonDecimal | None = Field(
         default=None, gt=0, max_digits=10, decimal_places=2
     )
     active: bool | None = None

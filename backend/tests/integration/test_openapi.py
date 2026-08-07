@@ -187,6 +187,36 @@ def test_openapi_defines_standard_error_response_schema() -> None:
     assert error_schema["properties"]["details"]["type"] == "array"
 
 
+def test_openapi_declares_all_public_decimal_fields_as_numbers() -> None:
+    schema = get_openapi_schema()
+    components = schema["components"]["schemas"]
+    decimal_fields = {
+        "TruckCreate": ("max_weight_kg",),
+        "TruckRead": ("max_weight_kg",),
+        "TruckUpdate": ("max_weight_kg",),
+        "ProductCreate": ("weight_kg",),
+        "ProductRead": ("weight_kg",),
+        "ProductUpdate": ("weight_kg",),
+        "LoadPlanItemRead": ("weight_kg",),
+        "PlacedLoadPlanItemRead": ("weight_kg",),
+        "UnloadedLoadPlanItemRead": ("weight_kg",),
+        "LoadPlanRead": ("occupancy_percent", "total_weight_kg"),
+        "TruckSnapshotRead": ("max_weight_kg",),
+    }
+
+    for component_name, field_names in decimal_fields.items():
+        properties = components[component_name]["properties"]
+        for field_name in field_names:
+            field_schema = properties[field_name]
+            allowed_types = (
+                {variant["type"] for variant in field_schema["anyOf"]}
+                if "anyOf" in field_schema
+                else {field_schema["type"]}
+            )
+            assert allowed_types <= {"number", "null"}
+            assert "number" in allowed_types
+
+
 def test_openapi_uses_standard_schema_for_each_documented_error() -> None:
     schema = get_openapi_schema()
 

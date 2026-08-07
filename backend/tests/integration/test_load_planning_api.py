@@ -236,7 +236,13 @@ def test_create_get_and_visualization_return_persisted_snapshot(
     assert created["loaded_count"] == 1
     assert created["unloaded_count"] == 0
     assert created["algorithm_version"] == "heuristic-v1"
+    assert isinstance(created["occupancy_percent"], (int, float))
+    assert not isinstance(created["occupancy_percent"], bool)
+    assert isinstance(created["total_weight_kg"], (int, float))
+    assert not isinstance(created["total_weight_kg"], bool)
     assert created["items"][0]["order_item_id"] == str(scenario.order_item_id)
+    assert isinstance(created["items"][0]["weight_kg"], (int, float))
+    assert not isinstance(created["items"][0]["weight_kg"], bool)
     assert created["items"][0]["placed"] is True
     assert created["items"][0]["loading_sequence"] == 1
 
@@ -260,7 +266,8 @@ def test_create_get_and_visualization_return_persisted_snapshot(
     assert truck_snapshot["width_cm"] == 20
     assert truck_snapshot["height_cm"] == 10
     assert truck_snapshot["length_cm"] == 10
-    assert Decimal(str(truck_snapshot["max_weight_kg"])) == Decimal("100.00")
+    assert truck_snapshot["max_weight_kg"] == 100.0
+    assert isinstance(truck_snapshot["max_weight_kg"], float)
     assert len(visualization["items"]) == 1
     item_snapshot = visualization["items"][0]
     assert item_snapshot["order_item_id"] == str(scenario.order_item_id)

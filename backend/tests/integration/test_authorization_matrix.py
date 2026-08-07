@@ -247,7 +247,7 @@ def seed_resources(session_factory: SessionFactory) -> dict[str, str]:
                 internal_width_cm=240,
                 internal_height_cm=260,
                 internal_length_cm=600,
-                max_weight_kg="8000.00",
+                max_weight_kg=8000.00,
             )
         )
         product = ProductService(db).create_product(
@@ -257,7 +257,7 @@ def seed_resources(session_factory: SessionFactory) -> dict[str, str]:
                 width_cm=60,
                 height_cm=50,
                 length_cm=40,
-                weight_kg="12.500",
+                weight_kg=12.500,
             )
         )
         order = OrderService(db).create_order(
@@ -321,7 +321,7 @@ def get_payload(payload_name: str | None, resource_ids: dict[str, str]):
             "internal_width_cm": 220,
             "internal_height_cm": 240,
             "internal_length_cm": 500,
-            "max_weight_kg": "6000.00",
+            "max_weight_kg": 6000.00,
         },
         "truck_update": {"model": "Bau atualizado"},
         "product_create": {
@@ -330,7 +330,7 @@ def get_payload(payload_name: str | None, resource_ids: dict[str, str]):
             "width_cm": 30,
             "height_cm": 20,
             "length_cm": 40,
-            "weight_kg": "5.000",
+            "weight_kg": 5.000,
         },
         "product_update": {"name": "Produto Atualizado"},
         "order_create": {
