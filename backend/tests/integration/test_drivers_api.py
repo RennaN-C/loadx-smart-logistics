@@ -136,7 +136,19 @@ def test_list_drivers_returns_created_items(
     response = client.get("/api/v1/drivers", headers=manager_headers)
 
     assert response.status_code == 200
-    assert response.json()[0]["license_number"] == "CNH0001"
+    body = response.json()
+    assert body["total"] == 1
+    driver = body["items"][0]
+    assert set(driver) == {
+        "id",
+        "name",
+        "license_category",
+        "active",
+        "created_at",
+    }
+    assert "document" not in driver
+    assert "phone" not in driver
+    assert "license_number" not in driver
 
 
 def test_get_driver_by_id_returns_created_item(

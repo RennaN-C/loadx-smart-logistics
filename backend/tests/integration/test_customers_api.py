@@ -134,7 +134,33 @@ def test_list_customers_returns_created_items(
     response = client.get("/api/v1/customers", headers=manager_headers)
 
     assert response.status_code == 200
-    assert response.json()[0]["document"] == "00000000000191"
+    body = response.json()
+    assert body["page"] == 1
+    assert body["page_size"] == 20
+    assert body["total"] == 1
+    assert body["total_pages"] == 1
+    customer = body["items"][0]
+    assert set(customer) == {"id", "name", "city", "state", "created_at"}
+    assert "document" not in customer
+    assert "phone" not in customer
+    assert "address" not in customer
+    assert "notes" not in customer
+
+
+def test_list_customers_returns_empty_page_metadata(
+    client: TestClient,
+    manager_headers: dict[str, str],
+) -> None:
+    response = client.get("/api/v1/customers", headers=manager_headers)
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "items": [],
+        "page": 1,
+        "page_size": 20,
+        "total": 0,
+        "total_pages": 0,
+    }
 
 
 def test_get_customer_by_id_returns_created_item(

@@ -56,3 +56,13 @@ class CustomerRead(CustomerBase):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True, str_strip_whitespace=True)
+
+
+class CustomerListRead(BaseModel):
+    id: uuid.UUID
+    name: str
+    city: str
+    state: str
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True, str_strip_whitespace=True)

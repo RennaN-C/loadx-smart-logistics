@@ -4,6 +4,7 @@ from collections.abc import Callable, Sequence
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core.pagination import PageResult, PaginationParams
 from app.database.integrity import get_integrity_constraint_name
 from app.modules.customers.service import CustomerNotFoundError, CustomerService
 from app.modules.load_planning.reference_service import LoadPlanReferenceService
@@ -67,8 +68,8 @@ class OrderService:
         self.product_service = ProductService(db)
         self.status_history_service = StatusHistoryService(db)
 
-    def list_orders(self) -> Sequence[Order]:
-        return self.repository.list()
+    def list_orders(self, pagination: PaginationParams) -> PageResult[Order]:
+        return self.repository.list(pagination)
 
     def get_order(self, order_id: uuid.UUID) -> Order:
         order = self.repository.get(order_id)

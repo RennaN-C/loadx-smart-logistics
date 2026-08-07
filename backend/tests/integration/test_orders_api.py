@@ -241,7 +241,13 @@ def test_list_orders_returns_created_items(
     response = client.get("/api/v1/orders", headers=manager_headers)
 
     assert response.status_code == 200
-    assert response.json()[0]["id"] == order["id"]
+    body = response.json()
+    assert body["total"] == 1
+    listed_order = body["items"][0]
+    assert listed_order["id"] == order["id"]
+    assert listed_order["item_count"] == 1
+    assert "delivery_address" not in listed_order
+    assert "items" not in listed_order
 
 
 def test_get_order_by_id_returns_created_item(

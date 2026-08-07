@@ -1,9 +1,9 @@
 import uuid
-from collections.abc import Sequence
 
-from sqlalchemy import select
+from sqlalchemy import asc, desc, func, select
 from sqlalchemy.orm import Session
 
+from app.core.pagination import PageResult, PaginationParams
 from app.modules.customers.models import Customer
 
 
@@ -11,11 +11,20 @@ class CustomerRepository:
     def __init__(self, db: Session) -> None:
         self.db = db
 
-    def list(self) -> Sequence[Customer]:
-        statement = select(Customer).order_by(
-            Customer.created_at.desc(), Customer.name.asc()
+    def list(self, pagination: PaginationParams) -> PageResult[Customer]:
+        direction = asc if pagination.sort_order == "asc" else desc
+        total = self.db.scalar(select(func.count()).select_from(Customer)) or 0
+        statement = (
+            select(Customer)
+            .order_by(direction(Customer.created_at), direction(Customer.id))
+            .offset(pagination.offset)
+            .limit(pagination.page_size)
         )
-        return self.db.scalars(statement).all()
+        return PageResult.create(
+            self.db.scalars(statement).all(),
+            pagination,
+            total,
+        )
 
     def get(self, customer_id: uuid.UUID) -> Customer | None:
         return self.db.get(Customer, customer_id)

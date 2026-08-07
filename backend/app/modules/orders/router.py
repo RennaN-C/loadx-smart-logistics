@@ -5,12 +5,14 @@ from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
+from app.core.pagination import PageResponse, Pagination, to_page_response
 from app.core.responses import error_response, openapi_error_responses
 from app.database.session import get_db
 from app.modules.auth.dependencies import require_roles
 from app.modules.orders.models import Order
 from app.modules.orders.schemas import (
     OrderCreate,
+    OrderListRead,
     OrderRead,
     OrderStatusChange,
     OrderUpdate,
@@ -43,14 +45,30 @@ def get_order_service(db: Annotated[Session, Depends(get_db)]) -> OrderService:
 
 @router.get(
     "",
-    response_model=list[OrderRead],
-    responses=openapi_error_responses(401, 403),
+    response_model=PageResponse[OrderListRead],
+    responses=openapi_error_responses(401, 403, 422),
 )
 def list_orders(
+    pagination: Pagination,
     _current_user: OrderReader,
     service: Annotated[OrderService, Depends(get_order_service)],
-) -> list[Order]:
-    return list(service.list_orders())
+) -> PageResponse[OrderListRead]:
+    result = service.list_orders(pagination)
+    return to_page_response(
+        result,
+        (
+            OrderListRead(
+                id=order.id,
+                customer_id=order.customer_id,
+                status=order.status,
+                priority=order.priority,
+                expected_delivery_at=order.expected_delivery_at,
+                created_at=order.created_at,
+                item_count=len(order.items),
+            )
+            for order in result.items
+        ),
+    )
 
 
 @router.post(

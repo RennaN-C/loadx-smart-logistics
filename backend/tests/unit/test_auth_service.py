@@ -1,6 +1,7 @@
 import pytest
 from sqlalchemy.orm import Session
 
+from app.core.pagination import PaginationParams
 from app.core.security import verify_password
 from app.modules.auth.schemas import AuthLogin
 from app.modules.auth.service import (
@@ -71,7 +72,10 @@ def test_bootstrap_first_admin_rejects_database_with_any_user(
             password="senha-local",
         )
 
-    assert len(service.user_service.list_users()) == 1
+    page = service.user_service.list_users(
+        PaginationParams(page=1, page_size=20, sort_order="desc")
+    )
+    assert len(page.items) == 1
 
 
 def test_login_rejects_invalid_password(db_session: Session) -> None:

@@ -95,7 +95,43 @@ def test_list_users_returns_created_items(
 
     assert response.status_code == 200
     created_id = create_response.json()["id"]
-    assert any(user["id"] == created_id for user in response.json())
+    body = response.json()
+    assert body["page"] == 1
+    assert body["page_size"] == 20
+    assert body["total"] >= 2
+    assert body["total_pages"] == 1
+    created_user = next(user for user in body["items"] if user["id"] == created_id)
+    assert set(created_user) == {"id", "name", "role", "active", "created_at"}
+    assert "email" not in created_user
+
+
+def test_list_users_paginates_and_rejects_page_size_above_limit(
+    client: TestClient,
+    admin_headers: dict[str, str],
+) -> None:
+    client.post(
+        "/api/v1/users",
+        json=make_user_payload(),
+        headers=admin_headers,
+    )
+
+    first_page = client.get(
+        "/api/v1/users?page=1&page_size=1&sort_order=asc",
+        headers=admin_headers,
+    )
+    second_page = client.get(
+        "/api/v1/users?page=2&page_size=1&sort_order=asc",
+        headers=admin_headers,
+    )
+    invalid_page_size = client.get(
+        "/api/v1/users?page_size=101",
+        headers=admin_headers,
+    )
+
+    assert first_page.status_code == 200
+    assert second_page.status_code == 200
+    assert first_page.json()["items"][0]["id"] != second_page.json()["items"][0]["id"]
+    assert invalid_page_size.status_code == 422
 
 
 def test_get_user_by_id_returns_created_item(

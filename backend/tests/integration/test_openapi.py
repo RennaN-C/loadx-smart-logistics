@@ -9,7 +9,7 @@ EXPECTED_ERROR_STATUSES = {
     ("/health", "get"): {"500"},
     ("/api/v1/auth/login", "post"): {"401", "403", "422", "500"},
     ("/api/v1/auth/me", "get"): {"401", "403", "422", "500"},
-    ("/api/v1/users", "get"): {"401", "403", "500"},
+    ("/api/v1/users", "get"): {"401", "403", "422", "500"},
     ("/api/v1/users", "post"): {"401", "403", "409", "422", "500"},
     ("/api/v1/users/{user_id}", "get"): {
         "401",
@@ -26,7 +26,7 @@ EXPECTED_ERROR_STATUSES = {
         "422",
         "500",
     },
-    ("/api/v1/customers", "get"): {"401", "403", "500"},
+    ("/api/v1/customers", "get"): {"401", "403", "422", "500"},
     ("/api/v1/customers", "post"): {"401", "403", "409", "422", "500"},
     ("/api/v1/customers/{customer_id}", "get"): {
         "401",
@@ -43,7 +43,7 @@ EXPECTED_ERROR_STATUSES = {
         "422",
         "500",
     },
-    ("/api/v1/drivers", "get"): {"401", "403", "500"},
+    ("/api/v1/drivers", "get"): {"401", "403", "422", "500"},
     ("/api/v1/drivers", "post"): {"401", "403", "409", "422", "500"},
     ("/api/v1/drivers/{driver_id}", "get"): {
         "401",
@@ -94,7 +94,7 @@ EXPECTED_ERROR_STATUSES = {
         "422",
         "500",
     },
-    ("/api/v1/orders", "get"): {"401", "403", "500"},
+    ("/api/v1/orders", "get"): {"401", "403", "422", "500"},
     ("/api/v1/orders", "post"): {"401", "403", "404", "422", "500"},
     ("/api/v1/orders/{order_id}", "get"): {
         "401",

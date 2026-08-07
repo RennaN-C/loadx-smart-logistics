@@ -15,7 +15,8 @@ Crie somente os arquivos necessários para a ocorrência atual.
 
 ## Endpoints
 
-- `GET /api/v1/customers`: lista clientes.
+- `GET /api/v1/customers`: lista paginada com `id`, `name`, `city`, `state` e
+  `created_at`; omite documento, telefone, endereço e observações.
 - `POST /api/v1/customers`: cria cliente.
 - `GET /api/v1/customers/{id}`: consulta cliente por ID.
 - `PATCH /api/v1/customers/{id}`: atualiza campos enviados.

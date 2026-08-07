@@ -17,7 +17,8 @@ Crie somente os arquivos necessários para a ocorrência atual.
 
 ## Endpoints
 
-- `GET /api/v1/orders`: lista pedidos com itens.
+- `GET /api/v1/orders`: lista paginada de resumos com `item_count`; omite
+  endereço de entrega e itens completos.
 - `POST /api/v1/orders`: cria pedido.
 - `GET /api/v1/orders/{id}`: consulta pedido por ID.
 - `PATCH /api/v1/orders/{id}`: atualiza campos enviados.
