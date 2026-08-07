@@ -1,10 +1,27 @@
-from fastapi import FastAPI
+import logging
+from typing import Annotated, Literal
+
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
 from app.api.router import api_router
 from app.core.config import Settings, settings
-from app.core.exceptions import register_exception_handlers
+from app.core.exceptions import ApiError, register_exception_handlers
 from app.core.responses import openapi_error_responses
+from app.database.readiness import DatabaseReadinessChecker, ReadinessCheckError
+
+logger = logging.getLogger(__name__)
+
+
+class ReadinessResponse(BaseModel):
+    status: Literal["ready"]
+    service: Literal["loadx-api"]
+
+
+def get_readiness_checker(request: Request) -> DatabaseReadinessChecker:
+    checker: DatabaseReadinessChecker = request.app.state.readiness_checker
+    return checker
 
 
 def create_app(app_settings: Settings | None = None) -> FastAPI:
@@ -18,6 +35,9 @@ def create_app(app_settings: Settings | None = None) -> FastAPI:
         openapi_url="/openapi.json" if expose_api_docs else None,
     )
     register_exception_handlers(application)
+    application.state.readiness_checker = DatabaseReadinessChecker(
+        current_settings.database_url
+    )
 
     application.add_middleware(
         CORSMiddleware,
@@ -36,6 +56,29 @@ def create_app(app_settings: Settings | None = None) -> FastAPI:
     )
     def health() -> dict[str, str]:
         return {"status": "ok", "service": "loadx-api"}
+
+    @application.get(
+        "/ready",
+        tags=["health"],
+        response_model=ReadinessResponse,
+        responses=openapi_error_responses(500, 503),
+    )
+    def readiness(
+        checker: Annotated[
+            DatabaseReadinessChecker,
+            Depends(get_readiness_checker),
+        ],
+    ) -> ReadinessResponse:
+        try:
+            checker.check()
+        except ReadinessCheckError as error:
+            logger.warning("Readiness check failed: reason=%s", error.reason.value)
+            raise ApiError(
+                status_code=503,
+                code="SERVICE_NOT_READY",
+                message="O serviço não está pronto.",
+            ) from None
+        return ReadinessResponse(status="ready", service="loadx-api")
 
     return application
 

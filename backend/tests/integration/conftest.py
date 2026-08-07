@@ -12,8 +12,9 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import NullPool
 
 from app.core.config import settings
+from app.database.readiness import DatabaseReadinessChecker
 from app.database.session import get_db
-from app.main import app
+from app.main import app, get_readiness_checker
 
 SessionFactory = Callable[[], Session]
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
@@ -157,7 +158,13 @@ def client(session_factory: SessionFactory) -> Generator[TestClient, None, None]
         finally:
             db.close()
 
+    test_database_url = _required_test_database_url().render_as_string(
+        hide_password=False
+    )
+    readiness_checker = DatabaseReadinessChecker(test_database_url)
+
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_readiness_checker] = lambda: readiness_checker
     try:
         with TestClient(app, raise_server_exceptions=False) as test_client:
             yield test_client
