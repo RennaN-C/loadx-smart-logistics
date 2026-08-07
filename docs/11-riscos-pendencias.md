@@ -10,6 +10,8 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 - `CONFIRMADO`: endpoints públicos, matriz RBAC e bootstrap do primeiro administrador, conforme `ADR-004`.
 - `CONFIRMADO`: transições, bloqueios de edição e histórico atômico de pedidos
   seguem D04, D05 e `ADR-015`.
+- `CONFIRMADO`: campos decimais públicos usam exclusivamente número JSON, com
+  `Decimal` preservado no domínio e precisão limitada conforme D06 e `ADR-016`.
 - `CONFIRMADO`: volumes individuais são expandidos de `order_items.quantity`, usam `volume_index` iniciado em `1` e são persistidos em `load_plan_items`, sem tabela `volumes`, conforme `ADR-005`.
 - `CONFIRMADO`: volumes usam a ordem total determinística de volume, peso, empilhamento, fragilidade, entrega e identidade, conforme `ADR-006`.
 - `CONFIRMADO`: rotações usam seis permutações ortogonais priorizadas, deduplicam simetrias e respeitam bloqueio por produto, conforme `ADR-007`.
@@ -79,8 +81,8 @@ recálculo protegidos por RBAC.
 `CONFIRMADO`: a expansão usa identidade `(order_item_id, volume_index)` com índice 1-based e não expõe política alternativa de base.
 
 `RISCO IDENTIFICADO`: mudança futura em gate determinístico exige testes, ADR e
-nova `algorithm_version`; a representação JSON de `Decimal` permanece fora da
-OC20.
+nova `algorithm_version`; a representação JSON de `Decimal` segue D06 e
+`ADR-016`, sem alterar a aritmética determinística da OC20.
 
 ## Suposições técnicas
 

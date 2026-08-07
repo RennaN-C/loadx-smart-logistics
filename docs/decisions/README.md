@@ -18,3 +18,4 @@ Registros aceitos relevantes:
 - `ADR-013`: engine integrada e sequência de carregamento da OC20.
 - `ADR-014`: persistência e ciclo de vida dos planos da OC20.
 - `ADR-015`: transições de pedidos e histórico atômico da OC52.
+- `ADR-016`: representação de campos decimais como número JSON da OC56.

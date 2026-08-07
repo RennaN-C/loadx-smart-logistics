@@ -140,16 +140,28 @@ Data: 2026-08-06.
 
 D06 - REPRESENTAÇÃO JSON DE DECIMAL
 -----------------------------------
-Marcador: DECISÃO NECESSÁRIA
+Marcador: CONFIRMADO
 Pergunta: weight_kg, max_weight_kg, total_weight_kg e occupancy_percent serão números JSON ou strings decimais?
 Opções mínimas:
 A) número JSON, com regra explícita de precisão e arredondamento;
 B) string decimal, convertida de forma explícita pelo frontend.
 RECOMENDAÇÃO: escolher um único padrão para entrada e saída e documentar exemplos e tipos OpenAPI.
 Impacta: OC56, frontend, planos, relatórios e contratos.
-Escolha da equipe:
-Responsáveis:
-Data:
+Escolha aprovada: opção A, número JSON.
+- Entrada e saída HTTP usam exclusivamente número JSON; string numérica e bool
+  são rejeitados para impedir contrato ambíguo.
+- Backend, PostgreSQL e otimizador preservam Decimal/Numeric; conversão para
+  número acontece somente na serialização HTTP.
+- Cada campo mantém a escala já aprovada: max_weight_kg com 2 casas; weight_kg e
+  total_weight_kg com 3; occupancy_percent com 2 e ROUND_HALF_UP no cálculo.
+- Zeros finais não são significativos em JSON: 12.500 pode ser transmitido como
+  12.5 sem mudança de valor.
+- Campos decimais públicos devem declarar precisão e escala e ficar em até 15
+  dígitos significativos para consumo seguro como Number no frontend. Exceder
+  esse limite exige nova decisão de contrato.
+- OpenAPI declara type number, sem alternativa string.
+Responsáveis: Desenvolvedor 1 e Desenvolvedor 3.
+Data: 2026-08-06.
 
 
 D07 - ESTADOS E TRANSIÇÕES DE VIAGEM E ENTREGA
@@ -363,12 +375,13 @@ ENCERRAMENTO DA REUNIÃO
 Decisões aprovadas e documentos atualizados:
 D01, D02 e D03, registradas em ADR-004, docs/04 e docs/05.
 D04 e D05, registradas em ADR-015, docs/04 e docs/05.
+D06, registrada em ADR-016 e docs/05.
 
 Ocorrências desbloqueadas:
-OC51 e OC52.
+OC51, OC52 e OC56.
 
 ADRs que precisam ser criadas:
-Nenhuma para D01 a D05; ADR-004 e ADR-015 criadas.
+Nenhuma para D01 a D06; ADR-004, ADR-015 e ADR-016 criadas.
 
 Pendências mantidas para próxima reunião:
 

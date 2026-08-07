@@ -25,7 +25,7 @@ pendentes de PR e revisão.
 | `OC53` | Alta | Desenvolvedor 1, com revisão do Desenvolvedor 4 | Implementada e validada localmente; pendente de PR e revisão |
 | `OC54` | Média | Desenvolvedor 4, com apoio do Desenvolvedor 1 | Pronta para aprovação |
 | `OC55` | Média | Desenvolvedor 1, com revisão do Desenvolvedor 4 | Implementada e validada localmente; pendente de PR e revisão |
-| `OC56` | Média | Desenvolvedor 1 e Desenvolvedor 3 | Bloqueada por `D06` |
+| `OC56` | Média | Desenvolvedor 1 e Desenvolvedor 3 | D06 aprovada; implementação dividida em partes |
 | `OC57` | Média | Desenvolvedor 2 | Absorvida e resolvida pela revisão da `OC11` |
 | `OC58` | Baixa | Desenvolvedor 1, com apoio do Desenvolvedor 4 | Bloqueada por `D11` |
 | `OC59` | Média | Desenvolvedor 1 e Desenvolvedor 3 | Bloqueada por `D12` |
@@ -348,8 +348,19 @@ Definir e aplicar uma representação JSON única para campos `Decimal`, especia
 
 ### Dependências
 
-- `D06`: número JSON ou string decimal.
+- `D06`: número JSON aprovado em 2026-08-06.
 - Revisão conjunta entre backend e frontend.
+
+### Divisão de execução aprovada
+
+1. **OC56-A — decisão e contrato:** registrar D06, ADR-016, precisão, escala e
+   exemplos oficiais.
+2. **OC56-B — backend:** criar o tipo compartilhado da fronteira HTTP, aplicar
+   nos schemas, rejeitar strings e validar JSON e OpenAPI.
+3. **OC56-C — frontend:** remover a compatibilidade ambígua `number | string` e
+   consumir o contrato como `number` sem coerção silenciosa.
+4. **OC56-D — encerramento:** executar as suítes completas, atualizar READMEs e
+   registrar a ocorrência como validada localmente.
 
 ---
 

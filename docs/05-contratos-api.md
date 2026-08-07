@@ -7,6 +7,10 @@ Este documento é o contrato combinado entre backend, frontend, algoritmo e inte
 - `CONFIRMADO`: prefixo oficial da API de negócio: `/api/v1`.
 - `CONFIRMADO`: health check atual fica em `/health`, fora do prefixo.
 - `CONFIRMADO`: JSON usa campos em snake_case.
+- `CONFIRMADO` por D06 e `ADR-016`: campos decimais públicos usam número JSON
+  na entrada e na saída. Strings numéricas e booleanos são inválidos. O backend
+  preserva `Decimal` internamente e cada campo mantém a precisão e escala do
+  modelo aprovado; zeros finais não fazem parte do valor JSON.
 - `RECOMENDAÇÃO`: caminhos usam kebab-case quando tiverem mais de uma palavra, como `/load-plans`.
 - `RECOMENDAÇÃO`: endpoints de listagem devem preparar paginação futura, mesmo que o MVP comece simples.
 - `RECOMENDAÇÃO`: filtros usam query params em snake_case.
@@ -323,8 +327,8 @@ Resposta `201`, também usada por `GET /load-plans/{id}`:
 ```
 
 Os campos físicos e descritivos de caminhão/produto/item são snapshots do momento
-do cálculo. `Decimal` permanece no schema; a decisão separada sobre representar
-Decimal como número ou string JSON não é alterada pela OC20.
+do cálculo. `Decimal` permanece no domínio, no schema interno e na persistência;
+a fronteira HTTP usa número JSON conforme D06 e `ADR-016`.
 
 ### GET `/load-plans/{id}/visualization`
 
