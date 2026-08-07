@@ -19,6 +19,7 @@ const NAV_ITEMS: readonly NavItem[] = [
   { to: "/products", label: "Produtos", roles: OPERATION_READERS },
   { to: "/contacts", label: "Clientes e motoristas", roles: PERSONAL_DATA_READERS },
   { to: "/orders", label: "Pedidos", roles: OPERATION_READERS },
+  { to: "/planning", label: "Planejamento", roles: OPERATION_READERS },
 ];
 
 export function AppLayout() {

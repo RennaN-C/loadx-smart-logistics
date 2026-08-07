@@ -4,6 +4,7 @@ import { AuthProvider } from "../features/auth/components/AuthProvider";
 import { RequireAuth } from "../features/auth/components/RequireAuth";
 import { LoginPage } from "../features/auth/pages/LoginPage";
 import { ContactsPage } from "../features/customers/pages/ContactsPage";
+import { PlanningPage } from "../features/load-planning/pages/PlanningPage";
 import { OrderListPage } from "../features/orders/pages/OrderListPage";
 import { ProductListPage } from "../features/products/pages/ProductListPage";
 import { TruckListPage } from "../features/trucks/pages/TruckListPage";
@@ -32,6 +33,8 @@ export function App() {
               <Route path="products" element={<ProductListPage />} />
               <Route path="contacts" element={<ContactsPage />} />
               <Route path="orders" element={<OrderListPage />} />
+              <Route path="planning" element={<PlanningPage />} />
+              <Route path="planning/:planId" element={<PlanningPage />} />
               <Route
                 path="*"
                 element={
