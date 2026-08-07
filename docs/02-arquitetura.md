@@ -61,7 +61,10 @@ Responsabilidades por pasta:
 - `backend/migrations`: migrations Alembic.
 - `backend/tests`: testes unitários, integração e e2e.
 
-`CONFIRMADO`: no estado atual do código, existem base FastAPI, configurações, sessão SQLAlchemy, health check, migrations e módulos backend para autenticação, usuários, caminhões, produtos, clientes, motoristas, pedidos e histórico de status.
+`CONFIRMADO`: no estado atual do código, existem base FastAPI, configurações,
+sessão SQLAlchemy, liveness, readiness com PostgreSQL/Alembic, migrations e
+módulos backend para autenticação, usuários, caminhões, produtos, clientes,
+motoristas, pedidos e histórico de status.
 
 `CONFIRMADO`: o planejamento de carga está implementado até a `OC20`, com
 persistência, API protegida e engine determinística. A `OC51` aplica a matriz de

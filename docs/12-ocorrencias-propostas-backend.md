@@ -17,6 +17,9 @@ e D05 em 2026-08-06. `OC56` foi desbloqueada por D06 na mesma data. D12 foi
 aprovada em 2026-08-07 e desbloqueou a `OC59`. `OC52`, `OC53`, `OC55`, `OC56`
 e `OC59` foram integradas em `desenvolvimento` pelo PR #14.
 
+`CONFIRMADO`: a `OC58` está implementada e validada localmente, pendente de PR e
+revisão.
+
 ## Resumo de prioridade
 
 | Identificador sugerido | Prioridade | Responsável primário sugerido | Situação |
@@ -30,7 +33,7 @@ e `OC59` foram integradas em `desenvolvimento` pelo PR #14.
 | `OC55` | Média | Desenvolvedor 1, com revisão do Desenvolvedor 4 | Integrada em `desenvolvimento` |
 | `OC56` | Média | Desenvolvedor 1 e Desenvolvedor 3 | Integrada em `desenvolvimento` |
 | `OC57` | Média | Desenvolvedor 2 | Absorvida e resolvida pela revisão da `OC11` |
-| `OC58` | Baixa | Desenvolvedor 1, com apoio do Desenvolvedor 4 | Desbloqueada por D11; pronta para implementação |
+| `OC58` | Baixa | Desenvolvedor 1, com apoio do Desenvolvedor 4 | Implementada e validada localmente; pendente de PR e revisão |
 | `OC59` | Média | Desenvolvedor 1 e Desenvolvedor 3 | Integrada em `desenvolvimento` |
 
 As referências `DXX` apontam para `docs/decisoes-equipe-backend.txt`.
@@ -412,10 +415,27 @@ Distinguir aplicação em execução de aplicação pronta para atender operaç�
 
 ### Comportamento atual
 
-`CONFIRMADO`: `/health` retorna `ok` sem verificar conexão com PostgreSQL ou estado das migrations.
+`CONFIRMADO`: `/health` permanece como liveness e retorna `ok` sem verificar
+conexão com PostgreSQL ou estado das migrations.
 
 `CONFIRMADO`: D11 foi aprovada em 2026-08-07 e registrada na `ADR-018`. A
-ocorrência está desbloqueada para implementação.
+ocorrência foi implementada conforme o contrato aprovado.
+
+### Resultado
+
+`CONFIRMADO`: `/ready` executa `SELECT 1` em conexão somente leitura, compara o
+conjunto de revisões do banco com os heads Alembic entregues e aplica orçamento
+total de 2 segundos. Falhas retornam `503 SERVICE_NOT_READY` sem detalhes
+internos.
+
+`CONFIRMADO`: o Compose usa `/ready` como healthcheck do backend sem aplicar
+migrations automaticamente. O frontend preserva a inicialização independente do
+estado saudável para não bloquear o bootstrap de um banco novo.
+
+`CONFIRMADO`: a validação final aprovou Ruff, 894 testes do backend em PostgreSQL
+16, 156 testes do frontend, ESLint, build de produção e smoke de queda e
+recuperação do PostgreSQL. Durante a queda, `/health` permaneceu `200` e `/ready`
+retornou `503`; após a recuperação, `/ready` voltou a `200`.
 
 ### Critérios de aceite
 

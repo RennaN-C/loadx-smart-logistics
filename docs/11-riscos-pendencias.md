@@ -18,6 +18,8 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 - `CONFIRMADO`: D11 e `ADR-018` mantêm `/health` como liveness e definem
   `/ready` com PostgreSQL, Alembic head, orçamento de 2 segundos e resposta
   pública sem detalhes internos.
+- `CONFIRMADO`: a OC58 implementa D11, integra `/ready` ao healthcheck do
+  container backend e cobre banco disponível, indisponível e revisão divergente.
 - `CONFIRMADO`: a OC59 aplica D12 no banco e na API de usuários, clientes,
   motoristas, pedidos, caminhões e produtos; o frontend de caminhões consome o
   envelope e permite navegar pelas páginas.

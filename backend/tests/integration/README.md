@@ -38,8 +38,11 @@ insegura encerra a suíte antes de qualquer reset de schema.
 
 `CONFIRMADO`: `test_authorization_matrix.py` cruza todas as operações protegidas
 com `ADMIN`, `LOGISTICS_MANAGER`, `CHECKER` e `DRIVER`. `test_openapi.py` garante
-que somente `/health` e `/api/v1/auth/login` permaneçam públicos no contrato
-atual.
+que somente `/health`, `/ready` e `/api/v1/auth/login` permaneçam públicos no
+contrato atual.
+
+`CONFIRMADO`: `test_readiness.py` valida sucesso no PostgreSQL migrado, falha
+genérica com banco indisponível e rejeição de revisão diferente do head.
 
 `CONFIRMADO`: `test_postgresql_migrations.py` verifica PostgreSQL 16, revision
 Alembic, tabelas oficiais, FK, `CHECK`, UUID, `Numeric` e timestamp com timezone.

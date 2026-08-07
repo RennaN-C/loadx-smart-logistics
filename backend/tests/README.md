@@ -7,6 +7,10 @@
   pelas migrations Alembic.
 - `e2e`: fluxo completo quando o MVP estiver integrado.
 
+`CONFIRMADO`: readiness possui testes unitários de orçamento, sigilo e
+comparação de revisions, além de integração real com PostgreSQL disponível,
+indisponível e fora do Alembic head.
+
 ## Comandos
 
 Testes unitários, sem PostgreSQL:

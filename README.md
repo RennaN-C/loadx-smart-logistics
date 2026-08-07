@@ -407,9 +407,15 @@ http://localhost:8000/docs
 
 Verificação da API:
 http://localhost:8000/health
+
+Prontidão da API:
+http://localhost:8000/ready
 ```
 
 A documentação da API acima existe somente com `APP_ENV=local`.
+
+`/health` confirma apenas que o processo está em execução. `/ready` retorna
+sucesso somente com PostgreSQL acessível e a revisão Alembic no head.
 
 ## Banco de dados
 
@@ -424,6 +430,10 @@ Não devem ser realizadas alterações permanentes diretamente pelo pgAdmin.
 ```bash
 docker compose exec backend alembic upgrade head
 ```
+
+Em banco novo, o backend permanece `unhealthy` e `/ready` retorna `503` até que
+as migrations sejam aplicadas. O endpoint nunca aplica migrations
+automaticamente.
 
 ### Criar uma nova migration
 

@@ -38,3 +38,13 @@ docker compose run --rm backend python -m app.modules.auth.bootstrap
 ```
 
 A senha é solicitada de forma oculta e não deve ser informada em argumento, `.env`, seed ou log. O comando recusa nova execução quando o banco já possui qualquer usuário.
+
+## Sondas operacionais
+
+- `GET /health`: liveness; confirma apenas que o processo HTTP está ativo.
+- `GET /ready`: readiness; exige PostgreSQL acessível e Alembic exatamente no
+  head.
+
+`CONFIRMADO`: `/ready` é público para Compose e monitoramento, executa somente
+leitura, possui orçamento de 2 segundos e retorna falha genérica sem detalhes de
+infraestrutura, conforme D11 e `ADR-018`.
