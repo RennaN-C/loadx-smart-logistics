@@ -4,7 +4,9 @@
 
 `RECOMENDAÇÃO`: este documento reúne ocorrências prontas para serem copiadas para o GitHub Projects após revisão da equipe.
 
-`RISCO IDENTIFICADO`: a sequência oficial atual termina em `OC48`. Os identificadores `OC49` a `OC59` são sugestões e devem ser confirmados antes da abertura das issues para evitar conflito com ocorrências criadas em paralelo.
+`CONFIRMADO`: os identificadores `OC49` a `OC59` nasceram como sugestões. O
+estado individual abaixo registra quais ocorrências foram aprovadas, integradas
+ou continuam pendentes de decisão da equipe.
 
 `CONFIRMADO`: nenhuma ocorrência abaixo está aprovada apenas por constar neste documento. Cada uma deve receber responsável, revisão de escopo e aceite da equipe antes da implementação.
 
@@ -13,7 +15,7 @@
 responsável em 2026-08-04. `OC52` foi desbloqueada pela aprovação formal de D04
 e D05 em 2026-08-06. `OC56` foi desbloqueada por D06 na mesma data. D12 foi
 aprovada em 2026-08-07 e desbloqueou a `OC59`. `OC52`, `OC53`, `OC55`, `OC56`
-e `OC59` estão implementadas e validadas localmente, pendentes de PR e revisão.
+e `OC59` foram integradas em `desenvolvimento` pelo PR #14.
 
 ## Resumo de prioridade
 
@@ -22,14 +24,14 @@ e `OC59` estão implementadas e validadas localmente, pendentes de PR e revisão
 | `OC49` | Alta | Desenvolvedor 1 | Integrada em `desenvolvimento` |
 | `OC50` | Alta | Desenvolvedor 1 | Integrada em `desenvolvimento` |
 | `OC51` | Alta | Desenvolvedor 1 | Integrada em `desenvolvimento` |
-| `OC52` | Alta | Desenvolvedor 1 | Implementada e validada localmente; pendente de PR e revisão |
-| `OC53` | Alta | Desenvolvedor 1, com revisão do Desenvolvedor 4 | Implementada e validada localmente; pendente de PR e revisão |
+| `OC52` | Alta | Desenvolvedor 1 | Integrada em `desenvolvimento` |
+| `OC53` | Alta | Desenvolvedor 1, com revisão do Desenvolvedor 4 | Integrada em `desenvolvimento` |
 | `OC54` | Média | Desenvolvedor 4, com apoio do Desenvolvedor 1 | Pronta para aprovação |
-| `OC55` | Média | Desenvolvedor 1, com revisão do Desenvolvedor 4 | Implementada e validada localmente; pendente de PR e revisão |
-| `OC56` | Média | Desenvolvedor 1 e Desenvolvedor 3 | Implementada e validada localmente; pendente de PR e revisão |
+| `OC55` | Média | Desenvolvedor 1, com revisão do Desenvolvedor 4 | Integrada em `desenvolvimento` |
+| `OC56` | Média | Desenvolvedor 1 e Desenvolvedor 3 | Integrada em `desenvolvimento` |
 | `OC57` | Média | Desenvolvedor 2 | Absorvida e resolvida pela revisão da `OC11` |
 | `OC58` | Baixa | Desenvolvedor 1, com apoio do Desenvolvedor 4 | Bloqueada por `D11` |
-| `OC59` | Média | Desenvolvedor 1 e Desenvolvedor 3 | Implementada e validada localmente; pendente de PR e revisão |
+| `OC59` | Média | Desenvolvedor 1 e Desenvolvedor 3 | Integrada em `desenvolvimento` |
 
 As referências `DXX` apontam para `docs/decisoes-equipe-backend.txt`.
 
@@ -189,7 +191,7 @@ Fazer com que toda mudança permitida de status registre `old_status`, `new_stat
 
 ### Comportamento atual
 
-`CONFIRMADO`: a OC52 está implementada localmente. O status saiu do `PATCH`
+`CONFIRMADO`: a OC52 está integrada em `desenvolvimento`. O status saiu do `PATCH`
 genérico, as transições manuais de D04 usam caso de uso explícito e pedido e
 histórico são confirmados ou desfeitos juntos conforme D05. O método independente
 de histórico mantém seu próprio `commit`, enquanto operações compostas usam
@@ -336,7 +338,7 @@ Definir e aplicar uma representação JSON única para campos `Decimal`, especia
 
 ### Comportamento atual
 
-`CONFIRMADO`: a OC56 está implementada localmente. Schemas de entrada e saída,
+`CONFIRMADO`: a OC56 está integrada em `desenvolvimento`. Schemas de entrada e saída,
 OpenAPI, exemplos e o consumidor de caminhões usam exclusivamente número JSON.
 Strings decimais são rejeitadas; `Decimal` e `Numeric` permanecem no domínio e
 na persistência, sem mudança na aritmética do otimizador.
