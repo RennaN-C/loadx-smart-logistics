@@ -385,12 +385,13 @@ Decisões aprovadas e documentos atualizados:
 D01, D02 e D03, registradas em ADR-004, docs/04 e docs/05.
 D04 e D05, registradas em ADR-015, docs/04 e docs/05.
 D06, registrada em ADR-016 e docs/05.
+D12, registrada em ADR-017 e docs/05.
 
 Ocorrências desbloqueadas:
-OC51, OC52 e OC56.
+OC51, OC52, OC56 e OC59.
 
 ADRs que precisam ser criadas:
-Nenhuma para D01 a D06; ADR-004, ADR-015 e ADR-016 criadas.
+Nenhuma para as decisões aprovadas; ADR-004, ADR-015, ADR-016 e ADR-017 criadas.
 
 Pendências mantidas para próxima reunião:
 
@@ -398,4 +399,4 @@ Participantes:
 Desenvolvedor 1.
 
 Data:
-2026-08-06.
+2026-08-07.

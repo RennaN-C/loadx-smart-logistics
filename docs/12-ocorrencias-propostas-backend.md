@@ -12,8 +12,8 @@
 `desenvolvimento`. `OC55` e `OC53` foram aprovadas por solicitação explícita do
 responsável em 2026-08-04. `OC52` foi desbloqueada pela aprovação formal de D04
 e D05 em 2026-08-06. `OC56` foi desbloqueada por D06 na mesma data. D12 foi
-aprovada em 2026-08-07 e desbloqueou a `OC59`. As quatro primeiras estão
-implementadas e validadas localmente, pendentes de PR e revisão.
+aprovada em 2026-08-07 e desbloqueou a `OC59`. `OC52`, `OC53`, `OC55`, `OC56`
+e `OC59` estão implementadas e validadas localmente, pendentes de PR e revisão.
 
 ## Resumo de prioridade
 
@@ -29,7 +29,7 @@ implementadas e validadas localmente, pendentes de PR e revisão.
 | `OC56` | Média | Desenvolvedor 1 e Desenvolvedor 3 | Implementada e validada localmente; pendente de PR e revisão |
 | `OC57` | Média | Desenvolvedor 2 | Absorvida e resolvida pela revisão da `OC11` |
 | `OC58` | Baixa | Desenvolvedor 1, com apoio do Desenvolvedor 4 | Bloqueada por `D11` |
-| `OC59` | Média | Desenvolvedor 1 e Desenvolvedor 3 | Em implementação; D12 aprovada |
+| `OC59` | Média | Desenvolvedor 1 e Desenvolvedor 3 | Implementada e validada localmente; pendente de PR e revisão |
 
 As referências `DXX` apontam para `docs/decisoes-equipe-backend.txt`.
 
@@ -439,7 +439,7 @@ Distinguir aplicação em execução de aplicação pronta para atender operaç�
 
 Evitar exposição desnecessária de dados pessoais e impedir listagens sem limite, preservando acesso detalhado apenas para perfis autorizados.
 
-### Comportamento atual
+### Comportamento anterior
 
 `CONFIRMADO`: endpoints de listagem retornam coleções completas sem paginação. Os mesmos schemas usados em detalhes podem expor e-mail, documento, telefone, CNH, endereço e observações.
 
@@ -451,6 +451,20 @@ Evitar exposição desnecessária de dados pessoais e impedir listagens sem limi
 2. Minimizar e paginar usuários, clientes, motoristas e pedidos.
 3. Paginar caminhões e produtos e adaptar o consumidor frontend de caminhões.
 4. Executar testes completos e encerrar a ocorrência na documentação.
+
+### Resultado
+
+`CONFIRMADO`: as seis coleções atualmente implementadas usam `COUNT`, `LIMIT` e
+`OFFSET`, respeitam o limite máximo de 100 e retornam o envelope da ADR-017.
+Usuários, clientes, motoristas e pedidos usam schemas resumidos; os endpoints de
+detalhe mantêm os schemas completos protegidos pelo RBAC existente.
+
+`CONFIRMADO`: o consumidor frontend de caminhões usa os metadados do backend e
+oferece navegação entre páginas. A busca e o filtro continuam restritos à página
+atual porque D12 não aprovou filtros server-side.
+
+`CONFIRMADO`: a validação final executou 883 testes do backend sobre PostgreSQL
+16, a suíte completa do frontend, Ruff, ESLint e build de produção.
 
 ### Critérios de aceite
 

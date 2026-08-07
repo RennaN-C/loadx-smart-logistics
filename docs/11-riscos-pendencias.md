@@ -15,6 +15,9 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 - `CONFIRMADO`: D12 e `ADR-017` definem resumos sem dados pessoais
   desnecessários, paginação 1-based limitada a 100 registros e ordenação
   cronológica determinística para todas as coleções atuais.
+- `CONFIRMADO`: a OC59 aplica D12 no banco e na API de usuários, clientes,
+  motoristas, pedidos, caminhões e produtos; o frontend de caminhões consome o
+  envelope e permite navegar pelas páginas.
 - `CONFIRMADO`: volumes individuais são expandidos de `order_items.quantity`, usam `volume_index` iniciado em `1` e são persistidos em `load_plan_items`, sem tabela `volumes`, conforme `ADR-005`.
 - `CONFIRMADO`: volumes usam a ordem total determinística de volume, peso, empilhamento, fragilidade, entrega e identidade, conforme `ADR-006`.
 - `CONFIRMADO`: rotações usam seis permutações ortogonais priorizadas, deduplicam simetrias e respeitam bloqueio por produto, conforme `ADR-007`.
