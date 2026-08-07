@@ -34,7 +34,6 @@ def test_readiness_rejects_unavailable_database(client: TestClient) -> None:
         "details": [],
     }
 
-
 def test_readiness_rejects_database_outside_alembic_head(
     client: TestClient,
     postgres_engine: Engine,
@@ -53,4 +52,3 @@ def test_readiness_rejects_database_outside_alembic_head(
         "message": "O serviço não está pronto.",
         "details": [],
     }
-

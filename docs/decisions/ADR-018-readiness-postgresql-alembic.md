@@ -44,4 +44,3 @@ operacional em uma fonte de detalhes internos.
 - Compose e CI podem consumir `/ready` sem possuir token de usuário.
 - A fronteira pública passa a incluir dois endpoints operacionais, `/health` e
   `/ready`, além do login.
-
