@@ -5,8 +5,9 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-loadx}
       POSTGRES_USER: ${POSTGRES_USER:-loadx}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-loadx_local}
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
     ports:
-      - "5433:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-5433}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -15,6 +16,19 @@ services:
       timeout: 5s
       retries: 10
 
+  migrate:
+    build: ./backend
+    env_file: .env
+    command: python -m alembic upgrade head
+    depends_on:
+      db:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    restart: "no"
+
   backend:
     build: ./backend
     env_file: .env
@@ -22,10 +36,14 @@ services:
     volumes:
       - ./backend:/app
     ports:
-      - "8000:8000"
+      - "127.0.0.1:${BACKEND_PORT:-8000}:8000"
     depends_on:
-      db:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     healthcheck:
       test:
         - CMD
@@ -45,9 +63,13 @@ services:
       - ./frontend:/app
       - /app/node_modules
     ports:
-      - "5173:5173"
+      - "127.0.0.1:${FRONTEND_PORT:-5173}:5173"
     depends_on:
       - backend
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
 
 volumes:
   postgres_data:
