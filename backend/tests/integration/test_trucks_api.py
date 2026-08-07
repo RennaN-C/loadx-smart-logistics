@@ -153,7 +153,12 @@ def test_list_trucks_returns_created_items(
     response = client.get("/api/v1/trucks", headers=manager_headers)
 
     assert response.status_code == 200
-    assert response.json()[0]["plate"] == "ABC1D23"
+    body = response.json()
+    assert body["items"][0]["plate"] == "ABC1D23"
+    assert body["page"] == 1
+    assert body["page_size"] == 20
+    assert body["total"] == 1
+    assert body["total_pages"] == 1
 
 
 def test_get_truck_by_id_returns_created_item(

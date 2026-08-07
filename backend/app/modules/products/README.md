@@ -15,7 +15,7 @@ Crie somente os arquivos necessários para a ocorrência atual.
 
 ## Endpoints
 
-- `GET /api/v1/products`: lista produtos.
+- `GET /api/v1/products`: lista produtos no envelope paginado da ADR-017.
 - `POST /api/v1/products`: cria produto.
 - `GET /api/v1/products/{id}`: consulta produto por ID.
 - `PATCH /api/v1/products/{id}`: atualiza campos enviados.

@@ -64,10 +64,31 @@
   padding: 32px 0;
 }
 
+.trucks-page-summary {
+  color: var(--muted);
+  font-size: 0.82rem;
+  margin: -8px 0 20px;
+}
+
 .trucks-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 20px;
+}
+
+.trucks-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 28px;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.trucks-pagination button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 @media (max-width: 720px) {

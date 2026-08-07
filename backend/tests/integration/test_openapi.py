@@ -60,7 +60,7 @@ EXPECTED_ERROR_STATUSES = {
         "422",
         "500",
     },
-    ("/api/v1/products", "get"): {"401", "403", "500"},
+    ("/api/v1/products", "get"): {"401", "403", "422", "500"},
     ("/api/v1/products", "post"): {"401", "403", "409", "422", "500"},
     ("/api/v1/products/{product_id}", "get"): {
         "401",
@@ -77,7 +77,7 @@ EXPECTED_ERROR_STATUSES = {
         "422",
         "500",
     },
-    ("/api/v1/trucks", "get"): {"401", "403", "500"},
+    ("/api/v1/trucks", "get"): {"401", "403", "422", "500"},
     ("/api/v1/trucks", "post"): {"401", "403", "409", "422", "500"},
     ("/api/v1/trucks/{truck_id}", "get"): {
         "401",

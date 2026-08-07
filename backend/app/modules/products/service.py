@@ -4,6 +4,7 @@ from collections.abc import Callable, Sequence
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core.pagination import PageResult, PaginationParams
 from app.database.integrity import get_integrity_constraint_name
 from app.modules.products.models import Product
 from app.modules.products.repository import ProductRepository
@@ -23,8 +24,8 @@ class ProductService:
         self.db = db
         self.repository = ProductRepository(db)
 
-    def list_products(self) -> Sequence[Product]:
-        return self.repository.list()
+    def list_products(self, pagination: PaginationParams) -> PageResult[Product]:
+        return self.repository.list(pagination)
 
     def get_product(self, product_id: uuid.UUID) -> Product:
         product = self.repository.get(product_id)

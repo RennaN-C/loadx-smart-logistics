@@ -157,7 +157,12 @@ def test_list_products_returns_created_items(
     response = client.get("/api/v1/products", headers=manager_headers)
 
     assert response.status_code == 200
-    assert response.json()[0]["code"] == "CX-A"
+    body = response.json()
+    assert body["items"][0]["code"] == "CX-A"
+    assert body["page"] == 1
+    assert body["page_size"] == 20
+    assert body["total"] == 1
+    assert body["total_pages"] == 1
 
 
 def test_get_product_by_id_returns_created_item(

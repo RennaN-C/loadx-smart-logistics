@@ -15,7 +15,7 @@ Crie somente os arquivos necessários para a ocorrência atual.
 
 ## Endpoints
 
-- `GET /api/v1/trucks`: lista caminhões.
+- `GET /api/v1/trucks`: lista caminhões no envelope paginado da ADR-017.
 - `POST /api/v1/trucks`: cria caminhão.
 - `GET /api/v1/trucks/{id}`: consulta caminhão por ID.
 - `PATCH /api/v1/trucks/{id}`: atualiza campos enviados.

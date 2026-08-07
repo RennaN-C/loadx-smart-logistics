@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { mapTruckFromDto } from "./trucksApi";
+import { mapTruckFromDto, mapTruckPageFromDto } from "./trucksApi";
 
 const DTO = {
   id: "22222222-2222-2222-2222-222222222222",
@@ -34,5 +34,25 @@ describe("mapTruckFromDto", () => {
 
     expect(result.maxWeightKg).toBe(8000.5);
     expect(typeof result.maxWeightKg).toBe("number");
+  });
+});
+
+describe("mapTruckPageFromDto", () => {
+  it("converte o envelope paginado para camelCase", () => {
+    expect(
+      mapTruckPageFromDto({
+        items: [DTO],
+        page: 2,
+        page_size: 20,
+        total: 21,
+        total_pages: 2,
+      }),
+    ).toEqual({
+      items: [mapTruckFromDto(DTO)],
+      page: 2,
+      pageSize: 20,
+      total: 21,
+      totalPages: 2,
+    });
   });
 });
