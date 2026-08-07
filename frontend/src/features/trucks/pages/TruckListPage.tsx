@@ -6,7 +6,8 @@ import { useAuth } from "../../auth/hooks/useAuth";
 import { TruckCard } from "../components/TruckCard";
 import { TruckForm } from "../components/TruckForm";
 import { mapTruckErrorToMessage } from "../components/trucksErrorMessages";
-import { useTrucks } from "../hooks/useTrucks";
+import { useResourceList } from "../../../hooks/useResourceList";
+import { listTrucks } from "../api/trucksApi";
 import type { Truck } from "../types";
 import "./TruckListPage.css";
 
@@ -20,7 +21,7 @@ function matchesStatus(truck: Truck, filter: StatusFilter): boolean {
 
 export function TruckListPage() {
   const { user } = useAuth();
-  const { status, trucks, error, refetch } = useTrucks();
+  const { status, items: trucks, error, refetch } = useResourceList(listTrucks);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [editingTruck, setEditingTruck] = useState<Truck | null>(null);

@@ -6,7 +6,8 @@ import { useAuth } from "../../auth/hooks/useAuth";
 import { ProductCard } from "../components/ProductCard";
 import { ProductForm } from "../components/ProductForm";
 import { mapProductErrorToMessage } from "../components/productsErrorMessages";
-import { useProducts } from "../hooks/useProducts";
+import { useResourceList } from "../../../hooks/useResourceList";
+import { listProducts } from "../api/productsApi";
 import type { Product } from "../types";
 import "./ProductListPage.css";
 
@@ -21,7 +22,7 @@ function matchesRestriction(product: Product, filter: RestrictionFilter): boolea
 
 export function ProductListPage() {
   const { user } = useAuth();
-  const { status, products, error, refetch } = useProducts();
+  const { status, items: products, error, refetch } = useResourceList(listProducts);
   const [search, setSearch] = useState("");
   const [restrictionFilter, setRestrictionFilter] = useState<RestrictionFilter>("all");
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);

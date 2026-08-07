@@ -11,10 +11,13 @@ interface NavItem {
 }
 
 const OPERATION_READERS: readonly Role[] = ["ADMIN", "CHECKER", "LOGISTICS_MANAGER"];
+/** Clientes e motoristas são dados pessoais: CHECKER não lê (ver docs/04). */
+const PERSONAL_DATA_READERS: readonly Role[] = ["ADMIN", "LOGISTICS_MANAGER"];
 
 const NAV_ITEMS: readonly NavItem[] = [
   { to: "/trucks", label: "Caminhões", roles: OPERATION_READERS },
   { to: "/products", label: "Produtos", roles: OPERATION_READERS },
+  { to: "/contacts", label: "Clientes e motoristas", roles: PERSONAL_DATA_READERS },
 ];
 
 export function AppLayout() {

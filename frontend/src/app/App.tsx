@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "../features/auth/components/AuthProvider";
 import { RequireAuth } from "../features/auth/components/RequireAuth";
 import { LoginPage } from "../features/auth/pages/LoginPage";
+import { ContactsPage } from "../features/customers/pages/ContactsPage";
 import { ProductListPage } from "../features/products/pages/ProductListPage";
 import { TruckListPage } from "../features/trucks/pages/TruckListPage";
 import { AppLayout } from "./AppLayout";
@@ -28,6 +29,7 @@ export function App() {
               />
               <Route path="trucks" element={<TruckListPage />} />
               <Route path="products" element={<ProductListPage />} />
+              <Route path="contacts" element={<ContactsPage />} />
               <Route
                 path="*"
                 element={
