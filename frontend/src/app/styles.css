@@ -327,28 +327,3 @@ body {
   padding: 22px 26px 26px;
 }
 
-/* ---- desenho técnico do caminhão ---- */
-
-.schematic-label,
-.schematic-caption {
-  font-family: "Poppins", sans-serif;
-  font-weight: 600;
-  fill: var(--muted);
-}
-
-.schematic-label {
-  font-size: 9px;
-  letter-spacing: 0.08em;
-}
-
-.schematic-caption {
-  font-size: 8.5px;
-  letter-spacing: 0.1em;
-}
-
-.schematic-value {
-  font-family: var(--font-mono);
-  font-size: 17px;
-  font-weight: 700;
-  fill: var(--ink);
-}

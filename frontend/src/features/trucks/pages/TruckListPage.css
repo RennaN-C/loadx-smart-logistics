@@ -96,10 +96,24 @@
   justify-content: center;
 }
 
-.truck-card-figure .truck-schematic {
+.truck-photo-card {
   width: 100%;
-  max-width: 240px;
-  height: auto;
+  max-width: 250px;
+  height: 96px;
+}
+
+.truck-photo {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* As artes já vêm recortadas na silhueta do caminhão (fundo transparente),
+   então basta encaixar inteiras e apoiar na base para as duas vistas
+   ficarem no mesmo chão. */
+.truck-photo {
+  object-fit: contain;
+  object-position: bottom;
 }
 
 .truck-card-body {
@@ -232,19 +246,173 @@
 
 .truck-form-figure {
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   justify-content: center;
-  gap: 24px;
+  gap: 28px;
   flex-wrap: wrap;
   background: var(--paper);
   border: 1px solid var(--line);
   border-radius: 4px;
-  padding: 12px;
+  padding: 16px 18px;
 }
 
-.truck-form-figure .truck-schematic {
-  height: auto;
-  max-width: 100%;
+/* ---- ilustração + cotas ---- */
+
+/*
+ * As cotas são ancoradas no BAÚ, não na imagem: o comprimento não inclui a
+ * cabine e a altura não desce até as rodas. As frações abaixo foram medidas
+ * nas próprias artes (varredura do canal alfa), e valem para estes arquivos:
+ *
+ *   truck-side.png  705x294 -> baú de 25,67% a 98,72% da largura, 0% a 50% da altura
+ *   truck-rear.png  492x598 -> baú de 1,63% a 98,37% da largura, 0% a 74,25% da altura
+ *
+ * Trocar as imagens exige remedir. Por isso a caixa da imagem usa a proporção
+ * exata do arquivo — sem tarja preta, as porcentagens caem direto no desenho.
+ */
+.truck-figure {
+  /* 132px mantém lateral + cotas + traseira numa linha só dentro do modal (~626px úteis) */
+  --fig-h: 132px;
+  flex: 0 0 auto;
+  --side-bau-esq: 25.67%;
+  --side-bau-dir: 1.28%;
+  --side-bau-piso: 0.5;
+  --rear-bau-lado: 1.63%;
+  display: grid;
+  gap: 8px 12px;
+  margin: 0;
+}
+
+.truck-figure-side {
+  grid-template-columns: auto auto;
+  grid-template-areas:
+    "label label"
+    "image altura"
+    "comprimento .";
+}
+
+.truck-figure-rear {
+  grid-template-areas:
+    "label"
+    "image"
+    "largura";
+}
+
+.truck-figure-side .truck-figure-image {
+  width: calc(var(--fig-h) * 705 / 294);
+}
+
+.truck-figure-rear .truck-figure-image {
+  width: calc(var(--fig-h) * 492 / 598);
+}
+
+/* comprimento mede só o baú: começa depois da cabine */
+.truck-figure-side .dim-h {
+  margin-left: var(--side-bau-esq);
+  margin-right: var(--side-bau-dir);
+}
+
+/* altura interna vai do teto ao piso do baú, sem descer até as rodas */
+.truck-figure-side .dim-v {
+  margin-bottom: calc(var(--fig-h) * (1 - var(--side-bau-piso)));
+}
+
+.truck-figure-rear .dim-h {
+  margin-left: var(--rear-bau-lado);
+  margin-right: var(--rear-bau-lado);
+}
+
+.truck-figure-label {
+  grid-area: label;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  text-align: center;
+  margin: 0;
+}
+
+/* altura fixa nas duas vistas: assim as cotas de baixo ficam na mesma linha,
+   mesmo a lateral e a traseira tendo proporções bem diferentes */
+.truck-figure-image {
+  grid-area: image;
+  height: var(--fig-h);
+}
+
+.dim-value {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.2;
+}
+
+.dim-caption {
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+
+/* cota horizontal: linha com marcações nas duas pontas, valor embaixo */
+.dim-h {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.dim-h .dim-line {
+  position: relative;
+  width: 100%;
+  height: 9px;
+  border-left: 1px solid var(--accent);
+  border-right: 1px solid var(--accent);
+}
+
+.dim-h .dim-line::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  border-top: 1px solid var(--accent);
+}
+
+.truck-figure-side .dim-h {
+  grid-area: comprimento;
+}
+.truck-figure-rear .dim-h {
+  grid-area: largura;
+}
+
+/* cota vertical: mesma ideia, girada, com o texto ao lado */
+.dim-v {
+  grid-area: altura;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dim-v .dim-line {
+  position: relative;
+  width: 9px;
+  align-self: stretch;
+  border-top: 1px solid var(--accent);
+  border-bottom: 1px solid var(--accent);
+}
+
+.dim-v .dim-line::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  border-left: 1px solid var(--accent);
+}
+
+.dim-v .dim-text {
+  display: flex;
+  flex-direction: column;
 }
 
 .truck-form-help {
