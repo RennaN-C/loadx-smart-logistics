@@ -30,6 +30,10 @@ docker compose exec backend alembic upgrade head
 docker compose exec backend alembic downgrade -1
 ```
 
+`CONFIRMADO`: `docker compose up` executa automaticamente `alembic upgrade
+head` no serviço one-shot `migrate`. O backend só inicia se esse serviço terminar
+com sucesso; `/ready` apenas confere o resultado e não altera o banco.
+
 ## Regras
 
 - Nunca envie somente um SQL solto.

@@ -7,6 +7,7 @@ from app.main import create_app
 
 EXPECTED_ERROR_STATUSES = {
     ("/health", "get"): {"500"},
+    ("/ready", "get"): {"500", "503"},
     ("/api/v1/auth/login", "post"): {"401", "403", "422", "500"},
     ("/api/v1/auth/me", "get"): {"401", "403", "422", "500"},
     ("/api/v1/users", "get"): {"401", "403", "422", "500"},
@@ -161,6 +162,7 @@ EXPECTED_ERROR_STATUSES = {
 PUBLIC_OPERATIONS = frozenset(
     {
         ("/health", "get"),
+        ("/ready", "get"),
         ("/api/v1/auth/login", "post"),
     }
 )

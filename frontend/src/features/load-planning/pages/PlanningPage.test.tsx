@@ -220,6 +220,7 @@ describe("PlanningPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Calcular plano de carga" }));
 
     await waitFor(() => expect(createLoadPlan).toHaveBeenCalledWith({ truckId: "t1", orderIds: ["o1"] }));
+    await waitFor(() => expect(getLoadPlan).toHaveBeenCalledWith("lp1"));
     expect(await screen.findByText("19,2%")).toBeInTheDocument();
   });
 

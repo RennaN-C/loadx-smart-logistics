@@ -17,6 +17,7 @@ _ERROR_RESPONSE_DESCRIPTIONS = {
     409: "Conflito de estado ou recurso duplicado.",
     422: "Dados de entrada inválidos.",
     500: "Erro interno inesperado.",
+    503: "Serviço temporariamente indisponível.",
 }
 
 

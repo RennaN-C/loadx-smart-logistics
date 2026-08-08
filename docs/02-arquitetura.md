@@ -44,7 +44,8 @@ router -> schemas -> service -> repository -> model
 
 Responsabilidades por pasta:
 
-- `backend/app/main.py`: cria a aplicação FastAPI, configura CORS, registra o `api_router` e expõe `/health`.
+- `backend/app/main.py`: cria a aplicação FastAPI, configura CORS, registra o
+  `api_router` e expõe `/health` e `/ready`.
 - `backend/app/api`: agrega routers públicos da versão `/api/v1`; não implementa regra de negócio.
 - `backend/app/core`: configurações globais, segurança, logging e exceções compartilhadas.
 - `backend/app/database`: engine, sessão SQLAlchemy, base declarativa e utilidades de persistência.
@@ -60,7 +61,10 @@ Responsabilidades por pasta:
 - `backend/migrations`: migrations Alembic.
 - `backend/tests`: testes unitários, integração e e2e.
 
-`CONFIRMADO`: no estado atual do código, existem base FastAPI, configurações, sessão SQLAlchemy, health check, migrations e módulos backend para autenticação, usuários, caminhões, produtos, clientes, motoristas, pedidos e histórico de status.
+`CONFIRMADO`: no estado atual do código, existem base FastAPI, configurações,
+sessão SQLAlchemy, liveness, readiness com PostgreSQL/Alembic, migrations e
+módulos backend para autenticação, usuários, caminhões, produtos, clientes,
+motoristas, pedidos e histórico de status.
 
 `CONFIRMADO`: o planejamento de carga está implementado até a `OC20`, com
 persistência, API protegida e engine determinística. A `OC51` aplica a matriz de
@@ -91,7 +95,8 @@ Responsabilidades por pasta:
 
 ## Infraestrutura
 
-- `compose.yaml`: sobe PostgreSQL, backend e frontend para desenvolvimento local.
+- `compose.yaml`: sobe PostgreSQL, aplica migrations em serviço one-shot e então
+  inicia backend e frontend para desenvolvimento local.
 - `infra/database`: instruções complementares de banco e seeds.
 - `infra/scripts`: scripts auxiliares idempotentes quando possível.
 - `infra/ci`: documentação do pipeline futuro.
@@ -122,6 +127,13 @@ Responsabilidades por pasta:
 - `RECOMENDAÇÃO`: logs devem registrar eventos técnicos e IDs de entidade, mas não senha, token, documento pessoal completo, payload sensível ou segredo.
 - `CONFIRMADO`: CORS vem de `BACKEND_CORS_ORIGINS`.
 - `CONFIRMADO`: `SECRET_KEY`, tokens de IA e WhatsApp vêm de `.env`.
+- `CONFIRMADO`: conforme `ADR-019`, produção falha ao iniciar com segredo JWT
+  fraco, URL local padrão ou CORS curinga; JWT fica restrito a `HS256`.
+- `CONFIRMADO`: os containers de aplicação e migration usam usuário sem
+  privilégio, capabilities removidas e `no-new-privileges`; portas locais ficam
+  vinculadas a `127.0.0.1`.
 - `CONFIRMADO`: `APP_ENV` aceita `local` ou `production`; a documentação HTTP da API é registrada somente em `local` e o valor padrão seguro é `production`.
 - `CONFIRMADO`: a fronteira de endpoints, a matriz RBAC e o bootstrap administrativo seguem `ADR-004`.
+- `CONFIRMADO`: D11 e `ADR-018` mantêm `/health` como liveness e definem
+  `/ready` como verificação pública e genérica de PostgreSQL e Alembic.
 - `PENDENTE DE DEFINIÇÃO`: duração final do token, refresh token, bloqueio por tentativas inválidas, força e recuperação de senha seguem em `D18`.

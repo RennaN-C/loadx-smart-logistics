@@ -6,7 +6,7 @@ services:
       POSTGRES_USER: loadx_test
       POSTGRES_PASSWORD: loadx_test_local
     ports:
-      - "55432:5432"
+      - "127.0.0.1:${TEST_POSTGRES_PORT:-55432}:5432"
     tmpfs:
       - /var/lib/postgresql/data
     healthcheck:

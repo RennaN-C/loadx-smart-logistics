@@ -163,17 +163,28 @@ Antes de criar migration:
 - `CONFIRMADO`: a imagem do backend normaliza arquivos Python como não
   executáveis para preservar o mesmo resultado do Ruff quando o contexto vem do
   Docker Desktop no Windows.
+- `CONFIRMADO`: o serviço one-shot `migrate` aplica `alembic upgrade head` após
+  o PostgreSQL ficar saudável; o backend depende de sua conclusão e seu
+  healthcheck consome `/ready`.
+- `CONFIRMADO`: `/ready` continua somente leitura. Automatizar a migration no
+  Compose não transfere essa responsabilidade para o endpoint.
+- `CONFIRMADO`: backend, migration e frontend executam sem root, sem capabilities
+  Linux e com `no-new-privileges`; portas publicadas ficam em loopback por padrão.
 
 ## Endpoints
 
 - Prefixo de negócio: `/api/v1`.
-- Health check: `/health`.
+- Liveness: `/health`.
+- Readiness: `/ready`, com PostgreSQL acessível e Alembic exatamente no head.
 - Caminhos em kebab-case.
 - Recursos no plural: `/trucks`, `/load-plans`, `/loading-sessions`.
 - IDs no path: `/{id}`.
 - Ações explícitas por verbo quando não forem CRUD simples: `/load-plans/{id}/approve`.
 - Payloads e respostas em snake_case.
 - Erros no formato de `docs/05-contratos-api.md`.
+
+`CONFIRMADO` por D11 e `ADR-018`: readiness é somente leitura, possui orçamento
+total de 2 segundos e retorna falha genérica sem detalhes de infraestrutura.
 
 ## Erros e logs
 
