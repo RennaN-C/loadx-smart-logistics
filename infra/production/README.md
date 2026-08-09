@@ -42,3 +42,11 @@ aplicação recebem URLs distintas.
 `RISCO IDENTIFICADO`: o Compose é uma referência de nó único. Backup, alta
 disponibilidade, firewall, observabilidade, rotação do cofre e restauração
 continuam responsabilidades da plataforma escolhida.
+
+## Alertas
+
+O backend escreve eventos JSON no logger `loadx.security`. O coletor escolhido
+deve preservar `event`, `occurred_at` e `alert` e abrir alerta quando
+`alert=true`. Isso cobre tentativas contra contas privilegiadas, bloqueios de
+login e alterações de papel/desativação; o destino e o SLA ainda dependem da
+plataforma de observabilidade.

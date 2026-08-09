@@ -1,3 +1,6 @@
+import json
+import logging
+
 import pytest
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
@@ -86,12 +89,24 @@ def test_bootstrap_first_admin_rejects_database_with_any_user(
     assert len(page.items) == 1
 
 
-def test_login_rejects_invalid_password(db_session: Session) -> None:
+def test_login_rejects_invalid_password_and_emits_privileged_alert(
+    db_session: Session,
+    caplog,
+) -> None:
     UserService(db_session).create_user(make_user_create())
     service = AuthService(db_session)
 
-    with pytest.raises(AuthInvalidCredentialsError):
+    with (
+        caplog.at_level(logging.WARNING, logger="loadx.security"),
+        pytest.raises(AuthInvalidCredentialsError),
+    ):
         service.login(AuthLogin(email="admin@example.test", password="senha-errada"))
+
+    payload = json.loads(caplog.records[-1].getMessage())
+    assert payload["event"] == "AUTH_LOGIN_FAILED"
+    assert payload["alert"] is True
+    assert payload["privileged_account"] is True
+    assert "admin@example.test" not in caplog.text
 
 
 def test_login_migrates_valid_legacy_pbkdf2_hash(db_session: Session) -> None:

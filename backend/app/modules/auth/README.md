@@ -42,6 +42,10 @@ Crie somente os arquivos necessários para a ocorrência atual.
   bloqueios progressivos de 1, 5, 15 e 60 minutos e `Retry-After`.
 - Uma autenticação válida remove os contadores correspondentes; não existe
   bloqueio permanente automático.
+- Login, falha, criação, expiração e revogação de sessão emitem eventos JSON no
+  logger `loadx.security`. Falhas contra papel crítico ou com atraso de
+  throttling usam `alert=true`; os eventos não aceitam e-mail, IP bruto, senha,
+  segredo, documento ou token.
 - `/auth/me` rejeita sessão ausente, inválida, revogada, expirada ou de usuário
   inexistente.
 - O OpenAPI documenta o esquema cookie `SessionCookie`.

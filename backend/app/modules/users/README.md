@@ -46,6 +46,8 @@ pelo esquema cookie `SessionCookie` no OpenAPI.
   um login válido.
 - Troca de senha, desativação e alteração de papel revogam todas as sessões do
   usuário na mesma transação da atualização.
+- Mudanças de senha, papel ou estado emitem `AUTH_USER_SECURITY_STATE_CHANGED`;
+  alteração de papel e desativação são marcadas com `alert=true`.
 - `password_hash` nunca é retornado pela API.
 - `active = false` bloqueia login.
 - O último `ADMIN` ativo não pode ser desativado ou rebaixado.

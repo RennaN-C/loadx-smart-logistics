@@ -1,4 +1,3 @@
-import logging
 import uuid
 from collections.abc import Callable
 
@@ -7,13 +6,12 @@ from sqlalchemy.orm import Session
 
 from app.core.pagination import PageResult, PaginationParams
 from app.core.security import hash_password
+from app.core.security_events import SecurityEvent, emit_security_event
 from app.database.integrity import get_integrity_constraint_name
 from app.modules.auth.sessions import AuthSessionService
 from app.modules.users.models import User
 from app.modules.users.repository import UserRepository
 from app.modules.users.schemas import UserCreate, UserUpdate
-
-logger = logging.getLogger(__name__)
 
 
 class UserNotFoundError(Exception):
@@ -92,9 +90,13 @@ class UserService:
 
         updated_user = self._persist(persist_user_and_revoke_sessions)
         if password_changed or role_changed or user_deactivated:
-            logger.info(
-                "User sessions revoked after sensitive update: user_id=%s",
-                user.id,
+            emit_security_event(
+                SecurityEvent.USER_SECURITY_STATE_CHANGED,
+                alert=role_changed or user_deactivated,
+                user_id=str(user.id),
+                password_changed=password_changed,
+                role_changed=role_changed,
+                user_deactivated=user_deactivated,
             )
         return updated_user
 

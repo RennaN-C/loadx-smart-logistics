@@ -11,6 +11,8 @@ Não coloque regras de caminhão, pedido ou carga aqui. O core deve conhecer inf
 - `exceptions.py`: handlers globais de validação e erros inesperados da API.
 - `responses.py`: envelope de erro HTTP e metadados compartilhados do OpenAPI.
 - `security.py`: Argon2id e migração de hashes PBKDF2 legados.
+- `security_events.py`: eventos JSON estáveis e sem campos sensíveis para
+  auditoria e regras externas de alerta.
 - `http_security.py`: validação de origem dos métodos inseguros e headers
   defensivos das respostas HTTP.
 - `json_decimal.py`: contrato compartilhado que valida e serializa `Decimal`

@@ -1,7 +1,6 @@
 import base64
 import hashlib
 import hmac
-import logging
 import secrets
 import uuid
 from collections.abc import Callable
@@ -11,6 +10,7 @@ from datetime import UTC, datetime, timedelta
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.core.security_events import SecurityEvent, emit_security_event
 from app.modules.auth.models import AuthSession
 from app.modules.auth.repository import AuthSessionRepository
 from app.modules.users.models import User
@@ -18,7 +18,6 @@ from app.modules.users.models import User
 SESSION_TOKEN_BYTES = 32
 SESSION_IDLE_TIMEOUT = timedelta(minutes=30)
 SESSION_ABSOLUTE_TIMEOUT = timedelta(hours=8)
-logger = logging.getLogger(__name__)
 
 
 class AuthSessionInvalidError(Exception):
@@ -72,10 +71,10 @@ class AuthSessionService:
         )
         self.db.commit()
         self.db.refresh(auth_session)
-        logger.info(
-            "Authentication session created: session_id=%s user_id=%s",
-            auth_session.id,
-            user_id,
+        emit_security_event(
+            SecurityEvent.SESSION_CREATED,
+            session_id=str(auth_session.id),
+            user_id=str(user_id),
         )
         return IssuedAuthSession(
             token=token,
@@ -94,10 +93,10 @@ class AuthSessionService:
             if auth_session.revoked_at is None:
                 self.repository.revoke(auth_session, now)
                 self.db.commit()
-                logger.info(
-                    "Authentication session expired: session_id=%s user_id=%s",
-                    auth_session.id,
-                    auth_session.user_id,
+                emit_security_event(
+                    SecurityEvent.SESSION_EXPIRED,
+                    session_id=str(auth_session.id),
+                    user_id=str(auth_session.user_id),
                 )
             raise AuthSessionInvalidError
         if not user.active:
@@ -125,19 +124,19 @@ class AuthSessionService:
             self.repository.revoke(auth_session, self.now_provider())
         self.db.commit()
         if auth_session is not None:
-            logger.info(
-                "Authentication session revoked: session_id=%s user_id=%s",
-                auth_session.id,
-                auth_session.user_id,
+            emit_security_event(
+                SecurityEvent.SESSION_REVOKED,
+                session_id=str(auth_session.id),
+                user_id=str(auth_session.user_id),
             )
 
     def revoke_all_for_user(self, user_id: uuid.UUID) -> int:
         revoked_count = self.stage_revoke_all_for_user(user_id)
         self.db.commit()
-        logger.info(
-            "User authentication sessions revoked: user_id=%s count=%d",
-            user_id,
-            revoked_count,
+        emit_security_event(
+            SecurityEvent.USER_SESSIONS_REVOKED,
+            user_id=str(user_id),
+            revoked_count=revoked_count,
         )
         return revoked_count
 
