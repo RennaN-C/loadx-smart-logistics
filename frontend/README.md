@@ -22,3 +22,8 @@ framing, MIME sniffing, câmera, geolocalização e microfone e não enviam refe
 `RISCO IDENTIFICADO`: o build em `dist/` é estático. O servidor web ou CDN de
 produção deve reproduzir esses headers e servir o frontend exclusivamente por
 HTTPS; a configuração do Vite não acompanha os arquivos após a publicação.
+
+`CONFIRMADO`: `Dockerfile.production` usa Node somente no estágio de build e
+serve `dist/` com Caddy. O `Caddyfile` reproduz os headers, aplica cache imutável
+apenas aos assets versionados e mantém o HTML sem cache. Essa imagem é usada
+somente por `compose.production.yaml`.

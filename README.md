@@ -405,6 +405,21 @@ Para remover também os dados locais do banco:
 docker compose down -v
 ```
 
+### Referência de produção
+
+`compose.production.yaml` é separado do ambiente local. Ele exige domínio, duas
+URLs PostgreSQL e uma chave secreta fornecidos pelo ambiente seguro do host:
+
+```bash
+docker compose -f compose.production.yaml config --quiet
+docker compose -f compose.production.yaml up -d --build --wait
+```
+
+Leia `infra/production/README.md` antes de executar. `CONFIRMADO`: somente Caddy
+publica 80/443; backend permanece privado e recebe proxy headers somente do IP
+fixo do Caddy. `RISCO IDENTIFICADO`: essa referência não substitui backup,
+restauração, observabilidade e validação no domínio real.
+
 ## Endereços locais
 
 Depois de iniciar os serviços:

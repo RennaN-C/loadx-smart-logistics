@@ -170,6 +170,9 @@ Antes de criar migration:
   Compose não transfere essa responsabilidade para o endpoint.
 - `CONFIRMADO`: backend, migration e frontend executam sem root, sem capabilities
   Linux e com `no-new-privileges`; portas publicadas ficam em loopback por padrão.
+- `CONFIRMADO`: `compose.production.yaml` publica somente Caddy, mantém API em
+  rede privada, aceita proxy headers exclusivamente do IP fixo do Caddy e monta
+  URLs de banco e `SECRET_KEY` em `/run/secrets`, conforme `ADR-021`.
 
 ## Endpoints
 

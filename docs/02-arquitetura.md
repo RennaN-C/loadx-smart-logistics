@@ -27,6 +27,8 @@ PostgreSQL
 - Validação frontend: Zod quando necessário para contratos no navegador.
 - Visualização: Three.js, React Three Fiber e Drei.
 - Infraestrutura local: Docker Compose.
+- Referência de produção: Docker Compose com Caddy como terminador TLS e servidor
+  estático, conforme `ADR-021`.
 - Testes: Pytest, Vitest e Testing Library.
 - Integrações: IA e WhatsApp por adapters, iniciando com providers mock.
 
