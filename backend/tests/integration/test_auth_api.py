@@ -22,7 +22,7 @@ def create_user(
             UserCreate(
                 name="Admin Local",
                 email=email,
-                password="senha-local",
+                password="senha-local-segura",
                 role="admin",
                 active=active,
             )
@@ -34,7 +34,7 @@ def create_user(
 def login_user(
     client: TestClient,
     email: str = "admin@example.test",
-    password: str = "senha-local",
+    password: str = "senha-local-segura",
 ) -> str:
     response = client.post(
         "/api/v1/auth/login",
@@ -50,7 +50,7 @@ def test_register_route_is_removed(client: TestClient) -> None:
         json={
             "name": "Admin Local",
             "email": "admin@example.test",
-            "password": "senha-local",
+            "password": "senha-local-segura",
             "role": "admin",
         },
     )
@@ -66,7 +66,7 @@ def test_login_returns_bearer_token(
 
     response = client.post(
         "/api/v1/auth/login",
-        json={"email": "ADMIN@EXAMPLE.TEST", "password": "senha-local"},
+        json={"email": "ADMIN@EXAMPLE.TEST", "password": "senha-local-segura"},
     )
 
     assert response.status_code == 200
@@ -118,7 +118,7 @@ def test_login_returns_standard_error_for_inactive_user(
 
     response = client.post(
         "/api/v1/auth/login",
-        json={"email": "admin@example.test", "password": "senha-local"},
+        json={"email": "admin@example.test", "password": "senha-local-segura"},
     )
 
     assert response.status_code == 403

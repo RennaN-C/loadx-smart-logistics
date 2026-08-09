@@ -202,7 +202,7 @@ def create_user(
             UserCreate(
                 name="Usuário de Auditoria",
                 email=email,
-                password="senha-local",
+                password="senha-local-segura",
                 role=role,
             )
         )
@@ -217,7 +217,7 @@ def seed_resources(session_factory: SessionFactory) -> dict[str, str]:
             UserCreate(
                 name="Usuário Alvo",
                 email="target@example.test",
-                password="senha-local",
+                password="senha-local-segura",
                 role="CHECKER",
             )
         )
@@ -294,7 +294,7 @@ def get_payload(payload_name: str | None, resource_ids: dict[str, str]):
         "user_create": {
             "name": "Novo Usuário",
             "email": "new-user@example.test",
-            "password": "senha-local",
+            "password": "senha-local-segura",
             "role": "checker",
         },
         "user_update": {"name": "Usuário Atualizado"},

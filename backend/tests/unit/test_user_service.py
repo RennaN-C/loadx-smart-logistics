@@ -18,7 +18,7 @@ SQLITE_TABLES = (User.__table__,)
 
 def make_user_create(
     email: str = "ADMIN@EXAMPLE.TEST",
-    password: str = "senha-local",
+    password: str = "senha-local-segura",
     role: str = "admin",
     active: bool = True,
 ) -> UserCreate:
@@ -41,8 +41,8 @@ def test_create_user_persists_normalized_fields_and_password_hash(
     assert user.id is not None
     assert user.email == "admin@example.test"
     assert user.role == "ADMIN"
-    assert user.password_hash != "senha-local"
-    assert verify_password("senha-local", user.password_hash) is True
+    assert user.password_hash != "senha-local-segura"
+    assert verify_password("senha-local-segura", user.password_hash) is True
 
 
 def test_create_user_rejects_duplicate_email(db_session: Session) -> None:
@@ -71,7 +71,7 @@ def test_update_user_changes_password_hash(db_session: Session) -> None:
 
     assert updated_user.password_hash != original_hash
     assert verify_password("nova-senha-local", updated_user.password_hash) is True
-    assert verify_password("senha-local", updated_user.password_hash) is False
+    assert verify_password("senha-local-segura", updated_user.password_hash) is False
 
 
 @pytest.mark.parametrize(

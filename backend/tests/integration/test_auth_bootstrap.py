@@ -15,7 +15,7 @@ def test_run_bootstrap_creates_admin_without_exposing_password(
     session_factory: SessionFactory,
 ) -> None:
     text_answers = iter(["Admin Inicial", "ADMIN@EXAMPLE.TEST"])
-    password_answers = iter(["senha-local", "senha-local"])
+    password_answers = iter(["senha-local-segura", "senha-local-segura"])
     messages: list[str] = []
 
     exit_code = run_bootstrap(
@@ -32,7 +32,7 @@ def test_run_bootstrap_creates_admin_without_exposing_password(
     assert user is not None
     assert user.role == "ADMIN"
     assert user.active is True
-    assert verify_password("senha-local", user.password_hash) is True
+    assert verify_password("senha-local-segura", user.password_hash) is True
     assert "senha-local" not in " ".join(messages)
 
 
@@ -64,7 +64,7 @@ def test_run_bootstrap_refuses_database_with_existing_user(
         AuthService(db).bootstrap_first_admin(
             name="Admin Existente",
             email="admin@example.test",
-            password="senha-local",
+            password="senha-local-segura",
         )
 
     text_answers = iter(["Outro Admin", "outro@example.test"])

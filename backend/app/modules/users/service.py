@@ -44,6 +44,10 @@ class UserService:
     def get_user_by_email(self, email: str) -> User | None:
         return self.repository.get_by_email(email)
 
+    def upgrade_password_hash(self, user: User, password_hash: str) -> User:
+        user.password_hash = password_hash
+        return self._persist(lambda: self.repository.update(user))
+
     def create_user(self, data: UserCreate) -> User:
         if self.repository.get_by_email(data.email) is not None:
             raise UserEmailAlreadyExistsError

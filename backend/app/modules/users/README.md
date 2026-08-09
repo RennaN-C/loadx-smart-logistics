@@ -31,7 +31,11 @@ Crie somente os arquivos necessários para a ocorrência atual.
 - `email` deve ser único.
 - `role` é normalizado para maiúsculas.
 - `role` aceita `ADMIN`, `CHECKER`, `DRIVER` e `LOGISTICS_MANAGER`.
-- `password` deve ter no mínimo 8 caracteres na entrada.
+- Novas senhas e trocas exigem de 15 a 128 caracteres, aceitam espaços e
+  Unicode, não usam regra de composição e consultam a blocklist local da D18.
+- Novos hashes usam Argon2id com m=19 MiB, t=2 e p=1.
+- Hashes PBKDF2 legados continuam verificáveis e são migrados para Argon2id após
+  um login válido.
 - `password_hash` nunca é retornado pela API.
 - `active = false` bloqueia login.
 - O último `ADMIN` ativo não pode ser desativado ou rebaixado.
@@ -39,4 +43,5 @@ Crie somente os arquivos necessários para a ocorrência atual.
 
 ## Pendências
 
-- `PENDENTE DE DEFINIÇÃO`: política de senha definitiva.
+- `PENDENTE DE DEFINIÇÃO`: recuperação de senha pertence a uma ocorrência
+  futura.

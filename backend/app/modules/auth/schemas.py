@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 from app.modules.users.schemas import EMAIL_PATTERN, normalize_email
 
@@ -6,8 +6,6 @@ from app.modules.users.schemas import EMAIL_PATTERN, normalize_email
 class AuthLogin(BaseModel):
     email: str = Field(min_length=3, max_length=255, pattern=EMAIL_PATTERN)
     password: str = Field(min_length=1, max_length=128)
-
-    model_config = ConfigDict(str_strip_whitespace=True)
 
     @field_validator("email")
     @classmethod

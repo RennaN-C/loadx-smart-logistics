@@ -6,7 +6,7 @@ from app.core.security import (
     InvalidTokenError,
     create_access_token,
     decode_access_token,
-    verify_password,
+    verify_and_update_password,
 )
 from app.modules.auth.schemas import AuthLogin, TokenRead
 from app.modules.users.models import User
@@ -50,10 +50,18 @@ class AuthService:
 
     def login(self, data: AuthLogin) -> TokenRead:
         user = self.user_service.get_user_by_email(data.email)
-        if user is None or not verify_password(data.password, user.password_hash):
+        if user is None:
+            raise AuthInvalidCredentialsError
+        password_verified, updated_hash = verify_and_update_password(
+            data.password,
+            user.password_hash,
+        )
+        if not password_verified:
             raise AuthInvalidCredentialsError
         if not user.active:
             raise AuthInactiveUserError
+        if updated_hash is not None:
+            user = self.user_service.upgrade_password_hash(user, updated_hash)
 
         access_token = create_access_token(
             str(user.id),
