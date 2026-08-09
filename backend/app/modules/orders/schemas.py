@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 ORDER_STATUS_VALUES = {
     "DRAFT",
@@ -77,6 +77,11 @@ class OrderCreate(BaseModel):
     def normalize_expected_delivery_at(cls, value: datetime | None) -> datetime | None:
         return normalize_optional_utc(value)
 
+    @model_validator(mode="after")
+    def require_one_delivery_sequence(self) -> "OrderCreate":
+        _validate_single_delivery_sequence(self.items)
+        return self
+
 
 class OrderUpdate(BaseModel):
     customer_id: uuid.UUID | None = None
@@ -117,6 +122,8 @@ class OrderUpdate(BaseModel):
     ) -> list[OrderItemCreate] | None:
         if value is not None and len(value) == 0:
             raise ValueError("items must have at least one item")
+        if value is not None:
+            _validate_single_delivery_sequence(value)
         return value
 
 
@@ -175,3 +182,8 @@ class OrderRead(BaseModel):
         if value.tzinfo is None or value.tzinfo.utcoffset(value) is None:
             return value.replace(tzinfo=timezone.utc)
         return value.astimezone(timezone.utc)
+
+
+def _validate_single_delivery_sequence(items: list[OrderItemCreate]) -> None:
+    if len({item.delivery_sequence for item in items}) != 1:
+        raise ValueError("all order items must share one delivery_sequence")

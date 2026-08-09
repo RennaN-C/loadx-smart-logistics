@@ -29,6 +29,10 @@ class DriverRepository:
     def get(self, driver_id: uuid.UUID) -> Driver | None:
         return self.db.get(Driver, driver_id)
 
+    def get_for_update(self, driver_id: uuid.UUID) -> Driver | None:
+        statement = select(Driver).where(Driver.id == driver_id).with_for_update()
+        return self.db.scalar(statement)
+
     def get_by_document(self, document: str) -> Driver | None:
         statement = select(Driver).where(Driver.document == document)
         return self.db.scalar(statement)

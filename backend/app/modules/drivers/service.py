@@ -37,6 +37,12 @@ class DriverService:
             raise DriverNotFoundError
         return driver
 
+    def get_driver_for_update(self, driver_id: uuid.UUID) -> Driver:
+        driver = self.repository.get_for_update(driver_id)
+        if driver is None:
+            raise DriverNotFoundError
+        return driver
+
     def create_driver(self, data: DriverCreate) -> Driver:
         if self.repository.get_by_document(data.document) is not None:
             raise DriverDocumentAlreadyExistsError
