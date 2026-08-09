@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from app.api.router import api_router
 from app.core.config import Settings, settings
 from app.core.exceptions import ApiError, register_exception_handlers
-from app.core.http_security import OriginValidationMiddleware
+from app.core.http_security import OriginValidationMiddleware, SecurityHeadersMiddleware
 from app.core.responses import openapi_error_responses
 from app.database.readiness import DatabaseReadinessChecker, ReadinessCheckError
 
@@ -51,6 +51,10 @@ def create_app(app_settings: Settings | None = None) -> FastAPI:
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["Content-Type", "X-CSRF-Token"],
         expose_headers=["X-CSRF-Token"],
+    )
+    application.add_middleware(
+        SecurityHeadersMiddleware,
+        enable_hsts=current_settings.app_env == "production",
     )
 
     application.include_router(api_router, prefix="/api/v1")

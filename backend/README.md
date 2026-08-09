@@ -57,6 +57,12 @@ curinga e usa sessão opaca no cookie `__Host-loadx_session`. Os valores fracos 
 `.env.example` existem somente para desenvolvimento local e não permitem iniciar
 em produção.
 
+`CONFIRMADO`: as respostas da API recebem CSP restritiva, `Cache-Control:
+no-store`, proteção contra framing e MIME sniffing, política de referrer e
+restrição de permissões do navegador. HSTS é emitido somente em `production`.
+`RISCO IDENTIFICADO`: HTTPS deve ser terminado e validado pela infraestrutura de
+produção; o navegador ignora HSTS recebido por uma conexão HTTP.
+
 `CONFIRMADO`: no Compose, o serviço one-shot `migrate` aplica o head Alembic
 antes do backend. A API e a migration executam como usuário sem privilégio, sem
 capabilities Linux e sem possibilidade de elevar privilégios.
