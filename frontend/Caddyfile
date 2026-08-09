@@ -33,7 +33,9 @@ http://{$LOADX_DOMAIN} {
 
 	@backend path /api/* /health /ready
 	handle @backend {
-		reverse_proxy backend:8000
+		reverse_proxy backend:8000 {
+			header_down -Server
+		}
 	}
 
 	handle /assets/* {
