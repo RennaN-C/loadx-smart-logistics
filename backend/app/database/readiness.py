@@ -48,9 +48,7 @@ def _render_psycopg_url(database_url: str) -> str:
     parsed_url = make_url(database_url)
     if parsed_url.get_backend_name() != "postgresql":
         raise ValueError("Readiness requires PostgreSQL.")
-    return parsed_url.set(drivername="postgresql").render_as_string(
-        hide_password=False
-    )
+    return parsed_url.set(drivername="postgresql").render_as_string(hide_password=False)
 
 
 def _remaining_milliseconds(deadline: float) -> int:
@@ -124,16 +122,18 @@ class DatabaseReadinessChecker:
         remaining_ms = _remaining_milliseconds(deadline)
         connect_timeout = max(1, remaining_ms // 1000)
         options = (
-            f"-c statement_timeout={remaining_ms} "
-            "-c default_transaction_read_only=on"
+            f"-c statement_timeout={remaining_ms} -c default_transaction_read_only=on"
         )
 
-        with psycopg.connect(
-            conninfo,
-            connect_timeout=connect_timeout,
-            options=options,
-            autocommit=True,
-        ) as connection, connection.cursor() as cursor:
+        with (
+            psycopg.connect(
+                conninfo,
+                connect_timeout=connect_timeout,
+                options=options,
+                autocommit=True,
+            ) as connection,
+            connection.cursor() as cursor,
+        ):
             _set_statement_timeout(cursor, deadline)
             cursor.execute("SELECT 1")
             if cursor.fetchone() != (1,):
