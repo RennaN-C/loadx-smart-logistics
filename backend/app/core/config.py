@@ -1,3 +1,4 @@
+import os
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
@@ -79,7 +80,11 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
-    return Settings()
+    raw_secrets_dir = os.getenv("LOADX_SECRETS_DIR", "").strip()
+    secrets_dir = Path(raw_secrets_dir) if raw_secrets_dir else None
+    if secrets_dir is not None and not secrets_dir.is_dir():
+        raise ValueError("LOADX_SECRETS_DIR must point to a readable directory.")
+    return Settings(_secrets_dir=secrets_dir)
 
 
 settings = get_settings()

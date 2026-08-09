@@ -67,6 +67,10 @@ produção; o navegador ignora HSTS recebido por uma conexão HTTP.
 senha completa por linha. Linhas vazias e iniciadas por `#` são ignoradas. Em
 produção, monte somente uma lista aprovada e reinicie o processo para recarregá-la.
 
+`LOADX_SECRETS_DIR` permite carregar `SECRET_KEY` e `DATABASE_URL` de arquivos
+montados pelo orquestrador. O diretório configurado precisa existir; uma variável
+de ambiente com o mesmo nome do campo tem precedência sobre o arquivo.
+
 `CONFIRMADO`: no Compose, o serviço one-shot `migrate` aplica o head Alembic
 antes do backend. A API e a migration executam como usuário sem privilégio, sem
 capabilities Linux e sem possibilidade de elevar privilégios.

@@ -36,3 +36,29 @@ def test_settings_reject_missing_password_blocklist_path(tmp_path: Path) -> None
             password_blocklist_path=tmp_path / "missing.txt",
             _env_file=None,
         )
+
+
+def test_settings_load_production_credentials_from_secret_files(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.delenv("SECRET_KEY", raising=False)
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    (tmp_path / "SECRET_KEY").write_text(
+        "production-secret-key-with-more-than-32-characters",
+        encoding="utf-8",
+    )
+    (tmp_path / "DATABASE_URL").write_text(
+        "postgresql+psycopg://loadx_app:secret@db:5432/loadx",
+        encoding="utf-8",
+    )
+
+    configured = Settings(
+        app_env="production",
+        backend_cors_origins_raw="https://loadx.example.test",
+        _env_file=None,
+        _secrets_dir=tmp_path,
+    )
+
+    assert configured.secret_key.startswith("production-secret-key")
+    assert "loadx_app" in configured.database_url

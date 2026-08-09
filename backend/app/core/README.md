@@ -22,6 +22,11 @@ Não coloque regras de caminhão, pedido ou carga aqui. O core deve conhecer inf
 
 `CONFIRMADO`: na ausência de `APP_ENV`, o backend assume `production` e mantém a documentação desabilitada.
 
+`CONFIRMADO`: quando `LOADX_SECRETS_DIR` aponta para um diretório válido, campos
+como `SECRET_KEY` e `DATABASE_URL` também podem vir de arquivos com esses nomes.
+Variáveis de ambiente continuam tendo precedência para manter o comportamento
+explícito do Pydantic Settings.
+
 `CONFIRMADO`: todas as respostas desabilitam cache, framing, MIME sniffing,
 referrer e permissões de câmera, geolocalização e microfone. Em `production`, o
 backend também emite HSTS; o terminador TLS precisa preservar esse header.
