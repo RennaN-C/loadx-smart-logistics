@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.modules.customers.models import Customer
+from app.modules.drivers.models import Driver
 from app.modules.load_planning.models import LoadPlan, LoadPlanItem, LoadPlanOrder
 from app.modules.orders.models import Order, OrderItem
 from app.modules.orders.schemas import (
@@ -32,6 +33,7 @@ from app.modules.trucks.models import Truck
 from app.modules.users.models import User
 
 SQLITE_TABLES = (
+    Driver.__table__,
     User.__table__,
     Customer.__table__,
     Truck.__table__,
@@ -145,6 +147,27 @@ def test_order_read_normalizes_database_datetimes_to_utc() -> None:
 def test_order_update_rejects_status_field() -> None:
     with pytest.raises(ValidationError):
         OrderUpdate(status="READY")
+
+
+def test_order_rejects_different_delivery_sequences_in_the_same_order() -> None:
+    with pytest.raises(ValidationError):
+        OrderCreate(
+            customer_id=uuid.uuid4(),
+            priority="NORMAL",
+            delivery_address="Rua Exemplo, 100",
+            items=[
+                {
+                    "product_id": uuid.uuid4(),
+                    "quantity": 1,
+                    "delivery_sequence": 1,
+                },
+                {
+                    "product_id": uuid.uuid4(),
+                    "quantity": 1,
+                    "delivery_sequence": 2,
+                },
+            ],
+        )
 
 
 def test_order_status_change_rejects_invalid_status() -> None:

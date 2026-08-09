@@ -1,4 +1,4 @@
-from sqlalchemy import ForeignKeyConstraint, Index
+from sqlalchemy import CheckConstraint, ForeignKeyConstraint, Index
 
 from app.database.base import Base
 from app.modules.status_history.models import StatusHistory
@@ -38,3 +38,14 @@ def test_status_history_indexes_follow_documented_names() -> None:
 
     assert actual_indexes["ix_status_history__entity"] == ["entity_type", "entity_id"]
     assert actual_indexes["ix_status_history__created_at"] == ["created_at"]
+
+
+def test_status_history_entity_type_uses_closed_catalog() -> None:
+    table = Base.metadata.tables["status_history"]
+    actual_names = {
+        constraint.name
+        for constraint in table.constraints
+        if isinstance(constraint, CheckConstraint)
+    }
+
+    assert "ck_status_history__entity_type_allowed" in actual_names

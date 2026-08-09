@@ -14,11 +14,13 @@ from app.modules.auth.service import (
     AuthInvalidCredentialsError,
     AuthService,
 )
+from app.modules.drivers.models import Driver
 from app.modules.users.models import User
 from app.modules.users.schemas import UserCreate
 from app.modules.users.service import UserService
 
 SQLITE_TABLES = (
+    Driver.__table__,
     User.__table__,
     AuthLoginThrottle.__table__,
     AuthSession.__table__,
