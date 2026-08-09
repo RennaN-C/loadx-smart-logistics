@@ -22,3 +22,7 @@ Registros aceitos relevantes:
 - `ADR-017`: minimização de dados pessoais e paginação uniforme da OC59.
 - `ADR-018`: liveness separado de readiness com PostgreSQL e Alembic da OC58.
 - `ADR-019`: inicialização segura, migration gate e isolamento dos containers.
+- `ADR-020`: sessões opacas em cookie, CSRF, throttling, Argon2id e política de
+  senha da D18.
+- `ADR-021`: runtime de produção com Caddy/TLS, proxy confiável, segredos
+  montados e papéis PostgreSQL separados.

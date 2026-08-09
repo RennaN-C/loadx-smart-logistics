@@ -4,13 +4,13 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.core.security import create_access_token
 from app.modules.trucks.models import Truck
 from app.modules.trucks.schemas import TruckCreate
 from app.modules.trucks.service import TruckService
 from app.modules.users.models import User
 from app.modules.users.schemas import UserCreate
 from app.modules.users.service import UserService
+from tests.integration.auth_helpers import issue_session_headers
 
 SessionFactory = Callable[[], Session]
 TRUCK_ROUTE_CASES = [
@@ -33,7 +33,7 @@ def create_user_in_db(
             UserCreate(
                 name="Usuário de Teste",
                 email=email,
-                password="senha-local",
+                password="senha-local-segura",
                 role=role,
                 active=active,
             )
@@ -42,9 +42,11 @@ def create_user_in_db(
         db.close()
 
 
-def authorization_headers(user: User) -> dict[str, str]:
-    token = create_access_token(str(user.id), {"role": user.role})
-    return {"Authorization": f"Bearer {token}"}
+def authorization_headers(
+    session_factory: SessionFactory,
+    user: User,
+) -> dict[str, str]:
+    return issue_session_headers(session_factory, user.id)
 
 
 @pytest.fixture
@@ -54,7 +56,7 @@ def manager_headers(session_factory: SessionFactory) -> dict[str, str]:
         "manager@example.test",
         "LOGISTICS_MANAGER",
     )
-    return authorization_headers(manager)
+    return authorization_headers(session_factory, manager)
 
 
 def make_truck_payload(plate: str = "ABC1D23") -> dict[str, object]:
@@ -288,7 +290,7 @@ def test_read_only_roles_can_read_trucks(
         "GET",
         route,
         truck,
-        authorization_headers(user),
+        authorization_headers(session_factory, user),
     )
 
     assert response.status_code == 200
@@ -315,7 +317,7 @@ def test_read_only_roles_cannot_manage_trucks(
         method,
         route,
         truck,
-        authorization_headers(user),
+        authorization_headers(session_factory, user),
     )
 
     assert response.status_code == 403
@@ -356,7 +358,7 @@ def test_truck_routes_reject_driver(
         method,
         route,
         truck,
-        authorization_headers(driver),
+        authorization_headers(session_factory, driver),
     )
 
     assert response.status_code == 403
@@ -383,7 +385,7 @@ def test_truck_routes_reject_inactive_manager(
         method,
         route,
         truck,
-        authorization_headers(manager),
+        authorization_headers(session_factory, manager),
     )
 
     assert response.status_code == 403

@@ -38,6 +38,7 @@ Endpoints públicos operacionais:
 Endpoint disponível para qualquer usuário autenticado:
 
 - `GET /auth/me`.
+- `POST /auth/logout`.
 
 Exemplo de login:
 
@@ -48,37 +49,68 @@ Exemplo de login:
 }
 ```
 
-Resposta recomendada:
+Resposta `200`: o mesmo contrato `UserRead` usado por `/auth/me`.
 
 ```json
 {
-  "access_token": "jwt",
-  "token_type": "bearer"
+  "id": "uuid",
+  "name": "Admin Local",
+  "email": "admin@example.test",
+  "role": "ADMIN",
+  "active": true,
+  "created_at": "2026-08-08T12:00:00Z"
 }
 ```
 
-Para acessar `/auth/me`, envie:
+O login envia o identificador somente em cookie. Em produção:
 
 ```text
-Authorization: Bearer <access_token>
+Set-Cookie: __Host-loadx_session=<opaque>; Path=/; Secure; HttpOnly; SameSite=Lax
 ```
+
+`CONFIRMADO` por D18 e `ADR-020`: o cookie não usa `Domain`, contém pelo menos
+256 bits aleatórios e somente seu hash é persistido. No ambiente local HTTP, o
+nome é `loadx_session` e `Secure` fica desabilitado; o prefixo `__Host-` nunca é
+emitido com atributos incompatíveis.
+
+`POST /auth/login` e `GET /auth/me` retornam também `X-CSRF-Token` no header. O
+frontend mantém esse valor somente em memória e o envia em todo `POST`, `PUT`,
+`PATCH` ou `DELETE` autenticado:
+
+```text
+X-CSRF-Token: <session-bound-token>
+```
+
+`POST /auth/logout` exige cookie, `Origin` e `X-CSRF-Token`, retorna `204`, revoga
+a sessão atual e expira o cookie.
 
 Erros específicos:
 
 - `AUTH_INVALID_CREDENTIALS`: e-mail ou senha inválidos.
-- `AUTH_INVALID_TOKEN`: token ausente, inválido, expirado ou usuário inexistente.
+- `AUTH_INVALID_TOKEN`: sessão ausente, inválida, revogada, expirada ou usuário
+  inexistente.
 - `AUTH_USER_INACTIVE`: usuário inativo.
 - `AUTH_FORBIDDEN`: usuário autenticado sem permissão para a ação.
+- `AUTH_RATE_LIMITED`: login temporariamente limitado; usa `429` e
+  `Retry-After` inteiro em segundos.
+- `AUTH_ORIGIN_FORBIDDEN`: método inseguro sem origem aprovada.
+- `AUTH_CSRF_INVALID`: token CSRF ausente ou inválido.
 
 `CONFIRMADO`: `POST /auth/register` foi removido do contrato por `D03` e `ADR-004`. O primeiro `ADMIN` é criado por comando administrativo local; os usuários seguintes são criados por `ADMIN` em `POST /users`.
 
 `CONFIRMADO`: depois das migrations e antes de expor a API, o bootstrap é executado em `backend` com `python -m app.modules.auth.bootstrap` ou, pela raiz, com `docker compose run --rm backend python -m app.modules.auth.bootstrap`. A senha é lida de forma oculta e o comando recusa execução quando já existe qualquer usuário.
 
-`CONFIRMADO`: ausência ou invalidade de autenticação retorna `401 AUTH_INVALID_TOKEN`; autenticação válida sem permissão retorna `403 AUTH_FORBIDDEN`.
+`CONFIRMADO`: ausência ou invalidade de autenticação retorna `401
+AUTH_INVALID_TOKEN`; autenticação válida sem permissão retorna `403
+AUTH_FORBIDDEN`.
 
 `CONFIRMADO`: após a `OC51-G`, todos os endpoints de negócio atualmente implementados exigem autenticação e aplicam a matriz aprovada.
 
-`PENDENTE DE DEFINIÇÃO`: tempo final de expiração, refresh token e política de bloqueio de login.
+`CONFIRMADO` por D18 e `ADR-020`: não existe refresh token. A sessão expira após
+30 minutos de inatividade ou 8 horas absolutas. Login é limitado por conta e IP
+com atrasos de 1, 5, 15 e 60 minutos a partir da quinta falha. Conta inexistente,
+senha inválida e usuário inativo retornam `401 AUTH_INVALID_CREDENTIALS` sem
+revelar qual condição ocorreu.
 
 ## Saúde
 
@@ -137,7 +169,8 @@ Regras do contrato aprovado:
 - `role` aceita `ADMIN`, `CHECKER`, `DRIVER` e `LOGISTICS_MANAGER`.
 - `email` é normalizado para minúsculas.
 - `role` é normalizado para maiúsculas.
-- `password` deve ter no mínimo 8 caracteres na entrada.
+- `password` deve ter entre 15 e 128 caracteres na entrada, aceita espaços e
+  Unicode e não exige composição artificial.
 
 Erros específicos:
 
@@ -584,13 +617,29 @@ Mapeamento recomendado:
 ## Segurança de API
 
 - Somente `GET /health`, `GET /ready` e `POST /api/v1/auth/login` são públicos.
-- Todos os demais endpoints de negócio exigem Bearer token e aplicam a matriz de `docs/04-regras-negocio.md`.
+- Todos os demais endpoints de negócio exigem o cookie de sessão e aplicam a
+  matriz de `docs/04-regras-negocio.md`.
+- `POST`, `PUT`, `PATCH` e `DELETE` exigem `Origin` presente na lista exata de
+  CORS. Operações autenticadas nesses métodos também exigem `X-CSRF-Token`.
 - `CONFIRMADO`: com `APP_ENV=local`, `/docs`, `/docs/oauth2-redirect`, `/redoc` e `/openapi.json` ficam disponíveis. Com `APP_ENV=production` ou sem a variável, essas rotas não são registradas e retornam `404`.
 - Senhas nunca retornam na API.
 - Tokens e segredos nunca aparecem em logs.
 - Dados pessoais devem ser minimizados em respostas de listagem.
 - Endpoints que alteram status devem registrar histórico.
 - Integrações externas devem ser autenticadas quando saírem do modo mock.
+
+`CONFIRMADO`: CORS permite credenciais somente para as origens exatas de
+`BACKEND_CORS_ORIGINS` e expõe `X-CSRF-Token` ao frontend próprio.
+
+`CONFIRMADO`: todas as respostas da aplicação usam `Cache-Control: no-store`,
+`X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`,
+`Referrer-Policy: no-referrer`, política restritiva de permissões e CSP que
+impede framing. Em `production`, também usam `Strict-Transport-Security` por um
+ano com `includeSubDomains`.
+
+`CONFIRMADO`: novos hashes de senha usam Argon2id com memória de 19 MiB, duas
+iterações e paralelismo 1. PBKDF2 legado é aceito apenas para migração gradual
+após autenticação válida.
 
 `CONFIRMADO`: a autorização por perfil segue `ADR-004`; acesso não listado é negado.
 

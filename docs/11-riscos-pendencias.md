@@ -23,6 +23,13 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 - `CONFIRMADO`: a OC59 aplica D12 no banco e na API de usuários, clientes,
   motoristas, pedidos, caminhões e produtos; o frontend de caminhões consome o
   envelope e permite navegar pelas páginas.
+- `CONFIRMADO`: a OC60 implementa D18 com Argon2id, política de senha, limitação
+  de login por conta e IP, sessões opacas revogáveis, cookie HttpOnly, proteção
+  de Origin/CSRF, logout, revogação por mudanças sensíveis e frontend sem
+  credenciais no Web Storage.
+- `CONFIRMADO`: a OC61 implementa a referência de produção do `ADR-021` com
+  Caddy/TLS, proxy confiável explícito, segredos montados, papéis PostgreSQL
+  segregados e eventos estruturados para integração com alertas.
 - `CONFIRMADO`: volumes individuais são expandidos de `order_items.quantity`, usam `volume_index` iniciado em `1` e são persistidos em `load_plan_items`, sem tabela `volumes`, conforme `ADR-005`.
 - `CONFIRMADO`: volumes usam a ordem total determinística de volume, peso, empilhamento, fragilidade, entrega e identidade, conforme `ADR-006`.
 - `CONFIRMADO`: rotações usam seis permutações ortogonais priorizadas, deduplicam simetrias e respeitam bloqueio por produto, conforme `ADR-007`.
@@ -41,7 +48,9 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 - `CONFIRMADO`: migration `20260730_0002` cria `orders` e `order_items`.
 - `CONFIRMADO`: migration `20260730_0003` cria `status_history`.
 - `CONFIRMADO`: migration `20260804_0004` cria as três tabelas de planejamento.
-- `CONFIRMADO`: o contrato aprovado mantém login, token JWT e `/auth/me`, remove `/auth/register` e restringe criação de usuários a `ADMIN` após bootstrap local.
+- `CONFIRMADO`: D18 e `ADR-020` substituem JWT por sessão opaca em cookie,
+  mantêm login e `/auth/me`, adicionam logout, removem `/auth/register` e
+  restringem criação de usuários a `ADMIN` após bootstrap local.
 - `CONFIRMADO`: a `OC51-I` auditou a matriz completa de autorização e a fronteira pública de todos os endpoints atualmente implementados.
 - `CONFIRMADO`: a `OC53` executa os testes de integração em PostgreSQL 16
   exclusivo, aplica migrations Alembic do banco vazio, exercita downgrade mínimo
@@ -68,8 +77,18 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 - `PENDENTE DE DEFINIÇÃO`: models e migrations de carregamento, entregas e
   ocorrências.
 - `PENDENTE DE DEFINIÇÃO`: contrato, filtros e entidades aceitas na consulta protegida de histórico; `D01` impede consulta pública e `D02` limita a leitura geral a `ADMIN` e `LOGISTICS_MANAGER`.
-- `PENDENTE DE DEFINIÇÃO`: estratégia final de logging estruturado.
-- `PENDENTE DE DEFINIÇÃO`: política final de expiração de token, fluxo de refresh e bloqueio por tentativas inválidas.
+- `PENDENTE DE DEFINIÇÃO`: coletor, retenção, destino e SLA dos logs e alertas;
+  o backend já emite eventos JSON no logger `loadx.security` e marca casos que
+  exigem alerta com `alert=true`.
+- `PENDENTE DE DEFINIÇÃO`: recuperação de senha e MFA para `ADMIN` e
+  `LOGISTICS_MANAGER` precisam de contrato de cadastro, recuperação, códigos de
+  contingência, dispositivo perdido e bootstrap sem bloqueio administrativo.
+- `PENDENTE DE DEFINIÇÃO`: qualquer CDN, balanceador ou proxy adicional à frente
+  do Caddy exige nova definição da cadeia confiável. A referência atual aceita
+  `X-Forwarded-*` no Uvicorn somente do IP privado fixo do Caddy.
+- `PENDENTE DE DEFINIÇÃO`: escolher e configurar os provedores reais de cofre,
+  PostgreSQL e alertas. O repositório já aceita segredos por arquivo, separa as
+  URLs de migration/aplicação e fornece o SQL de menor privilégio.
 - `PENDENTE DE DEFINIÇÃO`: validação formal de CPF, CNPJ, telefone e CNH.
 - `PENDENTE DE DEFINIÇÃO`: política de armazenamento, expiração e proteção de fotos de ocorrência.
 - `PENDENTE DE DEFINIÇÃO`: SLA rígido de tempo do otimizador; o limite funcional
@@ -108,8 +127,10 @@ nova `algorithm_version`; a representação JSON de `Decimal` segue D06 e
 - `SUPOSIÇÃO TÉCNICA`: exclusões de cadastros principais serão lógicas por `active = false` quando houver histórico ou vínculo.
 - `SUPOSIÇÃO TÉCNICA`: IDs UUID podem ser gerados pela aplicação ou banco, desde que o padrão seja único e documentado na primeira migration.
 - `SUPOSIÇÃO TÉCNICA`: fotos de ocorrência no MVP podem usar URL mock ou storage local controlado até definição de provider.
-- `SUPOSIÇÃO TÉCNICA`: token JWT usa expiração configurável com default local de 60 minutos até decisão final de segurança.
-- `SUPOSIÇÃO TÉCNICA`: hash de senha usa `pbkdf2_sha256` via Passlib nesta etapa, sem adicionar dependência externa nova.
+- `CONFIRMADO`: sessões opacas expiram após 30 minutos de inatividade ou 8 horas
+  absolutas, conforme D18 e `ADR-020`.
+- `CONFIRMADO`: novos hashes usam Argon2id m=19 MiB, t=2 e p=1; PBKDF2 fica
+  restrito à migração gradual após login válido.
 
 ## Riscos identificados
 
@@ -119,7 +140,23 @@ nova `algorithm_version`; a representação JSON de `Decimal` segue D06 e
   suíte completa antes de ser publicada.
 - `CONFIRMADO`: o risco de dependências vulneráveis registrado em 2026-08-06 foi
   corrigido em 2026-08-07; o `package-lock.json` atualizado retorna zero achados
-  no `npm audit` e passou por lint, 156 testes e build de produção.
+  no `npm audit` e passou por lint, 159 testes e build de produção na validação
+  da OC60 em 2026-08-09.
+- `RISCO IDENTIFICADO`: a blocklist embutida é intencionalmente limitada. A
+  operação pode montar um arquivo UTF-8 de até 100 mil entradas, mas ainda deve
+  escolher uma fonte confiável e definir sua rotina de atualização.
+- `CONFIRMADO`: Caddy encerra TLS, redireciona HTTP, preserva CSP/HSTS e remove a
+  assinatura do backend na referência de produção. Certificado, DNS e headers
+  ainda precisam ser verificados no domínio real antes da publicação.
+- `CONFIRMADO`: a suíte migrou do adaptador `httpx` descontinuado para `httpx2`;
+  os 941 testes de backend passaram sem o aviso anterior.
+- `RISCO IDENTIFICADO`: o chunk lazy da visualização 3D ainda possui cerca de
+  827 KB bruto, embora tenha 218 KB gzip no relatório do Vite. O build bloqueia
+  regressões acima de 250 KiB gzip, mas tempo de parse e GPU devem ser medidos em
+  equipamento operacional representativo.
+- `CONFIRMADO`: o projeto fixa Node 22.23.1 nos Dockerfiles e em `.nvmrc`. O Node
+  global 22.16 desta estação ainda impede o controlador visual externo, sem
+  afetar build, testes ou runtime do projeto.
 - `RISCO IDENTIFICADO`: ainda não existe vínculo entre `users` e `drivers`; por segurança, `DRIVER` não recebe acesso operacional até que esse relacionamento seja aprovado e implementado.
 - `RISCO IDENTIFICADO`: o documento-base usa nomes de tabelas em português, enquanto o projeto já decidiu nomes técnicos em inglês. A documentação atual mantém inglês para evitar divergência no código.
 - `RISCO IDENTIFICADO`: o roadmap antigo usava outra numeração de ocorrências. A partir desta revisão, usar `OC01` a `OC48`.

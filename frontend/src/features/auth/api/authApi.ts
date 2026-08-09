@@ -1,11 +1,6 @@
 import { api } from "../../../services/api";
 import type { AuthenticatedUser, Role } from "../types";
 
-interface LoginResponseDto {
-  access_token: string;
-  token_type: string;
-}
-
 interface UserDto {
   id: string;
   name: string;
@@ -13,20 +8,6 @@ interface UserDto {
   role: Role;
   active: boolean;
   created_at: string;
-}
-
-export interface LoginResult {
-  accessToken: string;
-  tokenType: string;
-}
-
-export async function login(email: string, password: string): Promise<LoginResult> {
-  const { data } = await api.post<LoginResponseDto>("/auth/login", { email, password });
-
-  return {
-    accessToken: data.access_token,
-    tokenType: data.token_type,
-  };
 }
 
 export function mapUserFromDto(dto: UserDto): AuthenticatedUser {
@@ -40,8 +21,18 @@ export function mapUserFromDto(dto: UserDto): AuthenticatedUser {
   };
 }
 
+export async function login(email: string, password: string): Promise<AuthenticatedUser> {
+  const { data } = await api.post<UserDto>("/auth/login", { email, password });
+
+  return mapUserFromDto(data);
+}
+
 export async function getCurrentUser(): Promise<AuthenticatedUser> {
   const { data } = await api.get<UserDto>("/auth/me");
 
   return mapUserFromDto(data);
+}
+
+export async function logout(): Promise<void> {
+  await api.post("/auth/logout");
 }

@@ -1,7 +1,9 @@
+import os
 from functools import lru_cache
+from pathlib import Path
 from typing import Literal
 
-from pydantic import Field, model_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 LOCAL_DATABASE_URL = "postgresql+psycopg://loadx:loadx_local@db:5432/loadx"
@@ -20,15 +22,7 @@ class Settings(BaseSettings):
         default="http://localhost:5173", validation_alias="BACKEND_CORS_ORIGINS"
     )
     secret_key: str = "local-only"
-    jwt_algorithm: Literal["HS256"] = Field(
-        default="HS256", validation_alias="JWT_ALGORITHM"
-    )
-    access_token_expire_minutes: int = Field(
-        default=60,
-        gt=0,
-        le=1_440,
-        validation_alias="ACCESS_TOKEN_EXPIRE_MINUTES",
-    )
+    password_blocklist_path: Path | None = None
     ai_provider: str = "mock"
     whatsapp_provider: str = "mock"
 
@@ -38,8 +32,18 @@ class Settings(BaseSettings):
         populate_by_name=True,
     )
 
+    @field_validator("password_blocklist_path", mode="before")
+    @classmethod
+    def normalize_optional_blocklist_path(cls, value: object) -> object:
+        return None if value == "" else value
+
     @model_validator(mode="after")
     def reject_insecure_production_defaults(self) -> "Settings":
+        if (
+            self.password_blocklist_path is not None
+            and not self.password_blocklist_path.is_file()
+        ):
+            raise ValueError("PASSWORD_BLOCKLIST_PATH must point to a readable file.")
         if self.app_env != "production":
             return self
         if len(self.secret_key) < 32 or self.secret_key in INSECURE_SECRET_KEYS:
@@ -63,10 +67,24 @@ class Settings(BaseSettings):
             if origin.strip()
         ]
 
+    @property
+    def session_cookie_name(self) -> str:
+        if self.app_env == "production":
+            return "__Host-loadx_session"
+        return "loadx_session"
+
+    @property
+    def session_cookie_secure(self) -> bool:
+        return self.app_env == "production"
+
 
 @lru_cache
 def get_settings() -> Settings:
-    return Settings()
+    raw_secrets_dir = os.getenv("LOADX_SECRETS_DIR", "").strip()
+    secrets_dir = Path(raw_secrets_dir) if raw_secrets_dir else None
+    if secrets_dir is not None and not secrets_dir.is_dir():
+        raise ValueError("LOADX_SECRETS_DIR must point to a readable directory.")
+    return Settings(_secrets_dir=secrets_dir)
 
 
 settings = get_settings()

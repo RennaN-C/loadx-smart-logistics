@@ -6,7 +6,9 @@ from sqlalchemy.orm import Session
 
 from app.core.pagination import PageResult, PaginationParams
 from app.core.security import hash_password
+from app.core.security_events import SecurityEvent, emit_security_event
 from app.database.integrity import get_integrity_constraint_name
+from app.modules.auth.sessions import AuthSessionService
 from app.modules.users.models import User
 from app.modules.users.repository import UserRepository
 from app.modules.users.schemas import UserCreate, UserUpdate
@@ -28,6 +30,7 @@ class UserService:
     def __init__(self, db: Session) -> None:
         self.db = db
         self.repository = UserRepository(db)
+        self.auth_sessions = AuthSessionService(db)
 
     def list_users(self, pagination: PaginationParams) -> PageResult[User]:
         return self.repository.list(pagination)
@@ -43,6 +46,10 @@ class UserService:
 
     def get_user_by_email(self, email: str) -> User | None:
         return self.repository.get_by_email(email)
+
+    def upgrade_password_hash(self, user: User, password_hash: str) -> User:
+        user.password_hash = password_hash
+        return self._persist(lambda: self.repository.update(user))
 
     def create_user(self, data: UserCreate) -> User:
         if self.repository.get_by_email(data.email) is not None:
@@ -65,13 +72,33 @@ class UserService:
         self._ensure_active_admin_remains(user.id, update_data)
 
         password = update_data.pop("password", None)
+        password_changed = password is not None
         if password is not None:
             user.password_hash = hash_password(password)
+
+        role_changed = "role" in update_data and update_data["role"] != user.role
+        user_deactivated = update_data.get("active") is False and user.active
 
         for field_name, value in update_data.items():
             setattr(user, field_name, value)
 
-        return self._persist(lambda: self.repository.update(user))
+        def persist_user_and_revoke_sessions() -> User:
+            updated_user = self.repository.update(user)
+            if password_changed or role_changed or user_deactivated:
+                self.auth_sessions.stage_revoke_all_for_user(user.id)
+            return updated_user
+
+        updated_user = self._persist(persist_user_and_revoke_sessions)
+        if password_changed or role_changed or user_deactivated:
+            emit_security_event(
+                SecurityEvent.USER_SECURITY_STATE_CHANGED,
+                alert=role_changed or user_deactivated,
+                user_id=str(user.id),
+                password_changed=password_changed,
+                role_changed=role_changed,
+                user_deactivated=user_deactivated,
+            )
+        return updated_user
 
     def _ensure_active_admin_remains(
         self,
@@ -97,5 +124,8 @@ class UserService:
             self.db.rollback()
             if get_integrity_constraint_name(exc) == "uq_users__email":
                 raise UserEmailAlreadyExistsError from exc
+            raise
+        except Exception:
+            self.db.rollback()
             raise
         return user

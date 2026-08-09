@@ -5,7 +5,6 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.core.security import create_access_token
 from app.modules.customers.schemas import CustomerCreate
 from app.modules.customers.service import CustomerService
 from app.modules.drivers.schemas import DriverCreate
@@ -19,6 +18,7 @@ from app.modules.trucks.service import TruckService
 from app.modules.users.models import User
 from app.modules.users.schemas import UserCreate
 from app.modules.users.service import UserService
+from tests.integration.auth_helpers import issue_session_headers
 
 SessionFactory = Callable[[], Session]
 ALL_ROLES = ("ADMIN", "LOGISTICS_MANAGER", "CHECKER", "DRIVER")
@@ -202,7 +202,7 @@ def create_user(
             UserCreate(
                 name="Usuário de Auditoria",
                 email=email,
-                password="senha-local",
+                password="senha-local-segura",
                 role=role,
             )
         )
@@ -217,7 +217,7 @@ def seed_resources(session_factory: SessionFactory) -> dict[str, str]:
             UserCreate(
                 name="Usuário Alvo",
                 email="target@example.test",
-                password="senha-local",
+                password="senha-local-segura",
                 role="CHECKER",
             )
         )
@@ -294,7 +294,7 @@ def get_payload(payload_name: str | None, resource_ids: dict[str, str]):
         "user_create": {
             "name": "Novo Usuário",
             "email": "new-user@example.test",
-            "password": "senha-local",
+            "password": "senha-local-segura",
             "role": "checker",
         },
         "user_update": {"name": "Usuário Atualizado"},
@@ -369,11 +369,10 @@ def test_complete_authorization_matrix(
         f"caller-{role.lower()}@example.test",
         role,
     )
-    token = create_access_token(str(current_user.id), {"role": role})
     path = case.path.format(**resource_ids)
     payload = get_payload(case.payload_name, resource_ids)
     request_options: dict[str, object] = {
-        "headers": {"Authorization": f"Bearer {token}"}
+        "headers": issue_session_headers(session_factory, current_user.id)
     }
     if payload is not None:
         request_options["json"] = payload

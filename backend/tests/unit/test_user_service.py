@@ -4,6 +4,8 @@ import pytest
 from sqlalchemy.orm import Session
 
 from app.core.security import verify_password
+from app.modules.auth.models import AuthSession
+from app.modules.auth.sessions import AuthSessionService
 from app.modules.users.models import User
 from app.modules.users.schemas import UserCreate, UserUpdate
 from app.modules.users.service import (
@@ -13,12 +15,12 @@ from app.modules.users.service import (
     UserService,
 )
 
-SQLITE_TABLES = (User.__table__,)
+SQLITE_TABLES = (User.__table__, AuthSession.__table__)
 
 
 def make_user_create(
     email: str = "ADMIN@EXAMPLE.TEST",
-    password: str = "senha-local",
+    password: str = "senha-local-segura",
     role: str = "admin",
     active: bool = True,
 ) -> UserCreate:
@@ -41,8 +43,8 @@ def test_create_user_persists_normalized_fields_and_password_hash(
     assert user.id is not None
     assert user.email == "admin@example.test"
     assert user.role == "ADMIN"
-    assert user.password_hash != "senha-local"
-    assert verify_password("senha-local", user.password_hash) is True
+    assert user.password_hash != "senha-local-segura"
+    assert verify_password("senha-local-segura", user.password_hash) is True
 
 
 def test_create_user_rejects_duplicate_email(db_session: Session) -> None:
@@ -71,7 +73,35 @@ def test_update_user_changes_password_hash(db_session: Session) -> None:
 
     assert updated_user.password_hash != original_hash
     assert verify_password("nova-senha-local", updated_user.password_hash) is True
-    assert verify_password("senha-local", updated_user.password_hash) is False
+    assert verify_password("senha-local-segura", updated_user.password_hash) is False
+
+
+@pytest.mark.parametrize(
+    "update",
+    [
+        UserUpdate(password="nova-senha-local"),
+        UserUpdate(active=False),
+        UserUpdate(role="CHECKER"),
+    ],
+)
+def test_sensitive_user_update_revokes_all_sessions_atomically(
+    db_session: Session,
+    update: UserUpdate,
+) -> None:
+    service = UserService(db_session)
+    user = service.create_user(make_user_create())
+    if update.active is False or update.role == "CHECKER":
+        service.create_user(make_user_create("second-admin@example.test"))
+    session_service = AuthSessionService(db_session)
+    first = session_service.create_session(user.id)
+    second = session_service.create_session(user.id)
+
+    service.update_user(user.id, update)
+
+    db_session.refresh(first.auth_session)
+    db_session.refresh(second.auth_session)
+    assert first.auth_session.revoked_at is not None
+    assert second.auth_session.revoked_at is not None
 
 
 @pytest.mark.parametrize(

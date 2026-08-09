@@ -31,7 +31,7 @@ def test_alembic_has_current_revision_head() -> None:
     config = Config(str(BACKEND_ROOT / "alembic.ini"))
     script = ScriptDirectory.from_config(config)
 
-    assert script.get_current_head() == "20260804_0004"
+    assert script.get_current_head() == "20260808_0006"
 
 
 def test_initial_migration_renders_expected_check_constraint_names() -> None:
@@ -70,6 +70,11 @@ def test_initial_migration_renders_expected_check_constraint_names() -> None:
     assert "CONSTRAINT fk_load_plan_items__order_item_provenance" in result.stdout
     assert "CONSTRAINT uq_order_items__id_order_product" in result.stdout
     assert "CONSTRAINT uq_load_plan_items__plan_item_volume" in result.stdout
+    assert "CREATE TABLE auth_login_throttles" in result.stdout
+    assert "CONSTRAINT ck_auth_login_throttles__scope_allowed" in result.stdout
+    assert "CREATE TABLE auth_sessions" in result.stdout
+    assert "CONSTRAINT fk_auth_sessions__users" in result.stdout
+    assert "CONSTRAINT uq_auth_sessions__token_hash" in result.stdout
     assert "ck_users__ck_users" not in result.stdout
     assert "ck_trucks__ck_trucks" not in result.stdout
     assert "ck_products__ck_products" not in result.stdout

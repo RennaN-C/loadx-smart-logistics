@@ -51,11 +51,25 @@ infraestrutura, conforme D11 e `ADR-018`.
 
 ## Configuração segura
 
-`CONFIRMADO`: conforme `ADR-019`, produção exige `SECRET_KEY` exclusiva com ao
-menos 32 caracteres e `DATABASE_URL` explícita, aceita somente JWT `HS256`,
-limita a expiração a 1–1440 minutos e rejeita CORS curinga. Os valores fracos de
+`CONFIRMADO`: conforme `ADR-019` e `ADR-020`, produção exige `SECRET_KEY`
+exclusiva com ao menos 32 caracteres e `DATABASE_URL` explícita, rejeita CORS
+curinga e usa sessão opaca no cookie `__Host-loadx_session`. Os valores fracos de
 `.env.example` existem somente para desenvolvimento local e não permitem iniciar
 em produção.
+
+`CONFIRMADO`: as respostas da API recebem CSP restritiva, `Cache-Control:
+no-store`, proteção contra framing e MIME sniffing, política de referrer e
+restrição de permissões do navegador. HSTS é emitido somente em `production`.
+`RISCO IDENTIFICADO`: HTTPS deve ser terminado e validado pela infraestrutura de
+produção; o navegador ignora HSTS recebido por uma conexão HTTP.
+
+`PASSWORD_BLOCKLIST_PATH` é opcional e aponta para um arquivo UTF-8 com uma
+senha completa por linha. Linhas vazias e iniciadas por `#` são ignoradas. Em
+produção, monte somente uma lista aprovada e reinicie o processo para recarregá-la.
+
+`LOADX_SECRETS_DIR` permite carregar `SECRET_KEY` e `DATABASE_URL` de arquivos
+montados pelo orquestrador. O diretório configurado precisa existir; uma variável
+de ambiente com o mesmo nome do campo tem precedência sobre o arquivo.
 
 `CONFIRMADO`: no Compose, o serviço one-shot `migrate` aplica o head Alembic
 antes do backend. A API e a migration executam como usuário sem privilégio, sem

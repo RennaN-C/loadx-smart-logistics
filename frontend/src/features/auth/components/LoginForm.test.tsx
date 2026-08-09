@@ -21,6 +21,12 @@ describe("mapLoginErrorToMessage", () => {
     );
   });
 
+  it("traduz AUTH_RATE_LIMITED", () => {
+    expect(mapLoginErrorToMessage(new ApiError("AUTH_RATE_LIMITED", "Tente depois."))).toBe(
+      "Muitas tentativas de login. Aguarde e tente novamente.",
+    );
+  });
+
   it("usa a mensagem do backend para qualquer outro código", () => {
     expect(
       mapLoginErrorToMessage(new ApiError("NETWORK_ERROR", "Não foi possível conectar ao servidor.")),

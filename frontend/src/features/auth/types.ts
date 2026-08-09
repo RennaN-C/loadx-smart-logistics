@@ -15,5 +15,5 @@ export interface AuthContextValue {
   status: AuthStatus;
   user: AuthenticatedUser | null;
   login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
 }

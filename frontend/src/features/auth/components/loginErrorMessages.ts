@@ -9,5 +9,9 @@ export function mapLoginErrorToMessage(error: ApiError): string {
     return "Este usuário está inativo. Fale com o administrador do sistema.";
   }
 
+  if (error.code === "AUTH_RATE_LIMITED") {
+    return "Muitas tentativas de login. Aguarde e tente novamente.";
+  }
+
   return error.message;
 }

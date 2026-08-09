@@ -99,18 +99,18 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
         head_revision = connection.exec_driver_sql(
             "SELECT version_num FROM alembic_version"
         ).scalar_one()
-        assert head_revision == "20260804_0004"
+        assert head_revision == "20260808_0006"
 
     _run_alembic(test_url, "downgrade", "-1")
     with engine.connect() as connection:
         downgraded_revision = connection.exec_driver_sql(
             "SELECT version_num FROM alembic_version"
         ).scalar_one()
-        load_plans_exists = connection.exec_driver_sql(
-            "SELECT to_regclass('public.load_plans')"
+        auth_sessions_exists = connection.exec_driver_sql(
+            "SELECT to_regclass('public.auth_sessions')"
         ).scalar_one()
-        assert downgraded_revision == "20260730_0003"
-        assert load_plans_exists is None
+        assert downgraded_revision == "20260808_0005"
+        assert auth_sessions_exists is None
 
     _run_alembic(test_url, "upgrade", "head")
 
@@ -166,7 +166,11 @@ def client(session_factory: SessionFactory) -> Generator[TestClient, None, None]
     app.dependency_overrides[get_db] = override_get_db
     app.dependency_overrides[get_readiness_checker] = lambda: readiness_checker
     try:
-        with TestClient(app, raise_server_exceptions=False) as test_client:
+        with TestClient(
+            app,
+            raise_server_exceptions=False,
+            headers={"Origin": "http://localhost:5173"},
+        ) as test_client:
             yield test_client
     finally:
         app.dependency_overrides.clear()

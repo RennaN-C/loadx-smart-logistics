@@ -3,8 +3,10 @@
 ## Estado atual
 
 `CONFIRMADO`: o repositório possui models SQLAlchemy e migrations para `users`,
-`customers`, `drivers`, `trucks`, `products`, `orders`, `order_items`,
-`status_history`, `load_plans`, `load_plan_orders` e `load_plan_items`.
+`auth_sessions`, `auth_login_throttles`, `customers`, `drivers`, `trucks`,
+`products`, `orders`, `order_items`, `status_history`, `load_plans`,
+`load_plan_orders` e `load_plan_items`. As tabelas de autenticação foram
+aprovadas por D18 e `ADR-020` e são criadas pelas migrations da OC60.
 
 `PENDENTE DE DEFINIÇÃO`: `loading_sessions`, `trips`, `deliveries` e
 `occurrences` ainda não possuem models/migrations.
@@ -51,6 +53,50 @@ Usuários internos do sistema.
 
 - `uq_users__email`.
 - `ix_users__role` `RECOMENDAÇÃO`.
+
+### `auth_sessions`
+
+Sessões opacas e revogáveis do frontend próprio.
+
+- `id`: UUID, PK.
+- `user_id`: UUID, FK obrigatória para `users.id`.
+- `token_hash`: texto hexadecimal de 64 caracteres, obrigatório e único.
+- `created_at`: timestamptz UTC, obrigatório.
+- `last_seen_at`: timestamptz UTC, obrigatório.
+- `idle_expires_at`: timestamptz UTC, obrigatório.
+- `absolute_expires_at`: timestamptz UTC, obrigatório.
+- `revoked_at`: timestamptz UTC, opcional.
+
+Índices e constraints:
+
+- `fk_auth_sessions__users` com `ON DELETE CASCADE`.
+- `uq_auth_sessions__token_hash`.
+- `ix_auth_sessions__user_id`.
+- `ix_auth_sessions__idle_expires_at`.
+- `ck_auth_sessions__absolute_expiration_after_creation`.
+
+`CONFIRMADO`: o identificador bruto da sessão e o token CSRF não são persistidos.
+O CSRF é derivado por HMAC do identificador bruto recebido no cookie.
+
+### `auth_login_throttles`
+
+Contadores duráveis de falhas de login por conta e por endereço IP.
+
+- `id`: UUID, PK.
+- `scope`: texto obrigatório, `ACCOUNT` ou `IP`.
+- `subject_hash`: HMAC-SHA-256 hexadecimal de 64 caracteres, obrigatório.
+- `failed_count`: inteiro obrigatório, maior ou igual a zero.
+- `blocked_until`: timestamptz UTC, opcional.
+- `updated_at`: timestamptz UTC, obrigatório.
+
+Índices e constraints:
+
+- `uq_auth_login_throttles__scope_subject_hash`.
+- `ix_auth_login_throttles__blocked_until`.
+- `ck_auth_login_throttles__scope_allowed`.
+- `ck_auth_login_throttles__failed_count_non_negative`.
+
+`CONFIRMADO`: e-mail e IP brutos não são persistidos nessa tabela.
 
 ### `customers`
 

@@ -359,6 +359,8 @@ Exemplo:
 APP_ENV=local
 DATABASE_URL=postgresql+psycopg://loadx:loadx_local@db:5432/loadx
 SECRET_KEY=troque-esta-chave-no-env-local
+LOADX_SECRETS_DIR=
+PASSWORD_BLOCKLIST_PATH=
 WHATSAPP_TOKEN=
 OPENAI_API_KEY=
 ```
@@ -368,8 +370,10 @@ Nunca envie o arquivo `.env` para o GitHub.
 `APP_ENV` aceita somente `local` ou `production`. Use `local` no desenvolvimento. Em produção, configure `APP_ENV=production` para não expor `/docs`, `/redoc`, `/docs/oauth2-redirect` e `/openapi.json`. Se a variável não for informada, o backend assume `production` por segurança.
 
 `CONFIRMADO`: em produção, o backend recusa iniciar com `SECRET_KEY` fraca ou
-com menos de 32 caracteres, `DATABASE_URL` local padrão, origem CORS curinga,
-algoritmo JWT diferente de `HS256` ou expiração fora de 1 a 1440 minutos.
+com menos de 32 caracteres, `DATABASE_URL` local padrão ou origem CORS curinga.
+Conforme D18, produção autentica pelo cookie `__Host-loadx_session`; o ambiente
+local HTTP usa `loadx_session` para não violar os requisitos do prefixo
+reservado.
 
 ### Iniciar o sistema
 
@@ -400,6 +404,21 @@ Para remover também os dados locais do banco:
 ```bash
 docker compose down -v
 ```
+
+### Referência de produção
+
+`compose.production.yaml` é separado do ambiente local. Ele exige domínio, duas
+URLs PostgreSQL e uma chave secreta fornecidos pelo ambiente seguro do host:
+
+```bash
+docker compose -f compose.production.yaml config --quiet
+docker compose -f compose.production.yaml up -d --build --wait
+```
+
+Leia `infra/production/README.md` antes de executar. `CONFIRMADO`: somente Caddy
+publica 80/443; backend permanece privado e recebe proxy headers somente do IP
+fixo do Caddy. `RISCO IDENTIFICADO`: essa referência não substitui backup,
+restauração, observabilidade e validação no domínio real.
 
 ## Endereços locais
 

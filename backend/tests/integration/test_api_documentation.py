@@ -106,12 +106,11 @@ def test_settings_reject_insecure_production_configuration(
         Settings(**values)
 
 
-@pytest.mark.parametrize("minutes", [0, 1_441])
-def test_settings_reject_invalid_token_expiration(minutes: int) -> None:
-    with pytest.raises(ValidationError):
-        Settings(app_env="local", access_token_expire_minutes=minutes, _env_file=None)
+def test_settings_use_host_cookie_only_in_secure_production() -> None:
+    local_settings = Settings(app_env="local", _env_file=None)
+    secure_settings = production_settings()
 
-
-def test_settings_reject_unsupported_jwt_algorithm() -> None:
-    with pytest.raises(ValidationError):
-        Settings(app_env="local", jwt_algorithm="none", _env_file=None)
+    assert local_settings.session_cookie_name == "loadx_session"
+    assert local_settings.session_cookie_secure is False
+    assert secure_settings.session_cookie_name == "__Host-loadx_session"
+    assert secure_settings.session_cookie_secure is True

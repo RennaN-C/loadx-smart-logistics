@@ -8,6 +8,8 @@ Consome `GET /load-plans/{id}/visualization`.
 - `components/LoadViewer.tsx` (+ `.css`): busca a visualização, monta a cena, a legenda, o painel de
   detalhe do volume selecionado e os controles de animação.
 - `components/LoadScene.tsx`: a cena Three.js — baú, volumes, luzes, grade e órbita de câmera.
+- `components/CameraControls.tsx`: integra diretamente o `OrbitControls` oficial
+  do Three.js ao ciclo de renderização do React Three Fiber.
 - `components/sceneGeometry.ts`: conversão de coordenadas e cores. **Funções puras, testadas.**
 
 A tela vive na aba "Visualização 3D" de `features/load-planning/pages/PlanningPage.tsx`.
@@ -43,8 +45,16 @@ volume fica dentro do baú); a cena em si é uma casca declarativa. Nos testes d
 
 ## Carregamento sob demanda
 
-O three.js pesa ~830 kB no bundle. `PlanningPage` importa o viewer com `React.lazy`, então quem nunca
-abre a aba 3D não baixa nada disso — o pacote principal fica em ~289 kB.
+O chunk 3D tem cerca de 828 kB minificado e 218 kB com gzip. `PlanningPage`
+importa o viewer com `React.lazy`, então quem nunca abre a aba 3D não baixa esse
+conteúdo. Caddy aplica compressão e cache imutável ao asset versionado.
+
+`CONFIRMADO`: o build falha se o chunk `LoadViewer` ultrapassar 250 KiB com gzip.
+O limite padrão não comprimido do Vite foi ajustado para 850 kB porque a métrica
+de rede comprimida e o carregamento sob demanda representam melhor o impacto
+real. Drei foi removido: o único uso era `OrbitControls`, agora integrado
+diretamente, eliminando 48 pacotes e a dependência depreciada
+`three-mesh-bvh@0.7`.
 
 ## Permissões
 

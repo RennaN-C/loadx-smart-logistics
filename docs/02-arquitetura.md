@@ -25,8 +25,11 @@ PostgreSQL
 - Frontend: React 18, TypeScript estrito, Vite.
 - HTTP frontend: Axios.
 - Validação frontend: Zod quando necessário para contratos no navegador.
-- Visualização: Three.js, React Three Fiber e Drei.
+- Visualização: Three.js e React Three Fiber; controles oficiais do Three.js são
+  importados diretamente para evitar dependências auxiliares no bundle 3D.
 - Infraestrutura local: Docker Compose.
+- Referência de produção: Docker Compose com Caddy como terminador TLS e servidor
+  estático, conforme `ADR-021`.
 - Testes: Pytest, Vitest e Testing Library.
 - Integrações: IA e WhatsApp por adapters, iniciando com providers mock.
 
@@ -127,8 +130,9 @@ Responsabilidades por pasta:
 - `RECOMENDAÇÃO`: logs devem registrar eventos técnicos e IDs de entidade, mas não senha, token, documento pessoal completo, payload sensível ou segredo.
 - `CONFIRMADO`: CORS vem de `BACKEND_CORS_ORIGINS`.
 - `CONFIRMADO`: `SECRET_KEY`, tokens de IA e WhatsApp vêm de `.env`.
-- `CONFIRMADO`: conforme `ADR-019`, produção falha ao iniciar com segredo JWT
-  fraco, URL local padrão ou CORS curinga; JWT fica restrito a `HS256`.
+- `CONFIRMADO`: conforme `ADR-019` e `ADR-020`, produção falha ao iniciar com
+  segredo fraco, URL local padrão ou CORS curinga. `SECRET_KEY` protege HMACs de
+  autenticação; JWT não integra mais o contrato.
 - `CONFIRMADO`: os containers de aplicação e migration usam usuário sem
   privilégio, capabilities removidas e `no-new-privileges`; portas locais ficam
   vinculadas a `127.0.0.1`.
@@ -136,4 +140,10 @@ Responsabilidades por pasta:
 - `CONFIRMADO`: a fronteira de endpoints, a matriz RBAC e o bootstrap administrativo seguem `ADR-004`.
 - `CONFIRMADO`: D11 e `ADR-018` mantêm `/health` como liveness e definem
   `/ready` como verificação pública e genérica de PostgreSQL e Alembic.
-- `PENDENTE DE DEFINIÇÃO`: duração final do token, refresh token, bloqueio por tentativas inválidas, força e recuperação de senha seguem em `D18`.
+- `CONFIRMADO`: D18 e `ADR-020` definem sessão opaca revogável, cookie seguro,
+  CSRF, throttling de login, Argon2id e política de senha.
+- `CONFIRMADO`: a API desabilita cache de respostas, framing, MIME sniffing,
+  referrer e permissões desnecessárias; a CSP da API nega recursos por padrão e
+  HSTS é emitido quando `APP_ENV=production`.
+- `PENDENTE DE DEFINIÇÃO`: recuperação de senha e MFA possuem ocorrências futuras
+  próprias.

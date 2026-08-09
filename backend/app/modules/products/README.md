@@ -31,4 +31,4 @@ Crie somente os arquivos necessários para a ocorrência atual.
   na entrada e na saída, conforme D06 e ADR-016.
 - Quantidade não pertence ao cadastro de produto; ela será informada no item do pedido.
 - Fragilidade, empilhamento e permissão de rotação ficam no cadastro para uso posterior no planejamento.
-- Todas as rotas exigem autenticação Bearer e consultam o papel e o estado atual do usuário no banco.
+- Todas as rotas exigem sessão em cookie e consultam o papel e o estado atual do usuário no banco.

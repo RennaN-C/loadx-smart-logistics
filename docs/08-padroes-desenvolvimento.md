@@ -170,6 +170,9 @@ Antes de criar migration:
   Compose não transfere essa responsabilidade para o endpoint.
 - `CONFIRMADO`: backend, migration e frontend executam sem root, sem capabilities
   Linux e com `no-new-privileges`; portas publicadas ficam em loopback por padrão.
+- `CONFIRMADO`: `compose.production.yaml` publica somente Caddy, mantém API em
+  rede privada, aceita proxy headers exclusivamente do IP fixo do Caddy e monta
+  URLs de banco e `SECRET_KEY` em `/run/secrets`, conforme `ADR-021`.
 
 ## Endpoints
 
@@ -203,10 +206,15 @@ total de 2 segundos e retorna falha genérica sem detalhes de infraestrutura.
 - `.env.example` documenta variáveis sem valores reais sensíveis.
 - Senhas devem ser armazenadas como hash.
 - Respostas de API nunca retornam `password_hash`.
+- Credenciais de autenticação não podem ser persistidas em Web Storage.
+- Métodos inseguros validam origem e, quando autenticados, token CSRF.
+- O servidor do frontend de produção deve preservar CSP e os demais headers
+  defensivos validados no Vite.
 - Integrações externas devem usar adapters e providers mock no desenvolvimento inicial.
 - Dados pessoais reais não entram em seeds, testes, exemplos ou prints de documentação.
 
-`PENDENTE DE DEFINIÇÃO`: política final de RBAC por endpoint.
+`CONFIRMADO`: a política RBAC por endpoint segue `ADR-004` e a matriz de
+`docs/04-regras-negocio.md`.
 
 ## Testes
 

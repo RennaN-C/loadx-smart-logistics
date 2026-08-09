@@ -29,4 +29,4 @@ Crie somente os arquivos necessários para a ocorrência atual.
 - Estado é normalizado para maiúsculas.
 - Validação formal de CPF/CNPJ ainda está pendente de definição.
 - Dados pessoais reais não devem ser usados em seeds, testes ou exemplos.
-- Todas as rotas exigem autenticação Bearer e consultam o papel e o estado atual do usuário no banco.
+- Todas as rotas exigem sessão em cookie e consultam o papel e o estado atual do usuário no banco.

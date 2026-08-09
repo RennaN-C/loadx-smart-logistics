@@ -4,7 +4,7 @@
 
 `RECOMENDAÇÃO`: este documento reúne ocorrências prontas para serem copiadas para o GitHub Projects após revisão da equipe.
 
-`CONFIRMADO`: os identificadores `OC49` a `OC59` nasceram como sugestões. O
+`CONFIRMADO`: os identificadores `OC49` a `OC60` nasceram como sugestões. O
 estado individual abaixo registra quais ocorrências foram aprovadas, integradas
 ou continuam pendentes de decisão da equipe.
 
@@ -35,6 +35,7 @@ revisão.
 | `OC57` | Média | Desenvolvedor 2 | Absorvida e resolvida pela revisão da `OC11` |
 | `OC58` | Baixa | Desenvolvedor 1, com apoio do Desenvolvedor 4 | Implementada e validada localmente; pendente de PR e revisão |
 | `OC59` | Média | Desenvolvedor 1 e Desenvolvedor 3 | Integrada em `desenvolvimento` |
+| `OC60` | Alta | Desenvolvedor 1 | Aprovada por D18; em implementação |
 
 As referências `DXX` apontam para `docs/decisoes-equipe-backend.txt`.
 
@@ -511,6 +512,161 @@ atual porque D12 não aprovou filtros server-side.
 ### Fora do escopo
 
 - Busca externa, motor de pesquisa ou exportação massiva de dados.
+
+---
+
+## [OC60] Endurecer autenticação e substituir JWT por sessão revogável
+
+- **Tipo:** segurança e contrato.
+- **Responsável primário confirmado:** Desenvolvedor 1.
+- **Prioridade:** alta.
+- **Situação:** implementada e validada localmente em 2026-08-09.
+
+### Objetivo
+
+Remover credenciais do Web Storage, limitar tentativas de login, modernizar o
+hash e disponibilizar sessão revogável com proteção CSRF para o frontend próprio.
+
+### Critérios de aceite
+
+- D18 e `ADR-020` registram o contrato antes da implementação.
+- Novas senhas seguem a política de 15 a 128 caracteres e blocklist local.
+- Argon2id usa m=19 MiB, t=2 e p=1; login válido migra PBKDF2 legado.
+- Login limita conta e IP e retorna `429` com `Retry-After` durante bloqueio.
+- `auth_sessions` guarda somente hash de identificador aleatório de 256 bits.
+- Produção emite `__Host-loadx_session` com flags seguras; local HTTP usa cookie
+  compatível explicitamente documentado.
+- Sessão respeita 30 minutos inativos e 8 horas absolutas.
+- Métodos inseguros validam origem; métodos autenticados validam
+  `X-CSRF-Token`.
+- `POST /auth/logout` revoga a sessão e limpa o cookie.
+- Troca de senha, desativação e alteração de papel revogam todas as sessões do
+  usuário.
+- Frontend usa cookie, mantém CSRF somente em memória e não usa `localStorage`
+  para autenticação.
+- Migration real, downgrade, testes PostgreSQL, Ruff, frontend, build e scanners
+  passam.
+
+### Resultado
+
+`CONFIRMADO`: a OC60 foi dividida em commits pequenos para decisão, senha,
+throttling, persistência de sessão, contrato HTTP, revogação, frontend e headers
+defensivos. O banco chegou à revisão `20260808_0006` exclusivamente por Alembic.
+
+`CONFIRMADO`: a validação final executou 577 testes unitários/health e 351 testes
+de integração em PostgreSQL 16, totalizando 928 testes de backend. O ciclo real
+de migration executou `upgrade head`, `downgrade -1` e novo `upgrade head`.
+
+`CONFIRMADO`: o frontend passou por ESLint, 159 testes e build. `pip-audit`,
+`npm audit`, Bandit e a busca por padrões de credencial terminaram sem achados.
+O Compose principal aplicou `20260808_0006`, deixou backend e banco saudáveis e
+respondeu `/ready` com sucesso.
+
+### Fora do escopo
+
+- MFA, recuperação de senha, cofre de segredos, TLS do proxy, alertas externos e
+  criação dos papéis PostgreSQL de produção.
+
+`RISCO IDENTIFICADO`: MFA obrigatório sem fluxo de cadastro e recuperação pode
+bloquear o único administrador; a implementação exige ocorrência própria.
+
+---
+
+## [OC61] Viabilizar runtime seguro de produção
+
+- **Tipo:** segurança e infraestrutura.
+- **Responsável primário confirmado:** Desenvolvedor 1.
+- **Prioridade:** alta.
+- **Situação:** implementada e validada localmente em 2026-08-09.
+
+### Objetivo
+
+Fornecer uma referência executável de produção para o frontend próprio com TLS,
+proxy confiável, segredos montados e credenciais PostgreSQL segregadas, sem
+escolher ou contratar provedor externo.
+
+### Critérios de aceite
+
+- Compose de produção não publica backend nem PostgreSQL diretamente.
+- Caddy serve o build estático e encaminha API e sondas sob a mesma origem HTTPS.
+- Uvicorn confia headers de proxy somente do IP privado fixo do Caddy.
+- URLs de banco e `SECRET_KEY` chegam aos serviços por arquivos em
+  `/run/secrets`.
+- Migration e aplicação recebem credenciais PostgreSQL diferentes.
+- O papel da aplicação não pode criar ou remover estruturas.
+- CSP, HSTS e demais headers defensivos são preservados no frontend publicado.
+- Configuração do Compose, Caddyfile, imagem estática e SQL de papéis são
+  validados antes do encerramento.
+
+### Resultado
+
+`CONFIRMADO`: a referência isolada concluiu migration, manteve backend privado,
+publicou apenas Caddy em 80/443, redirecionou HTTP e respondeu frontend,
+`/health` e `/ready` por HTTPS. CSP, HSTS e headers defensivos foram observados;
+a assinatura do servidor backend não foi exposta.
+
+`CONFIRMADO`: o SQL permitiu DDL ao papel de migration e DML ao papel da
+aplicação. A tentativa de criar tabela como `loadx_app` falhou por falta de
+permissão, conforme o critério de menor privilégio.
+
+`CONFIRMADO`: os eventos estruturados cobrem sucesso/falha de login, throttling,
+criação, expiração e revogação de sessões e mudanças sensíveis de usuário. A
+integração externa pode filtrar `alert=true` sem receber e-mail, IP ou segredo.
+
+`CONFIRMADO`: a validação completa aprovou Ruff, 590 testes unitários/health e
+351 testes em PostgreSQL 16, totalizando 941 testes de backend. ESLint, 159
+testes do frontend, build, orçamento gzip, `pip-audit`, `npm audit` e Bandit
+também passaram.
+
+### Fora do escopo
+
+- Contratação de domínio, cofre, banco gerenciado, observabilidade ou serviço de
+  alertas.
+- Alta disponibilidade, backup, restauração e deploy em uma plataforma real.
+- MFA e recuperação de senha.
+
+---
+
+## [OC62] Definir MFA e recuperação segura de acesso
+
+- **Tipo:** proposta de segurança e contrato.
+- **Responsável primário recomendado:** Desenvolvedor 1.
+- **Prioridade recomendada:** alta, antes da produção.
+- **Situação:** `PENDENTE DE DEFINIÇÃO` e aprovação; nenhuma implementação foi
+  iniciada.
+
+### Objetivo proposto
+
+Definir, antes de alterar banco ou API, o ciclo completo de MFA obrigatório para
+`ADMIN` e `LOGISTICS_MANAGER` e a recuperação de acesso sem criar um caminho que
+contorne o segundo fator.
+
+### Decisões necessárias
+
+- `DECISÃO NECESSÁRIA`: passkey/WebAuthn como fator principal com TOTP de
+  contingência, ou TOTP como primeira entrega.
+- `DECISÃO NECESSÁRIA`: cadastro, confirmação, substituição e remoção de fatores,
+  incluindo reautenticação para cada ação sensível.
+- `DECISÃO NECESSÁRIA`: quantidade, entrega, uso único e regeneração de códigos
+  de recuperação, armazenados somente como hash.
+- `DECISÃO NECESSÁRIA`: procedimento auditável para perda de dispositivo,
+  recuperação de senha e administrador de emergência, sem bloquear o primeiro
+  bootstrap nem permitir bypass permanente.
+- `DECISÃO NECESSÁRIA`: modelo de dados, contratos HTTP, interface e eventos de
+  auditoria que materializam essas escolhas.
+
+### Recomendação para aprovação
+
+`RECOMENDAÇÃO`: preferir passkeys, aceitar TOTP como contingência, fornecer
+códigos de recuperação de uso único e exigir reautenticação para gerenciar
+fatores. A ocorrência deve começar por ADR e threat model e só depois dividir
+banco, serviço, API e frontend em commits testáveis.
+
+### Fora do escopo da proposta
+
+- Contratar provedor externo antes da escolha da plataforma de produção.
+- Implementar recuperação baseada apenas em perguntas pessoais, suporte sem
+  auditoria ou desativação silenciosa do MFA.
 
 ---
 

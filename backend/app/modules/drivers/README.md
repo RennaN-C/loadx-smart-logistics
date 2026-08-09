@@ -30,7 +30,7 @@ Crie somente os arquivos necessários para a ocorrência atual.
 - `license_number` deve ser único.
 - `license_category` é opcional e normalizada para maiúsculas quando informada.
 - `active = false` representa motorista indisponível para viagens futuras.
-- Todas as rotas exigem autenticação Bearer e consultam o papel e o estado atual do usuário no banco.
+- Todas as rotas exigem sessão em cookie e consultam o papel e o estado atual do usuário no banco.
 
 ## Pendências
 
