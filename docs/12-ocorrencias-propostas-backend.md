@@ -20,6 +20,11 @@ e `OC59` foram integradas em `desenvolvimento` pelo PR #14.
 `CONFIRMADO`: a `OC58` está implementada e validada localmente, pendente de PR e
 revisão.
 
+`CONFIRMADO`: D07 a D10 e D21 foram aprovadas em 2026-08-09. A `OC09` está
+implementada e validada localmente na branch `rennan`, pendente de PR e revisão;
+o início real da viagem permanece bloqueado de forma segura até o módulo de
+carregamento confirmar `FINISHED`.
+
 ## Resumo de prioridade
 
 | Identificador sugerido | Prioridade | Responsável primário sugerido | Situação |
@@ -680,9 +685,18 @@ banco, serviço, API e frontend em commits testáveis.
 
 ### Objetivo refinado
 
-Implementar persistência, serviços e contratos HTTP de viagens e entregas vinculadas a plano carregado, motorista e pedidos, preservando histórico de status.
+Implementar persistência, serviços e contratos HTTP de viagens e entregas
+vinculadas a plano aprovado, motorista e pedidos, exigindo carregamento
+finalizado para iniciar e preservando histórico de status.
 
-### Critérios de aceite propostos
+### Comportamento atual
+
+`CONFIRMADO`: models, migration `20260809_0008`, repositories, services, rotas,
+RBAC por objeto e histórico atômico estão implementados. A migration anterior
+`20260809_0007` materializa o vínculo `users.driver_id` aprovado por D21. A
+validação local cobre regras unitárias, rollback, OpenAPI, API e PostgreSQL 16.
+
+### Critérios de aceite
 
 - Models `Trip` e `Delivery` correspondem exatamente a `docs/03-modelo-dados.md`.
 - Migration pequena cria `trips` e `deliveries` com PKs, FKs, uniques, índices e constraints aprovadas.
@@ -698,13 +712,12 @@ Implementar persistência, serviços e contratos HTTP de viagens e entregas vinc
 
 ### Dependências e bloqueios
 
-- Planejamento de carga persistido e aprovado.
-- Carregamento implementado e finalizado.
-- `OC51` para autenticação e ator da mudança.
-- `OC52` para padrão atômico de histórico.
-- `D07`: estados e transições de viagem/entrega.
-- `D08`: regra de finalização com entregas problemáticas.
-- `D09`: tratamento de divergência de carregamento.
-- `D10`: entidades auditáveis e consulta de histórico.
+- `CONFIRMADO`: planejamento de carga persistido e aprovado.
+- `PENDENTE DE DEFINIÇÃO`: carregamento implementado e finalizado para liberar
+  a transição positiva `SCHEDULED -> IN_ROUTE` no runtime real.
+- `CONFIRMADO`: `OC51` fornece autenticação e ator da mudança.
+- `CONFIRMADO`: `OC52` fornece o padrão atômico de histórico.
+- `CONFIRMADO`: D07 a D10 e D21 foram resolvidas por `ADR-022`.
 
-`RISCO IDENTIFICADO`: iniciar models ou migration da `OC09` antes dessas decisões pode criar estados e regras não aprovados.
+`CONFIRMADO`: D07, D08, D09, D10 e D21 foram resolvidas em `ADR-022` antes da
+implementação. Estados de exceção permanecem deliberadamente fora da OC09.

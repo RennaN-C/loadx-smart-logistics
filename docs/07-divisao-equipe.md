@@ -29,6 +29,8 @@ Pastas principais:
 - `backend/app/modules/customers`.
 - `backend/app/modules/drivers`.
 - `backend/app/modules/orders`.
+- `backend/app/modules/deliveries`.
+- `backend/app/modules/status_history`.
 - `backend/migrations`.
 - `backend/tests/integration`.
 
@@ -130,12 +132,15 @@ Entregas esperadas:
 
 ## Desenvolvedor 4: WhatsApp, ocorrências, relatórios e testes
 
-Responsável por carregamento, viagens, entregas, ocorrências, notificações, relatórios, provider mock de WhatsApp/IA, testes integrados, e2e, Docker e documentação operacional.
+Responsável por carregamento, ocorrências, notificações, relatórios, provider
+mock de WhatsApp/IA, testes integrados, e2e, Docker e documentação operacional.
+Colabora no fluxo de viagens e entregas consumindo o service público do módulo,
+sem assumir os models, migration, regras de transição ou API pertencentes à
+`OC09` do Desenvolvedor 1.
 
 Pastas principais:
 
 - `backend/app/modules/loading`.
-- `backend/app/modules/deliveries`.
 - `backend/app/modules/occurrences`.
 - `backend/app/modules/reports`.
 - `backend/app/integrations`.

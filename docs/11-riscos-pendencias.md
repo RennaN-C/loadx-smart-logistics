@@ -30,6 +30,10 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 - `CONFIRMADO`: a OC61 implementa a referência de produção do `ADR-021` com
   Caddy/TLS, proxy confiável explícito, segredos montados, papéis PostgreSQL
   segregados e eventos estruturados para integração com alertas.
+- `CONFIRMADO`: D07 a D10, D21 e `ADR-022` definem o ciclo restrito de viagens
+  e entregas, finalização somente com todas as entregas concluídas, bloqueio
+  fechado sem carregamento finalizado, catálogo auditável fechado e vínculo
+  único `users.driver_id`.
 - `CONFIRMADO`: volumes individuais são expandidos de `order_items.quantity`, usam `volume_index` iniciado em `1` e são persistidos em `load_plan_items`, sem tabela `volumes`, conforme `ADR-005`.
 - `CONFIRMADO`: volumes usam a ordem total determinística de volume, peso, empilhamento, fragilidade, entrega e identidade, conforme `ADR-006`.
 - `CONFIRMADO`: rotações usam seis permutações ortogonais priorizadas, deduplicam simetrias e respeitam bloqueio por produto, conforme `ADR-007`.
@@ -66,17 +70,16 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 
 ## Decisões necessárias
 
-- `DECISÃO NECESSÁRIA`: definir comportamento quando checklist de carregamento tiver divergência.
-- `DECISÃO NECESSÁRIA`: definir regra para finalizar viagem com entregas canceladas, recusadas ou falhas.
 - `DECISÃO NECESSÁRIA`: definir formato final de relatório PDF e se haverá envio por e-mail/WhatsApp no MVP.
 - `DECISÃO NECESSÁRIA`: definir os valores aceitos em `priority` do pedido. `OrderCreate` aceita qualquer string de até 32 caracteres, sem enum e sem validação, ao contrário de `status`. Enquanto não houver definição, a `OC29` usa `LOW`, `NORMAL`, `HIGH` e `URGENT` num `<select>` no frontend — convenção adotada só ali, que precisa virar contrato em `docs/05` e validação no backend para não aceitar prioridade divergente vinda de outra origem.
 
 ## Pendências técnicas
 
 - `PENDENTE DE DEFINIÇÃO`: CI real ainda não está implementada, apenas documentada em `infra/ci/README.md`.
-- `PENDENTE DE DEFINIÇÃO`: models e migrations de carregamento, entregas e
-  ocorrências.
-- `PENDENTE DE DEFINIÇÃO`: contrato, filtros e entidades aceitas na consulta protegida de histórico; `D01` impede consulta pública e `D02` limita a leitura geral a `ADMIN` e `LOGISTICS_MANAGER`.
+- `PENDENTE DE DEFINIÇÃO`: models e migrations de carregamento e ocorrências.
+- `PENDENTE DE DEFINIÇÃO`: contrato e filtros de uma eventual consulta protegida
+  de histórico; D10 fechou as entidades em `ORDER`, `LOAD_PLAN`, `TRIP` e
+  `DELIVERY`, mas não aprovou endpoint na OC09.
 - `PENDENTE DE DEFINIÇÃO`: coletor, retenção, destino e SLA dos logs e alertas;
   o backend já emite eventos JSON no logger `loadx.security` e marca casos que
   exigem alerta com `alert=true`.
@@ -157,7 +160,17 @@ nova `algorithm_version`; a representação JSON de `Decimal` segue D06 e
 - `CONFIRMADO`: o projeto fixa Node 22.23.1 nos Dockerfiles e em `.nvmrc`. O Node
   global 22.16 desta estação ainda impede o controlador visual externo, sem
   afetar build, testes ou runtime do projeto.
-- `RISCO IDENTIFICADO`: ainda não existe vínculo entre `users` e `drivers`; por segurança, `DRIVER` não recebe acesso operacional até que esse relacionamento seja aprovado e implementado.
+- `RISCO IDENTIFICADO`: o início real de viagem permanece bloqueado até o módulo
+  de carregamento persistir e confirmar `FINISHED` para o mesmo plano. A
+  interface da OC09 falha fechada e não confunde plano aprovado com carga física
+  concluída.
+- `RISCO IDENTIFICADO`: cancelamento, falha, ausência, atraso e reentrega não
+  fazem parte da máquina de estados da OC09 e exigem decisão, migration e testes
+  antes de serem aceitos.
+- `RISCO IDENTIFICADO`: o Quality Gate remoto do PR #17 apontou uma
+  vulnerabilidade média no `frontend/Dockerfile.production`: a instalação npm
+  não usa `--ignore-scripts`. O achado não é de CORS e pertence ao bloco de
+  frontend/infra, não ao backend da OC09.
 - `RISCO IDENTIFICADO`: o documento-base usa nomes de tabelas em português, enquanto o projeto já decidiu nomes técnicos em inglês. A documentação atual mantém inglês para evitar divergência no código.
 - `RISCO IDENTIFICADO`: o roadmap antigo usava outra numeração de ocorrências. A partir desta revisão, usar `OC01` a `OC48`.
 - `RISCO IDENTIFICADO`: criar lógica geométrica no frontend pode gerar divergência entre visualização e validação do backend.
