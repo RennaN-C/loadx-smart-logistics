@@ -12,6 +12,9 @@ from app.modules.auth.dependencies import require_roles
 from app.modules.users.models import User
 from app.modules.users.schemas import UserCreate, UserListRead, UserRead, UserUpdate
 from app.modules.users.service import (
+    UserDriverAlreadyLinkedError,
+    UserDriverNotFoundError,
+    UserDriverRoleRequiredError,
     UserEmailAlreadyExistsError,
     UserLastActiveAdminRequiredError,
     UserNotFoundError,
@@ -62,6 +65,27 @@ def create_user(
             "USER_EMAIL_ALREADY_EXISTS",
             "Já existe um usuário cadastrado com este e-mail.",
             [{"field": "email"}],
+        )
+    except UserDriverNotFoundError:
+        return error_response(
+            status.HTTP_404_NOT_FOUND,
+            "USER_DRIVER_NOT_FOUND",
+            "Motorista vinculado ao usuário não encontrado.",
+            [{"field": "driver_id"}],
+        )
+    except UserDriverAlreadyLinkedError:
+        return error_response(
+            status.HTTP_409_CONFLICT,
+            "USER_DRIVER_ALREADY_LINKED",
+            "O motorista já está vinculado a outro usuário.",
+            [{"field": "driver_id"}],
+        )
+    except UserDriverRoleRequiredError:
+        return error_response(
+            status.HTTP_409_CONFLICT,
+            "USER_DRIVER_ROLE_REQUIRED",
+            "Somente usuários com perfil DRIVER podem possuir motorista vinculado.",
+            [{"field": "role"}, {"field": "driver_id"}],
         )
 
 
@@ -119,4 +143,25 @@ def update_user(
             "USER_LAST_ACTIVE_ADMIN_REQUIRED",
             "O último administrador ativo não pode ser desativado ou rebaixado.",
             [{"field": "role"}, {"field": "active"}],
+        )
+    except UserDriverNotFoundError:
+        return error_response(
+            status.HTTP_404_NOT_FOUND,
+            "USER_DRIVER_NOT_FOUND",
+            "Motorista vinculado ao usuário não encontrado.",
+            [{"field": "driver_id"}],
+        )
+    except UserDriverAlreadyLinkedError:
+        return error_response(
+            status.HTTP_409_CONFLICT,
+            "USER_DRIVER_ALREADY_LINKED",
+            "O motorista já está vinculado a outro usuário.",
+            [{"field": "driver_id"}],
+        )
+    except UserDriverRoleRequiredError:
+        return error_response(
+            status.HTTP_409_CONFLICT,
+            "USER_DRIVER_ROLE_REQUIRED",
+            "Somente usuários com perfil DRIVER podem possuir motorista vinculado.",
+            [{"field": "role"}, {"field": "driver_id"}],
         )

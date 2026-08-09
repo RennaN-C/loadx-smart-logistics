@@ -29,7 +29,12 @@ from app.modules.status_history.service import (
     StatusHistoryService,
 )
 from app.modules.trucks.service import TruckPlateAlreadyExistsError, TruckService
-from app.modules.users.service import UserEmailAlreadyExistsError, UserService
+from app.modules.users.service import (
+    UserDriverAlreadyLinkedError,
+    UserDriverNotFoundError,
+    UserEmailAlreadyExistsError,
+    UserService,
+)
 
 
 class FakeDiagnostics:
@@ -79,6 +84,8 @@ def test_get_integrity_constraint_name_returns_none_without_named_constraint() -
     ("service_factory", "constraint_name", "expected_error"),
     [
         (UserService, "uq_users__email", UserEmailAlreadyExistsError),
+        (UserService, "uq_users__driver_id", UserDriverAlreadyLinkedError),
+        (UserService, "fk_users__drivers", UserDriverNotFoundError),
         (
             CustomerService,
             "uq_customers__document",

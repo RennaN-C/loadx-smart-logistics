@@ -5,6 +5,8 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
+from app.modules.drivers.schemas import DriverCreate
+from app.modules.drivers.service import DriverService
 from app.modules.users.models import User
 from app.modules.users.schemas import UserCreate
 from app.modules.users.service import UserService
@@ -64,6 +66,23 @@ def make_user_payload(
         "password": "senha-local-segura",
         "role": role,
     }
+
+
+def create_driver_in_db(session_factory: SessionFactory):
+    db = session_factory()
+    try:
+        return DriverService(db).create_driver(
+            DriverCreate(
+                name="Motorista de Teste",
+                document=f"DOC-{uuid.uuid4().hex}",
+                phone="+5500000000000",
+                license_number=f"CNH-{uuid.uuid4().hex}",
+                license_category="D",
+                active=True,
+            )
+        )
+    finally:
+        db.close()
 
 
 def test_create_user_returns_public_resource(
@@ -302,6 +321,59 @@ def test_create_user_rejects_short_password(
     )
 
     assert response.status_code == 422
+
+
+def test_admin_creates_driver_user_with_operational_link(
+    client: TestClient,
+    session_factory: SessionFactory,
+    admin_headers: dict[str, str],
+) -> None:
+    driver = create_driver_in_db(session_factory)
+    payload = make_user_payload("driver@example.test", role="DRIVER")
+    payload["driver_id"] = str(driver.id)
+
+    response = client.post("/api/v1/users", json=payload, headers=admin_headers)
+
+    assert response.status_code == 201
+    assert response.json()["driver_id"] == str(driver.id)
+
+
+def test_admin_cannot_link_driver_to_non_driver_user(
+    client: TestClient,
+    session_factory: SessionFactory,
+    admin_headers: dict[str, str],
+) -> None:
+    driver = create_driver_in_db(session_factory)
+    payload = make_user_payload()
+    payload["driver_id"] = str(driver.id)
+
+    response = client.post("/api/v1/users", json=payload, headers=admin_headers)
+
+    assert response.status_code == 409
+    assert response.json()["code"] == "USER_DRIVER_ROLE_REQUIRED"
+
+
+def test_admin_cannot_link_same_driver_to_two_users(
+    client: TestClient,
+    session_factory: SessionFactory,
+    admin_headers: dict[str, str],
+) -> None:
+    driver = create_driver_in_db(session_factory)
+    first_payload = make_user_payload("driver-one@example.test", role="DRIVER")
+    first_payload["driver_id"] = str(driver.id)
+    second_payload = make_user_payload("driver-two@example.test", role="DRIVER")
+    second_payload["driver_id"] = str(driver.id)
+    assert (
+        client.post(
+            "/api/v1/users", json=first_payload, headers=admin_headers
+        ).status_code
+        == 201
+    )
+
+    response = client.post("/api/v1/users", json=second_payload, headers=admin_headers)
+
+    assert response.status_code == 409
+    assert response.json()["code"] == "USER_DRIVER_ALREADY_LINKED"
 
 
 @pytest.mark.parametrize(
