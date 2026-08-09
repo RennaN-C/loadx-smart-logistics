@@ -400,6 +400,40 @@ def test_list_users_rejects_inactive_admin(
 
 @pytest.mark.parametrize(
     "payload",
+    [
+        {"password": "nova-senha-segura-2026"},
+        {"active": False},
+        {"role": "DRIVER"},
+    ],
+)
+def test_sensitive_user_update_revokes_existing_sessions(
+    client: TestClient,
+    session_factory: SessionFactory,
+    admin_headers: dict[str, str],
+    payload: dict[str, object],
+) -> None:
+    target = create_user_in_db(
+        session_factory,
+        f"target-{uuid.uuid4().hex}@example.test",
+        role="CHECKER",
+    )
+    target_headers = authorization_headers(session_factory, target)
+    assert client.get("/api/v1/auth/me", headers=target_headers).status_code == 200
+
+    update_response = client.patch(
+        f"/api/v1/users/{target.id}",
+        json=payload,
+        headers=admin_headers,
+    )
+    revoked_response = client.get("/api/v1/auth/me", headers=target_headers)
+
+    assert update_response.status_code == 200
+    assert revoked_response.status_code == 401
+    assert revoked_response.json()["code"] == "AUTH_INVALID_TOKEN"
+
+
+@pytest.mark.parametrize(
+    "payload",
     [{"active": False}, {"role": "checker"}],
 )
 def test_patch_rejects_removing_last_active_admin(

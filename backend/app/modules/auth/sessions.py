@@ -1,6 +1,7 @@
 import base64
 import hashlib
 import hmac
+import logging
 import secrets
 import uuid
 from collections.abc import Callable
@@ -17,6 +18,7 @@ from app.modules.users.models import User
 SESSION_TOKEN_BYTES = 32
 SESSION_IDLE_TIMEOUT = timedelta(minutes=30)
 SESSION_ABSOLUTE_TIMEOUT = timedelta(hours=8)
+logger = logging.getLogger(__name__)
 
 
 class AuthSessionInvalidError(Exception):
@@ -70,6 +72,11 @@ class AuthSessionService:
         )
         self.db.commit()
         self.db.refresh(auth_session)
+        logger.info(
+            "Authentication session created: session_id=%s user_id=%s",
+            auth_session.id,
+            user_id,
+        )
         return IssuedAuthSession(
             token=token,
             csrf_token=self.csrf_token_for(token),
@@ -87,6 +94,11 @@ class AuthSessionService:
             if auth_session.revoked_at is None:
                 self.repository.revoke(auth_session, now)
                 self.db.commit()
+                logger.info(
+                    "Authentication session expired: session_id=%s user_id=%s",
+                    auth_session.id,
+                    auth_session.user_id,
+                )
             raise AuthSessionInvalidError
         if not user.active:
             self.revoke_all_for_user(user.id)
@@ -112,13 +124,28 @@ class AuthSessionService:
         if auth_session is not None and auth_session.revoked_at is None:
             self.repository.revoke(auth_session, self.now_provider())
         self.db.commit()
+        if auth_session is not None:
+            logger.info(
+                "Authentication session revoked: session_id=%s user_id=%s",
+                auth_session.id,
+                auth_session.user_id,
+            )
 
     def revoke_all_for_user(self, user_id: uuid.UUID) -> int:
+        revoked_count = self.stage_revoke_all_for_user(user_id)
+        self.db.commit()
+        logger.info(
+            "User authentication sessions revoked: user_id=%s count=%d",
+            user_id,
+            revoked_count,
+        )
+        return revoked_count
+
+    def stage_revoke_all_for_user(self, user_id: uuid.UUID) -> int:
         active_sessions = self.repository.list_active_for_user_for_update(user_id)
         revoked_at = self.now_provider()
         for auth_session in active_sessions:
             self.repository.revoke(auth_session, revoked_at)
-        self.db.commit()
         return len(active_sessions)
 
     def validate_csrf_token(self, token: str, csrf_token: str) -> bool:

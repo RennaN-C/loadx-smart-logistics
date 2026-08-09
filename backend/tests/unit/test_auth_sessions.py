@@ -135,6 +135,20 @@ def test_revoke_session_and_all_user_sessions_are_immediate(
         service.resolve_session(second.token)
 
 
+def test_stage_revoke_all_participates_in_callers_transaction(
+    db_session: Session,
+) -> None:
+    clock = Clock()
+    user = create_user(db_session)
+    service = make_service(db_session, clock)
+    issued = service.create_session(user.id)
+
+    assert service.stage_revoke_all_for_user(user.id) == 1
+    db_session.rollback()
+
+    assert service.resolve_session(issued.token).user.id == user.id
+
+
 def test_resolve_session_revokes_inactive_user_sessions(db_session: Session) -> None:
     clock = Clock()
     user = create_user(db_session)

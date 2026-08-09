@@ -37,6 +37,8 @@ pelo esquema cookie `SessionCookie` no OpenAPI.
 - Novos hashes usam Argon2id com m=19 MiB, t=2 e p=1.
 - Hashes PBKDF2 legados continuam verificáveis e são migrados para Argon2id após
   um login válido.
+- Troca de senha, desativação e alteração de papel revogam todas as sessões do
+  usuário na mesma transação da atualização.
 - `password_hash` nunca é retornado pela API.
 - `active = false` bloqueia login.
 - O último `ADMIN` ativo não pode ser desativado ou rebaixado.
