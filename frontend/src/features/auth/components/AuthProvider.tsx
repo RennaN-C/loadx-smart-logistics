@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { setSessionInvalidatedHandler } from "../../../services/api";
-import { clearToken, getToken, setToken } from "../../../services/tokenStorage";
-import { getCurrentUser, login as loginRequest } from "../api/authApi";
+import { clearCsrfToken } from "../../../services/csrfToken";
+import { getCurrentUser, login as loginRequest, logout as logoutRequest } from "../api/authApi";
 import type { AuthContextValue, AuthenticatedUser, AuthStatus } from "../types";
 import { AuthContext } from "./AuthContext";
 
@@ -17,15 +17,11 @@ interface AuthProviderProps {
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const [state, setState] = useState<AuthState>(() => ({
-    status: getToken() ? "loading" : "unauthenticated",
+    status: "loading",
     user: null,
   }));
 
   useEffect(() => {
-    if (!getToken()) {
-      return;
-    }
-
     let active = true;
 
     getCurrentUser()
@@ -35,7 +31,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
       })
       .catch(() => {
-        clearToken();
+        clearCsrfToken();
         if (active) {
           setState({ status: "unauthenticated", user: null });
         }
@@ -48,7 +44,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   useEffect(() => {
     setSessionInvalidatedHandler(() => {
-      clearToken();
+      clearCsrfToken();
       setState({ status: "unauthenticated", user: null });
     });
 
@@ -56,15 +52,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
-    const result = await loginRequest(email, password);
-    setToken(result.accessToken);
-
-    const user = await getCurrentUser();
+    const user = await loginRequest(email, password);
     setState({ status: "authenticated", user });
   }, []);
 
-  const logout = useCallback(() => {
-    clearToken();
+  const logout = useCallback(async () => {
+    await logoutRequest();
+    clearCsrfToken();
     setState({ status: "unauthenticated", user: null });
   }, []);
 

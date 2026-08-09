@@ -1,7 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ApiError } from "../types/api";
-import { notifyIfSessionInvalidated, setSessionInvalidatedHandler, toApiError } from "./api";
+import {
+  api,
+  notifyIfSessionInvalidated,
+  setSessionInvalidatedHandler,
+  toApiError,
+} from "./api";
+import { clearCsrfToken, getCsrfToken, setCsrfToken } from "./csrfToken";
 
 function fakeAxiosError(overrides: { response?: unknown }): unknown {
   return { isAxiosError: true, ...overrides };
@@ -42,6 +48,7 @@ describe("toApiError", () => {
 describe("notifyIfSessionInvalidated", () => {
   afterEach(() => {
     setSessionInvalidatedHandler(null);
+    clearCsrfToken();
   });
 
   it.each(["AUTH_INVALID_TOKEN", "AUTH_USER_INACTIVE"])(
@@ -67,4 +74,56 @@ describe("notifyIfSessionInvalidated", () => {
       expect(handler).not.toHaveBeenCalled();
     },
   );
+});
+
+describe("cookie session and CSRF", () => {
+  afterEach(() => {
+    clearCsrfToken();
+  });
+
+  it("envia cookies em todas as chamadas", () => {
+    expect(api.defaults.withCredentials).toBe(true);
+  });
+
+  it("anexa X-CSRF-Token somente em métodos inseguros", async () => {
+    setCsrfToken("csrf-da-sessao");
+    let patchHeader: unknown;
+    let getHeader: unknown;
+
+    await api.request({
+      method: "patch",
+      url: "/resource",
+      adapter: async (config) => {
+        patchHeader = config.headers.get("X-CSRF-Token");
+        return { data: {}, status: 200, statusText: "OK", headers: {}, config };
+      },
+    });
+    await api.request({
+      method: "get",
+      url: "/resource",
+      adapter: async (config) => {
+        getHeader = config.headers.get("X-CSRF-Token");
+        return { data: {}, status: 200, statusText: "OK", headers: {}, config };
+      },
+    });
+
+    expect(patchHeader).toBe("csrf-da-sessao");
+    expect(getHeader).toBeUndefined();
+  });
+
+  it("captura o CSRF devolvido pelo login ou /auth/me", async () => {
+    await api.request({
+      method: "get",
+      url: "/auth/me",
+      adapter: async (config) => ({
+        data: {},
+        status: 200,
+        statusText: "OK",
+        headers: { "x-csrf-token": "csrf-restaurado" },
+        config,
+      }),
+    });
+
+    expect(getCsrfToken()).toBe("csrf-restaurado");
+  });
 });

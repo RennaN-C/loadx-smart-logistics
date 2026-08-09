@@ -1,17 +1,22 @@
 import axios from "axios";
 
 import { ApiError, isApiErrorResponse } from "../types/api";
-import { getToken } from "./tokenStorage";
+import { clearCsrfToken, getCsrfToken, setCsrfToken } from "./csrfToken";
+
+const CSRF_HEADER_NAME = "X-CSRF-Token";
+const UNSAFE_METHODS = new Set(["post", "put", "patch", "delete"]);
 
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? "http://localhost:8000/api/v1",
+  withCredentials: true,
 });
 
 api.interceptors.request.use((config) => {
-  const token = getToken();
+  const csrfToken = getCsrfToken();
+  const method = config.method?.toLowerCase();
 
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  if (csrfToken && method && UNSAFE_METHODS.has(method)) {
+    config.headers.set(CSRF_HEADER_NAME, csrfToken);
   }
 
   return config;
@@ -42,12 +47,19 @@ const SESSION_INVALIDATING_CODES = new Set(["AUTH_INVALID_TOKEN", "AUTH_USER_INA
 
 export function notifyIfSessionInvalidated(apiError: ApiError): void {
   if (SESSION_INVALIDATING_CODES.has(apiError.code)) {
+    clearCsrfToken();
     sessionInvalidatedHandler?.(apiError.code);
   }
 }
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    const csrfToken = response.headers[CSRF_HEADER_NAME.toLowerCase()];
+    if (typeof csrfToken === "string" && csrfToken.length > 0) {
+      setCsrfToken(csrfToken);
+    }
+    return response;
+  },
   (error: unknown) => {
     const apiError = toApiError(error);
     notifyIfSessionInvalidated(apiError);

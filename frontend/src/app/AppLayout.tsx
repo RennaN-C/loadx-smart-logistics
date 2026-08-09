@@ -49,7 +49,11 @@ export function AppLayout() {
         {user ? (
           <div className="app-header-account">
             <span>{user.name}</span>
-            <button type="button" className="app-header-logout" onClick={logout}>
+            <button
+              type="button"
+              className="app-header-logout"
+              onClick={() => void Promise.resolve(logout()).catch(() => undefined)}
+            >
               Sair
             </button>
           </div>
