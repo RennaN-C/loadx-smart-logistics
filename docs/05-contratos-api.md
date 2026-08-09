@@ -631,6 +631,12 @@ Mapeamento recomendado:
 `CONFIRMADO`: CORS permite credenciais somente para as origens exatas de
 `BACKEND_CORS_ORIGINS` e expõe `X-CSRF-Token` ao frontend próprio.
 
+`CONFIRMADO`: todas as respostas da aplicação usam `Cache-Control: no-store`,
+`X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`,
+`Referrer-Policy: no-referrer`, política restritiva de permissões e CSP que
+impede framing. Em `production`, também usam `Strict-Transport-Security` por um
+ano com `includeSubDomains`.
+
 `CONFIRMADO`: novos hashes de senha usam Argon2id com memória de 19 MiB, duas
 iterações e paralelismo 1. PBKDF2 legado é aceito apenas para migração gradual
 após autenticação válida.

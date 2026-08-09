@@ -520,7 +520,7 @@ atual porque D12 não aprovou filtros server-side.
 - **Tipo:** segurança e contrato.
 - **Responsável primário confirmado:** Desenvolvedor 1.
 - **Prioridade:** alta.
-- **Situação:** aprovada por D18 em 2026-08-08.
+- **Situação:** implementada e validada localmente em 2026-08-09.
 
 ### Objetivo
 
@@ -546,6 +546,21 @@ hash e disponibilizar sessão revogável com proteção CSRF para o frontend pr�
   para autenticação.
 - Migration real, downgrade, testes PostgreSQL, Ruff, frontend, build e scanners
   passam.
+
+### Resultado
+
+`CONFIRMADO`: a OC60 foi dividida em commits pequenos para decisão, senha,
+throttling, persistência de sessão, contrato HTTP, revogação, frontend e headers
+defensivos. O banco chegou à revisão `20260808_0006` exclusivamente por Alembic.
+
+`CONFIRMADO`: a validação final executou 577 testes unitários/health e 351 testes
+de integração em PostgreSQL 16, totalizando 928 testes de backend. O ciclo real
+de migration executou `upgrade head`, `downgrade -1` e novo `upgrade head`.
+
+`CONFIRMADO`: o frontend passou por ESLint, 159 testes e build. `pip-audit`,
+`npm audit`, Bandit e a busca por padrões de credencial terminaram sem achados.
+O Compose principal aplicou `20260808_0006`, deixou backend e banco saudáveis e
+respondeu `/ready` com sucesso.
 
 ### Fora do escopo
 

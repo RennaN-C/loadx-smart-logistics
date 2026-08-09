@@ -3,12 +3,10 @@
 ## Estado atual
 
 `CONFIRMADO`: o repositório possui models SQLAlchemy e migrations para `users`,
-`customers`, `drivers`, `trucks`, `products`, `orders`, `order_items`,
-`status_history`, `load_plans`, `load_plan_orders` e `load_plan_items`.
-
-`CONFIRMADO` por D18 e `ADR-020`: `auth_sessions` e
-`auth_login_throttles` integram o modelo aprovado e possuem models e migrations
-Alembic na OC60.
+`auth_sessions`, `auth_login_throttles`, `customers`, `drivers`, `trucks`,
+`products`, `orders`, `order_items`, `status_history`, `load_plans`,
+`load_plan_orders` e `load_plan_items`. As tabelas de autenticação foram
+aprovadas por D18 e `ADR-020` e são criadas pelas migrations da OC60.
 
 `PENDENTE DE DEFINIÇÃO`: `loading_sessions`, `trips`, `deliveries` e
 `occurrences` ainda não possuem models/migrations.

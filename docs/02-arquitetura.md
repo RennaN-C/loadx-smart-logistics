@@ -139,5 +139,8 @@ Responsabilidades por pasta:
   `/ready` como verificação pública e genérica de PostgreSQL e Alembic.
 - `CONFIRMADO`: D18 e `ADR-020` definem sessão opaca revogável, cookie seguro,
   CSRF, throttling de login, Argon2id e política de senha.
+- `CONFIRMADO`: a API desabilita cache de respostas, framing, MIME sniffing,
+  referrer e permissões desnecessárias; a CSP da API nega recursos por padrão e
+  HSTS é emitido quando `APP_ENV=production`.
 - `PENDENTE DE DEFINIÇÃO`: recuperação de senha e MFA possuem ocorrências futuras
   próprias.

@@ -56,9 +56,12 @@ Não existem clientes externos que precisem preservar o contrato Bearer.
   pode revogar sessões individualmente ou por usuário.
 - `auth_sessions` e `auth_login_throttles` passam a integrar o modelo oficial e
   são criadas exclusivamente por migration Alembic.
-- `RISCO IDENTIFICADO`: TLS, HSTS no proxy, cofre de segredos, alertas externos e
-  segregação dos papéis PostgreSQL pertencem ao ambiente de implantação e não
-  são resolvidos somente pelo código da aplicação.
+- `CONFIRMADO`: a API emite headers defensivos em todas as respostas e HSTS em
+  produção; Vite e Vite Preview emitem CSP e headers equivalentes para o
+  frontend local.
+- `RISCO IDENTIFICADO`: TLS e preservação dos headers no proxy/CDN, cofre de
+  segredos, alertas externos e segregação dos papéis PostgreSQL pertencem ao
+  ambiente de implantação e não são resolvidos somente pelo código da aplicação.
 - `PENDENTE DE DEFINIÇÃO`: recuperação de senha e resposta a comprometimento
   precisam de fluxo operacional próprio.
 - `PENDENTE DE DEFINIÇÃO`: MFA para `ADMIN` e `LOGISTICS_MANAGER` será uma

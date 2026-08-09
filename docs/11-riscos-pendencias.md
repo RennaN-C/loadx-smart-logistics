@@ -23,6 +23,10 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 - `CONFIRMADO`: a OC59 aplica D12 no banco e na API de usuários, clientes,
   motoristas, pedidos, caminhões e produtos; o frontend de caminhões consome o
   envelope e permite navegar pelas páginas.
+- `CONFIRMADO`: a OC60 implementa D18 com Argon2id, política de senha, limitação
+  de login por conta e IP, sessões opacas revogáveis, cookie HttpOnly, proteção
+  de Origin/CSRF, logout, revogação por mudanças sensíveis e frontend sem
+  credenciais no Web Storage.
 - `CONFIRMADO`: volumes individuais são expandidos de `order_items.quantity`, usam `volume_index` iniciado em `1` e são persistidos em `load_plan_items`, sem tabela `volumes`, conforme `ADR-005`.
 - `CONFIRMADO`: volumes usam a ordem total determinística de volume, peso, empilhamento, fragilidade, entrega e identidade, conforme `ADR-006`.
 - `CONFIRMADO`: rotações usam seis permutações ortogonais priorizadas, deduplicam simetrias e respeitam bloqueio por produto, conforme `ADR-007`.
@@ -73,6 +77,12 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 - `PENDENTE DE DEFINIÇÃO`: estratégia final de logging estruturado.
 - `PENDENTE DE DEFINIÇÃO`: recuperação de senha e MFA para `ADMIN` e
   `LOGISTICS_MANAGER` precisam de contrato de cadastro, recuperação e bootstrap.
+- `PENDENTE DE DEFINIÇÃO`: a cadeia de proxies confiáveis precisa ser definida
+  antes de usar `X-Forwarded-For` no throttling. Até lá, o backend usa somente o
+  IP direto da conexão para não aceitar headers forjados.
+- `PENDENTE DE DEFINIÇÃO`: produção precisa separar a credencial que executa
+  migrations da credencial da aplicação, adotar cofre de segredos e configurar
+  alertas externos para eventos de autenticação privilegiada.
 - `PENDENTE DE DEFINIÇÃO`: validação formal de CPF, CNPJ, telefone e CNH.
 - `PENDENTE DE DEFINIÇÃO`: política de armazenamento, expiração e proteção de fotos de ocorrência.
 - `PENDENTE DE DEFINIÇÃO`: SLA rígido de tempo do otimizador; o limite funcional
@@ -124,7 +134,17 @@ nova `algorithm_version`; a representação JSON de `Decimal` segue D06 e
   suíte completa antes de ser publicada.
 - `CONFIRMADO`: o risco de dependências vulneráveis registrado em 2026-08-06 foi
   corrigido em 2026-08-07; o `package-lock.json` atualizado retorna zero achados
-  no `npm audit` e passou por lint, 156 testes e build de produção.
+  no `npm audit` e passou por lint, 159 testes e build de produção na validação
+  da OC60 em 2026-08-09.
+- `RISCO IDENTIFICADO`: a blocklist local impede senhas comuns e termos do
+  produto, mas ainda não equivale a um corpus offline completo de credenciais
+  comprometidas com rotina de atualização.
+- `RISCO IDENTIFICADO`: o backend emite HSTS apenas em `production` e o Vite
+  emite CSP no desenvolvimento/preview; o proxy, servidor estático ou CDN de
+  produção deve servir HTTPS e preservar os mesmos headers.
+- `RISCO IDENTIFICADO`: a suíte atual emite aviso de depreciação do adaptador
+  `httpx` usado pelo `TestClient` do Starlette. Não há falha funcional, mas a
+  migração deve ser tratada antes da remoção desse adaptador.
 - `RISCO IDENTIFICADO`: ainda não existe vínculo entre `users` e `drivers`; por segurança, `DRIVER` não recebe acesso operacional até que esse relacionamento seja aprovado e implementado.
 - `RISCO IDENTIFICADO`: o documento-base usa nomes de tabelas em português, enquanto o projeto já decidiu nomes técnicos em inglês. A documentação atual mantém inglês para evitar divergência no código.
 - `RISCO IDENTIFICADO`: o roadmap antigo usava outra numeração de ocorrências. A partir desta revisão, usar `OC01` a `OC48`.
