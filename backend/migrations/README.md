@@ -9,8 +9,9 @@ O Alembic versiona toda alteração estrutural do PostgreSQL.
 - `migrations/script.py.mako`: template das revisions.
 - `migrations/versions`: migrations versionadas.
 
-`CONFIRMADO`: o head atual é `20260804_0004`, que cria `load_plans`,
-`load_plan_orders` e `load_plan_items` com snapshots e FKs restritivas.
+`CONFIRMADO`: o head atual é `20260808_0005`. Além das tabelas de planejamento,
+a revisão mais recente cria `auth_login_throttles` para a limitação durável da
+OC60, sem persistir e-mail ou IP brutos.
 
 ## Comandos
 

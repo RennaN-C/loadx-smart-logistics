@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.core.pagination import PaginationParams
 from app.core.security import verify_password
+from app.modules.auth.models import AuthLoginThrottle
 from app.modules.auth.schemas import AuthLogin
 from app.modules.auth.service import (
     AuthBootstrapAlreadyCompletedError,
@@ -16,7 +17,7 @@ from app.modules.users.models import User
 from app.modules.users.schemas import UserCreate, UserUpdate
 from app.modules.users.service import UserService
 
-SQLITE_TABLES = (User.__table__,)
+SQLITE_TABLES = (User.__table__, AuthLoginThrottle.__table__)
 
 
 def make_user_create(
@@ -107,7 +108,7 @@ def test_login_rejects_inactive_user(db_session: Session) -> None:
     UserService(db_session).create_user(make_user_create(active=False))
     service = AuthService(db_session)
 
-    with pytest.raises(AuthInactiveUserError):
+    with pytest.raises(AuthInvalidCredentialsError):
         service.login(
             AuthLogin(email="admin@example.test", password="senha-local-segura")
         )

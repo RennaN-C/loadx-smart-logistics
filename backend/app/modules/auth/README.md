@@ -28,6 +28,12 @@ Crie somente os arquivos necessários para a ocorrência atual.
 - Senha é persistida somente como `password_hash`.
 - Token JWT usa `sub` com o UUID do usuário.
 - Login de usuário inativo é bloqueado.
+- Login não diferencia publicamente e-mail inexistente, senha inválida ou usuário
+  inativo.
+- Falhas de login são limitadas por conta e IP com HMAC dos identificadores,
+  bloqueios progressivos de 1, 5, 15 e 60 minutos e `Retry-After`.
+- Uma autenticação válida remove os contadores correspondentes; não existe
+  bloqueio permanente automático.
 - `/auth/me` rejeita token ausente, inválido, expirado ou de usuário inexistente.
 - `/auth/me` usa o esquema Bearer documentado no OpenAPI.
 - Papéis inválidos na configuração da autorização são rejeitados e acesso sem papel permitido usa `AUTH_FORBIDDEN`.
@@ -36,4 +42,5 @@ Crie somente os arquivos necessários para a ocorrência atual.
 ## Pendências
 
 - `CONFIRMADO`: a matriz de permissões e a negação por padrão seguem `docs/04-regras-negocio.md` e `ADR-004`; a `OC51-I` auditou todos os endpoints de negócio implementados.
-- `PENDENTE DE DEFINIÇÃO`: política final de expiração, refresh token e bloqueio por tentativas inválidas.
+- `CONFIRMADO`: D18 e `ADR-020` eliminaram refresh token e definiram sessões
+  opacas; a substituição do JWT é a próxima fatia da OC60.

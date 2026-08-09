@@ -121,12 +121,28 @@ def test_login_returns_standard_error_for_inactive_user(
         json={"email": "admin@example.test", "password": "senha-local-segura"},
     )
 
-    assert response.status_code == 403
+    assert response.status_code == 401
     assert response.json() == {
-        "code": "AUTH_USER_INACTIVE",
-        "message": "Usuário inativo.",
+        "code": "AUTH_INVALID_CREDENTIALS",
+        "message": "E-mail ou senha inválidos.",
         "details": [],
     }
+
+
+def test_login_rate_limit_is_generic_and_includes_retry_after(
+    client: TestClient,
+) -> None:
+    payload = {"email": "unknown@example.test", "password": "senha-errada"}
+    for _ in range(5):
+        response = client.post("/api/v1/auth/login", json=payload)
+        assert response.status_code == 401
+        assert response.json()["code"] == "AUTH_INVALID_CREDENTIALS"
+
+    response = client.post("/api/v1/auth/login", json=payload)
+
+    assert response.status_code == 429
+    assert response.json()["code"] == "AUTH_RATE_LIMITED"
+    assert response.headers["retry-after"] == "60"
 
 
 def test_me_returns_standard_error_for_missing_token(client: TestClient) -> None:

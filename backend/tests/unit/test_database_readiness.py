@@ -73,7 +73,7 @@ def _install_fake_connection(
 
 def test_loads_the_versioned_alembic_head() -> None:
     assert _load_expected_heads(DEFAULT_ALEMBIC_CONFIG_PATH) == frozenset(
-        {"20260804_0004"}
+        {"20260808_0005"}
     )
 
 
@@ -115,9 +115,7 @@ def test_hides_driver_error_and_credentials(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     def fail_connect(*_args: object, **_kwargs: object) -> None:
-        raise psycopg.OperationalError(
-            "could not connect with password secret-value"
-        )
+        raise psycopg.OperationalError("could not connect with password secret-value")
 
     monkeypatch.setattr(readiness_module.psycopg, "connect", fail_connect)
     checker = DatabaseReadinessChecker(
