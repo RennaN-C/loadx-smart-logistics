@@ -99,18 +99,18 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
         head_revision = connection.exec_driver_sql(
             "SELECT version_num FROM alembic_version"
         ).scalar_one()
-        assert head_revision == "20260808_0005"
+        assert head_revision == "20260808_0006"
 
     _run_alembic(test_url, "downgrade", "-1")
     with engine.connect() as connection:
         downgraded_revision = connection.exec_driver_sql(
             "SELECT version_num FROM alembic_version"
         ).scalar_one()
-        auth_login_throttles_exists = connection.exec_driver_sql(
-            "SELECT to_regclass('public.auth_login_throttles')"
+        auth_sessions_exists = connection.exec_driver_sql(
+            "SELECT to_regclass('public.auth_sessions')"
         ).scalar_one()
-        assert downgraded_revision == "20260804_0004"
-        assert auth_login_throttles_exists is None
+        assert downgraded_revision == "20260808_0005"
+        assert auth_sessions_exists is None
 
     _run_alembic(test_url, "upgrade", "head")
 

@@ -7,8 +7,8 @@
 `status_history`, `load_plans`, `load_plan_orders` e `load_plan_items`.
 
 `CONFIRMADO` por D18 e `ADR-020`: `auth_sessions` e
-`auth_login_throttles` integram o modelo aprovado da OC60 e serão criadas por
-migration Alembic na implementação da ocorrência.
+`auth_login_throttles` integram o modelo aprovado e possuem models e migrations
+Alembic na OC60.
 
 `PENDENTE DE DEFINIÇÃO`: `loading_sessions`, `trips`, `deliveries` e
 `occurrences` ainda não possuem models/migrations.
