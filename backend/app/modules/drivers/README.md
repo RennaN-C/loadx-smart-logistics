@@ -1,6 +1,7 @@
 # Motoristas
 
-Cadastro do motorista e vínculo futuro com viagens. GPS real não faz parte do MVP.
+Cadastro do motorista e referência pública usada por viagens. GPS real não faz
+parte do MVP.
 
 ## Estrutura
 
@@ -30,9 +31,11 @@ Crie somente os arquivos necessários para a ocorrência atual.
 - `license_number` deve ser único.
 - `license_category` é opcional e normalizada para maiúsculas quando informada.
 - `active = false` representa motorista indisponível para viagens futuras.
+- O módulo de viagens bloqueia o motorista durante a criação e rejeita motorista
+  inativo.
+- O vínculo de identidade fica em `users.driver_id`, não em `drivers`.
 - Todas as rotas exigem sessão em cookie e consultam o papel e o estado atual do usuário no banco.
 
 ## Pendências
 
 - `PENDENTE DE DEFINIÇÃO`: validação formal de CPF, telefone e categoria de CNH.
-- `PENDENTE DE DEFINIÇÃO`: bloqueio de vínculo de motorista inativo será aplicado no módulo de viagens.

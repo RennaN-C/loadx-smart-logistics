@@ -26,8 +26,8 @@ Crie somente os arquivos necessários para a ocorrência atual.
 
 `CONFIRMADO`: `ADMIN`, `CHECKER` e `LOGISTICS_MANAGER` podem consultar. Somente
 `LOGISTICS_MANAGER` pode criar, atualizar ou executar transições manuais.
-`DRIVER` não acessa o módulo enquanto não existir vínculo aprovado com seus
-pedidos.
+`DRIVER` não acessa os endpoints do módulo; sua operação atualiza pedidos pela
+viagem atribuída.
 
 ## Regras implementadas
 
@@ -37,6 +37,8 @@ pedidos.
 - Pedido deve possuir cliente existente e pelo menos um item.
 - Cada item deve possuir produto existente.
 - `quantity` e `delivery_sequence` devem ser maiores que zero.
+- Todos os itens do mesmo pedido devem usar a mesma `delivery_sequence` para que
+  a OC09 gere uma entrega determinística por pedido.
 - `priority` é normalizado para maiúsculas.
 - `expected_delivery_at` deve vir com timezone e é normalizado para UTC.
 - O `PATCH` genérico não aceita `status` e só edita pedidos em `DRAFT`.
