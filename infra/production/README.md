@@ -6,7 +6,8 @@ origem HTTPS. Não contém domínio, credencial nem dado real.
 ## Pré-requisitos
 
 - DNS de `LOADX_DOMAIN` apontando para o servidor.
-- Portas TCP 80/443 e UDP 443 liberadas para o Caddy obter e renovar TLS.
+- Portas TCP 80/443 liberadas para o Caddy obter e renovar TLS. HTTP/3 está
+  desativado nesta referência, portanto UDP 443 não é necessário.
 - PostgreSQL 16 externo ou privado, já preparado com
   `infra/database/production_roles.sql`.
 - Variáveis sensíveis fornecidas pelo cofre ou pelo mecanismo seguro da

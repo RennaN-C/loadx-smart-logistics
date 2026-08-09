@@ -577,7 +577,7 @@ bloquear o único administrador; a implementação exige ocorrência própria.
 - **Tipo:** segurança e infraestrutura.
 - **Responsável primário confirmado:** Desenvolvedor 1.
 - **Prioridade:** alta.
-- **Situação:** aprovada por `ADR-021` em 2026-08-09.
+- **Situação:** implementada e validada localmente em 2026-08-09.
 
 ### Objetivo
 
@@ -598,12 +598,75 @@ escolher ou contratar provedor externo.
 - Configuração do Compose, Caddyfile, imagem estática e SQL de papéis são
   validados antes do encerramento.
 
+### Resultado
+
+`CONFIRMADO`: a referência isolada concluiu migration, manteve backend privado,
+publicou apenas Caddy em 80/443, redirecionou HTTP e respondeu frontend,
+`/health` e `/ready` por HTTPS. CSP, HSTS e headers defensivos foram observados;
+a assinatura do servidor backend não foi exposta.
+
+`CONFIRMADO`: o SQL permitiu DDL ao papel de migration e DML ao papel da
+aplicação. A tentativa de criar tabela como `loadx_app` falhou por falta de
+permissão, conforme o critério de menor privilégio.
+
+`CONFIRMADO`: os eventos estruturados cobrem sucesso/falha de login, throttling,
+criação, expiração e revogação de sessões e mudanças sensíveis de usuário. A
+integração externa pode filtrar `alert=true` sem receber e-mail, IP ou segredo.
+
+`CONFIRMADO`: a validação completa aprovou Ruff, 590 testes unitários/health e
+351 testes em PostgreSQL 16, totalizando 941 testes de backend. ESLint, 159
+testes do frontend, build, orçamento gzip, `pip-audit`, `npm audit` e Bandit
+também passaram.
+
 ### Fora do escopo
 
 - Contratação de domínio, cofre, banco gerenciado, observabilidade ou serviço de
   alertas.
 - Alta disponibilidade, backup, restauração e deploy em uma plataforma real.
 - MFA e recuperação de senha.
+
+---
+
+## [OC62] Definir MFA e recuperação segura de acesso
+
+- **Tipo:** proposta de segurança e contrato.
+- **Responsável primário recomendado:** Desenvolvedor 1.
+- **Prioridade recomendada:** alta, antes da produção.
+- **Situação:** `PENDENTE DE DEFINIÇÃO` e aprovação; nenhuma implementação foi
+  iniciada.
+
+### Objetivo proposto
+
+Definir, antes de alterar banco ou API, o ciclo completo de MFA obrigatório para
+`ADMIN` e `LOGISTICS_MANAGER` e a recuperação de acesso sem criar um caminho que
+contorne o segundo fator.
+
+### Decisões necessárias
+
+- `DECISÃO NECESSÁRIA`: passkey/WebAuthn como fator principal com TOTP de
+  contingência, ou TOTP como primeira entrega.
+- `DECISÃO NECESSÁRIA`: cadastro, confirmação, substituição e remoção de fatores,
+  incluindo reautenticação para cada ação sensível.
+- `DECISÃO NECESSÁRIA`: quantidade, entrega, uso único e regeneração de códigos
+  de recuperação, armazenados somente como hash.
+- `DECISÃO NECESSÁRIA`: procedimento auditável para perda de dispositivo,
+  recuperação de senha e administrador de emergência, sem bloquear o primeiro
+  bootstrap nem permitir bypass permanente.
+- `DECISÃO NECESSÁRIA`: modelo de dados, contratos HTTP, interface e eventos de
+  auditoria que materializam essas escolhas.
+
+### Recomendação para aprovação
+
+`RECOMENDAÇÃO`: preferir passkeys, aceitar TOTP como contingência, fornecer
+códigos de recuperação de uso único e exigir reautenticação para gerenciar
+fatores. A ocorrência deve começar por ADR e threat model e só depois dividir
+banco, serviço, API e frontend em commits testáveis.
+
+### Fora do escopo da proposta
+
+- Contratar provedor externo antes da escolha da plataforma de produção.
+- Implementar recuperação baseada apenas em perguntas pessoais, suporte sem
+  auditoria ou desativação silenciosa do MFA.
 
 ---
 

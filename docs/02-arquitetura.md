@@ -25,7 +25,8 @@ PostgreSQL
 - Frontend: React 18, TypeScript estrito, Vite.
 - HTTP frontend: Axios.
 - Validação frontend: Zod quando necessário para contratos no navegador.
-- Visualização: Three.js, React Three Fiber e Drei.
+- Visualização: Three.js e React Three Fiber; controles oficiais do Three.js são
+  importados diretamente para evitar dependências auxiliares no bundle 3D.
 - Infraestrutura local: Docker Compose.
 - Referência de produção: Docker Compose com Caddy como terminador TLS e servidor
   estático, conforme `ADR-021`.
