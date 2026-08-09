@@ -6,7 +6,8 @@ Não coloque regras de caminhão, pedido ou carga aqui. O core deve conhecer inf
 
 ## Arquivos
 
-- `config.py`: variáveis de ambiente e configurações globais, incluindo `APP_ENV=local|production`.
+- `config.py`: variáveis de ambiente e configurações globais, incluindo
+  `APP_ENV=local|production` e o caminho opcional da blocklist de senhas.
 - `exceptions.py`: handlers globais de validação e erros inesperados da API.
 - `responses.py`: envelope de erro HTTP e metadados compartilhados do OpenAPI.
 - `security.py`: Argon2id e migração de hashes PBKDF2 legados.

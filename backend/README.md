@@ -63,6 +63,10 @@ restrição de permissões do navegador. HSTS é emitido somente em `production`
 `RISCO IDENTIFICADO`: HTTPS deve ser terminado e validado pela infraestrutura de
 produção; o navegador ignora HSTS recebido por uma conexão HTTP.
 
+`PASSWORD_BLOCKLIST_PATH` é opcional e aponta para um arquivo UTF-8 com uma
+senha completa por linha. Linhas vazias e iniciadas por `#` são ignoradas. Em
+produção, monte somente uma lista aprovada e reinicie o processo para recarregá-la.
+
 `CONFIRMADO`: no Compose, o serviço one-shot `migrate` aplica o head Alembic
 antes do backend. A API e a migration executam como usuário sem privilégio, sem
 capabilities Linux e sem possibilidade de elevar privilégios.

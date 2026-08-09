@@ -1,7 +1,8 @@
 from functools import lru_cache
+from pathlib import Path
 from typing import Literal
 
-from pydantic import Field, model_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 LOCAL_DATABASE_URL = "postgresql+psycopg://loadx:loadx_local@db:5432/loadx"
@@ -20,6 +21,7 @@ class Settings(BaseSettings):
         default="http://localhost:5173", validation_alias="BACKEND_CORS_ORIGINS"
     )
     secret_key: str = "local-only"
+    password_blocklist_path: Path | None = None
     ai_provider: str = "mock"
     whatsapp_provider: str = "mock"
 
@@ -29,8 +31,18 @@ class Settings(BaseSettings):
         populate_by_name=True,
     )
 
+    @field_validator("password_blocklist_path", mode="before")
+    @classmethod
+    def normalize_optional_blocklist_path(cls, value: object) -> object:
+        return None if value == "" else value
+
     @model_validator(mode="after")
     def reject_insecure_production_defaults(self) -> "Settings":
+        if (
+            self.password_blocklist_path is not None
+            and not self.password_blocklist_path.is_file()
+        ):
+            raise ValueError("PASSWORD_BLOCKLIST_PATH must point to a readable file.")
         if self.app_env != "production":
             return self
         if len(self.secret_key) < 32 or self.secret_key in INSECURE_SECRET_KEYS:

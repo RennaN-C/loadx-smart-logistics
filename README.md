@@ -359,6 +359,7 @@ Exemplo:
 APP_ENV=local
 DATABASE_URL=postgresql+psycopg://loadx:loadx_local@db:5432/loadx
 SECRET_KEY=troque-esta-chave-no-env-local
+PASSWORD_BLOCKLIST_PATH=
 WHATSAPP_TOKEN=
 OPENAI_API_KEY=
 ```

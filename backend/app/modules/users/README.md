@@ -34,6 +34,13 @@ pelo esquema cookie `SessionCookie` no OpenAPI.
 - `role` aceita `ADMIN`, `CHECKER`, `DRIVER` e `LOGISTICS_MANAGER`.
 - Novas senhas e trocas exigem de 15 a 128 caracteres, aceitam espaços e
   Unicode, não usam regra de composição e consultam a blocklist local da D18.
+- A blocklist interna cobre valores comuns e derivados do contexto LoadX. Uma
+  lista adicional aprovada pela operação pode ser montada como arquivo UTF-8 e
+  informada em `PASSWORD_BLOCKLIST_PATH`; ela é carregada uma vez por processo,
+  limitada a 5 MiB e 100.000 valores e nunca depende de consulta externa durante
+  criação ou troca de senha.
+- A comparação usa a senha inteira normalizada em NFC e sem diferenciar caixa;
+  uma frase forte não é rejeitada apenas por conter uma palavra isolada da lista.
 - Novos hashes usam Argon2id com m=19 MiB, t=2 e p=1.
 - Hashes PBKDF2 legados continuam verificáveis e são migrados para Argon2id após
   um login válido.

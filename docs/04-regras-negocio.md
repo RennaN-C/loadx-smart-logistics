@@ -86,7 +86,8 @@ Regras complementares:
 - credenciais inválidas, conta inexistente e conta inativa produzem a mesma
   resposta pública;
 - novas senhas exigem 15 a 128 caracteres, permitem espaços e Unicode, não
-  exigem composição nem troca periódica e consultam blocklist local;
+  exigem composição nem troca periódica e consultam a blocklist interna mais um
+  arquivo UTF-8 opcional configurado pela operação;
 - novos hashes usam Argon2id com m=19 MiB, t=2 e p=1; PBKDF2 legado é migrado
   após login válido.
 
