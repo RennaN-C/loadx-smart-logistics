@@ -159,6 +159,37 @@ EXPECTED_ERROR_STATUSES = {
         "422",
         "500",
     },
+    ("/api/v1/trips", "post"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
+    ("/api/v1/trips/{trip_id}", "get"): {
+        "401",
+        "403",
+        "404",
+        "422",
+        "500",
+    },
+    ("/api/v1/trips/{trip_id}/status", "patch"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
+    ("/api/v1/deliveries/{delivery_id}/status", "patch"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
 }
 PUBLIC_OPERATIONS = frozenset(
     {

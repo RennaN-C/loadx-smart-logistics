@@ -32,6 +32,9 @@ pelo esquema cookie `SessionCookie` no OpenAPI.
 - `email` deve ser único.
 - `role` é normalizado para maiúsculas.
 - `role` aceita `ADMIN`, `CHECKER`, `DRIVER` e `LOGISTICS_MANAGER`.
+- `driver_id` é opcional, único e referencia `drivers.id` com exclusão restrita.
+- `driver_id` preenchido exige papel `DRIVER` e motorista existente; o mesmo
+  motorista não pode pertencer a dois usuários.
 - Novas senhas e trocas exigem de 15 a 128 caracteres, aceitam espaços e
   Unicode, não usam regra de composição e consultam a blocklist local da D18.
 - A blocklist interna cobre valores comuns e derivados do contexto LoadX. Uma
@@ -46,6 +49,8 @@ pelo esquema cookie `SessionCookie` no OpenAPI.
   um login válido.
 - Troca de senha, desativação e alteração de papel revogam todas as sessões do
   usuário na mesma transação da atualização.
+- Alteração ou remoção de `driver_id` também revoga todas as sessões na mesma
+  transação.
 - Mudanças de senha, papel ou estado emitem `AUTH_USER_SECURITY_STATE_CHANGED`;
   alteração de papel e desativação são marcadas com `alert=true`.
 - `password_hash` nunca é retornado pela API.

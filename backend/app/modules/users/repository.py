@@ -38,6 +38,10 @@ class UserRepository:
         statement = select(User).where(User.email == email)
         return self.db.scalar(statement)
 
+    def get_by_driver_id(self, driver_id: uuid.UUID) -> User | None:
+        statement = select(User).where(User.driver_id == driver_id)
+        return self.db.scalar(statement)
+
     def lock_active_admin_ids(self) -> Sequence[uuid.UUID]:
         statement = (
             select(User.id)

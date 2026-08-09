@@ -34,6 +34,7 @@ class UserBase(BaseModel):
     email: str = Field(min_length=3, max_length=255, pattern=EMAIL_PATTERN)
     role: str = Field(min_length=1, max_length=32)
     active: bool = True
+    driver_id: uuid.UUID | None = None
 
     model_config = ConfigDict()
 
@@ -83,6 +84,7 @@ class UserUpdate(BaseModel):
     )
     role: str | None = Field(default=None, min_length=1, max_length=32)
     active: bool | None = None
+    driver_id: uuid.UUID | None = None
 
     model_config = ConfigDict()
 

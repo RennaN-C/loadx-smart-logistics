@@ -221,6 +221,35 @@ class OrderService:
             self.db.add(order)
         self.db.flush()
 
+    def stage_orders_as_in_transit(self, orders: Sequence[Order]) -> None:
+        """Stage PLANNED orders for an outer atomic trip transaction."""
+
+        staged_orders = tuple(orders)
+        if not staged_orders or any(
+            not isinstance(order, Order) for order in staged_orders
+        ):
+            raise ValueError("orders must be a non-empty sequence of Order")
+        if len({order.id for order in staged_orders}) != len(staged_orders):
+            raise ValueError("orders must contain unique ids")
+        if any(order.status != "PLANNED" for order in staged_orders):
+            raise ValueError("orders must be PLANNED")
+
+        for order in staged_orders:
+            order.status = "IN_TRANSIT"
+            self.db.add(order)
+        self.db.flush()
+
+    def stage_order_as_delivered(self, order: Order) -> None:
+        """Stage one IN_TRANSIT order for an outer delivery transaction."""
+
+        if not isinstance(order, Order):
+            raise TypeError("order must be an Order")
+        if order.status != "IN_TRANSIT":
+            raise ValueError("order must be IN_TRANSIT")
+        order.status = "DELIVERED"
+        self.db.add(order)
+        self.db.flush()
+
     def _ensure_customer_exists(self, customer_id: uuid.UUID) -> None:
         try:
             self.customer_service.get_customer(customer_id)

@@ -26,3 +26,5 @@ Registros aceitos relevantes:
   senha da D18.
 - `ADR-021`: runtime de produção com Caddy/TLS, proxy confiável, segredos
   montados e papéis PostgreSQL separados.
+- `ADR-022`: ciclo mínimo de viagens e entregas, integração atômica com pedidos
+  e histórico, gate de carregamento e vínculo 1:1 entre usuário e motorista.

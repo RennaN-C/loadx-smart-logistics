@@ -57,6 +57,7 @@ REQUIRED_UPDATE_FIELDS = [
 ]
 
 NULLABLE_UPDATE_FIELDS = [
+    (UserUpdate, "driver_id"),
     (CustomerUpdate, "phone"),
     (CustomerUpdate, "notes"),
     (DriverUpdate, "license_category"),

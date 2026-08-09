@@ -51,7 +51,10 @@ Regras complementares:
 - `CHECKER` pode consultar caminhões, produtos e pedidos necessários à conferência, sem acessar cadastros pessoais de clientes ou motoristas.
 - Permissão de consulta não libera automaticamente todos os campos pessoais; seleção, omissão e mascaramento de campos seguem `D12`.
 - Acesso `S` exige vínculo comprovado no banco e validação do objeto solicitado, não apenas do perfil.
-- Enquanto não existir vínculo aprovado entre `users` e `drivers`, `DRIVER` acessa somente `/auth/me` na API atual.
+- `DRIVER` sem `users.driver_id` acessa somente `/auth/me`; o vínculo é único,
+  administrado por `ADMIN` e exige papel `DRIVER`.
+- Em viagens e entregas, `DRIVER` precisa estar ativo, apontar para motorista
+  ativo e somente pode consultar ou operar objetos com o mesmo `driver_id`.
 - Papel e estado `active` são carregados do banco em cada requisição protegida.
 
 ## Autenticação
@@ -109,6 +112,10 @@ tratados em ocorrências próprias.
 - Nome, documento, telefone e CNH devem ser informados para cadastro completo.
 - Motorista inativo não pode ser vinculado a nova viagem.
 - Telefone é necessário para comandos por WhatsApp simulado/controlado.
+- `users.driver_id` é opcional e único; vínculo não nulo exige usuário com papel
+  `DRIVER`.
+- Alterar ou remover o vínculo revoga todas as sessões do usuário na mesma
+  transação.
 
 `PENDENTE DE DEFINIÇÃO`: validação formal de CPF, telefone e categoria de CNH.
 
@@ -135,6 +142,9 @@ tratados em ocorrências próprias.
 - Quantidade de item deve ser maior que zero.
 - Pedido cancelado não pode entrar em plano novo.
 - `CONFIRMADO`: `delivery_sequence` é um inteiro positivo; valores maiores representam entregas posteriores e influenciam a ordem de carregamento.
+- `CONFIRMADO` por `ADR-022`: todos os itens do mesmo pedido usam a mesma
+  `delivery_sequence`. Na viagem, pedidos são ordenados por essa sequência e
+  UUID e recebem entregas contíguas a partir de `1`.
 - `CONFIRMADO`: somente pedidos `READY` entram na criação comum de plano; eles
   passam a `PLANNED` apenas na aprovação.
 - `CONFIRMADO`: o conjunto de itens não pode ser substituído depois que algum
@@ -160,7 +170,8 @@ Estados recomendados:
 `CONFIRMADO`: `READY -> PLANNED` pertence somente à aprovação de plano;
 `PLANNED -> IN_TRANSIT` pertence ao início válido da viagem; e
 `IN_TRANSIT -> DELIVERED` pertence à conclusão válida da entrega. `DELIVERED` e
-`CANCELED` são terminais. Exceções de viagem continuam dependentes de D08.
+`CANCELED` são terminais. D08 mantém cancelamento, falha, ausência e atraso fora
+da OC09 até ocorrer uma nova decisão com migration própria.
 
 `CONFIRMADO`: somente `DRAFT` aceita edição de cliente, prioridade, endereço,
 previsão e itens. `READY` deve voltar a `DRAFT` antes de qualquer edição;
@@ -339,17 +350,26 @@ Estados recomendados:
 
 ## Viagem e entrega
 
-- Viagem só começa com carregamento finalizado.
-- Toda mudança de status gera histórico.
+- `CONFIRMADO`: viagem nasce `SCHEDULED` a partir de plano `APPROVED`, motorista
+  ativo e todos os pedidos do plano em `PLANNED`.
+- `CONFIRMADO`: cada plano pertence a no máximo uma viagem e cada pedido a no
+  máximo uma entrega no MVP.
+- `CONFIRMADO`: viagem só começa com carregamento finalizado. Enquanto o módulo
+  de carregamento não materializar esse estado, a interface pública falha
+  fechada e bloqueia `IN_ROUTE`.
+- `CONFIRMADO`: iniciar a viagem executa `SCHEDULED -> IN_ROUTE`, registra
+  `started_at` e move atomicamente todos os pedidos `PLANNED -> IN_TRANSIT`.
+- `CONFIRMADO`: finalizar executa `IN_ROUTE -> FINISHED` e registra
+  `finished_at` somente quando todas as entregas e pedidos estão `DELIVERED`.
+- `CONFIRMADO`: entrega executa apenas `PENDING -> IN_DELIVERY -> DELIVERED`
+  durante uma viagem `IN_ROUTE`; a conclusão registra `delivered_at` e move o
+  pedido correspondente `IN_TRANSIT -> DELIVERED`.
+- `CONFIRMADO`: repetir o status atual é idempotente e não cria histórico.
+- `CONFIRMADO`: `LOGISTICS_MANAGER` cria e opera; `ADMIN` somente consulta;
+  `DRIVER` consulta e opera apenas sua própria viagem; `CHECKER` não acessa.
+- `CONFIRMADO`: viagem, entrega, pedidos e todos os registros de histórico da
+  ação compartilham um único commit ou rollback.
 - Ocorrência não apaga o status anterior, apenas adiciona contexto.
-- Entrega concluída deve registrar horário.
-
-Estados de viagem recomendados:
-
-- `SCHEDULED`.
-- `IN_ROUTE`.
-- `FINISHED`.
-- `CANCELED`.
 
 ## Histórico de status
 
@@ -365,17 +385,9 @@ Estados de viagem recomendados:
 ações realmente automáticas podem usar `changed_by = null`, e a criação do
 pedido registra `null -> DRAFT`.
 
-`PENDENTE DE DEFINIÇÃO`: lista final de entidades auditáveis e perfis autorizados a consultar histórico.
-
-Estados de entrega recomendados:
-
-- `PENDING`.
-- `IN_DELIVERY`.
-- `DELIVERED`.
-- `DELAYED`.
-- `CUSTOMER_ABSENT`.
-- `FAILED`.
-- `CANCELED`.
+`CONFIRMADO` por D10 e `ADR-022`: as entidades auditáveis aceitas são `ORDER`,
+`LOAD_PLAN`, `TRIP` e `DELIVERY`. Não há endpoint público de histórico na OC09;
+services internos continuam disponíveis aos módulos donos.
 
 ## Ocorrências
 

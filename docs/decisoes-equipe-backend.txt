@@ -50,9 +50,9 @@ Resumo aprovado:
 - LOGISTICS_MANAGER gerencia cadastros e fluxos operacionais.
 - CHECKER consulta caminhões, produtos e pedidos e atua somente no
   carregamento atribuído quando o vínculo existir.
-- DRIVER acessa somente recursos comprovadamente atribuídos. Como ainda não
-  existe vínculo entre users e drivers, seu acesso atual fica limitado a
-  /auth/me.
+- DRIVER acessa somente recursos comprovadamente atribuídos. Conforme D21 e
+  ADR-022, o vínculo operacional usa users.driver_id; sem vínculo válido, seu
+  acesso continua limitado a /auth/me.
 - Acesso não listado é negado.
 - Papel e active são consultados no banco em cada requisição protegida.
 - Falta ou invalidade de token retorna 401 AUTH_INVALID_TOKEN.
@@ -166,7 +166,7 @@ Data: 2026-08-06.
 
 D07 - ESTADOS E TRANSIÇÕES DE VIAGEM E ENTREGA
 -----------------------------------------------
-Marcador: DECISÃO NECESSÁRIA
+Marcador: CONFIRMADO
 Perguntas:
 - quais transições de SCHEDULED, IN_ROUTE, FINISHED e CANCELED são permitidas?
 - quais transições de PENDING, IN_DELIVERY, DELIVERED, DELAYED, CUSTOMER_ABSENT, FAILED e CANCELED são permitidas?
@@ -174,38 +174,64 @@ Perguntas:
 - quais transições registram started_at, delivered_at e finished_at?
 RECOMENDAÇÃO: aprovar tabelas de transição antes da migration e do service da OC09.
 Impacta: OC09, OC37 a OC44 e status_history.
-Escolha da equipe:
-Responsáveis:
-Data:
+Escolha aprovada:
+- viagens usam somente SCHEDULED, IN_ROUTE e FINISHED, nas transições
+  SCHEDULED -> IN_ROUTE -> FINISHED;
+- entregas usam somente PENDING, IN_DELIVERY e DELIVERED, nas transições
+  PENDING -> IN_DELIVERY -> DELIVERED;
+- repetir o estado atual é idempotente; saltos e retornos são rejeitados;
+- IN_ROUTE registra started_at, DELIVERED registra delivered_at e FINISHED
+  registra finished_at, sempre em UTC;
+- LOGISTICS_MANAGER executa as transições aprovadas; DRIVER executa somente na
+  viagem própria comprovada por users.driver_id; ADMIN apenas consulta e
+  CHECKER permanece negado;
+- criação e transições registram TRIP/DELIVERY no histórico e compartilham a
+  transação com pedidos relacionados, conforme ADR-022.
+Responsável: Desenvolvedor 1, com autorização explícita do usuário.
+Data: 2026-08-09.
 
 
 D08 - FINALIZAÇÃO DE VIAGEM COM ENTREGAS PROBLEMÁTICAS
 ------------------------------------------------------
-Marcador: DECISÃO NECESSÁRIA
+Marcador: CONFIRMADO
 Pergunta: uma viagem pode terminar com entrega CANCELED, FAILED, CUSTOMER_ABSENT, DELAYED ou recusada?
 Definir também se exige ocorrência, justificativa, reentrega ou aprovação do responsável logístico.
 RECOMENDAÇÃO: listar combinações permitidas e o status final esperado do pedido.
 Impacta: OC09, relatórios e demonstração e2e.
-Escolha da equipe:
-Responsáveis:
-Data:
+Escolha aprovada:
+- a OC09 não persiste estados de cancelamento, falha, ausência ou atraso;
+- a viagem só passa a FINISHED quando todas as suas entregas estão DELIVERED;
+- entrega pendente ou em andamento bloqueia a conclusão;
+- ocorrências adicionam contexto sem alterar ou apagar o status;
+- cancelamento, reentrega e finalização parcial exigem ocorrência/decisão
+  própria antes de ampliar a máquina de estados.
+Responsável: Desenvolvedor 1, com autorização explícita do usuário.
+Data: 2026-08-09.
 
 
 D09 - DIVERGÊNCIA NO CHECKLIST DE CARREGAMENTO
 ------------------------------------------------
-Marcador: DECISÃO NECESSÁRIA
+Marcador: CONFIRMADO
 Pergunta: o que acontece quando o carregamento físico diverge do plano aprovado?
 Opções a combinar: bloquear finalização, registrar ocorrência, permitir exceção autorizada ou exigir novo plano.
 RECOMENDAÇÃO: nunca alterar coordenadas silenciosamente; divergência deve ficar auditável.
 Impacta: loading, OC09, occurrences e relatórios.
-Escolha da equipe:
-Responsáveis:
-Data:
+Escolha aprovada:
+- falhar de forma fechada: uma viagem só inicia quando o módulo loading
+  confirmar status FINISHED para o mesmo load_plan_id;
+- plano APPROVED não substitui carregamento FINISHED;
+- divergência não altera coordenadas, plano, viagem ou pedido silenciosamente;
+- o módulo loading deverá bloquear sua finalização e registrar a divergência no
+  fluxo próprio quando implementar checklist/ocorrências;
+- a OC09 cria somente a interface pública de consulta e mantém IN_ROUTE
+  bloqueado enquanto loading não estiver implementado.
+Responsáveis: Desenvolvedor 1 pela integração e Desenvolvedor 4 pelo loading.
+Data: 2026-08-09.
 
 
 D10 - ESCOPO E CONSULTA DO HISTÓRICO DE STATUS
 -----------------------------------------------
-Marcador: DECISÃO NECESSÁRIA
+Marcador: CONFIRMADO
 Perguntas:
 - quais entity_type são aceitos?
 - haverá endpoint público de consulta?
@@ -215,9 +241,15 @@ CONFIRMADO por D01 e D02: eventual consulta de histórico não será pública; a
 leitura geral ficará limitada a ADMIN e LOGISTICS_MANAGER.
 RECOMENDAÇÃO: começar com entidades operacionais confirmadas e catálogo fechado.
 Impacta: OC52, OC09, docs/03, docs/04 e docs/05.
-Escolha da equipe:
-Responsáveis:
-Data:
+Escolha aprovada:
+- catálogo fechado de entity_type: ORDER, LOAD_PLAN, TRIP e DELIVERY;
+- criação e cada transição efetiva são auditadas; repetição idempotente não é;
+- a autoria segue D05 e a transação é controlada pelo service dono;
+- não haverá endpoint público de histórico na OC09;
+- eventual consulta protegida e paginada exige ocorrência própria e manterá
+  leitura geral limitada a ADMIN e LOGISTICS_MANAGER.
+Responsável: Desenvolvedor 1, com autorização explícita do usuário.
+Data: 2026-08-09.
 
 
 D11 - CONTRATO DE READINESS
@@ -405,6 +437,28 @@ Responsáveis:
 Data:
 
 
+D21 - VÍNCULO ENTRE USUÁRIO E MOTORISTA
+---------------------------------------
+Marcador: CONFIRMADO
+Pergunta: onde persistir o vínculo 1:1 necessário para autorizar a operação do
+DRIVER: users.driver_id, drivers.user_id ou tabela de associação?
+Alternativas consideradas:
+- users.driver_id mantém o vínculo sob administração de identidade;
+- drivers.user_id colocaria o vínculo no cadastro gerenciado pela logística;
+- tabela de associação permitiria cardinalidade desnecessária para o MVP.
+Impacta: users, drivers, auth, OC09, RBAC e migrations.
+Escolha aprovada:
+- users.driver_id é UUID anulável, UNIQUE e FK RESTRICT para drivers.id;
+- somente ADMIN cria, altera ou remove o vínculo pela API de usuários;
+- driver_id preenchido exige role DRIVER e motorista existente;
+- usuário DRIVER sem vínculo permanece restrito a /auth/me;
+- acesso operacional exige correspondência com Trip.driver_id e motorista
+  ativo; mudar o vínculo revoga as sessões do usuário;
+- drivers.user_id e tabela de associação não serão criados no MVP.
+Responsável: Desenvolvedor 1, com autorização explícita do usuário.
+Data: 2026-08-09.
+
+
 ENCERRAMENTO DA REUNIÃO
 =======================
 
@@ -414,9 +468,10 @@ D04 e D05, registradas em ADR-015, docs/04 e docs/05.
 D06, registrada em ADR-016 e docs/05.
 D12, registrada em ADR-017 e docs/05.
 D11, registrada em ADR-018, docs/02, docs/04, docs/05 e docs/08.
+D07, D08, D09, D10 e D21, registradas em ADR-022 e nos contratos operacionais.
 
 Ocorrências desbloqueadas:
-OC51, OC52, OC56, OC58 e OC59.
+OC09, OC51, OC52, OC56, OC58 e OC59.
 
 ADRs que precisam ser criadas:
 Nenhuma para as decisões aprovadas; ADR-004, ADR-015, ADR-016, ADR-017 e

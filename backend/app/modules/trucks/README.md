@@ -20,7 +20,9 @@ Crie somente os arquivos necessários para a ocorrência atual.
 - `GET /api/v1/trucks/{id}`: consulta caminhão por ID.
 - `PATCH /api/v1/trucks/{id}`: atualiza campos enviados.
 
-`CONFIRMADO`: `ADMIN`, `CHECKER` e `LOGISTICS_MANAGER` podem consultar. Somente `LOGISTICS_MANAGER` pode criar ou atualizar. `DRIVER` não acessa o módulo enquanto não existir vínculo aprovado com o caminhão.
+`CONFIRMADO`: `ADMIN`, `CHECKER` e `LOGISTICS_MANAGER` podem consultar. Somente
+`LOGISTICS_MANAGER` pode criar ou atualizar. `DRIVER` não acessa os endpoints do
+módulo na API atual.
 
 ## Regras implementadas
 

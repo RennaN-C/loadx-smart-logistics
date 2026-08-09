@@ -57,6 +57,7 @@ Resposta `200`: o mesmo contrato `UserRead` usado por `/auth/me`.
   "name": "Admin Local",
   "email": "admin@example.test",
   "role": "ADMIN",
+  "driver_id": null,
   "active": true,
   "created_at": "2026-08-08T12:00:00Z"
 }
@@ -163,12 +164,15 @@ Regras do contrato aprovado:
 
 - Todas as rotas de `/users` exigem perfil `ADMIN`.
 - A listagem retorna somente `id`, `name`, `role`, `active` e `created_at`.
-- Detalhe e respostas de escrita retornam `id`, `name`, `email`, `role`, `active`
-  e `created_at`.
+- Detalhe e respostas de escrita retornam `id`, `name`, `email`, `role`,
+  `driver_id`, `active` e `created_at`.
 - `password_hash` nunca é retornado.
 - `role` aceita `ADMIN`, `CHECKER`, `DRIVER` e `LOGISTICS_MANAGER`.
 - `email` é normalizado para minúsculas.
 - `role` é normalizado para maiúsculas.
+- `driver_id` é opcional; valor não nulo exige `role = DRIVER`, motorista
+  existente e vínculo não utilizado por outro usuário.
+- Alterar `driver_id` revoga todas as sessões do usuário na mesma transação.
 - `password` deve ter entre 15 e 128 caracteres na entrada, aceita espaços e
   Unicode e não exige composição artificial.
 
@@ -177,6 +181,10 @@ Erros específicos:
 - `USER_NOT_FOUND`: usuário não encontrado.
 - `USER_EMAIL_ALREADY_EXISTS`: e-mail já cadastrado.
 - `USER_LAST_ACTIVE_ADMIN_REQUIRED`: alteração deixaria o sistema sem `ADMIN` ativo.
+- `USER_DRIVER_NOT_FOUND`: `driver_id` não referencia motorista existente.
+- `USER_DRIVER_ALREADY_LINKED`: motorista já está vinculado a outro usuário.
+- `USER_DRIVER_ROLE_REQUIRED`: vínculo foi informado para papel diferente de
+  `DRIVER`.
 
 `CONFIRMADO`: não existe cadastro público. O primeiro `ADMIN` usa bootstrap local e, depois, usuários são criados somente por `ADMIN`.
 
@@ -191,7 +199,7 @@ Regras de autorização:
 
 - `ADMIN`, `CHECKER` e `LOGISTICS_MANAGER` podem usar `GET`.
 - Somente `LOGISTICS_MANAGER` pode usar `POST` e `PATCH`.
-- `DRIVER` não acessa essas rotas enquanto não existir vínculo aprovado.
+- `DRIVER` não acessa essas rotas na API atual.
 
 Exemplo de criação:
 
@@ -219,7 +227,7 @@ Regras de autorização:
 
 - `ADMIN`, `CHECKER` e `LOGISTICS_MANAGER` podem usar `GET`.
 - Somente `LOGISTICS_MANAGER` pode usar `POST` e `PATCH`.
-- `DRIVER` não acessa essas rotas enquanto não existir vínculo aprovado.
+- `DRIVER` não acessa essas rotas na API atual.
 
 Exemplo de criação:
 
@@ -284,7 +292,8 @@ Regras de autorização:
 
 - `ADMIN`, `CHECKER` e `LOGISTICS_MANAGER` podem usar `GET`.
 - Somente `LOGISTICS_MANAGER` pode usar `POST` e `PATCH`.
-- `DRIVER` não acessa essas rotas enquanto não existir vínculo aprovado.
+- `DRIVER` não acessa essas rotas na API atual; sua operação ocorre pelos
+  endpoints da viagem atribuída.
 
 Exemplo de criação:
 
@@ -323,6 +332,9 @@ Regras atuais:
 - `expected_delivery_at` deve vir com timezone e é normalizado para UTC.
 - O pedido deve possuir pelo menos um item.
 - `quantity` e `delivery_sequence` devem ser maiores que zero.
+- Todos os itens do mesmo pedido devem usar a mesma `delivery_sequence` na
+  OC09; pedidos diferentes podem compartilhar o valor e usam UUID como
+  desempate determinístico.
 - `customer_id` deve existir em `customers`.
 - Todos os `product_id` dos itens devem existir em `products`.
 
@@ -348,7 +360,8 @@ Regras de autorização:
 - Somente `LOGISTICS_MANAGER` usa criação, aprovação e recálculo.
 - `ADMIN` e `LOGISTICS_MANAGER` consultam qualquer plano.
 - `CHECKER` consulta somente plano `APPROVED`.
-- `DRIVER` não acessa enquanto não existir vínculo operacional aprovado.
+- `DRIVER` não acessa esses endpoints na API atual; a viagem usa internamente o
+  plano atribuído.
 
 ### POST `/load-plans`
 
@@ -519,6 +532,11 @@ pela integração da OC20.
 - `PATCH /loading-sessions/{id}/status`.
 - `PATCH /loading-sessions/{id}/items/{item_id}`.
 
+`PENDENTE DE DEFINIÇÃO`: esses endpoints ainda não estão implementados. A OC09
+consome somente uma interface pública interna que retorna carregamento não
+finalizado por padrão; assim, a viagem nunca inicia sem confirmação real do
+módulo dono.
+
 ## Viagens e entregas
 
 - `POST /trips`.
@@ -526,11 +544,91 @@ pela integração da OC20.
 - `PATCH /trips/{id}/status`.
 - `PATCH /deliveries/{id}/status`.
 
+Exemplo de criação por `LOGISTICS_MANAGER`:
+
+```json
+{
+  "load_plan_id": "uuid-do-plano-aprovado",
+  "driver_id": "uuid-do-motorista-ativo"
+}
+```
+
+Resposta `201`:
+
+```json
+{
+  "id": "uuid-da-viagem",
+  "load_plan_id": "uuid-do-plano-aprovado",
+  "driver_id": "uuid-do-motorista-ativo",
+  "status": "SCHEDULED",
+  "started_at": null,
+  "finished_at": null,
+  "deliveries": [
+    {
+      "id": "uuid-da-entrega",
+      "trip_id": "uuid-da-viagem",
+      "order_id": "uuid-do-pedido",
+      "status": "PENDING",
+      "sequence": 1,
+      "delivered_at": null
+    }
+  ]
+}
+```
+
+Corpo das transições:
+
+```json
+{
+  "status": "IN_ROUTE"
+}
+```
+
+Regras de autorização:
+
+- somente `LOGISTICS_MANAGER` cria viagem;
+- `ADMIN` e `LOGISTICS_MANAGER` consultam qualquer viagem;
+- `LOGISTICS_MANAGER` altera qualquer viagem ou entrega;
+- `DRIVER` consulta e altera somente viagem atribuída ao seu `driver_id`, desde
+  que usuário e motorista continuem ativos;
+- `ADMIN` não executa transições operacionais; `CHECKER` não acessa essas rotas.
+
+Regras do contrato:
+
+- criação exige plano `APPROVED`, motorista ativo, pedidos do plano em
+  `PLANNED` e ainda sem entrega;
+- uma entrega é criada por pedido, com `sequence` contígua 1-based;
+- viagem aceita `SCHEDULED -> IN_ROUTE -> FINISHED`;
+- entrega aceita `PENDING -> IN_DELIVERY -> DELIVERED` somente durante
+  `IN_ROUTE`;
+- repetir o status atual é idempotente e não cria novo histórico;
+- início exige carregamento finalizado e move todos os pedidos para
+  `IN_TRANSIT`;
+- conclusão de entrega move o pedido para `DELIVERED`; conclusão da viagem
+  exige todas as entregas e pedidos em `DELIVERED`;
+- timestamps de início, entrega e fim são retornados em UTC.
+
+Erros específicos:
+
+- `TRIP_NOT_FOUND` e `DELIVERY_NOT_FOUND`;
+- `TRIP_LOAD_PLAN_NOT_FOUND`, `TRIP_LOAD_PLAN_NOT_APPROVED` e
+  `TRIP_LOAD_PLAN_ALREADY_ASSIGNED`;
+- `TRIP_DRIVER_NOT_FOUND` e `TRIP_DRIVER_INACTIVE`;
+- `TRIP_ORDER_ALREADY_ASSIGNED`, `TRIP_ORDER_NOT_ELIGIBLE` e
+  `TRIP_DELIVERY_SEQUENCE_CONFLICT`;
+- `TRIP_LOADING_NOT_FINISHED` e `TRIP_DELIVERIES_NOT_FINISHED`;
+- `DELIVERY_TRIP_NOT_IN_ROUTE`;
+- `TRIP_STATUS_TRANSITION_NOT_ALLOWED` e
+  `DELIVERY_STATUS_TRANSITION_NOT_ALLOWED`.
+
 ## Histórico de status
 
-`CONFIRMADO`: mudanças de status devem gravar registros em `status_history`.
+`CONFIRMADO`: criação e mudanças efetivas de pedidos, planos, viagens e entregas
+gravam `ORDER`, `LOAD_PLAN`, `TRIP` ou `DELIVERY` em `status_history`, na mesma
+transação do agregado.
 
-`PENDENTE DE DEFINIÇÃO`: endpoint público para consulta de histórico ainda não está aprovado.
+`CONFIRMADO` por D10: a OC09 não expõe endpoint público para consulta de
+histórico.
 
 ## Ocorrências
 

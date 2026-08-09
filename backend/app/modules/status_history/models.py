@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Index, String, Uuid, func
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, String, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database.base import Base
@@ -10,6 +10,10 @@ from app.database.base import Base
 class StatusHistory(Base):
     __tablename__ = "status_history"
     __table_args__ = (
+        CheckConstraint(
+            "entity_type IN ('ORDER', 'LOAD_PLAN', 'TRIP', 'DELIVERY')",
+            name="entity_type_allowed",
+        ),
         Index("ix_status_history__entity", "entity_type", "entity_id"),
         Index("ix_status_history__created_at", "created_at"),
     )
