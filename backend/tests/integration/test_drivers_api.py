@@ -4,13 +4,13 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.core.security import create_access_token
 from app.modules.drivers.models import Driver
 from app.modules.drivers.schemas import DriverCreate
 from app.modules.drivers.service import DriverService
 from app.modules.users.models import User
 from app.modules.users.schemas import UserCreate
 from app.modules.users.service import UserService
+from tests.integration.auth_helpers import issue_session_headers
 
 SessionFactory = Callable[[], Session]
 DRIVER_ROUTE_CASES = [
@@ -42,9 +42,11 @@ def create_user_in_db(
         db.close()
 
 
-def authorization_headers(user: User) -> dict[str, str]:
-    token = create_access_token(str(user.id), {"role": user.role})
-    return {"Authorization": f"Bearer {token}"}
+def authorization_headers(
+    session_factory: SessionFactory,
+    user: User,
+) -> dict[str, str]:
+    return issue_session_headers(session_factory, user.id)
 
 
 @pytest.fixture
@@ -54,7 +56,7 @@ def manager_headers(session_factory: SessionFactory) -> dict[str, str]:
         "manager@example.test",
         "LOGISTICS_MANAGER",
     )
-    return authorization_headers(manager)
+    return authorization_headers(session_factory, manager)
 
 
 def make_driver_payload(
@@ -323,7 +325,7 @@ def test_admin_can_read_drivers(
         "GET",
         route,
         driver,
-        authorization_headers(admin),
+        authorization_headers(session_factory, admin),
     )
 
     assert response.status_code == 200
@@ -348,7 +350,7 @@ def test_admin_cannot_manage_drivers(
         method,
         route,
         driver,
-        authorization_headers(admin),
+        authorization_headers(session_factory, admin),
     )
 
     assert response.status_code == 403
@@ -391,7 +393,7 @@ def test_driver_routes_reject_roles_without_access(
         method,
         route,
         driver,
-        authorization_headers(user),
+        authorization_headers(session_factory, user),
     )
 
     assert response.status_code == 403
@@ -418,7 +420,7 @@ def test_driver_routes_reject_inactive_manager(
         method,
         route,
         driver,
-        authorization_headers(manager),
+        authorization_headers(session_factory, manager),
     )
 
     assert response.status_code == 403

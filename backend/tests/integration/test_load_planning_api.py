@@ -9,7 +9,6 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.core.security import create_access_token
 from app.modules.customers.models import Customer
 from app.modules.load_planning.models import LoadPlan, LoadPlanItem, LoadPlanOrder
 from app.modules.orders.models import Order, OrderItem
@@ -20,6 +19,7 @@ from app.modules.status_history.schemas import StatusHistoryCreate
 from app.modules.status_history.service import StatusHistoryService
 from app.modules.trucks.models import Truck
 from app.modules.users.models import User
+from tests.integration.auth_helpers import issue_session_headers
 
 SessionFactory = Callable[[], Session]
 
@@ -61,10 +61,9 @@ def create_authenticated_user(
     finally:
         db.close()
 
-    token = create_access_token(str(user_id), {"role": role})
     return AuthenticatedUser(
         id=user_id,
-        headers={"Authorization": f"Bearer {token}"},
+        headers=issue_session_headers(session_factory, user_id),
     )
 
 

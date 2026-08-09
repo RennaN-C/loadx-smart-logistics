@@ -51,9 +51,9 @@ infraestrutura, conforme D11 e `ADR-018`.
 
 ## Configuração segura
 
-`CONFIRMADO`: conforme `ADR-019`, produção exige `SECRET_KEY` exclusiva com ao
-menos 32 caracteres e `DATABASE_URL` explícita, aceita somente JWT `HS256`,
-limita a expiração a 1–1440 minutos e rejeita CORS curinga. Os valores fracos de
+`CONFIRMADO`: conforme `ADR-019` e `ADR-020`, produção exige `SECRET_KEY`
+exclusiva com ao menos 32 caracteres e `DATABASE_URL` explícita, rejeita CORS
+curinga e usa sessão opaca no cookie `__Host-loadx_session`. Os valores fracos de
 `.env.example` existem somente para desenvolvimento local e não permitem iniciar
 em produção.
 

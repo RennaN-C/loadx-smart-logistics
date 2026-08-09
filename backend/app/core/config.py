@@ -20,15 +20,6 @@ class Settings(BaseSettings):
         default="http://localhost:5173", validation_alias="BACKEND_CORS_ORIGINS"
     )
     secret_key: str = "local-only"
-    jwt_algorithm: Literal["HS256"] = Field(
-        default="HS256", validation_alias="JWT_ALGORITHM"
-    )
-    access_token_expire_minutes: int = Field(
-        default=60,
-        gt=0,
-        le=1_440,
-        validation_alias="ACCESS_TOKEN_EXPIRE_MINUTES",
-    )
     ai_provider: str = "mock"
     whatsapp_provider: str = "mock"
 
@@ -62,6 +53,16 @@ class Settings(BaseSettings):
             for origin in self.backend_cors_origins_raw.split(",")
             if origin.strip()
         ]
+
+    @property
+    def session_cookie_name(self) -> str:
+        if self.app_env == "production":
+            return "__Host-loadx_session"
+        return "loadx_session"
+
+    @property
+    def session_cookie_secure(self) -> bool:
+        return self.app_env == "production"
 
 
 @lru_cache

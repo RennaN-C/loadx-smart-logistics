@@ -166,7 +166,11 @@ def client(session_factory: SessionFactory) -> Generator[TestClient, None, None]
     app.dependency_overrides[get_db] = override_get_db
     app.dependency_overrides[get_readiness_checker] = lambda: readiness_checker
     try:
-        with TestClient(app, raise_server_exceptions=False) as test_client:
+        with TestClient(
+            app,
+            raise_server_exceptions=False,
+            headers={"Origin": "http://localhost:5173"},
+        ) as test_client:
             yield test_client
     finally:
         app.dependency_overrides.clear()

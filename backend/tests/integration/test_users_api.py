@@ -5,10 +5,10 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.core.security import create_access_token
 from app.modules.users.models import User
 from app.modules.users.schemas import UserCreate
 from app.modules.users.service import UserService
+from tests.integration.auth_helpers import issue_session_headers
 
 SessionFactory = Callable[[], Session]
 
@@ -34,9 +34,11 @@ def create_user_in_db(
         db.close()
 
 
-def authorization_headers(user: User) -> dict[str, str]:
-    token = create_access_token(str(user.id), {"role": user.role})
-    return {"Authorization": f"Bearer {token}"}
+def authorization_headers(
+    session_factory: SessionFactory,
+    user: User,
+) -> dict[str, str]:
+    return issue_session_headers(session_factory, user.id)
 
 
 @pytest.fixture
@@ -45,8 +47,11 @@ def admin_user(session_factory: SessionFactory) -> User:
 
 
 @pytest.fixture
-def admin_headers(admin_user: User) -> dict[str, str]:
-    return authorization_headers(admin_user)
+def admin_headers(
+    session_factory: SessionFactory,
+    admin_user: User,
+) -> dict[str, str]:
+    return authorization_headers(session_factory, admin_user)
 
 
 def make_user_payload(
@@ -346,7 +351,7 @@ def test_users_routes_reject_non_admin_user(
         method,
         path,
         json=payload,
-        headers=authorization_headers(user),
+        headers=authorization_headers(session_factory, user),
     )
 
     assert response.status_code == 403
@@ -367,7 +372,7 @@ def test_list_users_rejects_each_non_admin_role(
 
     response = client.get(
         "/api/v1/users",
-        headers=authorization_headers(user),
+        headers=authorization_headers(session_factory, user),
     )
 
     assert response.status_code == 403
@@ -386,7 +391,7 @@ def test_list_users_rejects_inactive_admin(
 
     response = client.get(
         "/api/v1/users",
-        headers=authorization_headers(user),
+        headers=authorization_headers(session_factory, user),
     )
 
     assert response.status_code == 403

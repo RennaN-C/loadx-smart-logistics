@@ -3,10 +3,12 @@ from collections.abc import Callable
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.core.security import create_access_token
+from app.core.config import settings
+from app.modules.auth.dependencies import CSRF_HEADER_NAME
 from app.modules.users.models import User
 from app.modules.users.schemas import UserCreate
 from app.modules.users.service import UserService
+from tests.integration.auth_helpers import issue_session_headers
 
 SessionFactory = Callable[[], Session]
 
@@ -41,7 +43,7 @@ def login_user(
         json={"email": email, "password": password},
     )
     assert response.status_code == 200
-    return str(response.json()["access_token"])
+    return response.headers[CSRF_HEADER_NAME]
 
 
 def test_register_route_is_removed(client: TestClient) -> None:
@@ -58,11 +60,11 @@ def test_register_route_is_removed(client: TestClient) -> None:
     assert response.status_code == 404
 
 
-def test_login_returns_bearer_token(
+def test_login_returns_user_secure_local_cookie_and_csrf_header(
     client: TestClient,
     session_factory: SessionFactory,
 ) -> None:
-    create_user(session_factory)
+    user = create_user(session_factory)
 
     response = client.post(
         "/api/v1/auth/login",
@@ -70,25 +72,60 @@ def test_login_returns_bearer_token(
     )
 
     assert response.status_code == 200
-    body = response.json()
-    assert body["access_token"]
-    assert body["token_type"] == "bearer"
+    assert response.json()["id"] == str(user.id)
+    assert response.headers[CSRF_HEADER_NAME]
+    assert client.cookies.get(settings.session_cookie_name)
+    set_cookie = response.headers["set-cookie"]
+    assert "HttpOnly" in set_cookie
+    assert "SameSite=lax" in set_cookie
+    assert "Path=/" in set_cookie
+    assert "Domain=" not in set_cookie
+    assert "Secure" not in set_cookie
+    assert "access_token" not in response.json()
 
 
-def test_me_returns_authenticated_user(
+def test_me_restores_user_and_csrf_from_session_cookie(
     client: TestClient,
     session_factory: SessionFactory,
 ) -> None:
     user = create_user(session_factory)
-    token = login_user(client)
+    login_csrf = login_user(client)
 
-    response = client.get(
-        "/api/v1/auth/me",
-        headers={"Authorization": f"Bearer {token}"},
-    )
+    response = client.get("/api/v1/auth/me")
 
     assert response.status_code == 200
     assert response.json()["id"] == str(user.id)
+    assert response.headers[CSRF_HEADER_NAME] == login_csrf
+
+
+def test_logout_requires_csrf_revokes_session_and_clears_cookie(
+    client: TestClient,
+    session_factory: SessionFactory,
+) -> None:
+    create_user(session_factory)
+    csrf_token = login_user(client)
+
+    response = client.post(
+        "/api/v1/auth/logout",
+        headers={CSRF_HEADER_NAME: csrf_token},
+    )
+
+    assert response.status_code == 204
+    assert "Max-Age=0" in response.headers["set-cookie"]
+    assert client.get("/api/v1/auth/me").status_code == 401
+
+
+def test_logout_rejects_missing_csrf_token(
+    client: TestClient,
+    session_factory: SessionFactory,
+) -> None:
+    create_user(session_factory)
+    login_user(client)
+
+    response = client.post("/api/v1/auth/logout")
+
+    assert response.status_code == 403
+    assert response.json()["code"] == "AUTH_CSRF_INVALID"
 
 
 def test_login_returns_standard_error_for_invalid_password(
@@ -110,7 +147,7 @@ def test_login_returns_standard_error_for_invalid_password(
     }
 
 
-def test_login_returns_standard_error_for_inactive_user(
+def test_login_returns_same_error_for_inactive_user(
     client: TestClient,
     session_factory: SessionFactory,
 ) -> None:
@@ -122,11 +159,7 @@ def test_login_returns_standard_error_for_inactive_user(
     )
 
     assert response.status_code == 401
-    assert response.json() == {
-        "code": "AUTH_INVALID_CREDENTIALS",
-        "message": "E-mail ou senha inválidos.",
-        "details": [],
-    }
+    assert response.json()["code"] == "AUTH_INVALID_CREDENTIALS"
 
 
 def test_login_rate_limit_is_generic_and_includes_retry_after(
@@ -145,48 +178,37 @@ def test_login_rate_limit_is_generic_and_includes_retry_after(
     assert response.headers["retry-after"] == "60"
 
 
-def test_me_returns_standard_error_for_missing_token(client: TestClient) -> None:
+def test_unsafe_request_rejects_unapproved_origin(client: TestClient) -> None:
+    response = client.post(
+        "/api/v1/auth/login",
+        headers={"Origin": "https://attacker.example"},
+        json={"email": "admin@example.test", "password": "senha-local-segura"},
+    )
+
+    assert response.status_code == 403
+    assert response.json()["code"] == "AUTH_ORIGIN_FORBIDDEN"
+
+
+def test_me_returns_standard_error_for_missing_session(client: TestClient) -> None:
     response = client.get("/api/v1/auth/me")
 
     assert response.status_code == 401
-    assert response.headers["www-authenticate"] == "Bearer"
+    assert "www-authenticate" not in response.headers
     assert response.json() == {
         "code": "AUTH_INVALID_TOKEN",
-        "message": "Token ausente ou inválido.",
+        "message": "Sessão ausente ou inválida.",
         "details": [],
     }
 
 
-def test_me_returns_standard_error_for_invalid_token(client: TestClient) -> None:
+def test_me_returns_standard_error_for_invalid_session(client: TestClient) -> None:
     response = client.get(
         "/api/v1/auth/me",
-        headers={"Authorization": "Bearer invalid-token"},
+        headers={"Cookie": f"{settings.session_cookie_name}=invalid-session"},
     )
 
     assert response.status_code == 401
-    assert response.headers["www-authenticate"] == "Bearer"
-    assert response.json() == {
-        "code": "AUTH_INVALID_TOKEN",
-        "message": "Token ausente ou inválido.",
-        "details": [],
-    }
-
-
-def test_me_returns_standard_error_for_invalid_authentication_scheme(
-    client: TestClient,
-) -> None:
-    response = client.get(
-        "/api/v1/auth/me",
-        headers={"Authorization": "Basic invalid-credentials"},
-    )
-
-    assert response.status_code == 401
-    assert response.headers["www-authenticate"] == "Bearer"
-    assert response.json() == {
-        "code": "AUTH_INVALID_TOKEN",
-        "message": "Token ausente ou inválido.",
-        "details": [],
-    }
+    assert response.json()["code"] == "AUTH_INVALID_TOKEN"
 
 
 def test_me_returns_standard_error_for_inactive_user(
@@ -194,11 +216,10 @@ def test_me_returns_standard_error_for_inactive_user(
     session_factory: SessionFactory,
 ) -> None:
     user = create_user(session_factory, active=False)
-    token = create_access_token(str(user.id), {"role": "ADMIN"})
 
     response = client.get(
         "/api/v1/auth/me",
-        headers={"Authorization": f"Bearer {token}"},
+        headers=issue_session_headers(session_factory, user.id),
     )
 
     assert response.status_code == 403

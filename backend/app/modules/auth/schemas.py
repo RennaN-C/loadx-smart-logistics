@@ -14,8 +14,3 @@ class AuthLogin(BaseModel):
         if normalized_value is None:
             raise ValueError("email is required")
         return normalized_value
-
-
-class TokenRead(BaseModel):
-    access_token: str
-    token_type: str = "bearer"

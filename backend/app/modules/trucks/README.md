@@ -30,4 +30,4 @@ Crie somente os arquivos necessários para a ocorrência atual.
 - `max_weight_kg` permanece `Decimal` internamente e usa exclusivamente número
   JSON na entrada e na saída, conforme D06 e ADR-016.
 - Exclusão física ainda não foi implementada; use `active = false` para indisponibilidade.
-- Todas as rotas exigem autenticação Bearer e consultam o papel e o estado atual do usuário no banco.
+- Todas as rotas exigem sessão em cookie e consultam o papel e o estado atual do usuário no banco.

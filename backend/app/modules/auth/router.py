@@ -1,15 +1,21 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, Depends, Request, Response, status
 from fastapi.responses import JSONResponse
 
+from app.core.config import settings
 from app.core.responses import error_response, openapi_error_responses
-from app.modules.auth.dependencies import get_auth_service, get_current_user
-from app.modules.auth.schemas import AuthLogin, TokenRead
+from app.modules.auth.dependencies import (
+    CSRF_HEADER_NAME,
+    get_auth_service,
+    get_current_session,
+)
+from app.modules.auth.schemas import AuthLogin
 from app.modules.auth.service import (
     AuthInvalidCredentialsError,
     AuthService,
 )
+from app.modules.auth.sessions import ResolvedAuthSession
 from app.modules.auth.throttling import AuthRateLimitedError
 from app.modules.users.models import User
 from app.modules.users.schemas import UserRead
@@ -19,17 +25,29 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.post(
     "/login",
-    response_model=TokenRead,
-    responses=openapi_error_responses(401, 422, 429),
+    response_model=UserRead,
+    responses=openapi_error_responses(401, 403, 422, 429),
 )
 def login(
     request: Request,
+    response: Response,
     data: AuthLogin,
     service: Annotated[AuthService, Depends(get_auth_service)],
-) -> TokenRead | JSONResponse:
+) -> User | JSONResponse:
     try:
         client_ip = request.client.host if request.client is not None else "unknown"
-        return service.login(data, client_ip)
+        result = service.login(data, client_ip)
+        response.set_cookie(
+            key=settings.session_cookie_name,
+            value=result.session.token,
+            max_age=8 * 60 * 60,
+            path="/",
+            secure=settings.session_cookie_secure,
+            httponly=True,
+            samesite="lax",
+        )
+        response.headers[CSRF_HEADER_NAME] = result.session.csrf_token
+        return result.user
     except AuthInvalidCredentialsError:
         return error_response(
             status.HTTP_401_UNAUTHORIZED,
@@ -51,6 +69,28 @@ def login(
     responses=openapi_error_responses(401, 403, 422),
 )
 def get_me(
-    current_user: Annotated[User, Depends(get_current_user)],
+    response: Response,
+    current_session: Annotated[ResolvedAuthSession, Depends(get_current_session)],
 ) -> User:
-    return current_user
+    response.headers[CSRF_HEADER_NAME] = current_session.csrf_token
+    return current_session.user
+
+
+@router.post(
+    "/logout",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses=openapi_error_responses(401, 403, 422),
+)
+def logout(
+    response: Response,
+    current_session: Annotated[ResolvedAuthSession, Depends(get_current_session)],
+    service: Annotated[AuthService, Depends(get_auth_service)],
+) -> None:
+    service.auth_sessions.revoke_session(current_session.token)
+    response.delete_cookie(
+        key=settings.session_cookie_name,
+        path="/",
+        secure=settings.session_cookie_secure,
+        httponly=True,
+        samesite="lax",
+    )

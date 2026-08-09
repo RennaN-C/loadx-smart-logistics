@@ -50,7 +50,7 @@ pedidos.
   rollback conjunto.
 - `ORDER_ITEMS_REFERENCED_BY_LOAD_PLAN` retorna `409` quando a substituição
   apagaria a proveniência histórica de `load_plan_items`.
-- Todas as rotas exigem autenticação Bearer e consultam o papel e o estado atual
+- Todas as rotas exigem sessão em cookie e consultam o papel e o estado atual
   do usuário no banco.
 
 `CONFIRMADO`: estas regras foram aprovadas em D04 e D05 e registradas na ADR-015.

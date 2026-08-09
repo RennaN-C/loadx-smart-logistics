@@ -4,20 +4,22 @@ from sqlalchemy.orm import Session
 
 from app.core.pagination import PaginationParams
 from app.core.security import verify_password
-from app.modules.auth.models import AuthLoginThrottle
+from app.modules.auth.models import AuthLoginThrottle, AuthSession
 from app.modules.auth.schemas import AuthLogin
 from app.modules.auth.service import (
     AuthBootstrapAlreadyCompletedError,
-    AuthInactiveUserError,
     AuthInvalidCredentialsError,
-    AuthInvalidTokenError,
     AuthService,
 )
 from app.modules.users.models import User
-from app.modules.users.schemas import UserCreate, UserUpdate
+from app.modules.users.schemas import UserCreate
 from app.modules.users.service import UserService
 
-SQLITE_TABLES = (User.__table__, AuthLoginThrottle.__table__)
+SQLITE_TABLES = (
+    User.__table__,
+    AuthLoginThrottle.__table__,
+    AuthSession.__table__,
+)
 
 
 def make_user_create(
@@ -33,16 +35,18 @@ def make_user_create(
     )
 
 
-def test_login_returns_bearer_token_for_active_user(db_session: Session) -> None:
+def test_login_returns_opaque_session_for_active_user(db_session: Session) -> None:
     UserService(db_session).create_user(make_user_create())
     service = AuthService(db_session)
 
-    token = service.login(
+    result = service.login(
         AuthLogin(email="ADMIN@EXAMPLE.TEST", password="senha-local-segura")
     )
 
-    assert token.access_token
-    assert token.token_type == "bearer"
+    assert result.user.email == "admin@example.test"
+    assert result.session.token
+    assert result.session.csrf_token
+    assert result.session.auth_session.token_hash != result.session.token
 
 
 def test_bootstrap_first_admin_creates_fixed_active_admin(
@@ -112,53 +116,3 @@ def test_login_rejects_inactive_user(db_session: Session) -> None:
         service.login(
             AuthLogin(email="admin@example.test", password="senha-local-segura")
         )
-
-
-def test_get_current_user_from_token_returns_user(db_session: Session) -> None:
-    user = UserService(db_session).create_user(make_user_create())
-    service = AuthService(db_session)
-    token = service.login(
-        AuthLogin(email="admin@example.test", password="senha-local-segura")
-    )
-
-    current_user = service.get_current_user_from_token(token.access_token)
-
-    assert current_user.id == user.id
-
-
-def test_get_current_user_from_token_rejects_invalid_token(db_session: Session) -> None:
-    service = AuthService(db_session)
-
-    with pytest.raises(AuthInvalidTokenError):
-        service.get_current_user_from_token("invalid-token")
-
-
-def test_get_current_user_from_token_rejects_inactive_user(db_session: Session) -> None:
-    user_service = UserService(db_session)
-    user = user_service.create_user(make_user_create())
-    service = AuthService(db_session)
-    token = service.login(
-        AuthLogin(email="admin@example.test", password="senha-local-segura")
-    )
-    user_service.create_user(make_user_create(email="second-admin@example.test"))
-    user_service.update_user(user.id, UserUpdate(active=False))
-
-    with pytest.raises(AuthInactiveUserError):
-        service.get_current_user_from_token(token.access_token)
-
-
-def test_get_current_user_from_token_uses_current_database_role(
-    db_session: Session,
-) -> None:
-    user_service = UserService(db_session)
-    user = user_service.create_user(make_user_create())
-    service = AuthService(db_session)
-    token = service.login(
-        AuthLogin(email="admin@example.test", password="senha-local-segura")
-    )
-    user_service.create_user(make_user_create(email="second-admin@example.test"))
-    user_service.update_user(user.id, UserUpdate(role="CHECKER"))
-
-    current_user = service.get_current_user_from_token(token.access_token)
-
-    assert current_user.role == "CHECKER"

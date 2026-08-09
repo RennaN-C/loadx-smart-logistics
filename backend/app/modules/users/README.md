@@ -23,7 +23,8 @@ Crie somente os arquivos necessários para a ocorrência atual.
 
 `CONFIRMADO`: todas essas rotas exigem `ADMIN` conforme `D02`, `D03` e `ADR-004`.
 
-`CONFIRMADO`: a `OC51-D` aplicou a proteção no router e documentou o esquema Bearer no OpenAPI.
+`CONFIRMADO`: a `OC51-D` aplicou a proteção no router; a OC60 substituiu Bearer
+pelo esquema cookie `SessionCookie` no OpenAPI.
 
 ## Regras implementadas
 

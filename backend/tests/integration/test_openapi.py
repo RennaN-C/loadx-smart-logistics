@@ -8,8 +8,9 @@ from app.main import create_app
 EXPECTED_ERROR_STATUSES = {
     ("/health", "get"): {"500"},
     ("/ready", "get"): {"500", "503"},
-    ("/api/v1/auth/login", "post"): {"401", "422", "429", "500"},
+    ("/api/v1/auth/login", "post"): {"401", "403", "422", "429", "500"},
     ("/api/v1/auth/me", "get"): {"401", "403", "422", "500"},
+    ("/api/v1/auth/logout", "post"): {"401", "403", "422", "500"},
     ("/api/v1/users", "get"): {"401", "403", "422", "500"},
     ("/api/v1/users", "post"): {"401", "403", "409", "422", "500"},
     ("/api/v1/users/{user_id}", "get"): {
@@ -236,14 +237,18 @@ def test_openapi_uses_standard_schema_for_each_documented_error() -> None:
             assert response_schema == {"$ref": "#/components/schemas/ErrorResponse"}
 
 
-def test_openapi_documents_bearer_authentication_for_protected_routes() -> None:
+def test_openapi_documents_cookie_authentication_for_protected_routes() -> None:
     schema = get_openapi_schema()
 
-    bearer_scheme = schema["components"]["securitySchemes"]["BearerAuth"]
-    assert bearer_scheme == {"type": "http", "scheme": "bearer"}
+    cookie_scheme = schema["components"]["securitySchemes"]["SessionCookie"]
+    assert cookie_scheme == {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "loadx_session",
+    }
 
     for path, method in PROTECTED_OPERATIONS:
-        assert schema["paths"][path][method]["security"] == [{"BearerAuth": []}]
+        assert schema["paths"][path][method]["security"] == [{"SessionCookie": []}]
 
     for path, method in PUBLIC_OPERATIONS:
         assert "security" not in schema["paths"][path][method]

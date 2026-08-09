@@ -368,8 +368,10 @@ Nunca envie o arquivo `.env` para o GitHub.
 `APP_ENV` aceita somente `local` ou `production`. Use `local` no desenvolvimento. Em produção, configure `APP_ENV=production` para não expor `/docs`, `/redoc`, `/docs/oauth2-redirect` e `/openapi.json`. Se a variável não for informada, o backend assume `production` por segurança.
 
 `CONFIRMADO`: em produção, o backend recusa iniciar com `SECRET_KEY` fraca ou
-com menos de 32 caracteres, `DATABASE_URL` local padrão, origem CORS curinga,
-algoritmo JWT diferente de `HS256` ou expiração fora de 1 a 1440 minutos.
+com menos de 32 caracteres, `DATABASE_URL` local padrão ou origem CORS curinga.
+Conforme D18, produção autentica pelo cookie `__Host-loadx_session`; o ambiente
+local HTTP usa `loadx_session` para não violar os requisitos do prefixo
+reservado.
 
 ### Iniciar o sistema
 

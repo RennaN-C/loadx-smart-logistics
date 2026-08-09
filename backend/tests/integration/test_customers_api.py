@@ -4,13 +4,13 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.core.security import create_access_token
 from app.modules.customers.models import Customer
 from app.modules.customers.schemas import CustomerCreate
 from app.modules.customers.service import CustomerService
 from app.modules.users.models import User
 from app.modules.users.schemas import UserCreate
 from app.modules.users.service import UserService
+from tests.integration.auth_helpers import issue_session_headers
 
 SessionFactory = Callable[[], Session]
 CUSTOMER_ROUTE_CASES = [
@@ -42,9 +42,11 @@ def create_user_in_db(
         db.close()
 
 
-def authorization_headers(user: User) -> dict[str, str]:
-    token = create_access_token(str(user.id), {"role": user.role})
-    return {"Authorization": f"Bearer {token}"}
+def authorization_headers(
+    session_factory: SessionFactory,
+    user: User,
+) -> dict[str, str]:
+    return issue_session_headers(session_factory, user.id)
 
 
 @pytest.fixture
@@ -54,7 +56,7 @@ def manager_headers(session_factory: SessionFactory) -> dict[str, str]:
         "manager@example.test",
         "LOGISTICS_MANAGER",
     )
-    return authorization_headers(manager)
+    return authorization_headers(session_factory, manager)
 
 
 def make_customer_payload(document: str = "00000000000191") -> dict[str, object]:
@@ -310,7 +312,7 @@ def test_admin_can_read_customers(
         "GET",
         route,
         customer,
-        authorization_headers(admin),
+        authorization_headers(session_factory, admin),
     )
 
     assert response.status_code == 200
@@ -335,7 +337,7 @@ def test_admin_cannot_manage_customers(
         method,
         route,
         customer,
-        authorization_headers(admin),
+        authorization_headers(session_factory, admin),
     )
 
     assert response.status_code == 403
@@ -378,7 +380,7 @@ def test_customer_routes_reject_roles_without_access(
         method,
         route,
         customer,
-        authorization_headers(user),
+        authorization_headers(session_factory, user),
     )
 
     assert response.status_code == 403
@@ -405,7 +407,7 @@ def test_customer_routes_reject_inactive_manager(
         method,
         route,
         customer,
-        authorization_headers(manager),
+        authorization_headers(session_factory, manager),
     )
 
     assert response.status_code == 403

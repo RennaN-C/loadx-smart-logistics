@@ -9,7 +9,8 @@ Não coloque regras de caminhão, pedido ou carga aqui. O core deve conhecer inf
 - `config.py`: variáveis de ambiente e configurações globais, incluindo `APP_ENV=local|production`.
 - `exceptions.py`: handlers globais de validação e erros inesperados da API.
 - `responses.py`: envelope de erro HTTP e metadados compartilhados do OpenAPI.
-- `security.py`: hash de senha e JWT usados pela autenticação.
+- `security.py`: Argon2id e migração de hashes PBKDF2 legados.
+- `http_security.py`: validação de origem dos métodos inseguros.
 - `json_decimal.py`: contrato compartilhado que valida e serializa `Decimal`
   como número JSON conforme D06 e ADR-016, sem alterar a aritmética de domínio.
 - `pagination.py`: parâmetros, resultado de repository e envelope compartilhado

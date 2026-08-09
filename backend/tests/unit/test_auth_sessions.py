@@ -151,6 +151,20 @@ def test_resolve_session_revokes_inactive_user_sessions(db_session: Session) -> 
     assert as_utc(issued.auth_session.revoked_at) == clock.now
 
 
+def test_resolve_session_uses_current_database_role(db_session: Session) -> None:
+    clock = Clock()
+    user = create_user(db_session)
+    service = make_service(db_session, clock)
+    issued = service.create_session(user.id)
+    user.role = "CHECKER"
+    db_session.add(user)
+    db_session.commit()
+
+    resolved = service.resolve_session(issued.token)
+
+    assert resolved.user.role == "CHECKER"
+
+
 def test_csrf_token_is_stable_tied_to_session_and_constant_time_validated(
     db_session: Session,
 ) -> None:
