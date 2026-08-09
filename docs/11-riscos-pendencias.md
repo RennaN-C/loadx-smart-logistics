@@ -41,7 +41,9 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 - `CONFIRMADO`: migration `20260730_0002` cria `orders` e `order_items`.
 - `CONFIRMADO`: migration `20260730_0003` cria `status_history`.
 - `CONFIRMADO`: migration `20260804_0004` cria as três tabelas de planejamento.
-- `CONFIRMADO`: o contrato aprovado mantém login, token JWT e `/auth/me`, remove `/auth/register` e restringe criação de usuários a `ADMIN` após bootstrap local.
+- `CONFIRMADO`: D18 e `ADR-020` substituem JWT por sessão opaca em cookie,
+  mantêm login e `/auth/me`, adicionam logout, removem `/auth/register` e
+  restringem criação de usuários a `ADMIN` após bootstrap local.
 - `CONFIRMADO`: a `OC51-I` auditou a matriz completa de autorização e a fronteira pública de todos os endpoints atualmente implementados.
 - `CONFIRMADO`: a `OC53` executa os testes de integração em PostgreSQL 16
   exclusivo, aplica migrations Alembic do banco vazio, exercita downgrade mínimo
@@ -69,7 +71,8 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
   ocorrências.
 - `PENDENTE DE DEFINIÇÃO`: contrato, filtros e entidades aceitas na consulta protegida de histórico; `D01` impede consulta pública e `D02` limita a leitura geral a `ADMIN` e `LOGISTICS_MANAGER`.
 - `PENDENTE DE DEFINIÇÃO`: estratégia final de logging estruturado.
-- `PENDENTE DE DEFINIÇÃO`: política final de expiração de token, fluxo de refresh e bloqueio por tentativas inválidas.
+- `PENDENTE DE DEFINIÇÃO`: recuperação de senha e MFA para `ADMIN` e
+  `LOGISTICS_MANAGER` precisam de contrato de cadastro, recuperação e bootstrap.
 - `PENDENTE DE DEFINIÇÃO`: validação formal de CPF, CNPJ, telefone e CNH.
 - `PENDENTE DE DEFINIÇÃO`: política de armazenamento, expiração e proteção de fotos de ocorrência.
 - `PENDENTE DE DEFINIÇÃO`: SLA rígido de tempo do otimizador; o limite funcional
@@ -108,8 +111,10 @@ nova `algorithm_version`; a representação JSON de `Decimal` segue D06 e
 - `SUPOSIÇÃO TÉCNICA`: exclusões de cadastros principais serão lógicas por `active = false` quando houver histórico ou vínculo.
 - `SUPOSIÇÃO TÉCNICA`: IDs UUID podem ser gerados pela aplicação ou banco, desde que o padrão seja único e documentado na primeira migration.
 - `SUPOSIÇÃO TÉCNICA`: fotos de ocorrência no MVP podem usar URL mock ou storage local controlado até definição de provider.
-- `SUPOSIÇÃO TÉCNICA`: token JWT usa expiração configurável com default local de 60 minutos até decisão final de segurança.
-- `SUPOSIÇÃO TÉCNICA`: hash de senha usa `pbkdf2_sha256` via Passlib nesta etapa, sem adicionar dependência externa nova.
+- `CONFIRMADO`: sessões opacas expiram após 30 minutos de inatividade ou 8 horas
+  absolutas, conforme D18 e `ADR-020`.
+- `CONFIRMADO`: novos hashes usam Argon2id m=19 MiB, t=2 e p=1; PBKDF2 fica
+  restrito à migração gradual após login válido.
 
 ## Riscos identificados
 

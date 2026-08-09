@@ -344,7 +344,7 @@ Data: 2026-08-03
 
 D18 - POLÍTICA FINAL DE AUTENTICAÇÃO
 ------------------------------------
-Marcador: DECISÃO NECESSÁRIA
+Marcador: CONFIRMADO
 Decidir:
 - duração final do access token;
 - necessidade de refresh token no MVP;
@@ -354,8 +354,26 @@ Decidir:
 RECOMENDAÇÃO: manter o MVP pequeno, mas documentar explicitamente os limites de segurança.
 Impacta: auth, users, frontend e testes de segurança.
 Escolha da equipe:
-Responsáveis:
-Data:
+- o LoadX será consumido somente pelo frontend próprio nesta etapa;
+- JWT Bearer e refresh token são substituídos por sessão opaca revogável, com
+  identificador aleatório de 256 bits e somente seu hash no banco;
+- produção usa cookie __Host-loadx_session com HttpOnly, Secure, SameSite=Lax,
+  Path=/ e sem Domain; local HTTP usa loadx_session sem o prefixo reservado;
+- a sessão expira em 30 minutos de inatividade e 8 horas absolutas;
+- logout, troca de senha, desativação e alteração de papel revogam sessões;
+- métodos inseguros validam Origin exata e, quando autenticados, X-CSRF-Token;
+- login é limitado por conta e IP, com bloqueios progressivos de 1, 5, 15 e 60
+  minutos a partir da quinta falha, 429 e Retry-After;
+- respostas de login não distinguem conta inexistente, senha inválida ou usuário
+  inativo;
+- novas senhas exigem 15 a 128 caracteres, aceitam espaço e Unicode, não usam
+  composição artificial nem troca periódica e consultam blocklist local;
+- novos hashes usam Argon2id com m=19 MiB, t=2 e p=1; PBKDF2 legado é migrado
+  após login válido;
+- MFA para ADMIN e LOGISTICS_MANAGER será uma ocorrência separada, depois do
+  contrato de cadastro e recuperação de passkey/TOTP.
+Responsável: Desenvolvedor 1.
+Data: 2026-08-08.
 
 
 D19 - VALIDAÇÃO FORMAL DE DOCUMENTOS E CONTATOS

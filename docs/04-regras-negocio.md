@@ -52,27 +52,46 @@ Regras complementares:
 - Permissão de consulta não libera automaticamente todos os campos pessoais; seleção, omissão e mascaramento de campos seguem `D12`.
 - Acesso `S` exige vínculo comprovado no banco e validação do objeto solicitado, não apenas do perfil.
 - Enquanto não existir vínculo aprovado entre `users` e `drivers`, `DRIVER` acessa somente `/auth/me` na API atual.
-- Papel e estado `active` são carregados do banco em cada requisição protegida; o papel gravado no JWT não é fonte única de autorização.
+- Papel e estado `active` são carregados do banco em cada requisição protegida.
 
 ## Autenticação
 
 - Usuário deve autenticar com e-mail e senha.
 - Senha deve ser persistida somente como hash.
 - Respostas públicas de usuário nunca devem retornar `password_hash`.
-- Token JWT deve identificar o usuário pelo UUID em `sub`.
+- A sessão opaca deve vincular o usuário pelo UUID e persistir somente o hash do
+  identificador aleatório.
 - Usuário inativo não pode fazer login.
 - Somente `GET /health`, `GET /ready` e `POST /api/v1/auth/login` são públicos.
 - `/health` mede apenas liveness. `/ready` exige PostgreSQL acessível e revisão
   Alembic exatamente no head, conforme D11 e `ADR-018`.
-- Todos os demais endpoints de negócio exigem autenticação Bearer, salvo integração externa futura com autenticação própria aprovada.
+- Todos os demais endpoints de negócio exigem o cookie de sessão do frontend
+  próprio, salvo integração externa futura com autenticação própria aprovada.
 - O primeiro `ADMIN` é criado por comando administrativo local, executado antes da exposição da API e somente quando não existem usuários.
 - Depois do bootstrap, somente `ADMIN` cria usuários por `POST /api/v1/users`.
 - `POST /api/v1/auth/register` não faz parte do contrato aprovado e deve ser removido na `OC51`.
 - O último `ADMIN` ativo não pode ser desativado ou rebaixado.
 
-`SUPOSIÇÃO TÉCNICA`: o backend usa `pbkdf2_sha256` via Passlib para hash de senha nesta etapa, evitando incompatibilidade local do bcrypt no ambiente Python usado para testes.
+`CONFIRMADO` por D18 e `ADR-020`:
 
-`PENDENTE DE DEFINIÇÃO`: política final de expiração, refresh token, bloqueio por tentativas inválidas, força mínima e recuperação de senha permanece em `D18`.
+- não existe refresh token no MVP;
+- sessões expiram após 30 minutos de inatividade ou 8 horas absolutas;
+- produção usa cookie `__Host-loadx_session` com `HttpOnly`, `Secure`,
+  `SameSite=Lax`, `Path=/` e sem `Domain`;
+- métodos inseguros validam `Origin` exata e sessões autenticadas também exigem
+  `X-CSRF-Token` associado à sessão;
+- logout, troca de senha, desativação e alteração de papel revogam sessões;
+- login é limitado por conta e IP, com bloqueios de 1, 5, 15 e 60 minutos a
+  partir da quinta falha;
+- credenciais inválidas, conta inexistente e conta inativa produzem a mesma
+  resposta pública;
+- novas senhas exigem 15 a 128 caracteres, permitem espaços e Unicode, não
+  exigem composição nem troca periódica e consultam blocklist local;
+- novos hashes usam Argon2id com m=19 MiB, t=2 e p=1; PBKDF2 legado é migrado
+  após login válido.
+
+`PENDENTE DE DEFINIÇÃO`: recuperação de senha e MFA para funções críticas serão
+tratados em ocorrências próprias.
 
 ## Caminhão
 

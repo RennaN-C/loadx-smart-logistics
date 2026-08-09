@@ -4,7 +4,7 @@
 
 `RECOMENDAÇÃO`: este documento reúne ocorrências prontas para serem copiadas para o GitHub Projects após revisão da equipe.
 
-`CONFIRMADO`: os identificadores `OC49` a `OC59` nasceram como sugestões. O
+`CONFIRMADO`: os identificadores `OC49` a `OC60` nasceram como sugestões. O
 estado individual abaixo registra quais ocorrências foram aprovadas, integradas
 ou continuam pendentes de decisão da equipe.
 
@@ -35,6 +35,7 @@ revisão.
 | `OC57` | Média | Desenvolvedor 2 | Absorvida e resolvida pela revisão da `OC11` |
 | `OC58` | Baixa | Desenvolvedor 1, com apoio do Desenvolvedor 4 | Implementada e validada localmente; pendente de PR e revisão |
 | `OC59` | Média | Desenvolvedor 1 e Desenvolvedor 3 | Integrada em `desenvolvimento` |
+| `OC60` | Alta | Desenvolvedor 1 | Aprovada por D18; em implementação |
 
 As referências `DXX` apontam para `docs/decisoes-equipe-backend.txt`.
 
@@ -511,6 +512,48 @@ atual porque D12 não aprovou filtros server-side.
 ### Fora do escopo
 
 - Busca externa, motor de pesquisa ou exportação massiva de dados.
+
+---
+
+## [OC60] Endurecer autenticação e substituir JWT por sessão revogável
+
+- **Tipo:** segurança e contrato.
+- **Responsável primário confirmado:** Desenvolvedor 1.
+- **Prioridade:** alta.
+- **Situação:** aprovada por D18 em 2026-08-08.
+
+### Objetivo
+
+Remover credenciais do Web Storage, limitar tentativas de login, modernizar o
+hash e disponibilizar sessão revogável com proteção CSRF para o frontend próprio.
+
+### Critérios de aceite
+
+- D18 e `ADR-020` registram o contrato antes da implementação.
+- Novas senhas seguem a política de 15 a 128 caracteres e blocklist local.
+- Argon2id usa m=19 MiB, t=2 e p=1; login válido migra PBKDF2 legado.
+- Login limita conta e IP e retorna `429` com `Retry-After` durante bloqueio.
+- `auth_sessions` guarda somente hash de identificador aleatório de 256 bits.
+- Produção emite `__Host-loadx_session` com flags seguras; local HTTP usa cookie
+  compatível explicitamente documentado.
+- Sessão respeita 30 minutos inativos e 8 horas absolutas.
+- Métodos inseguros validam origem; métodos autenticados validam
+  `X-CSRF-Token`.
+- `POST /auth/logout` revoga a sessão e limpa o cookie.
+- Troca de senha, desativação e alteração de papel revogam todas as sessões do
+  usuário.
+- Frontend usa cookie, mantém CSRF somente em memória e não usa `localStorage`
+  para autenticação.
+- Migration real, downgrade, testes PostgreSQL, Ruff, frontend, build e scanners
+  passam.
+
+### Fora do escopo
+
+- MFA, recuperação de senha, cofre de segredos, TLS do proxy, alertas externos e
+  criação dos papéis PostgreSQL de produção.
+
+`RISCO IDENTIFICADO`: MFA obrigatório sem fluxo de cadastro e recuperação pode
+bloquear o único administrador; a implementação exige ocorrência própria.
 
 ---
 
