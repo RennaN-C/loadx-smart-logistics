@@ -1,8 +1,8 @@
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
 import { BackSide } from "three";
 
 import type { PlacedItem, TruckSnapshot } from "../../load-planning/types";
+import { CameraControls } from "./CameraControls";
 import { cameraPosition, deliveryColor, itemBox, truckBox } from "./sceneGeometry";
 
 interface VolumeProps {
@@ -79,7 +79,7 @@ export function LoadScene({ truck, items, selectedId, onSelect, visibleIds }: Lo
       ))}
 
       <gridHelper args={[Math.max(box.size[0], box.size[2]) * 2, 12, "#a09b8f", "#d9d5c7"]} />
-      <OrbitControls makeDefault target={box.position} enableDamping />
+      <CameraControls target={box.position} />
     </Canvas>
   );
 }

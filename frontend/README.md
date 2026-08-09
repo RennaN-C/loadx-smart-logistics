@@ -2,6 +2,9 @@
 
 Interface React + TypeScript do LoadX.
 
+`CONFIRMADO`: desenvolvimento e build usam Node `>=22.22 <23`; `.nvmrc` e os
+Dockerfiles fixam `22.23.1` para manter o ambiente reproduzível.
+
 ## Organização
 
 - `src/app`: inicialização, rotas e providers.

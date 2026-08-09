@@ -3,15 +3,17 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "engines": {
+    "node": ">=22.22.0 <23"
+  },
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && node scripts/check-bundle-budget.mjs",
     "lint": "eslint .",
     "test": "vitest"
   },
   "dependencies": {
     "@fontsource/poppins": "^5.0.8",
-    "@react-three/drei": "^9.114.0",
     "@react-three/fiber": "^8.17.0",
     "axios": "^1.7.0",
     "react": "^18.3.1",

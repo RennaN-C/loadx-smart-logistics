@@ -59,6 +59,9 @@ export default defineConfig(({ mode }) => {
     preview: {
       headers: securityHeaders,
     },
+    build: {
+      chunkSizeWarningLimit: 850,
+    },
     test: {
       environment: "jsdom",
       setupFiles: ["./src/tests/setup.ts"],
