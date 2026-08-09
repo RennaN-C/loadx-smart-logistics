@@ -572,6 +572,41 @@ bloquear o único administrador; a implementação exige ocorrência própria.
 
 ---
 
+## [OC61] Viabilizar runtime seguro de produção
+
+- **Tipo:** segurança e infraestrutura.
+- **Responsável primário confirmado:** Desenvolvedor 1.
+- **Prioridade:** alta.
+- **Situação:** aprovada por `ADR-021` em 2026-08-09.
+
+### Objetivo
+
+Fornecer uma referência executável de produção para o frontend próprio com TLS,
+proxy confiável, segredos montados e credenciais PostgreSQL segregadas, sem
+escolher ou contratar provedor externo.
+
+### Critérios de aceite
+
+- Compose de produção não publica backend nem PostgreSQL diretamente.
+- Caddy serve o build estático e encaminha API e sondas sob a mesma origem HTTPS.
+- Uvicorn confia headers de proxy somente do IP privado fixo do Caddy.
+- URLs de banco e `SECRET_KEY` chegam aos serviços por arquivos em
+  `/run/secrets`.
+- Migration e aplicação recebem credenciais PostgreSQL diferentes.
+- O papel da aplicação não pode criar ou remover estruturas.
+- CSP, HSTS e demais headers defensivos são preservados no frontend publicado.
+- Configuração do Compose, Caddyfile, imagem estática e SQL de papéis são
+  validados antes do encerramento.
+
+### Fora do escopo
+
+- Contratação de domínio, cofre, banco gerenciado, observabilidade ou serviço de
+  alertas.
+- Alta disponibilidade, backup, restauração e deploy em uma plataforma real.
+- MFA e recuperação de senha.
+
+---
+
 ## Detalhamento da ocorrência existente OC09
 
 ## [OC09] Implementar controle de viagens e entregas

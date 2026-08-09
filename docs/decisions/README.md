@@ -24,3 +24,5 @@ Registros aceitos relevantes:
 - `ADR-019`: inicialização segura, migration gate e isolamento dos containers.
 - `ADR-020`: sessões opacas em cookie, CSRF, throttling, Argon2id e política de
   senha da D18.
+- `ADR-021`: runtime de produção com Caddy/TLS, proxy confiável, segredos
+  montados e papéis PostgreSQL separados.
