@@ -73,20 +73,33 @@ um único commit. Recálculo cria outro plano com dados atuais e
 2. Sistema cria ou recupera `loading_session`.
 3. Checklist segue `loading_sequence`.
 4. Conferente marca volumes conferidos.
-5. Ao finalizar, sistema registra horário e libera criação/início de viagem.
+5. Ao finalizar, sistema registra horário e libera o início de uma viagem já
+   criada para o plano aprovado.
 
 `PENDENTE DE DEFINIÇÃO`: regra de bloqueio quando um item do checklist não for conferido.
 
 ## Fluxo de viagem e entrega
 
-1. Responsável logístico ou motorista inicia viagem.
-2. Sistema atualiza status da viagem e grava `status_history`.
-3. Motorista atualiza chegada, início e finalização de entrega via interface ou mensagem.
-4. Cada entrega concluída registra `delivered_at`.
-5. Ocorrências podem ser registradas sem apagar status anterior.
-6. Viagem é concluída quando as entregas aplicáveis chegam a estado final.
+1. Responsável logístico seleciona plano `APPROVED` e motorista ativo.
+2. Backend bloqueia plano, motorista e pedidos, cria a viagem `SCHEDULED`, gera
+   uma entrega `PENDING` por pedido em ordem determinística e grava os históricos
+   em uma transação.
+3. Responsável logístico ou motorista vinculado solicita `IN_ROUTE`.
+4. A interface pública de carregamento confirma `FINISHED`; sem essa confirmação
+   o início falha fechado.
+5. Backend registra `started_at`, move todos os pedidos `PLANNED -> IN_TRANSIT`
+   e grava os históricos no mesmo commit.
+6. Durante `IN_ROUTE`, o responsável ou motorista vinculado avança cada entrega
+   por `PENDING -> IN_DELIVERY -> DELIVERED`.
+7. A conclusão da entrega registra `delivered_at`, move seu pedido
+   `IN_TRANSIT -> DELIVERED` e grava ambos os históricos atomicamente.
+8. A viagem só executa `IN_ROUTE -> FINISHED` e registra `finished_at` quando
+   todas as entregas e pedidos estão `DELIVERED`.
+9. Ocorrências futuras poderão adicionar contexto sem apagar o histórico.
 
-`PENDENTE DE DEFINIÇÃO`: regra final para concluir viagem com entregas canceladas ou falhas.
+`PENDENTE DE DEFINIÇÃO`: o módulo de carregamento ainda precisa materializar e
+expor o estado `FINISHED`. Estados de cancelamento, falha, ausência e atraso
+exigem decisão e migration futuras; não são persistidos pela OC09.
 
 ## Fluxo de WhatsApp simulado/controlado
 
