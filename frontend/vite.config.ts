@@ -13,7 +13,10 @@ function getApiOrigin(apiUrl: string): string | null {
   }
 }
 
-function createSecurityHeaders(apiUrl: string): Record<string, string> {
+function createSecurityHeaders(
+  apiUrl: string,
+  { allowInlineScripts = false }: { allowInlineScripts?: boolean } = {},
+): Record<string, string> {
   const connectSources = ["'self'", "ws://localhost:*", "ws://127.0.0.1:*"];
   const apiOrigin = getApiOrigin(apiUrl);
   if (apiOrigin) {
@@ -29,7 +32,11 @@ function createSecurityHeaders(apiUrl: string): Record<string, string> {
     "frame-ancestors 'none'",
     "img-src 'self' data: blob:",
     "object-src 'none'",
-    "script-src 'self'",
+    // Em desenvolvimento o Vite injeta inline o preamble do React Fast Refresh.
+    // Com `script-src 'self'` puro ele é bloqueado, o React não inicializa e
+    // NENHUMA tela carrega. Produção (Caddy) e o preview do build servem apenas
+    // scripts com hash de arquivo e seguem sem `'unsafe-inline'`.
+    allowInlineScripts ? "script-src 'self' 'unsafe-inline'" : "script-src 'self'",
     "style-src 'self' 'unsafe-inline'",
     "worker-src 'self' blob:",
   ].join("; ");
@@ -46,18 +53,17 @@ function createSecurityHeaders(apiUrl: string): Record<string, string> {
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
   const apiUrl = process.env.VITE_API_URL ?? env.VITE_API_URL ?? DEFAULT_API_URL;
-  const securityHeaders = createSecurityHeaders(apiUrl);
-
   return {
     plugins: [react()],
     server: {
-      headers: securityHeaders,
+      // só o dev server precisa de inline; ver createSecurityHeaders
+      headers: createSecurityHeaders(apiUrl, { allowInlineScripts: true }),
       watch: {
         usePolling: true,
       },
     },
     preview: {
-      headers: securityHeaders,
+      headers: createSecurityHeaders(apiUrl),
     },
     build: {
       chunkSizeWarningLimit: 850,
