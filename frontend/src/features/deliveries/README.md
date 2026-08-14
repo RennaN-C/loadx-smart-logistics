@@ -42,6 +42,24 @@ pela interface — ele depende de receber o link. O caminho previsto é a notifi
 (`OC36`-`OC40`), mas enquanto isso não existir, ou o backend precisa de um `GET /trips` filtrado pelo
 motorista logado, ou o perfil `DRIVER` fica sem porta de entrada.
 
+## Bloqueio conhecido: nenhuma viagem inicia hoje
+
+Validado contra a API real em 2026-08-09: `PATCH /trips/{id}/status` com `IN_ROUTE` responde
+**409 `TRIP_LOADING_NOT_FINISHED`** — *"A viagem só pode iniciar após a finalização do carregamento."*
+
+O módulo `loading` do backend ainda é um **stub vazio** (só `README.md` e `__init__.py`), então não
+existe como finalizar carregamento. Na prática **toda viagem fica presa em `SCHEDULED`**, e com ela o
+ciclo de entregas, que exige a viagem em rota.
+
+A tela está correta e trata o erro, mas a mensagem foi escrita para explicar a situação em vez de
+repetir o backend — sem isso o usuário ficaria tentando descobrir o que fazer. Quando o módulo de
+carregamento existir, a mensagem deve voltar a ser só a tradução do código.
+
+O que **foi** validado ao vivo: criação da viagem a partir do plano aprovado, recusa de plano não
+aprovado, recusa de plano já em viagem, chaves de viagem e entrega batendo com os DTOs, situação
+inicial `SCHEDULED`/`PENDING`, recusa de entrega antes da viagem em rota e recusa de transição pulando
+etapa.
+
 ## Permissões
 
 Ler: `ADMIN`, `LOGISTICS_MANAGER` e `DRIVER`. Operar (mover viagem e entregas):
