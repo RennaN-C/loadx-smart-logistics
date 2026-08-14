@@ -4,6 +4,8 @@ import { BackSide } from "three";
 import type { PlacedItem, TruckSnapshot } from "../../load-planning/types";
 import { CameraControls } from "./CameraControls";
 import { cameraPosition, deliveryColor, itemBox, truckBox } from "./sceneGeometry";
+import { TruckShellMesh } from "./TruckShellMesh";
+import { shellCameraPosition, truckShell } from "./truckShell";
 
 interface VolumeProps {
   readonly item: PlacedItem;
@@ -47,39 +49,54 @@ export interface LoadSceneProps {
   readonly onSelect: (id: string | null) => void;
   /** Itens visíveis; usado pela animação de carregamento (OC33). */
   readonly visibleIds: ReadonlySet<string> | null;
+  /** Exterior do caminhão ligado; desligado mostra só o baú e a carga. */
+  readonly showTruck: boolean;
 }
 
-export function LoadScene({ truck, items, selectedId, onSelect, visibleIds }: LoadSceneProps) {
+export function LoadScene({ truck, items, selectedId, onSelect, visibleIds, showTruck }: LoadSceneProps) {
   const box = truckBox(truck);
+  const shell = truckShell(truck);
+  // A carga sobe junto com o piso do baú. As coordenadas dos volumes seguem
+  // intactas dentro do grupo — nenhuma conversão a mais, nenhuma chance de
+  // divergir do que o backend calculou.
+  const deck = showTruck ? shell.deckHeight : 0;
+  const alvo: [number, number, number] = [box.position[0], box.position[1] + deck, box.position[2]];
 
   return (
-    <Canvas camera={{ position: cameraPosition(truck), fov: 45 }} onPointerMissed={() => onSelect(null)}>
+    <Canvas
+      camera={{ position: showTruck ? shellCameraPosition(truck) : cameraPosition(truck), fov: 45 }}
+      onPointerMissed={() => onSelect(null)}
+    >
       <ambientLight intensity={0.75} />
       <directionalLight position={[6, 10, 8]} intensity={1.1} />
       <directionalLight position={[-6, 4, -6]} intensity={0.35} />
 
-      {/* baú: caixa vista por dentro, para não tapar a carga */}
-      <mesh position={box.position}>
-        <boxGeometry args={box.size} />
-        <meshLambertMaterial color="#d9d5c7" side={BackSide} transparent opacity={0.35} />
-      </mesh>
-      <mesh position={box.position}>
-        <boxGeometry args={box.size} />
-        <meshBasicMaterial color="#5f5b52" wireframe />
-      </mesh>
+      {showTruck ? <TruckShellMesh shell={shell} /> : null}
 
-      {items.map((item) => (
-        <Volume
-          key={item.id}
-          item={item}
-          selected={item.id === selectedId}
-          dimmed={visibleIds !== null && !visibleIds.has(item.id)}
-          onSelect={onSelect}
-        />
-      ))}
+      <group position={[0, deck, 0]}>
+        {/* baú: caixa vista por dentro, para não tapar a carga */}
+        <mesh position={box.position}>
+          <boxGeometry args={box.size} />
+          <meshLambertMaterial color="#d9d5c7" side={BackSide} transparent opacity={0.35} />
+        </mesh>
+        <mesh position={box.position}>
+          <boxGeometry args={box.size} />
+          <meshBasicMaterial color="#5f5b52" wireframe />
+        </mesh>
 
-      <gridHelper args={[Math.max(box.size[0], box.size[2]) * 2, 12, "#a09b8f", "#d9d5c7"]} />
-      <CameraControls target={box.position} />
+        {items.map((item) => (
+          <Volume
+            key={item.id}
+            item={item}
+            selected={item.id === selectedId}
+            dimmed={visibleIds !== null && !visibleIds.has(item.id)}
+            onSelect={onSelect}
+          />
+        ))}
+      </group>
+
+      <gridHelper args={[Math.max(box.size[0], box.size[2]) * 2.4, 14, "#a09b8f", "#d9d5c7"]} />
+      <CameraControls target={alvo} />
     </Canvas>
   );
 }

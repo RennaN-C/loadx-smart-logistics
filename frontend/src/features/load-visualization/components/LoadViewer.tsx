@@ -22,6 +22,7 @@ export function LoadViewer({ planId }: LoadViewerProps) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [showTruck, setShowTruck] = useState(true);
 
   // OC33: quantos volumes já "entraram" no baú. null = carga completa, sem animar.
   const [step, setStep] = useState<number | null>(null);
@@ -113,10 +114,20 @@ export function LoadViewer({ planId }: LoadViewerProps) {
           selectedId={selectedId}
           onSelect={setSelectedId}
           visibleIds={visibleIds}
+          showTruck={showTruck}
         />
       </div>
 
       <div className="viewer-controls">
+        <label className="viewer-toggle" htmlFor="viewer-show-truck">
+          <input
+            id="viewer-show-truck"
+            type="checkbox"
+            checked={showTruck}
+            onChange={(event) => setShowTruck(event.target.checked)}
+          />
+          <span>Mostrar caminhão</span>
+        </label>
         <button
           type="button"
           className="btn-secondary"

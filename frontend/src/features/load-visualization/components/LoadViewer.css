@@ -152,3 +152,17 @@
   color: var(--muted);
   margin-top: 2px;
 }
+
+/* liga/desliga o exterior do caminhão: às vezes o baú sozinho lê melhor */
+.viewer-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.viewer-toggle input {
+  accent-color: var(--accent);
+}
