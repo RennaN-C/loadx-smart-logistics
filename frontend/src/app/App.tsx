@@ -5,6 +5,7 @@ import { RequireAuth } from "../features/auth/components/RequireAuth";
 import { LoginPage } from "../features/auth/pages/LoginPage";
 import { ContactsPage } from "../features/customers/pages/ContactsPage";
 import { DashboardPage } from "../features/dashboard/pages/DashboardPage";
+import { TripPage } from "../features/deliveries/pages/TripPage";
 import { PlanningPage } from "../features/load-planning/pages/PlanningPage";
 import { OrderListPage } from "../features/orders/pages/OrderListPage";
 import { ProductListPage } from "../features/products/pages/ProductListPage";
@@ -26,6 +27,7 @@ export function App() {
               <Route path="orders" element={<OrderListPage />} />
               <Route path="planning" element={<PlanningPage />} />
               <Route path="planning/:planId" element={<PlanningPage />} />
+              <Route path="trips/:tripId" element={<TripPage />} />
               <Route
                 path="*"
                 element={

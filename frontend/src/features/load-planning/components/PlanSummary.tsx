@@ -1,4 +1,5 @@
 import { StatusPill } from "../../../components/StatusPill";
+import { CreateTripAction } from "../../deliveries/components/CreateTripAction";
 import type { LoadPlan } from "../types";
 import { PLAN_STATUS_LABELS, planStatusTone } from "./loadPlanLabels";
 
@@ -61,7 +62,14 @@ export function PlanSummary({ plan, canManage, isWorking, onApprove, onRecalcula
         <div className="plan-occupancy-fill" style={{ width: `${Math.min(plan.occupancyPercent, 100)}%` }} />
       </div>
 
-      {canManage ? (
+      {canManage && plan.status === "APPROVED" ? (
+        <div className="entity-form-actions">
+          {/* plano aprovado e a unica porta de entrada para a viagem (OC34) */}
+          <CreateTripAction loadPlanId={plan.id} />
+        </div>
+      ) : null}
+
+      {canManage && plan.status !== "APPROVED" ? (
         <div className="entity-form-actions">
           <button type="button" className="btn-secondary" disabled={isWorking} onClick={onRecalculate}>
             Recalcular

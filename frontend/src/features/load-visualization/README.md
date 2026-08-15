@@ -11,6 +11,8 @@ Consome `GET /load-plans/{id}/visualization`.
 - `components/CameraControls.tsx`: integra diretamente o `OrbitControls` oficial
   do Three.js ao ciclo de renderização do React Three Fiber.
 - `components/sceneGeometry.ts`: conversão de coordenadas e cores. **Funções puras, testadas.**
+- `components/truckShell.ts` (+ `TruckShellMesh.tsx`): o exterior do caminhão — cabine, chassi,
+  para-choque e rodas. **Funções puras, testadas.**
 
 A tela vive na aba "Visualização 3D" de `features/load-planning/pages/PlanningPage.tsx`.
 
@@ -31,6 +33,30 @@ dimensões usadas são as já rotacionadas que vieram na resposta, não as origi
 junto na mesma parada. A sequência de carregamento aparece no detalhe do volume e na animação.
 
 **O baú é renderizado por dentro** (`BackSide`): uma caixa sólida normal esconderia a carga da câmera.
+
+## Por que o caminhão é desenhado em código, e não importado
+
+A opção óbvia seria baixar um `.glb` de caminhão pronto. Foi medido e descartado: um modelo tem
+proporção **fixa**. O caminhão de referência avaliado tinha razão comprimento/largura de 0,62 e
+comprimento/altura de 1,08 — um baú real fica em 2,50 e 2,31. Esticá-lo até as medidas cadastradas
+deformaria a cabine e as rodas junto, e a tela inteira existe para transmitir precisão dimensional:
+um caminhão de 9 m e um de 4 m precisam parecer diferentes.
+
+Então `truckShell.ts` deriva o exterior das medidas do cadastro. Comprimento, largura e altura do baú
+mandam em tudo que se apoia neles. São constantes apenas as medidas de chassi que a API não fornece e
+que não afetam a carga: altura do piso (1,15 m), raio de roda (0,50 m), comprimento e teto da cabine.
+Um baú de 9 m ganha eixo tandem; um de 4 m não. A cabine tem teto travado em 2,55 m, então um baú
+alto sobe sem esticar a cabine junto.
+
+Isso **não** viola a regra de `docs/11`: nenhuma dessas medidas entra em cálculo de encaixe. Elas
+posicionam desenho. As coordenadas dos volumes continuam intocadas — a carga inteira é levantada por
+um `<group position={[0, deckHeight, 0]}>`, não por conversão item a item.
+
+Custo: **0,7 KiB gzip**. Um `.glb` custaria centenas de KB de download mais o `GLTFLoader`, que
+sozinho consumiria quase toda a folga do orçamento de bundle.
+
+O exterior pode ser desligado no controle "Mostrar caminhão", para inspecionar a carga sem a cabine
+e as rodas no caminho.
 
 **Animação (OC33)**: os volumes aparecem na ordem de carregamento; o que ainda não entrou fica
 esmaecido em vez de sumir, para não dar a impressão de que o espaço está livre. Ao chegar ao fim, volta
