@@ -21,6 +21,11 @@
 
   --font-mono: ui-monospace, "Cascadia Mono", "Consolas", "SFMono-Regular", Menlo, monospace;
 
+  /* Manda o navegador desenhar o que é dele no mesmo tema da página: a lista
+     suspensa do select, o seletor de data, as barras de rolagem. Sem isto ele
+     assume claro e a lista do select sai com fundo branco e texto claro. */
+  color-scheme: light;
+
   font-family: "Poppins", system-ui, sans-serif;
   color: var(--ink);
   background: var(--paper);
@@ -28,6 +33,8 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
+    color-scheme: dark;
+
     --ink: #edeae1;
     --paper: #171b20;
     --card: #1f252c;
@@ -684,9 +691,17 @@ body {
   padding: 10px 12px;
   border: 1px solid var(--line);
   border-radius: 3px;
-  background: transparent;
+  background: var(--card);
   color: var(--ink);
   width: 100%;
+}
+
+/* A lista suspensa do select é desenhada pelo navegador, fora do fluxo da
+   página: fundo `transparent` ali vira o branco padrão dele, e o texto claro
+   do tema escuro some. Por isso cor e fundo explícitos. */
+option {
+  background: var(--card);
+  color: var(--ink);
 }
 
 .entity-form textarea {
