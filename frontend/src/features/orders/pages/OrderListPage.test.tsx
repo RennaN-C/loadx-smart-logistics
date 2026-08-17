@@ -172,7 +172,7 @@ describe("OrderListPage", () => {
     render(<OrderListPage />);
     await screen.findByText("Distribuidora Aurora");
 
-    expect(screen.queryByRole("button", { name: "+ Novo pedido" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Novo pedido" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Editar" })).not.toBeInTheDocument();
   });
 

@@ -117,7 +117,7 @@ describe("TruckListPage", () => {
     render(<TruckListPage />);
     await screen.findByText("ABC1D23");
 
-    expect(screen.queryByRole("button", { name: "+ Novo caminhão" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Novo caminhão" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Editar" })).not.toBeInTheDocument();
   });
 
@@ -127,7 +127,7 @@ describe("TruckListPage", () => {
     render(<TruckListPage />);
     await screen.findByText("ABC1D23");
 
-    fireEvent.click(screen.getByRole("button", { name: "+ Novo caminhão" }));
+    fireEvent.click(screen.getByRole("button", { name: "Novo caminhão" }));
 
     expect(await screen.findByRole("dialog")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Novo caminhão" })).toBeInTheDocument();

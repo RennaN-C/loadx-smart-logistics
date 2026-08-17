@@ -11,6 +11,7 @@ import { useResourceList } from "../../../hooks/useResourceList";
 import { listProducts } from "../api/productsApi";
 import type { Product } from "../types";
 import "./ProductListPage.css";
+import { Icon } from "../../../components/Icon";
 
 type RestrictionFilter = "all" | "restricted" | "free";
 
@@ -74,7 +75,8 @@ export function ProductListPage() {
         </div>
         {canManage ? (
           <button type="button" className="btn-primary" onClick={() => setIsCreating(true)}>
-            + Novo produto
+            <Icon name="plus" size={16} />
+            Novo produto
           </button>
         ) : null}
       </header>

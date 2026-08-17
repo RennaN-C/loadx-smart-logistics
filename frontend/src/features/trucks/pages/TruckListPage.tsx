@@ -11,6 +11,7 @@ import { useResourceList } from "../../../hooks/useResourceList";
 import { listTrucks } from "../api/trucksApi";
 import type { Truck } from "../types";
 import "./TruckListPage.css";
+import { Icon } from "../../../components/Icon";
 
 type StatusFilter = "all" | "active" | "inactive";
 
@@ -73,7 +74,8 @@ export function TruckListPage() {
         </div>
         {canManage ? (
           <button type="button" className="btn-primary" onClick={() => setIsCreating(true)}>
-            + Novo caminhão
+            <Icon name="plus" size={16} />
+            Novo caminhão
           </button>
         ) : null}
       </header>

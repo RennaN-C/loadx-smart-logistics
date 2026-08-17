@@ -116,15 +116,52 @@ body {
 }
 
 .app-brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
   margin: 0;
-  padding: 0 10px;
-  font-size: 0.78rem;
+  padding: 2px 8px 0;
+  font-size: 1.18rem;
+  font-weight: 800;
+  letter-spacing: 0.13em;
 }
 
 .app-nav {
   display: flex;
   flex-direction: column;
   gap: 20px;
+}
+
+/* o ícone acompanha a cor do texto ao lado e não encolhe quando o rótulo é longo */
+.icon {
+  flex-shrink: 0;
+}
+
+/* Rótulo que só o leitor de tela alcança: some da tela sem sair da árvore de
+   acessibilidade, como acontece com `display: none`. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.avatar {
+  display: inline-grid;
+  place-content: center;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--accent-bg);
+  color: var(--accent-strong);
+  border: 1px solid var(--accent);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1;
 }
 
 .app-nav-title {
@@ -148,7 +185,9 @@ body {
 }
 
 .app-nav a {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   font-size: 0.88rem;
   color: var(--muted);
   text-decoration: none;
@@ -156,6 +195,18 @@ body {
   border-radius: 3px;
   /* a faixa do ativo entra pela borda, então o texto não desloca ao trocar de tela */
   border-left: 2px solid transparent;
+}
+
+/* o ícone fica um passo atrás do rótulo; na tela ativa os dois vêm à frente */
+.app-nav a .icon {
+  opacity: 0.65;
+}
+.app-nav a:hover .icon,
+.app-nav a[aria-current="page"] .icon {
+  opacity: 1;
+}
+.app-nav a[aria-current="page"] .icon {
+  color: var(--accent-strong);
 }
 .app-nav a:hover {
   color: var(--ink);
@@ -175,36 +226,51 @@ body {
 .app-account {
   margin-top: auto;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  padding: 12px 10px 0;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 8px 0;
   border-top: 1px solid var(--line);
   font-size: 0.85rem;
 }
 
+/* min-width: 0 é o que autoriza o nome a encurtar em vez de empurrar o botão */
+.app-account-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin-right: auto;
+}
+
 .app-account-name {
   font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .app-account-role {
   color: var(--muted);
-  font-size: 0.78rem;
-  margin-bottom: 10px;
+  font-size: 0.75rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .app-logout {
-  font-family: inherit;
-  font-size: 0.85rem;
+  display: grid;
+  place-content: center;
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
   color: var(--muted);
   background: none;
   border: 1px solid var(--line);
   border-radius: 3px;
-  padding: 6px 12px;
   cursor: pointer;
 }
 .app-logout:hover {
-  color: var(--ink);
-  border-color: var(--ink);
+  color: var(--danger);
+  border-color: var(--danger);
 }
 .app-logout:focus-visible {
   outline: none;
@@ -246,9 +312,17 @@ body {
     overflow-x: auto;
   }
 
-  /* deitado não sobra espaço para rótulo de grupo, e os itens se explicam */
-  .app-nav-title {
+  /* Deitado não sobra espaço para rótulo de grupo, e os itens se explicam. O
+     ícone sai pelo mesmo motivo: numa faixa rolável ele custa largura onde ela
+     falta, e quem carrega o significado é o rótulo. */
+  .app-nav-title,
+  .app-nav a .icon {
     display: none;
+  }
+
+  .app-brand {
+    font-size: 1rem;
+    padding: 0;
   }
 
   .app-nav a {
@@ -362,6 +436,9 @@ body {
 }
 
 .btn-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   font-family: inherit;
   font-size: 0.88rem;
   font-weight: 600;
@@ -371,8 +448,10 @@ body {
   padding: 0;
   cursor: pointer;
 }
+/* Agora que o botão pode ter ícone, sublinhar riscaria o vão entre ele e o
+   texto. O realce foi para a cor, que o ícone acompanha por herdar currentColor. */
 .btn-link:hover {
-  text-decoration: underline;
+  color: var(--accent-strong);
 }
 
 .btn-primary:focus-visible,

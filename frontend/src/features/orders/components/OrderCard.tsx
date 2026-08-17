@@ -1,6 +1,8 @@
+import { Avatar } from "../../../components/Avatar";
+import { Icon } from "../../../components/Icon";
 import { StatusPill } from "../../../components/StatusPill";
 import type { OrderListItem } from "../types";
-import { priorityLabel, STATUS_LABELS, statusTone } from "./orderLabels";
+import { priorityIsUrgent, priorityLabel, STATUS_LABELS, statusTone } from "./orderLabels";
 
 const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
   dateStyle: "short",
@@ -24,21 +26,35 @@ export function OrderCard({ order, customerName, canManage, isOpening, onEdit }:
   return (
     <article className="order-card">
       <div className="order-card-head">
-        <p className="order-card-customer">{customerName}</p>
+        <div className="order-card-who">
+          <Avatar name={customerName} size={34} />
+          <p className="order-card-customer">{customerName}</p>
+        </div>
         <StatusPill tone={statusTone(order.status)}>{STATUS_LABELS[order.status]}</StatusPill>
       </div>
 
       <dl className="order-card-meta">
         <div>
-          <dt>PRIORIDADE</dt>
-          <dd>{priorityLabel(order.priority)}</dd>
+          <dt>
+            <Icon name="priority" size={12} />
+            PRIORIDADE
+          </dt>
+          <dd className={priorityIsUrgent(order.priority) ? "order-card-urgent" : undefined}>
+            {priorityLabel(order.priority)}
+          </dd>
         </div>
         <div>
-          <dt>ITENS</dt>
+          <dt>
+            <Icon name="package" size={12} />
+            ITENS
+          </dt>
           <dd>{order.itemCount}</dd>
         </div>
         <div>
-          <dt>PREVISÃO</dt>
+          <dt>
+            <Icon name="calendar" size={12} />
+            PREVISÃO
+          </dt>
           <dd>
             {order.expectedDeliveryAt ? dateFormatter.format(new Date(order.expectedDeliveryAt)) : "—"}
           </dd>
@@ -53,6 +69,7 @@ export function OrderCard({ order, customerName, canManage, isOpening, onEdit }:
             disabled={isOpening}
             onClick={() => onEdit(order.id)}
           >
+            <Icon name="edit" size={15} />
             {isOpening ? "Abrindo…" : "Editar"}
           </button>
         </div>

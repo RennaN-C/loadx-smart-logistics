@@ -167,7 +167,7 @@ describe("ContactsPage", () => {
     render(<ContactsPage />);
     await screen.findByText("Distribuidora Aurora");
 
-    expect(screen.queryByRole("button", { name: "+ Novo cliente" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Novo cliente" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Editar" })).not.toBeInTheDocument();
   });
 

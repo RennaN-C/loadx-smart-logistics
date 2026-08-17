@@ -1,11 +1,14 @@
 import { NavLink, Outlet } from "react-router-dom";
 
+import { Avatar } from "../components/Avatar";
+import { BrandMark, Icon, type IconName } from "../components/Icon";
 import type { Role } from "../features/auth/types";
 import { useAuth } from "../features/auth/hooks/useAuth";
 
 interface NavItem {
   readonly to: string;
   readonly label: string;
+  readonly icon: IconName;
   /** Perfis que conseguem LER o recurso, espelhando o require_roles do backend. */
   readonly roles: readonly Role[];
 }
@@ -38,23 +41,28 @@ const NAV_GROUPS: readonly NavGroup[] = [
   {
     id: "inicio",
     title: null,
-    items: [{ to: "/", label: "Início", roles: ALL_ROLES }],
+    items: [{ to: "/", label: "Início", icon: "home", roles: ALL_ROLES }],
   },
   {
     id: "cadastros",
     title: "Cadastros",
     items: [
-      { to: "/trucks", label: "Caminhões", roles: OPERATION_READERS },
-      { to: "/products", label: "Produtos", roles: OPERATION_READERS },
-      { to: "/contacts", label: "Clientes e motoristas", roles: PERSONAL_DATA_READERS },
+      { to: "/trucks", label: "Caminhões", icon: "truck", roles: OPERATION_READERS },
+      { to: "/products", label: "Produtos", icon: "package", roles: OPERATION_READERS },
+      {
+        to: "/contacts",
+        label: "Clientes e motoristas",
+        icon: "users",
+        roles: PERSONAL_DATA_READERS,
+      },
     ],
   },
   {
     id: "operacao",
     title: "Operação",
     items: [
-      { to: "/orders", label: "Pedidos", roles: OPERATION_READERS },
-      { to: "/planning", label: "Planejamento", roles: OPERATION_READERS },
+      { to: "/orders", label: "Pedidos", icon: "orders", roles: OPERATION_READERS },
+      { to: "/planning", label: "Planejamento", icon: "planning", roles: OPERATION_READERS },
     ],
   },
 ];
@@ -79,7 +87,10 @@ export function AppLayout() {
       </a>
 
       <aside className="app-sidebar">
-        <p className="eyebrow app-brand">LOADX</p>
+        <p className="app-brand">
+          <BrandMark size={27} />
+          <span>LOADX</span>
+        </p>
 
         {groups.length > 0 ? (
           <nav className="app-nav" aria-label="Navegação principal">
@@ -96,7 +107,8 @@ export function AppLayout() {
                       {/* `end` na raiz: sem isso o NavLink casa por prefixo e
                           "Início" ficaria marcado como ativo em todas as telas */}
                       <NavLink to={item.to} end={item.to === "/"}>
-                        {item.label}
+                        <Icon name={item.icon} size={17} />
+                        <span>{item.label}</span>
                       </NavLink>
                     </li>
                   ))}
@@ -108,14 +120,21 @@ export function AppLayout() {
 
         {user ? (
           <div className="app-account">
-            <span className="app-account-name">{user.name}</span>
-            <span className="app-account-role">{ROLE_LABELS[user.role]}</span>
+            <Avatar name={user.name} size={34} />
+            <span className="app-account-text">
+              <span className="app-account-name">{user.name}</span>
+              <span className="app-account-role">{ROLE_LABELS[user.role]}</span>
+            </span>
+            {/* só o ícone cabe ao lado do nome; o rótulo continua existindo para
+                leitor de tela e vira dica ao parar o mouse em cima */}
             <button
               type="button"
               className="app-logout"
+              title="Sair"
               onClick={() => void Promise.resolve(logout()).catch(() => undefined)}
             >
-              Sair
+              <Icon name="logout" size={17} />
+              <span className="sr-only">Sair</span>
             </button>
           </div>
         ) : null}
