@@ -704,6 +704,66 @@ option {
   color: var(--ink);
 }
 
+/**
+ * Caixa de seleção desenhada por nós. A nativa sai como um quadrado branco de
+ * borda cinza, que destoa no tema escuro, e `accent-color` não resolve porque
+ * só pinta o estado MARCADO — o desmarcado, que é o estado em que a caixa
+ * passa a maior parte do tempo, continuava fora do tema.
+ *
+ * Sem `margin` aqui de propósito: cada contexto alinha a caixa com a primeira
+ * linha do seu próprio texto.
+ */
+input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  flex-shrink: 0;
+  display: grid;
+  place-content: center;
+  width: 17px;
+  height: 17px;
+  border: 1px solid var(--muted);
+  border-radius: 3px;
+  background: var(--card);
+  cursor: pointer;
+}
+
+input[type="checkbox"]::before {
+  content: "";
+  width: 9px;
+  height: 5px;
+  /* O tique é um "L" (borda esquerda + inferior) girado -45°. O centro de massa
+     do traço não coincide com o centro do elemento: cai 1,24px abaixo dele.
+     Este -1px devolve a marca ao meio da caixa. */
+  margin-top: -1px;
+  border-left: 2px solid var(--accent-contrast);
+  border-bottom: 2px solid var(--accent-contrast);
+  transform: rotate(-45deg);
+  opacity: 0;
+}
+
+input[type="checkbox"]:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+input[type="checkbox"]:checked::before {
+  opacity: 1;
+}
+
+input[type="checkbox"]:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+input[type="checkbox"]:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(201, 122, 34, 0.35);
+}
+
+input[type="checkbox"]:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .entity-form textarea {
   resize: vertical;
 }
@@ -774,9 +834,7 @@ option {
 }
 
 .entity-form-checks input {
-  width: auto;
-  margin-top: 3px;
-  accent-color: var(--accent);
+  margin-top: 2px;
 }
 
 .entity-form-checks small {

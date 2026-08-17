@@ -162,7 +162,3 @@
   white-space: nowrap;
   cursor: pointer;
 }
-
-.viewer-toggle input {
-  accent-color: var(--accent);
-}
