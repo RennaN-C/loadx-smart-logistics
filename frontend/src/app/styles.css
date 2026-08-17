@@ -65,56 +65,127 @@ body {
   letter-spacing: 0.2em;
 }
 
-.app-shell {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
+.skip-link {
+  position: absolute;
+  left: -9999px;
+}
+.skip-link:focus {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 20;
+  background: var(--card);
+  color: var(--ink);
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  text-decoration: none;
 }
 
-.app-header {
-  padding: 16px 32px;
-  border-bottom: 1px solid var(--line);
+.app-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 236px minmax(0, 1fr);
+}
+
+/* min-width evita que conteúdo largo (canvas 3D, tabelas) estoure a coluna */
+.app-shell > main {
+  min-width: 0;
+}
+
+.app-sidebar {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
+  flex-direction: column;
+  gap: 26px;
+  padding: 22px 16px;
+  border-right: 1px solid var(--line);
+  background: var(--card);
+  /* acompanha a rolagem: o menu não some ao descer numa lista longa */
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.app-brand {
+  margin: 0;
+  padding: 0 10px;
+  font-size: 0.78rem;
 }
 
 .app-nav {
   display: flex;
-  gap: 18px;
-  margin-right: auto;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.app-nav-title {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 600;
+  margin: 0 0 7px;
+  padding: 0 10px;
+}
+
+.app-nav-group ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
 }
 
 .app-nav a {
+  display: block;
   font-size: 0.88rem;
   color: var(--muted);
   text-decoration: none;
-  padding: 4px 0;
-  border-bottom: 2px solid transparent;
+  padding: 7px 10px;
+  border-radius: 3px;
+  /* a faixa do ativo entra pela borda, então o texto não desloca ao trocar de tela */
+  border-left: 2px solid transparent;
 }
 .app-nav a:hover {
   color: var(--ink);
+  background: var(--paper);
 }
 .app-nav a[aria-current="page"] {
   color: var(--ink);
-  border-bottom-color: var(--accent);
+  font-weight: 600;
+  background: var(--accent-bg);
+  border-left-color: var(--accent);
 }
 .app-nav a:focus-visible {
   outline: none;
   box-shadow: 0 0 0 3px rgba(201, 122, 34, 0.35);
-  border-radius: 2px;
 }
 
-.app-header-account {
+.app-account {
+  margin-top: auto;
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 12px 10px 0;
+  border-top: 1px solid var(--line);
   font-size: 0.85rem;
-  color: var(--muted);
 }
 
-.app-header-logout {
+.app-account-name {
+  font-weight: 600;
+}
+
+.app-account-role {
+  color: var(--muted);
+  font-size: 0.78rem;
+  margin-bottom: 10px;
+}
+
+.app-logout {
   font-family: inherit;
   font-size: 0.85rem;
   color: var(--muted);
@@ -124,13 +195,79 @@ body {
   padding: 6px 12px;
   cursor: pointer;
 }
-.app-header-logout:hover {
+.app-logout:hover {
   color: var(--ink);
   border-color: var(--ink);
 }
-.app-header-logout:focus-visible {
+.app-logout:focus-visible {
   outline: none;
   box-shadow: 0 0 0 3px rgba(201, 122, 34, 0.35);
+}
+
+/* Sem largura para uma coluna fixa, a barra deita no topo. Vira faixa rolável
+   na horizontal em vez de gaveta: não precisa de estado, botão nem prender foco. */
+@media (max-width: 900px) {
+  .app-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .app-sidebar {
+    position: static;
+    height: auto;
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px 16px;
+    padding: 12px 20px;
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .app-nav,
+  .app-nav-group,
+  .app-nav-group ul {
+    flex-direction: row;
+    gap: 4px;
+  }
+
+  /* Quebra em duas linhas: identidade e conta em cima, menu ocupando a largura
+     inteira embaixo. Espremido ao lado delas sobravam 130px de janela para
+     560px de links, o que exigiria arrastar a barra inteira para achar item. */
+  .app-nav {
+    order: 1;
+    flex-basis: 100%;
+    overflow-x: auto;
+  }
+
+  /* deitado não sobra espaço para rótulo de grupo, e os itens se explicam */
+  .app-nav-title {
+    display: none;
+  }
+
+  .app-nav a {
+    white-space: nowrap;
+    border-left: none;
+    border-bottom: 2px solid transparent;
+    border-radius: 3px 3px 0 0;
+  }
+  .app-nav a[aria-current="page"] {
+    border-left-color: transparent;
+    border-bottom-color: var(--accent);
+  }
+
+  .app-account {
+    margin-top: 0;
+    margin-left: auto;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    padding: 0;
+    border-top: none;
+  }
+
+  .app-account-role {
+    display: none;
+  }
 }
 
 .session-loading {
