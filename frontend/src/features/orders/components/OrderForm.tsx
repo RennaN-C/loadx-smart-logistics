@@ -37,7 +37,7 @@ function renderStatusField(
 
   if (!targets) {
     return (
-      <FormField id="order-status" label="SITUAÇÃO" hint="Só o sistema altera esta situação." narrow>
+      <FormField id="order-status" label="SITUAÇÃO" hint="Alterada pelo sistema." narrow>
         <input id="order-status" value={STATUS_LABELS[current]} readOnly />
       </FormField>
     );
@@ -185,6 +185,8 @@ export function OrderForm({ order, customers, products, onSaved, onCancel }: Ord
               ))}
             </select>
           </FormField>
+          {/* situação anda junto: as três dizem em que pé o pedido está */}
+          {isEditing && order ? renderStatusField(order.status, status, setStatus) : null}
         </div>
 
         <div className="entity-form-row">
@@ -199,10 +201,12 @@ export function OrderForm({ order, customers, products, onSaved, onCancel }: Ord
               onChange={(event) => setDeliveryAddress(event.target.value)}
             />
           </FormField>
+          {/* rótulo e dica curtos de propósito: quebrando em duas linhas eles
+              esticavam a linha toda e deixavam um vão embaixo do endereço */}
           <FormField
             id="order-expected"
-            label="PREVISÃO DE ENTREGA (OPCIONAL)"
-            hint="Enviada com o fuso do seu navegador."
+            label="PREVISÃO (OPCIONAL)"
+            hint="Fuso do seu navegador."
             narrow
           >
             <input
@@ -214,8 +218,6 @@ export function OrderForm({ order, customers, products, onSaved, onCancel }: Ord
             />
           </FormField>
         </div>
-
-        {isEditing && order ? renderStatusField(order.status, status, setStatus) : null}
 
         <p className="field-label">ITENS DO PEDIDO</p>
         <div className="entity-form-box">

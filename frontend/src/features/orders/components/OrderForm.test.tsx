@@ -167,7 +167,7 @@ describe("OrderForm", () => {
     fireEvent.change(screen.getByLabelText("CLIENTE"), { target: { value: "c1" } });
     fireEvent.change(screen.getByLabelText("ENDEREÇO DE ENTREGA"), { target: { value: "Av. Brasil, 500" } });
     fireEvent.change(screen.getByLabelText("PRODUTO 1"), { target: { value: "p1" } });
-    fireEvent.change(screen.getByLabelText("PREVISÃO DE ENTREGA (OPCIONAL)"), {
+    fireEvent.change(screen.getByLabelText("PREVISÃO (OPCIONAL)"), {
       target: { value: "2026-08-10T14:30" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Cadastrar pedido" }));

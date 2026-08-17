@@ -143,8 +143,16 @@
   align-items: flex-end;
   gap: 12px;
   flex-wrap: wrap;
-  padding-bottom: 14px;
+  padding-bottom: 12px;
   border-bottom: 1px solid var(--line);
+}
+
+/* Quantidade e sequência guardam números de um ou dois dígitos. Na largura
+   padrão de campo estreito elas ficavam do TAMANHO do seletor de produto, que
+   precisa mostrar código e nome e vinha cortando o nome no meio. */
+.order-item .entity-form-field-narrow {
+  flex: 0 1 96px;
+  min-width: 0;
 }
 
 .order-item:last-child {
