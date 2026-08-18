@@ -17,7 +17,8 @@
   padding: 10px 12px;
   border: 1px solid var(--line);
   border-radius: 3px;
-  background: transparent;
+  /* não `transparent`: a lista suspensa herda esta cor (ver `option` em app/styles.css) */
+  background: var(--card);
   color: var(--ink);
   width: 100%;
 }
@@ -52,9 +53,17 @@
   border-color: var(--accent);
 }
 
+/* O cartão inteiro responde à marcação, não só a caixinha: numa grade de
+   pedidos, um quadradinho de 17px é pouco sinal para saber o que vai na carga.
+   `:has` evita carregar isso para o estado do React; onde não houver suporte o
+   cartão apenas não tinge e a seleção continua funcionando. */
+.plan-order-list label:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+
 .plan-order-list input {
   margin-top: 2px;
-  accent-color: var(--accent);
 }
 
 .plan-order-list small {

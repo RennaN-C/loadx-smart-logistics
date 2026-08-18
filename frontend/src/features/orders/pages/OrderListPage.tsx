@@ -15,6 +15,7 @@ import { STATUS_LABELS } from "../components/orderLabels";
 import { mapOrderErrorToMessage } from "../components/ordersErrorMessages";
 import { ORDER_STATUSES, type Order, type OrderStatus } from "../types";
 import "./OrderListPage.css";
+import { Icon } from "../../../components/Icon";
 
 type StatusFilter = OrderStatus | "all";
 
@@ -80,7 +81,8 @@ export function OrderListPage() {
         </div>
         {canManage ? (
           <button type="button" className="btn-primary" onClick={() => setIsCreating(true)}>
-            + Novo pedido
+            <Icon name="plus" size={16} />
+            Novo pedido
           </button>
         ) : null}
       </header>

@@ -11,6 +11,7 @@ import { getDriver, listDrivers } from "../api/driversApi";
 import type { Driver, DriverListItem } from "../types";
 import { DriverForm } from "./DriverForm";
 import { mapDriverErrorToMessage } from "./driversErrorMessages";
+import { Icon } from "../../../components/Icon";
 
 type StatusFilter = "all" | "active" | "inactive";
 
@@ -81,7 +82,8 @@ export function DriverPanel() {
         </select>
         {canManage ? (
           <button type="button" className="btn-primary" onClick={() => setIsCreating(true)}>
-            + Novo motorista
+            <Icon name="plus" size={16} />
+            Novo motorista
           </button>
         ) : null}
       </div>

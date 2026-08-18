@@ -22,6 +22,15 @@ export function priorityLabel(priority: string): string {
   return PRIORITY_LABELS[priority] ?? priority;
 }
 
+/**
+ * Numa grade de cartões, prioridade escrita em texto igual ao resto passa
+ * batido. Alta e urgente ganham destaque; o resto continua discreto, senão o
+ * destaque deixa de destacar.
+ */
+export function priorityIsUrgent(priority: string): boolean {
+  return priority === "HIGH" || priority === "URGENT";
+}
+
 export function statusTone(status: OrderStatus): StatusTone {
   if (status === "DELIVERED") return "good";
   if (status === "CANCELED") return "neutral";

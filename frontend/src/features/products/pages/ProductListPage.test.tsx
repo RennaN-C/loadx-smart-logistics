@@ -121,7 +121,7 @@ describe("ProductListPage", () => {
     render(<ProductListPage />);
     await screen.findByText("CX-100");
 
-    expect(screen.queryByRole("button", { name: "+ Novo produto" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Novo produto" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Editar" })).not.toBeInTheDocument();
   });
 

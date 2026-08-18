@@ -10,6 +10,7 @@ import { getCustomer, listCustomers } from "../api/customersApi";
 import type { Customer } from "../types";
 import { CustomerForm } from "./CustomerForm";
 import { mapCustomerErrorToMessage } from "./customersErrorMessages";
+import { Icon } from "../../../components/Icon";
 
 export function CustomerPanel() {
   const { user } = useAuth();
@@ -63,7 +64,8 @@ export function CustomerPanel() {
         />
         {canManage ? (
           <button type="button" className="btn-primary" onClick={() => setIsCreating(true)}>
-            + Novo cliente
+            <Icon name="plus" size={16} />
+            Novo cliente
           </button>
         ) : null}
       </div>
