@@ -1,46 +1,33 @@
 import uuid
-from collections.abc import Generator
 
 import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy.pool import StaticPool
+from sqlalchemy.orm import Session
 
 from app.core.security import verify_password
-from app.database.base import Base
+from app.modules.auth.models import AuthSession
+from app.modules.auth.sessions import AuthSessionService
+from app.modules.drivers.models import Driver
 from app.modules.users.models import User
 from app.modules.users.schemas import UserCreate, UserUpdate
 from app.modules.users.service import (
+    UserDriverAlreadyLinkedError,
+    UserDriverNotFoundError,
+    UserDriverRoleRequiredError,
     UserEmailAlreadyExistsError,
     UserLastActiveAdminRequiredError,
     UserNotFoundError,
     UserService,
 )
 
-
-@pytest.fixture
-def db_session() -> Generator[Session, None, None]:
-    engine = create_engine(
-        "sqlite+pysqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    Base.metadata.create_all(engine, tables=[User.__table__])
-    testing_session_local = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-
-    db = testing_session_local()
-    try:
-        yield db
-    finally:
-        db.close()
-        Base.metadata.drop_all(engine, tables=[User.__table__])
+SQLITE_TABLES = (Driver.__table__, User.__table__, AuthSession.__table__)
 
 
 def make_user_create(
     email: str = "ADMIN@EXAMPLE.TEST",
-    password: str = "senha-local",
+    password: str = "senha-local-segura",
     role: str = "admin",
     active: bool = True,
+    driver_id: uuid.UUID | None = None,
 ) -> UserCreate:
     return UserCreate(
         name="Admin Local",
@@ -48,6 +35,18 @@ def make_user_create(
         password=password,
         role=role,
         active=active,
+        driver_id=driver_id,
+    )
+
+
+def make_driver() -> Driver:
+    return Driver(
+        name="Motorista Teste",
+        document="00000000000",
+        phone="+5500000000000",
+        license_number="CNH-TESTE",
+        license_category="D",
+        active=True,
     )
 
 
@@ -61,8 +60,8 @@ def test_create_user_persists_normalized_fields_and_password_hash(
     assert user.id is not None
     assert user.email == "admin@example.test"
     assert user.role == "ADMIN"
-    assert user.password_hash != "senha-local"
-    assert verify_password("senha-local", user.password_hash) is True
+    assert user.password_hash != "senha-local-segura"
+    assert verify_password("senha-local-segura", user.password_hash) is True
 
 
 def test_create_user_rejects_duplicate_email(db_session: Session) -> None:
@@ -71,6 +70,72 @@ def test_create_user_rejects_duplicate_email(db_session: Session) -> None:
 
     with pytest.raises(UserEmailAlreadyExistsError):
         service.create_user(make_user_create("ADMIN@EXAMPLE.TEST"))
+
+
+def test_create_driver_user_persists_unique_driver_link(db_session: Session) -> None:
+    driver = make_driver()
+    db_session.add(driver)
+    db_session.commit()
+    service = UserService(db_session)
+
+    user = service.create_user(
+        make_user_create(
+            email="driver@example.test",
+            role="DRIVER",
+            driver_id=driver.id,
+        )
+    )
+
+    assert user.driver_id == driver.id
+
+
+def test_create_user_rejects_driver_link_for_non_driver_role(
+    db_session: Session,
+) -> None:
+    driver = make_driver()
+    db_session.add(driver)
+    db_session.commit()
+
+    with pytest.raises(UserDriverRoleRequiredError):
+        UserService(db_session).create_user(
+            make_user_create(driver_id=driver.id),
+        )
+
+
+def test_create_user_rejects_missing_driver_link(db_session: Session) -> None:
+    with pytest.raises(UserDriverNotFoundError):
+        UserService(db_session).create_user(
+            make_user_create(
+                email="driver@example.test",
+                role="DRIVER",
+                driver_id=uuid.uuid4(),
+            )
+        )
+
+
+def test_create_user_rejects_driver_linked_to_another_user(
+    db_session: Session,
+) -> None:
+    driver = make_driver()
+    db_session.add(driver)
+    db_session.commit()
+    service = UserService(db_session)
+    service.create_user(
+        make_user_create(
+            email="first-driver@example.test",
+            role="DRIVER",
+            driver_id=driver.id,
+        )
+    )
+
+    with pytest.raises(UserDriverAlreadyLinkedError):
+        service.create_user(
+            make_user_create(
+                email="second-driver@example.test",
+                role="DRIVER",
+                driver_id=driver.id,
+            )
+        )
 
 
 def test_update_user_rejects_duplicate_email(db_session: Session) -> None:
@@ -91,7 +156,83 @@ def test_update_user_changes_password_hash(db_session: Session) -> None:
 
     assert updated_user.password_hash != original_hash
     assert verify_password("nova-senha-local", updated_user.password_hash) is True
-    assert verify_password("senha-local", updated_user.password_hash) is False
+    assert verify_password("senha-local-segura", updated_user.password_hash) is False
+
+
+@pytest.mark.parametrize(
+    "update",
+    [
+        UserUpdate(password="nova-senha-local"),
+        UserUpdate(active=False),
+        UserUpdate(role="CHECKER"),
+    ],
+)
+def test_sensitive_user_update_revokes_all_sessions_atomically(
+    db_session: Session,
+    update: UserUpdate,
+) -> None:
+    service = UserService(db_session)
+    user = service.create_user(make_user_create())
+    if update.active is False or update.role == "CHECKER":
+        service.create_user(make_user_create("second-admin@example.test"))
+    session_service = AuthSessionService(db_session)
+    first = session_service.create_session(user.id)
+    second = session_service.create_session(user.id)
+
+    service.update_user(user.id, update)
+
+    db_session.refresh(first.auth_session)
+    db_session.refresh(second.auth_session)
+    assert first.auth_session.revoked_at is not None
+    assert second.auth_session.revoked_at is not None
+
+
+def test_update_driver_link_revokes_sessions_and_allows_explicit_unlink(
+    db_session: Session,
+) -> None:
+    driver = make_driver()
+    db_session.add(driver)
+    db_session.commit()
+    service = UserService(db_session)
+    user = service.create_user(
+        make_user_create(email="driver@example.test", role="DRIVER")
+    )
+    issued = AuthSessionService(db_session).create_session(user.id)
+
+    linked = service.update_user(user.id, UserUpdate(driver_id=driver.id))
+
+    assert linked.driver_id == driver.id
+    db_session.refresh(issued.auth_session)
+    assert issued.auth_session.revoked_at is not None
+
+    unlinked = service.update_user(user.id, UserUpdate(driver_id=None))
+    assert unlinked.driver_id is None
+
+
+def test_update_role_requires_clearing_existing_driver_link(
+    db_session: Session,
+) -> None:
+    driver = make_driver()
+    db_session.add(driver)
+    db_session.commit()
+    service = UserService(db_session)
+    user = service.create_user(
+        make_user_create(
+            email="driver@example.test",
+            role="DRIVER",
+            driver_id=driver.id,
+        )
+    )
+
+    with pytest.raises(UserDriverRoleRequiredError):
+        service.update_user(user.id, UserUpdate(role="CHECKER"))
+
+    updated = service.update_user(
+        user.id,
+        UserUpdate(role="CHECKER", driver_id=None),
+    )
+    assert updated.role == "CHECKER"
+    assert updated.driver_id is None
 
 
 @pytest.mark.parametrize(

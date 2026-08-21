@@ -1,34 +1,24 @@
-from collections.abc import Callable, Generator
+from collections.abc import Callable
 from dataclasses import dataclass
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy.pool import StaticPool
+from sqlalchemy.orm import Session
 
-from app.core.security import create_access_token
-from app.database.base import Base
-from app.database.session import get_db
-from app.main import app
-from app.modules.customers.models import Customer
 from app.modules.customers.schemas import CustomerCreate
 from app.modules.customers.service import CustomerService
-from app.modules.drivers.models import Driver
 from app.modules.drivers.schemas import DriverCreate
 from app.modules.drivers.service import DriverService
-from app.modules.orders.models import Order, OrderItem
 from app.modules.orders.schemas import OrderCreate
 from app.modules.orders.service import OrderService
-from app.modules.products.models import Product
 from app.modules.products.schemas import ProductCreate
 from app.modules.products.service import ProductService
-from app.modules.trucks.models import Truck
 from app.modules.trucks.schemas import TruckCreate
 from app.modules.trucks.service import TruckService
 from app.modules.users.models import User
 from app.modules.users.schemas import UserCreate
 from app.modules.users.service import UserService
+from tests.integration.auth_helpers import issue_session_headers
 
 SessionFactory = Callable[[], Session]
 ALL_ROLES = ("ADMIN", "LOGISTICS_MANAGER", "CHECKER", "DRIVER")
@@ -190,47 +180,15 @@ AUTHORIZATION_CASES = (
         200,
         "order_update",
     ),
+    AuthorizationCase(
+        "orders_status",
+        "PATCH",
+        "/api/v1/orders/{order_id}/status",
+        MANAGER_ONLY,
+        200,
+        "order_status",
+    ),
 )
-
-
-@pytest.fixture
-def session_factory() -> Generator[SessionFactory, None, None]:
-    engine = create_engine(
-        "sqlite+pysqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    tables = [
-        User.__table__,
-        Customer.__table__,
-        Driver.__table__,
-        Truck.__table__,
-        Product.__table__,
-        Order.__table__,
-        OrderItem.__table__,
-    ]
-    Base.metadata.create_all(engine, tables=tables)
-    testing_session_local = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-    try:
-        yield testing_session_local
-    finally:
-        Base.metadata.drop_all(engine, tables=list(reversed(tables)))
-
-
-@pytest.fixture
-def client(session_factory: SessionFactory) -> Generator[TestClient, None, None]:
-    def override_get_db() -> Generator[Session, None, None]:
-        db = session_factory()
-        try:
-            yield db
-        finally:
-            db.close()
-
-    app.dependency_overrides[get_db] = override_get_db
-    try:
-        yield TestClient(app)
-    finally:
-        app.dependency_overrides.clear()
 
 
 def create_user(
@@ -244,7 +202,7 @@ def create_user(
             UserCreate(
                 name="Usuário de Auditoria",
                 email=email,
-                password="senha-local",
+                password="senha-local-segura",
                 role=role,
             )
         )
@@ -259,7 +217,7 @@ def seed_resources(session_factory: SessionFactory) -> dict[str, str]:
             UserCreate(
                 name="Usuário Alvo",
                 email="target@example.test",
-                password="senha-local",
+                password="senha-local-segura",
                 role="CHECKER",
             )
         )
@@ -289,7 +247,7 @@ def seed_resources(session_factory: SessionFactory) -> dict[str, str]:
                 internal_width_cm=240,
                 internal_height_cm=260,
                 internal_length_cm=600,
-                max_weight_kg="8000.00",
+                max_weight_kg=8000.00,
             )
         )
         product = ProductService(db).create_product(
@@ -299,7 +257,7 @@ def seed_resources(session_factory: SessionFactory) -> dict[str, str]:
                 width_cm=60,
                 height_cm=50,
                 length_cm=40,
-                weight_kg="12.500",
+                weight_kg=12.500,
             )
         )
         order = OrderService(db).create_order(
@@ -316,7 +274,8 @@ def seed_resources(session_factory: SessionFactory) -> dict[str, str]:
                         }
                     ],
                 }
-            )
+            ),
+            changed_by=target_user.id,
         )
         return {
             "user_id": str(target_user.id),
@@ -335,7 +294,7 @@ def get_payload(payload_name: str | None, resource_ids: dict[str, str]):
         "user_create": {
             "name": "Novo Usuário",
             "email": "new-user@example.test",
-            "password": "senha-local",
+            "password": "senha-local-segura",
             "role": "checker",
         },
         "user_update": {"name": "Usuário Atualizado"},
@@ -362,7 +321,7 @@ def get_payload(payload_name: str | None, resource_ids: dict[str, str]):
             "internal_width_cm": 220,
             "internal_height_cm": 240,
             "internal_length_cm": 500,
-            "max_weight_kg": "6000.00",
+            "max_weight_kg": 6000.00,
         },
         "truck_update": {"model": "Bau atualizado"},
         "product_create": {
@@ -371,7 +330,7 @@ def get_payload(payload_name: str | None, resource_ids: dict[str, str]):
             "width_cm": 30,
             "height_cm": 20,
             "length_cm": 40,
-            "weight_kg": "5.000",
+            "weight_kg": 5.000,
         },
         "product_update": {"name": "Produto Atualizado"},
         "order_create": {
@@ -387,6 +346,7 @@ def get_payload(payload_name: str | None, resource_ids: dict[str, str]):
             ],
         },
         "order_update": {"priority": "high"},
+        "order_status": {"status": "READY"},
     }
     return payloads.get(payload_name)
 
@@ -409,11 +369,10 @@ def test_complete_authorization_matrix(
         f"caller-{role.lower()}@example.test",
         role,
     )
-    token = create_access_token(str(current_user.id), {"role": role})
     path = case.path.format(**resource_ids)
     payload = get_payload(case.payload_name, resource_ids)
     request_options: dict[str, object] = {
-        "headers": {"Authorization": f"Bearer {token}"}
+        "headers": issue_session_headers(session_factory, current_user.id)
     }
     if payload is not None:
         request_options["json"] = payload

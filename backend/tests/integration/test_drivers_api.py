@@ -1,21 +1,16 @@
-from collections.abc import Callable, Generator
+from collections.abc import Callable
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy.pool import StaticPool
+from sqlalchemy.orm import Session
 
-from app.core.security import create_access_token
-from app.database.base import Base
-from app.database.session import get_db
-from app.main import app
 from app.modules.drivers.models import Driver
 from app.modules.drivers.schemas import DriverCreate
 from app.modules.drivers.service import DriverService
 from app.modules.users.models import User
 from app.modules.users.schemas import UserCreate
 from app.modules.users.service import UserService
+from tests.integration.auth_helpers import issue_session_headers
 
 SessionFactory = Callable[[], Session]
 DRIVER_ROUTE_CASES = [
@@ -24,38 +19,6 @@ DRIVER_ROUTE_CASES = [
     ("GET", "detail"),
     ("PATCH", "detail"),
 ]
-
-
-@pytest.fixture
-def session_factory() -> Generator[SessionFactory, None, None]:
-    engine = create_engine(
-        "sqlite+pysqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    tables = [User.__table__, Driver.__table__]
-    Base.metadata.create_all(engine, tables=tables)
-    testing_session_local = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-    try:
-        yield testing_session_local
-    finally:
-        Base.metadata.drop_all(engine, tables=tables)
-
-
-@pytest.fixture
-def client(session_factory: SessionFactory) -> Generator[TestClient, None, None]:
-    def override_get_db() -> Generator[Session, None, None]:
-        db = session_factory()
-        try:
-            yield db
-        finally:
-            db.close()
-
-    app.dependency_overrides[get_db] = override_get_db
-    try:
-        yield TestClient(app)
-    finally:
-        app.dependency_overrides.clear()
 
 
 def create_user_in_db(
@@ -70,7 +33,7 @@ def create_user_in_db(
             UserCreate(
                 name="Usuário de Teste",
                 email=email,
-                password="senha-local",
+                password="senha-local-segura",
                 role=role,
                 active=active,
             )
@@ -79,9 +42,11 @@ def create_user_in_db(
         db.close()
 
 
-def authorization_headers(user: User) -> dict[str, str]:
-    token = create_access_token(str(user.id), {"role": user.role})
-    return {"Authorization": f"Bearer {token}"}
+def authorization_headers(
+    session_factory: SessionFactory,
+    user: User,
+) -> dict[str, str]:
+    return issue_session_headers(session_factory, user.id)
 
 
 @pytest.fixture
@@ -91,7 +56,7 @@ def manager_headers(session_factory: SessionFactory) -> dict[str, str]:
         "manager@example.test",
         "LOGISTICS_MANAGER",
     )
-    return authorization_headers(manager)
+    return authorization_headers(session_factory, manager)
 
 
 def make_driver_payload(
@@ -173,7 +138,19 @@ def test_list_drivers_returns_created_items(
     response = client.get("/api/v1/drivers", headers=manager_headers)
 
     assert response.status_code == 200
-    assert response.json()[0]["license_number"] == "CNH0001"
+    body = response.json()
+    assert body["total"] == 1
+    driver = body["items"][0]
+    assert set(driver) == {
+        "id",
+        "name",
+        "license_category",
+        "active",
+        "created_at",
+    }
+    assert "document" not in driver
+    assert "phone" not in driver
+    assert "license_number" not in driver
 
 
 def test_get_driver_by_id_returns_created_item(
@@ -348,7 +325,7 @@ def test_admin_can_read_drivers(
         "GET",
         route,
         driver,
-        authorization_headers(admin),
+        authorization_headers(session_factory, admin),
     )
 
     assert response.status_code == 200
@@ -373,7 +350,7 @@ def test_admin_cannot_manage_drivers(
         method,
         route,
         driver,
-        authorization_headers(admin),
+        authorization_headers(session_factory, admin),
     )
 
     assert response.status_code == 403
@@ -416,7 +393,7 @@ def test_driver_routes_reject_roles_without_access(
         method,
         route,
         driver,
-        authorization_headers(user),
+        authorization_headers(session_factory, user),
     )
 
     assert response.status_code == 403
@@ -443,7 +420,7 @@ def test_driver_routes_reject_inactive_manager(
         method,
         route,
         driver,
-        authorization_headers(manager),
+        authorization_headers(session_factory, manager),
     )
 
     assert response.status_code == 403

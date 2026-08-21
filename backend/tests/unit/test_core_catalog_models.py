@@ -25,7 +25,7 @@ def test_core_catalog_tables_use_uuid_primary_key() -> None:
 
 def test_core_catalog_unique_constraints_follow_documented_names() -> None:
     expected_unique_constraints = {
-        "users": {"uq_users__email"},
+        "users": {"uq_users__email", "uq_users__driver_id"},
         "customers": {"uq_customers__document"},
         "drivers": {"uq_drivers__document", "uq_drivers__license_number"},
         "trucks": {"uq_trucks__plate"},
@@ -34,7 +34,11 @@ def test_core_catalog_unique_constraints_follow_documented_names() -> None:
 
     for table_name, expected_names in expected_unique_constraints.items():
         table = Base.metadata.tables[table_name]
-        actual_names = {constraint.name for constraint in table.constraints if isinstance(constraint, UniqueConstraint)}
+        actual_names = {
+            constraint.name
+            for constraint in table.constraints
+            if isinstance(constraint, UniqueConstraint)
+        }
         assert expected_names <= actual_names
 
 
@@ -42,10 +46,17 @@ def test_physical_constraints_are_registered_for_capacity_rules() -> None:
     expected_check_constraints = {
         "users": {"ck_users__role_allowed"},
         "trucks": {"ck_trucks__dimensions_positive", "ck_trucks__max_weight_positive"},
-        "products": {"ck_products__dimensions_positive", "ck_products__weight_positive"},
+        "products": {
+            "ck_products__dimensions_positive",
+            "ck_products__weight_positive",
+        },
     }
 
     for table_name, expected_names in expected_check_constraints.items():
         table = Base.metadata.tables[table_name]
-        actual_names = {constraint.name for constraint in table.constraints if isinstance(constraint, CheckConstraint)}
+        actual_names = {
+            constraint.name
+            for constraint in table.constraints
+            if isinstance(constraint, CheckConstraint)
+        }
         assert expected_names <= actual_names

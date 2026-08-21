@@ -5,23 +5,40 @@ Este documento é o contrato combinado entre backend, frontend, algoritmo e inte
 ## Convenções
 
 - `CONFIRMADO`: prefixo oficial da API de negócio: `/api/v1`.
-- `CONFIRMADO`: health check atual fica em `/health`, fora do prefixo.
+- `CONFIRMADO`: os endpoints operacionais `/health` e `/ready` ficam fora do
+  prefixo de negócio.
 - `CONFIRMADO`: JSON usa campos em snake_case.
+- `CONFIRMADO` por D06 e `ADR-016`: campos decimais públicos usam número JSON
+  na entrada e na saída. Strings numéricas e booleanos são inválidos. O backend
+  preserva `Decimal` internamente e cada campo mantém a precisão e escala do
+  modelo aprovado; zeros finais não fazem parte do valor JSON.
 - `RECOMENDAÇÃO`: caminhos usam kebab-case quando tiverem mais de uma palavra, como `/load-plans`.
-- `RECOMENDAÇÃO`: endpoints de listagem devem preparar paginação futura, mesmo que o MVP comece simples.
-- `RECOMENDAÇÃO`: filtros usam query params em snake_case.
-- `PENDENTE DE DEFINIÇÃO`: padrão final de paginação, ordenação e filtros.
+- `CONFIRMADO` por D12 e `ADR-017`: coleções usam `page` 1-based (default `1`),
+  `page_size` (default `20`, mínimo `1`, máximo `100`) e `sort_order`
+  (`asc` ou `desc`, default `desc`). A ordenação é por `created_at`, com `id`
+  como desempate na mesma direção.
+- `CONFIRMADO`: coleções retornam `items`, `page`, `page_size`, `total` e
+  `total_pages`. Página além do fim retorna `items` vazio; coleção vazia retorna
+  `total_pages = 0`.
+- `CONFIRMADO`: não há `sort_by`, busca livre ou filtros por dados pessoais na
+  OC59. Todo filtro futuro usa query param em snake_case e whitelist documentada.
 - `CONFIRMADO`: em atualizações parciais, campos omitidos permanecem inalterados; `null` só é aceito para campos anuláveis no modelo de dados.
 
 ## Autenticação
 
-Endpoints públicos:
+Endpoint público de negócio:
 
 - `POST /auth/login`.
+
+Endpoints públicos operacionais:
+
+- `GET /health`.
+- `GET /ready`.
 
 Endpoint disponível para qualquer usuário autenticado:
 
 - `GET /auth/me`.
+- `POST /auth/logout`.
 
 Exemplo de login:
 
@@ -32,37 +49,69 @@ Exemplo de login:
 }
 ```
 
-Resposta recomendada:
+Resposta `200`: o mesmo contrato `UserRead` usado por `/auth/me`.
 
 ```json
 {
-  "access_token": "jwt",
-  "token_type": "bearer"
+  "id": "uuid",
+  "name": "Admin Local",
+  "email": "admin@example.test",
+  "role": "ADMIN",
+  "driver_id": null,
+  "active": true,
+  "created_at": "2026-08-08T12:00:00Z"
 }
 ```
 
-Para acessar `/auth/me`, envie:
+O login envia o identificador somente em cookie. Em produção:
 
 ```text
-Authorization: Bearer <access_token>
+Set-Cookie: __Host-loadx_session=<opaque>; Path=/; Secure; HttpOnly; SameSite=Lax
 ```
+
+`CONFIRMADO` por D18 e `ADR-020`: o cookie não usa `Domain`, contém pelo menos
+256 bits aleatórios e somente seu hash é persistido. No ambiente local HTTP, o
+nome é `loadx_session` e `Secure` fica desabilitado; o prefixo `__Host-` nunca é
+emitido com atributos incompatíveis.
+
+`POST /auth/login` e `GET /auth/me` retornam também `X-CSRF-Token` no header. O
+frontend mantém esse valor somente em memória e o envia em todo `POST`, `PUT`,
+`PATCH` ou `DELETE` autenticado:
+
+```text
+X-CSRF-Token: <session-bound-token>
+```
+
+`POST /auth/logout` exige cookie, `Origin` e `X-CSRF-Token`, retorna `204`, revoga
+a sessão atual e expira o cookie.
 
 Erros específicos:
 
 - `AUTH_INVALID_CREDENTIALS`: e-mail ou senha inválidos.
-- `AUTH_INVALID_TOKEN`: token ausente, inválido, expirado ou usuário inexistente.
+- `AUTH_INVALID_TOKEN`: sessão ausente, inválida, revogada, expirada ou usuário
+  inexistente.
 - `AUTH_USER_INACTIVE`: usuário inativo.
 - `AUTH_FORBIDDEN`: usuário autenticado sem permissão para a ação.
+- `AUTH_RATE_LIMITED`: login temporariamente limitado; usa `429` e
+  `Retry-After` inteiro em segundos.
+- `AUTH_ORIGIN_FORBIDDEN`: método inseguro sem origem aprovada.
+- `AUTH_CSRF_INVALID`: token CSRF ausente ou inválido.
 
 `CONFIRMADO`: `POST /auth/register` foi removido do contrato por `D03` e `ADR-004`. O primeiro `ADMIN` é criado por comando administrativo local; os usuários seguintes são criados por `ADMIN` em `POST /users`.
 
 `CONFIRMADO`: depois das migrations e antes de expor a API, o bootstrap é executado em `backend` com `python -m app.modules.auth.bootstrap` ou, pela raiz, com `docker compose run --rm backend python -m app.modules.auth.bootstrap`. A senha é lida de forma oculta e o comando recusa execução quando já existe qualquer usuário.
 
-`CONFIRMADO`: ausência ou invalidade de autenticação retorna `401 AUTH_INVALID_TOKEN`; autenticação válida sem permissão retorna `403 AUTH_FORBIDDEN`.
+`CONFIRMADO`: ausência ou invalidade de autenticação retorna `401
+AUTH_INVALID_TOKEN`; autenticação válida sem permissão retorna `403
+AUTH_FORBIDDEN`.
 
 `CONFIRMADO`: após a `OC51-G`, todos os endpoints de negócio atualmente implementados exigem autenticação e aplicam a matriz aprovada.
 
-`PENDENTE DE DEFINIÇÃO`: tempo final de expiração, refresh token e política de bloqueio de login.
+`CONFIRMADO` por D18 e `ADR-020`: não existe refresh token. A sessão expira após
+30 minutos de inatividade ou 8 horas absolutas. Login é limitado por conta e IP
+com atrasos de 1, 5, 15 e 60 minutos a partir da quinta falha. Conta inexistente,
+senha inválida e usuário inativo retornam `401 AUTH_INVALID_CREDENTIALS` sem
+revelar qual condição ocorreu.
 
 ## Saúde
 
@@ -75,6 +124,35 @@ Erros específicos:
 }
 ```
 
+`CONFIRMADO`: `/health` é liveness e não consulta PostgreSQL ou Alembic.
+
+### GET `/ready`
+
+Resposta `200` quando PostgreSQL está acessível e `alembic_version` corresponde
+exatamente aos heads entregues com a aplicação:
+
+```json
+{
+  "status": "ready",
+  "service": "loadx-api"
+}
+```
+
+Resposta `503` para banco indisponível, timeout, tabela de versão ausente ou
+revisão divergente:
+
+```json
+{
+  "code": "SERVICE_NOT_READY",
+  "message": "O serviço não está pronto.",
+  "details": []
+}
+```
+
+`CONFIRMADO` por D11 e `ADR-018`: a verificação é somente leitura, não aplica
+migrations, possui orçamento total de 2 segundos e não expõe componente, URL,
+credencial, revisão, exceção ou stack trace.
+
 ## Usuários
 
 - `GET /users`.
@@ -85,18 +163,28 @@ Erros específicos:
 Regras do contrato aprovado:
 
 - Todas as rotas de `/users` exigem perfil `ADMIN`.
-- Campos públicos retornados: `id`, `name`, `email`, `role`, `active` e `created_at`.
+- A listagem retorna somente `id`, `name`, `role`, `active` e `created_at`.
+- Detalhe e respostas de escrita retornam `id`, `name`, `email`, `role`,
+  `driver_id`, `active` e `created_at`.
 - `password_hash` nunca é retornado.
 - `role` aceita `ADMIN`, `CHECKER`, `DRIVER` e `LOGISTICS_MANAGER`.
 - `email` é normalizado para minúsculas.
 - `role` é normalizado para maiúsculas.
-- `password` deve ter no mínimo 8 caracteres na entrada.
+- `driver_id` é opcional; valor não nulo exige `role = DRIVER`, motorista
+  existente e vínculo não utilizado por outro usuário.
+- Alterar `driver_id` revoga todas as sessões do usuário na mesma transação.
+- `password` deve ter entre 15 e 128 caracteres na entrada, aceita espaços e
+  Unicode e não exige composição artificial.
 
 Erros específicos:
 
 - `USER_NOT_FOUND`: usuário não encontrado.
 - `USER_EMAIL_ALREADY_EXISTS`: e-mail já cadastrado.
 - `USER_LAST_ACTIVE_ADMIN_REQUIRED`: alteração deixaria o sistema sem `ADMIN` ativo.
+- `USER_DRIVER_NOT_FOUND`: `driver_id` não referencia motorista existente.
+- `USER_DRIVER_ALREADY_LINKED`: motorista já está vinculado a outro usuário.
+- `USER_DRIVER_ROLE_REQUIRED`: vínculo foi informado para papel diferente de
+  `DRIVER`.
 
 `CONFIRMADO`: não existe cadastro público. O primeiro `ADMIN` usa bootstrap local e, depois, usuários são criados somente por `ADMIN`.
 
@@ -111,7 +199,7 @@ Regras de autorização:
 
 - `ADMIN`, `CHECKER` e `LOGISTICS_MANAGER` podem usar `GET`.
 - Somente `LOGISTICS_MANAGER` pode usar `POST` e `PATCH`.
-- `DRIVER` não acessa essas rotas enquanto não existir vínculo aprovado.
+- `DRIVER` não acessa essas rotas na API atual.
 
 Exemplo de criação:
 
@@ -139,7 +227,7 @@ Regras de autorização:
 
 - `ADMIN`, `CHECKER` e `LOGISTICS_MANAGER` podem usar `GET`.
 - Somente `LOGISTICS_MANAGER` pode usar `POST` e `PATCH`.
-- `DRIVER` não acessa essas rotas enquanto não existir vínculo aprovado.
+- `DRIVER` não acessa essas rotas na API atual.
 
 Exemplo de criação:
 
@@ -171,6 +259,10 @@ Regras de autorização:
 - Somente `LOGISTICS_MANAGER` pode usar `POST` e `PATCH`.
 - `CHECKER` e `DRIVER` não acessam essas rotas.
 
+Campos de `GET /customers`: `id`, `name`, `city`, `state` e `created_at`.
+Documento, telefone, endereço e observações aparecem somente no detalhe e nas
+respostas de escrita já protegidas pelo RBAC.
+
 ## Motoristas
 
 - `GET /drivers`.
@@ -184,18 +276,24 @@ Regras de autorização:
 - Somente `LOGISTICS_MANAGER` pode usar `POST` e `PATCH`.
 - `CHECKER` e `DRIVER` não acessam essas rotas.
 
+Campos de `GET /drivers`: `id`, `name`, `license_category`, `active` e
+`created_at`. Documento, telefone e número da CNH aparecem somente no detalhe e
+nas respostas de escrita já protegidas pelo RBAC.
+
 ## Pedidos
 
 - `GET /orders`.
 - `POST /orders`.
 - `GET /orders/{id}`.
 - `PATCH /orders/{id}`.
+- `PATCH /orders/{id}/status`.
 
 Regras de autorização:
 
 - `ADMIN`, `CHECKER` e `LOGISTICS_MANAGER` podem usar `GET`.
 - Somente `LOGISTICS_MANAGER` pode usar `POST` e `PATCH`.
-- `DRIVER` não acessa essas rotas enquanto não existir vínculo aprovado.
+- `DRIVER` não acessa essas rotas na API atual; sua operação ocorre pelos
+  endpoints da viagem atribuída.
 
 Exemplo de criação:
 
@@ -217,15 +315,26 @@ Exemplo de criação:
 
 Regras atuais:
 
+- `GET /orders` retorna `id`, `customer_id`, `status`, `priority`,
+  `expected_delivery_at`, `created_at` e `item_count`; omite
+  `delivery_address` e os itens completos.
+
 - `POST /orders` cria o pedido com `status = "DRAFT"`.
-- `PATCH /orders/{id}` aceita alteração de `customer_id`, `status`, `priority`,
+- `PATCH /orders/{id}` aceita alteração de `customer_id`, `priority`,
   `delivery_address`, `expected_delivery_at` e, quando `items` for enviado,
-  substitui o conjunto somente se nenhum item estiver referenciado por plano.
+  substitui o conjunto somente em `DRAFT` e se nenhum item estiver referenciado
+  por plano. O payload rejeita `status` e campos desconhecidos.
+- `PATCH /orders/{id}/status` recebe `{"status": "READY"}` e aplica somente a
+  matriz de transições manuais de D04. Aprovação de plano, início de viagem e
+  conclusão de entrega mantêm seus próprios casos de uso.
 - `status` aceita `DRAFT`, `READY`, `PLANNED`, `IN_TRANSIT`, `DELIVERED` e `CANCELED`.
 - `priority` é texto obrigatório e é normalizado para maiúsculas.
 - `expected_delivery_at` deve vir com timezone e é normalizado para UTC.
 - O pedido deve possuir pelo menos um item.
 - `quantity` e `delivery_sequence` devem ser maiores que zero.
+- Todos os itens do mesmo pedido devem usar a mesma `delivery_sequence` na
+  OC09; pedidos diferentes podem compartilhar o valor e usam UUID como
+  desempate determinístico.
 - `customer_id` deve existir em `customers`.
 - Todos os `product_id` dos itens devem existir em `products`.
 
@@ -236,6 +345,13 @@ Erros específicos:
 - `ORDER_PRODUCT_NOT_FOUND`: produto do pedido não encontrado.
 - `ORDER_ITEMS_REFERENCED_BY_LOAD_PLAN`: conflito `409`; os itens históricos não
   podem ser substituídos.
+- `ORDER_EDIT_NOT_ALLOWED`: conflito `409`; o pedido não está em `DRAFT`.
+- `ORDER_STATUS_TRANSITION_NOT_ALLOWED`: conflito `409`; a origem e o destino
+  não formam uma transição manual aprovada.
+
+`CONFIRMADO`: criação e cada transição efetiva persistem pedido e histórico em
+uma única transação. A criação registra `null -> DRAFT`; repetir o estado atual
+retorna o pedido sem criar histórico duplicado.
 
 ## Planos de carga
 
@@ -244,7 +360,8 @@ Regras de autorização:
 - Somente `LOGISTICS_MANAGER` usa criação, aprovação e recálculo.
 - `ADMIN` e `LOGISTICS_MANAGER` consultam qualquer plano.
 - `CHECKER` consulta somente plano `APPROVED`.
-- `DRIVER` não acessa enquanto não existir vínculo operacional aprovado.
+- `DRIVER` não acessa esses endpoints na API atual; a viagem usa internamente o
+  plano atribuído.
 
 ### POST `/load-plans`
 
@@ -311,8 +428,8 @@ Resposta `201`, também usada por `GET /load-plans/{id}`:
 ```
 
 Os campos físicos e descritivos de caminhão/produto/item são snapshots do momento
-do cálculo. `Decimal` permanece no schema; a decisão separada sobre representar
-Decimal como número ou string JSON não é alterada pela OC20.
+do cálculo. `Decimal` permanece no domínio, no schema interno e na persistência;
+a fronteira HTTP usa número JSON conforme D06 e `ADR-016`.
 
 ### GET `/load-plans/{id}/visualization`
 
@@ -415,6 +532,11 @@ pela integração da OC20.
 - `PATCH /loading-sessions/{id}/status`.
 - `PATCH /loading-sessions/{id}/items/{item_id}`.
 
+`PENDENTE DE DEFINIÇÃO`: esses endpoints ainda não estão implementados. A OC09
+consome somente uma interface pública interna que retorna carregamento não
+finalizado por padrão; assim, a viagem nunca inicia sem confirmação real do
+módulo dono.
+
 ## Viagens e entregas
 
 - `POST /trips`.
@@ -422,11 +544,91 @@ pela integração da OC20.
 - `PATCH /trips/{id}/status`.
 - `PATCH /deliveries/{id}/status`.
 
+Exemplo de criação por `LOGISTICS_MANAGER`:
+
+```json
+{
+  "load_plan_id": "uuid-do-plano-aprovado",
+  "driver_id": "uuid-do-motorista-ativo"
+}
+```
+
+Resposta `201`:
+
+```json
+{
+  "id": "uuid-da-viagem",
+  "load_plan_id": "uuid-do-plano-aprovado",
+  "driver_id": "uuid-do-motorista-ativo",
+  "status": "SCHEDULED",
+  "started_at": null,
+  "finished_at": null,
+  "deliveries": [
+    {
+      "id": "uuid-da-entrega",
+      "trip_id": "uuid-da-viagem",
+      "order_id": "uuid-do-pedido",
+      "status": "PENDING",
+      "sequence": 1,
+      "delivered_at": null
+    }
+  ]
+}
+```
+
+Corpo das transições:
+
+```json
+{
+  "status": "IN_ROUTE"
+}
+```
+
+Regras de autorização:
+
+- somente `LOGISTICS_MANAGER` cria viagem;
+- `ADMIN` e `LOGISTICS_MANAGER` consultam qualquer viagem;
+- `LOGISTICS_MANAGER` altera qualquer viagem ou entrega;
+- `DRIVER` consulta e altera somente viagem atribuída ao seu `driver_id`, desde
+  que usuário e motorista continuem ativos;
+- `ADMIN` não executa transições operacionais; `CHECKER` não acessa essas rotas.
+
+Regras do contrato:
+
+- criação exige plano `APPROVED`, motorista ativo, pedidos do plano em
+  `PLANNED` e ainda sem entrega;
+- uma entrega é criada por pedido, com `sequence` contígua 1-based;
+- viagem aceita `SCHEDULED -> IN_ROUTE -> FINISHED`;
+- entrega aceita `PENDING -> IN_DELIVERY -> DELIVERED` somente durante
+  `IN_ROUTE`;
+- repetir o status atual é idempotente e não cria novo histórico;
+- início exige carregamento finalizado e move todos os pedidos para
+  `IN_TRANSIT`;
+- conclusão de entrega move o pedido para `DELIVERED`; conclusão da viagem
+  exige todas as entregas e pedidos em `DELIVERED`;
+- timestamps de início, entrega e fim são retornados em UTC.
+
+Erros específicos:
+
+- `TRIP_NOT_FOUND` e `DELIVERY_NOT_FOUND`;
+- `TRIP_LOAD_PLAN_NOT_FOUND`, `TRIP_LOAD_PLAN_NOT_APPROVED` e
+  `TRIP_LOAD_PLAN_ALREADY_ASSIGNED`;
+- `TRIP_DRIVER_NOT_FOUND` e `TRIP_DRIVER_INACTIVE`;
+- `TRIP_ORDER_ALREADY_ASSIGNED`, `TRIP_ORDER_NOT_ELIGIBLE` e
+  `TRIP_DELIVERY_SEQUENCE_CONFLICT`;
+- `TRIP_LOADING_NOT_FINISHED` e `TRIP_DELIVERIES_NOT_FINISHED`;
+- `DELIVERY_TRIP_NOT_IN_ROUTE`;
+- `TRIP_STATUS_TRANSITION_NOT_ALLOWED` e
+  `DELIVERY_STATUS_TRANSITION_NOT_ALLOWED`.
+
 ## Histórico de status
 
-`CONFIRMADO`: mudanças de status devem gravar registros em `status_history`.
+`CONFIRMADO`: criação e mudanças efetivas de pedidos, planos, viagens e entregas
+gravam `ORDER`, `LOAD_PLAN`, `TRIP` ou `DELIVERY` em `status_history`, na mesma
+transação do agregado.
 
-`PENDENTE DE DEFINIÇÃO`: endpoint público para consulta de histórico ainda não está aprovado.
+`CONFIRMADO` por D10: a OC09 não expõe endpoint público para consulta de
+histórico.
 
 ## Ocorrências
 
@@ -512,14 +714,30 @@ Mapeamento recomendado:
 
 ## Segurança de API
 
-- Somente `GET /health` e `POST /api/v1/auth/login` são públicos.
-- Todos os demais endpoints de negócio exigem Bearer token e aplicam a matriz de `docs/04-regras-negocio.md`.
+- Somente `GET /health`, `GET /ready` e `POST /api/v1/auth/login` são públicos.
+- Todos os demais endpoints de negócio exigem o cookie de sessão e aplicam a
+  matriz de `docs/04-regras-negocio.md`.
+- `POST`, `PUT`, `PATCH` e `DELETE` exigem `Origin` presente na lista exata de
+  CORS. Operações autenticadas nesses métodos também exigem `X-CSRF-Token`.
 - `CONFIRMADO`: com `APP_ENV=local`, `/docs`, `/docs/oauth2-redirect`, `/redoc` e `/openapi.json` ficam disponíveis. Com `APP_ENV=production` ou sem a variável, essas rotas não são registradas e retornam `404`.
 - Senhas nunca retornam na API.
 - Tokens e segredos nunca aparecem em logs.
 - Dados pessoais devem ser minimizados em respostas de listagem.
 - Endpoints que alteram status devem registrar histórico.
 - Integrações externas devem ser autenticadas quando saírem do modo mock.
+
+`CONFIRMADO`: CORS permite credenciais somente para as origens exatas de
+`BACKEND_CORS_ORIGINS` e expõe `X-CSRF-Token` ao frontend próprio.
+
+`CONFIRMADO`: todas as respostas da aplicação usam `Cache-Control: no-store`,
+`X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`,
+`Referrer-Policy: no-referrer`, política restritiva de permissões e CSP que
+impede framing. Em `production`, também usam `Strict-Transport-Security` por um
+ano com `includeSubDomains`.
+
+`CONFIRMADO`: novos hashes de senha usam Argon2id com memória de 19 MiB, duas
+iterações e paralelismo 1. PBKDF2 legado é aceito apenas para migração gradual
+após autenticação válida.
 
 `CONFIRMADO`: a autorização por perfil segue `ADR-004`; acesso não listado é negado.
 

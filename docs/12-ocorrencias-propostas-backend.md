@@ -4,25 +4,43 @@
 
 `RECOMENDAÇÃO`: este documento reúne ocorrências prontas para serem copiadas para o GitHub Projects após revisão da equipe.
 
-`RISCO IDENTIFICADO`: a sequência oficial atual termina em `OC48`. Os identificadores `OC49` a `OC59` são sugestões e devem ser confirmados antes da abertura das issues para evitar conflito com ocorrências criadas em paralelo.
+`CONFIRMADO`: os identificadores `OC49` a `OC60` nasceram como sugestões. O
+estado individual abaixo registra quais ocorrências foram aprovadas, integradas
+ou continuam pendentes de decisão da equipe.
 
 `CONFIRMADO`: nenhuma ocorrência abaixo está aprovada apenas por constar neste documento. Cada uma deve receber responsável, revisão de escopo e aceite da equipe antes da implementação.
+
+`CONFIRMADO`: `OC49`, `OC50` e `OC51` já foram integradas em
+`desenvolvimento`. `OC55` e `OC53` foram aprovadas por solicitação explícita do
+responsável em 2026-08-04. `OC52` foi desbloqueada pela aprovação formal de D04
+e D05 em 2026-08-06. `OC56` foi desbloqueada por D06 na mesma data. D12 foi
+aprovada em 2026-08-07 e desbloqueou a `OC59`. `OC52`, `OC53`, `OC55`, `OC56`
+e `OC59` foram integradas em `desenvolvimento` pelo PR #14.
+
+`CONFIRMADO`: a `OC58` está implementada e validada localmente, pendente de PR e
+revisão.
+
+`CONFIRMADO`: D07 a D10 e D21 foram aprovadas em 2026-08-09. A `OC09` está
+implementada e validada localmente na branch `rennan`, pendente de PR e revisão;
+o início real da viagem permanece bloqueado de forma segura até o módulo de
+carregamento confirmar `FINISHED`.
 
 ## Resumo de prioridade
 
 | Identificador sugerido | Prioridade | Responsável primário sugerido | Situação |
 |---|---|---|---|
-| `OC49` | Alta | Desenvolvedor 1 | Implementada localmente; pendente de PR e revisão |
-| `OC50` | Alta | Desenvolvedor 1 | Implementada localmente; pendente de PR e revisão |
-| `OC51` | Alta | Desenvolvedor 1 | Implementada localmente; pendente de PR e revisão |
-| `OC52` | Alta | Desenvolvedor 1 | Bloqueada por `D04` e `D05` |
-| `OC53` | Alta | Desenvolvedor 1, com revisão do Desenvolvedor 4 | Pronta para aprovação |
+| `OC49` | Alta | Desenvolvedor 1 | Integrada em `desenvolvimento` |
+| `OC50` | Alta | Desenvolvedor 1 | Integrada em `desenvolvimento` |
+| `OC51` | Alta | Desenvolvedor 1 | Integrada em `desenvolvimento` |
+| `OC52` | Alta | Desenvolvedor 1 | Integrada em `desenvolvimento` |
+| `OC53` | Alta | Desenvolvedor 1, com revisão do Desenvolvedor 4 | Integrada em `desenvolvimento` |
 | `OC54` | Média | Desenvolvedor 4, com apoio do Desenvolvedor 1 | Pronta para aprovação |
-| `OC55` | Média | Desenvolvedor 1, com revisão do Desenvolvedor 4 | Pronta para aprovação |
-| `OC56` | Média | Desenvolvedor 1 e Desenvolvedor 3 | Bloqueada por `D06` |
+| `OC55` | Média | Desenvolvedor 1, com revisão do Desenvolvedor 4 | Integrada em `desenvolvimento` |
+| `OC56` | Média | Desenvolvedor 1 e Desenvolvedor 3 | Integrada em `desenvolvimento` |
 | `OC57` | Média | Desenvolvedor 2 | Absorvida e resolvida pela revisão da `OC11` |
-| `OC58` | Baixa | Desenvolvedor 1, com apoio do Desenvolvedor 4 | Bloqueada por `D11` |
-| `OC59` | Média | Desenvolvedor 1 e Desenvolvedor 3 | Bloqueada por `D12` |
+| `OC58` | Baixa | Desenvolvedor 1, com apoio do Desenvolvedor 4 | Implementada e validada localmente; pendente de PR e revisão |
+| `OC59` | Média | Desenvolvedor 1 e Desenvolvedor 3 | Integrada em `desenvolvimento` |
+| `OC60` | Alta | Desenvolvedor 1 | Aprovada por D18; em implementação |
 
 As referências `DXX` apontam para `docs/decisoes-equipe-backend.txt`.
 
@@ -182,7 +200,11 @@ Fazer com que toda mudança permitida de status registre `old_status`, `new_stat
 
 ### Comportamento atual
 
-`CONFIRMADO`: pedidos podem trocar de status sem gravar `status_history`. O service de histórico executa `commit()` próprio, o que impede composição transacional segura.
+`CONFIRMADO`: a OC52 está integrada em `desenvolvimento`. O status saiu do `PATCH`
+genérico, as transições manuais de D04 usam caso de uso explícito e pedido e
+histórico são confirmados ou desfeitos juntos conforme D05. O método independente
+de histórico mantém seu próprio `commit`, enquanto operações compostas usam
+`stage_status_change` sob a transação do service dono.
 
 ### Critérios de aceite
 
@@ -220,7 +242,10 @@ Fazer os testes de integração usarem PostgreSQL 16 e a cadeia real de migratio
 
 ### Comportamento atual
 
-`CONFIRMADO`: os testes de integração usam SQLite em memória e `Base.metadata.create_all`, sem aplicar as migrations oficiais.
+`CONFIRMADO`: a `OC53` substituiu SQLite por PostgreSQL 16 exclusivo na suíte de
+integração. A fixture valida o alvo, recria somente o schema de teste, aplica a
+cadeia Alembic, exercita `downgrade -1`, reaplica o head e isola cada teste em
+transação externa com savepoints.
 
 ### Critérios de aceite
 
@@ -236,7 +261,7 @@ Fazer os testes de integração usarem PostgreSQL 16 e a cadeia real de migratio
 ### Dependências
 
 - PostgreSQL 16 já confirmado como tecnologia oficial.
-- Migrations `20260729_0001` a `20260730_0003`.
+- Migrations `20260729_0001` a `20260804_0004`.
 
 ### Testes mínimos
 
@@ -289,7 +314,9 @@ Eliminar warnings de recursos, reduzir fixtures duplicadas e deixar os arquivos 
 
 ### Comportamento atual
 
-`CONFIRMADO`: fixtures repetem criação de engine e cliente, não executam `engine.dispose()` e não usam `TestClient` como context manager. `ruff format --check` indica arquivos fora do padrão.
+`CONFIRMADO`: a `OC55` centralizou as fixtures no menor escopo coerente, passou a
+encerrar `TestClient`, sessions, conexões e engines e normalizou a base Python com
+Ruff. A validação final não apresentou `ResourceWarning` causado pelos testes.
 
 ### Critérios de aceite
 
@@ -299,7 +326,8 @@ Eliminar warnings de recursos, reduzir fixtures duplicadas e deixar os arquivos 
 - A suíte não emite `ResourceWarning` causado pelo código de teste.
 - `ruff check .` e `ruff format --check .` passam.
 - A mudança de formatação não altera contratos ou regras de negócio.
-- Os 225 cenários existentes continuam passando, além dos testes adicionados pelas demais ocorrências.
+- Todos os cenários existentes continuam passando, além dos testes adicionados
+  pelas demais ocorrências; não fixar uma contagem que ficará obsoleta.
 
 ### Dependências
 
@@ -319,7 +347,10 @@ Definir e aplicar uma representação JSON única para campos `Decimal`, especia
 
 ### Comportamento atual
 
-`CONFIRMADO`: o backend responde pesos como strings, enquanto os exemplos de `docs/05-contratos-api.md` usam números JSON.
+`CONFIRMADO`: a OC56 está integrada em `desenvolvimento`. Schemas de entrada e saída,
+OpenAPI, exemplos e o consumidor de caminhões usam exclusivamente número JSON.
+Strings decimais são rejeitadas; `Decimal` e `Numeric` permanecem no domínio e
+na persistência, sem mudança na aritmética do otimizador.
 
 ### Critérios de aceite
 
@@ -332,8 +363,19 @@ Definir e aplicar uma representação JSON única para campos `Decimal`, especia
 
 ### Dependências
 
-- `D06`: número JSON ou string decimal.
+- `D06`: número JSON aprovado em 2026-08-06.
 - Revisão conjunta entre backend e frontend.
+
+### Divisão de execução aprovada
+
+1. **OC56-A — decisão e contrato:** registrar D06, ADR-016, precisão, escala e
+   exemplos oficiais.
+2. **OC56-B — backend:** criar o tipo compartilhado da fronteira HTTP, aplicar
+   nos schemas, rejeitar strings e validar JSON e OpenAPI.
+3. **OC56-C — frontend:** remover a compatibilidade ambígua `number | string` e
+   consumir o contrato como `number` sem coerção silenciosa.
+4. **OC56-D — encerramento:** executar as suítes completas, atualizar READMEs e
+   registrar a ocorrência como validada localmente.
 
 ---
 
@@ -379,7 +421,27 @@ Distinguir aplicação em execução de aplicação pronta para atender operaç�
 
 ### Comportamento atual
 
-`CONFIRMADO`: `/health` retorna `ok` sem verificar conexão com PostgreSQL ou estado das migrations.
+`CONFIRMADO`: `/health` permanece como liveness e retorna `ok` sem verificar
+conexão com PostgreSQL ou estado das migrations.
+
+`CONFIRMADO`: D11 foi aprovada em 2026-08-07 e registrada na `ADR-018`. A
+ocorrência foi implementada conforme o contrato aprovado.
+
+### Resultado
+
+`CONFIRMADO`: `/ready` executa `SELECT 1` em conexão somente leitura, compara o
+conjunto de revisões do banco com os heads Alembic entregues e aplica orçamento
+total de 2 segundos. Falhas retornam `503 SERVICE_NOT_READY` sem detalhes
+internos.
+
+`CONFIRMADO`: o Compose usa `/ready` como healthcheck do backend sem aplicar
+migrations automaticamente. O frontend preserva a inicialização independente do
+estado saudável para não bloquear o bootstrap de um banco novo.
+
+`CONFIRMADO`: a validação final aprovou Ruff, 894 testes do backend em PostgreSQL
+16, 156 testes do frontend, ESLint, build de produção e smoke de queda e
+recuperação do PostgreSQL. Durante a queda, `/health` permaneceu `200` e `/ready`
+retornou `503`; após a recuperação, `/ready` voltou a `200`.
 
 ### Critérios de aceite
 
@@ -393,7 +455,7 @@ Distinguir aplicação em execução de aplicação pronta para atender operaç�
 
 ### Dependências
 
-- `D11`: caminho, payload e profundidade da verificação.
+- `D11` e `ADR-018`: caminho, payload, timeout e profundidade da verificação.
 - Atualização de `docs/05-contratos-api.md` e documentação de infraestrutura.
 
 ---
@@ -408,9 +470,32 @@ Distinguir aplicação em execução de aplicação pronta para atender operaç�
 
 Evitar exposição desnecessária de dados pessoais e impedir listagens sem limite, preservando acesso detalhado apenas para perfis autorizados.
 
-### Comportamento atual
+### Comportamento anterior
 
 `CONFIRMADO`: endpoints de listagem retornam coleções completas sem paginação. Os mesmos schemas usados em detalhes podem expor e-mail, documento, telefone, CNH, endereço e observações.
+
+### Decisão e divisão aprovada
+
+`CONFIRMADO`: D12 foi aprovada em 2026-08-07 e registrada na `ADR-017`.
+
+1. Registrar o contrato e a infraestrutura compartilhada de paginação.
+2. Minimizar e paginar usuários, clientes, motoristas e pedidos.
+3. Paginar caminhões e produtos e adaptar o consumidor frontend de caminhões.
+4. Executar testes completos e encerrar a ocorrência na documentação.
+
+### Resultado
+
+`CONFIRMADO`: as seis coleções atualmente implementadas usam `COUNT`, `LIMIT` e
+`OFFSET`, respeitam o limite máximo de 100 e retornam o envelope da ADR-017.
+Usuários, clientes, motoristas e pedidos usam schemas resumidos; os endpoints de
+detalhe mantêm os schemas completos protegidos pelo RBAC existente.
+
+`CONFIRMADO`: o consumidor frontend de caminhões usa os metadados do backend e
+oferece navegação entre páginas. A busca e o filtro continuam restritos à página
+atual porque D12 não aprovou filtros server-side.
+
+`CONFIRMADO`: a validação final executou 883 testes do backend sobre PostgreSQL
+16, a suíte completa do frontend, Ruff, ESLint e build de produção.
 
 ### Critérios de aceite
 
@@ -435,6 +520,161 @@ Evitar exposição desnecessária de dados pessoais e impedir listagens sem limi
 
 ---
 
+## [OC60] Endurecer autenticação e substituir JWT por sessão revogável
+
+- **Tipo:** segurança e contrato.
+- **Responsável primário confirmado:** Desenvolvedor 1.
+- **Prioridade:** alta.
+- **Situação:** implementada e validada localmente em 2026-08-09.
+
+### Objetivo
+
+Remover credenciais do Web Storage, limitar tentativas de login, modernizar o
+hash e disponibilizar sessão revogável com proteção CSRF para o frontend próprio.
+
+### Critérios de aceite
+
+- D18 e `ADR-020` registram o contrato antes da implementação.
+- Novas senhas seguem a política de 15 a 128 caracteres e blocklist local.
+- Argon2id usa m=19 MiB, t=2 e p=1; login válido migra PBKDF2 legado.
+- Login limita conta e IP e retorna `429` com `Retry-After` durante bloqueio.
+- `auth_sessions` guarda somente hash de identificador aleatório de 256 bits.
+- Produção emite `__Host-loadx_session` com flags seguras; local HTTP usa cookie
+  compatível explicitamente documentado.
+- Sessão respeita 30 minutos inativos e 8 horas absolutas.
+- Métodos inseguros validam origem; métodos autenticados validam
+  `X-CSRF-Token`.
+- `POST /auth/logout` revoga a sessão e limpa o cookie.
+- Troca de senha, desativação e alteração de papel revogam todas as sessões do
+  usuário.
+- Frontend usa cookie, mantém CSRF somente em memória e não usa `localStorage`
+  para autenticação.
+- Migration real, downgrade, testes PostgreSQL, Ruff, frontend, build e scanners
+  passam.
+
+### Resultado
+
+`CONFIRMADO`: a OC60 foi dividida em commits pequenos para decisão, senha,
+throttling, persistência de sessão, contrato HTTP, revogação, frontend e headers
+defensivos. O banco chegou à revisão `20260808_0006` exclusivamente por Alembic.
+
+`CONFIRMADO`: a validação final executou 577 testes unitários/health e 351 testes
+de integração em PostgreSQL 16, totalizando 928 testes de backend. O ciclo real
+de migration executou `upgrade head`, `downgrade -1` e novo `upgrade head`.
+
+`CONFIRMADO`: o frontend passou por ESLint, 159 testes e build. `pip-audit`,
+`npm audit`, Bandit e a busca por padrões de credencial terminaram sem achados.
+O Compose principal aplicou `20260808_0006`, deixou backend e banco saudáveis e
+respondeu `/ready` com sucesso.
+
+### Fora do escopo
+
+- MFA, recuperação de senha, cofre de segredos, TLS do proxy, alertas externos e
+  criação dos papéis PostgreSQL de produção.
+
+`RISCO IDENTIFICADO`: MFA obrigatório sem fluxo de cadastro e recuperação pode
+bloquear o único administrador; a implementação exige ocorrência própria.
+
+---
+
+## [OC61] Viabilizar runtime seguro de produção
+
+- **Tipo:** segurança e infraestrutura.
+- **Responsável primário confirmado:** Desenvolvedor 1.
+- **Prioridade:** alta.
+- **Situação:** implementada e validada localmente em 2026-08-09.
+
+### Objetivo
+
+Fornecer uma referência executável de produção para o frontend próprio com TLS,
+proxy confiável, segredos montados e credenciais PostgreSQL segregadas, sem
+escolher ou contratar provedor externo.
+
+### Critérios de aceite
+
+- Compose de produção não publica backend nem PostgreSQL diretamente.
+- Caddy serve o build estático e encaminha API e sondas sob a mesma origem HTTPS.
+- Uvicorn confia headers de proxy somente do IP privado fixo do Caddy.
+- URLs de banco e `SECRET_KEY` chegam aos serviços por arquivos em
+  `/run/secrets`.
+- Migration e aplicação recebem credenciais PostgreSQL diferentes.
+- O papel da aplicação não pode criar ou remover estruturas.
+- CSP, HSTS e demais headers defensivos são preservados no frontend publicado.
+- Configuração do Compose, Caddyfile, imagem estática e SQL de papéis são
+  validados antes do encerramento.
+
+### Resultado
+
+`CONFIRMADO`: a referência isolada concluiu migration, manteve backend privado,
+publicou apenas Caddy em 80/443, redirecionou HTTP e respondeu frontend,
+`/health` e `/ready` por HTTPS. CSP, HSTS e headers defensivos foram observados;
+a assinatura do servidor backend não foi exposta.
+
+`CONFIRMADO`: o SQL permitiu DDL ao papel de migration e DML ao papel da
+aplicação. A tentativa de criar tabela como `loadx_app` falhou por falta de
+permissão, conforme o critério de menor privilégio.
+
+`CONFIRMADO`: os eventos estruturados cobrem sucesso/falha de login, throttling,
+criação, expiração e revogação de sessões e mudanças sensíveis de usuário. A
+integração externa pode filtrar `alert=true` sem receber e-mail, IP ou segredo.
+
+`CONFIRMADO`: a validação completa aprovou Ruff, 590 testes unitários/health e
+351 testes em PostgreSQL 16, totalizando 941 testes de backend. ESLint, 159
+testes do frontend, build, orçamento gzip, `pip-audit`, `npm audit` e Bandit
+também passaram.
+
+### Fora do escopo
+
+- Contratação de domínio, cofre, banco gerenciado, observabilidade ou serviço de
+  alertas.
+- Alta disponibilidade, backup, restauração e deploy em uma plataforma real.
+- MFA e recuperação de senha.
+
+---
+
+## [OC62] Definir MFA e recuperação segura de acesso
+
+- **Tipo:** proposta de segurança e contrato.
+- **Responsável primário recomendado:** Desenvolvedor 1.
+- **Prioridade recomendada:** alta, antes da produção.
+- **Situação:** `PENDENTE DE DEFINIÇÃO` e aprovação; nenhuma implementação foi
+  iniciada.
+
+### Objetivo proposto
+
+Definir, antes de alterar banco ou API, o ciclo completo de MFA obrigatório para
+`ADMIN` e `LOGISTICS_MANAGER` e a recuperação de acesso sem criar um caminho que
+contorne o segundo fator.
+
+### Decisões necessárias
+
+- `DECISÃO NECESSÁRIA`: passkey/WebAuthn como fator principal com TOTP de
+  contingência, ou TOTP como primeira entrega.
+- `DECISÃO NECESSÁRIA`: cadastro, confirmação, substituição e remoção de fatores,
+  incluindo reautenticação para cada ação sensível.
+- `DECISÃO NECESSÁRIA`: quantidade, entrega, uso único e regeneração de códigos
+  de recuperação, armazenados somente como hash.
+- `DECISÃO NECESSÁRIA`: procedimento auditável para perda de dispositivo,
+  recuperação de senha e administrador de emergência, sem bloquear o primeiro
+  bootstrap nem permitir bypass permanente.
+- `DECISÃO NECESSÁRIA`: modelo de dados, contratos HTTP, interface e eventos de
+  auditoria que materializam essas escolhas.
+
+### Recomendação para aprovação
+
+`RECOMENDAÇÃO`: preferir passkeys, aceitar TOTP como contingência, fornecer
+códigos de recuperação de uso único e exigir reautenticação para gerenciar
+fatores. A ocorrência deve começar por ADR e threat model e só depois dividir
+banco, serviço, API e frontend em commits testáveis.
+
+### Fora do escopo da proposta
+
+- Contratar provedor externo antes da escolha da plataforma de produção.
+- Implementar recuperação baseada apenas em perguntas pessoais, suporte sem
+  auditoria ou desativação silenciosa do MFA.
+
+---
+
 ## Detalhamento da ocorrência existente OC09
 
 ## [OC09] Implementar controle de viagens e entregas
@@ -445,9 +685,18 @@ Evitar exposição desnecessária de dados pessoais e impedir listagens sem limi
 
 ### Objetivo refinado
 
-Implementar persistência, serviços e contratos HTTP de viagens e entregas vinculadas a plano carregado, motorista e pedidos, preservando histórico de status.
+Implementar persistência, serviços e contratos HTTP de viagens e entregas
+vinculadas a plano aprovado, motorista e pedidos, exigindo carregamento
+finalizado para iniciar e preservando histórico de status.
 
-### Critérios de aceite propostos
+### Comportamento atual
+
+`CONFIRMADO`: models, migration `20260809_0008`, repositories, services, rotas,
+RBAC por objeto e histórico atômico estão implementados. A migration anterior
+`20260809_0007` materializa o vínculo `users.driver_id` aprovado por D21. A
+validação local cobre regras unitárias, rollback, OpenAPI, API e PostgreSQL 16.
+
+### Critérios de aceite
 
 - Models `Trip` e `Delivery` correspondem exatamente a `docs/03-modelo-dados.md`.
 - Migration pequena cria `trips` e `deliveries` com PKs, FKs, uniques, índices e constraints aprovadas.
@@ -463,13 +712,12 @@ Implementar persistência, serviços e contratos HTTP de viagens e entregas vinc
 
 ### Dependências e bloqueios
 
-- Planejamento de carga persistido e aprovado.
-- Carregamento implementado e finalizado.
-- `OC51` para autenticação e ator da mudança.
-- `OC52` para padrão atômico de histórico.
-- `D07`: estados e transições de viagem/entrega.
-- `D08`: regra de finalização com entregas problemáticas.
-- `D09`: tratamento de divergência de carregamento.
-- `D10`: entidades auditáveis e consulta de histórico.
+- `CONFIRMADO`: planejamento de carga persistido e aprovado.
+- `PENDENTE DE DEFINIÇÃO`: carregamento implementado e finalizado para liberar
+  a transição positiva `SCHEDULED -> IN_ROUTE` no runtime real.
+- `CONFIRMADO`: `OC51` fornece autenticação e ator da mudança.
+- `CONFIRMADO`: `OC52` fornece o padrão atômico de histórico.
+- `CONFIRMADO`: D07 a D10 e D21 foram resolvidas por `ADR-022`.
 
-`RISCO IDENTIFICADO`: iniciar models ou migration da `OC09` antes dessas decisões pode criar estados e regras não aprovados.
+`CONFIRMADO`: D07, D08, D09, D10 e D21 foram resolvidas em `ADR-022` antes da
+implementação. Estados de exceção permanecem deliberadamente fora da OC09.

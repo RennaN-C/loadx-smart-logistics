@@ -1,7 +1,60 @@
 :root {
-  font-family: Inter, system-ui, sans-serif;
-  color: #172033;
-  background: #f4f7fb;
+  --ink: #14181d;
+  --paper: #edebe3;
+  --card: #faf9f5;
+  --line: #d9d5c7;
+  --muted: #5f5b52;
+  --accent: #c97a22;
+  --accent-contrast: #14181d;
+  --danger: #a63a2e;
+  --danger-bg: #f3e4df;
+  --danger-line: #dcb6ac;
+  --good: #3f6b4a;
+  --good-bg: #e4ece3;
+  --accent-strong: #8a5115;
+  --accent-bg: #f4e6d4;
+
+  --brand-bg: #12181d;
+  --brand-fg: #edeae1;
+  --brand-muted: rgba(237, 234, 225, 0.68);
+  --brand-line: rgba(237, 234, 225, 0.18);
+
+  --font-mono: ui-monospace, "Cascadia Mono", "Consolas", "SFMono-Regular", Menlo, monospace;
+
+  /* Manda o navegador desenhar o que é dele no mesmo tema da página: a lista
+     suspensa do select, o seletor de data, as barras de rolagem. Sem isto ele
+     assume claro e a lista do select sai com fundo branco e texto claro. */
+  color-scheme: light;
+
+  font-family: "Poppins", system-ui, sans-serif;
+  color: var(--ink);
+  background: var(--paper);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+
+    --ink: #edeae1;
+    --paper: #171b20;
+    --card: #1f252c;
+    --line: rgba(255, 255, 255, 0.12);
+    --muted: #a09b8f;
+    --accent: #e2a24a;
+    --danger: #e0685a;
+    --danger-bg: rgba(224, 104, 90, 0.14);
+    --danger-line: rgba(224, 104, 90, 0.4);
+    --good: #7fb98c;
+    --good-bg: rgba(127, 185, 140, 0.14);
+    --accent-strong: #e2a24a;
+    --accent-bg: rgba(226, 162, 74, 0.16);
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
 body {
@@ -18,3 +71,863 @@ body {
   font-weight: 800;
   letter-spacing: 0.2em;
 }
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+}
+.skip-link:focus {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 20;
+  background: var(--card);
+  color: var(--ink);
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  text-decoration: none;
+}
+
+.app-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 236px minmax(0, 1fr);
+}
+
+/* min-width evita que conteúdo largo (canvas 3D, tabelas) estoure a coluna */
+.app-shell > main {
+  min-width: 0;
+}
+
+.app-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+  padding: 22px 16px;
+  border-right: 1px solid var(--line);
+  background: var(--card);
+  /* acompanha a rolagem: o menu não some ao descer numa lista longa */
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.app-brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  padding: 2px 8px 0;
+  font-size: 1.18rem;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+}
+
+.app-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* o ícone acompanha a cor do texto ao lado e não encolhe quando o rótulo é longo */
+.icon {
+  flex-shrink: 0;
+}
+
+/* Rótulo que só o leitor de tela alcança: some da tela sem sair da árvore de
+   acessibilidade, como acontece com `display: none`. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.avatar {
+  display: inline-grid;
+  place-content: center;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--accent-bg);
+  color: var(--accent-strong);
+  border: 1px solid var(--accent);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+.app-nav-title {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 600;
+  margin: 0 0 7px;
+  padding: 0 10px;
+}
+
+.app-nav-group ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.app-nav a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.88rem;
+  color: var(--muted);
+  text-decoration: none;
+  padding: 7px 10px;
+  border-radius: 3px;
+  /* a faixa do ativo entra pela borda, então o texto não desloca ao trocar de tela */
+  border-left: 2px solid transparent;
+}
+
+/* o ícone fica um passo atrás do rótulo; na tela ativa os dois vêm à frente */
+.app-nav a .icon {
+  opacity: 0.65;
+}
+.app-nav a:hover .icon,
+.app-nav a[aria-current="page"] .icon {
+  opacity: 1;
+}
+.app-nav a[aria-current="page"] .icon {
+  color: var(--accent-strong);
+}
+.app-nav a:hover {
+  color: var(--ink);
+  background: var(--paper);
+}
+.app-nav a[aria-current="page"] {
+  color: var(--ink);
+  font-weight: 600;
+  background: var(--accent-bg);
+  border-left-color: var(--accent);
+}
+.app-nav a:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(201, 122, 34, 0.35);
+}
+
+.app-account {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 8px 0;
+  border-top: 1px solid var(--line);
+  font-size: 0.85rem;
+}
+
+/* min-width: 0 é o que autoriza o nome a encurtar em vez de empurrar o botão */
+.app-account-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin-right: auto;
+}
+
+.app-account-name {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-account-role {
+  color: var(--muted);
+  font-size: 0.75rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-logout {
+  display: grid;
+  place-content: center;
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  color: var(--muted);
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  cursor: pointer;
+}
+.app-logout:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+.app-logout:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(201, 122, 34, 0.35);
+}
+
+/* Sem largura para uma coluna fixa, a barra deita no topo. Vira faixa rolável
+   na horizontal em vez de gaveta: não precisa de estado, botão nem prender foco. */
+@media (max-width: 900px) {
+  .app-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .app-sidebar {
+    position: static;
+    height: auto;
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px 16px;
+    padding: 12px 20px;
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .app-nav,
+  .app-nav-group,
+  .app-nav-group ul {
+    flex-direction: row;
+    gap: 4px;
+  }
+
+  /* Quebra em duas linhas: identidade e conta em cima, menu ocupando a largura
+     inteira embaixo. Espremido ao lado delas sobravam 130px de janela para
+     560px de links, o que exigiria arrastar a barra inteira para achar item. */
+  .app-nav {
+    order: 1;
+    flex-basis: 100%;
+    overflow-x: auto;
+  }
+
+  /* Deitado não sobra espaço para rótulo de grupo, e os itens se explicam. O
+     ícone sai pelo mesmo motivo: numa faixa rolável ele custa largura onde ela
+     falta, e quem carrega o significado é o rótulo. */
+  .app-nav-title,
+  .app-nav a .icon {
+    display: none;
+  }
+
+  .app-brand {
+    font-size: 1rem;
+    padding: 0;
+  }
+
+  .app-nav a {
+    white-space: nowrap;
+    border-left: none;
+    border-bottom: 2px solid transparent;
+    border-radius: 3px 3px 0 0;
+  }
+  .app-nav a[aria-current="page"] {
+    border-left-color: transparent;
+    border-bottom-color: var(--accent);
+  }
+
+  .app-account {
+    margin-top: 0;
+    margin-left: auto;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    padding: 0;
+    border-top: none;
+  }
+
+  .app-account-role {
+    display: none;
+  }
+}
+
+.session-loading {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  border-top-color: var(--accent);
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---- primitivos compartilhados ---- */
+
+.field-label {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  margin: 0;
+}
+
+.btn-primary,
+.btn-secondary {
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 0.92rem;
+  border-radius: 3px;
+  padding: 11px 18px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: filter 0.15s ease;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border: 1px solid var(--accent);
+}
+.btn-primary:hover {
+  filter: brightness(1.06);
+}
+.btn-primary:disabled {
+  cursor: wait;
+  filter: brightness(0.97);
+}
+.btn-primary .spinner {
+  border-color: rgba(20, 24, 29, 0.35);
+  border-top-color: var(--accent-contrast);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--line);
+}
+.btn-secondary:hover {
+  color: var(--ink);
+  border-color: var(--ink);
+}
+
+.btn-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--accent);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+/* Agora que o botão pode ter ícone, sublinhar riscaria o vão entre ele e o
+   texto. O realce foi para a cor, que o ícone acompanha por herdar currentColor. */
+.btn-link:hover {
+  color: var(--accent-strong);
+}
+
+.btn-primary:focus-visible,
+.btn-secondary:focus-visible,
+.btn-link:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(201, 122, 34, 0.35);
+  border-radius: 3px;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.status-pill-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentcolor;
+}
+
+.status-pill-good {
+  background: var(--good-bg);
+  color: var(--good);
+}
+
+.status-pill-warn {
+  background: var(--accent-bg);
+  color: var(--accent-strong);
+}
+
+.status-pill-neutral {
+  background: var(--line);
+  color: var(--muted);
+}
+
+.alert-banner {
+  padding: 10px 12px;
+  border-radius: 3px;
+  font-size: 0.83rem;
+  line-height: 1.45;
+  background: var(--danger-bg);
+  color: var(--danger);
+  border: 1px solid var(--danger-line);
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 32px 20px;
+  overflow-y: auto;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  border: none;
+  padding: 0;
+  cursor: default;
+  background: rgba(20, 24, 29, 0.45);
+}
+
+.modal-dialog {
+  position: relative;
+  width: 100%;
+  max-width: 720px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+}
+
+.modal-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 18px 24px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.modal-header h2 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.modal-subtitle {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin: 0;
+}
+
+.modal-body {
+  padding: 20px 24px 24px;
+}
+
+/* ---- casca das telas de cadastro ----
+   Compartilhada por caminhões, produtos, clientes/motoristas e pedidos: todas
+   têm o mesmo esqueleto (título + ação, busca + filtro, grade de cards, estados
+   de carregando/vazio/erro). O que muda em cada feature é só o card. */
+
+.entity-page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 40px 32px 64px;
+}
+
+.entity-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.entity-header h1 {
+  font-size: clamp(1.9rem, 4vw, 2.4rem);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  margin: 0;
+}
+
+.entity-lede {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin: 6px 0 0;
+}
+
+.entity-toolbar {
+  display: flex;
+  gap: 12px;
+  margin: 28px 0 20px;
+  flex-wrap: wrap;
+}
+
+.entity-toolbar input[type="search"] {
+  flex: 1;
+  min-width: 220px;
+}
+
+.entity-toolbar input[type="search"],
+.entity-toolbar select {
+  font-family: inherit;
+  font-size: 0.92rem;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--card);
+  color: var(--ink);
+}
+
+.entity-toolbar input:focus-visible,
+.entity-toolbar select:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(201, 122, 34, 0.35);
+}
+
+.entity-state {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  padding: 32px 0;
+}
+
+/* D12 mantém busca e filtro fora do contrato da API: eles agem só na página
+   carregada. A tela precisa dizer isso, senão o usuário acha que buscou na
+   base inteira e conclui que o registro não existe. */
+.entity-summary {
+  color: var(--muted);
+  font-size: 0.82rem;
+  margin: -8px 0 20px;
+}
+
+.entity-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+.entity-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 28px;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.entity-pagination button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+@media (max-width: 720px) {
+  .entity-page {
+    padding: 28px 20px 48px;
+  }
+  .entity-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--line);
+  margin: 24px 0 0;
+}
+
+.tab {
+  font-family: inherit;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--muted);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 10px 16px;
+  margin-bottom: -1px;
+  cursor: pointer;
+}
+.tab:hover {
+  color: var(--ink);
+}
+.tab[aria-selected="true"] {
+  color: var(--ink);
+  border-bottom-color: var(--accent);
+}
+.tab:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(201, 122, 34, 0.35);
+  border-radius: 3px 3px 0 0;
+}
+
+.entity-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+}
+
+.entity-code {
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 4px 8px;
+  display: inline-block;
+  margin: 0;
+}
+
+/* ---- formulários de cadastro ---- */
+
+.entity-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.entity-form-fieldset {
+  border: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.entity-form-fieldset:disabled {
+  opacity: 0.6;
+}
+
+.entity-form-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.entity-form-field {
+  flex: 1;
+  min-width: 150px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.entity-form-field-narrow {
+  flex: 0 1 180px;
+}
+
+.entity-form input[type="text"],
+.entity-form input[type="number"],
+.entity-form input[type="datetime-local"],
+.entity-form input:not([type]),
+.entity-form select,
+.entity-form textarea {
+  font-family: inherit;
+  font-size: 0.95rem;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--card);
+  color: var(--ink);
+  width: 100%;
+}
+
+/* A lista suspensa do select é desenhada pelo navegador, fora do fluxo da
+   página: fundo `transparent` ali vira o branco padrão dele, e o texto claro
+   do tema escuro some. Por isso cor e fundo explícitos. */
+option {
+  background: var(--card);
+  color: var(--ink);
+}
+
+/**
+ * Caixa de seleção desenhada por nós. A nativa sai como um quadrado branco de
+ * borda cinza, que destoa no tema escuro, e `accent-color` não resolve porque
+ * só pinta o estado MARCADO — o desmarcado, que é o estado em que a caixa
+ * passa a maior parte do tempo, continuava fora do tema.
+ *
+ * Sem `margin` aqui de propósito: cada contexto alinha a caixa com a primeira
+ * linha do seu próprio texto.
+ */
+input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  flex-shrink: 0;
+  display: grid;
+  place-content: center;
+  width: 17px;
+  height: 17px;
+  border: 1px solid var(--muted);
+  border-radius: 3px;
+  background: var(--card);
+  cursor: pointer;
+}
+
+input[type="checkbox"]::before {
+  content: "";
+  width: 9px;
+  height: 5px;
+  /* O tique é um "L" (borda esquerda + inferior) girado -45°. O centro de massa
+     do traço não coincide com o centro do elemento: cai 1,24px abaixo dele.
+     Este -1px devolve a marca ao meio da caixa. */
+  margin-top: -1px;
+  border-left: 2px solid var(--accent-contrast);
+  border-bottom: 2px solid var(--accent-contrast);
+  transform: rotate(-45deg);
+  opacity: 0;
+}
+
+input[type="checkbox"]:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+input[type="checkbox"]:checked::before {
+  opacity: 1;
+}
+
+input[type="checkbox"]:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+input[type="checkbox"]:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(201, 122, 34, 0.35);
+}
+
+input[type="checkbox"]:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.entity-form textarea {
+  resize: vertical;
+}
+
+.entity-form input:focus-visible,
+.entity-form select:focus-visible,
+.entity-form textarea:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(201, 122, 34, 0.35);
+}
+
+.entity-form-box {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.entity-form-help {
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--muted);
+  margin: 0;
+}
+
+.entity-form-derived {
+  display: flex;
+  justify-content: flex-end;
+  gap: 28px;
+  margin: 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+}
+
+.entity-form-derived div {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+}
+
+.entity-form-derived dt {
+  color: var(--muted);
+}
+
+.entity-form-derived dd {
+  font-weight: 700;
+  margin: 0;
+}
+
+.entity-form-checks {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.entity-form-checks label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.entity-form-checks input {
+  margin-top: 2px;
+}
+
+.entity-form-checks small {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.entity-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  border-top: 1px solid var(--line);
+  padding-top: 18px;
+}
+

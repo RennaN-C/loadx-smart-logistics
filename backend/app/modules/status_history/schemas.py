@@ -3,6 +3,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+STATUS_HISTORY_ENTITY_TYPES = frozenset({"ORDER", "LOAD_PLAN", "TRIP", "DELIVERY"})
+
 
 def normalize_upper(value: str | None) -> str | None:
     if value is None:
@@ -23,6 +25,14 @@ class StatusHistoryBase(BaseModel):
     @classmethod
     def normalize_status_text(cls, value: str | None) -> str | None:
         return normalize_upper(value)
+
+    @field_validator("entity_type")
+    @classmethod
+    def validate_entity_type(cls, value: str) -> str:
+        if value not in STATUS_HISTORY_ENTITY_TYPES:
+            allowed_values = ", ".join(sorted(STATUS_HISTORY_ENTITY_TYPES))
+            raise ValueError(f"entity_type must be one of: {allowed_values}")
+        return value
 
 
 class StatusHistoryCreate(StatusHistoryBase):

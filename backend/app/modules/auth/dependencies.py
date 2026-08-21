@@ -1,57 +1,85 @@
 from collections.abc import Callable
 from typing import Annotated
 
-from fastapi import Depends, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi import Depends, Request, status
+from fastapi.security import APIKeyCookie
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.exceptions import ApiError
+from app.core.http_security import UNSAFE_HTTP_METHODS
 from app.database.session import get_db
-from app.modules.auth.service import (
-    AuthInactiveUserError,
-    AuthInvalidTokenError,
-    AuthService,
+from app.modules.auth.service import AuthService
+from app.modules.auth.sessions import (
+    AuthSessionInactiveUserError,
+    AuthSessionInvalidError,
+    AuthSessionService,
+    ResolvedAuthSession,
 )
 from app.modules.users.models import User
 from app.modules.users.schemas import USER_ROLE_VALUES
 
-bearer_scheme = HTTPBearer(scheme_name="BearerAuth", auto_error=False)
+CSRF_HEADER_NAME = "X-CSRF-Token"
+session_cookie_scheme = APIKeyCookie(
+    name=settings.session_cookie_name,
+    scheme_name="SessionCookie",
+    auto_error=False,
+)
 
 
 def get_auth_service(db: Annotated[Session, Depends(get_db)]) -> AuthService:
     return AuthService(db)
 
 
-def get_current_user(
-    credentials: Annotated[
-        HTTPAuthorizationCredentials | None,
-        Depends(bearer_scheme),
-    ],
-    service: Annotated[AuthService, Depends(get_auth_service)],
-) -> User:
-    if credentials is None:
+def get_auth_session_service(
+    db: Annotated[Session, Depends(get_db)],
+) -> AuthSessionService:
+    return AuthSessionService(db)
+
+
+def get_current_session(
+    request: Request,
+    session_token: Annotated[str | None, Depends(session_cookie_scheme)],
+    service: Annotated[AuthSessionService, Depends(get_auth_session_service)],
+) -> ResolvedAuthSession:
+    if session_token is None:
         raise ApiError(
             status.HTTP_401_UNAUTHORIZED,
             "AUTH_INVALID_TOKEN",
-            "Token ausente ou inválido.",
-            headers={"WWW-Authenticate": "Bearer"},
+            "Sessão ausente ou inválida.",
         )
 
     try:
-        return service.get_current_user_from_token(credentials.credentials)
-    except AuthInvalidTokenError:
+        resolved_session = service.resolve_session(session_token)
+    except AuthSessionInvalidError:
         raise ApiError(
             status.HTTP_401_UNAUTHORIZED,
             "AUTH_INVALID_TOKEN",
-            "Token ausente ou inválido.",
-            headers={"WWW-Authenticate": "Bearer"},
+            "Sessão ausente ou inválida.",
         ) from None
-    except AuthInactiveUserError:
+    except AuthSessionInactiveUserError:
         raise ApiError(
             status.HTTP_403_FORBIDDEN,
             "AUTH_USER_INACTIVE",
             "Usuário inativo.",
         ) from None
+
+    csrf_token = request.headers.get(CSRF_HEADER_NAME)
+    if request.method in UNSAFE_HTTP_METHODS and (
+        csrf_token is None or not service.validate_csrf_token(session_token, csrf_token)
+    ):
+        raise ApiError(
+            status.HTTP_403_FORBIDDEN,
+            "AUTH_CSRF_INVALID",
+            "Token CSRF ausente ou inválido.",
+        )
+    return resolved_session
+
+
+def get_current_user(
+    current_session: Annotated[ResolvedAuthSession, Depends(get_current_session)],
+) -> User:
+    return current_session.user
 
 
 def require_roles(*allowed_roles: str) -> Callable[[User], User]:

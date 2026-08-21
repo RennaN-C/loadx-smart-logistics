@@ -34,6 +34,8 @@ Crie somente os arquivos necessários para a ocorrência atual.
 - `CONFIRMADO`: criação, detalhe, visualização, aprovação e recálculo estão
   disponíveis em `/api/v1/load-plans` com o RBAC da ADR-014.
 - `CONFIRMADO`: a execução é síncrona e aceita no máximo 200 volumes expandidos.
+- `CONFIRMADO`: pesos e ocupação permanecem `Decimal` no domínio e na
+  persistência, mas são publicados como número JSON conforme D06 e ADR-016.
 
 `RISCO IDENTIFICADO`: planos aprovados recalculados permanecem históricos e
 imutáveis. Uma integração operacional futura deve escolher o descendente ativo

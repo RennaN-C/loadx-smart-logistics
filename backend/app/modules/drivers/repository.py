@@ -1,9 +1,9 @@
 import uuid
-from collections.abc import Sequence
 
-from sqlalchemy import select
+from sqlalchemy import asc, desc, func, select
 from sqlalchemy.orm import Session
 
+from app.core.pagination import PageResult, PaginationParams
 from app.modules.drivers.models import Driver
 
 
@@ -11,12 +11,27 @@ class DriverRepository:
     def __init__(self, db: Session) -> None:
         self.db = db
 
-    def list(self) -> Sequence[Driver]:
-        statement = select(Driver).order_by(Driver.created_at.desc(), Driver.name.asc())
-        return self.db.scalars(statement).all()
+    def list(self, pagination: PaginationParams) -> PageResult[Driver]:
+        direction = asc if pagination.sort_order == "asc" else desc
+        total = self.db.scalar(select(func.count()).select_from(Driver)) or 0
+        statement = (
+            select(Driver)
+            .order_by(direction(Driver.created_at), direction(Driver.id))
+            .offset(pagination.offset)
+            .limit(pagination.page_size)
+        )
+        return PageResult.create(
+            self.db.scalars(statement).all(),
+            pagination,
+            total,
+        )
 
     def get(self, driver_id: uuid.UUID) -> Driver | None:
         return self.db.get(Driver, driver_id)
+
+    def get_for_update(self, driver_id: uuid.UUID) -> Driver | None:
+        statement = select(Driver).where(Driver.id == driver_id).with_for_update()
+        return self.db.scalar(statement)
 
     def get_by_document(self, document: str) -> Driver | None:
         statement = select(Driver).where(Driver.document == document)

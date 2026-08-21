@@ -1,21 +1,16 @@
-from collections.abc import Callable, Generator
+from collections.abc import Callable
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy.pool import StaticPool
+from sqlalchemy.orm import Session
 
-from app.core.security import create_access_token
-from app.database.base import Base
-from app.database.session import get_db
-from app.main import app
 from app.modules.trucks.models import Truck
 from app.modules.trucks.schemas import TruckCreate
 from app.modules.trucks.service import TruckService
 from app.modules.users.models import User
 from app.modules.users.schemas import UserCreate
 from app.modules.users.service import UserService
+from tests.integration.auth_helpers import issue_session_headers
 
 SessionFactory = Callable[[], Session]
 TRUCK_ROUTE_CASES = [
@@ -24,38 +19,6 @@ TRUCK_ROUTE_CASES = [
     ("GET", "detail"),
     ("PATCH", "detail"),
 ]
-
-
-@pytest.fixture
-def session_factory() -> Generator[SessionFactory, None, None]:
-    engine = create_engine(
-        "sqlite+pysqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    tables = [User.__table__, Truck.__table__]
-    Base.metadata.create_all(engine, tables=tables)
-    testing_session_local = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-    try:
-        yield testing_session_local
-    finally:
-        Base.metadata.drop_all(engine, tables=tables)
-
-
-@pytest.fixture
-def client(session_factory: SessionFactory) -> Generator[TestClient, None, None]:
-    def override_get_db() -> Generator[Session, None, None]:
-        db = session_factory()
-        try:
-            yield db
-        finally:
-            db.close()
-
-    app.dependency_overrides[get_db] = override_get_db
-    try:
-        yield TestClient(app)
-    finally:
-        app.dependency_overrides.clear()
 
 
 def create_user_in_db(
@@ -70,7 +33,7 @@ def create_user_in_db(
             UserCreate(
                 name="Usuário de Teste",
                 email=email,
-                password="senha-local",
+                password="senha-local-segura",
                 role=role,
                 active=active,
             )
@@ -79,9 +42,11 @@ def create_user_in_db(
         db.close()
 
 
-def authorization_headers(user: User) -> dict[str, str]:
-    token = create_access_token(str(user.id), {"role": user.role})
-    return {"Authorization": f"Bearer {token}"}
+def authorization_headers(
+    session_factory: SessionFactory,
+    user: User,
+) -> dict[str, str]:
+    return issue_session_headers(session_factory, user.id)
 
 
 @pytest.fixture
@@ -91,7 +56,7 @@ def manager_headers(session_factory: SessionFactory) -> dict[str, str]:
         "manager@example.test",
         "LOGISTICS_MANAGER",
     )
-    return authorization_headers(manager)
+    return authorization_headers(session_factory, manager)
 
 
 def make_truck_payload(plate: str = "ABC1D23") -> dict[str, object]:
@@ -101,7 +66,7 @@ def make_truck_payload(plate: str = "ABC1D23") -> dict[str, object]:
         "internal_width_cm": 240,
         "internal_height_cm": 260,
         "internal_length_cm": 600,
-        "max_weight_kg": "8000.00",
+        "max_weight_kg": 8000.00,
     }
 
 
@@ -155,6 +120,26 @@ def test_create_truck_returns_created_resource(
     assert body["id"]
     assert body["plate"] == "ABC1D23"
     assert body["active"] is True
+    assert body["max_weight_kg"] == 8000.0
+    assert isinstance(body["max_weight_kg"], float)
+
+
+def test_create_truck_rejects_decimal_string(
+    client: TestClient,
+    manager_headers: dict[str, str],
+) -> None:
+    payload = make_truck_payload()
+    payload["max_weight_kg"] = "8000.00"
+
+    response = client.post(
+        "/api/v1/trucks",
+        json=payload,
+        headers=manager_headers,
+    )
+
+    assert response.status_code == 422
+    assert response.json()["code"] == "VALIDATION_ERROR"
+    assert response.json()["details"][0]["field"] == "max_weight_kg"
 
 
 def test_list_trucks_returns_created_items(
@@ -170,7 +155,12 @@ def test_list_trucks_returns_created_items(
     response = client.get("/api/v1/trucks", headers=manager_headers)
 
     assert response.status_code == 200
-    assert response.json()[0]["plate"] == "ABC1D23"
+    body = response.json()
+    assert body["items"][0]["plate"] == "ABC1D23"
+    assert body["page"] == 1
+    assert body["page_size"] == 20
+    assert body["total"] == 1
+    assert body["total_pages"] == 1
 
 
 def test_get_truck_by_id_returns_created_item(
@@ -300,7 +290,7 @@ def test_read_only_roles_can_read_trucks(
         "GET",
         route,
         truck,
-        authorization_headers(user),
+        authorization_headers(session_factory, user),
     )
 
     assert response.status_code == 200
@@ -327,7 +317,7 @@ def test_read_only_roles_cannot_manage_trucks(
         method,
         route,
         truck,
-        authorization_headers(user),
+        authorization_headers(session_factory, user),
     )
 
     assert response.status_code == 403
@@ -368,7 +358,7 @@ def test_truck_routes_reject_driver(
         method,
         route,
         truck,
-        authorization_headers(driver),
+        authorization_headers(session_factory, driver),
     )
 
     assert response.status_code == 403
@@ -395,7 +385,7 @@ def test_truck_routes_reject_inactive_manager(
         method,
         route,
         truck,
-        authorization_headers(manager),
+        authorization_headers(session_factory, manager),
     )
 
     assert response.status_code == 403

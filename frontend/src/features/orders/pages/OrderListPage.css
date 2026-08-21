@@ -1,0 +1,186 @@
+/* A casca da tela (.entity-*) e o formulário (.entity-form-*) vêm de app/styles.css. */
+
+.order-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.order-card:hover {
+  border-color: var(--accent);
+}
+
+.order-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* min-width: 0 autoriza o nome longo a encurtar em vez de empurrar a situação */
+.order-card-who {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.order-card-customer {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.order-card-address {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin: 4px 0 0;
+}
+
+.order-card-meta {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  /* só a linha de cima: a de baixo duplicava com a borda do rodapé do cartão */
+  border-top: 1px solid var(--line);
+  padding: 12px 0 0;
+  margin: 0;
+}
+
+.order-card-meta dt {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+
+.order-card-meta dd {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin: 4px 0 0;
+}
+
+.order-card-urgent {
+  color: var(--danger);
+}
+
+.order-card-items {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.order-card-items li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.85rem;
+}
+
+/* O número é a sequência de descarga, não a posição na lista. */
+.order-card-seq {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.order-card-product {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.order-card-qty {
+  font-family: var(--font-mono);
+  font-weight: 700;
+}
+
+.order-card-foot {
+  display: flex;
+  justify-content: flex-end;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+  margin-top: auto;
+}
+
+/* ---- itens no formulário ---- */
+
+.order-items {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.order-item {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+/* Quantidade e sequência guardam números de um ou dois dígitos. Na largura
+   padrão de campo estreito elas ficavam do TAMANHO do seletor de produto, que
+   precisa mostrar código e nome e vinha cortando o nome no meio. */
+.order-item .entity-form-field-narrow {
+  flex: 0 1 96px;
+  min-width: 0;
+}
+
+.order-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.order-item-remove {
+  padding-bottom: 11px;
+  white-space: nowrap;
+}
+
+.order-item-remove:disabled {
+  color: var(--muted);
+  cursor: not-allowed;
+  text-decoration: none;
+}
+
+.order-items-foot {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+}
+
+.order-items-foot .entity-form-help {
+  flex: 1;
+  min-width: 200px;
+}

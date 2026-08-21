@@ -1,9 +1,9 @@
 import uuid
-from collections.abc import Sequence
 
-from sqlalchemy import select
+from sqlalchemy import asc, desc, func, select
 from sqlalchemy.orm import Session
 
+from app.core.pagination import PageResult, PaginationParams
 from app.modules.trucks.models import Truck
 
 
@@ -11,9 +11,20 @@ class TruckRepository:
     def __init__(self, db: Session) -> None:
         self.db = db
 
-    def list(self) -> Sequence[Truck]:
-        statement = select(Truck).order_by(Truck.created_at.desc(), Truck.plate.asc())
-        return self.db.scalars(statement).all()
+    def list(self, pagination: PaginationParams) -> PageResult[Truck]:
+        direction = asc if pagination.sort_order == "asc" else desc
+        total = self.db.scalar(select(func.count()).select_from(Truck)) or 0
+        statement = (
+            select(Truck)
+            .order_by(direction(Truck.created_at), direction(Truck.id))
+            .offset(pagination.offset)
+            .limit(pagination.page_size)
+        )
+        return PageResult.create(
+            self.db.scalars(statement).all(),
+            pagination,
+            total,
+        )
 
     def get(self, truck_id: uuid.UUID) -> Truck | None:
         return self.db.get(Truck, truck_id)

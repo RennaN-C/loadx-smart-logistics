@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
+from app.core.pagination import PageResponse, Pagination, to_page_response
 from app.core.responses import error_response, openapi_error_responses
 from app.database.session import get_db
 from app.modules.auth.dependencies import require_roles
@@ -34,14 +35,19 @@ def get_product_service(db: Annotated[Session, Depends(get_db)]) -> ProductServi
 
 @router.get(
     "",
-    response_model=list[ProductRead],
-    responses=openapi_error_responses(401, 403),
+    response_model=PageResponse[ProductRead],
+    responses=openapi_error_responses(401, 403, 422),
 )
 def list_products(
+    pagination: Pagination,
     _current_user: ProductReader,
     service: Annotated[ProductService, Depends(get_product_service)],
-) -> list[Product]:
-    return list(service.list_products())
+) -> PageResponse[ProductRead]:
+    result = service.list_products(pagination)
+    return to_page_response(
+        result,
+        (ProductRead.model_validate(product) for product in result.items),
+    )
 
 
 @router.post(

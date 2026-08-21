@@ -51,26 +51,51 @@ Regras complementares:
 - `CHECKER` pode consultar caminhões, produtos e pedidos necessários à conferência, sem acessar cadastros pessoais de clientes ou motoristas.
 - Permissão de consulta não libera automaticamente todos os campos pessoais; seleção, omissão e mascaramento de campos seguem `D12`.
 - Acesso `S` exige vínculo comprovado no banco e validação do objeto solicitado, não apenas do perfil.
-- Enquanto não existir vínculo aprovado entre `users` e `drivers`, `DRIVER` acessa somente `/auth/me` na API atual.
-- Papel e estado `active` são carregados do banco em cada requisição protegida; o papel gravado no JWT não é fonte única de autorização.
+- `DRIVER` sem `users.driver_id` acessa somente `/auth/me`; o vínculo é único,
+  administrado por `ADMIN` e exige papel `DRIVER`.
+- Em viagens e entregas, `DRIVER` precisa estar ativo, apontar para motorista
+  ativo e somente pode consultar ou operar objetos com o mesmo `driver_id`.
+- Papel e estado `active` são carregados do banco em cada requisição protegida.
 
 ## Autenticação
 
 - Usuário deve autenticar com e-mail e senha.
 - Senha deve ser persistida somente como hash.
 - Respostas públicas de usuário nunca devem retornar `password_hash`.
-- Token JWT deve identificar o usuário pelo UUID em `sub`.
+- A sessão opaca deve vincular o usuário pelo UUID e persistir somente o hash do
+  identificador aleatório.
 - Usuário inativo não pode fazer login.
-- Somente `GET /health` e `POST /api/v1/auth/login` são públicos.
-- Todos os demais endpoints de negócio exigem autenticação Bearer, salvo integração externa futura com autenticação própria aprovada.
+- Somente `GET /health`, `GET /ready` e `POST /api/v1/auth/login` são públicos.
+- `/health` mede apenas liveness. `/ready` exige PostgreSQL acessível e revisão
+  Alembic exatamente no head, conforme D11 e `ADR-018`.
+- Todos os demais endpoints de negócio exigem o cookie de sessão do frontend
+  próprio, salvo integração externa futura com autenticação própria aprovada.
 - O primeiro `ADMIN` é criado por comando administrativo local, executado antes da exposição da API e somente quando não existem usuários.
 - Depois do bootstrap, somente `ADMIN` cria usuários por `POST /api/v1/users`.
 - `POST /api/v1/auth/register` não faz parte do contrato aprovado e deve ser removido na `OC51`.
 - O último `ADMIN` ativo não pode ser desativado ou rebaixado.
 
-`SUPOSIÇÃO TÉCNICA`: o backend usa `pbkdf2_sha256` via Passlib para hash de senha nesta etapa, evitando incompatibilidade local do bcrypt no ambiente Python usado para testes.
+`CONFIRMADO` por D18 e `ADR-020`:
 
-`PENDENTE DE DEFINIÇÃO`: política final de expiração, refresh token, bloqueio por tentativas inválidas, força mínima e recuperação de senha permanece em `D18`.
+- não existe refresh token no MVP;
+- sessões expiram após 30 minutos de inatividade ou 8 horas absolutas;
+- produção usa cookie `__Host-loadx_session` com `HttpOnly`, `Secure`,
+  `SameSite=Lax`, `Path=/` e sem `Domain`;
+- métodos inseguros validam `Origin` exata e sessões autenticadas também exigem
+  `X-CSRF-Token` associado à sessão;
+- logout, troca de senha, desativação e alteração de papel revogam sessões;
+- login é limitado por conta e IP, com bloqueios de 1, 5, 15 e 60 minutos a
+  partir da quinta falha;
+- credenciais inválidas, conta inexistente e conta inativa produzem a mesma
+  resposta pública;
+- novas senhas exigem 15 a 128 caracteres, permitem espaços e Unicode, não
+  exigem composição nem troca periódica e consultam a blocklist interna mais um
+  arquivo UTF-8 opcional configurado pela operação;
+- novos hashes usam Argon2id com m=19 MiB, t=2 e p=1; PBKDF2 legado é migrado
+  após login válido.
+
+`PENDENTE DE DEFINIÇÃO`: recuperação de senha e MFA para funções críticas serão
+tratados em ocorrências próprias.
 
 ## Caminhão
 
@@ -87,6 +112,10 @@ Regras complementares:
 - Nome, documento, telefone e CNH devem ser informados para cadastro completo.
 - Motorista inativo não pode ser vinculado a nova viagem.
 - Telefone é necessário para comandos por WhatsApp simulado/controlado.
+- `users.driver_id` é opcional e único; vínculo não nulo exige usuário com papel
+  `DRIVER`.
+- Alterar ou remover o vínculo revoga todas as sessões do usuário na mesma
+  transação.
 
 `PENDENTE DE DEFINIÇÃO`: validação formal de CPF, telefone e categoria de CNH.
 
@@ -113,6 +142,9 @@ Regras complementares:
 - Quantidade de item deve ser maior que zero.
 - Pedido cancelado não pode entrar em plano novo.
 - `CONFIRMADO`: `delivery_sequence` é um inteiro positivo; valores maiores representam entregas posteriores e influenciam a ordem de carregamento.
+- `CONFIRMADO` por `ADR-022`: todos os itens do mesmo pedido usam a mesma
+  `delivery_sequence`. Na viagem, pedidos são ordenados por essa sequência e
+  UUID e recebem entregas contíguas a partir de `1`.
 - `CONFIRMADO`: somente pedidos `READY` entram na criação comum de plano; eles
   passam a `PLANNED` apenas na aprovação.
 - `CONFIRMADO`: o conjunto de itens não pode ser substituído depois que algum
@@ -128,6 +160,26 @@ Estados recomendados:
 - `CANCELED`: pedido cancelado.
 
 `RECOMENDAÇÃO`: estados devem ser armazenados em inglês e apresentados em português no frontend.
+
+`CONFIRMADO` por D04 e ADR-015: as transições manuais do
+`LOGISTICS_MANAGER` são:
+
+- `DRAFT -> READY` ou `DRAFT -> CANCELED`;
+- `READY -> DRAFT` ou `READY -> CANCELED`.
+
+`CONFIRMADO`: `READY -> PLANNED` pertence somente à aprovação de plano;
+`PLANNED -> IN_TRANSIT` pertence ao início válido da viagem; e
+`IN_TRANSIT -> DELIVERED` pertence à conclusão válida da entrega. `DELIVERED` e
+`CANCELED` são terminais. D08 mantém cancelamento, falha, ausência e atraso fora
+da OC09 até ocorrer uma nova decisão com migration própria.
+
+`CONFIRMADO`: somente `DRAFT` aceita edição de cliente, prioridade, endereço,
+previsão e itens. `READY` deve voltar a `DRAFT` antes de qualquer edição;
+`PLANNED`, `IN_TRANSIT`, `DELIVERED` e `CANCELED` são imutáveis. Itens já
+referenciados por plano permanecem imutáveis mesmo em `DRAFT`.
+
+`CONFIRMADO`: repetir o estado atual é idempotente e não cria histórico. Status
+não é alterado pelo `PATCH` genérico de pedido.
 
 ## Plano de carga
 
@@ -298,17 +350,26 @@ Estados recomendados:
 
 ## Viagem e entrega
 
-- Viagem só começa com carregamento finalizado.
-- Toda mudança de status gera histórico.
+- `CONFIRMADO`: viagem nasce `SCHEDULED` a partir de plano `APPROVED`, motorista
+  ativo e todos os pedidos do plano em `PLANNED`.
+- `CONFIRMADO`: cada plano pertence a no máximo uma viagem e cada pedido a no
+  máximo uma entrega no MVP.
+- `CONFIRMADO`: viagem só começa com carregamento finalizado. Enquanto o módulo
+  de carregamento não materializar esse estado, a interface pública falha
+  fechada e bloqueia `IN_ROUTE`.
+- `CONFIRMADO`: iniciar a viagem executa `SCHEDULED -> IN_ROUTE`, registra
+  `started_at` e move atomicamente todos os pedidos `PLANNED -> IN_TRANSIT`.
+- `CONFIRMADO`: finalizar executa `IN_ROUTE -> FINISHED` e registra
+  `finished_at` somente quando todas as entregas e pedidos estão `DELIVERED`.
+- `CONFIRMADO`: entrega executa apenas `PENDING -> IN_DELIVERY -> DELIVERED`
+  durante uma viagem `IN_ROUTE`; a conclusão registra `delivered_at` e move o
+  pedido correspondente `IN_TRANSIT -> DELIVERED`.
+- `CONFIRMADO`: repetir o status atual é idempotente e não cria histórico.
+- `CONFIRMADO`: `LOGISTICS_MANAGER` cria e opera; `ADMIN` somente consulta;
+  `DRIVER` consulta e opera apenas sua própria viagem; `CHECKER` não acessa.
+- `CONFIRMADO`: viagem, entrega, pedidos e todos os registros de histórico da
+  ação compartilham um único commit ou rollback.
 - Ocorrência não apaga o status anterior, apenas adiciona contexto.
-- Entrega concluída deve registrar horário.
-
-Estados de viagem recomendados:
-
-- `SCHEDULED`.
-- `IN_ROUTE`.
-- `FINISHED`.
-- `CANCELED`.
 
 ## Histórico de status
 
@@ -318,17 +379,15 @@ Estados de viagem recomendados:
 - Quando `changed_by` for informado, deve apontar para um usuário existente.
 - Histórico não deve ser removido ou sobrescrito por alterações de status futuras.
 
-`PENDENTE DE DEFINIÇÃO`: lista final de entidades auditáveis e perfis autorizados a consultar histórico.
+`CONFIRMADO` por D05 e ADR-015: o service dono bloqueia a entidade e controla um
+único commit ou rollback para entidade e histórico. Operações compostas usam
+`stage_status_change` e `flush`; ações manuais registram o usuário autenticado,
+ações realmente automáticas podem usar `changed_by = null`, e a criação do
+pedido registra `null -> DRAFT`.
 
-Estados de entrega recomendados:
-
-- `PENDING`.
-- `IN_DELIVERY`.
-- `DELIVERED`.
-- `DELAYED`.
-- `CUSTOMER_ABSENT`.
-- `FAILED`.
-- `CANCELED`.
+`CONFIRMADO` por D10 e `ADR-022`: as entidades auditáveis aceitas são `ORDER`,
+`LOAD_PLAN`, `TRIP` e `DELIVERY`. Não há endpoint público de histórico na OC09;
+services internos continuam disponíveis aos módulos donos.
 
 ## Ocorrências
 

@@ -8,6 +8,32 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 - `CONFIRMADO`: unidades em centímetros, quilogramas e coordenadas `x/y/z`, conforme `ADR-002`.
 - `CONFIRMADO`: IA como apoio, não como validadora física, conforme `ADR-003`.
 - `CONFIRMADO`: endpoints públicos, matriz RBAC e bootstrap do primeiro administrador, conforme `ADR-004`.
+- `CONFIRMADO`: transições, bloqueios de edição e histórico atômico de pedidos
+  seguem D04, D05 e `ADR-015`.
+- `CONFIRMADO`: campos decimais públicos usam exclusivamente número JSON, com
+  `Decimal` preservado no domínio e precisão limitada conforme D06 e `ADR-016`.
+- `CONFIRMADO`: D12 e `ADR-017` definem resumos sem dados pessoais
+  desnecessários, paginação 1-based limitada a 100 registros e ordenação
+  cronológica determinística para todas as coleções atuais.
+- `CONFIRMADO`: D11 e `ADR-018` mantêm `/health` como liveness e definem
+  `/ready` com PostgreSQL, Alembic head, orçamento de 2 segundos e resposta
+  pública sem detalhes internos.
+- `CONFIRMADO`: a OC58 implementa D11, integra `/ready` ao healthcheck do
+  container backend e cobre banco disponível, indisponível e revisão divergente.
+- `CONFIRMADO`: a OC59 aplica D12 no banco e na API de usuários, clientes,
+  motoristas, pedidos, caminhões e produtos; o frontend de caminhões consome o
+  envelope e permite navegar pelas páginas.
+- `CONFIRMADO`: a OC60 implementa D18 com Argon2id, política de senha, limitação
+  de login por conta e IP, sessões opacas revogáveis, cookie HttpOnly, proteção
+  de Origin/CSRF, logout, revogação por mudanças sensíveis e frontend sem
+  credenciais no Web Storage.
+- `CONFIRMADO`: a OC61 implementa a referência de produção do `ADR-021` com
+  Caddy/TLS, proxy confiável explícito, segredos montados, papéis PostgreSQL
+  segregados e eventos estruturados para integração com alertas.
+- `CONFIRMADO`: D07 a D10, D21 e `ADR-022` definem o ciclo restrito de viagens
+  e entregas, finalização somente com todas as entregas concluídas, bloqueio
+  fechado sem carregamento finalizado, catálogo auditável fechado e vínculo
+  único `users.driver_id`.
 - `CONFIRMADO`: volumes individuais são expandidos de `order_items.quantity`, usam `volume_index` iniciado em `1` e são persistidos em `load_plan_items`, sem tabela `volumes`, conforme `ADR-005`.
 - `CONFIRMADO`: volumes usam a ordem total determinística de volume, peso, empilhamento, fragilidade, entrega e identidade, conforme `ADR-006`.
 - `CONFIRMADO`: rotações usam seis permutações ortogonais priorizadas, deduplicam simetrias e respeitam bloqueio por produto, conforme `ADR-007`.
@@ -26,39 +52,46 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 - `CONFIRMADO`: migration `20260730_0002` cria `orders` e `order_items`.
 - `CONFIRMADO`: migration `20260730_0003` cria `status_history`.
 - `CONFIRMADO`: migration `20260804_0004` cria as três tabelas de planejamento.
-- `CONFIRMADO`: o contrato aprovado mantém login, token JWT e `/auth/me`, remove `/auth/register` e restringe criação de usuários a `ADMIN` após bootstrap local.
+- `CONFIRMADO`: D18 e `ADR-020` substituem JWT por sessão opaca em cookie,
+  mantêm login e `/auth/me`, adicionam logout, removem `/auth/register` e
+  restringem criação de usuários a `ADMIN` após bootstrap local.
 - `CONFIRMADO`: a `OC51-I` auditou a matriz completa de autorização e a fronteira pública de todos os endpoints atualmente implementados.
-- `CONFIRMADO`: conforme `D17`, a comparação básica e determinística da OC21
-  integra o MVP depois da OC20 e aceita no máximo 10 caminhões por execução; a
-  comparação automática avançada permanece futura.
+- `CONFIRMADO`: a `OC53` executa os testes de integração em PostgreSQL 16
+  exclusivo, aplica migrations Alembic do banco vazio, exercita downgrade mínimo
+  e isola cada cenário em transação externa.
+- `CONFIRMADO`: a `OC55` centralizou fixtures, encerra clients, sessions e engines
+  e deixou toda a base Python conforme Ruff.
+- `CONFIRMADO`: `ADR-019` define inicialização segura em produção, migrations
+  automáticas antes do backend, processos de aplicação sem privilégio e portas
+  locais restritas a loopback.
+- `CONFIRMADO`: a auditoria de 2026-08-07 removeu a dependência transitiva
+  vulnerável do `python-jose`, atualizou Router/Vite/Vitest e terminou com zero
+  achados em `pip-audit`, `npm audit` e Bandit.
 
 ## Decisões necessárias
 
-- `DECISÃO NECESSÁRIA`: definir comportamento quando checklist de carregamento tiver divergência.
-- `DECISÃO NECESSÁRIA`: definir regra para finalizar viagem com entregas canceladas, recusadas ou falhas.
 - `DECISÃO NECESSÁRIA`: definir formato final de relatório PDF e se haverá envio por e-mail/WhatsApp no MVP.
-- `DECISÃO NECESSÁRIA`: OC21 — definir body, resposta, status de sucesso, catálogo
-  de erros e ordenação do contrato público de `POST /load-plans/compare-trucks`.
-- `DECISÃO NECESSÁRIA`: OC21 — definir critérios de ranking, pesos, desempates e
-  se haverá indicação ou escolha automática de um caminhão vencedor.
-- `DECISÃO NECESSÁRIA`: OC21 — definir se a comparação será persistida, se criará
-  algum `load_plan` e qual candidato poderia originá-lo.
-- `DECISÃO NECESSÁRIA`: OC21 — definir tratamento de IDs duplicados, caminhões
-  inativos ou inexistentes e falha parcial em apenas um dos candidatos.
-- `DECISÃO NECESSÁRIA`: OC21 — formalizar o RBAC específico do endpoint. A matriz
-  geral exige autenticação, menor privilégio e negação por padrão, mas ainda não
-  descreve expressamente a operação de comparação.
-- `DECISÃO NECESSÁRIA`: OC22 — definir endpoint, request, response, schema público,
-  subconjunto de dados enviado ao modelo, política de fallback e prompt final.
+- `DECISÃO NECESSÁRIA`: definir os valores aceitos em `priority` do pedido. `OrderCreate` aceita qualquer string de até 32 caracteres, sem enum e sem validação, ao contrário de `status`. Enquanto não houver definição, a `OC29` usa `LOW`, `NORMAL`, `HIGH` e `URGENT` num `<select>` no frontend — convenção adotada só ali, que precisa virar contrato em `docs/05` e validação no backend para não aceitar prioridade divergente vinda de outra origem.
 
 ## Pendências técnicas
 
 - `PENDENTE DE DEFINIÇÃO`: CI real ainda não está implementada, apenas documentada em `infra/ci/README.md`.
-- `PENDENTE DE DEFINIÇÃO`: models e migrations de carregamento, entregas e
-  ocorrências.
-- `PENDENTE DE DEFINIÇÃO`: contrato, filtros e entidades aceitas na consulta protegida de histórico; `D01` impede consulta pública e `D02` limita a leitura geral a `ADMIN` e `LOGISTICS_MANAGER`.
-- `PENDENTE DE DEFINIÇÃO`: estratégia final de logging estruturado.
-- `PENDENTE DE DEFINIÇÃO`: política final de expiração de token, fluxo de refresh e bloqueio por tentativas inválidas.
+- `PENDENTE DE DEFINIÇÃO`: models e migrations de carregamento e ocorrências.
+- `PENDENTE DE DEFINIÇÃO`: contrato e filtros de uma eventual consulta protegida
+  de histórico; D10 fechou as entidades em `ORDER`, `LOAD_PLAN`, `TRIP` e
+  `DELIVERY`, mas não aprovou endpoint na OC09.
+- `PENDENTE DE DEFINIÇÃO`: coletor, retenção, destino e SLA dos logs e alertas;
+  o backend já emite eventos JSON no logger `loadx.security` e marca casos que
+  exigem alerta com `alert=true`.
+- `PENDENTE DE DEFINIÇÃO`: recuperação de senha e MFA para `ADMIN` e
+  `LOGISTICS_MANAGER` precisam de contrato de cadastro, recuperação, códigos de
+  contingência, dispositivo perdido e bootstrap sem bloqueio administrativo.
+- `PENDENTE DE DEFINIÇÃO`: qualquer CDN, balanceador ou proxy adicional à frente
+  do Caddy exige nova definição da cadeia confiável. A referência atual aceita
+  `X-Forwarded-*` no Uvicorn somente do IP privado fixo do Caddy.
+- `PENDENTE DE DEFINIÇÃO`: escolher e configurar os provedores reais de cofre,
+  PostgreSQL e alertas. O repositório já aceita segredos por arquivo, separa as
+  URLs de migration/aplicação e fornece o SQL de menor privilégio.
 - `PENDENTE DE DEFINIÇÃO`: validação formal de CPF, CNPJ, telefone e CNH.
 - `PENDENTE DE DEFINIÇÃO`: política de armazenamento, expiração e proteção de fotos de ocorrência.
 - `PENDENTE DE DEFINIÇÃO`: SLA rígido de tempo do otimizador; o limite funcional
@@ -110,8 +143,8 @@ aprovação das decisões acima, ela não persiste dados nem registros SQLAlchem
 plano e não expõe o endpoint reservado.
 
 `RISCO IDENTIFICADO`: mudança futura em gate determinístico exige testes, ADR e
-nova `algorithm_version`; a representação JSON de `Decimal` permanece fora da
-OC20.
+nova `algorithm_version`; a representação JSON de `Decimal` segue D06 e
+`ADR-016`, sem alterar a aritmética determinística da OC20.
 
 ## Suposições técnicas
 
@@ -119,19 +152,55 @@ OC20.
 - `SUPOSIÇÃO TÉCNICA`: exclusões de cadastros principais serão lógicas por `active = false` quando houver histórico ou vínculo.
 - `SUPOSIÇÃO TÉCNICA`: IDs UUID podem ser gerados pela aplicação ou banco, desde que o padrão seja único e documentado na primeira migration.
 - `SUPOSIÇÃO TÉCNICA`: fotos de ocorrência no MVP podem usar URL mock ou storage local controlado até definição de provider.
-- `SUPOSIÇÃO TÉCNICA`: token JWT usa expiração configurável com default local de 60 minutos até decisão final de segurança.
-- `SUPOSIÇÃO TÉCNICA`: hash de senha usa `pbkdf2_sha256` via Passlib nesta etapa, sem adicionar dependência externa nova.
+- `CONFIRMADO`: sessões opacas expiram após 30 minutos de inatividade ou 8 horas
+  absolutas, conforme D18 e `ADR-020`.
+- `CONFIRMADO`: novos hashes usam Argon2id m=19 MiB, t=2 e p=1; PBKDF2 fica
+  restrito à migração gradual após login válido.
 
 ## Riscos identificados
 
-- `RISCO IDENTIFICADO`: ainda não existe vínculo entre `users` e `drivers`; por segurança, `DRIVER` não recebe acesso operacional até que esse relacionamento seja aprovado e implementado.
+- `RISCO IDENTIFICADO`: o backend possui intervalos de versão em
+  `requirements.txt`, mas ainda não possui lockfile; uma imagem limpa pode
+  instalar versões diferentes das usadas anteriormente e deve sempre executar a
+  suíte completa antes de ser publicada.
+- `CONFIRMADO`: o risco de dependências vulneráveis registrado em 2026-08-06 foi
+  corrigido em 2026-08-07; o `package-lock.json` atualizado retorna zero achados
+  no `npm audit` e passou por lint, 159 testes e build de produção na validação
+  da OC60 em 2026-08-09.
+- `RISCO IDENTIFICADO`: a blocklist embutida é intencionalmente limitada. A
+  operação pode montar um arquivo UTF-8 de até 100 mil entradas, mas ainda deve
+  escolher uma fonte confiável e definir sua rotina de atualização.
+- `CONFIRMADO`: Caddy encerra TLS, redireciona HTTP, preserva CSP/HSTS e remove a
+  assinatura do backend na referência de produção. Certificado, DNS e headers
+  ainda precisam ser verificados no domínio real antes da publicação.
+- `CONFIRMADO`: a suíte migrou do adaptador `httpx` descontinuado para `httpx2`;
+  os 941 testes de backend passaram sem o aviso anterior.
+- `RISCO IDENTIFICADO`: o chunk lazy da visualização 3D ainda possui cerca de
+  827 KB bruto, embora tenha 218 KB gzip no relatório do Vite. O build bloqueia
+  regressões acima de 250 KiB gzip, mas tempo de parse e GPU devem ser medidos em
+  equipamento operacional representativo.
+- `CONFIRMADO`: o projeto fixa Node 22.23.1 nos Dockerfiles e em `.nvmrc`. O Node
+  global 22.16 desta estação ainda impede o controlador visual externo, sem
+  afetar build, testes ou runtime do projeto.
+- `RISCO IDENTIFICADO`: o início real de viagem permanece bloqueado até o módulo
+  de carregamento persistir e confirmar `FINISHED` para o mesmo plano. A
+  interface da OC09 falha fechada e não confunde plano aprovado com carga física
+  concluída.
+- `RISCO IDENTIFICADO`: cancelamento, falha, ausência, atraso e reentrega não
+  fazem parte da máquina de estados da OC09 e exigem decisão, migration e testes
+  antes de serem aceitos.
+- `RISCO IDENTIFICADO`: o Quality Gate remoto do PR #17 apontou uma
+  vulnerabilidade média no `frontend/Dockerfile.production`: a instalação npm
+  não usa `--ignore-scripts`. O achado não é de CORS e pertence ao bloco de
+  frontend/infra, não ao backend da OC09.
 - `RISCO IDENTIFICADO`: o documento-base usa nomes de tabelas em português, enquanto o projeto já decidiu nomes técnicos em inglês. A documentação atual mantém inglês para evitar divergência no código.
 - `RISCO IDENTIFICADO`: o roadmap antigo usava outra numeração de ocorrências. A partir desta revisão, usar `OC01` a `OC48`.
 - `RISCO IDENTIFICADO`: criar lógica geométrica no frontend pode gerar divergência entre visualização e validação do backend.
 - `RISCO IDENTIFICADO`: aceitar resposta de IA sem schema pode atualizar status indevido.
 - `RISCO IDENTIFICADO`: criar migrations grandes com vários módulos aumenta conflito entre os 4 desenvolvedores.
 - `RISCO IDENTIFICADO`: seeds com dados pessoais reais violam as regras do projeto.
-- `RISCO IDENTIFICADO`: `SECRET_KEY=local-only` ou valor fraco só pode ser usado em ambiente local.
+- `CONFIRMADO`: `SECRET_KEY=local-only` ou valor fraco só funciona em ambiente
+  local; a validação impede inicialização em produção.
 
 ## Recomendações
 

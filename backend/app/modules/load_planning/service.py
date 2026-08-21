@@ -155,9 +155,7 @@ class LoadPlanningService:
                 raise LoadPlanHasRejectionsError
 
             order_ids = tuple(link.order_id for link in load_plan.orders)
-            orders = tuple(
-                self.order_service.get_orders(order_ids, for_update=True)
-            )
+            orders = tuple(self.order_service.get_orders(order_ids, for_update=True))
             if {order.id for order in orders} != set(order_ids):
                 raise LoadPlanSourceChangedError
 

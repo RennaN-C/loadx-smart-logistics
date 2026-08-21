@@ -359,8 +359,10 @@ Exemplo:
 
 ```env
 APP_ENV=local
-DATABASE_URL=postgresql://loadx:loadx@db:5432/loadx
-SECRET_KEY=altere-esta-chave
+DATABASE_URL=postgresql+psycopg://loadx:loadx_local@db:5432/loadx
+SECRET_KEY=troque-esta-chave-no-env-local
+LOADX_SECRETS_DIR=
+PASSWORD_BLOCKLIST_PATH=
 WHATSAPP_TOKEN=
 OPENAI_API_KEY=
 ```
@@ -368,6 +370,12 @@ OPENAI_API_KEY=
 Nunca envie o arquivo `.env` para o GitHub.
 
 `APP_ENV` aceita somente `local` ou `production`. Use `local` no desenvolvimento. Em produção, configure `APP_ENV=production` para não expor `/docs`, `/redoc`, `/docs/oauth2-redirect` e `/openapi.json`. Se a variável não for informada, o backend assume `production` por segurança.
+
+`CONFIRMADO`: em produção, o backend recusa iniciar com `SECRET_KEY` fraca ou
+com menos de 32 caracteres, `DATABASE_URL` local padrão ou origem CORS curinga.
+Conforme D18, produção autentica pelo cookie `__Host-loadx_session`; o ambiente
+local HTTP usa `loadx_session` para não violar os requisitos do prefixo
+reservado.
 
 ### Iniciar o sistema
 
@@ -381,6 +389,12 @@ Para executar em segundo plano:
 docker compose up -d --build
 ```
 
+O serviço `migrate` aplica `alembic upgrade head` depois que o PostgreSQL fica
+saudável. Backend e frontend só iniciam após a migration terminar com sucesso.
+As portas publicadas pelo Compose aceitam conexão apenas da máquina local por
+padrão; `POSTGRES_PORT`, `BACKEND_PORT` e `FRONTEND_PORT` permitem trocar as
+portas sem editar o arquivo.
+
 ### Encerrar o sistema
 
 ```bash
@@ -392,6 +406,21 @@ Para remover também os dados locais do banco:
 ```bash
 docker compose down -v
 ```
+
+### Referência de produção
+
+`compose.production.yaml` é separado do ambiente local. Ele exige domínio, duas
+URLs PostgreSQL e uma chave secreta fornecidos pelo ambiente seguro do host:
+
+```bash
+docker compose -f compose.production.yaml config --quiet
+docker compose -f compose.production.yaml up -d --build --wait
+```
+
+Leia `infra/production/README.md` antes de executar. `CONFIRMADO`: somente Caddy
+publica 80/443; backend permanece privado e recebe proxy headers somente do IP
+fixo do Caddy. `RISCO IDENTIFICADO`: essa referência não substitui backup,
+restauração, observabilidade e validação no domínio real.
 
 ## Endereços locais
 
@@ -409,9 +438,15 @@ http://localhost:8000/docs
 
 Verificação da API:
 http://localhost:8000/health
+
+Prontidão da API:
+http://localhost:8000/ready
 ```
 
 A documentação da API acima existe somente com `APP_ENV=local`.
+
+`/health` confirma apenas que o processo está em execução. `/ready` retorna
+sucesso somente com PostgreSQL acessível e a revisão Alembic no head.
 
 ## Banco de dados
 
@@ -426,6 +461,11 @@ Não devem ser realizadas alterações permanentes diretamente pelo pgAdmin.
 ```bash
 docker compose exec backend alembic upgrade head
 ```
+
+O Compose aplica as migrations automaticamente no início. O comando manual
+continua disponível para manutenção. O endpoint `/ready` permanece somente
+leitura e nunca aplica migrations; essa responsabilidade pertence ao serviço
+isolado `migrate`.
 
 ### Criar uma nova migration
 
@@ -553,7 +593,7 @@ Planejamento: concluído
 Estrutura inicial: concluída
 Backend: em desenvolvimento
 Frontend: em desenvolvimento
-Algoritmo: não iniciado
+Algoritmo: implementado até a OC20
 Integrações: não iniciadas
 ```
 

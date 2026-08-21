@@ -1,12 +1,9 @@
-from collections.abc import Callable, Generator
+from collections.abc import Callable
 
-import pytest
-from sqlalchemy import create_engine, select
-from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy.pool import StaticPool
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from app.core.security import verify_password
-from app.database.base import Base
 from app.modules.auth.bootstrap import run_bootstrap
 from app.modules.auth.service import AuthService
 from app.modules.users.models import User
@@ -14,30 +11,11 @@ from app.modules.users.models import User
 SessionFactory = Callable[[], Session]
 
 
-@pytest.fixture
-def session_factory() -> Generator[SessionFactory, None, None]:
-    engine = create_engine(
-        "sqlite+pysqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    Base.metadata.create_all(engine, tables=[User.__table__])
-    testing_session_local = sessionmaker(
-        bind=engine,
-        autoflush=False,
-        autocommit=False,
-    )
-    try:
-        yield testing_session_local
-    finally:
-        Base.metadata.drop_all(engine, tables=[User.__table__])
-
-
 def test_run_bootstrap_creates_admin_without_exposing_password(
     session_factory: SessionFactory,
 ) -> None:
     text_answers = iter(["Admin Inicial", "ADMIN@EXAMPLE.TEST"])
-    password_answers = iter(["senha-local", "senha-local"])
+    password_answers = iter(["senha-local-segura", "senha-local-segura"])
     messages: list[str] = []
 
     exit_code = run_bootstrap(
@@ -54,7 +32,7 @@ def test_run_bootstrap_creates_admin_without_exposing_password(
     assert user is not None
     assert user.role == "ADMIN"
     assert user.active is True
-    assert verify_password("senha-local", user.password_hash) is True
+    assert verify_password("senha-local-segura", user.password_hash) is True
     assert "senha-local" not in " ".join(messages)
 
 
@@ -86,7 +64,7 @@ def test_run_bootstrap_refuses_database_with_existing_user(
         AuthService(db).bootstrap_first_admin(
             name="Admin Existente",
             email="admin@example.test",
-            password="senha-local",
+            password="senha-local-segura",
         )
 
     text_answers = iter(["Outro Admin", "outro@example.test"])

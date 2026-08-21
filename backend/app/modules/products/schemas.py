@@ -1,8 +1,9 @@
 import uuid
 from datetime import datetime
-from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from app.core.json_decimal import JsonDecimal
 
 
 class ProductBase(BaseModel):
@@ -12,7 +13,7 @@ class ProductBase(BaseModel):
     width_cm: int = Field(gt=0)
     height_cm: int = Field(gt=0)
     length_cm: int = Field(gt=0)
-    weight_kg: Decimal = Field(gt=0, max_digits=10, decimal_places=3)
+    weight_kg: JsonDecimal = Field(gt=0, max_digits=10, decimal_places=3)
     fragile: bool = False
     stackable: bool = True
     rotation_allowed: bool = True
@@ -36,7 +37,7 @@ class ProductUpdate(BaseModel):
     width_cm: int | None = Field(default=None, gt=0)
     height_cm: int | None = Field(default=None, gt=0)
     length_cm: int | None = Field(default=None, gt=0)
-    weight_kg: Decimal | None = Field(
+    weight_kg: JsonDecimal | None = Field(
         default=None, gt=0, max_digits=10, decimal_places=3
     )
     fragile: bool | None = None

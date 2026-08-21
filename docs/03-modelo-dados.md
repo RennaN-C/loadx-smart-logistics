@@ -3,11 +3,14 @@
 ## Estado atual
 
 `CONFIRMADO`: o repositório possui models SQLAlchemy e migrations para `users`,
-`customers`, `drivers`, `trucks`, `products`, `orders`, `order_items`,
-`status_history`, `load_plans`, `load_plan_orders` e `load_plan_items`.
+`auth_sessions`, `auth_login_throttles`, `customers`, `drivers`, `trucks`,
+`products`, `orders`, `order_items`, `status_history`, `load_plans`,
+`load_plan_orders`, `load_plan_items`, `trips` e `deliveries`. As tabelas de
+autenticação foram aprovadas por D18 e `ADR-020`; viagens e entregas seguem
+D07 a D10, D21 e `ADR-022`.
 
-`PENDENTE DE DEFINIÇÃO`: `loading_sessions`, `trips`, `deliveries` e
-`occurrences` ainda não possuem models/migrations.
+`PENDENTE DE DEFINIÇÃO`: `loading_sessions` e `occurrences` ainda não possuem
+models/migrations.
 
 `CONFIRMADO`: este documento é o contrato inicial para a criação do banco. Qualquer mudança estrutural deve ser registrada por migration e documentada aqui.
 
@@ -44,13 +47,64 @@ Usuários internos do sistema.
 - `email`: texto, obrigatório, único.
 - `password_hash`: texto, obrigatório.
 - `role`: texto ou enum, obrigatório.
+- `driver_id`: UUID, FK opcional para `drivers.id`.
 - `active`: booleano, obrigatório.
 - `created_at`: timestamptz UTC, obrigatório.
 
 Índices e constraints:
 
 - `uq_users__email`.
+- `fk_users__drivers` com `ON DELETE RESTRICT`.
+- `uq_users__driver_id`.
 - `ix_users__role` `RECOMENDAÇÃO`.
+
+`CONFIRMADO` por D21 e `ADR-022`: somente um usuário pode se vincular a cada
+motorista; vínculo não nulo exige `role = DRIVER`. Alterar o vínculo revoga as
+sessões do usuário na mesma transação.
+
+### `auth_sessions`
+
+Sessões opacas e revogáveis do frontend próprio.
+
+- `id`: UUID, PK.
+- `user_id`: UUID, FK obrigatória para `users.id`.
+- `token_hash`: texto hexadecimal de 64 caracteres, obrigatório e único.
+- `created_at`: timestamptz UTC, obrigatório.
+- `last_seen_at`: timestamptz UTC, obrigatório.
+- `idle_expires_at`: timestamptz UTC, obrigatório.
+- `absolute_expires_at`: timestamptz UTC, obrigatório.
+- `revoked_at`: timestamptz UTC, opcional.
+
+Índices e constraints:
+
+- `fk_auth_sessions__users` com `ON DELETE CASCADE`.
+- `uq_auth_sessions__token_hash`.
+- `ix_auth_sessions__user_id`.
+- `ix_auth_sessions__idle_expires_at`.
+- `ck_auth_sessions__absolute_expiration_after_creation`.
+
+`CONFIRMADO`: o identificador bruto da sessão e o token CSRF não são persistidos.
+O CSRF é derivado por HMAC do identificador bruto recebido no cookie.
+
+### `auth_login_throttles`
+
+Contadores duráveis de falhas de login por conta e por endereço IP.
+
+- `id`: UUID, PK.
+- `scope`: texto obrigatório, `ACCOUNT` ou `IP`.
+- `subject_hash`: HMAC-SHA-256 hexadecimal de 64 caracteres, obrigatório.
+- `failed_count`: inteiro obrigatório, maior ou igual a zero.
+- `blocked_until`: timestamptz UTC, opcional.
+- `updated_at`: timestamptz UTC, obrigatório.
+
+Índices e constraints:
+
+- `uq_auth_login_throttles__scope_subject_hash`.
+- `ix_auth_login_throttles__blocked_until`.
+- `ck_auth_login_throttles__scope_allowed`.
+- `ck_auth_login_throttles__failed_count_non_negative`.
+
+`CONFIRMADO`: e-mail e IP brutos não são persistidos nessa tabela.
 
 ### `customers`
 
@@ -90,7 +144,8 @@ Motoristas vinculados a viagens.
 - `uq_drivers__license_number` `RECOMENDAÇÃO`.
 - `ix_drivers__phone` `RECOMENDAÇÃO`.
 
-`RISCO IDENTIFICADO`: não existe relacionamento entre `users` e `drivers` no modelo aprovado. Até que uma ocorrência futura aprove esse vínculo, um usuário `DRIVER` não pode receber acesso baseado em motorista, viagem ou entrega própria.
+`CONFIRMADO`: o acesso operacional do perfil `DRIVER` exige `users.driver_id`
+igual ao motorista da viagem e ambos, usuário e motorista, ativos.
 
 ### `trucks`
 
@@ -315,6 +370,12 @@ Viagens vinculadas ao plano carregado.
 - `uq_trips__load_plan_id`.
 - `ix_trips__driver_id`.
 - `ix_trips__status`.
+- `ck_trips__status_allowed`.
+- `ck_trips__timestamps_consistent`.
+
+`CONFIRMADO`: `status` aceita `SCHEDULED`, `IN_ROUTE` e `FINISHED`.
+`started_at` é obrigatório a partir de `IN_ROUTE`; `finished_at` existe somente
+em `FINISHED` e não pode anteceder `started_at`.
 
 ### `deliveries`
 
@@ -334,7 +395,18 @@ Entregas planejadas dentro de uma viagem.
 - `ix_deliveries__trip_id`.
 - `ix_deliveries__order_id`.
 - `ix_deliveries__status`.
-- `uq_deliveries__trip_sequence` `RECOMENDAÇÃO`.
+- `uq_deliveries__order_id`.
+- `uq_deliveries__trip_order`.
+- `uq_deliveries__trip_sequence`.
+- `ck_deliveries__status_allowed`.
+- `ck_deliveries__sequence_positive`.
+- `ck_deliveries__completion_consistent`.
+
+`CONFIRMADO`: `status` aceita `PENDING`, `IN_DELIVERY` e `DELIVERED`. Cada pedido
+gera no máximo uma entrega no MVP. `sequence` é 1-based, positiva, contígua e
+única na viagem; sua ordenação deriva de `order_items.delivery_sequence` e do
+UUID do pedido como desempate. Todos os itens de um pedido devem informar a
+mesma sequência. `delivered_at` existe se e somente se o status é `DELIVERED`.
 
 ### `occurrences`
 
@@ -374,10 +446,13 @@ Histórico auditável de mudanças de status.
 - `fk_status_history__users`.
 - `ix_status_history__entity`.
 - `ix_status_history__created_at`.
+- `ck_status_history__entity_type_allowed`.
 
 `CONFIRMADO`: `entity_type`, `old_status` e `new_status` são normalizados em maiúsculas pela camada de schema/service.
 
-`PENDENTE DE DEFINIÇÃO`: lista final de `entity_type` permitidos.
+`CONFIRMADO` por D10 e `ADR-022`: `entity_type` aceita somente `ORDER`,
+`LOAD_PLAN`, `TRIP` e `DELIVERY`. A OC09 não expõe consulta pública desse
+histórico.
 
 ## Relacionamentos principais
 
@@ -391,8 +466,9 @@ Histórico auditável de mudanças de status.
 - `load_plans` 1:1 `loading_sessions`.
 - `load_plans` 1:1 `trips`.
 - `drivers` 1:N `trips`.
+- `drivers` 1:0..1 `users` por `users.driver_id`.
 - `trips` 1:N `deliveries`.
-- `orders` 1:N `deliveries`.
+- `orders` 1:0..1 `deliveries` no MVP.
 - `trips` 1:N `occurrences`.
 - `deliveries` 1:N `occurrences`.
 - `users` 1:N `status_history` por `changed_by`.
@@ -422,6 +498,10 @@ deterministicamente a partir de `order_items.quantity`, usam identidade
 
 `CONFIRMADO`: a migration `20260804_0004` cria `load_plans`,
 `load_plan_orders` e `load_plan_items` para a integração da `OC20`.
+
+`CONFIRMADO`: a migration `20260809_0007` cria o vínculo opcional e único
+`users.driver_id`; `20260809_0008` fecha o catálogo de `status_history` e cria
+`trips` e `deliveries` para a `OC09`.
 
 ## Observação
 

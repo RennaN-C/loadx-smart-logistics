@@ -127,7 +127,7 @@ def _calculation_error_response(error: Exception) -> JSONResponse | None:
         )
     if isinstance(error, LoadPlanVolumeLimitExceededError):
         return error_response(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
             error.code,
             "O plano excede o limite síncrono de volumes.",
             [
@@ -140,7 +140,7 @@ def _calculation_error_response(error: Exception) -> JSONResponse | None:
         )
     if isinstance(error, InvalidLoadPlanInputError):
         return error_response(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
             "INVALID_LOAD_PLAN_INPUT",
             "Os dados do plano de carga são inválidos.",
             [{"field": error.field_name, "message": error.reason}],

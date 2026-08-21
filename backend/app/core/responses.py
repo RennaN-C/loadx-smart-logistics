@@ -16,7 +16,9 @@ _ERROR_RESPONSE_DESCRIPTIONS = {
     404: "Entidade relacionada não encontrada.",
     409: "Conflito de estado ou recurso duplicado.",
     422: "Dados de entrada inválidos.",
+    429: "Muitas requisições.",
     500: "Erro interno inesperado.",
+    503: "Serviço temporariamente indisponível.",
 }
 
 

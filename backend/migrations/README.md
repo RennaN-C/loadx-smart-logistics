@@ -9,8 +9,11 @@ O Alembic versiona toda alteração estrutural do PostgreSQL.
 - `migrations/script.py.mako`: template das revisions.
 - `migrations/versions`: migrations versionadas.
 
-`CONFIRMADO`: o head atual é `20260804_0004`, que cria `load_plans`,
-`load_plan_orders` e `load_plan_items` com snapshots e FKs restritivas.
+`CONFIRMADO`: o head atual é `20260809_0008`. `20260809_0007` vincula usuários a
+motoristas; `20260809_0008` fecha o catálogo auditável e cria `trips` e
+`deliveries`. As revisões anteriores da OC60 criam `auth_login_throttles`, sem
+e-mail ou IP brutos, e `auth_sessions`, que persiste somente o hash do
+identificador opaco.
 
 ## Comandos
 
@@ -29,6 +32,10 @@ docker compose exec backend alembic revision --autogenerate -m "describe change"
 docker compose exec backend alembic upgrade head
 docker compose exec backend alembic downgrade -1
 ```
+
+`CONFIRMADO`: `docker compose up` executa automaticamente `alembic upgrade
+head` no serviço one-shot `migrate`. O backend só inicia se esse serviço terminar
+com sucesso; `/ready` apenas confere o resultado e não altera o banco.
 
 ## Regras
 

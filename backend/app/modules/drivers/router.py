@@ -5,11 +5,17 @@ from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
+from app.core.pagination import PageResponse, Pagination, to_page_response
 from app.core.responses import error_response, openapi_error_responses
 from app.database.session import get_db
 from app.modules.auth.dependencies import require_roles
 from app.modules.drivers.models import Driver
-from app.modules.drivers.schemas import DriverCreate, DriverRead, DriverUpdate
+from app.modules.drivers.schemas import (
+    DriverCreate,
+    DriverListRead,
+    DriverRead,
+    DriverUpdate,
+)
 from app.modules.drivers.service import (
     DriverDocumentAlreadyExistsError,
     DriverLicenseNumberAlreadyExistsError,
@@ -35,14 +41,19 @@ def get_driver_service(db: Annotated[Session, Depends(get_db)]) -> DriverService
 
 @router.get(
     "",
-    response_model=list[DriverRead],
-    responses=openapi_error_responses(401, 403),
+    response_model=PageResponse[DriverListRead],
+    responses=openapi_error_responses(401, 403, 422),
 )
 def list_drivers(
+    pagination: Pagination,
     _current_user: DriverReader,
     service: Annotated[DriverService, Depends(get_driver_service)],
-) -> list[Driver]:
-    return list(service.list_drivers())
+) -> PageResponse[DriverListRead]:
+    result = service.list_drivers(pagination)
+    return to_page_response(
+        result,
+        (DriverListRead.model_validate(driver) for driver in result.items),
+    )
 
 
 @router.post(

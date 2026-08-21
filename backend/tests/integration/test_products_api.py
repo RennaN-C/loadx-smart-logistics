@@ -1,22 +1,16 @@
-from collections.abc import Callable, Generator
-from decimal import Decimal
+from collections.abc import Callable
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy.pool import StaticPool
+from sqlalchemy.orm import Session
 
-from app.core.security import create_access_token
-from app.database.base import Base
-from app.database.session import get_db
-from app.main import app
 from app.modules.products.models import Product
 from app.modules.products.schemas import ProductCreate
 from app.modules.products.service import ProductService
 from app.modules.users.models import User
 from app.modules.users.schemas import UserCreate
 from app.modules.users.service import UserService
+from tests.integration.auth_helpers import issue_session_headers
 
 SessionFactory = Callable[[], Session]
 PRODUCT_ROUTE_CASES = [
@@ -25,38 +19,6 @@ PRODUCT_ROUTE_CASES = [
     ("GET", "detail"),
     ("PATCH", "detail"),
 ]
-
-
-@pytest.fixture
-def session_factory() -> Generator[SessionFactory, None, None]:
-    engine = create_engine(
-        "sqlite+pysqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    tables = [User.__table__, Product.__table__]
-    Base.metadata.create_all(engine, tables=tables)
-    testing_session_local = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-    try:
-        yield testing_session_local
-    finally:
-        Base.metadata.drop_all(engine, tables=tables)
-
-
-@pytest.fixture
-def client(session_factory: SessionFactory) -> Generator[TestClient, None, None]:
-    def override_get_db() -> Generator[Session, None, None]:
-        db = session_factory()
-        try:
-            yield db
-        finally:
-            db.close()
-
-    app.dependency_overrides[get_db] = override_get_db
-    try:
-        yield TestClient(app)
-    finally:
-        app.dependency_overrides.clear()
 
 
 def create_user_in_db(
@@ -71,7 +33,7 @@ def create_user_in_db(
             UserCreate(
                 name="Usuário de Teste",
                 email=email,
-                password="senha-local",
+                password="senha-local-segura",
                 role=role,
                 active=active,
             )
@@ -80,9 +42,11 @@ def create_user_in_db(
         db.close()
 
 
-def authorization_headers(user: User) -> dict[str, str]:
-    token = create_access_token(str(user.id), {"role": user.role})
-    return {"Authorization": f"Bearer {token}"}
+def authorization_headers(
+    session_factory: SessionFactory,
+    user: User,
+) -> dict[str, str]:
+    return issue_session_headers(session_factory, user.id)
 
 
 @pytest.fixture
@@ -92,7 +56,7 @@ def manager_headers(session_factory: SessionFactory) -> dict[str, str]:
         "manager@example.test",
         "LOGISTICS_MANAGER",
     )
-    return authorization_headers(manager)
+    return authorization_headers(session_factory, manager)
 
 
 def make_product_payload(code: str = "CX-A") -> dict[str, object]:
@@ -103,7 +67,7 @@ def make_product_payload(code: str = "CX-A") -> dict[str, object]:
         "width_cm": 60,
         "height_cm": 50,
         "length_cm": 40,
-        "weight_kg": "12.500",
+        "weight_kg": 12.500,
         "fragile": False,
         "stackable": True,
         "rotation_allowed": True,
@@ -159,8 +123,27 @@ def test_create_product_returns_created_resource(
     body = response.json()
     assert body["id"]
     assert body["code"] == "CX-A"
-    assert Decimal(str(body["weight_kg"])) == Decimal("12.500")
+    assert body["weight_kg"] == 12.5
+    assert isinstance(body["weight_kg"], float)
     assert body["stackable"] is True
+
+
+def test_create_product_rejects_decimal_string(
+    client: TestClient,
+    manager_headers: dict[str, str],
+) -> None:
+    payload = make_product_payload()
+    payload["weight_kg"] = "12.500"
+
+    response = client.post(
+        "/api/v1/products",
+        json=payload,
+        headers=manager_headers,
+    )
+
+    assert response.status_code == 422
+    assert response.json()["code"] == "VALIDATION_ERROR"
+    assert response.json()["details"][0]["field"] == "weight_kg"
 
 
 def test_list_products_returns_created_items(
@@ -176,7 +159,12 @@ def test_list_products_returns_created_items(
     response = client.get("/api/v1/products", headers=manager_headers)
 
     assert response.status_code == 200
-    assert response.json()[0]["code"] == "CX-A"
+    body = response.json()
+    assert body["items"][0]["code"] == "CX-A"
+    assert body["page"] == 1
+    assert body["page_size"] == 20
+    assert body["total"] == 1
+    assert body["total_pages"] == 1
 
 
 def test_get_product_by_id_returns_created_item(
@@ -345,7 +333,7 @@ def test_read_only_roles_can_read_products(
         "GET",
         route,
         product,
-        authorization_headers(user),
+        authorization_headers(session_factory, user),
     )
 
     assert response.status_code == 200
@@ -372,7 +360,7 @@ def test_read_only_roles_cannot_manage_products(
         method,
         route,
         product,
-        authorization_headers(user),
+        authorization_headers(session_factory, user),
     )
 
     assert response.status_code == 403
@@ -413,7 +401,7 @@ def test_product_routes_reject_driver(
         method,
         route,
         product,
-        authorization_headers(driver),
+        authorization_headers(session_factory, driver),
     )
 
     assert response.status_code == 403
@@ -440,7 +428,7 @@ def test_product_routes_reject_inactive_manager(
         method,
         route,
         product,
-        authorization_headers(manager),
+        authorization_headers(session_factory, manager),
     )
 
     assert response.status_code == 403

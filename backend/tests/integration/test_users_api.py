@@ -1,52 +1,18 @@
 import uuid
-from collections.abc import Callable, Generator
+from collections.abc import Callable
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy.pool import StaticPool
+from sqlalchemy.orm import Session
 
-from app.core.security import create_access_token
-from app.database.base import Base
-from app.database.session import get_db
-from app.main import app
+from app.modules.drivers.schemas import DriverCreate
+from app.modules.drivers.service import DriverService
 from app.modules.users.models import User
 from app.modules.users.schemas import UserCreate
 from app.modules.users.service import UserService
+from tests.integration.auth_helpers import issue_session_headers
 
 SessionFactory = Callable[[], Session]
-
-
-@pytest.fixture
-def session_factory() -> Generator[SessionFactory, None, None]:
-    engine = create_engine(
-        "sqlite+pysqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    Base.metadata.create_all(engine, tables=[User.__table__])
-    testing_session_local = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-    try:
-        yield testing_session_local
-    finally:
-        Base.metadata.drop_all(engine, tables=[User.__table__])
-
-
-@pytest.fixture
-def client(session_factory: SessionFactory) -> Generator[TestClient, None, None]:
-    def override_get_db() -> Generator[Session, None, None]:
-        db = session_factory()
-        try:
-            yield db
-        finally:
-            db.close()
-
-    app.dependency_overrides[get_db] = override_get_db
-    try:
-        yield TestClient(app)
-    finally:
-        app.dependency_overrides.clear()
 
 
 def create_user_in_db(
@@ -61,7 +27,7 @@ def create_user_in_db(
             UserCreate(
                 name="Usuário de Teste",
                 email=email,
-                password="senha-local",
+                password="senha-local-segura",
                 role=role,
                 active=active,
             )
@@ -70,9 +36,11 @@ def create_user_in_db(
         db.close()
 
 
-def authorization_headers(user: User) -> dict[str, str]:
-    token = create_access_token(str(user.id), {"role": user.role})
-    return {"Authorization": f"Bearer {token}"}
+def authorization_headers(
+    session_factory: SessionFactory,
+    user: User,
+) -> dict[str, str]:
+    return issue_session_headers(session_factory, user.id)
 
 
 @pytest.fixture
@@ -81,8 +49,11 @@ def admin_user(session_factory: SessionFactory) -> User:
 
 
 @pytest.fixture
-def admin_headers(admin_user: User) -> dict[str, str]:
-    return authorization_headers(admin_user)
+def admin_headers(
+    session_factory: SessionFactory,
+    admin_user: User,
+) -> dict[str, str]:
+    return authorization_headers(session_factory, admin_user)
 
 
 def make_user_payload(
@@ -92,9 +63,26 @@ def make_user_payload(
     return {
         "name": "Usuário Local",
         "email": email,
-        "password": "senha-local",
+        "password": "senha-local-segura",
         "role": role,
     }
+
+
+def create_driver_in_db(session_factory: SessionFactory):
+    db = session_factory()
+    try:
+        return DriverService(db).create_driver(
+            DriverCreate(
+                name="Motorista de Teste",
+                document=f"DOC-{uuid.uuid4().hex[:28]}",
+                phone="+5500000000000",
+                license_number=f"CNH-{uuid.uuid4().hex[:28]}",
+                license_category="D",
+                active=True,
+            )
+        )
+    finally:
+        db.close()
 
 
 def test_create_user_returns_public_resource(
@@ -131,7 +119,43 @@ def test_list_users_returns_created_items(
 
     assert response.status_code == 200
     created_id = create_response.json()["id"]
-    assert any(user["id"] == created_id for user in response.json())
+    body = response.json()
+    assert body["page"] == 1
+    assert body["page_size"] == 20
+    assert body["total"] >= 2
+    assert body["total_pages"] == 1
+    created_user = next(user for user in body["items"] if user["id"] == created_id)
+    assert set(created_user) == {"id", "name", "role", "active", "created_at"}
+    assert "email" not in created_user
+
+
+def test_list_users_paginates_and_rejects_page_size_above_limit(
+    client: TestClient,
+    admin_headers: dict[str, str],
+) -> None:
+    client.post(
+        "/api/v1/users",
+        json=make_user_payload(),
+        headers=admin_headers,
+    )
+
+    first_page = client.get(
+        "/api/v1/users?page=1&page_size=1&sort_order=asc",
+        headers=admin_headers,
+    )
+    second_page = client.get(
+        "/api/v1/users?page=2&page_size=1&sort_order=asc",
+        headers=admin_headers,
+    )
+    invalid_page_size = client.get(
+        "/api/v1/users?page_size=101",
+        headers=admin_headers,
+    )
+
+    assert first_page.status_code == 200
+    assert second_page.status_code == 200
+    assert first_page.json()["items"][0]["id"] != second_page.json()["items"][0]["id"]
+    assert invalid_page_size.status_code == 422
 
 
 def test_get_user_by_id_returns_created_item(
@@ -299,6 +323,59 @@ def test_create_user_rejects_short_password(
     assert response.status_code == 422
 
 
+def test_admin_creates_driver_user_with_operational_link(
+    client: TestClient,
+    session_factory: SessionFactory,
+    admin_headers: dict[str, str],
+) -> None:
+    driver = create_driver_in_db(session_factory)
+    payload = make_user_payload("driver@example.test", role="DRIVER")
+    payload["driver_id"] = str(driver.id)
+
+    response = client.post("/api/v1/users", json=payload, headers=admin_headers)
+
+    assert response.status_code == 201
+    assert response.json()["driver_id"] == str(driver.id)
+
+
+def test_admin_cannot_link_driver_to_non_driver_user(
+    client: TestClient,
+    session_factory: SessionFactory,
+    admin_headers: dict[str, str],
+) -> None:
+    driver = create_driver_in_db(session_factory)
+    payload = make_user_payload()
+    payload["driver_id"] = str(driver.id)
+
+    response = client.post("/api/v1/users", json=payload, headers=admin_headers)
+
+    assert response.status_code == 409
+    assert response.json()["code"] == "USER_DRIVER_ROLE_REQUIRED"
+
+
+def test_admin_cannot_link_same_driver_to_two_users(
+    client: TestClient,
+    session_factory: SessionFactory,
+    admin_headers: dict[str, str],
+) -> None:
+    driver = create_driver_in_db(session_factory)
+    first_payload = make_user_payload("driver-one@example.test", role="DRIVER")
+    first_payload["driver_id"] = str(driver.id)
+    second_payload = make_user_payload("driver-two@example.test", role="DRIVER")
+    second_payload["driver_id"] = str(driver.id)
+    assert (
+        client.post(
+            "/api/v1/users", json=first_payload, headers=admin_headers
+        ).status_code
+        == 201
+    )
+
+    response = client.post("/api/v1/users", json=second_payload, headers=admin_headers)
+
+    assert response.status_code == 409
+    assert response.json()["code"] == "USER_DRIVER_ALREADY_LINKED"
+
+
 @pytest.mark.parametrize(
     ("method", "path", "payload"),
     [
@@ -346,7 +423,7 @@ def test_users_routes_reject_non_admin_user(
         method,
         path,
         json=payload,
-        headers=authorization_headers(user),
+        headers=authorization_headers(session_factory, user),
     )
 
     assert response.status_code == 403
@@ -367,7 +444,7 @@ def test_list_users_rejects_each_non_admin_role(
 
     response = client.get(
         "/api/v1/users",
-        headers=authorization_headers(user),
+        headers=authorization_headers(session_factory, user),
     )
 
     assert response.status_code == 403
@@ -386,11 +463,45 @@ def test_list_users_rejects_inactive_admin(
 
     response = client.get(
         "/api/v1/users",
-        headers=authorization_headers(user),
+        headers=authorization_headers(session_factory, user),
     )
 
     assert response.status_code == 403
     assert response.json()["code"] == "AUTH_USER_INACTIVE"
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"password": "nova-senha-segura-2026"},
+        {"active": False},
+        {"role": "DRIVER"},
+    ],
+)
+def test_sensitive_user_update_revokes_existing_sessions(
+    client: TestClient,
+    session_factory: SessionFactory,
+    admin_headers: dict[str, str],
+    payload: dict[str, object],
+) -> None:
+    target = create_user_in_db(
+        session_factory,
+        f"target-{uuid.uuid4().hex}@example.test",
+        role="CHECKER",
+    )
+    target_headers = authorization_headers(session_factory, target)
+    assert client.get("/api/v1/auth/me", headers=target_headers).status_code == 200
+
+    update_response = client.patch(
+        f"/api/v1/users/{target.id}",
+        json=payload,
+        headers=admin_headers,
+    )
+    revoked_response = client.get("/api/v1/auth/me", headers=target_headers)
+
+    assert update_response.status_code == 200
+    assert revoked_response.status_code == 401
+    assert revoked_response.json()["code"] == "AUTH_INVALID_TOKEN"
 
 
 @pytest.mark.parametrize(

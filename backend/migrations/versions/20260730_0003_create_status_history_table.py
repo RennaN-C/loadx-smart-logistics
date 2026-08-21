@@ -25,12 +25,26 @@ def upgrade() -> None:
         sa.Column("old_status", sa.String(length=32), nullable=True),
         sa.Column("new_status", sa.String(length=32), nullable=False),
         sa.Column("changed_by", sa.Uuid(), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
-        sa.ForeignKeyConstraint(["changed_by"], ["users.id"], name="fk_status_history__users"),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
+        sa.ForeignKeyConstraint(
+            ["changed_by"], ["users.id"], name="fk_status_history__users"
+        ),
         sa.PrimaryKeyConstraint("id", name="pk_status_history"),
     )
-    op.create_index("ix_status_history__created_at", "status_history", ["created_at"], unique=False)
-    op.create_index("ix_status_history__entity", "status_history", ["entity_type", "entity_id"], unique=False)
+    op.create_index(
+        "ix_status_history__created_at", "status_history", ["created_at"], unique=False
+    )
+    op.create_index(
+        "ix_status_history__entity",
+        "status_history",
+        ["entity_type", "entity_id"],
+        unique=False,
+    )
 
 
 def downgrade() -> None:

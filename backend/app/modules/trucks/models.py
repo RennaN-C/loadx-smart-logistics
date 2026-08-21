@@ -25,5 +25,9 @@ class Truck(Base):
     internal_height_cm: Mapped[int] = mapped_column(nullable=False)
     internal_length_cm: Mapped[int] = mapped_column(nullable=False)
     max_weight_kg: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
-    active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default="true"
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
