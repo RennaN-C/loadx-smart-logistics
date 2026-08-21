@@ -28,12 +28,28 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 - `CONFIRMADO`: migration `20260804_0004` cria as três tabelas de planejamento.
 - `CONFIRMADO`: o contrato aprovado mantém login, token JWT e `/auth/me`, remove `/auth/register` e restringe criação de usuários a `ADMIN` após bootstrap local.
 - `CONFIRMADO`: a `OC51-I` auditou a matriz completa de autorização e a fronteira pública de todos os endpoints atualmente implementados.
+- `CONFIRMADO`: conforme `D17`, a comparação básica e determinística da OC21
+  integra o MVP depois da OC20 e aceita no máximo 10 caminhões por execução; a
+  comparação automática avançada permanece futura.
 
 ## Decisões necessárias
 
 - `DECISÃO NECESSÁRIA`: definir comportamento quando checklist de carregamento tiver divergência.
 - `DECISÃO NECESSÁRIA`: definir regra para finalizar viagem com entregas canceladas, recusadas ou falhas.
 - `DECISÃO NECESSÁRIA`: definir formato final de relatório PDF e se haverá envio por e-mail/WhatsApp no MVP.
+- `DECISÃO NECESSÁRIA`: OC21 — definir body, resposta, status de sucesso, catálogo
+  de erros e ordenação do contrato público de `POST /load-plans/compare-trucks`.
+- `DECISÃO NECESSÁRIA`: OC21 — definir critérios de ranking, pesos, desempates e
+  se haverá indicação ou escolha automática de um caminhão vencedor.
+- `DECISÃO NECESSÁRIA`: OC21 — definir se a comparação será persistida, se criará
+  algum `load_plan` e qual candidato poderia originá-lo.
+- `DECISÃO NECESSÁRIA`: OC21 — definir tratamento de IDs duplicados, caminhões
+  inativos ou inexistentes e falha parcial em apenas um dos candidatos.
+- `DECISÃO NECESSÁRIA`: OC21 — formalizar o RBAC específico do endpoint. A matriz
+  geral exige autenticação, menor privilégio e negação por padrão, mas ainda não
+  descreve expressamente a operação de comparação.
+- `DECISÃO NECESSÁRIA`: OC22 — definir endpoint, request, response, schema público,
+  subconjunto de dados enviado ao modelo, política de fallback e prompt final.
 
 ## Pendências técnicas
 
@@ -47,7 +63,21 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 - `PENDENTE DE DEFINIÇÃO`: política de armazenamento, expiração e proteção de fotos de ocorrência.
 - `PENDENTE DE DEFINIÇÃO`: SLA rígido de tempo do otimizador; o limite funcional
   aprovado é 200 volumes por cálculo síncrono.
+- `RISCO IDENTIFICADO`: perfil exploratório local com volumes integralmente
+  posicionáveis apontou a busca de candidatos, principalmente as verificações
+  AABB de colisão, como custo dominante no limite de 200 volumes. A medição não
+  define SLA; qualquer otimização que altere o resultado exige ocorrência própria,
+  testes, ADR e nova `algorithm_version`.
 - `PENDENTE DE DEFINIÇÃO`: mensagens finais do WhatsApp para confirmação, erro e status.
+- `CONFIRMADO`: a camada interna da OC21 é transitória, não ranqueada, limitada a
+  10 candidatos e reutiliza integralmente a mesma engine `heuristic-v1`; não
+  persiste comparação nem registro SQLAlchemy `load_plan`, não define vencedor e
+  não expõe API pública. Estado da ocorrência: parcial.
+- `CONFIRMADO`: a fatia interna da OC22 é somente um builder determinístico de
+  contexto baseado em dados já calculados, sem provider e sem mutação do plano.
+  Estado da ocorrência: parcial e bloqueado por decisão; a integração real com IA
+  depende da interface e do provider sob responsabilidade do Desenvolvedor 4 e
+  das decisões públicas da OC22.
 
 ## Gates detalhados do otimizador e planejamento
 
@@ -61,7 +91,10 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 - `CONFIRMADO`: conforme a `ADR-013`, a porta fica em `z = internal_length_cm`,
   profundidade usa a face voltada à porta e `loading_sequence` é topológica com
   suportes anteriores aos apoiados.
-- `PENDENTE DE DEFINIÇÃO`: definir contrato público, endpoint e campos do schema de explicação da OC22.
+- `CONFIRMADO`: a OC22 pode preparar deterministicamente o contexto de um
+  plano já calculado, mas contrato público, provider, fallback e prompt permanecem
+  pendentes; a IA não recalcula, valida ou modifica o plano. Estado da ocorrência:
+  parcial e bloqueado por decisão.
 - `CONFIRMADO`: conforme a `ADR-014`, FKs preservam proveniência, snapshots
   preservam valores calculados e itens referenciados não podem ser substituídos.
 
@@ -70,6 +103,11 @@ o resultado com snapshots e expõe criação, detalhe, visualização, aprovaç�
 recálculo protegidos por RBAC.
 
 `CONFIRMADO`: a expansão usa identidade `(order_item_id, volume_index)` com índice 1-based e não expõe política alternativa de base.
+
+`CONFIRMADO`: a OC21 interna compara até 10 caminhões com a engine existente e
+retorna resultados independentes sem ranking. Estado da ocorrência: parcial. Até
+aprovação das decisões acima, ela não persiste dados nem registros SQLAlchemy de
+plano e não expõe o endpoint reservado.
 
 `RISCO IDENTIFICADO`: mudança futura em gate determinístico exige testes, ADR e
 nova `algorithm_version`; a representação JSON de `Decimal` permanece fora da

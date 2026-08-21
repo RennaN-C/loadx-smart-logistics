@@ -171,3 +171,29 @@ decrescente, distância da porta decrescente e identidade estável.
 `CONFIRMADO`: a engine rejeita input vazio e mais de 200 volumes antes de alocar a
 expansão, retorna partição completa de colocados/rejeitados e revalida limites,
 rotações, colisões, apoio, peso, profundidade, sequência e métricas.
+
+## OC21 - reutilização da engine
+
+`CONFIRMADO`: a comparação interna em `comparison.py` executa `calculate_load_plan` sem alteração para
+cada um de no máximo 10 caminhões candidatos, sempre com o mesmo conjunto de
+volumes. O resultado individual deve ser equivalente à execução direta da engine,
+inclusive nas posições, rejeições, métricas e `algorithm_version`.
+
+A comparação é transitória e não ranqueada. Ela não adiciona `score`, pesos de
+ranking, desempates entre caminhões ou vencedor; também não persiste resultados
+nem cria ou persiste registros SQLAlchemy de plano; produz apenas resultados da
+engine em memória. Uma eventual ordem técnica da coleção não representa
+preferência de negócio. Estado de entrega da OC21: parcial, pois o contrato HTTP
+permanece fora do otimizador e ainda não está aprovado.
+
+## Fronteira com a OC22
+
+`CONFIRMADO`: o builder interno em `load_planning/explanation.py` consome somente
+um plano persistido já calculado e o transforma deterministicamente em dados
+estruturados. Ele não integra provider, não produz texto por IA, não recalcula o
+plano e não participa de nenhuma decisão física.
+
+Provider, credenciais, comunicação externa e políticas de disponibilidade
+pertencem à integração do Desenvolvedor 4. Contrato público, fallback e prompt
+final da OC22 dependem de decisão antes de qualquer endpoint ser exposto. Estado
+de entrega da OC22: parcial e bloqueado por essas decisões.

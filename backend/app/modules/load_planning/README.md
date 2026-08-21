@@ -10,6 +10,7 @@ Núcleo do sistema: expansão de volumes, rotações, pontos candidatos, colisõ
 - `service.py`: regras e casos de uso.
 - `reference_service.py`: consulta pública e somente leitura usada por outros módulos.
 - `router.py`: endpoints HTTP.
+- `explanation.py`: contexto determinístico e neutro de provider para explicar um plano persistido.
 - `optimizer/`: contratos e regras puras, sem banco ou HTTP.
 
 Crie somente os arquivos necessários para a ocorrência atual.
@@ -37,3 +38,44 @@ Crie somente os arquivos necessários para a ocorrência atual.
 `RISCO IDENTIFICADO`: planos aprovados recalculados permanecem históricos e
 imutáveis. Uma integração operacional futura deve escolher o descendente ativo
 sem reescrever os anteriores.
+
+## OC21 - comparação interna entre caminhões
+
+`CONFIRMADO`: a fatia interna implementada da OC21 compara de forma transitória e não ranqueada
+no máximo 10 caminhões candidatos. Cada candidato recebe os mesmos volumes e é
+calculado integralmente pela engine `heuristic-v1`; a comparação não copia nem
+substitui regras de rotação, posicionamento, colisão, apoio, peso, profundidade,
+rejeição, sequência ou métricas.
+
+Os resultados por caminhão preservam as métricas, as colocações, as rejeições e a
+`algorithm_version` retornadas pela engine. Eles não recebem `score`, posição de
+ranking, indicação de vencedor ou preferência logística. A operação interna não
+persiste comparação, não cria nem persiste registro SQLAlchemy `load_plan` e não
+escolhe caminhão automaticamente; ela produz somente `TruckComparisonResult`
+contendo `LoadPlanResult`, em memória.
+
+Estado de entrega da OC21: parcial, porque somente essa fronteira interna está
+implementada e o contrato público permanece sem aprovação.
+
+`DECISÃO NECESSÁRIA`: antes de expor `POST /api/v1/load-plans/compare-trucks`,
+definir body, resposta, códigos de erro, ranking e desempates, eventual vencedor,
+persistência ou criação de plano, tratamento de duplicatas, caminhões inativos e
+falhas parciais, além do RBAC específico do endpoint. A matriz geral continua
+valendo por negação padrão, mas não substitui esse contrato público.
+
+## OC22 - contexto interno de explicação
+
+`CONFIRMADO`: a fatia interna implementada da OC22 limita-se a um builder determinístico
+de contexto. Ele transforma snapshots, métricas, volumes colocados/rejeitados,
+motivos, posições, rotações, sequência e `algorithm_version` já existentes em
+dados estruturados, sem recalcular ou alterar o plano e sem chamar provider de IA.
+
+O builder recebe o agregado de `LoadPlan` com `orders` e `items` já carregados; o
+caminho atual de leitura por `LoadPlanRepository.get` faz esse carregamento com
+`selectinload`.
+
+A integração concreta com provider, SDK, credenciais e políticas externas pertence
+ao Desenvolvedor 4. `DECISÃO NECESSÁRIA`: definir endpoint, request, response,
+schema público, dados enviados ao modelo, fallback e prompt final. Estado de
+entrega da OC22: parcial e bloqueado por essas decisões; até sua aprovação, a
+OC22 não publica API nem produz explicação por IA.

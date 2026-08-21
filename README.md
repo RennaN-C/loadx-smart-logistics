@@ -55,6 +55,7 @@ A primeira versão do LoadX deverá permitir:
 * cálculo do percentual de ocupação;
 * identificação dos volumes que não couberam;
 * geração da sequência de carregamento;
+* comparação básica e determinística de até 10 caminhões candidatos;
 * visualização tridimensional da carga;
 * acompanhamento do carregamento;
 * atualização do status das entregas;
@@ -290,6 +291,7 @@ Responsável por:
 * heurística de posicionamento;
 * cálculo de ocupação;
 * sequência de carregamento;
+* comparação básica entre caminhões e preparação dos dados explicáveis do plano;
 * testes matemáticos.
 
 ### Desenvolvedor 3: Frontend e visualização 3D
@@ -530,12 +532,17 @@ Após a conclusão do MVP, poderão ser adicionadas:
 * acompanhamento por GPS;
 * roteirização inteligente;
 * análise de peso por eixo;
-* comparação entre vários caminhões;
+* comparação automática avançada entre veículos, sujeita a regras futuras de ranking e escolha;
 * previsão de atrasos;
 * aplicativo móvel;
 * realidade aumentada;
 * aprendizado com viagens anteriores;
 * integração com sistemas ERP.
+
+A comparação básica de até 10 caminhões pertence ao MVP. Sua implementação
+interna reutiliza o mesmo cálculo determinístico do plano, mas o contrato público,
+o ranking e a eventual escolha automática de um veículo dependem de decisões da
+equipe. A comparação automática avançada permanece uma evolução futura.
 
 ## Status do projeto
 
