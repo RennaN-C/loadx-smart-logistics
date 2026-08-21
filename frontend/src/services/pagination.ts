@@ -17,6 +17,9 @@ export interface ListParams {
 
 export const DEFAULT_PAGE_SIZE = 20;
 
+/** Teto do backend (`MAX_PAGE_SIZE` em core/pagination.py): pedir mais dá 422. */
+export const MAX_PAGE_SIZE = 100;
+
 /**
  * Query params das coleções: `page` 1-based, `page_size` (máx. 100) e
  * `sort_order`. Não existe `sort_by`, busca livre nem filtro server-side — D12
