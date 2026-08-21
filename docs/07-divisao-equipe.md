@@ -67,16 +67,16 @@ Pastas principais:
 
 Ocorrências do documento-base:
 
-- [ ] `OC11`: cálculo da capacidade do caminhão.
-- [ ] `OC12`: cálculo do volume dos produtos.
-- [ ] `OC13`: ordenação dos volumes.
-- [ ] `OC14`: rotação dos volumes.
-- [ ] `OC15`: posicionamento dos volumes.
-- [ ] `OC16`: validação de colisões.
-- [ ] `OC17`: validação de empilhamento.
-- [ ] `OC18`: controle de peso.
-- [ ] `OC19`: cálculo do aproveitamento.
-- [ ] `OC20`: sequência de carregamento.
+- [x] `OC11`: cálculo da capacidade do caminhão.
+- [x] `OC12`: cálculo do volume dos produtos.
+- [x] `OC13`: ordenação dos volumes.
+- [x] `OC14`: rotação dos volumes.
+- [x] `OC15`: posicionamento dos volumes.
+- [x] `OC16`: validação de colisões.
+- [x] `OC17`: validação de empilhamento.
+- [x] `OC18`: controle de peso.
+- [x] `OC19`: cálculo do aproveitamento.
+- [x] `OC20`: sequência de carregamento.
 - [ ] `OC21`: comparação entre caminhões.
 - [ ] `OC22`: explicação do planejamento com IA.
 
