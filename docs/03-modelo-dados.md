@@ -9,8 +9,9 @@
 autenticação foram aprovadas por D18 e `ADR-020`; viagens e entregas seguem
 D07 a D10, D21 e `ADR-022`.
 
-`PENDENTE DE DEFINIÇÃO`: `loading_sessions` e `occurrences` ainda não possuem
-models/migrations.
+`PENDENTE DE DEFINIÇÃO`: `loading_sessions` ainda não possui model/migration.
+
+`CONFIRMADO`: `occurrences` possui model e migration desde a OC41.
 
 `CONFIRMADO`: este documento é o contrato inicial para a criação do banco. Qualquer mudança estrutural deve ser registrada por migration e documentada aqui.
 
