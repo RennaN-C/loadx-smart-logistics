@@ -128,7 +128,7 @@ export function LoadViewer({ planId }: LoadViewerProps) {
             checked={realistic}
             onChange={(event) => setRealistic(event.target.checked)}
           />
-          <span>Papelão</span>
+          <span>Realista</span>
         </label>
         <label className="viewer-toggle" htmlFor="viewer-show-truck">
           <input

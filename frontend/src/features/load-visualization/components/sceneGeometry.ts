@@ -62,16 +62,6 @@ export function deliveryColor(deliverySequence: number): string {
   return `hsl(${hue}, 58%, 56%)`;
 }
 
-/**
- * Versão clara da mesma cor, para TINGIR o papelão. A textura já traz o kraft
- * e a luz; multiplicar pela cor cheia da legenda deixaria o volume escuro
- * demais para se distinguir do vizinho. Mesma matiz, luminosidade alta.
- */
-export function deliveryTint(deliverySequence: number): string {
-  const hue = (28 + (deliverySequence - 1) * 47) % 360;
-  return `hsl(${hue}, 46%, 82%)`;
-}
-
 /** Sequências presentes na carga, ordenadas — alimenta a legenda. */
 export function deliverySequences(items: readonly PlacedItem[]): number[] {
   return [...new Set(items.map((item) => item.deliverySequence))].sort((a, b) => a - b);

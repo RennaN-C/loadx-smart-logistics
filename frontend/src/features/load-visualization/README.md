@@ -13,7 +13,8 @@ Consome `GET /load-plans/{id}/visualization`.
 - `components/sceneGeometry.ts`: conversão de coordenadas e cores. **Funções puras, testadas.**
 - `components/truckShell.ts` (+ `TruckShellMesh.tsx`): o exterior do caminhão — cabine, chassi,
   para-choque e rodas. **Funções puras, testadas.**
-- `components/cargoTexture.ts`: a textura de papelão dos volumes, desenhada em canvas.
+- `components/productKind.ts`: classifica o produto pelo nome. **Função pura, testada.**
+- `components/cargoTexture.ts`: a superfície dos volumes por tipo, desenhada em canvas.
 
 A tela vive na aba "Visualização 3D" de `features/load-planning/pages/PlanningPage.tsx`.
 
@@ -42,25 +43,43 @@ backend. Volume grande é grande na cena. Se todos os pacotes aparecem do mesmo 
 foram CADASTRADOS do mesmo tamanho — o `sceneGeometry.test.ts` cobre isso: 20×15×30 e 80×60×120
 produzem caixas com quatro vezes de diferença.
 
-## Papelão desenhado em canvas, não fotografado
+## A aparência sai do tipo do produto
 
-Volume com cor chapada lê como diagrama. A textura veio de `cargoTexture.ts`, desenhada em canvas
-em tempo de execução: fibra do kraft, vinco escurecendo as quinas, fita na face de cima e etiqueta
-com o código do produto e código de barras na face da frente. Duas faces diferentes das outras é o
-que faz a carga parecer caixa empilhada, e não bloco.
+`productKind.ts` lê o NOME cadastrado e classifica: TV, geladeira, fogão, lavadora, micro-ondas ou
+caixa. Uma TV vira tela escura com reflexo; uma geladeira, porta clara com puxador; um fogão, tampo
+preto com quatro bocas. O que não é reconhecido cai em papelão, que é o certo.
 
-Custo: **1,2 KiB gzip** no chunk. Um jogo de fotos de caixa comeria a folga inteira do orçamento —
-a mesma conta que levou o caminhão a ser construído em vez de importado.
+`PENDENTE DE DEFINIÇÃO`: o produto **não tem campo de categoria** no backend. Enquanto não tiver, a
+classificação sai de palavra-chave sobre o nome — heurística assumidamente falível: "TV 50" acerta,
+"modelo XPT-42" não. Quando a equipe adicionar `category`, `productKind.ts` passa a ler o campo e as
+palavras-chave viram só o fallback. A classificação casa por **palavra inteira** e ignora acento e
+caixa, senão "Estante" viraria TV.
 
-Medido no navegador, sobre o código real: o kraft tem 67 níveis de granulação, a fita contrasta 48
-níveis contra o papelão em volta e a etiqueta varia 204 níveis entre a faixa escura e o papel. A
-primeira versão da fita ficou a 6 níveis do kraft e sumia; foi corrigida.
+**A forma continua sendo a caixa que o otimizador reservou.** Uma TV é um paralelepípedo com cara de
+TV, não um modelo de TV. Mudar a geometria faria a tela mentir sobre o espaço ocupado, que é a razão
+de ela existir (`docs/11`).
 
-**A cor da entrega sobrevive à textura.** `deliveryTint` devolve a mesma matiz da legenda com
-luminosidade alta, para tingir o papelão sem apagá-lo — multiplicar pela cor cheia deixaria o
-volume escuro demais para se distinguir do vizinho. O agrupamento por entrega continua legível.
+## Superfície desenhada em canvas, não fotografada
 
-O controle **"Papelão"** desliga tudo isso e devolve as cores chapadas, para comparar.
+Cada tipo tem seis faces pintadas em tempo de execução, com a face do produto voltada para a porta
+do baú — que é de onde a câmera olha. Custo: **2,2 KiB gzip** no chunk. Um jogo de fotos de TV,
+geladeira e fogão comeria a folga inteira do orçamento, a mesma conta que levou o caminhão a ser
+construído em vez de importado. Cada tipo novo custa algumas dezenas de linhas e zero byte de asset.
+
+Medido no navegador sobre o código real, já que jsdom não tem canvas: o brilho médio de cada
+textura bate com o que ela representa — TV, tampo de fogão e micro-ondas entre 25 e 41, geladeira e
+lavadora entre 184 e 207, papelão em 146.
+
+O cache é por TIPO e vive enquanto a aba viver. O teto é a quantidade de tipos, constante, e não
+cresce com o tamanho da carga. Liberar num efeito criava problema pior: o StrictMode monta,
+desmonta e remonta, então o descarte rodava no meio e deixava material apontando para textura já
+liberada.
+
+**A cor da entrega migrou para a ARESTA do volume.** Tingir a superfície deixaria a TV laranja, e TV
+laranja não é TV. O contorno que já existia para separar volumes encostados passou a carregar a cor
+da legenda — o agrupamento por entrega continua legível sem falsear o produto.
+
+O controle **"Realista"** desliga tudo isso e devolve as cores chapadas, para comparar.
 
 ## Por que o caminhão é desenhado em código, e não importado
 
