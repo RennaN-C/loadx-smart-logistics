@@ -23,6 +23,7 @@ export function LoadViewer({ planId }: LoadViewerProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showTruck, setShowTruck] = useState(true);
+  const [realistic, setRealistic] = useState(true);
 
   // OC33: quantos volumes já "entraram" no baú. null = carga completa, sem animar.
   const [step, setStep] = useState<number | null>(null);
@@ -115,10 +116,20 @@ export function LoadViewer({ planId }: LoadViewerProps) {
           onSelect={setSelectedId}
           visibleIds={visibleIds}
           showTruck={showTruck}
+          realistic={realistic}
         />
       </div>
 
       <div className="viewer-controls">
+        <label className="viewer-toggle" htmlFor="viewer-realistic">
+          <input
+            id="viewer-realistic"
+            type="checkbox"
+            checked={realistic}
+            onChange={(event) => setRealistic(event.target.checked)}
+          />
+          <span>Papelão</span>
+        </label>
         <label className="viewer-toggle" htmlFor="viewer-show-truck">
           <input
             id="viewer-show-truck"

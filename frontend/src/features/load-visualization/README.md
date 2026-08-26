@@ -13,6 +13,7 @@ Consome `GET /load-plans/{id}/visualization`.
 - `components/sceneGeometry.ts`: conversão de coordenadas e cores. **Funções puras, testadas.**
 - `components/truckShell.ts` (+ `TruckShellMesh.tsx`): o exterior do caminhão — cabine, chassi,
   para-choque e rodas. **Funções puras, testadas.**
+- `components/cargoTexture.ts`: a textura de papelão dos volumes, desenhada em canvas.
 
 A tela vive na aba "Visualização 3D" de `features/load-planning/pages/PlanningPage.tsx`.
 
@@ -33,6 +34,33 @@ dimensões usadas são as já rotacionadas que vieram na resposta, não as origi
 junto na mesma parada. A sequência de carregamento aparece no detalhe do volume e na animação.
 
 **O baú é renderizado por dentro** (`BackSide`): uma caixa sólida normal esconderia a carga da câmera.
+
+## O tamanho de cada volume vem do produto, não é fixo
+
+`itemBox` usa `widthCm`, `heightCm` e `lengthCm` **do item**, que chegam já rotacionados pelo
+backend. Volume grande é grande na cena. Se todos os pacotes aparecem do mesmo tamanho, é porque
+foram CADASTRADOS do mesmo tamanho — o `sceneGeometry.test.ts` cobre isso: 20×15×30 e 80×60×120
+produzem caixas com quatro vezes de diferença.
+
+## Papelão desenhado em canvas, não fotografado
+
+Volume com cor chapada lê como diagrama. A textura veio de `cargoTexture.ts`, desenhada em canvas
+em tempo de execução: fibra do kraft, vinco escurecendo as quinas, fita na face de cima e etiqueta
+com o código do produto e código de barras na face da frente. Duas faces diferentes das outras é o
+que faz a carga parecer caixa empilhada, e não bloco.
+
+Custo: **1,2 KiB gzip** no chunk. Um jogo de fotos de caixa comeria a folga inteira do orçamento —
+a mesma conta que levou o caminhão a ser construído em vez de importado.
+
+Medido no navegador, sobre o código real: o kraft tem 67 níveis de granulação, a fita contrasta 48
+níveis contra o papelão em volta e a etiqueta varia 204 níveis entre a faixa escura e o papel. A
+primeira versão da fita ficou a 6 níveis do kraft e sumia; foi corrigida.
+
+**A cor da entrega sobrevive à textura.** `deliveryTint` devolve a mesma matiz da legenda com
+luminosidade alta, para tingir o papelão sem apagá-lo — multiplicar pela cor cheia deixaria o
+volume escuro demais para se distinguir do vizinho. O agrupamento por entrega continua legível.
+
+O controle **"Papelão"** desliga tudo isso e devolve as cores chapadas, para comparar.
 
 ## Por que o caminhão é desenhado em código, e não importado
 
