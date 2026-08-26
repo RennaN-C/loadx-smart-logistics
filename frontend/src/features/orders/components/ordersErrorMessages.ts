@@ -1,4 +1,19 @@
+import { fallbackErrorMessage } from "../../../services/apiErrorMessages";
+import type { FieldLabels } from "../../../services/validationErrors";
 import type { ApiError } from "../../../types/api";
+
+/** Nome do campo no backend -> rótulo da tela, para o 422 dizer QUAL campo. */
+const ORDER_FIELDS: FieldLabels = {
+  customer_id: "Cliente",
+  priority: "Prioridade",
+  delivery_address: "Endereço de entrega",
+  expected_delivery_at: "Previsão de entrega",
+  status: "Situação",
+  items: "Itens do pedido",
+  "items.product_id": "Produto",
+  "items.quantity": "Quantidade",
+  "items.delivery_sequence": "Sequência de entrega",
+};
 
 export function mapOrderErrorToMessage(error: ApiError): string {
   if (error.code === "ORDER_NOT_FOUND") {
@@ -25,5 +40,5 @@ export function mapOrderErrorToMessage(error: ApiError): string {
     return "Seu perfil não tem permissão para esta ação.";
   }
 
-  return error.message;
+  return fallbackErrorMessage(error, ORDER_FIELDS);
 }
