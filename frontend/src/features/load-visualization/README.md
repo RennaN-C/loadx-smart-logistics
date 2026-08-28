@@ -109,6 +109,29 @@ e as rodas no caminho.
 esmaecido em vez de sumir, para não dar a impressão de que o espaço está livre. Ao chegar ao fim, volta
 sozinha para a carga completa. Há também um controle deslizante para percorrer passo a passo.
 
+## O piso não pisca mais: superfícies coplanares
+
+Duas superfícies no mesmo plano disputam o mesmo valor de profundidade, e a placa de vídeo alterna
+entre elas a cada quadro. Ao girar a câmera isso aparece como piscar. A cena tinha **três** pares
+assim:
+
+1. A caixa sólida do baú e uma segunda caixa em modo arame, com geometria e posição **idênticas**.
+2. O topo do chassi e o piso do baú, os dois exatamente em `DECK_HEIGHT`.
+3. O piso do baú e a base de todo volume apoiado nele — que é a maioria da carga.
+
+As correções, na mesma ordem: o contorno virou `edgesGeometry`, que desenha as 12 arestas e não tem
+superfície para disputar nada (de quebra sumiram as diagonais que o modo arame desenhava em cada
+face); o chassi desceu `CHASSIS_CLEARANCE`; e o **desenho** do baú afunda `SHELL_SINK` — os volumes
+não se movem, quem desce é a casca.
+
+O contorno dos volumes tinha o mesmo problema em menor escala: era uma caixa 0,1% maior, o que dá
+dois décimos de milímetro num volume de 40 cm, dentro da margem de erro do buffer. Virou aresta
+também.
+
+Junto disso, a câmera passou a usar `near: 0.05` e `far: 200`. O padrão vai de 0,1 a 1000 e
+desperdiça precisão de profundidade num cenário de vinte metros — apertar o alcance é o que dá
+margem para superfícies próximas conviverem.
+
 ## Por que a cena não tem teste de render
 
 WebGL não existe em jsdom, então renderizar `<Canvas>` no Vitest quebraria. A estratégia é: toda a

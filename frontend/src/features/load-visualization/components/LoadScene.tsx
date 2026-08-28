@@ -1,5 +1,6 @@
 import { Canvas } from "@react-three/fiber";
-import { BackSide } from "three";
+import { useMemo } from "react";
+import { BackSide, BoxGeometry } from "three";
 
 import type { PlacedItem, TruckSnapshot } from "../../load-planning/types";
 import { cargoTextures } from "./cargoTexture";
@@ -8,6 +9,9 @@ import { cameraPosition, deliveryColor, itemBox, truckBox } from "./sceneGeometr
 import { classifyProduct } from "./productKind";
 import { TruckShellMesh } from "./TruckShellMesh";
 import { shellCameraPosition, truckShell } from "./truckShell";
+
+/** Quanto o desenho do baú afunda para não coincidir com a base dos volumes. */
+const SHELL_SINK = 0.012;
 
 interface VolumeProps {
   readonly item: PlacedItem;
@@ -24,6 +28,11 @@ function Volume({ item, selected, dimmed, realistic, onSelect }: VolumeProps) {
   const color = deliveryColor(item.deliverySequence);
   // O nome cadastrado decide a aparência: "TV 50" vira tela, não caixa.
   const faces = realistic ? cargoTextures(classifyProduct(item.productName)) : null;
+  // uma geometria por volume, reaproveitada entre quadros
+  const geometria = useMemo(
+    () => new BoxGeometry(box.size[0], box.size[1], box.size[2]),
+    [box.size],
+  );
 
   return (
     <group position={box.position}>
@@ -63,16 +72,20 @@ function Volume({ item, selected, dimmed, realistic, onSelect }: VolumeProps) {
       {/* Contorno: separa volumes encostados, que sem ele viram um bloco só.
           No modo realista ele ganha a COR DA ENTREGA — é assim que o
           agrupamento sobrevive sem pintar o produto, que precisa manter as
-          cores dele para ser reconhecido. */}
-      <mesh>
-        <boxGeometry args={[box.size[0] * 1.001, box.size[1] * 1.001, box.size[2] * 1.001]} />
-        <meshBasicMaterial
+          cores dele para ser reconhecido.
+
+          São as 12 ARESTAS, não uma caixa em modo arame. A caixa antiga ficava
+          0,1% maior que o volume, o que dá dois décimos de milímetro num volume
+          de 40 cm — dentro da margem de erro do buffer de profundidade, ou seja,
+          piscava. Aresta não tem superfície e não entra nessa disputa. */}
+      <lineSegments>
+        <edgesGeometry args={[geometria]} />
+        <lineBasicMaterial
           color={realistic ? color : "#14181d"}
-          wireframe
           transparent
           opacity={dimmed ? 0.06 : realistic ? 0.75 : 0.35}
         />
-      </mesh>
+      </lineSegments>
 
       {/* Selecionado ganha uma gaiola de acento: com textura, clarear o volume
           deixou de ser sinal suficiente. */}
@@ -119,9 +132,23 @@ export function LoadScene({
   // A sombra precisa enquadrar o baú inteiro, senão só parte da carga projeta.
   const alcance = Math.max(box.size[0], box.size[1], box.size[2]) * 1.2;
 
+  // Reaproveitada entre renders: criar geometria a cada quadro vaza memória de GPU.
+  const caixaDoBau = useMemo(
+    () => new BoxGeometry(box.size[0], box.size[1], box.size[2]),
+    [box.size],
+  );
+
   return (
     <Canvas
-      camera={{ position: showTruck ? shellCameraPosition(truck) : cameraPosition(truck), fov: 45 }}
+      camera={{
+        position: showTruck ? shellCameraPosition(truck) : cameraPosition(truck),
+        fov: 45,
+        // O padrão vai de 0,1 a 1000 e joga fora precisão de profundidade num
+        // cenário de ~20 m. Apertar o alcance é o que dá margem para superfícies
+        // próximas não brigarem.
+        near: 0.05,
+        far: 200,
+      }}
       shadows={realistic}
       onPointerMissed={() => onSelect(null)}
     >
@@ -155,15 +182,23 @@ export function LoadScene({
       {showTruck ? <TruckShellMesh shell={shell} /> : null}
 
       <group position={[0, deck, 0]}>
-        {/* baú: caixa vista por dentro, para não tapar a carga */}
-        <mesh position={box.position} receiveShadow={realistic}>
+        {/* Baú: caixa vista por dentro, para não tapar a carga.
+            Afundado alguns milímetros de propósito. Com o piso exatamente na
+            altura em que os volumes se apoiam, as duas superfícies disputavam o
+            mesmo valor de profundidade e a placa alternava entre elas a cada
+            quadro — o piso piscava ao girar a câmera. Os volumes NÃO se movem:
+            quem desce é só o desenho do baú. */}
+        <mesh position={[box.position[0], box.position[1] - SHELL_SINK, box.position[2]]} receiveShadow={realistic}>
           <boxGeometry args={box.size} />
           <meshLambertMaterial color="#d9d5c7" side={BackSide} transparent opacity={0.35} />
         </mesh>
-        <mesh position={box.position}>
-          <boxGeometry args={box.size} />
-          <meshBasicMaterial color="#5f5b52" wireframe />
-        </mesh>
+        {/* Só as 12 arestas, em vez de uma segunda caixa em modo arame. A caixa
+            duplicada era coplanar com a de cima — mesma briga —, e o arame ainda
+            desenhava as diagonais de cada face, que não existem no baú. */}
+        <lineSegments position={box.position}>
+          <edgesGeometry args={[caixaDoBau]} />
+          <lineBasicMaterial color="#5f5b52" />
+        </lineSegments>
 
         {items.map((item) => (
           <Volume

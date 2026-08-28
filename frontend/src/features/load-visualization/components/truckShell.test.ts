@@ -83,6 +83,18 @@ describe("truckShell", () => {
     expect(baseDaCabine).toBeGreaterThan(0);
   });
 
+  it("mantém o topo do chassi FORA do plano do piso do baú", () => {
+    // Regressão do piscar: com o topo do chassi exatamente em DECK_HEIGHT, ele e
+    // o piso do baú disputavam o mesmo valor de profundidade e a placa alternava
+    // entre os dois a cada quadro ao girar a câmera.
+    const shell = truckShell(truck());
+    const topoDoChassi = shell.chassis.position[1] + shell.chassis.size[1] / 2;
+
+    expect(topoDoChassi).toBeLessThan(DECK_HEIGHT);
+    // folga suficiente para o buffer de profundidade distinguir os dois
+    expect(DECK_HEIGHT - topoDoChassi).toBeGreaterThanOrEqual(0.02);
+  });
+
   it("estende o chassi por baixo da cabine e do baú inteiros", () => {
     const shell = truckShell(truck({ lengthCm: 600 }));
 
