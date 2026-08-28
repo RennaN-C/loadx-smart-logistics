@@ -26,6 +26,10 @@ export const CAB_LENGTH = 2.3;
 export const CAB_TOP = 2.55;
 /** Folga entre o topo do chassi e o piso do baú, para os dois não coincidirem. */
 const CHASSIS_CLEARANCE = 0.03;
+/** Espessura dos perfis estruturais do baú: longarina, montante, batente. */
+const PROFILE = 0.07;
+/** Folga entre o topo do pneu e o para-lama. */
+const FENDER_GAP = 0.09;
 /** Distância mínima entre eixos traseiros num rodado duplo. */
 const TANDEM_GAP = 1.35;
 
@@ -42,6 +46,15 @@ export interface TruckShell {
   chassis: Box;
   bumper: Box;
   wheels: Wheel[];
+  /** Estrutura do baú: o que faz ele parecer construído e não uma caixa. */
+  roofRails: Box[];
+  cornerPosts: Box[];
+  doorFrame: Box[];
+  fenders: Box[];
+  sideSkirts: Box[];
+  fuelTank: Box;
+  rearGuard: Box;
+  mirrors: Box[];
 }
 
 export function truckShell(truck: TruckSnapshot): TruckShell {
@@ -96,7 +109,84 @@ export function truckShell(truck: TruckSnapshot): TruckShell {
     addAxle(rearZ - TANDEM_GAP);
   }
 
-  return { deckHeight: DECK_HEIGHT, cab, windshield, chassis, bumper, wheels };
+  // ---- estrutura do baú ----
+  // Um baú real tem esqueleto aparente: longarinas no teto, montantes nas
+  // quinas e o batente da porta atrás. Sem isso ele lê como caixa de papelão
+  // gigante, por mais correta que a medida esteja.
+  const topo = DECK_HEIGHT + height;
+  const traseira = length;
+
+  const roofRails: Box[] = [
+    { position: [PROFILE / 2, topo + PROFILE / 2, length / 2], size: [PROFILE, PROFILE, length] },
+    {
+      position: [width - PROFILE / 2, topo + PROFILE / 2, length / 2],
+      size: [PROFILE, PROFILE, length],
+    },
+  ];
+
+  const cornerPosts: Box[] = [0, traseira].flatMap((z) =>
+    [PROFILE / 2, width - PROFILE / 2].map((x) => ({
+      position: [x, DECK_HEIGHT + height / 2, z] as [number, number, number],
+      size: [PROFILE, height, PROFILE] as [number, number, number],
+    })),
+  );
+
+  // batente da porta: moldura em U no fim do baú
+  const doorFrame: Box[] = [
+    {
+      position: [width / 2, topo + PROFILE / 2, traseira],
+      size: [width, PROFILE, PROFILE],
+    },
+    {
+      position: [width / 2, DECK_HEIGHT - PROFILE / 2, traseira],
+      size: [width, PROFILE, PROFILE],
+    },
+  ];
+
+  // para-lama sobre cada roda: acompanha a posição dos eixos que já existem
+  const fenders: Box[] = wheels.map((wheel) => ({
+    position: [wheel.position[0], wheel.radius + FENDER_GAP, wheel.position[2]],
+    size: [WHEEL_WIDTH * 1.5, 0.07, wheel.radius * 2.5],
+  }));
+
+  // saia lateral entre os eixos, que é o que fecha o vão do chassi
+  const skirtZ = (length * 0.78 - CAB_LENGTH * 0.62) / 2;
+  const sideSkirts: Box[] = [0.02, width - 0.02].map((x) => ({
+    position: [x, DECK_HEIGHT - 0.42, skirtZ],
+    size: [0.05, 0.55, length * 0.52],
+  }));
+
+  const fuelTank: Box = {
+    position: [width + 0.16, DECK_HEIGHT - 0.4, CAB_LENGTH * 0.3],
+    size: [0.34, 0.44, 1.15],
+  };
+
+  const rearGuard: Box = {
+    position: [width / 2, 0.52, traseira + 0.14],
+    size: [width * 0.92, 0.12, 0.1],
+  };
+
+  const mirrors: Box[] = [-0.14, width + 0.14].map((x) => ({
+    position: [x, 0.35 + cabHeight * 0.78, -CAB_LENGTH + 0.34],
+    size: [0.06, 0.34, 0.14],
+  }));
+
+  return {
+    deckHeight: DECK_HEIGHT,
+    cab,
+    windshield,
+    chassis,
+    bumper,
+    wheels,
+    roofRails,
+    cornerPosts,
+    doorFrame,
+    fenders,
+    sideSkirts,
+    fuelTank,
+    rearGuard,
+    mirrors,
+  };
 }
 
 /** Câmera recuada o bastante para enquadrar cabine + baú + altura do chassi. */

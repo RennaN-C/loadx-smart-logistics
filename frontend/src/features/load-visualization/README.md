@@ -15,6 +15,7 @@ Consome `GET /load-plans/{id}/visualization`.
   para-choque e rodas. **Funções puras, testadas.**
 - `components/productKind.ts`: classifica o produto pelo nome. **Função pura, testada.**
 - `components/cargoTexture.ts`: a superfície dos volumes por tipo, desenhada em canvas.
+- `components/cameraViews.ts`: os cinco ângulos prontos. **Funções puras, testadas.**
 
 A tela vive na aba "Visualização 3D" de `features/load-planning/pages/PlanningPage.tsx`.
 
@@ -108,6 +109,35 @@ e as rodas no caminho.
 **Animação (OC33)**: os volumes aparecem na ordem de carregamento; o que ainda não entrou fica
 esmaecido em vez de sumir, para não dar a impressão de que o espaço está livre. Ao chegar ao fim, volta
 sozinha para a carga completa. Há também um controle deslizante para percorrer passo a passo.
+
+## Cinco ângulos prontos
+
+Girar até achar o ponto de vista certo é trabalho que a tela pode poupar: conferir uma carga tem
+sempre as mesmas perguntas, e cada uma tem um ângulo que a responde. **Lateral** mostra as camadas e
+a altura de empilhamento; **topo**, o aproveitamento do piso; **traseira** é o que o conferente vê
+ao abrir a porta; **interna** põe a câmera dentro do baú, olhando para o fundo — a única que não
+mira o centro.
+
+Tudo derivado das medidas: um baú de 9 m precisa de mais recuo que um de 4 m, e a mira sobe junto
+com a carga quando o exterior do caminhão está ligado.
+
+## Os indicadores vêm do backend, não daqui
+
+Ocupação, peso e contagens são os números que o backend já publicou no plano, repassados pela
+`PlanningPage`. O viewer **não recalcula**: refazer a conta aqui abriria divergência entre o que se
+lê na tela e o que foi validado no cálculo (`docs/11`).
+
+## O que ainda depende do backend
+
+O nível de organização da carga — volumes iguais em colunas e camadas alinhadas, formando blocos —
+**não é da visualização, é do algoritmo de empacotamento**. A engine atual (`heuristic-v1`) usa
+first-fit sobre pontos candidatos; nenhum viewer transforma isso em parede organizada. Uma
+estratégia de *wall building* no otimizador é o que muda essa imagem, e mora em
+`backend/app/modules/load_planning/optimizer`.
+
+Pelo mesmo motivo não existe contagem de "blocos": o backend não tem esse conceito, e derivá-lo aqui
+agrupando volumes vizinhos seria lógica geométrica no frontend, exatamente o que `docs/11` marca
+como `RISCO IDENTIFICADO`.
 
 ## O piso não pisca mais: superfícies coplanares
 

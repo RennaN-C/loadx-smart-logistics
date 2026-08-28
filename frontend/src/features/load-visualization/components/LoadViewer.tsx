@@ -5,7 +5,8 @@ import { ApiError } from "../../../types/api";
 import { getLoadPlanVisualization } from "../../load-planning/api/loadPlansApi";
 import { REJECTION_LABELS, ROTATION_LABELS } from "../../load-planning/components/loadPlanLabels";
 import { mapLoadPlanErrorToMessage } from "../../load-planning/components/loadPlansErrorMessages";
-import type { LoadPlanVisualization, PlacedItem } from "../../load-planning/types";
+import type { LoadPlan, LoadPlanVisualization, PlacedItem } from "../../load-planning/types";
+import { VIEW_HINTS, VIEW_LABELS, VIEW_PRESETS, type ViewPreset } from "./cameraViews";
 import { LoadScene } from "./LoadScene";
 import { deliveryColor, deliverySequences } from "./sceneGeometry";
 import "./LoadViewer.css";
@@ -15,15 +16,24 @@ const STEP_MS = 420;
 
 interface LoadViewerProps {
   readonly planId: string;
+  /**
+   * Métricas prontas, vindas da página. O viewer NÃO recalcula ocupação nem
+   * peso: são números que o backend já publicou, e refazer a conta aqui abriria
+   * divergência entre o que se lê e o que foi validado (`docs/11`).
+   */
+  readonly plan: LoadPlan;
 }
 
-export function LoadViewer({ planId }: LoadViewerProps) {
+export function LoadViewer({ planId, plan }: LoadViewerProps) {
   const [view, setView] = useState<LoadPlanVisualization | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showTruck, setShowTruck] = useState(true);
   const [realistic, setRealistic] = useState(true);
+  // `view` já é a visualização carregada; este é o ÂNGULO da câmera.
+  const [angle, setAngle] = useState<ViewPreset>("isometric");
+  const [highlightFragile, setHighlightFragile] = useState(false);
 
   // OC33: quantos volumes já "entraram" no baú. null = carga completa, sem animar.
   const [step, setStep] = useState<number | null>(null);
@@ -108,6 +118,47 @@ export function LoadViewer({ planId }: LoadViewerProps) {
 
   return (
     <div className="viewer">
+      {/* Números do backend, não recalculados aqui. */}
+      <div className="viewer-kpis">
+        <div className="viewer-kpi">
+          <span className="viewer-kpi-label">OCUPAÇÃO</span>
+          <span className="viewer-kpi-value">
+            {plan.occupancyPercent.toFixed(1)}
+            <small>%</small>
+          </span>
+        </div>
+        <div className="viewer-kpi">
+          <span className="viewer-kpi-label">PESO EMBARCADO</span>
+          <span className="viewer-kpi-value">
+            {(plan.totalWeightKg / 1000).toFixed(2)}
+            <small>t</small>
+          </span>
+        </div>
+        <div className="viewer-kpi">
+          <span className="viewer-kpi-label">VOLUMES</span>
+          <span className="viewer-kpi-value">{plan.loadedCount}</span>
+        </div>
+        <div className={plan.unloadedCount > 0 ? "viewer-kpi viewer-kpi-alert" : "viewer-kpi"}>
+          <span className="viewer-kpi-label">FORA DA CARGA</span>
+          <span className="viewer-kpi-value">{plan.unloadedCount}</span>
+        </div>
+      </div>
+
+      <div className="viewer-views" role="group" aria-label="Ângulo da câmera">
+        {VIEW_PRESETS.map((preset) => (
+          <button
+            key={preset}
+            type="button"
+            className={preset === angle ? "viewer-view is-active" : "viewer-view"}
+            aria-pressed={preset === angle}
+            title={VIEW_HINTS[preset]}
+            onClick={() => setAngle(preset)}
+          >
+            {VIEW_LABELS[preset]}
+          </button>
+        ))}
+      </div>
+
       <div className="viewer-canvas">
         <LoadScene
           truck={view.truck}
@@ -117,10 +168,21 @@ export function LoadViewer({ planId }: LoadViewerProps) {
           visibleIds={visibleIds}
           showTruck={showTruck}
           realistic={realistic}
+          view={angle}
+          highlightFragile={highlightFragile}
         />
       </div>
 
       <div className="viewer-controls">
+        <label className="viewer-toggle" htmlFor="viewer-fragile">
+          <input
+            id="viewer-fragile"
+            type="checkbox"
+            checked={highlightFragile}
+            onChange={(event) => setHighlightFragile(event.target.checked)}
+          />
+          <span>Destacar frágeis</span>
+        </label>
         <label className="viewer-toggle" htmlFor="viewer-realistic">
           <input
             id="viewer-realistic"

@@ -2,6 +2,8 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) 280px;
   grid-template-areas:
+    "kpis side"
+    "views side"
     "canvas side"
     "controls side";
   gap: 16px;
@@ -12,6 +14,8 @@
   .viewer {
     grid-template-columns: 1fr;
     grid-template-areas:
+      "kpis"
+      "views"
       "canvas"
       "controls"
       "side";
@@ -161,4 +165,87 @@
   font-size: 0.85rem;
   white-space: nowrap;
   cursor: pointer;
+}
+
+/* ---- indicadores e vistas ---- */
+
+.viewer-kpis {
+  grid-area: kpis;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.viewer-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+
+.viewer-kpi-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+}
+
+.viewer-kpi-value {
+  font-family: var(--font-mono);
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.viewer-kpi-value small {
+  font-size: 0.85rem;
+  margin-left: 2px;
+  color: var(--muted);
+}
+
+/* volume que ficou de fora exige ação, então não pode ter o peso dos outros */
+.viewer-kpi-alert .viewer-kpi-value {
+  color: var(--danger);
+}
+
+.viewer-views {
+  grid-area: views;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.viewer-view {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 7px 11px;
+  cursor: pointer;
+}
+
+.viewer-view:hover {
+  color: var(--ink);
+  border-color: var(--accent);
+}
+
+.viewer-view.is-active {
+  color: var(--accent-strong);
+  border-color: var(--accent);
+  background: var(--accent-bg);
+  font-weight: 700;
+}
+
+.viewer-view:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(201, 122, 34, 0.35);
 }

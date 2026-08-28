@@ -5,10 +5,11 @@ import { BackSide, BoxGeometry } from "three";
 import type { PlacedItem, TruckSnapshot } from "../../load-planning/types";
 import { cargoTextures } from "./cargoTexture";
 import { CameraControls } from "./CameraControls";
-import { cameraPosition, deliveryColor, itemBox, truckBox } from "./sceneGeometry";
+import { viewCamera, type ViewPreset } from "./cameraViews";
+import { deliveryColor, itemBox, truckBox } from "./sceneGeometry";
 import { classifyProduct } from "./productKind";
 import { TruckShellMesh } from "./TruckShellMesh";
-import { shellCameraPosition, truckShell } from "./truckShell";
+import { truckShell } from "./truckShell";
 
 /** Quanto o desenho do baú afunda para não coincidir com a base dos volumes. */
 const SHELL_SINK = 0.012;
@@ -18,10 +19,12 @@ interface VolumeProps {
   readonly selected: boolean;
   readonly dimmed: boolean;
   readonly realistic: boolean;
+  /** Já resolvido por quem chama: só é `true` com o realce ligado E item frágil. */
+  readonly fragile: boolean;
   readonly onSelect: (id: string) => void;
 }
 
-function Volume({ item, selected, dimmed, realistic, onSelect }: VolumeProps) {
+function Volume({ item, selected, dimmed, realistic, fragile, onSelect }: VolumeProps) {
   // As medidas vêm do item, JÁ ROTACIONADAS pelo backend. Volume grande é
   // grande na cena; se todos aparecem iguais, é porque foram cadastrados iguais.
   const box = itemBox(item);
@@ -81,9 +84,9 @@ function Volume({ item, selected, dimmed, realistic, onSelect }: VolumeProps) {
       <lineSegments>
         <edgesGeometry args={[geometria]} />
         <lineBasicMaterial
-          color={realistic ? color : "#14181d"}
+          color={fragile ? "#e0685a" : realistic ? color : "#14181d"}
           transparent
-          opacity={dimmed ? 0.06 : realistic ? 0.75 : 0.35}
+          opacity={dimmed ? 0.06 : fragile ? 1 : realistic ? 0.75 : 0.35}
         />
       </lineSegments>
 
@@ -110,6 +113,10 @@ export interface LoadSceneProps {
   readonly showTruck: boolean;
   /** Superfície do produto e sombras; desligado volta às cores chapadas. */
   readonly realistic: boolean;
+  /** Ângulo de onde a cena é olhada. */
+  readonly view: ViewPreset;
+  /** Realça os volumes marcados como frágeis no cadastro. */
+  readonly highlightFragile: boolean;
 }
 
 export function LoadScene({
@@ -120,6 +127,8 @@ export function LoadScene({
   visibleIds,
   showTruck,
   realistic,
+  view,
+  highlightFragile,
 }: LoadSceneProps) {
   const box = truckBox(truck);
   const shell = truckShell(truck);
@@ -127,7 +136,7 @@ export function LoadScene({
   // intactas dentro do grupo — nenhuma conversão a mais, nenhuma chance de
   // divergir do que o backend calculou.
   const deck = showTruck ? shell.deckHeight : 0;
-  const alvo: [number, number, number] = [box.position[0], box.position[1] + deck, box.position[2]];
+  const camera = viewCamera(truck, view, deck);
 
   // A sombra precisa enquadrar o baú inteiro, senão só parte da carga projeta.
   const alcance = Math.max(box.size[0], box.size[1], box.size[2]) * 1.2;
@@ -141,7 +150,7 @@ export function LoadScene({
   return (
     <Canvas
       camera={{
-        position: showTruck ? shellCameraPosition(truck) : cameraPosition(truck),
+        position: camera.position,
         fov: 45,
         // O padrão vai de 0,1 a 1000 e joga fora precisão de profundidade num
         // cenário de ~20 m. Apertar o alcance é o que dá margem para superfícies
@@ -207,13 +216,14 @@ export function LoadScene({
             selected={item.id === selectedId}
             dimmed={visibleIds !== null && !visibleIds.has(item.id)}
             realistic={realistic}
+            fragile={highlightFragile && item.fragile}
             onSelect={onSelect}
           />
         ))}
       </group>
 
       <gridHelper args={[Math.max(box.size[0], box.size[2]) * 2.4, 14, "#a09b8f", "#d9d5c7"]} />
-      <CameraControls target={alvo} />
+      <CameraControls target={camera.target} position={camera.position} />
     </Canvas>
   );
 }
