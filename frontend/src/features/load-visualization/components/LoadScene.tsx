@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import { BackSide, BoxGeometry } from "three";
 
 import type { PlacedItem, TruckSnapshot } from "../../load-planning/types";
-import { cargoTextures } from "./cargoTexture";
+import { cargoTextures, kraftVariant } from "./cargoTexture";
 import { CameraControls } from "./CameraControls";
 import { viewCamera, type ViewPreset } from "./cameraViews";
 import { deliveryColor, itemBox, truckBox } from "./sceneGeometry";
@@ -30,7 +30,11 @@ function Volume({ item, selected, dimmed, realistic, fragile, onSelect }: Volume
   const box = itemBox(item);
   const color = deliveryColor(item.deliverySequence);
   // O nome cadastrado decide a aparência: "TV 50" vira tela, não caixa.
-  const faces = realistic ? cargoTextures(classifyProduct(item.productName)) : null;
+  // O tom do papelão sai do CÓDIGO do produto: pilha do mesmo item fica
+  // uniforme, pilhas diferentes não saem todas iguais.
+  const faces = realistic
+    ? cargoTextures(classifyProduct(item.productName), kraftVariant(item.productCode))
+    : null;
   // uma geometria por volume, reaproveitada entre quadros
   const geometria = useMemo(
     () => new BoxGeometry(box.size[0], box.size[1], box.size[2]),
@@ -55,9 +59,13 @@ function Volume({ item, selected, dimmed, realistic, fragile, onSelect }: Volume
               key={`${item.id}-${index}`}
               attach={`material-${index}`}
               map={texture ?? undefined}
+              // A mesma imagem serve de relevo: a fibra, a fita e a cinta
+              // deixam de ser desenho e passam a pegar luz como superfície.
+              bumpMap={texture ?? undefined}
+              bumpScale={0.35}
               // Sem `color`: tingir deixaria a TV laranja, e TV laranja não é
               // TV. A cor da entrega migrou para a aresta, logo abaixo.
-              roughness={0.82}
+              roughness={0.88}
               metalness={0}
               transparent={dimmed}
               opacity={dimmed ? 0.12 : 1}
@@ -140,6 +148,7 @@ export function LoadScene({
 
   // A sombra precisa enquadrar o baú inteiro, senão só parte da carga projeta.
   const alcance = Math.max(box.size[0], box.size[1], box.size[2]) * 1.2;
+  const cx = box.position[0];
 
   // Reaproveitada entre renders: criar geometria a cada quadro vaza memória de GPU.
   const caixaDoBau = useMemo(
@@ -170,7 +179,7 @@ export function LoadScene({
             position={[alcance * 0.8, alcance * 1.3, alcance * 0.7]}
             intensity={1.5}
             castShadow
-            shadow-mapSize={[1024, 1024]}
+            shadow-mapSize={[2048, 2048]}
             shadow-camera-left={-alcance}
             shadow-camera-right={alcance}
             shadow-camera-top={alcance}
@@ -178,7 +187,10 @@ export function LoadScene({
             shadow-camera-far={alcance * 4}
             shadow-bias={-0.0012}
           />
-          <directionalLight position={[-alcance, alcance * 0.5, -alcance]} intensity={0.35} />
+          <directionalLight position={[-alcance, alcance * 0.5, -alcance]} intensity={0.32} />
+          {/* rasante de trás: separa uma caixa da outra nas pilhas do fundo,
+              onde a luz principal não alcança e tudo virava um bloco escuro */}
+          <directionalLight position={[cx, alcance * 0.35, -alcance * 0.8]} intensity={0.22} />
         </>
       ) : (
         <>

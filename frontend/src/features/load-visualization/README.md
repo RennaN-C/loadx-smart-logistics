@@ -67,9 +67,33 @@ do baú — que é de onde a câmera olha. Custo: **2,2 KiB gzip** no chunk. Um 
 geladeira e fogão comeria a folga inteira do orçamento, a mesma conta que levou o caminhão a ser
 construído em vez de importado. Cada tipo novo custa algumas dezenas de linhas e zero byte de asset.
 
-Medido no navegador sobre o código real, já que jsdom não tem canvas: o brilho médio de cada
-textura bate com o que ela representa — TV, tampo de fogão e micro-ondas entre 25 e 41, geladeira e
-lavadora entre 184 e 207, papelão em 146.
+### O que faz a caixa parecer caixa
+
+Quatro coisas, e nenhuma delas é a cor:
+
+- **Cinta de amarração** em duas faixas nas quatro laterais, com brilho de plástico e a sombra que
+  ela projeta no papelão logo abaixo. É o detalhe que mais separa carga paletizada de "cubo marrom".
+- **Vinco com bisel**: depois da faixa escura da quina vem uma faixa CLARA. Caixa de verdade não tem
+  quina viva, e é esse par escuro-claro que o olho lê como aresta arredondada pegando luz.
+- **Três tons de papelão**, escolhidos pelo código do produto. Uma pilha do mesmo item continua
+  uniforme — como fica no caminhão —, mas pilhas diferentes não saem todas iguais, que é o que mais
+  entrega uma cena sintética.
+- **Relevo**: a mesma imagem serve de `bumpMap`. A fibra, a fita e a cinta deixam de ser desenho e
+  passam a pegar luz como superfície.
+
+A textura subiu para 512px porque a câmera CHEGA PERTO: na vista interna um volume ocupa meia tela,
+e a 256 a fibra virava borrão. Junto veio filtragem anisotrópica, sem a qual a face vista de
+esguelha — a maioria numa carga empilhada — vira mancha.
+
+Medido no navegador sobre o código real, já que jsdom não tem canvas: os três tons ficam em 132, 140
+e 151 de brilho médio, separados o bastante para distinguir sem destoar; a granulação subiu de 67
+para ~100 níveis de variação; a cinta contrasta 70 níveis contra o papelão; e a sequência do bisel
+sai 102 na borda, 149 logo dentro e 142 no meio. O brilho médio de cada tipo bate com o que ele
+representa — TV, tampo de fogão e micro-ondas entre 25 e 41, geladeira e lavadora entre 184 e 207.
+
+O tom entra na chave do cache só para o papelão. Eletrodoméstico tem cor própria e ignora o tom;
+sem essa normalização, uma geladeira cujo código caísse no tom 2 geraria uma segunda leva idêntica
+na memória da placa.
 
 O cache é por TIPO e vive enquanto a aba viver. O teto é a quantidade de tipos, constante, e não
 cresce com o tamanho da carga. Liberar num efeito criava problema pior: o StrictMode monta,

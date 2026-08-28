@@ -15,12 +15,31 @@ import type { ProductKind } from "./productKind";
  * geometria faria a tela mentir sobre o espaço ocupado (`docs/11`).
  */
 
-/** Lado da textura em pixels. 256 basta: o volume nunca ocupa a tela inteira. */
-const SIZE = 256;
+/**
+ * Lado da textura em pixels. 512 porque a câmera CHEGA PERTO: na vista interna
+ * um volume ocupa meia tela, e a 256 a fibra virava borrão.
+ */
+const SIZE = 512;
 
-const KRAFT_LIGHT = "#c9a678";
-const KRAFT = "#b8946a";
-const KRAFT_DARK = "#9a7850";
+/**
+ * Três tons de papelão. Numa carga real as caixas não saem todas da mesma
+ * bobina, e pilha toda igual é o que mais entrega que a cena é sintética. O tom
+ * é escolhido pelo CÓDIGO do produto, então uma pilha do mesmo item continua
+ * uniforme — que é como fica no caminhão de verdade.
+ */
+const KRAFT_TONES = [
+  { light: "#cbaa7c", base: "#b8946a", dark: "#9a7850" },
+  { light: "#c3a074", base: "#ad8a63", dark: "#8e6f4a" },
+  { light: "#d3b489", base: "#c2a077", dark: "#a48155" },
+] as const;
+
+export function kraftVariant(productCode: string): number {
+  let hash = 0;
+  for (let i = 0; i < productCode.length; i += 1) {
+    hash = (hash * 31 + productCode.charCodeAt(i)) % 9973;
+  }
+  return hash % KRAFT_TONES.length;
+}
 
 /**
  * jsdom não tem canvas: a suíte monta componentes que importam este arquivo,
@@ -46,39 +65,93 @@ function noiseAt(index: number): number {
   return value - Math.floor(value);
 }
 
-/** Escurece a moldura, para a quina do volume aparecer sem depender da luz. */
+/**
+ * Vinco da quina. Não é só sombra: logo depois da faixa escura vem uma faixa
+ * CLARA, que é o que o olho lê como aresta arredondada pegando luz. Caixa de
+ * verdade não tem quina viva, e sem esse par o volume fica com cara de cubo.
+ */
 function paintEdges(ctx: CanvasRenderingContext2D, strength = 0.34) {
   for (const horizontal of [false, true]) {
     const gradient = horizontal
       ? ctx.createLinearGradient(0, 0, SIZE, 0)
       : ctx.createLinearGradient(0, 0, 0, SIZE);
     gradient.addColorStop(0, `rgba(20, 16, 10, ${strength})`);
-    gradient.addColorStop(0.08, "rgba(20, 16, 10, 0)");
-    gradient.addColorStop(0.92, "rgba(20, 16, 10, 0)");
+    gradient.addColorStop(0.035, `rgba(20, 16, 10, ${strength * 0.5})`);
+    gradient.addColorStop(0.06, `rgba(255, 245, 225, ${strength * 0.42})`);
+    gradient.addColorStop(0.13, "rgba(20, 16, 10, 0)");
+    gradient.addColorStop(0.87, "rgba(20, 16, 10, 0)");
+    gradient.addColorStop(0.94, `rgba(255, 245, 225, ${strength * 0.42})`);
+    gradient.addColorStop(0.965, `rgba(20, 16, 10, ${strength * 0.5})`);
     gradient.addColorStop(1, `rgba(20, 16, 10, ${strength})`);
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, SIZE, SIZE);
   }
 }
 
-function paintKraft(ctx: CanvasRenderingContext2D) {
-  ctx.fillStyle = KRAFT;
+function paintKraft(ctx: CanvasRenderingContext2D, variant: number) {
+  const tone = KRAFT_TONES[variant % KRAFT_TONES.length];
+  ctx.fillStyle = tone.base;
   ctx.fillRect(0, 0, SIZE, SIZE);
 
-  // fibra do papelão: riscos horizontais curtos, claros e escuros
-  for (let i = 0; i < 1400; i += 1) {
+  // Fibra do papelão. Riscos curtos e horizontais, e o dobro deles agora que a
+  // textura tem o dobro do lado — senão a granulação rareia ao aproximar.
+  for (let i = 0; i < 4200; i += 1) {
     const x = noiseAt(i) * SIZE;
     const y = noiseAt(i + 7000) * SIZE;
-    const comprimento = 2 + noiseAt(i + 3000) * 7;
-    ctx.strokeStyle = noiseAt(i + 500) > 0.5 ? KRAFT_LIGHT : KRAFT_DARK;
-    ctx.globalAlpha = 0.16 + noiseAt(i + 900) * 0.2;
+    const comprimento = 3 + noiseAt(i + 3000) * 13;
+    ctx.strokeStyle = noiseAt(i + 500) > 0.5 ? tone.light : tone.dark;
+    ctx.globalAlpha = 0.14 + noiseAt(i + 900) * 0.18;
     ctx.beginPath();
     ctx.moveTo(x, y);
     ctx.lineTo(x + comprimento, y);
     ctx.stroke();
   }
+
+  // manchas largas: papelão nunca é de um tom só
+  for (let i = 0; i < 26; i += 1) {
+    const raio = SIZE * (0.08 + noiseAt(i + 210) * 0.16);
+    const mancha = ctx.createRadialGradient(
+      noiseAt(i + 11) * SIZE,
+      noiseAt(i + 61) * SIZE,
+      0,
+      noiseAt(i + 11) * SIZE,
+      noiseAt(i + 61) * SIZE,
+      raio,
+    );
+    const escura = noiseAt(i + 400) > 0.5;
+    mancha.addColorStop(0, escura ? "rgba(120, 92, 56, 0.11)" : "rgba(255, 240, 214, 0.1)");
+    mancha.addColorStop(1, "rgba(0, 0, 0, 0)");
+    ctx.fillStyle = mancha;
+    ctx.fillRect(0, 0, SIZE, SIZE);
+  }
+
   ctx.globalAlpha = 1;
   paintEdges(ctx);
+}
+
+/**
+ * Cinta de amarração. É o detalhe que mais diferencia carga paletizada de
+ * "cubo marrom": duas fitas escuras cruzando a face, com brilho de plástico.
+ */
+function paintStrap(ctx: CanvasRenderingContext2D) {
+  const largura = SIZE * 0.055;
+
+  for (const centro of [SIZE * 0.3, SIZE * 0.72]) {
+    const topo = centro - largura / 2;
+    ctx.fillStyle = "rgba(58, 44, 28, 0.82)";
+    ctx.fillRect(0, topo, SIZE, largura);
+
+    const brilho = ctx.createLinearGradient(0, topo, 0, topo + largura);
+    brilho.addColorStop(0, "rgba(255, 255, 255, 0.26)");
+    brilho.addColorStop(0.4, "rgba(255, 255, 255, 0.04)");
+    brilho.addColorStop(1, "rgba(0, 0, 0, 0.22)");
+    ctx.fillStyle = brilho;
+    ctx.fillRect(0, topo, SIZE, largura);
+
+    // sombra que a cinta projeta no papelão logo abaixo
+    ctx.fillStyle = "rgba(40, 28, 16, 0.22)";
+    ctx.fillRect(0, topo + largura, SIZE, largura * 0.32);
+  }
 }
 
 function paintTape(ctx: CanvasRenderingContext2D) {
@@ -279,10 +352,19 @@ function paintMicrowaveFront(ctx: CanvasRenderingContext2D) {
 /** Faces na ordem do `boxGeometry`: +X, -X, +Y (topo), -Y, +Z (frente), -Z. */
 type Painter = (ctx: CanvasRenderingContext2D) => void;
 
-function facePainters(kind: ProductKind): readonly [Painter, Painter, Painter, Painter, Painter, Painter] {
-  const kraft: Painter = paintKraft;
+function facePainters(
+  kind: ProductKind,
+  variant: number,
+): readonly [Painter, Painter, Painter, Painter, Painter, Painter] {
+  // Cinta só nas quatro laterais: no topo ela brigaria com a fita, e a base
+  // ninguém vê.
+  const lateral: Painter = (ctx) => {
+    paintKraft(ctx, variant);
+    paintStrap(ctx);
+  };
+  const fundo: Painter = (ctx) => paintKraft(ctx, variant);
   const caixaTopo: Painter = (ctx) => {
-    paintKraft(ctx);
+    paintKraft(ctx, variant);
     paintTape(ctx);
   };
 
@@ -308,7 +390,7 @@ function facePainters(kind: ProductKind): readonly [Painter, Painter, Painter, P
       return [lado, lado, lado, lado, paintMicrowaveFront, lado];
     }
     default:
-      return [kraft, kraft, caixaTopo, kraft, kraft, kraft];
+      return [lateral, lateral, caixaTopo, fundo, lateral, lateral];
   }
 }
 
@@ -321,6 +403,9 @@ function buildTexture(paint: Painter): Texture | null {
   const texture = new CanvasTexture(ctx.canvas);
   // sem isto a superfície sai lavada: o canvas já entrega cor em sRGB
   texture.colorSpace = SRGBColorSpace;
+  // Filtragem anisotrópica: sem ela a face vista de esguelha — que é a maioria
+  // numa carga empilhada — vira um borrão. O Three limita ao teto da placa.
+  texture.anisotropy = 8;
   return texture;
 }
 
@@ -335,13 +420,17 @@ function buildTexture(paint: Painter): Texture | null {
  * problema pior — o StrictMode monta, desmonta e remonta, então o descarte
  * rodava no meio e deixava material apontando para textura já liberada.
  */
-const cache = new Map<ProductKind, (Texture | null)[]>();
+const cache = new Map<string, (Texture | null)[]>();
 
-export function cargoTextures(kind: ProductKind): (Texture | null)[] {
-  const cached = cache.get(kind);
+export function cargoTextures(kind: ProductKind, variant = 0): (Texture | null)[] {
+  // Só papelão usa o tom; eletrodoméstico tem cor própria. Sem esta linha, uma
+  // geladeira cujo código caísse no tom 2 geraria uma segunda leva IDÊNTICA na
+  // memória da placa, só por causa da chave.
+  const chave = `${kind}:${kind === "box" ? variant : 0}`;
+  const cached = cache.get(chave);
   if (cached) return cached;
 
-  const faces = facePainters(kind).map(buildTexture);
-  cache.set(kind, faces);
+  const faces = facePainters(kind, variant).map(buildTexture);
+  cache.set(chave, faces);
   return faces;
 }
