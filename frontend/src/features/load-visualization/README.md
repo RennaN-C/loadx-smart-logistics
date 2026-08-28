@@ -130,9 +130,24 @@ sozinho consumiria quase toda a folga do orçamento de bundle.
 O exterior pode ser desligado no controle "Mostrar caminhão", para inspecionar a carga sem a cabine
 e as rodas no caminho.
 
-**Animação (OC33)**: os volumes aparecem na ordem de carregamento; o que ainda não entrou fica
-esmaecido em vez de sumir, para não dar a impressão de que o espaço está livre. Ao chegar ao fim, volta
-sozinha para a carga completa. Há também um controle deslizante para percorrer passo a passo.
+## Passo a passo do carregamento (OC33)
+
+Um passo é **um volume**. O volume do passo desliza da porta até a posição, e os que ainda não
+entraram ficam esmaecidos em vez de sumir — sumindo, o espaço deles pareceria livre.
+
+**A câmera não se mexe sozinha.** Quem confere precisa manter o próprio ângulo, então o movimento do
+volume é o único sinal de qual está entrando agora. Por isso a entrada é animada: sem ela, avançar
+um passo com a câmera parada seria uma caixa aparecendo do nada.
+
+O progresso da animação vive num `ref`, não em estado: animar por estado dispararia um render do
+React a cada quadro, e quem já está dentro do laço do Three não precisa disso.
+
+Avançar o passo **seleciona** o volume, então o painel lateral de detalhe acompanha sem código
+extra. As setas ← e → percorrem a sequência, e só respondem com o passo a passo aberto — fora dele
+elas sequestrariam a rolagem da página.
+
+Ao chegar ao último, a reprodução para no volume final em vez de voltar à carga completa: quem
+chegou ao fim quer ver a carga fechada, não recomeçar.
 
 ## Cinco ângulos prontos
 

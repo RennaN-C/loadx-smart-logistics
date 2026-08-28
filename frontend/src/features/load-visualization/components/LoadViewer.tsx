@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { AlertBanner } from "../../../components/AlertBanner";
 import { ApiError } from "../../../types/api";
@@ -81,8 +81,10 @@ export function LoadViewer({ planId, plan }: LoadViewerProps) {
       setStep((current) => {
         const next = (current ?? 0) + 1;
         if (next >= ordered.length) {
+          // para no último volume em vez de sumir com o passo a passo: quem
+          // chegou ao fim quer ver a carga fechada, não voltar ao começo
           setIsPlaying(false);
-          return null; // chegou ao fim: volta a mostrar a carga inteira
+          return ordered.length - 1;
         }
         return next;
       });
@@ -93,10 +95,47 @@ export function LoadViewer({ planId, plan }: LoadViewerProps) {
     };
   }, [isPlaying, ordered.length]);
 
+  /**
+   * `step` é o ÍNDICE do volume que está entrando agora, e ele entra no conjunto
+   * visível: precisa estar na cena para deslizar até o lugar. Os seguintes ficam
+   * esmaecidos, não escondidos, senão o espaço deles pareceria livre.
+   */
   const visibleIds = useMemo(() => {
     if (step === null) return null;
-    return new Set(ordered.slice(0, step).map((item) => item.id));
+    return new Set(ordered.slice(0, step + 1).map((item) => item.id));
   }, [ordered, step]);
+
+  const current = step === null ? null : (ordered[step] ?? null);
+
+  const goTo = useCallback(
+    (next: number) => {
+      setIsPlaying(false);
+      const limite = Math.max(0, Math.min(next, ordered.length - 1));
+      setStep(limite);
+      // selecionar junto faz o painel lateral já mostrar o volume do passo
+      setSelectedId(ordered[limite]?.id ?? null);
+    },
+    [ordered],
+  );
+
+  // ←→ percorrem a sequência. Só enquanto o passo a passo está aberto, para as
+  // setas não sequestrarem a rolagem da página no uso normal.
+  useEffect(() => {
+    if (step === null) return;
+
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        goTo(step + 1);
+      } else if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        goTo(step - 1);
+      }
+    };
+
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [goTo, step]);
 
   const selected: PlacedItem | undefined = ordered.find((item) => item.id === selectedId);
 
@@ -170,6 +209,7 @@ export function LoadViewer({ planId, plan }: LoadViewerProps) {
           realistic={realistic}
           view={angle}
           highlightFragile={highlightFragile}
+          enteringId={current?.id ?? null}
         />
       </div>
 
@@ -205,49 +245,80 @@ export function LoadViewer({ planId, plan }: LoadViewerProps) {
           type="button"
           className="btn-secondary"
           onClick={() => {
-            if (isPlaying) {
-              setIsPlaying(false);
+            if (step === null) {
+              goTo(0);
               return;
             }
-            setStep(0);
-            setIsPlaying(true);
+            setStep(null);
+            setIsPlaying(false);
           }}
         >
-          {isPlaying ? "Pausar" : "Ver carregamento"}
+          {step === null ? "Ver carregamento" : "Ver carga completa"}
         </button>
-        {step !== null ? (
-          <>
-            <input
-              type="range"
-              aria-label="Passo do carregamento"
-              min={0}
-              max={ordered.length}
-              value={step}
-              onChange={(event) => {
-                setIsPlaying(false);
-                setStep(Number(event.target.value));
-              }}
-            />
-            <span className="viewer-step">
-              {step} de {ordered.length}
-            </span>
-            <button
-              type="button"
-              className="btn-link"
-              onClick={() => {
-                setIsPlaying(false);
-                setStep(null);
-              }}
-            >
-              Ver carga completa
-            </button>
-          </>
-        ) : (
+
+        {step === null ? (
           <span className="viewer-hint">
             Arraste para girar, role para aproximar. Clique num volume para ver os detalhes.
           </span>
-        )}
+        ) : null}
       </div>
+
+      {step !== null && current ? (
+        <div className="viewer-stepper">
+          <div className="viewer-stepper-nav">
+            <button
+              type="button"
+              className="viewer-step-btn"
+              onClick={() => goTo(step - 1)}
+              disabled={step === 0}
+              aria-label="Volume anterior"
+            >
+              ◀
+            </button>
+            <button
+              type="button"
+              className="viewer-step-btn viewer-step-play"
+              onClick={() => {
+                if (step >= ordered.length - 1) goTo(0);
+                setIsPlaying(!isPlaying);
+              }}
+            >
+              {isPlaying ? "Pausar" : "Tocar"}
+            </button>
+            <button
+              type="button"
+              className="viewer-step-btn"
+              onClick={() => goTo(step + 1)}
+              disabled={step >= ordered.length - 1}
+              aria-label="Próximo volume"
+            >
+              ▶
+            </button>
+            <span className="viewer-step-count">
+              {step + 1} <small>de {ordered.length}</small>
+            </span>
+          </div>
+
+          <input
+            className="viewer-step-range"
+            type="range"
+            aria-label="Passo do carregamento"
+            min={0}
+            max={ordered.length - 1}
+            value={step}
+            onChange={(event) => goTo(Number(event.target.value))}
+          />
+
+          <p className="viewer-step-now">
+            <strong>{current.productCode}</strong> {current.productName}
+            <span>
+              {current.widthCm}×{current.heightCm}×{current.lengthCm} cm · entrega #
+              {current.deliverySequence}
+            </span>
+          </p>
+          <p className="viewer-step-help">Use ← e → para percorrer a sequência.</p>
+        </div>
+      ) : null}
 
       <div className="viewer-side">
         <section>

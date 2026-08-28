@@ -1,6 +1,6 @@
-import { Canvas } from "@react-three/fiber";
-import { useMemo } from "react";
-import { BackSide, BoxGeometry } from "three";
+import { Canvas, useFrame } from "@react-three/fiber";
+import { useEffect, useMemo, useRef } from "react";
+import { BackSide, BoxGeometry, type Group } from "three";
 
 import type { PlacedItem, TruckSnapshot } from "../../load-planning/types";
 import { cargoTextures, kraftVariant } from "./cargoTexture";
@@ -14,6 +14,11 @@ import { truckShell } from "./truckShell";
 /** Quanto o desenho do baú afunda para não coincidir com a base dos volumes. */
 const SHELL_SINK = 0.012;
 
+/** Duração da entrada de um volume no passo a passo, em segundos. */
+const ENTRY_SECONDS = 0.55;
+/** Onde o volume nasce antes de entrar: um pouco além da porta. */
+const ENTRY_MARGIN = 1.4;
+
 interface VolumeProps {
   readonly item: PlacedItem;
   readonly selected: boolean;
@@ -21,10 +26,23 @@ interface VolumeProps {
   readonly realistic: boolean;
   /** Já resolvido por quem chama: só é `true` com o realce ligado E item frágil. */
   readonly fragile: boolean;
+  /** Este é o volume que está ENTRANDO agora no passo a passo. */
+  readonly entering: boolean;
+  /** Z da porta do baú: de onde o volume entra deslizando. */
+  readonly doorZ: number;
   readonly onSelect: (id: string) => void;
 }
 
-function Volume({ item, selected, dimmed, realistic, fragile, onSelect }: VolumeProps) {
+function Volume({
+  item,
+  selected,
+  dimmed,
+  realistic,
+  fragile,
+  entering,
+  doorZ,
+  onSelect,
+}: VolumeProps) {
   // As medidas vêm do item, JÁ ROTACIONADAS pelo backend. Volume grande é
   // grande na cena; se todos aparecem iguais, é porque foram cadastrados iguais.
   const box = itemBox(item);
@@ -41,8 +59,36 @@ function Volume({ item, selected, dimmed, realistic, fragile, onSelect }: Volume
     [box.size],
   );
 
+  /**
+   * Entrada deslizando da porta. A câmera fica parada de propósito — quem
+   * confere precisa manter o próprio ângulo —, então o movimento do volume é o
+   * único sinal de qual está entrando agora.
+   *
+   * O progresso vive num ref, não em estado: animar por estado dispararia um
+   * render do React a cada quadro, e quem já está dentro do laço de renderização
+   * do Three não precisa disso.
+   */
+  const group = useRef<Group>(null);
+  const progress = useRef(1);
+
+  useEffect(() => {
+    progress.current = entering ? 0 : 1;
+  }, [entering, item.id]);
+
+  useFrame((_, delta) => {
+    if (group.current === null) return;
+
+    if (progress.current < 1) {
+      progress.current = Math.min(1, progress.current + delta / ENTRY_SECONDS);
+    }
+    // desacelera no fim, que é como uma caixa encosta no lugar
+    const eased = 1 - (1 - progress.current) ** 3;
+    const partida = doorZ + ENTRY_MARGIN;
+    group.current.position.z = partida + (box.position[2] - partida) * eased;
+  });
+
   return (
-    <group position={box.position}>
+    <group ref={group} position={box.position}>
       <mesh
         castShadow={realistic && !dimmed}
         receiveShadow={realistic && !dimmed}
@@ -125,6 +171,8 @@ export interface LoadSceneProps {
   readonly view: ViewPreset;
   /** Realça os volumes marcados como frágeis no cadastro. */
   readonly highlightFragile: boolean;
+  /** Volume que entra deslizando agora; null fora do passo a passo. */
+  readonly enteringId: string | null;
 }
 
 export function LoadScene({
@@ -137,6 +185,7 @@ export function LoadScene({
   realistic,
   view,
   highlightFragile,
+  enteringId,
 }: LoadSceneProps) {
   const box = truckBox(truck);
   const shell = truckShell(truck);
@@ -229,6 +278,8 @@ export function LoadScene({
             dimmed={visibleIds !== null && !visibleIds.has(item.id)}
             realistic={realistic}
             fragile={highlightFragile && item.fragile}
+            entering={item.id === enteringId}
+            doorZ={box.size[2]}
             onSelect={onSelect}
           />
         ))}
