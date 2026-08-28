@@ -182,6 +182,16 @@ O contorno dos volumes tinha o mesmo problema em menor escala: era uma caixa 0,1
 dois décimos de milímetro num volume de 40 cm, dentro da margem de erro do buffer. Virou aresta
 também.
 
+Depois apareceu o mesmo defeito na FRENTE, e lá eram **três** superfícies no mesmo plano de uma vez:
+a face dianteira da cabine, a traseira do para-choque e a dianteira do chassi, todas em
+`z = -CAB_LENGTH`. O chassi ainda repetia a dose atrás, com a ponta traseira na face do baú. As
+pontas do chassi passaram a recuar `END_CLEARANCE`, e o para-choque entra alguns centímetros DENTRO
+da cabine em vez de encostar nela — sólidos que se interpenetram não brigam, sólidos que se tocam
+brigam.
+
+No caminho apareceu outro defeito: o para-brisa estava 3 cm para DENTRO da cabine, ou seja, a
+cabine tapava o próprio vidro e o detalhe nunca foi visto. Agora é saliente.
+
 Junto disso, a câmera passou a usar `near: 0.05` e `far: 200`. O padrão vai de 0,1 a 1000 e
 desperdiça precisão de profundidade num cenário de vinte metros — apertar o alcance é o que dá
 margem para superfícies próximas conviverem.

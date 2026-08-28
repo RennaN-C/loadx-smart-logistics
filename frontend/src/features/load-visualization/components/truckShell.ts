@@ -26,6 +26,8 @@ export const CAB_LENGTH = 2.3;
 export const CAB_TOP = 2.55;
 /** Folga entre o topo do chassi e o piso do baú, para os dois não coincidirem. */
 const CHASSIS_CLEARANCE = 0.03;
+/** Recuo das pontas do chassi, para não encostarem na cabine nem no baú. */
+const END_CLEARANCE = 0.18;
 /** Espessura dos perfis estruturais do baú: longarina, montante, batente. */
 const PROFILE = 0.07;
 /** Folga entre o topo do pneu e o para-lama. */
@@ -71,26 +73,34 @@ export function truckShell(truck: TruckSnapshot): TruckShell {
     size: [width, cabHeight, CAB_LENGTH],
   };
 
-  // Para-brisa: painel fino no terço superior da frente da cabine.
+  // Para-brisa: painel fino SALIENTE na frente da cabine. Antes ficava 3 cm
+  // para dentro dela, ou seja, invisível — a cabine tapava o próprio vidro.
   const windshield: Box = {
-    position: [width / 2, 0.35 + cabHeight * 0.76, -CAB_LENGTH + 0.06],
-    size: [width * 0.86, cabHeight * 0.34, 0.06],
+    position: [width / 2, 0.35 + cabHeight * 0.76, -CAB_LENGTH - 0.02],
+    size: [width * 0.86, cabHeight * 0.34, 0.05],
   };
 
   // O topo do chassi NÃO pode cair no mesmo plano do piso do baú: duas
   // superfícies coplanares brigam pelo mesmo valor de profundidade e a placa de
   // vídeo alterna entre elas a cada quadro — é o piscar ao girar a câmera.
+  // As pontas ficam RECUADAS das faces da cabine e do baú. Encostadas, as três
+  // superfícies caíam no mesmo plano em z = -CAB_LENGTH e brigavam pelo mesmo
+  // valor de profundidade — era o piscar na frente do caminhão.
+  const chassisFront = -CAB_LENGTH + END_CLEARANCE;
+  const chassisRear = length - END_CLEARANCE;
   const chassis: Box = {
     position: [
       width / 2,
       DECK_HEIGHT - CHASSIS_HEIGHT / 2 - CHASSIS_CLEARANCE,
-      (length - CAB_LENGTH) / 2,
+      (chassisFront + chassisRear) / 2,
     ],
-    size: [width * 0.82, CHASSIS_HEIGHT, length + CAB_LENGTH],
+    size: [width * 0.82, CHASSIS_HEIGHT, chassisRear - chassisFront],
   };
 
+  // Entra alguns centímetros DENTRO da cabine em vez de encostar nela: sólidos
+  // que se interpenetram não brigam, sólidos que se tocam brigam.
   const bumper: Box = {
-    position: [width / 2, 0.4, -CAB_LENGTH - 0.12],
+    position: [width / 2, 0.4, -CAB_LENGTH - 0.09],
     size: [width * 0.96, 0.26, 0.24],
   };
 
