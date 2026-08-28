@@ -9,6 +9,7 @@ import { TripPage } from "../features/deliveries/pages/TripPage";
 import { PlanningPage } from "../features/load-planning/pages/PlanningPage";
 import { OrderListPage } from "../features/orders/pages/OrderListPage";
 import { ProductListPage } from "../features/products/pages/ProductListPage";
+import { ReportsPage } from "../features/reports/pages/ReportsPage";
 import { TruckListPage } from "../features/trucks/pages/TruckListPage";
 import { AppLayout } from "./AppLayout";
 
@@ -25,6 +26,7 @@ export function App() {
               <Route path="products" element={<ProductListPage />} />
               <Route path="contacts" element={<ContactsPage />} />
               <Route path="orders" element={<OrderListPage />} />
+              <Route path="reports" element={<ReportsPage />} />
               <Route path="planning" element={<PlanningPage />} />
               <Route path="planning/:planId" element={<PlanningPage />} />
               <Route path="trips/:tripId" element={<TripPage />} />

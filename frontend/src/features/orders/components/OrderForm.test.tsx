@@ -138,6 +138,40 @@ describe("OrderForm", () => {
     expect(screen.getByLabelText("PRODUTO 1")).toHaveValue("p2");
   });
 
+  it("manda TODOS os itens com a mesma sequência de entrega", async () => {
+    // Regressão: a sequência era um campo por item e cada item novo nascia com
+    // um número diferente. O backend exige uma só por pedido
+    // (`_validate_single_delivery_sequence`), então salvar dois itens devolvia
+    // 422 "Os dados informados são inválidos", sem dizer o motivo.
+    vi.mocked(createOrder).mockResolvedValue(ORDER);
+
+    renderForm();
+    fireEvent.change(screen.getByLabelText("CLIENTE"), { target: { value: "c1" } });
+    fireEvent.change(screen.getByLabelText("ENDEREÇO DE ENTREGA"), {
+      target: { value: "Av. Brasil, 500" },
+    });
+    fireEvent.change(screen.getByLabelText("SEQ. DE ENTREGA"), { target: { value: "3" } });
+    fireEvent.change(screen.getByLabelText("PRODUTO 1"), { target: { value: "p1" } });
+
+    fireEvent.click(screen.getByRole("button", { name: "+ Adicionar item" }));
+    fireEvent.change(screen.getByLabelText("PRODUTO 2"), { target: { value: "p2" } });
+
+    fireEvent.click(screen.getByRole("button", { name: "Cadastrar pedido" }));
+
+    await waitFor(() => expect(createOrder).toHaveBeenCalled());
+    const enviados = vi.mocked(createOrder).mock.calls[0][0].items;
+    expect(enviados).toHaveLength(2);
+    expect(new Set(enviados.map((item) => item.deliverySequence))).toEqual(new Set([3]));
+  });
+
+  it("não oferece sequência por item, que era o convite para divergir", () => {
+    renderForm();
+    fireEvent.click(screen.getByRole("button", { name: "+ Adicionar item" }));
+
+    expect(screen.getByLabelText("SEQ. DE ENTREGA")).toBeInTheDocument();
+    expect(screen.queryByLabelText("SEQ. ENTREGA")).not.toBeInTheDocument();
+  });
+
   it("envia os itens em camelCase e sem previsão quando o campo fica vazio", async () => {
     vi.mocked(createOrder).mockResolvedValue(ORDER);
 

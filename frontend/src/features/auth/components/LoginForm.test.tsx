@@ -27,10 +27,28 @@ describe("mapLoginErrorToMessage", () => {
     );
   });
 
-  it("usa a mensagem do backend para qualquer outro código", () => {
-    expect(
-      mapLoginErrorToMessage(new ApiError("NETWORK_ERROR", "Não foi possível conectar ao servidor.")),
-    ).toBe("Não foi possível conectar ao servidor.");
+  it("orienta o que fazer quando o servidor não responde", () => {
+    const message = mapLoginErrorToMessage(
+      new ApiError("NETWORK_ERROR", "Não foi possível conectar ao servidor."),
+    );
+
+    expect(message).toContain("Verifique sua conexão");
+  });
+
+  it("diz QUAL campo está errado quando o backend recusa a validação", () => {
+    const message = mapLoginErrorToMessage(
+      new ApiError("VALIDATION_ERROR", "Os dados informados são inválidos.", [
+        { field: "email", message: "Field required", type: "missing" },
+      ]),
+    );
+
+    expect(message).toBe("E-mail precisa ser preenchido.");
+  });
+
+  it("usa a mensagem do backend para código que ninguém mapeou", () => {
+    expect(mapLoginErrorToMessage(new ApiError("AUTH_SOMETHING_NEW", "Texto do backend."))).toBe(
+      "Texto do backend.",
+    );
   });
 });
 
