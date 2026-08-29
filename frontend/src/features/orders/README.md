@@ -53,13 +53,11 @@ mostra "Cliente não encontrado" em vez de um espaço vazio. `RISCO IDENTIFICADO
 isso vai aparecer com frequência, e o caminho certo é o backend devolver o nome no `OrderListRead` ou
 abrir busca por id.
 
-## Prioridade: convenção, não contrato
+## Prioridade: contrato oficial
 
-`priority` aceita **qualquer string de até 32 caracteres** no backend — não há enum, ao contrário de
-`status`. O frontend oferece `LOW`, `NORMAL`, `HIGH` e `URGENT` num `<select>` para não virar campo
-livre, mas isso é convenção adotada aqui, não contrato acordado. Registrado como
-`DECISÃO NECESSÁRIA` em `docs/11-riscos-pendencias.md`. `priorityLabel()` cai no valor cru quando
-recebe algo fora da lista, para não esconder dado vindo de outra origem.
+`CONFIRMADO`: `priority` aceita somente `LOW`, `NORMAL`, `HIGH` e `URGENT`. A entrada é normalizada
+para maiúsculas antes da validação, e o `<select>` do frontend oferece os mesmos quatro valores.
+`priorityLabel()` mantém o fallback para o valor cru recebido, sem esconder eventual dado legado.
 
 ## Permissões
 

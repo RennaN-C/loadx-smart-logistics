@@ -71,7 +71,6 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 ## Decisões necessárias
 
 - `DECISÃO NECESSÁRIA`: definir formato final de relatório PDF e se haverá envio por e-mail/WhatsApp no MVP.
-- `DECISÃO NECESSÁRIA`: definir os valores aceitos em `priority` do pedido. `OrderCreate` aceita qualquer string de até 32 caracteres, sem enum e sem validação, ao contrário de `status`. Enquanto não houver definição, a `OC29` usa `LOW`, `NORMAL`, `HIGH` e `URGENT` num `<select>` no frontend — convenção adotada só ali, que precisa virar contrato em `docs/05` e validação no backend para não aceitar prioridade divergente vinda de outra origem.
 
 ## Pendências técnicas
 

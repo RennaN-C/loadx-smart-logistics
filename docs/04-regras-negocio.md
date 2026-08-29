@@ -178,6 +178,9 @@ previsão e itens. `READY` deve voltar a `DRAFT` antes de qualquer edição;
 `PLANNED`, `IN_TRANSIT`, `DELIVERED` e `CANCELED` são imutáveis. Itens já
 referenciados por plano permanecem imutáveis mesmo em `DRAFT`.
 
+`CONFIRMADO`: a prioridade do pedido aceita somente `LOW`, `NORMAL`, `HIGH` e
+`URGENT`. A entrada é normalizada para maiúsculas antes da validação.
+
 `CONFIRMADO`: repetir o estado atual é idempotente e não cria histórico. Status
 não é alterado pelo `PATCH` genérico de pedido.
 
