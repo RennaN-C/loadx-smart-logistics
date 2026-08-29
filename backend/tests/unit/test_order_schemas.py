@@ -40,8 +40,10 @@ def test_order_update_accepts_and_normalizes_allowed_priority(priority: str) -> 
 
 
 def test_order_create_rejects_unknown_priority() -> None:
+    payload = make_order_payload("IMMEDIATE")
+
     with pytest.raises(ValidationError, match="priority must be one of") as exc_info:
-        OrderCreate.model_validate(make_order_payload("IMMEDIATE"))
+        OrderCreate.model_validate(payload)
 
     assert exc_info.value.errors()[0]["loc"] == ("priority",)
 
