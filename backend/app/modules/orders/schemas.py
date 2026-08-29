@@ -11,16 +11,15 @@ ORDER_STATUS_VALUES = {
     "DELIVERED",
     "CANCELED",
 }
+ORDER_PRIORITY_VALUES = ("LOW", "NORMAL", "HIGH", "URGENT")
 
 
-def normalize_required_upper(value: str) -> str:
-    return value.upper()
-
-
-def normalize_optional_upper(value: str | None) -> str | None:
-    if value is None:
-        return None
-    return value.upper()
+def validate_order_priority(value: str) -> str:
+    normalized_value = value.upper()
+    if normalized_value not in ORDER_PRIORITY_VALUES:
+        allowed_values = ", ".join(ORDER_PRIORITY_VALUES)
+        raise ValueError(f"priority must be one of: {allowed_values}")
+    return normalized_value
 
 
 def normalize_optional_utc(value: datetime | None) -> datetime | None:
@@ -69,8 +68,8 @@ class OrderCreate(BaseModel):
 
     @field_validator("priority")
     @classmethod
-    def normalize_priority(cls, value: str) -> str:
-        return normalize_required_upper(value)
+    def validate_priority(cls, value: str) -> str:
+        return validate_order_priority(value)
 
     @field_validator("expected_delivery_at")
     @classmethod
@@ -107,8 +106,10 @@ class OrderUpdate(BaseModel):
 
     @field_validator("priority")
     @classmethod
-    def normalize_priority(cls, value: str | None) -> str | None:
-        return normalize_optional_upper(value)
+    def validate_priority(cls, value: str | None) -> str | None:
+        if value is None:  # pragma: no cover - rejected by the before validator
+            return None
+        return validate_order_priority(value)
 
     @field_validator("expected_delivery_at")
     @classmethod

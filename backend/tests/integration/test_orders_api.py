@@ -233,6 +233,29 @@ def test_create_order_returns_created_resource(
         db.close()
 
 
+def test_create_order_rejects_unknown_priority_with_standard_error(
+    client: TestClient,
+    session_factory: SessionFactory,
+    manager_headers: dict[str, str],
+) -> None:
+    customer_id = create_customer(session_factory)
+    product_id = create_product(session_factory)
+    payload = make_order_payload(customer_id, product_id)
+    payload["priority"] = "IMMEDIATE"
+
+    response = client.post(
+        "/api/v1/orders",
+        json=payload,
+        headers=manager_headers,
+    )
+
+    assert response.status_code == 422
+    body = response.json()
+    assert body["code"] == "VALIDATION_ERROR"
+    assert body["message"] == "Os dados informados são inválidos."
+    assert body["details"][0]["field"] == "priority"
+
+
 def test_list_orders_returns_created_items(
     client: TestClient,
     session_factory: SessionFactory,
@@ -301,6 +324,26 @@ def test_patch_order_updates_header_and_replaces_items(
     assert body["items"][0]["product_id"] == second_product_id
     assert body["items"][0]["quantity"] == 2
     assert body["items"][0]["delivery_sequence"] == 2
+
+
+def test_patch_order_rejects_unknown_priority_with_standard_error(
+    client: TestClient,
+    session_factory: SessionFactory,
+    manager_headers: dict[str, str],
+) -> None:
+    order = create_order(client, session_factory, manager_headers)
+
+    response = client.patch(
+        f"/api/v1/orders/{order['id']}",
+        json={"priority": "IMMEDIATE"},
+        headers=manager_headers,
+    )
+
+    assert response.status_code == 422
+    body = response.json()
+    assert body["code"] == "VALIDATION_ERROR"
+    assert body["message"] == "Os dados informados são inválidos."
+    assert body["details"][0]["field"] == "priority"
 
 
 def test_patch_order_rejects_null_required_field_with_standard_error(
