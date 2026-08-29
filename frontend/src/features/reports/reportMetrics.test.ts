@@ -95,14 +95,13 @@ describe("buildOrderReport", () => {
     expect(report.byStatus.reduce((sum, slice) => sum + slice.share, 0)).toBeCloseTo(1, 10);
   });
 
-  it("conta prioridade fora da convenção em vez de descartar", () => {
-    // priority é string livre no backend (docs/11)
+  it("distribui as prioridades oficiais sem descartar valores", () => {
     const report = buildOrderReport(
-      [order({ priority: "NORMAL" }), order({ priority: "IMEDIATA" })],
+      [order({ priority: "NORMAL" }), order({ priority: "URGENT" })],
       REFERENCE,
     );
 
-    expect(report.byPriority.map((slice) => slice.key).sort()).toEqual(["IMEDIATA", "NORMAL"]);
+    expect(report.byPriority.map((slice) => slice.key).sort()).toEqual(["NORMAL", "URGENT"]);
   });
 
   it("agrupa por cliente e ordena pelo maior volume", () => {

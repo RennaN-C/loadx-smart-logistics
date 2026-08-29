@@ -8,6 +8,7 @@ import { useAuth } from "../../auth/hooks/useAuth";
 import { listCustomers } from "../../customers/api/customersApi";
 import { listDrivers } from "../../drivers/api/driversApi";
 import { listOrders } from "../../orders/api/ordersApi";
+import type { OrderListItem } from "../../orders/types";
 import { listProducts } from "../../products/api/productsApi";
 import { listTrucks } from "../../trucks/api/trucksApi";
 import { DashboardPage } from "./DashboardPage";
@@ -24,10 +25,10 @@ function pageWithTotal(total: number) {
   return { items: [], page: 1, pageSize: 1, total, totalPages: total };
 }
 
-const ORDER = {
+const ORDER: OrderListItem = {
   id: "o1",
   customerId: "c1",
-  status: "READY" as const,
+  status: "READY",
   priority: "HIGH",
   expectedDeliveryAt: null,
   createdAt: "2026-08-05T12:00:00Z",

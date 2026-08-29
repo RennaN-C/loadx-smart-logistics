@@ -198,7 +198,8 @@ Pedidos de entrega.
 - `id`: UUID, PK.
 - `customer_id`: UUID, FK para `customers.id`, obrigatório.
 - `status`: texto, obrigatório, valores permitidos atuais `DRAFT`, `READY`, `PLANNED`, `IN_TRANSIT`, `DELIVERED` e `CANCELED`.
-- `priority`: texto, obrigatório, normalizado em maiúsculas pela API.
+- `priority`: texto, obrigatório, com valores permitidos `LOW`, `NORMAL`, `HIGH`
+  e `URGENT`, normalizado em maiúsculas pela API.
 - `delivery_address`: texto, obrigatório.
 - `expected_delivery_at`: timestamptz UTC.
 - `created_at`: timestamptz UTC, obrigatório.

@@ -328,7 +328,9 @@ Regras atuais:
   matriz de transições manuais de D04. Aprovação de plano, início de viagem e
   conclusão de entrega mantêm seus próprios casos de uso.
 - `status` aceita `DRAFT`, `READY`, `PLANNED`, `IN_TRANSIT`, `DELIVERED` e `CANCELED`.
-- `priority` é texto obrigatório e é normalizado para maiúsculas.
+- `priority` aceita `LOW`, `NORMAL`, `HIGH` e `URGENT` e é normalizado para
+  maiúsculas. Outro valor na criação ou atualização retorna o erro padronizado
+  de validação com status `422`.
 - `expected_delivery_at` deve vir com timezone e é normalizado para UTC.
 - O pedido deve possuir pelo menos um item.
 - `quantity` e `delivery_sequence` devem ser maiores que zero.
