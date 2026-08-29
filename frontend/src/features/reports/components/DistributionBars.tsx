@@ -2,12 +2,12 @@ import type { Slice } from "../reportMetrics";
 
 const percent = new Intl.NumberFormat("pt-BR", { style: "percent", maximumFractionDigits: 0 });
 
-interface DistributionBarsProps {
-  readonly slices: readonly Slice[];
+interface DistributionBarsProps<Key extends string> {
+  readonly slices: readonly Slice<Key>[];
   /** Rótulo legível da chave; a chave crua é o fallback. */
-  readonly label: (key: string) => string;
+  readonly label: (key: Key) => string;
   /** Tom da barra por chave, quando a cor carrega significado. */
-  readonly tone?: (key: string) => "accent" | "muted" | "good";
+  readonly tone?: (key: Key) => "accent" | "muted" | "good";
 }
 
 const TONE_CLASS = {
@@ -16,7 +16,11 @@ const TONE_CLASS = {
   good: "report-bar-fill report-bar-fill-good",
 } as const;
 
-export function DistributionBars({ slices, label, tone }: DistributionBarsProps) {
+export function DistributionBars<Key extends string>({
+  slices,
+  label,
+  tone,
+}: DistributionBarsProps<Key>) {
   return (
     <ul className="report-bars">
       {slices.map((slice) => (

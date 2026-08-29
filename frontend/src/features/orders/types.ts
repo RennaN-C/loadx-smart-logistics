@@ -9,11 +9,7 @@ export const ORDER_STATUSES = [
 
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
 
-/**
- * O backend aceita qualquer string de até 32 caracteres em `priority` — não há
- * enum lá. Estes valores são a convenção adotada no frontend enquanto a equipe
- * não define o contrato (`PENDENTE DE DEFINIÇÃO` em docs/11).
- */
+/** Valores oficiais aceitos pelo contrato de pedidos. */
 export const ORDER_PRIORITIES = ["LOW", "NORMAL", "HIGH", "URGENT"] as const;
 
 export type OrderPriority = (typeof ORDER_PRIORITIES)[number];
@@ -35,7 +31,7 @@ export interface OrderListItem {
   id: string;
   customerId: string;
   status: OrderStatus;
-  priority: string;
+  priority: OrderPriority;
   /** ISO 8601 em UTC, ou null. O backend exige fuso ao receber. */
   expectedDeliveryAt: string | null;
   createdAt: string;
@@ -55,7 +51,7 @@ export interface OrderItemInput {
 
 export interface OrderInput {
   customerId: string;
-  priority: string;
+  priority: OrderPriority;
   deliveryAddress: string;
   expectedDeliveryAt: string | null;
   items: OrderItemInput[];

@@ -1,4 +1,4 @@
-import type { OrderListItem, OrderStatus } from "../orders/types";
+import type { OrderListItem, OrderPriority, OrderStatus } from "../orders/types";
 
 /**
  * Indicadores da OC35, calculados a partir da listagem de pedidos.
@@ -31,16 +31,16 @@ export function isLate(order: OrderListItem, reference: Date): boolean {
   return new Date(order.expectedDeliveryAt).getTime() < reference.getTime();
 }
 
-export interface Slice {
-  readonly key: string;
+export interface Slice<Key extends string = string> {
+  readonly key: Key;
   readonly count: number;
   /** Fatia do total, de 0 a 1. Usada na largura da barra. */
   readonly share: number;
 }
 
 /** Distribuição por chave, já com a fatia calculada e ordenada da maior. */
-function distribution(keys: readonly string[]): Slice[] {
-  const counts = new Map<string, number>();
+function distribution<Key extends string>(keys: readonly Key[]): Slice<Key>[] {
+  const counts = new Map<Key, number>();
   for (const key of keys) counts.set(key, (counts.get(key) ?? 0) + 1);
 
   return [...counts.entries()]
@@ -61,8 +61,8 @@ export interface OrderReport {
   readonly late: number;
   /** Volumes dos pedidos em aberto: é o que ainda precisa entrar em caminhão. */
   readonly openVolumes: number;
-  readonly byStatus: Slice[];
-  readonly byPriority: Slice[];
+  readonly byStatus: Slice<OrderStatus>[];
+  readonly byPriority: Slice<OrderPriority>[];
   readonly byCustomer: CustomerRow[];
   readonly lateOrders: OrderListItem[];
 }
@@ -86,8 +86,6 @@ export function buildOrderReport(orders: readonly OrderListItem[], reference: Da
     late: lateOrders.length,
     openVolumes: open.reduce((sum, order) => sum + order.itemCount, 0),
     byStatus: distribution(orders.map((order) => order.status)),
-    // priority é string livre no backend (docs/11): valor fora da convenção
-    // entra pelo rótulo cru, em vez de ser descartado da contagem.
     byPriority: distribution(orders.map((order) => order.priority)),
     byCustomer: [...perCustomer.entries()]
       .map(([customerId, row]) => ({ customerId, ...row }))

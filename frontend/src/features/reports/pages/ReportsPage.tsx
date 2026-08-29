@@ -11,7 +11,7 @@ import "./ReportsPage.css";
 const dateFormatter = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" });
 
 /** Verde no que terminou bem, cinza no cancelado, acento no que está em curso. */
-function statusToneBar(key: string): "accent" | "muted" | "good" {
+function statusToneBar(key: OrderStatus): "accent" | "muted" | "good" {
   if (key === "DELIVERED") return "good";
   if (key === "CANCELED") return "muted";
   return "accent";
@@ -114,7 +114,7 @@ export function ReportsPage() {
               </div>
               <DistributionBars
                 slices={report.byStatus}
-                label={(key) => STATUS_LABELS[key as OrderStatus] ?? key}
+                label={(key) => STATUS_LABELS[key]}
                 tone={statusToneBar}
               />
             </section>

@@ -6,7 +6,13 @@ import { ApiError } from "../../../types/api";
 import type { CustomerListItem } from "../../customers/types";
 import type { Product } from "../../products/types";
 import { changeOrderStatus, createOrder, updateOrder } from "../api/ordersApi";
-import { MANUAL_STATUS_TRANSITIONS, ORDER_PRIORITIES, type Order, type OrderStatus } from "../types";
+import {
+  MANUAL_STATUS_TRANSITIONS,
+  ORDER_PRIORITIES,
+  type Order,
+  type OrderPriority,
+  type OrderStatus,
+} from "../types";
 import { isoToLocalInput, localInputToIso } from "./orderDateTime";
 import { PRIORITY_LABELS, STATUS_LABELS } from "./orderLabels";
 import { mapOrderErrorToMessage } from "./ordersErrorMessages";
@@ -84,7 +90,7 @@ export function OrderForm({ order, customers, products, onSaved, onCancel }: Ord
   };
 
   const [customerId, setCustomerId] = useState(order?.customerId ?? "");
-  const [priority, setPriority] = useState(order?.priority ?? "NORMAL");
+  const [priority, setPriority] = useState<OrderPriority>(order?.priority ?? "NORMAL");
   const [deliveryAddress, setDeliveryAddress] = useState(order?.deliveryAddress ?? "");
   const [expectedDeliveryAt, setExpectedDeliveryAt] = useState(
     isoToLocalInput(order?.expectedDeliveryAt ?? null),
@@ -184,7 +190,7 @@ export function OrderForm({ order, customers, products, onSaved, onCancel }: Ord
               id="order-priority"
               name="priority"
               value={priority}
-              onChange={(event) => setPriority(event.target.value)}
+              onChange={(event) => setPriority(event.target.value as OrderPriority)}
             >
               {ORDER_PRIORITIES.map((value) => (
                 <option key={value} value={value}>
