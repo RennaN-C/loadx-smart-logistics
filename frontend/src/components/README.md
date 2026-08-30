@@ -32,5 +32,14 @@ todos ficam dentro da grade de 24 e nenhum é degenerado.
 As classes visuais desses componentes, junto de `.btn-primary`, `.btn-secondary`, `.btn-link` e
 `.field-label`, ficam em `app/styles.css` — o CSS global é o único lugar que essas classes existem.
 
-> A `LoginForm` (OC24) ainda usa as classes próprias dela (`.login-alert`, `.login-submit`).
-> Migrá-la para estes componentes é uma limpeza pendente, deixada de fora da OC26 de propósito.
+## O que a LoginForm reaproveita, e o que não
+
+`CONFIRMADO`: a `LoginForm` (OC24) usa `AlertBanner` e `.btn-primary`. O `.login-alert` era um
+duplicado exato do `.alert-banner` e saiu; o `.login-submit` era o `.btn-primary` reescrito e ficou
+só com o que difere de verdade — largura do cartão e anel de foco escuro, porque o anel laranja
+padrão sumiria contra o fundo do próprio botão.
+
+Os CAMPOS continuam próprios, de propósito. O `FormField` põe rótulo, controle e dica em coluna, e o
+campo de senha do login tem um botão "mostrar" na mesma linha do rótulo. Encaixá-lo no `FormField`
+exigiria abrir o componente para um caso que só existe aqui — sai mais caro do que as poucas linhas
+que ele economizaria.
