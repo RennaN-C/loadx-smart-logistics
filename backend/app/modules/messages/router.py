@@ -29,7 +29,6 @@ def get_message_service(
 
 @router.post(
     "/interpret",
-    response_model=MessageInterpretResponse,
     responses=openapi_error_responses(401, 403, 422),
 )
 def interpret_message(
