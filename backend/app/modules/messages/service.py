@@ -8,6 +8,7 @@ from app.integrations.whatsapp.provider import (
     OutgoingWhatsAppMessage,
     WhatsAppProvider,
 )
+from app.modules.deliveries.models import Trip
 from app.modules.deliveries.reference_service import DeliveryReferenceService
 from app.modules.deliveries.service import (
     DeliveryStatusTransitionNotAllowedError,
@@ -19,6 +20,7 @@ from app.modules.deliveries.service import (
 )
 from app.modules.drivers.repository import DriverRepository
 from app.modules.messages.schemas import MessageInterpretResponse
+from app.modules.users.models import User
 from app.modules.users.repository import UserRepository
 
 
@@ -117,72 +119,7 @@ class ControlledMessageService:
             )
 
         try:
-            if interpreted.intent == "START_TRIP":
-                changed = self.trip_service.change_trip_status(
-                    trip.id, "IN_ROUTE", current_user=user
-                )
-                return self._respond(
-                    driver_phone,
-                    interpreted,
-                    "Viagem iniciada com sucesso.",
-                    executed=True,
-                    trip_id=changed.id,
-                )
-
-            delivery = self.delivery_reference_service.get_current_delivery(trip.id)
-            if interpreted.intent in {"ARRIVED", "START_DELIVERY"}:
-                if delivery is None:
-                    return self._respond(
-                        driver_phone,
-                        interpreted,
-                        "Nenhuma entrega pendente encontrada.",
-                    )
-                changed_delivery = self.trip_service.change_delivery_status(
-                    delivery.id, "IN_DELIVERY", current_user=user
-                )
-                return self._respond(
-                    driver_phone,
-                    interpreted,
-                    "Entrega iniciada com sucesso.",
-                    executed=True,
-                    trip_id=trip.id,
-                    delivery_id=changed_delivery.id,
-                )
-            if interpreted.intent == "FINISH_DELIVERY":
-                if delivery is None:
-                    return self._respond(
-                        driver_phone,
-                        interpreted,
-                        "Nenhuma entrega em andamento encontrada.",
-                    )
-                changed_delivery = self.trip_service.change_delivery_status(
-                    delivery.id, "DELIVERED", current_user=user
-                )
-                return self._respond(
-                    driver_phone,
-                    interpreted,
-                    "Entrega finalizada com sucesso.",
-                    executed=True,
-                    trip_id=trip.id,
-                    delivery_id=changed_delivery.id,
-                )
-            if interpreted.intent == "STATUS":
-                return self._respond(
-                    driver_phone,
-                    interpreted,
-                    f"Status da viagem: {trip.status}.",
-                    executed=True,
-                    trip_id=trip.id,
-                )
-            if interpreted.intent == "NEXT_DELIVERY" and delivery is not None:
-                return self._respond(
-                    driver_phone,
-                    interpreted,
-                    f"Próxima entrega: sequência {delivery.sequence}, status {delivery.status}.",
-                    executed=True,
-                    trip_id=trip.id,
-                    delivery_id=delivery.id,
-                )
+            return self._execute_command(driver_phone, interpreted, trip, user)
         except self._domain_errors:
             return self._respond(
                 driver_phone,
@@ -191,6 +128,79 @@ class ControlledMessageService:
                 trip_id=trip.id,
             )
 
+    def _execute_command(
+        self,
+        driver_phone: str,
+        interpreted: MessageInterpretResponse,
+        trip: Trip,
+        user: User,
+    ) -> MessageInterpretResponse:
+        if interpreted.intent == "START_TRIP":
+            changed = self.trip_service.change_trip_status(
+                trip.id, "IN_ROUTE", current_user=user
+            )
+            return self._respond(
+                driver_phone,
+                interpreted,
+                "Viagem iniciada com sucesso.",
+                executed=True,
+                trip_id=changed.id,
+            )
+
+        delivery = self.delivery_reference_service.get_current_delivery(trip.id)
+        if interpreted.intent in {"ARRIVED", "START_DELIVERY"}:
+            if delivery is None:
+                return self._respond(
+                    driver_phone,
+                    interpreted,
+                    "Nenhuma entrega pendente encontrada.",
+                )
+            changed_delivery = self.trip_service.change_delivery_status(
+                delivery.id, "IN_DELIVERY", current_user=user
+            )
+            return self._respond(
+                driver_phone,
+                interpreted,
+                "Entrega iniciada com sucesso.",
+                executed=True,
+                trip_id=trip.id,
+                delivery_id=changed_delivery.id,
+            )
+        if interpreted.intent == "FINISH_DELIVERY":
+            if delivery is None:
+                return self._respond(
+                    driver_phone,
+                    interpreted,
+                    "Nenhuma entrega em andamento encontrada.",
+                )
+            changed_delivery = self.trip_service.change_delivery_status(
+                delivery.id, "DELIVERED", current_user=user
+            )
+            return self._respond(
+                driver_phone,
+                interpreted,
+                "Entrega finalizada com sucesso.",
+                executed=True,
+                trip_id=trip.id,
+                delivery_id=changed_delivery.id,
+            )
+        if interpreted.intent == "STATUS":
+            return self._respond(
+                driver_phone,
+                interpreted,
+                f"Status da viagem: {trip.status}.",
+                executed=True,
+                trip_id=trip.id,
+            )
+        if interpreted.intent == "NEXT_DELIVERY" and delivery is not None:
+            return self._respond(
+                driver_phone,
+                interpreted,
+                f"Próxima entrega: sequência {delivery.sequence}, status {delivery.status}.",
+                executed=True,
+                trip_id=trip.id,
+                delivery_id=delivery.id,
+            )
         return self._respond(
             driver_phone,
             interpreted,
