@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.responses import error_response, openapi_error_responses
 from app.database.session import get_db
+from app.integrations.whatsapp import WhatsAppProvider, get_whatsapp_provider
 from app.modules.auth.dependencies import require_roles
 from app.modules.deliveries.models import Delivery, Trip
 from app.modules.deliveries.schemas import (
@@ -35,6 +36,7 @@ from app.modules.deliveries.service import (
     TripService,
     TripStatusTransitionNotAllowedError,
 )
+from app.modules.notifications.service import OperationalNotificationService
 from app.modules.users.models import User
 
 router = APIRouter(tags=["trips"])
@@ -67,8 +69,14 @@ TRIP_SERVICE_ERRORS = (
 )
 
 
-def get_trip_service(db: Annotated[Session, Depends(get_db)]) -> TripService:
-    return TripService(db)
+def get_trip_service(
+    db: Annotated[Session, Depends(get_db)],
+    provider: Annotated[WhatsAppProvider, Depends(get_whatsapp_provider)],
+) -> TripService:
+    return TripService(
+        db,
+        notification_service=OperationalNotificationService(provider),
+    )
 
 
 @router.post(

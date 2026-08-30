@@ -7,7 +7,9 @@ from sqlalchemy.orm import Session
 
 from app.core.responses import error_response, openapi_error_responses
 from app.database.session import get_db
+from app.integrations.whatsapp import WhatsAppProvider, get_whatsapp_provider
 from app.modules.auth.dependencies import require_roles
+from app.modules.notifications.service import OperationalNotificationService
 from app.modules.occurrences.models import Occurrence
 from app.modules.occurrences.schemas import OccurrenceCreate, OccurrenceRead
 from app.modules.occurrences.service import (
@@ -38,8 +40,12 @@ OCCURRENCE_SERVICE_ERRORS = (
 
 def get_occurrence_service(
     db: Annotated[Session, Depends(get_db)],
+    provider: Annotated[WhatsAppProvider, Depends(get_whatsapp_provider)],
 ) -> OccurrenceService:
-    return OccurrenceService(db)
+    return OccurrenceService(
+        db,
+        notification_service=OperationalNotificationService(provider),
+    )
 
 
 @router.post(

@@ -55,3 +55,12 @@ class MockWhatsAppProvider:
     ) -> OutgoingWhatsAppMessage:
         self.sent_messages.append(message)
         return message
+
+
+mock_whatsapp_provider = MockWhatsAppProvider()
+
+
+def get_whatsapp_provider() -> WhatsAppProvider:
+    """Retorna o provider controlado compartilhado pela aplicação."""
+
+    return mock_whatsapp_provider

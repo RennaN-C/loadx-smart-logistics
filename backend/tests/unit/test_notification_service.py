@@ -60,3 +60,18 @@ def test_missing_recipient_does_not_send_or_fail_domain(
     assert sent is False
     assert provider.sent_messages == []
     assert confirmed_status == "IN_ROUTE"
+
+
+def test_provider_failure_is_best_effort() -> None:
+    class FailingWhatsAppProvider(MockWhatsAppProvider):
+        def send_response(self, message):
+            raise RuntimeError("controlled provider failure")
+
+    service = OperationalNotificationService(FailingWhatsAppProvider())
+
+    sent = service.notify_trip_started(
+        recipient_phone="+5500000000000",
+        trip_id=uuid.uuid4(),
+    )
+
+    assert sent is False

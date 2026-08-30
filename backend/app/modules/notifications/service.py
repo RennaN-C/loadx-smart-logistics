@@ -1,6 +1,9 @@
+import logging
 import uuid
 
 from app.integrations.whatsapp import OutgoingWhatsAppMessage, WhatsAppProvider
+
+logger = logging.getLogger(__name__)
 
 
 class OperationalNotificationService:
@@ -36,10 +39,17 @@ class OperationalNotificationService:
         normalized_phone = (recipient_phone or "").strip()
         if not normalized_phone:
             return False
-        self.provider.send_response(
-            OutgoingWhatsAppMessage(
-                recipient_phone=normalized_phone,
-                content=content,
+        try:
+            self.provider.send_response(
+                OutgoingWhatsAppMessage(
+                    recipient_phone=normalized_phone,
+                    content=content,
+                )
             )
-        )
+        except Exception:
+            logger.warning(
+                "Operational notification delivery failed",
+                exc_info=True,
+            )
+            return False
         return True
