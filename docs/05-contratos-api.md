@@ -657,9 +657,15 @@ Exemplo de criação:
 
 ## Mensagens e WhatsApp
 
-- `POST /messages/interpret`.
+- `POST /messages/interpret`: simulador interno disponível somente para usuários
+  autenticados com papel `ADMIN` ou `LOGISTICS_MANAGER`.
 - `POST /webhooks/whatsapp` permanece fora da v1.0.0; o provider controlado usa
   `POST /messages/interpret`.
+
+`CONFIRMADO`: `driver_phone` identifica o motorista que o operador interno
+pretende simular; esse campo não autentica nem autoriza a requisição. O endpoint
+não representa autenticação real do WhatsApp. Provider real, webhook e validação
+de assinatura permanecem fora deste MVP.
 
 Exemplo de interpretação:
 

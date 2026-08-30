@@ -103,15 +103,20 @@ continuam fora do ciclo persistido da v1.0.0.
 
 ## Fluxo de WhatsApp simulado/controlado
 
-1. Provider recebe mensagem.
-2. Adapter identifica motorista pelo telefone.
-3. Serviço de mensagens interpreta comando controlado ou frase natural.
-4. Intenção estruturada é validada por schema.
-5. Service público executa a ação somente se o estado atual permitir.
-6. Sistema registra histórico/auditoria.
-7. Provider responde confirmação ou erro operacional.
+1. Usuário interno `ADMIN` ou `LOGISTICS_MANAGER` autentica a requisição ao
+   simulador `POST /messages/interpret`.
+2. Provider recebe a mensagem e usa `driver_phone` apenas para identificar o
+   motorista simulado.
+3. Adapter identifica motorista pelo telefone.
+4. Serviço de mensagens interpreta comando controlado ou frase natural.
+5. Intenção estruturada é validada por schema.
+6. Service público executa a ação somente se o estado atual permitir.
+7. Sistema registra histórico/auditoria.
+8. Provider responde confirmação ou erro operacional.
 
 `CONFIRMADO`: provider mock deve permitir desenvolver e testar sem serviço externo real.
+O telefone do motorista não autentica a requisição. Webhook, autenticação do
+WhatsApp e provider real permanecem fora da v1.0.0.
 
 ## Fluxo de ocorrência
 
