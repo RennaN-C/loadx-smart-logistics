@@ -27,6 +27,7 @@ from app.modules.loading.service import (
 from app.modules.users.models import User
 
 router = APIRouter(prefix="/loading-sessions", tags=["loading"])
+LOADING_SESSION_NOT_FOUND_MESSAGE = "Sessão de carregamento não encontrada."
 Operator = Annotated[User, Depends(require_roles("CHECKER", "LOGISTICS_MANAGER"))]
 Reader = Annotated[
     User, Depends(require_roles("ADMIN", "CHECKER", "LOGISTICS_MANAGER"))
@@ -70,7 +71,7 @@ def get_session(
         return service.get_session(session_id)
     except LoadingSessionNotFoundError:
         return error_response(
-            404, "LOADING_SESSION_NOT_FOUND", "Sessão de carregamento não encontrada."
+            404, "LOADING_SESSION_NOT_FOUND", LOADING_SESSION_NOT_FOUND_MESSAGE
         )
 
 
@@ -89,7 +90,7 @@ def change_status(
         return service.change_status(session_id, data.status)
     except LoadingSessionNotFoundError:
         return error_response(
-            404, "LOADING_SESSION_NOT_FOUND", "Sessão de carregamento não encontrada."
+            404, "LOADING_SESSION_NOT_FOUND", LOADING_SESSION_NOT_FOUND_MESSAGE
         )
     except LoadingChecklistIncompleteError:
         return error_response(
@@ -119,7 +120,7 @@ def change_item_status(
         return service.change_item_status(session_id, item_id, data.status)
     except LoadingSessionNotFoundError:
         return error_response(
-            404, "LOADING_SESSION_NOT_FOUND", "Sessão de carregamento não encontrada."
+            404, "LOADING_SESSION_NOT_FOUND", LOADING_SESSION_NOT_FOUND_MESSAGE
         )
     except LoadingItemNotFoundError:
         return error_response(
