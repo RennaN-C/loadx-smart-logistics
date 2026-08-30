@@ -185,8 +185,21 @@ describe("TripPage", () => {
     renderPage();
     await screen.findByText("Finalizada");
 
-    expect(screen.queryByRole("button", { name: /viagem/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /entrega/ })).not.toBeInTheDocument();
+    // Baixar o PDF NÃO é ação sobre a viagem — continua disponível numa viagem
+    // finalizada, que aliás é quando o relatório mais interessa. As asserções
+    // apontam as transições, que são o que precisa sumir.
+    for (const acao of ["Iniciar viagem", "Finalizar viagem", "Iniciar entrega", "Concluir entrega"]) {
+      expect(screen.queryByRole("button", { name: acao })).not.toBeInTheDocument();
+    }
+  });
+
+  it("oferece o relatório de viagem para quem tem permissão", async () => {
+    vi.mocked(getTrip).mockResolvedValue(makeTrip({ status: "FINISHED" }));
+
+    renderPage();
+    await screen.findByText("Finalizada");
+
+    expect(screen.getByRole("button", { name: "Relatório de viagem" })).toBeInTheDocument();
   });
 
   it("traduz a recusa de transição do backend", async () => {

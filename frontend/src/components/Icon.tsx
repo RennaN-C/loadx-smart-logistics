@@ -24,7 +24,8 @@ export type IconName =
   | "edit"
   | "calendar"
   | "priority"
-  | "chart";
+  | "chart"
+  | "report";
 
 const PATHS: Record<IconName, ReactNode> = {
   home: (
@@ -100,6 +101,14 @@ const PATHS: Record<IconName, ReactNode> = {
       <rect x="5" y="12" width="3.8" height="8" />
       <rect x="10.1" y="8" width="3.8" height="12" />
       <rect x="15.2" y="4.5" width="3.8" height="15.5" />
+    </>
+  ),
+  report: (
+    <>
+      <path d="M6.5 2.8h7.6l4.4 4.4v14a1.8 1.8 0 0 1-1.8 1.8H6.5a1.8 1.8 0 0 1-1.8-1.8V4.6a1.8 1.8 0 0 1 1.8-1.8z" />
+      <path d="M14 2.9v4.6h4.6" />
+      <path d="M8.4 12.6h7.2" />
+      <path d="M8.4 16.4h4.8" />
     </>
   ),
   priority: (

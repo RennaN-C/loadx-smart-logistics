@@ -5,6 +5,8 @@ import { AlertBanner } from "../../../components/AlertBanner";
 import { Tabs, type TabItem } from "../../../components/Tabs";
 import { ApiError } from "../../../types/api";
 import { useAuth } from "../../auth/hooks/useAuth";
+import { downloadLoadingReport } from "../../reports/api/reportsApi";
+import { ReportDownloadButton } from "../../reports/components/ReportDownloadButton";
 import { approveLoadPlan, getLoadPlan, recalculateLoadPlan } from "../api/loadPlansApi";
 import { PlanBuilder } from "../components/PlanBuilder";
 import { PlanItemsTable } from "../components/PlanItemsTable";
@@ -33,10 +35,14 @@ const PLAN_TABS: readonly TabItem<PlanTab>[] = [
  * plano vive na URL (`/planning/:planId`): sem isso, recarregar a página perderia
  * o resultado sem nenhuma forma de recuperá-lo.
  */
+/** Só quem lê relatório no backend: ADMIN e LOGISTICS_MANAGER (reports/router.py). */
+const REPORT_READERS = ["ADMIN", "LOGISTICS_MANAGER"];
+
 export function PlanningPage() {
   const { planId } = useParams<{ planId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const podeBaixarRelatorio = user !== null && REPORT_READERS.includes(user.role);
 
   const [plan, setPlan] = useState<LoadPlan | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -114,9 +120,18 @@ export function PlanningPage() {
           <p className="entity-lede">Escolha o caminhão e os pedidos; o otimizador monta a carga.</p>
         </div>
         {plan ? (
-          <button type="button" className="btn-secondary" onClick={() => navigate("/planning")}>
-            Novo plano
-          </button>
+          <div className="entity-toolbar">
+            {podeBaixarRelatorio ? (
+              <ReportDownloadButton
+                label="Relatório de carregamento"
+                filename={`relatorio-carregamento-${plan.id}.pdf`}
+                download={() => downloadLoadingReport(plan.id)}
+              />
+            ) : null}
+            <button type="button" className="btn-secondary" onClick={() => navigate("/planning")}>
+              Novo plano
+            </button>
+          </div>
         ) : null}
       </header>
 

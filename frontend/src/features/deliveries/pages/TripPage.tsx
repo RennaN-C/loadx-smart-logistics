@@ -5,6 +5,8 @@ import { AlertBanner } from "../../../components/AlertBanner";
 import { StatusPill } from "../../../components/StatusPill";
 import { ApiError } from "../../../types/api";
 import { useAuth } from "../../auth/hooks/useAuth";
+import { downloadTripReport } from "../../reports/api/reportsApi";
+import { ReportDownloadButton } from "../../reports/components/ReportDownloadButton";
 import { changeDeliveryStatus, changeTripStatus, getTrip } from "../api/tripsApi";
 import {
   DELIVERY_ACTION_LABELS,
@@ -27,9 +29,13 @@ const dateTime = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyl
  * `GET /trips/{id}`. Por isso a tela é sempre `/trips/:tripId`: chega-se aqui a
  * partir do plano aprovado que gerou a viagem.
  */
+/** Só quem lê relatório no backend: ADMIN e LOGISTICS_MANAGER (reports/router.py). */
+const REPORT_READERS = ["ADMIN", "LOGISTICS_MANAGER"];
+
 export function TripPage() {
   const { tripId } = useParams<{ tripId: string }>();
   const { user } = useAuth();
+  const podeBaixarRelatorio = user !== null && REPORT_READERS.includes(user.role);
 
   const [trip, setTrip] = useState<Trip | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -92,7 +98,18 @@ export function TripPage() {
           <p className="entity-lede">Rota, paradas e situação de cada entrega.</p>
         </div>
         {trip ? (
-          <StatusPill tone={tripStatusTone(trip.status)}>{TRIP_STATUS_LABELS[trip.status]}</StatusPill>
+          <div className="entity-toolbar">
+            {podeBaixarRelatorio ? (
+              <ReportDownloadButton
+                label="Relatório de viagem"
+                filename={`relatorio-viagem-${trip.id}.pdf`}
+                download={() => downloadTripReport(trip.id)}
+              />
+            ) : null}
+            <StatusPill tone={tripStatusTone(trip.status)}>
+              {TRIP_STATUS_LABELS[trip.status]}
+            </StatusPill>
+          </div>
         ) : null}
       </header>
 
