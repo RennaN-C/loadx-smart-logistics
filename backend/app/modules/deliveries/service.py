@@ -119,7 +119,7 @@ class TripService:
         self.driver_service = DriverService(db)
         self.load_plan_reference_service = LoadPlanReferenceService(db)
         self.loading_reference_service = (
-            loading_reference_service or LoadingReferenceService()
+            loading_reference_service or LoadingReferenceService(db)
         )
         self.order_service = OrderService(db)
         self.status_history_service = StatusHistoryService(db)

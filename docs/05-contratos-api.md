@@ -534,10 +534,16 @@ pela integração da OC20.
 - `PATCH /loading-sessions/{id}/status`.
 - `PATCH /loading-sessions/{id}/items/{item_id}`.
 
-`PENDENTE DE DEFINIÇÃO`: esses endpoints ainda não estão implementados. A OC09
-consome somente uma interface pública interna que retorna carregamento não
-finalizado por padrão; assim, a viagem nunca inicia sem confirmação real do
-módulo dono.
+`CONFIRMADO`: `POST` recebe `load_plan_id` e cria ou retorna a única sessão do
+plano `APPROVED`. A sessão inicia `PENDING`; o status aceita somente
+`IN_PROGRESS` e depois `FINISHED`. Cada item recebe `CHECKED` pelo endpoint de
+item, e a finalização falha enquanto algum item estiver pendente.
+
+`CONFIRMADO`: `CHECKER` e `LOGISTICS_MANAGER` criam e alteram; `ADMIN`,
+`CHECKER` e `LOGISTICS_MANAGER` consultam. Erros específicos:
+`LOADING_PLAN_NOT_APPROVED`, `LOADING_SESSION_NOT_FOUND`,
+`LOADING_ITEM_NOT_FOUND`, `LOADING_ITEM_SESSION_MISMATCH`,
+`LOADING_CHECKLIST_INCOMPLETE` e `LOADING_STATUS_TRANSITION_NOT_ALLOWED`.
 
 ## Viagens e entregas
 
@@ -651,8 +657,15 @@ Exemplo de criação:
 
 ## Mensagens e WhatsApp
 
-- `POST /messages/interpret`.
-- `POST /webhooks/whatsapp` `PENDENTE DE DEFINIÇÃO`.
+- `POST /messages/interpret`: simulador interno disponível somente para usuários
+  autenticados com papel `ADMIN` ou `LOGISTICS_MANAGER`.
+- `POST /webhooks/whatsapp` permanece fora da v1.0.0; o provider controlado usa
+  `POST /messages/interpret`.
+
+`CONFIRMADO`: `driver_phone` identifica o motorista que o operador interno
+pretende simular; esse campo não autentica nem autoriza a requisição. O endpoint
+não representa autenticação real do WhatsApp. Provider real, webhook e validação
+de assinatura permanecem fora deste MVP.
 
 Exemplo de interpretação:
 
@@ -674,14 +687,19 @@ Resposta recomendada:
 }
 ```
 
-`CONFIRMADO`: a resposta da IA deve ser validada por schema e convertida em ação apenas quando a intenção for permitida.
+`CONFIRMADO`: a resposta inclui `executed`, `confirmation`, `trip_id` e
+`delivery_id`. A intenção só vira ação após identificar motorista/viagem/entrega
+e o `TripService` validar permissão e estado. Nenhuma regra de viagem ou entrega
+é duplicada no módulo de mensagens.
 
 ## Relatórios
 
 - `GET /reports/load-plans/{id}`.
 - `GET /reports/trips/{id}`.
 
-`PENDENTE DE DEFINIÇÃO`: formato final de download, headers e armazenamento temporário do PDF.
+`CONFIRMADO`: ambos retornam `application/pdf` com `Content-Disposition:
+attachment`. O relatório é gerado em memória a partir dos dados persistidos e
+não exige armazenamento permanente na v1.0.0.
 
 ## Erros
 

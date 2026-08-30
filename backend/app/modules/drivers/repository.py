@@ -41,6 +41,13 @@ class DriverRepository:
         statement = select(Driver).where(Driver.license_number == license_number)
         return self.db.scalar(statement)
 
+    def get_by_phone(self, phone: str) -> Driver | None:
+        statement = (
+            select(Driver).where(Driver.phone == phone).order_by(Driver.id).limit(2)
+        )
+        drivers = tuple(self.db.scalars(statement))
+        return drivers[0] if len(drivers) == 1 else None
+
     def add(self, driver: Driver) -> Driver:
         self.db.add(driver)
         self.db.flush()

@@ -4,14 +4,17 @@ Checklist e estados do processo físico após aprovação do plano.
 
 ## Estado atual
 
-`CONFIRMADO`: `reference_service.py` oferece a fronteira pública consumida pela
-OC09. Até existir persistência real do carregamento, ela retorna `false` e
-bloqueia de forma segura o início da viagem.
+`CONFIRMADO`: o módulo persiste uma sessão por plano aprovado e um item de
+checklist para cada volume posicionado. O fluxo permitido é `PENDING ->
+IN_PROGRESS -> FINISHED`; cada item avança de `PENDING` para `CHECKED` somente
+durante `IN_PROGRESS`.
 
-`PENDENTE DE DEFINIÇÃO`: models, migration, checklist, service e endpoints do
-carregamento ainda precisam ser implementados pelo módulo dono.
+`CONFIRMADO`: a finalização exige todos os itens `CHECKED`. A fronteira pública
+de `reference_service.py` libera `Trip SCHEDULED -> IN_ROUTE` somente quando a
+sessão `FINISHED` pertence ao mesmo `load_plan_id`; sessão ausente, incompleta
+ou de outro plano falha fechada.
 
-## Estrutura sugerida
+## Estrutura
 
 - `models.py`: entidades SQLAlchemy do módulo.
 - `schemas.py`: contratos Pydantic.

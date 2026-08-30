@@ -9,8 +9,10 @@
 autenticação foram aprovadas por D18 e `ADR-020`; viagens e entregas seguem
 D07 a D10, D21 e `ADR-022`.
 
-`PENDENTE DE DEFINIÇÃO`: `loading_sessions` e `occurrences` ainda não possuem
-models/migrations.
+`CONFIRMADO`: `loading_sessions` e `loading_session_items` possuem models e
+migration no fluxo de carregamento da v1.0.0.
+
+`CONFIRMADO`: `occurrences` possui model e migration desde a OC41.
 
 `CONFIRMADO`: este documento é o contrato inicial para a criação do banco. Qualquer mudança estrutural deve ser registrada por migration e documentada aqui.
 
@@ -352,6 +354,27 @@ Checklist e estado do carregamento físico.
 - `fk_loading_sessions__load_plans`.
 - `uq_loading_sessions__load_plan_id`.
 - `ix_loading_sessions__status`.
+
+`CONFIRMADO`: `status` aceita `PENDING`, `IN_PROGRESS` e `FINISHED`.
+`started_at` existe a partir de `IN_PROGRESS`; `finished_at` existe somente em
+`FINISHED`, nunca antes do início.
+
+### `loading_session_items`
+
+Checklist materializado dos volumes posicionados no plano.
+
+- `id`: UUID, PK.
+- `loading_session_id`: UUID, FK para `loading_sessions.id`, obrigatório.
+- `load_plan_item_id`: UUID, FK para `load_plan_items.id`, obrigatório.
+- `status`: texto obrigatório, `PENDING` ou `CHECKED`.
+
+Índices e constraints:
+
+- `fk_loading_session_items__loading_sessions`.
+- `fk_loading_session_items__load_plan_items`.
+- `uq_loading_session_items__session_plan_item`.
+- índices de `loading_session_id` e `load_plan_item_id`.
+- `ck_loading_session_items__status_allowed`.
 
 ### `trips`
 

@@ -97,21 +97,26 @@ um único commit. Recálculo cria outro plano com dados atuais e
    todas as entregas e pedidos estão `DELIVERED`.
 9. Ocorrências futuras poderão adicionar contexto sem apagar o histórico.
 
-`PENDENTE DE DEFINIÇÃO`: o módulo de carregamento ainda precisa materializar e
-expor o estado `FINISHED`. Estados de cancelamento, falha, ausência e atraso
-exigem decisão e migration futuras; não são persistidos pela OC09.
+`CONFIRMADO`: o módulo de carregamento materializa `FINISHED` e libera somente a
+viagem do mesmo plano. Estados de cancelamento, falha, ausência e atraso
+continuam fora do ciclo persistido da v1.0.0.
 
 ## Fluxo de WhatsApp simulado/controlado
 
-1. Provider recebe mensagem.
-2. Adapter identifica motorista pelo telefone.
-3. Serviço de mensagens interpreta comando controlado ou frase natural.
-4. Intenção estruturada é validada por schema.
-5. Service público executa a ação somente se o estado atual permitir.
-6. Sistema registra histórico/auditoria.
-7. Provider responde confirmação ou erro operacional.
+1. Usuário interno `ADMIN` ou `LOGISTICS_MANAGER` autentica a requisição ao
+   simulador `POST /messages/interpret`.
+2. Provider recebe a mensagem e usa `driver_phone` apenas para identificar o
+   motorista simulado.
+3. Adapter identifica motorista pelo telefone.
+4. Serviço de mensagens interpreta comando controlado ou frase natural.
+5. Intenção estruturada é validada por schema.
+6. Service público executa a ação somente se o estado atual permitir.
+7. Sistema registra histórico/auditoria.
+8. Provider responde confirmação ou erro operacional.
 
 `CONFIRMADO`: provider mock deve permitir desenvolver e testar sem serviço externo real.
+O telefone do motorista não autentica a requisição. Webhook, autenticação do
+WhatsApp e provider real permanecem fora da v1.0.0.
 
 ## Fluxo de ocorrência
 
@@ -129,4 +134,5 @@ exigem decisão e migration futuras; não são persistidos pela OC09.
 3. Serviço de relatórios monta PDF simples.
 4. API retorna download ou referência do arquivo.
 
-`PENDENTE DE DEFINIÇÃO`: política de armazenamento temporário, expiração e envio por e-mail/WhatsApp.
+`CONFIRMADO`: na v1.0.0 o PDF é gerado em memória e retornado como download;
+armazenamento permanente e envio por e-mail/WhatsApp ficam fora do escopo.
