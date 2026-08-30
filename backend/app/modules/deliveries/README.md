@@ -27,6 +27,9 @@ Viagem, entregas, estados e histórico. Roteirização externa não entra no MVP
 - Conclusão da entrega registra horário e move o pedido para `DELIVERED`.
 - Viagem termina somente com todas as entregas e pedidos `DELIVERED`.
 - Repetir o estado atual é idempotente.
+- A transição efetiva `SCHEDULED -> IN_ROUTE` pelo endpoint HTTP envia depois do
+  commit uma notificação mock ao motorista; repetição idempotente não duplica o
+  aviso.
 - Mudanças do agregado, pedidos e histórico usam um único commit ou rollback.
 - `LOGISTICS_MANAGER` cria e opera; `ADMIN` consulta; `DRIVER` consulta e opera
   somente viagem própria com vínculo e motorista ativos; `CHECKER` é negado.

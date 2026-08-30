@@ -655,6 +655,14 @@ Exemplo de criação:
 }
 ```
 
+`CONFIRMADO`: `photo_url` permanece opcional. Quando informado, aceita somente
+`mock://occurrences/<identificador>`, com identificador alfanumérico que também
+pode conter `.`, `_` ou `-`. Referências vazias, HTTP/HTTPS, espaços, query
+string e fragmento retornam `422 VALIDATION_ERROR`.
+
+`CONFIRMADO`: a API armazena apenas a referência textual. Não existe endpoint
+de upload, armazenamento binário, bucket ou consulta externa de mídia no MVP.
+
 ## Mensagens e WhatsApp
 
 - `POST /messages/interpret`: simulador interno disponível somente para usuários
@@ -691,6 +699,20 @@ Resposta recomendada:
 `delivery_id`. A intenção só vira ação após identificar motorista/viagem/entrega
 e o `TripService` validar permissão e estado. Nenhuma regra de viagem ou entrega
 é duplicada no módulo de mensagens.
+
+### Notificações automáticas
+
+`CONFIRMADO`: não existe endpoint público específico para notificações. Uma
+transição efetiva `SCHEDULED -> IN_ROUTE` realizada por
+`PATCH /trips/{id}/status` e um `POST /occurrences` concluído disparam mensagem
+determinística para o telefone do motorista da viagem por
+`MockWhatsAppProvider`.
+
+`CONFIRMADO`: mensagens automáticas são best-effort e posteriores ao commit.
+Falha do mock não muda a resposta nem reverte a operação confirmada. Transição
+rejeitada e repetição idempotente não disparam mensagem. Comandos recebidos pelo
+simulador mantêm sua confirmação explícita e não recebem um segundo aviso
+automático para o mesmo fato.
 
 ## Relatórios
 

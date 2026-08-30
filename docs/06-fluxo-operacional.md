@@ -97,6 +97,10 @@ um único commit. Recálculo cria outro plano com dados atuais e
    todas as entregas e pedidos estão `DELIVERED`.
 9. Ocorrências futuras poderão adicionar contexto sem apagar o histórico.
 
+`CONFIRMADO`: quando a transição efetiva para `IN_ROUTE` ocorre pelo endpoint de
+viagem, o sistema envia depois do commit uma notificação mock ao motorista
+vinculado. Repetição idempotente ou transição rejeitada não envia novo aviso.
+
 `CONFIRMADO`: o módulo de carregamento materializa `FINISHED` e libera somente a
 viagem do mesmo plano. Estados de cancelamento, falha, ausência e atraso
 continuam fora do ciclo persistido da v1.0.0.
@@ -118,14 +122,22 @@ continuam fora do ciclo persistido da v1.0.0.
 O telefone do motorista não autentica a requisição. Webhook, autenticação do
 WhatsApp e provider real permanecem fora da v1.0.0.
 
+`CONFIRMADO`: notificações automáticas reutilizam o mesmo provider mock. Falha
+de envio é best-effort e não reverte a operação já confirmada.
+
 ## Fluxo de ocorrência
 
 1. Usuário ou motorista informa tipo e descrição.
 2. Sistema valida tipo permitido.
-3. Foto opcional é associada por URL ou referência mock.
+3. Foto opcional é associada pela referência controlada
+   `mock://occurrences/<identificador>`.
 4. Ocorrência é vinculada à viagem e, quando aplicável, à entrega.
 5. Histórico de status permanece preservado.
-6. Relatórios passam a incluir a ocorrência.
+6. Depois do commit, o provider mock notifica o motorista da viagem.
+7. Relatórios passam a incluir a ocorrência.
+
+`CONFIRMADO`: o fluxo não envia nem armazena binário e não acessa serviço
+externo de upload ou mídia.
 
 ## Fluxo de relatório
 
