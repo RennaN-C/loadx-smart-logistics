@@ -190,12 +190,59 @@ EXPECTED_ERROR_STATUSES = {
         "422",
         "500",
     },
+    ("/api/v1/loading-sessions", "post"): {
+        "401",
+        "403",
+        "409",
+        "422",
+        "500",
+    },
+    ("/api/v1/loading-sessions/{session_id}", "get"): {
+        "401",
+        "403",
+        "404",
+        "422",
+        "500",
+    },
+    ("/api/v1/loading-sessions/{session_id}/status", "patch"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
+    ("/api/v1/loading-sessions/{session_id}/items/{item_id}", "patch"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
+    ("/api/v1/messages/interpret", "post"): {"422", "500"},
+    ("/api/v1/occurrences", "post"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
+    ("/api/v1/trips/{trip_id}/occurrences", "get"): {
+        "401",
+        "403",
+        "404",
+        "422",
+        "500",
+    },
 }
 PUBLIC_OPERATIONS = frozenset(
     {
         ("/health", "get"),
         ("/ready", "get"),
         ("/api/v1/auth/login", "post"),
+        ("/api/v1/messages/interpret", "post"),
     }
 )
 PROTECTED_OPERATIONS = frozenset(EXPECTED_ERROR_STATUSES).difference(PUBLIC_OPERATIONS)

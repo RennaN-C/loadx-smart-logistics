@@ -338,18 +338,17 @@ sequência e métricas antes de retornar `heuristic-v1`.
 
 ## Carregamento
 
-- Carregamento só começa com plano aprovado.
-- Checklist deve seguir `loading_sequence`.
-- Alterar item do checklist não recalcula posição.
-- Finalização do carregamento deve registrar horário.
-
-Estados recomendados:
-
-- `PENDING`.
-- `IN_PROGRESS`.
-- `CHECKED`.
-- `FINISHED`.
-- `CANCELED`.
+- `CONFIRMADO`: carregamento só pode ser criado para plano `APPROVED` com ao
+  menos um volume posicionado, e existe no máximo uma sessão por plano.
+- `CONFIRMADO`: sessão aceita apenas `PENDING -> IN_PROGRESS -> FINISHED`; item
+  aceita apenas `PENDING -> CHECKED` durante `IN_PROGRESS`.
+- `CONFIRMADO`: alterar item do checklist não recalcula posição.
+- `CONFIRMADO`: `FINISHED` exige todos os itens `CHECKED` e registra
+  `finished_at` em UTC.
+- `CONFIRMADO`: somente a sessão `FINISHED` do mesmo plano libera o início da
+  viagem; sessão ausente, incompleta ou pertencente a outro plano não libera.
+- `CONFIRMADO`: `CHECKER` e `LOGISTICS_MANAGER` operam; `ADMIN` apenas consulta;
+  `DRIVER` não acessa os endpoints de carregamento.
 
 ## Viagem e entrega
 
@@ -357,9 +356,9 @@ Estados recomendados:
   ativo e todos os pedidos do plano em `PLANNED`.
 - `CONFIRMADO`: cada plano pertence a no máximo uma viagem e cada pedido a no
   máximo uma entrega no MVP.
-- `CONFIRMADO`: viagem só começa com carregamento finalizado. Enquanto o módulo
-  de carregamento não materializar esse estado, a interface pública falha
-  fechada e bloqueia `IN_ROUTE`.
+- `CONFIRMADO`: viagem só começa quando a interface pública do carregamento
+  confirmar sessão `FINISHED` para o mesmo plano; qualquer ausência ou
+  divergência falha fechada e bloqueia `IN_ROUTE`.
 - `CONFIRMADO`: iniciar a viagem executa `SCHEDULED -> IN_ROUTE`, registra
   `started_at` e move atomicamente todos os pedidos `PLANNED -> IN_TRANSIT`.
 - `CONFIRMADO`: finalizar executa `IN_ROUTE -> FINISHED` e registra

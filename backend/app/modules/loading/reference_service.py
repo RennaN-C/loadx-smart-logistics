@@ -6,11 +6,7 @@ from app.modules.loading.repository import LoadingRepository
 
 
 class LoadingReferenceService:
-    """Public loading boundary consumed by operational modules.
-
-    Loading persistence belongs to its own occurrence. Until that module records
-    a finished session, the safe answer is always false.
-    """
+    """Public, fail-closed loading boundary consumed by operational modules."""
 
     def __init__(self, db: Session) -> None:
         self.repository = LoadingRepository(db)
