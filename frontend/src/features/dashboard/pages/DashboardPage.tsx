@@ -34,6 +34,33 @@ export function DashboardPage() {
   const readsPersonalData = user?.role === "ADMIN" || user?.role === "LOGISTICS_MANAGER";
   const canPlan = user?.role === "LOGISTICS_MANAGER";
 
+  /**
+   * O motorista não lê caminhões, produtos, pedidos nem clientes: TODOS os
+   * contadores deste painel respondem 403 para ele. Sem este desvio a tela
+   * abria com quatro traços e um aviso de falha, parecendo quebrada — quando na
+   * verdade ela simplesmente não é para esse perfil.
+   *
+   * `PENDENTE`: não existe `GET /trips` (só `GET /trips/{id}`), então não há
+   * como listar as viagens dele. Quando o endpoint existir, é aqui que entra.
+   */
+  if (user?.role === "DRIVER") {
+    return (
+      <div className="entity-page">
+        <header className="entity-header">
+          <div>
+            <h1>Olá, {user.name.split(" ")[0]}</h1>
+            <p className="entity-lede">Seu acesso é de motorista.</p>
+          </div>
+        </header>
+        <p className="entity-state">
+          As telas de cadastro e planejamento não são do seu perfil. A lista das suas viagens ainda
+          não está disponível no sistema — enquanto isso, acesse a viagem pelo link que a operação
+          enviar.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="entity-page">
       <header className="entity-header">

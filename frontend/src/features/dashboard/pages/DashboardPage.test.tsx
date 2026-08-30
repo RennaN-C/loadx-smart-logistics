@@ -35,7 +35,7 @@ const ORDER: OrderListItem = {
   itemCount: 3,
 };
 
-function mockRole(role: "LOGISTICS_MANAGER" | "CHECKER") {
+function mockRole(role: "LOGISTICS_MANAGER" | "CHECKER" | "DRIVER") {
   vi.mocked(useAuth).mockReturnValue({
     status: "authenticated",
     user: {
@@ -60,6 +60,21 @@ function renderPage() {
 }
 
 describe("DashboardPage", () => {
+  it("não mostra ao motorista um painel de traços, que é o que ele receberia", async () => {
+    // O motorista não lê caminhões, produtos, pedidos nem clientes: TODOS os
+    // contadores respondem 403 para ele. Sem o desvio, a tela abria com quatro
+    // traços e um aviso de falha, parecendo quebrada.
+    mockRole("DRIVER");
+
+    renderPage();
+
+    expect(
+      await screen.findByText(/lista das suas viagens ainda não está disponível/),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("CAMINHÕES")).not.toBeInTheDocument();
+    expect(screen.queryByText(/não puderam ser carregados/)).not.toBeInTheDocument();
+  });
+
   beforeEach(() => {
     vi.resetAllMocks();
     mockRole("LOGISTICS_MANAGER");
