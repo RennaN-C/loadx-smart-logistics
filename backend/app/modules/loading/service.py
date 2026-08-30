@@ -49,7 +49,10 @@ class LoadingService:
         session = LoadingSession(
             load_plan_id=load_plan_id,
             status="PENDING",
-            items=[LoadingSessionItem(load_plan_item_id=item.id, status="PENDING") for item in items],
+            items=[
+                LoadingSessionItem(load_plan_item_id=item.id, status="PENDING")
+                for item in items
+            ],
         )
         try:
             self.repository.add(session)
@@ -81,7 +84,9 @@ class LoadingService:
         self.db.commit()
         return self._get_session(session.id)
 
-    def change_item_status(self, session_id: uuid.UUID, item_id: uuid.UUID, status: str) -> LoadingSession:
+    def change_item_status(
+        self, session_id: uuid.UUID, item_id: uuid.UUID, status: str
+    ) -> LoadingSession:
         session = self.repository.get_for_update(session_id)
         if session is None:
             raise LoadingSessionNotFoundError

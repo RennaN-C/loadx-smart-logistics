@@ -26,10 +26,14 @@ class OutgoingWhatsAppMessage:
 class WhatsAppProvider(Protocol):
     """Interface mínima compartilhada por providers mock e reais."""
 
-    def receive_message(self, message: IncomingWhatsAppMessage) -> IncomingWhatsAppMessage:
+    def receive_message(
+        self, message: IncomingWhatsAppMessage
+    ) -> IncomingWhatsAppMessage:
         """Recebe uma mensagem sem interpretá-la ou executá-la."""
 
-    def send_response(self, message: OutgoingWhatsAppMessage) -> OutgoingWhatsAppMessage:
+    def send_response(
+        self, message: OutgoingWhatsAppMessage
+    ) -> OutgoingWhatsAppMessage:
         """Envia uma resposta sem acessar serviços de domínio ou banco."""
 
 
@@ -40,10 +44,14 @@ class MockWhatsAppProvider:
         self.received_messages: list[IncomingWhatsAppMessage] = []
         self.sent_messages: list[OutgoingWhatsAppMessage] = []
 
-    def receive_message(self, message: IncomingWhatsAppMessage) -> IncomingWhatsAppMessage:
+    def receive_message(
+        self, message: IncomingWhatsAppMessage
+    ) -> IncomingWhatsAppMessage:
         self.received_messages.append(message)
         return message
 
-    def send_response(self, message: OutgoingWhatsAppMessage) -> OutgoingWhatsAppMessage:
+    def send_response(
+        self, message: OutgoingWhatsAppMessage
+    ) -> OutgoingWhatsAppMessage:
         self.sent_messages.append(message)
         return message

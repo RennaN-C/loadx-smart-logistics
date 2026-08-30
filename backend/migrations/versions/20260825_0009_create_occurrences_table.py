@@ -46,9 +46,7 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id", name=op.f("pk_occurrences")),
     )
     op.create_index(op.f("ix_occurrences__trip_id"), "occurrences", ["trip_id"])
-    op.create_index(
-        op.f("ix_occurrences__delivery_id"), "occurrences", ["delivery_id"]
-    )
+    op.create_index(op.f("ix_occurrences__delivery_id"), "occurrences", ["delivery_id"])
     op.create_index(op.f("ix_occurrences__type"), "occurrences", ["type"])
 
 

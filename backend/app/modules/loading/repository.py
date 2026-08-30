@@ -36,7 +36,11 @@ class LoadingRepository:
         return self.db.scalar(statement)
 
     def get_item_for_update(self, item_id: uuid.UUID) -> LoadingSessionItem | None:
-        statement = select(LoadingSessionItem).where(LoadingSessionItem.id == item_id).with_for_update()
+        statement = (
+            select(LoadingSessionItem)
+            .where(LoadingSessionItem.id == item_id)
+            .with_for_update()
+        )
         return self.db.scalar(statement)
 
     def add(self, session: LoadingSession) -> LoadingSession:
