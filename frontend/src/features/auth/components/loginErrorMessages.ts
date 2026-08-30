@@ -1,4 +1,12 @@
+import { fallbackErrorMessage } from "../../../services/apiErrorMessages";
+import type { FieldLabels } from "../../../services/validationErrors";
 import type { ApiError } from "../../../types/api";
+
+/** Nome do campo no backend -> rótulo da tela, para o 422 dizer QUAL campo. */
+const LOGIN_FIELDS: FieldLabels = {
+  email: "E-mail",
+  password: "Senha",
+};
 
 export function mapLoginErrorToMessage(error: ApiError): string {
   if (error.code === "AUTH_INVALID_CREDENTIALS") {
@@ -13,5 +21,5 @@ export function mapLoginErrorToMessage(error: ApiError): string {
     return "Muitas tentativas de login. Aguarde e tente novamente.";
   }
 
-  return error.message;
+  return fallbackErrorMessage(error, LOGIN_FIELDS);
 }

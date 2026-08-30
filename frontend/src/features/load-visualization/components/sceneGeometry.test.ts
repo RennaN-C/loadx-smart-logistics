@@ -51,6 +51,17 @@ describe("truckBox", () => {
 });
 
 describe("itemBox", () => {
+  it("dá a CADA volume o tamanho do seu próprio produto", () => {
+    // conferência da observação de que os pacotes saíam todos iguais: se dois
+    // itens chegam com medidas diferentes, a cena os desenha diferentes.
+    const pequeno = itemBox(item({ widthCm: 20, heightCm: 15, lengthCm: 30 }));
+    const grande = itemBox(item({ widthCm: 80, heightCm: 60, lengthCm: 120 }));
+
+    expect(pequeno.size).toEqual([0.2, 0.15, 0.3]);
+    expect(grande.size).toEqual([0.8, 0.6, 1.2]);
+    expect(grande.size[0] / pequeno.size[0]).toBeCloseTo(4, 6);
+  });
+
   it("desloca o canto do backend para o centro da caixa", () => {
     expect(itemBox(item())).toEqual({ position: [0.2, 0.15, 0.3], size: [0.4, 0.3, 0.6] });
   });

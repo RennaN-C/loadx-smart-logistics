@@ -23,7 +23,8 @@ export type IconName =
   | "plus"
   | "edit"
   | "calendar"
-  | "priority";
+  | "priority"
+  | "chart";
 
 const PATHS: Record<IconName, ReactNode> = {
   home: (
@@ -91,6 +92,14 @@ const PATHS: Record<IconName, ReactNode> = {
       <path d="M3.6 10.2h16.8" />
       <path d="M8.2 3.2v4" />
       <path d="M15.8 3.2v4" />
+    </>
+  ),
+  chart: (
+    <>
+      <path d="M3.5 20h17" />
+      <rect x="5" y="12" width="3.8" height="8" />
+      <rect x="10.1" y="8" width="3.8" height="12" />
+      <rect x="15.2" y="4.5" width="3.8" height="15.5" />
     </>
   ),
   priority: (

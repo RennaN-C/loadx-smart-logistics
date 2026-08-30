@@ -6,6 +6,7 @@ import type {
   OrderInput,
   OrderItem,
   OrderListItem,
+  OrderPriority,
   OrderStatus,
   OrderUpdateInput,
 } from "../types";
@@ -23,7 +24,7 @@ interface OrderListDto {
   id: string;
   customer_id: string;
   status: OrderStatus;
-  priority: string;
+  priority: OrderPriority;
   expected_delivery_at: string | null;
   created_at: string;
   item_count: number;
@@ -33,7 +34,7 @@ interface OrderDto {
   id: string;
   customer_id: string;
   status: OrderStatus;
-  priority: string;
+  priority: OrderPriority;
   delivery_address: string;
   expected_delivery_at: string | null;
   created_at: string;

@@ -6,16 +6,27 @@ import { ApiError } from "../../../types/api";
 import type { CustomerListItem } from "../../customers/types";
 import type { Product } from "../../products/types";
 import { changeOrderStatus, createOrder, updateOrder } from "../api/ordersApi";
-import { MANUAL_STATUS_TRANSITIONS, ORDER_PRIORITIES, type Order, type OrderStatus } from "../types";
+import {
+  MANUAL_STATUS_TRANSITIONS,
+  ORDER_PRIORITIES,
+  type Order,
+  type OrderPriority,
+  type OrderStatus,
+} from "../types";
 import { isoToLocalInput, localInputToIso } from "./orderDateTime";
 import { PRIORITY_LABELS, STATUS_LABELS } from "./orderLabels";
 import { mapOrderErrorToMessage } from "./ordersErrorMessages";
 
+/**
+ * A sequência de entrega NÃO mora aqui. O backend exige que todos os itens do
+ * pedido compartilhem a mesma (`_validate_single_delivery_sequence`): ela é a
+ * parada do pedido na rota, não uma ordem entre produtos. Um campo por item
+ * convidava a divergir e devolvia 422.
+ */
 interface ItemDraft {
   key: string;
   productId: string;
   quantity: string;
-  deliverySequence: string;
 }
 
 function toInt(value: string): number {
@@ -79,21 +90,24 @@ export function OrderForm({ order, customers, products, onSaved, onCancel }: Ord
   };
 
   const [customerId, setCustomerId] = useState(order?.customerId ?? "");
-  const [priority, setPriority] = useState(order?.priority ?? "NORMAL");
+  const [priority, setPriority] = useState<OrderPriority>(order?.priority ?? "NORMAL");
   const [deliveryAddress, setDeliveryAddress] = useState(order?.deliveryAddress ?? "");
   const [expectedDeliveryAt, setExpectedDeliveryAt] = useState(
     isoToLocalInput(order?.expectedDeliveryAt ?? null),
   );
   const [status, setStatus] = useState<OrderStatus>(order?.status ?? "DRAFT");
+  // uma por PEDIDO: todos os itens vão com este valor
+  const [deliverySequence, setDeliverySequence] = useState(
+    String(order?.items[0]?.deliverySequence ?? 1),
+  );
   const [items, setItems] = useState<ItemDraft[]>(() =>
     order && order.items.length > 0
       ? order.items.map((item) => ({
           key: makeKey(),
           productId: item.productId,
           quantity: String(item.quantity),
-          deliverySequence: String(item.deliverySequence),
         }))
-      : [{ key: makeKey(), productId: "", quantity: "1", deliverySequence: "1" }],
+      : [{ key: makeKey(), productId: "", quantity: "1" }],
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -105,7 +119,7 @@ export function OrderForm({ order, customers, products, onSaved, onCancel }: Ord
   function addItem() {
     setItems((current) => [
       ...current,
-      { key: makeKey(), productId: "", quantity: "1", deliverySequence: String(current.length + 1) },
+      { key: makeKey(), productId: "", quantity: "1" },
     ]);
   }
 
@@ -126,7 +140,7 @@ export function OrderForm({ order, customers, products, onSaved, onCancel }: Ord
       items: items.map((item) => ({
         productId: item.productId,
         quantity: toInt(item.quantity),
-        deliverySequence: toInt(item.deliverySequence),
+        deliverySequence: toInt(deliverySequence),
       })),
     };
 
@@ -176,7 +190,7 @@ export function OrderForm({ order, customers, products, onSaved, onCancel }: Ord
               id="order-priority"
               name="priority"
               value={priority}
-              onChange={(event) => setPriority(event.target.value)}
+              onChange={(event) => setPriority(event.target.value as OrderPriority)}
             >
               {ORDER_PRIORITIES.map((value) => (
                 <option key={value} value={value}>
@@ -217,6 +231,21 @@ export function OrderForm({ order, customers, products, onSaved, onCancel }: Ord
               onChange={(event) => setExpectedDeliveryAt(event.target.value)}
             />
           </FormField>
+          <FormField
+            id="order-sequence"
+            label="SEQ. DE ENTREGA"
+            hint="Parada do pedido na rota."
+            narrow
+          >
+            <input
+              id="order-sequence"
+              type="number"
+              min={1}
+              required
+              value={deliverySequence}
+              onChange={(event) => setDeliverySequence(event.target.value)}
+            />
+          </FormField>
         </div>
 
         <p className="field-label">ITENS DO PEDIDO</p>
@@ -249,16 +278,6 @@ export function OrderForm({ order, customers, products, onSaved, onCancel }: Ord
                     onChange={(event) => updateItem(item.key, { quantity: event.target.value })}
                   />
                 </FormField>
-                <FormField id={`${item.key}-sequence`} label="SEQ. ENTREGA" narrow>
-                  <input
-                    id={`${item.key}-sequence`}
-                    type="number"
-                    min={1}
-                    required
-                    value={item.deliverySequence}
-                    onChange={(event) => updateItem(item.key, { deliverySequence: event.target.value })}
-                  />
-                </FormField>
                 <button
                   type="button"
                   className="btn-link order-item-remove"
@@ -277,8 +296,8 @@ export function OrderForm({ order, customers, products, onSaved, onCancel }: Ord
               + Adicionar item
             </button>
             <p className="entity-form-help">
-              A sequência define a ordem de descarga: o item 1 sai primeiro, então ele é carregado por
-              último.
+              Todos os itens deste pedido descem juntos, na parada indicada acima. O otimizador usa
+              essa parada para decidir o que entra por último no caminhão.
             </p>
           </div>
         </div>

@@ -1,4 +1,16 @@
+import { fallbackErrorMessage } from "../../../services/apiErrorMessages";
+import type { FieldLabels } from "../../../services/validationErrors";
 import type { ApiError } from "../../../types/api";
+
+/** Nome do campo no backend -> rótulo da tela, para o 422 dizer QUAL campo. */
+const DRIVER_FIELDS: FieldLabels = {
+  name: "Nome",
+  document: "Documento",
+  phone: "Telefone",
+  license_number: "Número da CNH",
+  license_category: "Categoria da CNH",
+  active: "Ativo",
+};
 
 export function mapDriverErrorToMessage(error: ApiError): string {
   if (error.code === "DRIVER_DOCUMENT_ALREADY_EXISTS") {
@@ -17,5 +29,5 @@ export function mapDriverErrorToMessage(error: ApiError): string {
     return "Seu perfil não tem permissão para ver ou alterar motoristas.";
   }
 
-  return error.message;
+  return fallbackErrorMessage(error, DRIVER_FIELDS);
 }

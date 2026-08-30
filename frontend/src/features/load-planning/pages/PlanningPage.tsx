@@ -155,7 +155,7 @@ export function PlanningPage() {
                   </p>
                 }
               >
-                <LoadViewer planId={plan.id} />
+                <LoadViewer planId={plan.id} plan={plan} />
               </Suspense>
             )}
           </div>

@@ -83,10 +83,42 @@ describe("truckShell", () => {
     expect(baseDaCabine).toBeGreaterThan(0);
   });
 
-  it("estende o chassi por baixo da cabine e do baú inteiros", () => {
-    const shell = truckShell(truck({ lengthCm: 600 }));
+  it("mantém o topo do chassi FORA do plano do piso do baú", () => {
+    // Regressão do piscar: com o topo do chassi exatamente em DECK_HEIGHT, ele e
+    // o piso do baú disputavam o mesmo valor de profundidade e a placa alternava
+    // entre os dois a cada quadro ao girar a câmera.
+    const shell = truckShell(truck());
+    const topoDoChassi = shell.chassis.position[1] + shell.chassis.size[1] / 2;
 
-    expect(shell.chassis.size[2]).toBeCloseTo(6 + CAB_LENGTH, 6);
+    expect(topoDoChassi).toBeLessThan(DECK_HEIGHT);
+    // folga suficiente para o buffer de profundidade distinguir os dois
+    expect(DECK_HEIGHT - topoDoChassi).toBeGreaterThanOrEqual(0.02);
+  });
+
+  it("estende o chassi por baixo da cabine e do baú, SEM encostar nas pontas", () => {
+    // Regressão do piscar na frente: com a ponta exatamente na face da cabine,
+    // chassi, cabine e para-choque caíam todos no plano z = -CAB_LENGTH.
+    const shell = truckShell(truck({ lengthCm: 600 }));
+    const frente = shell.chassis.position[2] - shell.chassis.size[2] / 2;
+    const tras = shell.chassis.position[2] + shell.chassis.size[2] / 2;
+
+    expect(frente).toBeGreaterThan(-CAB_LENGTH);
+    expect(tras).toBeLessThan(6);
+    // mesmo recuado, cobre a maior parte do conjunto
+    expect(shell.chassis.size[2]).toBeGreaterThan((6 + CAB_LENGTH) * 0.9);
     expect(shell.chassis.position[1]).toBeLessThan(DECK_HEIGHT);
+  });
+
+  it("mantém o para-choque e o para-brisa fora do plano da frente da cabine", () => {
+    const shell = truckShell(truck());
+    const frenteDaCabine = shell.cab.position[2] - shell.cab.size[2] / 2;
+    const trasDoParachoque = shell.bumper.position[2] + shell.bumper.size[2] / 2;
+    const trasDoParabrisa = shell.windshield.position[2] + shell.windshield.size[2] / 2;
+
+    // entram na cabine em vez de encostar: sólidos que se interpenetram não brigam
+    expect(trasDoParachoque).toBeGreaterThan(frenteDaCabine);
+    expect(trasDoParabrisa).toBeGreaterThan(frenteDaCabine);
+    // e o para-brisa aparece: a frente dele fica ADIANTE da cabine
+    expect(shell.windshield.position[2] - shell.windshield.size[2] / 2).toBeLessThan(frenteDaCabine);
   });
 });

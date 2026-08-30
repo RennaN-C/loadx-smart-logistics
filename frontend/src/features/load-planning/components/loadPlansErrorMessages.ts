@@ -1,4 +1,12 @@
+import { fallbackErrorMessage } from "../../../services/apiErrorMessages";
+import type { FieldLabels } from "../../../services/validationErrors";
 import type { ApiError } from "../../../types/api";
+
+/** Nome do campo no backend -> rótulo da tela, para o 422 dizer QUAL campo. */
+const LOAD_PLAN_FIELDS: FieldLabels = {
+  truck_id: "Caminhão",
+  order_ids: "Pedidos selecionados",
+};
 
 export function mapLoadPlanErrorToMessage(error: ApiError): string {
   if (error.code === "LOAD_PLAN_NOT_FOUND") {
@@ -45,5 +53,5 @@ export function mapLoadPlanErrorToMessage(error: ApiError): string {
     return "Seu perfil não tem permissão para esta ação.";
   }
 
-  return error.message;
+  return fallbackErrorMessage(error, LOAD_PLAN_FIELDS);
 }

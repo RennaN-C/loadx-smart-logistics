@@ -61,6 +61,19 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
   e isola cada cenário em transação externa.
 - `CONFIRMADO`: a `OC55` centralizou fixtures, encerra clients, sessions e engines
   e deixou toda a base Python conforme Ruff.
+- `CONFIRMADO`: o PR #23 implementa a integração contínua em
+  `.github/workflows/ci.yml` para pull requests e pushes em `desenvolvimento` e
+  `main`. Os jobs independentes `Backend` e `Frontend` e o check `SonarCloud`
+  passaram integralmente no PR.
+- `CONFIRMADO`: a CI do backend usa Python 3.12, PostgreSQL 16, Ruff, validação
+  de formatação, Alembic e Pytest com cobertura. As dependências continuam
+  declaradas em `requirements.txt` e são instaladas do
+  `requirements.lock.txt`, com versões resolvidas, hashes e
+  `--require-hashes`.
+- `CONFIRMADO`: a CI do frontend usa o Node definido em `.nvmrc`, instala com
+  `npm ci --ignore-scripts` e executa ESLint, Vitest e build.
+- `CONFIRMADO`: o ruleset de `main` exige os checks `Backend`, `Frontend` e
+  `SonarCloud` e pelo menos uma aprovação antes do merge.
 - `CONFIRMADO`: `ADR-019` define inicialização segura em produção, migrations
   automáticas antes do backend, processos de aplicação sem privilégio e portas
   locais restritas a loopback.
@@ -71,11 +84,9 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 ## Decisões necessárias
 
 - `DECISÃO NECESSÁRIA`: definir formato final de relatório PDF e se haverá envio por e-mail/WhatsApp no MVP.
-- `DECISÃO NECESSÁRIA`: definir os valores aceitos em `priority` do pedido. `OrderCreate` aceita qualquer string de até 32 caracteres, sem enum e sem validação, ao contrário de `status`. Enquanto não houver definição, a `OC29` usa `LOW`, `NORMAL`, `HIGH` e `URGENT` num `<select>` no frontend — convenção adotada só ali, que precisa virar contrato em `docs/05` e validação no backend para não aceitar prioridade divergente vinda de outra origem.
 
 ## Pendências técnicas
 
-- `PENDENTE DE DEFINIÇÃO`: CI real ainda não está implementada, apenas documentada em `infra/ci/README.md`.
 - `PENDENTE DE DEFINIÇÃO`: models e migrations de carregamento e ocorrências.
 - `PENDENTE DE DEFINIÇÃO`: contrato e filtros de uma eventual consulta protegida
   de histórico; D10 fechou as entidades em `ORDER`, `LOAD_PLAN`, `TRIP` e
@@ -137,10 +148,6 @@ nova `algorithm_version`; a representação JSON de `Decimal` segue D06 e
 
 ## Riscos identificados
 
-- `RISCO IDENTIFICADO`: o backend possui intervalos de versão em
-  `requirements.txt`, mas ainda não possui lockfile; uma imagem limpa pode
-  instalar versões diferentes das usadas anteriormente e deve sempre executar a
-  suíte completa antes de ser publicada.
 - `CONFIRMADO`: o risco de dependências vulneráveis registrado em 2026-08-06 foi
   corrigido em 2026-08-07; o `package-lock.json` atualizado retorna zero achados
   no `npm audit` e passou por lint, 159 testes e build de produção na validação
