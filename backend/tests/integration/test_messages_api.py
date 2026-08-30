@@ -1,5 +1,7 @@
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 
+from app.modules.deliveries.models import Trip
 from tests.integration.test_deliveries_api import create_trip, seed_operational_scenario
 
 
@@ -29,10 +31,50 @@ def finish_loading(client: TestClient, scenario) -> None:
     assert finished.status_code == 200
 
 
-def send_command(client: TestClient, message: str):
+def send_command(
+    client: TestClient,
+    message: str,
+    headers: dict[str, str],
+    driver_phone: str = "5500000000000",
+):
     return client.post(
         "/api/v1/messages/interpret",
-        json={"driver_phone": "5500000000000", "message": message},
+        json={"driver_phone": driver_phone, "message": message},
+        headers=headers,
+    )
+
+
+def test_message_simulator_requires_an_authorized_operator(
+    client: TestClient,
+    session_factory,
+) -> None:
+    scenario = seed_operational_scenario(session_factory)
+    payload = {"driver_phone": "5500000000000", "message": "Preciso de ajuda"}
+
+    assert client.post("/api/v1/messages/interpret", json=payload).status_code == 401
+    assert (
+        client.post(
+            "/api/v1/messages/interpret", json=payload, headers=scenario.driver_headers
+        ).status_code
+        == 403
+    )
+    assert (
+        client.post(
+            "/api/v1/messages/interpret", json=payload, headers=scenario.checker_headers
+        ).status_code
+        == 403
+    )
+    assert (
+        client.post(
+            "/api/v1/messages/interpret", json=payload, headers=scenario.admin_headers
+        ).status_code
+        == 200
+    )
+    assert (
+        client.post(
+            "/api/v1/messages/interpret", json=payload, headers=scenario.manager_headers
+        ).status_code
+        == 200
     )
 
 
@@ -44,7 +86,7 @@ def test_controlled_message_executes_trip_and_delivery_public_services(
     trip = create_trip(client, scenario)
     finish_loading(client, scenario)
 
-    started_trip = send_command(client, "INICIAR VIAGEM")
+    started_trip = send_command(client, "INICIAR VIAGEM", scenario.manager_headers)
     assert started_trip.status_code == 200
     assert started_trip.json() == {
         "intent": "START_TRIP",
@@ -57,13 +99,17 @@ def test_controlled_message_executes_trip_and_delivery_public_services(
         "delivery_id": None,
     }
 
-    started_delivery = send_command(client, "Já cheguei no cliente")
+    started_delivery = send_command(
+        client, "Já cheguei no cliente", scenario.admin_headers
+    )
     assert started_delivery.status_code == 200
     assert started_delivery.json()["executed"] is True
     assert started_delivery.json()["confirmation"] == "Entrega iniciada com sucesso."
     assert started_delivery.json()["delivery_id"] == trip["deliveries"][0]["id"]
 
-    finished_delivery = send_command(client, "FINALIZAR ENTREGA")
+    finished_delivery = send_command(
+        client, "FINALIZAR ENTREGA", scenario.manager_headers
+    )
     assert finished_delivery.status_code == 200
     assert finished_delivery.json()["executed"] is True
     assert finished_delivery.json()["confirmation"] == (
@@ -81,6 +127,7 @@ def test_controlled_message_rejects_unknown_driver_and_state(
     unknown_driver = client.post(
         "/api/v1/messages/interpret",
         json={"driver_phone": "5599999999999", "message": "INICIAR VIAGEM"},
+        headers=scenario.manager_headers,
     )
     assert unknown_driver.status_code == 200
     assert unknown_driver.json()["executed"] is False
@@ -88,24 +135,42 @@ def test_controlled_message_rejects_unknown_driver_and_state(
         "Motorista não identificado ou inativo."
     )
 
-    loading_not_finished = send_command(client, "INICIAR VIAGEM")
+    loading_not_finished = send_command(
+        client, "INICIAR VIAGEM", scenario.manager_headers
+    )
     assert loading_not_finished.status_code == 200
     assert loading_not_finished.json()["executed"] is False
     assert loading_not_finished.json()["confirmation"] == (
         "Comando não permitido para o estado atual."
     )
 
+    with session_factory() as db:
+        persisted_trip = db.scalar(select(Trip))
+        assert persisted_trip is not None
+        assert persisted_trip.status == "SCHEDULED"
 
-def test_unknown_message_does_not_execute_an_action(client: TestClient) -> None:
+
+def test_unknown_message_does_not_execute_an_action(
+    client: TestClient,
+    session_factory,
+) -> None:
+    scenario = seed_operational_scenario(session_factory)
+    create_trip(client, scenario)
     response = client.post(
         "/api/v1/messages/interpret",
         json={
             "driver_phone": "5500000000000",
             "message": "Preciso de ajuda",
         },
+        headers=scenario.admin_headers,
     )
 
     assert response.status_code == 200
     assert response.json()["allowed"] is False
     assert response.json()["executed"] is False
     assert response.json()["confirmation"] == "Comando não reconhecido."
+
+    with session_factory() as db:
+        persisted_trip = db.scalar(select(Trip))
+        assert persisted_trip is not None
+        assert persisted_trip.status == "SCHEDULED"

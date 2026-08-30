@@ -220,7 +220,7 @@ EXPECTED_ERROR_STATUSES = {
         "422",
         "500",
     },
-    ("/api/v1/messages/interpret", "post"): {"422", "500"},
+    ("/api/v1/messages/interpret", "post"): {"401", "403", "422", "500"},
     ("/api/v1/occurrences", "post"): {
         "401",
         "403",
@@ -256,7 +256,6 @@ PUBLIC_OPERATIONS = frozenset(
         ("/health", "get"),
         ("/ready", "get"),
         ("/api/v1/auth/login", "post"),
-        ("/api/v1/messages/interpret", "post"),
     }
 )
 PROTECTED_OPERATIONS = frozenset(EXPECTED_ERROR_STATUSES).difference(PUBLIC_OPERATIONS)

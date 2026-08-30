@@ -154,6 +154,7 @@ def test_complete_v1_flow(client: TestClient, session_factory) -> None:
         executed = client.post(
             "/api/v1/messages/interpret",
             json={"driver_phone": driver["phone"], "message": command},
+            headers=manager_headers,
         )
         assert executed.status_code == 200
         assert executed.json()["executed"] is True
