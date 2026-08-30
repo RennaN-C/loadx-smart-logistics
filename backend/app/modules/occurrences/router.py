@@ -28,6 +28,12 @@ OccurrenceReader = Annotated[
     User,
     Depends(require_roles("ADMIN", "LOGISTICS_MANAGER", "DRIVER")),
 ]
+OCCURRENCE_SERVICE_ERRORS = (
+    OccurrenceAccessForbiddenError,
+    OccurrenceDeliveryNotFoundError,
+    OccurrenceDeliveryTripMismatchError,
+    OccurrenceTripNotFoundError,
+)
 
 
 def get_occurrence_service(
@@ -49,7 +55,7 @@ def create_occurrence(
 ) -> Occurrence | JSONResponse:
     try:
         return service.register_occurrence(data, current_user=current_user)
-    except Exception as exc:
+    except OCCURRENCE_SERVICE_ERRORS as exc:
         return _occurrence_error_response(exc)
 
 
@@ -65,17 +71,35 @@ def list_trip_occurrences(
 ) -> list[Occurrence] | JSONResponse:
     try:
         return service.list_trip_occurrences(trip_id, current_user=current_user)
-    except Exception as exc:
+    except OCCURRENCE_SERVICE_ERRORS as exc:
         return _occurrence_error_response(exc)
 
 
 def _occurrence_error_response(exc: Exception) -> JSONResponse:
     if isinstance(exc, OccurrenceAccessForbiddenError):
-        return error_response(status.HTTP_403_FORBIDDEN, "AUTH_FORBIDDEN", "Usuário sem permissão para esta ação.")
+        return error_response(
+            status.HTTP_403_FORBIDDEN,
+            "AUTH_FORBIDDEN",
+            "Usuário sem permissão para esta ação.",
+        )
     if isinstance(exc, OccurrenceTripNotFoundError):
-        return error_response(status.HTTP_404_NOT_FOUND, "TRIP_NOT_FOUND", "Viagem não encontrada.", [{"field": "trip_id"}])
+        return error_response(
+            status.HTTP_404_NOT_FOUND,
+            "TRIP_NOT_FOUND",
+            "Viagem não encontrada.",
+            [{"field": "trip_id"}],
+        )
     if isinstance(exc, OccurrenceDeliveryNotFoundError):
-        return error_response(status.HTTP_404_NOT_FOUND, "DELIVERY_NOT_FOUND", "Entrega não encontrada.", [{"field": "delivery_id"}])
+        return error_response(
+            status.HTTP_404_NOT_FOUND,
+            "DELIVERY_NOT_FOUND",
+            "Entrega não encontrada.",
+            [{"field": "delivery_id"}],
+        )
     if isinstance(exc, OccurrenceDeliveryTripMismatchError):
-        return error_response(status.HTTP_409_CONFLICT, "OCCURRENCE_DELIVERY_TRIP_MISMATCH", "A entrega não pertence à viagem informada.")
+        return error_response(
+            status.HTTP_409_CONFLICT,
+            "OCCURRENCE_DELIVERY_TRIP_MISMATCH",
+            "A entrega não pertence à viagem informada.",
+        )
     raise exc

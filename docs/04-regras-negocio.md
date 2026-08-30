@@ -430,7 +430,10 @@ Regras:
 - Intenção só executa ação se for permitida para o estado atual.
 - Provider real ou mock deve seguir a mesma interface.
 
-`PENDENTE DE DEFINIÇÃO`: mensagens de erro e confirmação enviadas ao motorista.
+`CONFIRMADO`: o fluxo controlado responde confirmação explícita e somente marca
+`executed = true` após o service público concluir a ação. Motorista desconhecido
+ou inativo, usuário sem vínculo, viagem ambígua/ausente e estado inválido não
+alteram dados.
 
 ## IA
 
@@ -442,8 +445,10 @@ Regras:
 
 ## Relatórios
 
-- Relatório de carregamento deve refletir caminhão, motorista, pedidos, produtos, volumes, peso, ocupação, rejeições e sequência de carregamento.
-- Relatório de viagem deve refletir datas, motorista, caminhão, entregas, atrasos, ocorrências e status final.
-- Relatório não pode recalcular plano de carga.
+- `CONFIRMADO`: relatório de carregamento reflete plano, caminhão, volumes,
+  sequência, conferência, início, fim e status.
+- `CONFIRMADO`: relatório de viagem reflete viagem, caminhão, entregas, status,
+  ocorrências e datas.
+- `CONFIRMADO`: relatório não recalcula nem altera plano de carga.
 
 `PENDENTE DE DEFINIÇÃO`: layout final do PDF e campos obrigatórios para assinatura/conferência.

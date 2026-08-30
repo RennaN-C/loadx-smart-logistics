@@ -12,3 +12,8 @@ Responsabilidades:
 - registrar auditoria.
 
 Não acessa o banco diretamente.
+
+`CONFIRMADO`: o fluxo controlado usa `MockWhatsAppProvider`, resolve motorista
+por telefone, exige usuário `DRIVER` ativo e delega mudanças exclusivamente ao
+`TripService`. Comandos desconhecidos, estado inválido e identificação ambígua
+falham sem alterar viagem ou entrega.

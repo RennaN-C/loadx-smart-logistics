@@ -3,7 +3,11 @@ import uuid
 from sqlalchemy.orm import Session
 
 from app.modules.deliveries.reference_service import DeliveryReferenceService
-from app.modules.deliveries.service import TripAccessForbiddenError, TripNotFoundError, TripService
+from app.modules.deliveries.service import (
+    TripAccessForbiddenError,
+    TripNotFoundError,
+    TripService,
+)
 from app.modules.occurrences.models import Occurrence
 from app.modules.occurrences.repository import OccurrenceRepository
 from app.modules.occurrences.schemas import OccurrenceCreate
@@ -33,7 +37,9 @@ class OccurrenceService:
         self.trip_service = TripService(db)
         self.delivery_reference_service = DeliveryReferenceService(db)
 
-    def register_occurrence(self, data: OccurrenceCreate, *, current_user: User) -> Occurrence:
+    def register_occurrence(
+        self, data: OccurrenceCreate, *, current_user: User
+    ) -> Occurrence:
         try:
             self.trip_service.get_trip(data.trip_id, current_user=current_user)
         except TripNotFoundError as exc:

@@ -1,3 +1,5 @@
+import uuid
+
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -13,3 +15,7 @@ class MessageInterpretResponse(BaseModel):
     confidence: float = Field(ge=0, le=1)
     allowed: bool
     action: str | None
+    executed: bool = False
+    confirmation: str | None = None
+    trip_id: uuid.UUID | None = None
+    delivery_id: uuid.UUID | None = None

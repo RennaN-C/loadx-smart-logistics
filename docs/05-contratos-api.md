@@ -658,7 +658,8 @@ Exemplo de criação:
 ## Mensagens e WhatsApp
 
 - `POST /messages/interpret`.
-- `POST /webhooks/whatsapp` `PENDENTE DE DEFINIÇÃO`.
+- `POST /webhooks/whatsapp` permanece fora da v1.0.0; o provider controlado usa
+  `POST /messages/interpret`.
 
 Exemplo de interpretação:
 
@@ -680,14 +681,19 @@ Resposta recomendada:
 }
 ```
 
-`CONFIRMADO`: a resposta da IA deve ser validada por schema e convertida em ação apenas quando a intenção for permitida.
+`CONFIRMADO`: a resposta inclui `executed`, `confirmation`, `trip_id` e
+`delivery_id`. A intenção só vira ação após identificar motorista/viagem/entrega
+e o `TripService` validar permissão e estado. Nenhuma regra de viagem ou entrega
+é duplicada no módulo de mensagens.
 
 ## Relatórios
 
 - `GET /reports/load-plans/{id}`.
 - `GET /reports/trips/{id}`.
 
-`PENDENTE DE DEFINIÇÃO`: formato final de download, headers e armazenamento temporário do PDF.
+`CONFIRMADO`: ambos retornam `application/pdf` com `Content-Disposition:
+attachment`. O relatório é gerado em memória a partir dos dados persistidos e
+não exige armazenamento permanente na v1.0.0.
 
 ## Erros
 

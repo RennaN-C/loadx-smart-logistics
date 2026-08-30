@@ -236,6 +236,20 @@ EXPECTED_ERROR_STATUSES = {
         "422",
         "500",
     },
+    ("/api/v1/reports/load-plans/{load_plan_id}", "get"): {
+        "401",
+        "403",
+        "404",
+        "422",
+        "500",
+    },
+    ("/api/v1/reports/trips/{trip_id}", "get"): {
+        "401",
+        "403",
+        "404",
+        "422",
+        "500",
+    },
 }
 PUBLIC_OPERATIONS = frozenset(
     {

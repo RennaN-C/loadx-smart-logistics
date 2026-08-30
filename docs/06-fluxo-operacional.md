@@ -97,9 +97,9 @@ um único commit. Recálculo cria outro plano com dados atuais e
    todas as entregas e pedidos estão `DELIVERED`.
 9. Ocorrências futuras poderão adicionar contexto sem apagar o histórico.
 
-`PENDENTE DE DEFINIÇÃO`: o módulo de carregamento ainda precisa materializar e
-expor o estado `FINISHED`. Estados de cancelamento, falha, ausência e atraso
-exigem decisão e migration futuras; não são persistidos pela OC09.
+`CONFIRMADO`: o módulo de carregamento materializa `FINISHED` e libera somente a
+viagem do mesmo plano. Estados de cancelamento, falha, ausência e atraso
+continuam fora do ciclo persistido da v1.0.0.
 
 ## Fluxo de WhatsApp simulado/controlado
 
@@ -129,4 +129,5 @@ exigem decisão e migration futuras; não são persistidos pela OC09.
 3. Serviço de relatórios monta PDF simples.
 4. API retorna download ou referência do arquivo.
 
-`PENDENTE DE DEFINIÇÃO`: política de armazenamento temporário, expiração e envio por e-mail/WhatsApp.
+`CONFIRMADO`: na v1.0.0 o PDF é gerado em memória e retornado como download;
+armazenamento permanente e envio por e-mail/WhatsApp ficam fora do escopo.
