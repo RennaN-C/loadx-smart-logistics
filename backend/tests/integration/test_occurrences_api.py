@@ -158,3 +158,73 @@ def test_occurrence_rejects_uncontrolled_photo_reference(
     assert response.status_code == 422
     assert response.json()["code"] == "VALIDATION_ERROR"
     assert response.json()["details"][0]["field"] == "photo_url"
+
+
+def test_occurrence_permissions_follow_trip_ownership(
+    client: TestClient,
+    session_factory,
+) -> None:
+    scenario = seed_operational_scenario(session_factory)
+    trip = create_trip(client, scenario)
+    payload = {
+        "trip_id": trip["id"],
+        "delivery_id": trip["deliveries"][0]["id"],
+        "type": "DAMAGED_PRODUCT",
+        "description": "Avaria registrada pelo motorista vinculado.",
+        "photo_url": "mock://occurrences/driver-photo",
+    }
+
+    assert client.post("/api/v1/occurrences", json=payload).status_code == 401
+    assert (
+        client.post(
+            "/api/v1/occurrences",
+            json=payload,
+            headers=scenario.admin_headers,
+        ).status_code
+        == 403
+    )
+    assert (
+        client.post(
+            "/api/v1/occurrences",
+            json=payload,
+            headers=scenario.checker_headers,
+        ).status_code
+        == 403
+    )
+    assert (
+        client.post(
+            "/api/v1/occurrences",
+            json=payload,
+            headers=scenario.other_driver_headers,
+        ).status_code
+        == 403
+    )
+
+    created = client.post(
+        "/api/v1/occurrences",
+        json=payload,
+        headers=scenario.driver_headers,
+    )
+
+    assert created.status_code == 201
+    assert created.json()["photo_url"] == "mock://occurrences/driver-photo"
+    occurrence_path = f"/api/v1/trips/{trip['id']}/occurrences"
+    assert (
+        client.get(occurrence_path, headers=scenario.admin_headers).status_code == 200
+    )
+    assert (
+        client.get(occurrence_path, headers=scenario.manager_headers).status_code == 200
+    )
+    assert (
+        client.get(occurrence_path, headers=scenario.driver_headers).status_code == 200
+    )
+    assert (
+        client.get(
+            occurrence_path,
+            headers=scenario.other_driver_headers,
+        ).status_code
+        == 403
+    )
+    assert (
+        client.get(occurrence_path, headers=scenario.checker_headers).status_code == 403
+    )

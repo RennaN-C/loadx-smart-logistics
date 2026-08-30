@@ -1,3 +1,4 @@
+import uuid
 from collections.abc import Iterator
 
 import pytest
@@ -96,6 +97,31 @@ def test_registered_occurrence_notifies_assigned_driver(
     assert notification_provider.sent_messages[0].content == (
         f"Ocorrência DAMAGED_PRODUCT registrada na viagem {trip['id']}."
     )
+
+
+def test_rejected_occurrence_does_not_notify(
+    client: TestClient,
+    session_factory,
+    notification_provider: MockWhatsAppProvider,
+) -> None:
+    scenario = seed_operational_scenario(session_factory)
+    trip = create_trip(client, scenario)
+
+    rejected = client.post(
+        "/api/v1/occurrences",
+        json={
+            "trip_id": trip["id"],
+            "delivery_id": str(uuid.uuid4()),
+            "type": "DAMAGED_PRODUCT",
+            "description": "Entrega inválida para teste.",
+            "photo_url": "mock://occurrences/rejected-photo",
+        },
+        headers=scenario.manager_headers,
+    )
+
+    assert rejected.status_code == 404
+    assert rejected.json()["code"] == "DELIVERY_NOT_FOUND"
+    assert notification_provider.sent_messages == []
 
 
 def test_provider_failure_does_not_rollback_confirmed_trip_start(
