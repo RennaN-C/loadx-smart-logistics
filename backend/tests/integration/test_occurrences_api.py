@@ -47,10 +47,15 @@ def test_manager_registers_and_lists_trip_occurrences(
         headers=scenario.manager_headers,
     )
     assert listed.status_code == 200
-    assert {occurrence["id"] for occurrence in listed.json()} == {
+    listed_by_id = {occurrence["id"]: occurrence for occurrence in listed.json()}
+    assert set(listed_by_id) == {
         created.json()["id"],
         without_photo.json()["id"],
     }
+    assert listed_by_id[created.json()["id"]]["photo_url"] == (
+        "mock://occurrences/photo-1"
+    )
+    assert listed_by_id[without_photo.json()["id"]]["photo_url"] is None
 
 
 def test_occurrence_rejects_unknown_trip_and_delivery_references(
@@ -130,3 +135,26 @@ def test_occurrence_rejects_unknown_type(
 
     assert response.status_code == 422
     assert response.json()["code"] == "VALIDATION_ERROR"
+
+
+def test_occurrence_rejects_uncontrolled_photo_reference(
+    client: TestClient,
+    session_factory,
+) -> None:
+    scenario = seed_operational_scenario(session_factory)
+    trip = create_trip(client, scenario)
+
+    response = client.post(
+        "/api/v1/occurrences",
+        json={
+            "trip_id": trip["id"],
+            "type": "DAMAGED_PRODUCT",
+            "description": "Avaria controlada.",
+            "photo_url": "https://example.test/photo-1",
+        },
+        headers=scenario.manager_headers,
+    )
+
+    assert response.status_code == 422
+    assert response.json()["code"] == "VALIDATION_ERROR"
+    assert response.json()["details"][0]["field"] == "photo_url"
