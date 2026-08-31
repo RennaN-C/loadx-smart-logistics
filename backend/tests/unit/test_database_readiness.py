@@ -73,7 +73,7 @@ def _install_fake_connection(
 
 def test_loads_the_versioned_alembic_head() -> None:
     assert _load_expected_heads(DEFAULT_ALEMBIC_CONFIG_PATH) == frozenset(
-        {"20260825_0010"}
+        {"20260830_0011"}
     )
 
 
