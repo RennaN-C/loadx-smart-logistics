@@ -29,7 +29,7 @@ def test_postgresql_16_reaches_alembic_head(postgres_engine: Engine) -> None:
         )
 
     assert server_version_num // 10_000 == 16
-    assert revision == "20260809_0008"
+    assert revision == "20260830_0011"
     assert {
         "users",
         "customers",
@@ -46,6 +46,9 @@ def test_postgresql_16_reaches_alembic_head(postgres_engine: Engine) -> None:
         "auth_sessions",
         "trips",
         "deliveries",
+        "occurrences",
+        "loading_sessions",
+        "loading_session_items",
     } <= tables
 
 
@@ -61,7 +64,8 @@ def test_postgresql_exposes_official_native_column_types(
               AND (table_name, column_name) IN (
                   ('users', 'id'),
                   ('trucks', 'max_weight_kg'),
-                  ('users', 'created_at')
+                  ('users', 'created_at'),
+                  ('trips', 'created_at')
               )
             """
         ).all()
@@ -73,6 +77,7 @@ def test_postgresql_exposes_official_native_column_types(
     assert column_types[("users", "id")] == "uuid"
     assert column_types[("trucks", "max_weight_kg")] == "numeric"
     assert column_types[("users", "created_at")] == "timestamp with time zone"
+    assert column_types[("trips", "created_at")] == "timestamp with time zone"
 
 
 def test_postgresql_rejects_foreign_key_violation(

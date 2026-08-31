@@ -1,4 +1,13 @@
+import { fallbackErrorMessage } from "../../../services/apiErrorMessages";
+import type { FieldLabels } from "../../../services/validationErrors";
 import type { ApiError } from "../../../types/api";
+
+/** Nome do campo no backend -> rótulo da tela, para o 422 dizer QUAL campo. */
+const TRIP_FIELDS: FieldLabels = {
+  load_plan_id: "Plano de carga",
+  driver_id: "Motorista",
+  status: "Situação",
+};
 
 export function mapTripErrorToMessage(error: ApiError): string {
   if (error.code === "TRIP_NOT_FOUND") {
@@ -67,5 +76,5 @@ export function mapTripErrorToMessage(error: ApiError): string {
     return "Seu perfil não tem permissão para esta ação, ou esta viagem não é sua.";
   }
 
-  return error.message;
+  return fallbackErrorMessage(error, TRIP_FIELDS);
 }

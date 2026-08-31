@@ -5,14 +5,17 @@ from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
+from app.core.pagination import PageResponse, Pagination, to_page_response
 from app.core.responses import error_response, openapi_error_responses
 from app.database.session import get_db
+from app.integrations.whatsapp import WhatsAppProvider, get_whatsapp_provider
 from app.modules.auth.dependencies import require_roles
 from app.modules.deliveries.models import Delivery, Trip
 from app.modules.deliveries.schemas import (
     DeliveryRead,
     DeliveryStatusChange,
     TripCreate,
+    TripListRead,
     TripRead,
     TripStatusChange,
 )
@@ -35,6 +38,7 @@ from app.modules.deliveries.service import (
     TripService,
     TripStatusTransitionNotAllowedError,
 )
+from app.modules.notifications.service import OperationalNotificationService
 from app.modules.users.models import User
 
 router = APIRouter(tags=["trips"])
@@ -67,8 +71,46 @@ TRIP_SERVICE_ERRORS = (
 )
 
 
-def get_trip_service(db: Annotated[Session, Depends(get_db)]) -> TripService:
-    return TripService(db)
+def get_trip_service(
+    db: Annotated[Session, Depends(get_db)],
+    provider: Annotated[WhatsAppProvider, Depends(get_whatsapp_provider)],
+) -> TripService:
+    return TripService(
+        db,
+        notification_service=OperationalNotificationService(provider),
+    )
+
+
+@router.get(
+    "/trips",
+    response_model=PageResponse[TripListRead],
+    responses=openapi_error_responses(401, 403, 422),
+)
+def list_trips(
+    pagination: Pagination,
+    current_user: TripReader,
+    service: Annotated[TripService, Depends(get_trip_service)],
+) -> PageResponse[TripListRead] | JSONResponse:
+    try:
+        result = service.list_trips(pagination, current_user=current_user)
+    except TRIP_SERVICE_ERRORS as exc:
+        return _trip_error_response(exc)
+    return to_page_response(
+        result,
+        (
+            TripListRead(
+                id=item.trip.id,
+                load_plan_id=item.trip.load_plan_id,
+                driver_id=item.trip.driver_id,
+                status=item.trip.status,
+                started_at=item.trip.started_at,
+                finished_at=item.trip.finished_at,
+                created_at=item.trip.created_at,
+                delivery_count=item.delivery_count,
+            )
+            for item in result.items
+        ),
+    )
 
 
 @router.post(

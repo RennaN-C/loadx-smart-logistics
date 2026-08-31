@@ -1,5 +1,5 @@
 import type { StatusTone } from "../../../components/StatusPill";
-import type { OrderStatus } from "../types";
+import type { OrderPriority, OrderStatus } from "../types";
 
 export const STATUS_LABELS: Record<OrderStatus, string> = {
   DRAFT: "Rascunho",
@@ -10,15 +10,14 @@ export const STATUS_LABELS: Record<OrderStatus, string> = {
   CANCELED: "Cancelado",
 };
 
-export const PRIORITY_LABELS: Record<string, string> = {
+export const PRIORITY_LABELS: Record<OrderPriority, string> = {
   LOW: "Baixa",
   NORMAL: "Normal",
   HIGH: "Alta",
   URGENT: "Urgente",
 };
 
-/** Pedidos vindos de outra origem podem trazer prioridade fora da convenção. */
-export function priorityLabel(priority: string): string {
+export function priorityLabel(priority: OrderPriority): string {
   return PRIORITY_LABELS[priority] ?? priority;
 }
 
@@ -27,7 +26,7 @@ export function priorityLabel(priority: string): string {
  * batido. Alta e urgente ganham destaque; o resto continua discreto, senão o
  * destaque deixa de destacar.
  */
-export function priorityIsUrgent(priority: string): boolean {
+export function priorityIsUrgent(priority: OrderPriority): boolean {
   return priority === "HIGH" || priority === "URGENT";
 }
 

@@ -39,7 +39,8 @@ viagem atribuída.
 - `quantity` e `delivery_sequence` devem ser maiores que zero.
 - Todos os itens do mesmo pedido devem usar a mesma `delivery_sequence` para que
   a OC09 gere uma entrega determinística por pedido.
-- `priority` é normalizado para maiúsculas.
+- `priority` aceita somente `LOW`, `NORMAL`, `HIGH` e `URGENT` e é normalizado
+  para maiúsculas antes da validação.
 - `expected_delivery_at` deve vir com timezone e é normalizado para UTC.
 - O `PATCH` genérico não aceita `status` e só edita pedidos em `DRAFT`.
 - `items`, quando enviado no `PATCH`, substitui o conjunto somente enquanto seus

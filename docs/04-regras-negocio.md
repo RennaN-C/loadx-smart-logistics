@@ -178,6 +178,9 @@ previsão e itens. `READY` deve voltar a `DRAFT` antes de qualquer edição;
 `PLANNED`, `IN_TRANSIT`, `DELIVERED` e `CANCELED` são imutáveis. Itens já
 referenciados por plano permanecem imutáveis mesmo em `DRAFT`.
 
+`CONFIRMADO`: a prioridade do pedido aceita somente `LOW`, `NORMAL`, `HIGH` e
+`URGENT`. A entrada é normalizada para maiúsculas antes da validação.
+
 `CONFIRMADO`: repetir o estado atual é idempotente e não cria histórico. Status
 não é alterado pelo `PATCH` genérico de pedido.
 
@@ -335,18 +338,17 @@ sequência e métricas antes de retornar `heuristic-v1`.
 
 ## Carregamento
 
-- Carregamento só começa com plano aprovado.
-- Checklist deve seguir `loading_sequence`.
-- Alterar item do checklist não recalcula posição.
-- Finalização do carregamento deve registrar horário.
-
-Estados recomendados:
-
-- `PENDING`.
-- `IN_PROGRESS`.
-- `CHECKED`.
-- `FINISHED`.
-- `CANCELED`.
+- `CONFIRMADO`: carregamento só pode ser criado para plano `APPROVED` com ao
+  menos um volume posicionado, e existe no máximo uma sessão por plano.
+- `CONFIRMADO`: sessão aceita apenas `PENDING -> IN_PROGRESS -> FINISHED`; item
+  aceita apenas `PENDING -> CHECKED` durante `IN_PROGRESS`.
+- `CONFIRMADO`: alterar item do checklist não recalcula posição.
+- `CONFIRMADO`: `FINISHED` exige todos os itens `CHECKED` e registra
+  `finished_at` em UTC.
+- `CONFIRMADO`: somente a sessão `FINISHED` do mesmo plano libera o início da
+  viagem; sessão ausente, incompleta ou pertencente a outro plano não libera.
+- `CONFIRMADO`: `CHECKER` e `LOGISTICS_MANAGER` operam; `ADMIN` apenas consulta;
+  `DRIVER` não acessa os endpoints de carregamento.
 
 ## Viagem e entrega
 
@@ -354,9 +356,9 @@ Estados recomendados:
   ativo e todos os pedidos do plano em `PLANNED`.
 - `CONFIRMADO`: cada plano pertence a no máximo uma viagem e cada pedido a no
   máximo uma entrega no MVP.
-- `CONFIRMADO`: viagem só começa com carregamento finalizado. Enquanto o módulo
-  de carregamento não materializar esse estado, a interface pública falha
-  fechada e bloqueia `IN_ROUTE`.
+- `CONFIRMADO`: viagem só começa quando a interface pública do carregamento
+  confirmar sessão `FINISHED` para o mesmo plano; qualquer ausência ou
+  divergência falha fechada e bloqueia `IN_ROUTE`.
 - `CONFIRMADO`: iniciar a viagem executa `SCHEDULED -> IN_ROUTE`, registra
   `started_at` e move atomicamente todos os pedidos `PLANNED -> IN_TRANSIT`.
 - `CONFIRMADO`: finalizar executa `IN_ROUTE -> FINISHED` e registra
@@ -406,6 +408,11 @@ Regras:
 
 - Ocorrência deve ter tipo e descrição.
 - Foto é opcional no MVP.
+- `CONFIRMADO`: quando informada, a foto usa somente uma referência controlada
+  no formato `mock://occurrences/<identificador>`, sem query string, fragmento
+  ou espaços.
+- `CONFIRMADO`: o MVP não realiza upload, armazenamento binário ou consulta a
+  serviço externo de fotos.
 - Ocorrência deve estar vinculada a viagem e, quando aplicável, a entrega.
 - Registro de ocorrência não deve excluir nem sobrescrever histórico.
 
@@ -428,7 +435,19 @@ Regras:
 - Intenção só executa ação se for permitida para o estado atual.
 - Provider real ou mock deve seguir a mesma interface.
 
-`PENDENTE DE DEFINIÇÃO`: mensagens de erro e confirmação enviadas ao motorista.
+`CONFIRMADO`: o fluxo controlado responde confirmação explícita e somente marca
+`executed = true` após o service público concluir a ação. Motorista desconhecido
+ou inativo, usuário sem vínculo, viagem ambígua/ausente e estado inválido não
+alteram dados.
+
+`CONFIRMADO`: as notificações automáticas da OC40 usam o
+`MockWhatsAppProvider` e possuem somente dois gatilhos no MVP: início efetivo da
+viagem pelo fluxo HTTP e registro efetivo de ocorrência. O destinatário é o
+telefone do motorista vinculado à viagem.
+
+`CONFIRMADO`: o envio automático ocorre depois do commit e é best-effort. Falha
+do provider ou ausência de destinatário não altera nem reverte o estado do
+domínio. Operação rejeitada e repetição idempotente não geram notificação.
 
 ## IA
 
@@ -440,8 +459,10 @@ Regras:
 
 ## Relatórios
 
-- Relatório de carregamento deve refletir caminhão, motorista, pedidos, produtos, volumes, peso, ocupação, rejeições e sequência de carregamento.
-- Relatório de viagem deve refletir datas, motorista, caminhão, entregas, atrasos, ocorrências e status final.
-- Relatório não pode recalcular plano de carga.
+- `CONFIRMADO`: relatório de carregamento reflete plano, caminhão, volumes,
+  sequência, conferência, início, fim e status.
+- `CONFIRMADO`: relatório de viagem reflete viagem, caminhão, entregas, status,
+  ocorrências e datas.
+- `CONFIRMADO`: relatório não recalcula nem altera plano de carga.
 
 `PENDENTE DE DEFINIÇÃO`: layout final do PDF e campos obrigatórios para assinatura/conferência.

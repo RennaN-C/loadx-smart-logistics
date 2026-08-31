@@ -1,4 +1,4 @@
-from sqlalchemy import CheckConstraint, ForeignKeyConstraint, UniqueConstraint
+from sqlalchemy import CheckConstraint, DateTime, ForeignKeyConstraint, UniqueConstraint
 
 from app.database.base import Base
 from app.modules.deliveries.models import Delivery, Trip
@@ -25,6 +25,15 @@ def test_trip_constraints_protect_status_timestamps_and_load_plan() -> None:
     assert "uq_trips__load_plan_id" in constraint_names(
         Trip.__table__, UniqueConstraint
     )
+
+
+def test_trip_created_at_is_required_timezone_aware_and_server_generated() -> None:
+    created_at = Trip.__table__.c.created_at
+
+    assert isinstance(created_at.type, DateTime)
+    assert created_at.type.timezone is True
+    assert created_at.nullable is False
+    assert created_at.server_default is not None
 
 
 def test_delivery_constraints_protect_order_sequence_and_completion() -> None:

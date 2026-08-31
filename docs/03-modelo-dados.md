@@ -9,8 +9,10 @@
 autenticação foram aprovadas por D18 e `ADR-020`; viagens e entregas seguem
 D07 a D10, D21 e `ADR-022`.
 
-`PENDENTE DE DEFINIÇÃO`: `loading_sessions` e `occurrences` ainda não possuem
-models/migrations.
+`CONFIRMADO`: `loading_sessions` e `loading_session_items` possuem models e
+migration no fluxo de carregamento da v1.0.0.
+
+`CONFIRMADO`: `occurrences` possui model e migration desde a OC41.
 
 `CONFIRMADO`: este documento é o contrato inicial para a criação do banco. Qualquer mudança estrutural deve ser registrada por migration e documentada aqui.
 
@@ -198,7 +200,8 @@ Pedidos de entrega.
 - `id`: UUID, PK.
 - `customer_id`: UUID, FK para `customers.id`, obrigatório.
 - `status`: texto, obrigatório, valores permitidos atuais `DRAFT`, `READY`, `PLANNED`, `IN_TRANSIT`, `DELIVERED` e `CANCELED`.
-- `priority`: texto, obrigatório, normalizado em maiúsculas pela API.
+- `priority`: texto, obrigatório, com valores permitidos `LOW`, `NORMAL`, `HIGH`
+  e `URGENT`, normalizado em maiúsculas pela API.
 - `delivery_address`: texto, obrigatório.
 - `expected_delivery_at`: timestamptz UTC.
 - `created_at`: timestamptz UTC, obrigatório.
@@ -352,6 +355,27 @@ Checklist e estado do carregamento físico.
 - `uq_loading_sessions__load_plan_id`.
 - `ix_loading_sessions__status`.
 
+`CONFIRMADO`: `status` aceita `PENDING`, `IN_PROGRESS` e `FINISHED`.
+`started_at` existe a partir de `IN_PROGRESS`; `finished_at` existe somente em
+`FINISHED`, nunca antes do início.
+
+### `loading_session_items`
+
+Checklist materializado dos volumes posicionados no plano.
+
+- `id`: UUID, PK.
+- `loading_session_id`: UUID, FK para `loading_sessions.id`, obrigatório.
+- `load_plan_item_id`: UUID, FK para `load_plan_items.id`, obrigatório.
+- `status`: texto obrigatório, `PENDING` ou `CHECKED`.
+
+Índices e constraints:
+
+- `fk_loading_session_items__loading_sessions`.
+- `fk_loading_session_items__load_plan_items`.
+- `uq_loading_session_items__session_plan_item`.
+- índices de `loading_session_id` e `load_plan_item_id`.
+- `ck_loading_session_items__status_allowed`.
+
 ### `trips`
 
 Viagens vinculadas ao plano carregado.
@@ -362,6 +386,7 @@ Viagens vinculadas ao plano carregado.
 - `status`: texto ou enum, obrigatório.
 - `started_at`: timestamptz UTC.
 - `finished_at`: timestamptz UTC.
+- `created_at`: timestamptz UTC, obrigatório.
 
 Índices e constraints:
 
@@ -376,6 +401,9 @@ Viagens vinculadas ao plano carregado.
 `CONFIRMADO`: `status` aceita `SCHEDULED`, `IN_ROUTE` e `FINISHED`.
 `started_at` é obrigatório a partir de `IN_ROUTE`; `finished_at` existe somente
 em `FINISHED` e não pode anteceder `started_at`.
+
+`CONFIRMADO`: `created_at` permite ordenar a listagem de viagens de forma
+determinística, usando `id` como desempate na mesma direção.
 
 ### `deliveries`
 
@@ -502,6 +530,9 @@ deterministicamente a partir de `order_items.quantity`, usam identidade
 `CONFIRMADO`: a migration `20260809_0007` cria o vínculo opcional e único
 `users.driver_id`; `20260809_0008` fecha o catálogo de `status_history` e cria
 `trips` e `deliveries` para a `OC09`.
+
+`CONFIRMADO`: a migration `20260830_0011` adiciona `trips.created_at` com valor
+gerado pelo PostgreSQL e retrocompatibilidade para viagens existentes.
 
 ## Observação
 

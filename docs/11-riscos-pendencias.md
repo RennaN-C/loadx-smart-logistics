@@ -34,6 +34,14 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
   e entregas, finalização somente com todas as entregas concluídas, bloqueio
   fechado sem carregamento finalizado, catálogo auditável fechado e vínculo
   único `users.driver_id`.
+- `CONFIRMADO`: as migrations `20260825_0009` e `20260825_0010` e seus models
+  materializam ocorrências e carregamento. Uma sessão `FINISHED` do mesmo plano
+  libera o início da viagem; ausência ou divergência continua falhando fechado.
+- `CONFIRMADO`: a OC40 envia notificações automáticas mock após início efetivo
+  de viagem e registro de ocorrência, sempre depois do commit e em modo
+  best-effort.
+- `CONFIRMADO`: fotos opcionais de ocorrência usam referência controlada
+  `mock://occurrences/<identificador>`; storage real permanece futuro.
 - `CONFIRMADO`: volumes individuais são expandidos de `order_items.quantity`, usam `volume_index` iniciado em `1` e são persistidos em `load_plan_items`, sem tabela `volumes`, conforme `ADR-005`.
 - `CONFIRMADO`: volumes usam a ordem total determinística de volume, peso, empilhamento, fragilidade, entrega e identidade, conforme `ADR-006`.
 - `CONFIRMADO`: rotações usam seis permutações ortogonais priorizadas, deduplicam simetrias e respeitam bloqueio por produto, conforme `ADR-007`.
@@ -61,6 +69,19 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
   e isola cada cenário em transação externa.
 - `CONFIRMADO`: a `OC55` centralizou fixtures, encerra clients, sessions e engines
   e deixou toda a base Python conforme Ruff.
+- `CONFIRMADO`: o PR #23 implementa a integração contínua em
+  `.github/workflows/ci.yml` para pull requests e pushes em `desenvolvimento` e
+  `main`. Os jobs independentes `Backend` e `Frontend` e o check `SonarCloud`
+  passaram integralmente no PR.
+- `CONFIRMADO`: a CI do backend usa Python 3.12, PostgreSQL 16, Ruff, validação
+  de formatação, Alembic e Pytest com cobertura. As dependências continuam
+  declaradas em `requirements.txt` e são instaladas do
+  `requirements.lock.txt`, com versões resolvidas, hashes e
+  `--require-hashes`.
+- `CONFIRMADO`: a CI do frontend usa o Node definido em `.nvmrc`, instala com
+  `npm ci --ignore-scripts` e executa ESLint, Vitest e build.
+- `CONFIRMADO`: o ruleset de `main` exige os checks `Backend`, `Frontend` e
+  `SonarCloud` e pelo menos uma aprovação antes do merge.
 - `CONFIRMADO`: `ADR-019` define inicialização segura em produção, migrations
   automáticas antes do backend, processos de aplicação sem privilégio e portas
   locais restritas a loopback.
@@ -71,12 +92,9 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 ## Decisões necessárias
 
 - `DECISÃO NECESSÁRIA`: definir formato final de relatório PDF e se haverá envio por e-mail/WhatsApp no MVP.
-- `DECISÃO NECESSÁRIA`: definir os valores aceitos em `priority` do pedido. `OrderCreate` aceita qualquer string de até 32 caracteres, sem enum e sem validação, ao contrário de `status`. Enquanto não houver definição, a `OC29` usa `LOW`, `NORMAL`, `HIGH` e `URGENT` num `<select>` no frontend — convenção adotada só ali, que precisa virar contrato em `docs/05` e validação no backend para não aceitar prioridade divergente vinda de outra origem.
 
 ## Pendências técnicas
 
-- `PENDENTE DE DEFINIÇÃO`: CI real ainda não está implementada, apenas documentada em `infra/ci/README.md`.
-- `PENDENTE DE DEFINIÇÃO`: models e migrations de carregamento e ocorrências.
 - `PENDENTE DE DEFINIÇÃO`: contrato e filtros de uma eventual consulta protegida
   de histórico; D10 fechou as entidades em `ORDER`, `LOAD_PLAN`, `TRIP` e
   `DELIVERY`, mas não aprovou endpoint na OC09.
@@ -159,10 +177,6 @@ nova `algorithm_version`; a representação JSON de `Decimal` segue D06 e
 
 ## Riscos identificados
 
-- `RISCO IDENTIFICADO`: o backend possui intervalos de versão em
-  `requirements.txt`, mas ainda não possui lockfile; uma imagem limpa pode
-  instalar versões diferentes das usadas anteriormente e deve sempre executar a
-  suíte completa antes de ser publicada.
 - `CONFIRMADO`: o risco de dependências vulneráveis registrado em 2026-08-06 foi
   corrigido em 2026-08-07; o `package-lock.json` atualizado retorna zero achados
   no `npm audit` e passou por lint, 159 testes e build de produção na validação
@@ -182,10 +196,9 @@ nova `algorithm_version`; a representação JSON de `Decimal` segue D06 e
 - `CONFIRMADO`: o projeto fixa Node 22.23.1 nos Dockerfiles e em `.nvmrc`. O Node
   global 22.16 desta estação ainda impede o controlador visual externo, sem
   afetar build, testes ou runtime do projeto.
-- `RISCO IDENTIFICADO`: o início real de viagem permanece bloqueado até o módulo
-  de carregamento persistir e confirmar `FINISHED` para o mesmo plano. A
-  interface da OC09 falha fechada e não confunde plano aprovado com carga física
-  concluída.
+- `CONFIRMADO`: o risco de bloqueio permanente do início da viagem foi resolvido
+  pela persistência do carregamento. A OC09 continua exigindo `FINISHED` para o
+  mesmo plano e falha fechado em qualquer ausência ou divergência.
 - `RISCO IDENTIFICADO`: cancelamento, falha, ausência, atraso e reentrega não
   fazem parte da máquina de estados da OC09 e exigem decisão, migration e testes
   antes de serem aceitos.

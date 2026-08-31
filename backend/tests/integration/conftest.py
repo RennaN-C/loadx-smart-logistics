@@ -99,22 +99,34 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
         head_revision = connection.exec_driver_sql(
             "SELECT version_num FROM alembic_version"
         ).scalar_one()
-        assert head_revision == "20260809_0008"
+        assert head_revision == "20260830_0011"
 
     _run_alembic(test_url, "downgrade", "-1")
     with engine.connect() as connection:
         downgraded_revision = connection.exec_driver_sql(
             "SELECT version_num FROM alembic_version"
         ).scalar_one()
-        trips_exists = connection.exec_driver_sql(
-            "SELECT to_regclass('public.trips')"
+        loading_sessions_exists = connection.exec_driver_sql(
+            "SELECT to_regclass('public.loading_sessions')"
         ).scalar_one()
-        deliveries_exists = connection.exec_driver_sql(
-            "SELECT to_regclass('public.deliveries')"
+        loading_items_exists = connection.exec_driver_sql(
+            "SELECT to_regclass('public.loading_session_items')"
         ).scalar_one()
-        assert downgraded_revision == "20260809_0007"
-        assert trips_exists is None
-        assert deliveries_exists is None
+        trip_created_at_exists = connection.exec_driver_sql(
+            """
+            SELECT EXISTS (
+                SELECT 1
+                FROM information_schema.columns
+                WHERE table_schema = 'public'
+                  AND table_name = 'trips'
+                  AND column_name = 'created_at'
+            )
+            """
+        ).scalar_one()
+        assert downgraded_revision == "20260825_0010"
+        assert loading_sessions_exists == "loading_sessions"
+        assert loading_items_exists == "loading_session_items"
+        assert trip_created_at_exists is False
 
     _run_alembic(test_url, "upgrade", "head")
 

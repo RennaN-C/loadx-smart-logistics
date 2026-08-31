@@ -31,7 +31,7 @@ def test_alembic_has_current_revision_head() -> None:
     config = Config(str(BACKEND_ROOT / "alembic.ini"))
     script = ScriptDirectory.from_config(config)
 
-    assert script.get_current_head() == "20260809_0008"
+    assert script.get_current_head() == "20260830_0011"
 
 
 def test_initial_migration_renders_expected_check_constraint_names() -> None:

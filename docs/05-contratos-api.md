@@ -328,7 +328,9 @@ Regras atuais:
   matriz de transições manuais de D04. Aprovação de plano, início de viagem e
   conclusão de entrega mantêm seus próprios casos de uso.
 - `status` aceita `DRAFT`, `READY`, `PLANNED`, `IN_TRANSIT`, `DELIVERED` e `CANCELED`.
-- `priority` é texto obrigatório e é normalizado para maiúsculas.
+- `priority` aceita `LOW`, `NORMAL`, `HIGH` e `URGENT` e é normalizado para
+  maiúsculas. Outro valor na criação ou atualização retorna o erro padronizado
+  de validação com status `422`.
 - `expected_delivery_at` deve vir com timezone e é normalizado para UTC.
 - O pedido deve possuir pelo menos um item.
 - `quantity` e `delivery_sequence` devem ser maiores que zero.
@@ -532,17 +534,40 @@ pela integração da OC20.
 - `PATCH /loading-sessions/{id}/status`.
 - `PATCH /loading-sessions/{id}/items/{item_id}`.
 
-`PENDENTE DE DEFINIÇÃO`: esses endpoints ainda não estão implementados. A OC09
-consome somente uma interface pública interna que retorna carregamento não
-finalizado por padrão; assim, a viagem nunca inicia sem confirmação real do
-módulo dono.
+`CONFIRMADO`: `POST` recebe `load_plan_id` e cria ou retorna a única sessão do
+plano `APPROVED`. A sessão inicia `PENDING`; o status aceita somente
+`IN_PROGRESS` e depois `FINISHED`. Cada item recebe `CHECKED` pelo endpoint de
+item, e a finalização falha enquanto algum item estiver pendente.
+
+`CONFIRMADO`: `CHECKER` e `LOGISTICS_MANAGER` criam e alteram; `ADMIN`,
+`CHECKER` e `LOGISTICS_MANAGER` consultam. Erros específicos:
+`LOADING_PLAN_NOT_APPROVED`, `LOADING_SESSION_NOT_FOUND`,
+`LOADING_ITEM_NOT_FOUND`, `LOADING_ITEM_SESSION_MISMATCH`,
+`LOADING_CHECKLIST_INCOMPLETE` e `LOADING_STATUS_TRANSITION_NOT_ALLOWED`.
 
 ## Viagens e entregas
 
+- `GET /trips`.
 - `POST /trips`.
 - `GET /trips/{id}`.
 - `PATCH /trips/{id}/status`.
 - `PATCH /deliveries/{id}/status`.
+
+### GET `/trips`
+
+`CONFIRMADO`: a listagem usa `page` 1-based, `page_size` entre 1 e 100 e
+`sort_order` `asc` ou `desc`, com os defaults gerais deste contrato. A resposta
+usa o envelope `items`, `page`, `page_size`, `total` e `total_pages` e ordena
+por `created_at` e `id` na mesma direção.
+
+Cada item contém somente `id`, `load_plan_id`, `driver_id`, `status`,
+`started_at`, `finished_at`, `created_at` e `delivery_count`. Nome, telefone,
+documento, CNH, cliente, endereço e e-mail não fazem parte da listagem.
+
+`ADMIN` e `LOGISTICS_MANAGER` listam todas as viagens. `DRIVER` lista somente
+viagens vinculadas ao próprio `users.driver_id`; ausência de vínculo ou
+motorista inexistente/inativo retorna `403 AUTH_FORBIDDEN`. `CHECKER` não
+acessa a rota. Não existe filtro público por `driver_id`.
 
 Exemplo de criação por `LOGISTICS_MANAGER`:
 
@@ -647,10 +672,25 @@ Exemplo de criação:
 }
 ```
 
+`CONFIRMADO`: `photo_url` permanece opcional. Quando informado, aceita somente
+`mock://occurrences/<identificador>`, com identificador alfanumérico que também
+pode conter `.`, `_` ou `-`. Referências vazias, HTTP/HTTPS, espaços, query
+string e fragmento retornam `422 VALIDATION_ERROR`.
+
+`CONFIRMADO`: a API armazena apenas a referência textual. Não existe endpoint
+de upload, armazenamento binário, bucket ou consulta externa de mídia no MVP.
+
 ## Mensagens e WhatsApp
 
-- `POST /messages/interpret`.
-- `POST /webhooks/whatsapp` `PENDENTE DE DEFINIÇÃO`.
+- `POST /messages/interpret`: simulador interno disponível somente para usuários
+  autenticados com papel `ADMIN` ou `LOGISTICS_MANAGER`.
+- `POST /webhooks/whatsapp` permanece fora da v1.0.0; o provider controlado usa
+  `POST /messages/interpret`.
+
+`CONFIRMADO`: `driver_phone` identifica o motorista que o operador interno
+pretende simular; esse campo não autentica nem autoriza a requisição. O endpoint
+não representa autenticação real do WhatsApp. Provider real, webhook e validação
+de assinatura permanecem fora deste MVP.
 
 Exemplo de interpretação:
 
@@ -672,14 +712,33 @@ Resposta recomendada:
 }
 ```
 
-`CONFIRMADO`: a resposta da IA deve ser validada por schema e convertida em ação apenas quando a intenção for permitida.
+`CONFIRMADO`: a resposta inclui `executed`, `confirmation`, `trip_id` e
+`delivery_id`. A intenção só vira ação após identificar motorista/viagem/entrega
+e o `TripService` validar permissão e estado. Nenhuma regra de viagem ou entrega
+é duplicada no módulo de mensagens.
+
+### Notificações automáticas
+
+`CONFIRMADO`: não existe endpoint público específico para notificações. Uma
+transição efetiva `SCHEDULED -> IN_ROUTE` realizada por
+`PATCH /trips/{id}/status` e um `POST /occurrences` concluído disparam mensagem
+determinística para o telefone do motorista da viagem por
+`MockWhatsAppProvider`.
+
+`CONFIRMADO`: mensagens automáticas são best-effort e posteriores ao commit.
+Falha do mock não muda a resposta nem reverte a operação confirmada. Transição
+rejeitada e repetição idempotente não disparam mensagem. Comandos recebidos pelo
+simulador mantêm sua confirmação explícita e não recebem um segundo aviso
+automático para o mesmo fato.
 
 ## Relatórios
 
 - `GET /reports/load-plans/{id}`.
 - `GET /reports/trips/{id}`.
 
-`PENDENTE DE DEFINIÇÃO`: formato final de download, headers e armazenamento temporário do PDF.
+`CONFIRMADO`: ambos retornam `application/pdf` com `Content-Disposition:
+attachment`. O relatório é gerado em memória a partir dos dados persistidos e
+não exige armazenamento permanente na v1.0.0.
 
 ## Erros
 

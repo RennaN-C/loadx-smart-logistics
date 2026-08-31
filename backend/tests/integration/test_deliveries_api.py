@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from app.modules.customers.models import Customer
 from app.modules.deliveries.models import Delivery, Trip
 from app.modules.drivers.models import Driver
-from app.modules.load_planning.models import LoadPlan, LoadPlanOrder
+from app.modules.load_planning.models import LoadPlan, LoadPlanItem, LoadPlanOrder
 from app.modules.loading.reference_service import LoadingReferenceService
 from app.modules.orders.models import Order, OrderItem
 from app.modules.products.models import Product
@@ -163,6 +163,38 @@ def seed_operational_scenario(
             orders=[LoadPlanOrder(order_id=order.id) for order in orders],
         )
         db.add(plan)
+        db.flush()
+        plan.items = [
+            LoadPlanItem(
+                order_id=order.id,
+                order_item_id=order.items[0].id,
+                product_id=product.id,
+                volume_index=1,
+                order_item_snapshot_quantity=1,
+                order_item_snapshot_delivery_sequence=(
+                    order.items[0].delivery_sequence
+                ),
+                product_snapshot_code=product.code,
+                product_snapshot_name=product.name,
+                product_snapshot_width_cm=product.width_cm,
+                product_snapshot_height_cm=product.height_cm,
+                product_snapshot_length_cm=product.length_cm,
+                product_snapshot_weight_kg=product.weight_kg,
+                product_snapshot_fragile=product.fragile,
+                product_snapshot_stackable=product.stackable,
+                product_snapshot_rotation_allowed=product.rotation_allowed,
+                position_x_cm=index * 10,
+                position_y_cm=0,
+                position_z_cm=0,
+                used_width_cm=10,
+                used_height_cm=10,
+                used_length_cm=10,
+                rotation_code="XYZ",
+                loading_sequence=index,
+                placed=True,
+            )
+            for index, order in enumerate(orders, start=1)
+        ]
         db.commit()
         identities = {
             "manager": manager.id,
@@ -201,6 +233,165 @@ def create_trip(client: TestClient, scenario: OperationalScenario) -> dict:
     )
     assert response.status_code == 201
     return response.json()
+
+
+def create_unlinked_driver_headers(
+    session_factory: SessionFactory,
+) -> dict[str, str]:
+    with session_factory() as db:
+        user = User(
+            name="Motorista sem Vinculo",
+            email=f"unlinked-{uuid.uuid4().hex}@example.test",
+            password_hash="hash-ficticio",
+            role="DRIVER",
+            active=True,
+        )
+        db.add(user)
+        db.commit()
+        user_id = user.id
+    return issue_session_headers(session_factory, user_id)
+
+
+def test_admin_and_manager_list_all_trips_while_driver_lists_only_own(
+    client: TestClient,
+    session_factory: SessionFactory,
+) -> None:
+    own_scenario = seed_operational_scenario(session_factory)
+    other_scenario = seed_operational_scenario(session_factory)
+    own_trip = create_trip(client, own_scenario)
+    other_trip = create_trip(client, other_scenario)
+
+    manager = client.get("/api/v1/trips", headers=own_scenario.manager_headers)
+    admin = client.get("/api/v1/trips", headers=own_scenario.admin_headers)
+    driver = client.get("/api/v1/trips", headers=own_scenario.driver_headers)
+
+    expected_ids = {own_trip["id"], other_trip["id"]}
+    assert manager.status_code == 200
+    assert admin.status_code == 200
+    assert {item["id"] for item in manager.json()["items"]} == expected_ids
+    assert {item["id"] for item in admin.json()["items"]} == expected_ids
+    assert driver.status_code == 200
+    assert [item["id"] for item in driver.json()["items"]] == [own_trip["id"]]
+    assert other_trip["id"] not in {item["id"] for item in driver.json()["items"]}
+
+
+def test_trip_listing_rejects_unlinked_inactive_checker_and_anonymous_users(
+    client: TestClient,
+    session_factory: SessionFactory,
+) -> None:
+    scenario = seed_operational_scenario(session_factory)
+    create_trip(client, scenario)
+    unlinked_headers = create_unlinked_driver_headers(session_factory)
+
+    unlinked = client.get("/api/v1/trips", headers=unlinked_headers)
+    checker = client.get("/api/v1/trips", headers=scenario.checker_headers)
+    anonymous = client.get("/api/v1/trips")
+
+    assert unlinked.status_code == 403
+    assert unlinked.json()["code"] == "AUTH_FORBIDDEN"
+    assert checker.status_code == 403
+    assert checker.json()["code"] == "AUTH_FORBIDDEN"
+    assert anonymous.status_code == 401
+    assert anonymous.json()["code"] == "AUTH_INVALID_TOKEN"
+
+    with session_factory() as db:
+        driver = db.get(Driver, scenario.driver_id)
+        assert driver is not None
+        driver.active = False
+        db.commit()
+
+    inactive = client.get("/api/v1/trips", headers=scenario.driver_headers)
+    assert inactive.status_code == 403
+    assert inactive.json()["code"] == "AUTH_FORBIDDEN"
+
+
+def test_trip_listing_paginates_and_orders_by_created_at_then_id(
+    client: TestClient,
+    session_factory: SessionFactory,
+) -> None:
+    scenarios = [seed_operational_scenario(session_factory) for _ in range(3)]
+    trips = [create_trip(client, scenario) for scenario in scenarios]
+    trip_ids = [uuid.UUID(trip["id"]) for trip in trips]
+    early = datetime(2026, 8, 30, 12, 0, tzinfo=UTC)
+    late = datetime(2026, 8, 30, 13, 0, tzinfo=UTC)
+    with session_factory() as db:
+        persisted = [db.get(Trip, trip_id) for trip_id in trip_ids]
+        assert all(trip is not None for trip in persisted)
+        persisted[0].created_at = early
+        persisted[1].created_at = early
+        persisted[2].created_at = late
+        db.commit()
+
+    early_ids = sorted((trip_ids[0], trip_ids[1]), key=lambda value: value.int)
+    expected_asc = [str(identifier) for identifier in (*early_ids, trip_ids[2])]
+    expected_desc = list(reversed(expected_asc))
+    asc = client.get(
+        "/api/v1/trips?sort_order=asc",
+        headers=scenarios[0].manager_headers,
+    )
+    desc = client.get(
+        "/api/v1/trips?sort_order=desc",
+        headers=scenarios[0].manager_headers,
+    )
+    second_page = client.get(
+        "/api/v1/trips?page=2&page_size=2&sort_order=asc",
+        headers=scenarios[0].manager_headers,
+    )
+    beyond = client.get(
+        "/api/v1/trips?page=3&page_size=2",
+        headers=scenarios[0].manager_headers,
+    )
+
+    assert [item["id"] for item in asc.json()["items"]] == expected_asc
+    assert [item["id"] for item in desc.json()["items"]] == expected_desc
+    assert [item["id"] for item in second_page.json()["items"]] == expected_asc[2:]
+    assert second_page.json() | {"items": []} == {
+        "items": [],
+        "page": 2,
+        "page_size": 2,
+        "total": 3,
+        "total_pages": 2,
+    }
+    assert beyond.status_code == 200
+    assert beyond.json()["items"] == []
+    assert beyond.json()["total"] == 3
+    assert beyond.json()["total_pages"] == 2
+
+
+def test_trip_listing_rejects_page_size_above_limit_and_omits_pii(
+    client: TestClient,
+    session_factory: SessionFactory,
+) -> None:
+    scenario = seed_operational_scenario(session_factory)
+    create_trip(client, scenario)
+
+    invalid = client.get(
+        "/api/v1/trips?page_size=101",
+        headers=scenario.manager_headers,
+    )
+    response = client.get(
+        "/api/v1/trips?page=1&page_size=1",
+        headers=scenario.manager_headers,
+    )
+
+    assert invalid.status_code == 422
+    assert response.status_code == 200
+    body = response.json()
+    assert body["page"] == 1
+    assert body["page_size"] == 1
+    assert body["total"] == 1
+    assert body["total_pages"] == 1
+    assert set(body["items"][0]) == {
+        "id",
+        "load_plan_id",
+        "driver_id",
+        "status",
+        "started_at",
+        "finished_at",
+        "created_at",
+        "delivery_count",
+    }
+    assert body["items"][0]["delivery_count"] == 2
 
 
 def test_manager_creates_trip_and_deliveries_in_deterministic_order(
@@ -263,6 +454,80 @@ def test_trip_start_fails_closed_until_loading_is_finished(
 
     assert response.status_code == 409
     assert response.json()["code"] == "TRIP_LOADING_NOT_FINISHED"
+
+
+def test_finished_loading_releases_only_matching_trip(
+    client: TestClient,
+    session_factory: SessionFactory,
+) -> None:
+    scenario = seed_operational_scenario(session_factory)
+    other_scenario = seed_operational_scenario(session_factory)
+    trip = create_trip(client, scenario)
+
+    loading_response = client.post(
+        "/api/v1/loading-sessions",
+        json={"load_plan_id": str(scenario.load_plan_id)},
+        headers=scenario.checker_headers,
+    )
+    assert loading_response.status_code == 201
+    loading = loading_response.json()
+
+    started = client.patch(
+        f"/api/v1/loading-sessions/{loading['id']}/status",
+        json={"status": "IN_PROGRESS"},
+        headers=scenario.checker_headers,
+    )
+    assert started.status_code == 200
+    assert started.json()["status"] == "IN_PROGRESS"
+
+    incomplete_trip = client.patch(
+        f"/api/v1/trips/{trip['id']}/status",
+        json={"status": "IN_ROUTE"},
+        headers=scenario.manager_headers,
+    )
+    assert incomplete_trip.status_code == 409
+    assert incomplete_trip.json()["code"] == "TRIP_LOADING_NOT_FINISHED"
+
+    incomplete_loading = client.patch(
+        f"/api/v1/loading-sessions/{loading['id']}/status",
+        json={"status": "FINISHED"},
+        headers=scenario.checker_headers,
+    )
+    assert incomplete_loading.status_code == 409
+    assert incomplete_loading.json()["code"] == "LOADING_CHECKLIST_INCOMPLETE"
+
+    for item in loading["items"]:
+        checked = client.patch(
+            f"/api/v1/loading-sessions/{loading['id']}/items/{item['id']}",
+            json={"status": "CHECKED"},
+            headers=scenario.checker_headers,
+        )
+        assert checked.status_code == 200
+
+    finished = client.patch(
+        f"/api/v1/loading-sessions/{loading['id']}/status",
+        json={"status": "FINISHED"},
+        headers=scenario.checker_headers,
+    )
+    assert finished.status_code == 200
+    assert finished.json()["status"] == "FINISHED"
+
+    unrelated_trip = create_trip(client, other_scenario)
+    unrelated_start = client.patch(
+        f"/api/v1/trips/{unrelated_trip['id']}/status",
+        json={"status": "IN_ROUTE"},
+        headers=other_scenario.manager_headers,
+    )
+    assert unrelated_start.status_code == 409
+    assert unrelated_start.json()["code"] == "TRIP_LOADING_NOT_FINISHED"
+
+    released = client.patch(
+        f"/api/v1/trips/{trip['id']}/status",
+        json={"status": "IN_ROUTE"},
+        headers=scenario.manager_headers,
+    )
+    assert released.status_code == 200
+    assert released.json()["status"] == "IN_ROUTE"
 
 
 def test_linked_driver_completes_atomic_trip_delivery_and_order_flow(

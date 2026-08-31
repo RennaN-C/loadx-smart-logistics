@@ -6,8 +6,10 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.pagination import PaginationParams
 from app.modules.customers.models import Customer
 from app.modules.deliveries.models import Delivery, Trip
+from app.modules.deliveries.repository import TripRepository
 from app.modules.deliveries.schemas import TripCreate
 from app.modules.deliveries.service import (
     DeliveryTripNotInRouteError,
@@ -192,6 +194,75 @@ def test_create_trip_generates_deterministic_deliveries_and_history(
     assert [(row.entity_type, row.new_status) for row in history].count(
         ("DELIVERY", "PENDING")
     ) == 2
+
+
+def test_trip_repository_lists_paginated_filtered_and_deterministic(
+    db_session: Session,
+) -> None:
+    _service, _manager, first_driver, first_trip, _orders = create_trip(db_session)
+    _service, _manager, second_driver, second_trip, _orders = create_trip(db_session)
+    shared_created_at = datetime(2026, 8, 30, 12, 0, tzinfo=UTC)
+    first_trip.created_at = shared_created_at
+    second_trip.created_at = shared_created_at
+    db_session.commit()
+    repository = TripRepository(db_session)
+
+    ascending = repository.list(PaginationParams(page=1, page_size=1, sort_order="asc"))
+    filtered = repository.list(
+        PaginationParams(page=1, page_size=20, sort_order="desc"),
+        driver_id=first_driver.id,
+    )
+
+    expected_first = min((first_trip, second_trip), key=lambda trip: trip.id.int)
+    assert ascending.total == 2
+    assert ascending.total_pages == 2
+    assert [item.trip.id for item in ascending.items] == [expected_first.id]
+    assert ascending.items[0].delivery_count == 2
+    assert filtered.total == 1
+    assert [item.trip.id for item in filtered.items] == [first_trip.id]
+    assert filtered.items[0].delivery_count == 2
+    assert second_driver.id != first_driver.id
+
+
+def test_trip_service_lists_all_for_privileged_roles_and_only_own_for_driver(
+    db_session: Session,
+) -> None:
+    first_service, manager, first_driver, first_trip, _orders = create_trip(db_session)
+    _service, _manager, second_driver, second_trip, _orders = create_trip(db_session)
+    admin = create_user(db_session, role="ADMIN")
+    driver_user = create_user(db_session, role="DRIVER", driver_id=first_driver.id)
+    db_session.commit()
+    pagination = PaginationParams(page=1, page_size=20, sort_order="desc")
+
+    manager_result = first_service.list_trips(pagination, current_user=manager)
+    admin_result = first_service.list_trips(pagination, current_user=admin)
+    driver_result = first_service.list_trips(pagination, current_user=driver_user)
+
+    expected_ids = {first_trip.id, second_trip.id}
+    assert {item.trip.id for item in manager_result.items} == expected_ids
+    assert {item.trip.id for item in admin_result.items} == expected_ids
+    assert [item.trip.id for item in driver_result.items] == [first_trip.id]
+    assert second_driver.id != first_driver.id
+
+
+def test_trip_service_listing_fails_closed_for_invalid_driver_scope(
+    db_session: Session,
+) -> None:
+    service, _manager, driver, _trip, _orders = create_trip(db_session)
+    unlinked_driver = create_user(db_session, role="DRIVER")
+    linked_driver = create_user(db_session, role="DRIVER", driver_id=driver.id)
+    checker = create_user(db_session, role="CHECKER")
+    db_session.commit()
+    pagination = PaginationParams(page=1, page_size=20, sort_order="desc")
+
+    for forbidden_user in (unlinked_driver, checker):
+        with pytest.raises(TripAccessForbiddenError):
+            service.list_trips(pagination, current_user=forbidden_user)
+
+    driver.active = False
+    db_session.commit()
+    with pytest.raises(TripAccessForbiddenError):
+        service.list_trips(pagination, current_user=linked_driver)
 
 
 def test_create_trip_rejects_inactive_driver_and_duplicate_plan(

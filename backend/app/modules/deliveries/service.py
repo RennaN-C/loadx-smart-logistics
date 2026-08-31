@@ -1,3 +1,4 @@
+import logging
 import uuid
 from collections.abc import Sequence
 from datetime import UTC, datetime
@@ -5,6 +6,7 @@ from datetime import UTC, datetime
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core.pagination import PageResult, PaginationParams
 from app.database.integrity import get_integrity_constraint_name
 from app.modules.deliveries.models import (
     DELIVERY_STATUS_VALUES,
@@ -12,16 +14,19 @@ from app.modules.deliveries.models import (
     Delivery,
     Trip,
 )
-from app.modules.deliveries.repository import TripRepository
+from app.modules.deliveries.repository import TripListItem, TripRepository
 from app.modules.deliveries.schemas import TripCreate
 from app.modules.drivers.service import DriverNotFoundError, DriverService
 from app.modules.load_planning.reference_service import LoadPlanReferenceService
 from app.modules.loading.reference_service import LoadingReferenceService
+from app.modules.notifications.service import OperationalNotificationService
 from app.modules.orders.models import Order
 from app.modules.orders.service import OrderService
 from app.modules.status_history.schemas import StatusHistoryCreate
 from app.modules.status_history.service import StatusHistoryService
 from app.modules.users.models import User
+
+logger = logging.getLogger(__name__)
 
 TRIP_STATUS_TRANSITIONS = {
     "SCHEDULED": frozenset({"IN_ROUTE"}),
@@ -113,14 +118,16 @@ class TripService:
         db: Session,
         *,
         loading_reference_service: LoadingReferenceService | None = None,
+        notification_service: OperationalNotificationService | None = None,
     ) -> None:
         self.db = db
         self.repository = TripRepository(db)
         self.driver_service = DriverService(db)
         self.load_plan_reference_service = LoadPlanReferenceService(db)
         self.loading_reference_service = (
-            loading_reference_service or LoadingReferenceService()
+            loading_reference_service or LoadingReferenceService(db)
         )
+        self.notification_service = notification_service
         self.order_service = OrderService(db)
         self.status_history_service = StatusHistoryService(db)
 
@@ -130,6 +137,24 @@ class TripService:
             raise TripNotFoundError
         self._ensure_can_read(current_user, trip)
         return trip
+
+    def list_trips(
+        self,
+        pagination: PaginationParams,
+        *,
+        current_user: User,
+    ) -> PageResult[TripListItem]:
+        if current_user.role in {"ADMIN", "LOGISTICS_MANAGER"}:
+            return self.repository.list(pagination)
+        if current_user.role != "DRIVER" or current_user.driver_id is None:
+            raise TripAccessForbiddenError
+        try:
+            driver = self.driver_service.get_driver(current_user.driver_id)
+        except DriverNotFoundError as exc:
+            raise TripAccessForbiddenError from exc
+        if not driver.active:
+            raise TripAccessForbiddenError
+        return self.repository.list(pagination, driver_id=driver.id)
 
     def create_trip(self, data: TripCreate, *, changed_by: uuid.UUID) -> Trip:
         try:
@@ -232,7 +257,10 @@ class TripService:
                 self._stage_trip_finish(trip, deliveries, current_user.id)
 
             self.db.commit()
-            return self._get_persisted_trip(trip.id)
+            persisted_trip = self._get_persisted_trip(trip.id)
+            if normalized_status == "IN_ROUTE":
+                self._notify_trip_started(persisted_trip)
+            return persisted_trip
         except Exception:
             self.db.rollback()
             raise
@@ -426,6 +454,21 @@ class TripService:
                 changed_by=changed_by,
             )
         )
+
+    def _notify_trip_started(self, trip: Trip) -> None:
+        if self.notification_service is None:
+            return
+        try:
+            driver = self.driver_service.get_driver(trip.driver_id)
+            self.notification_service.notify_trip_started(
+                recipient_phone=driver.phone,
+                trip_id=trip.id,
+            )
+        except Exception:
+            logger.warning(
+                "Trip started notification could not be prepared",
+                exc_info=True,
+            )
 
     def _raise_integrity_error(self, exc: IntegrityError) -> None:
         constraint_name = get_integrity_constraint_name(exc)
