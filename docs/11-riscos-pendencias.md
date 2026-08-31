@@ -34,6 +34,14 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
   e entregas, finalização somente com todas as entregas concluídas, bloqueio
   fechado sem carregamento finalizado, catálogo auditável fechado e vínculo
   único `users.driver_id`.
+- `CONFIRMADO`: as migrations `20260825_0009` e `20260825_0010` e seus models
+  materializam ocorrências e carregamento. Uma sessão `FINISHED` do mesmo plano
+  libera o início da viagem; ausência ou divergência continua falhando fechado.
+- `CONFIRMADO`: a OC40 envia notificações automáticas mock após início efetivo
+  de viagem e registro de ocorrência, sempre depois do commit e em modo
+  best-effort.
+- `CONFIRMADO`: fotos opcionais de ocorrência usam referência controlada
+  `mock://occurrences/<identificador>`; storage real permanece futuro.
 - `CONFIRMADO`: volumes individuais são expandidos de `order_items.quantity`, usam `volume_index` iniciado em `1` e são persistidos em `load_plan_items`, sem tabela `volumes`, conforme `ADR-005`.
 - `CONFIRMADO`: volumes usam a ordem total determinística de volume, peso, empilhamento, fragilidade, entrega e identidade, conforme `ADR-006`.
 - `CONFIRMADO`: rotações usam seis permutações ortogonais priorizadas, deduplicam simetrias e respeitam bloqueio por produto, conforme `ADR-007`.
@@ -87,7 +95,6 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 
 ## Pendências técnicas
 
-- `PENDENTE DE DEFINIÇÃO`: models e migrations de carregamento e ocorrências.
 - `PENDENTE DE DEFINIÇÃO`: contrato e filtros de uma eventual consulta protegida
   de histórico; D10 fechou as entidades em `ORDER`, `LOAD_PLAN`, `TRIP` e
   `DELIVERY`, mas não aprovou endpoint na OC09.
@@ -167,10 +174,9 @@ nova `algorithm_version`; a representação JSON de `Decimal` segue D06 e
 - `CONFIRMADO`: o projeto fixa Node 22.23.1 nos Dockerfiles e em `.nvmrc`. O Node
   global 22.16 desta estação ainda impede o controlador visual externo, sem
   afetar build, testes ou runtime do projeto.
-- `RISCO IDENTIFICADO`: o início real de viagem permanece bloqueado até o módulo
-  de carregamento persistir e confirmar `FINISHED` para o mesmo plano. A
-  interface da OC09 falha fechada e não confunde plano aprovado com carga física
-  concluída.
+- `CONFIRMADO`: o risco de bloqueio permanente do início da viagem foi resolvido
+  pela persistência do carregamento. A OC09 continua exigindo `FINISHED` para o
+  mesmo plano e falha fechado em qualquer ausência ou divergência.
 - `RISCO IDENTIFICADO`: cancelamento, falha, ausência, atraso e reentrega não
   fazem parte da máquina de estados da OC09 e exigem decisão, migration e testes
   antes de serem aceitos.

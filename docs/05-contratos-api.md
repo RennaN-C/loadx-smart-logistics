@@ -547,10 +547,27 @@ item, e a finalização falha enquanto algum item estiver pendente.
 
 ## Viagens e entregas
 
+- `GET /trips`.
 - `POST /trips`.
 - `GET /trips/{id}`.
 - `PATCH /trips/{id}/status`.
 - `PATCH /deliveries/{id}/status`.
+
+### GET `/trips`
+
+`CONFIRMADO`: a listagem usa `page` 1-based, `page_size` entre 1 e 100 e
+`sort_order` `asc` ou `desc`, com os defaults gerais deste contrato. A resposta
+usa o envelope `items`, `page`, `page_size`, `total` e `total_pages` e ordena
+por `created_at` e `id` na mesma direção.
+
+Cada item contém somente `id`, `load_plan_id`, `driver_id`, `status`,
+`started_at`, `finished_at`, `created_at` e `delivery_count`. Nome, telefone,
+documento, CNH, cliente, endereço e e-mail não fazem parte da listagem.
+
+`ADMIN` e `LOGISTICS_MANAGER` listam todas as viagens. `DRIVER` lista somente
+viagens vinculadas ao próprio `users.driver_id`; ausência de vínculo ou
+motorista inexistente/inativo retorna `403 AUTH_FORBIDDEN`. `CHECKER` não
+acessa a rota. Não existe filtro público por `driver_id`.
 
 Exemplo de criação por `LOGISTICS_MANAGER`:
 

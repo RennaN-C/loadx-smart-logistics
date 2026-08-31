@@ -73,8 +73,8 @@ motoristas, pedidos e histórico de status.
 persistência, API protegida e engine determinística. A `OC51` aplica a matriz de
 permissões em todas as rotas atuais.
 
-`PENDENTE DE DEFINIÇÃO`: carregamento, viagens, entregas, ocorrências, relatórios
-e integrações ainda precisam ser implementados conforme suas ocorrências.
+`CONFIRMADO`: carregamento, viagens, entregas, ocorrências, notificações mock e
+relatórios possuem módulos backend integrados para o fluxo da v1.0.0.
 
 ## Frontend
 
