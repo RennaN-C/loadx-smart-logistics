@@ -56,6 +56,7 @@ A primeira versão do LoadX deverá permitir:
 * identificação dos volumes que não couberam;
 * geração da sequência de carregamento;
 * comparação básica e determinística de até 10 caminhões candidatos;
+* explicação técnica de um plano persistido com IA ou fallback determinístico;
 * visualização tridimensional da carga;
 * acompanhamento do carregamento;
 * atualização do status das entregas;
@@ -217,8 +218,7 @@ Ela poderá:
 * interpretar mensagens enviadas pelos motoristas;
 * identificar a intenção de uma mensagem;
 * classificar ocorrências;
-* gerar explicações sobre o planejamento da carga;
-* apresentar recomendações logísticas;
+* gerar explicações técnicas sobre um planejamento já calculado;
 * resumir resultados e relatórios.
 
 As validações de espaço, dimensões, peso e colisões serão realizadas por algoritmos determinísticos.
@@ -579,10 +579,14 @@ Após a conclusão do MVP, poderão ser adicionadas:
 * aprendizado com viagens anteriores;
 * integração com sistemas ERP.
 
-A comparação básica de até 10 caminhões pertence ao MVP. Sua implementação
-interna reutiliza o mesmo cálculo determinístico do plano, mas o contrato público,
-o ranking e a eventual escolha automática de um veículo dependem de decisões da
-equipe. A comparação automática avançada permanece uma evolução futura.
+`CONFIRMADO`: a comparação básica de 2 a 10 caminhões pertence ao MVP, reutiliza
+integralmente a mesma engine determinística e retorna os resultados sem persistir
+plano, ranquear, pontuar ou escolher vencedor. A comparação automática avançada
+permanece uma evolução futura.
+
+`CONFIRMADO`: a explicação do plano no MVP consome somente dados técnicos de um
+plano persistido. A IA não aprova, recalcula ou modifica o resultado; timeout,
+indisponibilidade ou resposta inválida do provider usam fallback determinístico.
 
 ## Status do projeto
 

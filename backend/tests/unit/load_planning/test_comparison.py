@@ -9,6 +9,7 @@ from app.modules.load_planning.optimizer import comparison as comparison_module
 from app.modules.load_planning.optimizer.capacity import TruckCapacityInput
 from app.modules.load_planning.optimizer.comparison import (
     MAX_COMPARISON_TRUCKS,
+    MIN_COMPARISON_TRUCKS,
     InvalidTruckComparisonInputError,
     TruckComparisonCandidate,
     TruckComparisonLimitExceededError,
@@ -28,7 +29,6 @@ from app.modules.load_planning.optimizer.rejections import RejectionReason
 from app.modules.load_planning.optimizer.support import (
     is_support_configuration_valid,
 )
-from app.modules.load_planning.optimizer.volumes import InvalidVolumeInputError
 
 
 def make_candidate(
@@ -106,21 +106,48 @@ def test_comparison_rejects_eleven_trucks_before_calling_engine(
     assert exc_info.value.max_trucks == MAX_COMPARISON_TRUCKS
 
 
-def test_comparison_accepts_an_empty_candidate_sequence() -> None:
-    assert compare_trucks((), (make_item(),)) == ()
+@pytest.mark.parametrize("truck_count", [0, MIN_COMPARISON_TRUCKS - 1])
+def test_comparison_rejects_fewer_than_two_trucks_before_calling_engine(
+    truck_count: int,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fail_if_engine_is_called(*_args: object, **_kwargs: object) -> Never:
+        raise AssertionError("engine must not run below the truck minimum")
+
+    monkeypatch.setattr(
+        comparison_module,
+        "calculate_load_plan",
+        fail_if_engine_is_called,
+    )
+    candidates = tuple(
+        make_candidate(identity) for identity in range(1, truck_count + 1)
+    )
+
+    with pytest.raises(InvalidTruckComparisonInputError) as exc_info:
+        compare_trucks(candidates, (make_item(),))
+
+    assert exc_info.value.field_name == "candidates"
+    assert exc_info.value.reason == "must contain at least 2 candidates"
 
 
-def test_empty_comparison_still_validates_the_shared_workload() -> None:
-    with pytest.raises(InvalidTruckComparisonInputError) as empty_error:
-        compare_trucks((), ())
-    with pytest.raises(LoadPlanVolumeLimitExceededError) as limit_error:
-        compare_trucks((), (make_item(quantity=201),))
-    with pytest.raises(InvalidVolumeInputError) as physical_error:
-        compare_trucks((), (make_item(width_cm=0),))
+def test_comparison_rejects_duplicate_truck_ids_before_calling_engine(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fail_if_engine_is_called(*_args: object, **_kwargs: object) -> Never:
+        raise AssertionError("engine must not run with duplicate truck ids")
 
-    assert empty_error.value.field_name == "order_items"
-    assert limit_error.value.volume_count == 201
-    assert physical_error.value.field_name == "width_cm"
+    monkeypatch.setattr(
+        comparison_module,
+        "calculate_load_plan",
+        fail_if_engine_is_called,
+    )
+    candidate = make_candidate(1)
+
+    with pytest.raises(InvalidTruckComparisonInputError) as exc_info:
+        compare_trucks((candidate, candidate), (make_item(),))
+
+    assert exc_info.value.field_name == "candidates"
+    assert exc_info.value.reason == "must not contain duplicate truck ids"
 
 
 @pytest.mark.parametrize(
@@ -142,7 +169,10 @@ def test_comparison_requires_an_ordered_candidate_sequence(
 
 def test_comparison_validates_candidate_elements() -> None:
     with pytest.raises(InvalidTruckComparisonInputError) as exc_info:
-        compare_trucks((object(),), (make_item(),))  # type: ignore[arg-type]
+        compare_trucks(  # type: ignore[arg-type]
+            (object(), make_candidate(2)),
+            (make_item(),),
+        )
 
     assert exc_info.value.field_name == "candidates[0]"
 
@@ -159,16 +189,25 @@ def test_comparison_requires_an_ordered_order_item_sequence(
     order_items: object,
 ) -> None:
     with pytest.raises(InvalidTruckComparisonInputError) as exc_info:
-        compare_trucks((make_candidate(1),), order_items)  # type: ignore[arg-type]
+        compare_trucks(
+            (make_candidate(1), make_candidate(2)),
+            order_items,  # type: ignore[arg-type]
+        )
 
     assert exc_info.value.field_name == "order_items"
 
 
 def test_comparison_validates_order_item_elements_and_quantity() -> None:
     with pytest.raises(InvalidTruckComparisonInputError) as element_error:
-        compare_trucks((make_candidate(1),), (object(),))  # type: ignore[arg-type]
+        compare_trucks(  # type: ignore[arg-type]
+            (make_candidate(1), make_candidate(2)),
+            (object(),),
+        )
     with pytest.raises(InvalidTruckComparisonInputError) as quantity_error:
-        compare_trucks((make_candidate(1),), (make_item(quantity=True),))
+        compare_trucks(
+            (make_candidate(1), make_candidate(2)),
+            (make_item(quantity=True),),
+        )
 
     assert element_error.value.field_name == "order_items[0]"
     assert quantity_error.value.field_name == "order_items[0].quantity"
@@ -191,7 +230,10 @@ def test_candidate_validates_uuid_and_pure_capacity_types() -> None:
 
 
 def test_comparison_results_are_immutable() -> None:
-    result = compare_trucks((make_candidate(1),), (make_item(),))[0]
+    result = compare_trucks(
+        (make_candidate(1), make_candidate(2)),
+        (make_item(),),
+    )[0]
 
     with pytest.raises(FrozenInstanceError):
         result.truck_id = UUID(int=2)  # type: ignore[misc]
@@ -224,14 +266,15 @@ def test_comparison_is_deterministic() -> None:
 def test_candidates_are_isolated_from_each_other() -> None:
     first = make_candidate(1, internal_width_cm=10)
     second = make_candidate(2, internal_width_cm=20)
+    alternate = make_candidate(3, internal_width_cm=30)
     items = (make_item(1), make_item(2))
 
     combined = compare_trucks((first, second), items)
-    first_alone = compare_trucks((first,), items)[0]
-    second_alone = compare_trucks((second,), items)[0]
+    first_with_alternate = compare_trucks((first, alternate), items)[0]
+    second_with_alternate = compare_trucks((alternate, second), items)[1]
 
-    assert combined[0] == first_alone
-    assert combined[1] == second_alone
+    assert combined[0] == first_with_alternate
+    assert combined[1] == second_with_alternate
     assert combined[0].load_plan is not combined[1].load_plan
 
 
@@ -312,17 +355,17 @@ def test_comparison_preserves_rejections_weight_and_geometry() -> None:
 
 
 def test_comparison_propagates_the_engine_volume_limit() -> None:
-    candidate = make_candidate(1)
+    candidates = (make_candidate(1), make_candidate(2))
 
     accepted = compare_trucks(
-        (candidate,),
+        candidates,
         (make_item(quantity=200, width_cm=21),),
     )[0]
     assert accepted.load_plan.metrics.unloaded_count == 200
 
     with pytest.raises(LoadPlanVolumeLimitExceededError) as exc_info:
         compare_trucks(
-            (candidate,),
+            candidates,
             (make_item(quantity=201),),
         )
 

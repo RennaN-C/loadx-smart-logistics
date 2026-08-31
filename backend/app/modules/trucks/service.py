@@ -1,5 +1,5 @@
 import uuid
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -32,6 +32,9 @@ class TruckService:
         if truck is None:
             raise TruckNotFoundError
         return truck
+
+    def get_trucks(self, truck_ids: Sequence[uuid.UUID]) -> Sequence[Truck]:
+        return self.repository.get_many(truck_ids)
 
     def get_truck_for_update(self, truck_id: uuid.UUID) -> Truck:
         truck = self.repository.get_for_update(truck_id)

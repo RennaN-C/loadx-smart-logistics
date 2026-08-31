@@ -359,10 +359,11 @@ retorna o pedido sem criar histórico duplicado.
 
 Regras de autorização:
 
-- Somente `LOGISTICS_MANAGER` usa criação, aprovação e recálculo.
-- `ADMIN` e `LOGISTICS_MANAGER` consultam qualquer plano.
-- `CHECKER` consulta somente plano `APPROVED`.
-- `DRIVER` não acessa esses endpoints na API atual; a viagem usa internamente o
+- Somente `LOGISTICS_MANAGER` usa criação, comparação, aprovação e recálculo.
+- `ADMIN` e `LOGISTICS_MANAGER` consultam e solicitam explicação de qualquer plano
+  persistido tecnicamente válido.
+- `CHECKER` consulta e solicita explicação somente de plano `APPROVED`.
+- `DRIVER` não acessa os endpoints de plano de carga; a viagem usa internamente o
   plano atribuído.
 
 ### POST `/load-plans`
@@ -524,8 +525,120 @@ Erros específicos:
 - `LOAD_PLAN_INVALID_STATUS`, `LOAD_PLAN_HAS_REJECTIONS` e
   `LOAD_PLAN_SOURCE_CHANGED`.
 
-`CONFIRMADO`: `POST /load-plans/compare-trucks` pertence à OC21 e não é exposto
-pela integração da OC20.
+### POST `/load-plans/compare-trucks`
+
+Compara de forma transitória os mesmos pedidos em diferentes caminhões. Exige
+`LOGISTICS_MANAGER` e não persiste nem cria `LoadPlan`.
+
+```json
+{
+  "order_ids": ["uuid-do-pedido"],
+  "truck_ids": ["uuid-do-caminhao-a", "uuid-do-caminhao-b"]
+}
+```
+
+Regras de entrada e preflight:
+
+- `order_ids` contém ao menos um UUID e não aceita duplicatas;
+- `truck_ids` contém de 2 a 10 UUIDs e não aceita duplicatas;
+- todos os pedidos devem existir e estar elegíveis;
+- todos os produtos referenciados devem existir;
+- todos os caminhões devem existir e estar ativos;
+- a soma das quantidades dos pedidos pode materializar no máximo 200 volumes;
+- qualquer falha invalida a requisição inteira antes do primeiro cálculo.
+
+Resposta `200`: array direto, com um elemento por caminhão na mesma ordem de
+`truck_ids`.
+
+```json
+[
+  {
+    "truck_id": "uuid-do-caminhao-a",
+    "internal_volume_cm3": 37440000,
+    "used_volume_cm3": 32400000,
+    "occupancy_percent": 86.54,
+    "total_weight_kg": 5420.0,
+    "loaded_count": 28,
+    "unloaded_count": 0,
+    "rejection_counts": {},
+    "algorithm_version": "heuristic-v1"
+  },
+  {
+    "truck_id": "uuid-do-caminhao-b",
+    "internal_volume_cm3": 18000000,
+    "used_volume_cm3": 15000000,
+    "occupancy_percent": 83.33,
+    "total_weight_kg": 4200.0,
+    "loaded_count": 22,
+    "unloaded_count": 6,
+    "rejection_counts": {
+      "TRUCK_DIMENSIONS_EXCEEDED": 4,
+      "TRUCK_WEIGHT_EXCEEDED": 2
+    },
+    "algorithm_version": "heuristic-v1"
+  }
+]
+```
+
+`rejection_counts` usa os motivos oficiais de `rejection_reason` como chaves e
+contagens inteiras positivas como valores; fica vazio quando nenhum volume é
+rejeitado. Um caminhão ativo e válido que não comporte toda a carga continua no
+array com suas métricas e rejeições. Isso não transforma a resposta em falha.
+
+`CONFIRMADO`: a ordem do array serve somente para correlacionar cada elemento ao
+pedido. A resposta não contém vencedor, score, ranking ou recomendação e não
+altera a `heuristic-v1`.
+
+Erros específicos:
+
+- `VALIDATION_ERROR`: `order_ids` vazio ou duplicado, `truck_ids` duplicado ou
+  com menos de 2 ou mais de 10 elementos, ou UUID malformado;
+- `LOAD_PLAN_ORDER_NOT_FOUND` e `LOAD_PLAN_ORDER_NOT_ELIGIBLE`;
+- `LOAD_PLAN_PRODUCT_NOT_FOUND`;
+- `LOAD_PLAN_TRUCK_NOT_FOUND` e `LOAD_PLAN_TRUCK_INACTIVE`;
+- `LOAD_PLAN_VOLUME_LIMIT_EXCEEDED`;
+- `INVALID_LOAD_PLAN_INPUT`.
+
+### POST `/load-plans/{id}/explain`
+
+Sem body. Explica um plano persistido sem recalcular, aprovar ou modificar seus
+dados. `LOGISTICS_MANAGER` e `ADMIN` podem consultar a explicação de qualquer
+plano tecnicamente válido. `CHECKER` pode consultar somente plano `APPROVED` e
+`DRIVER` não possui acesso.
+
+Resposta `200` com provider disponível e resposta válida:
+
+```json
+{
+  "load_plan_id": "uuid-do-plano",
+  "source": "AI",
+  "explanation": "O plano utilizou 86,54% do volume interno e carregou 28 volumes.",
+  "algorithm_version": "heuristic-v1"
+}
+```
+
+Quando o provider ultrapassa o timeout, está indisponível ou produz resposta
+inválida, a mesma operação retorna `200` com explicação determinística e
+`source = FALLBACK`. O timeout é configurável e usa 5 segundos por padrão.
+`source` aceita exclusivamente `AI` ou `FALLBACK`; `algorithm_version` sempre vem
+do plano persistido.
+
+O contexto entregue ao `AIProvider` contém somente métricas, snapshot técnico do
+caminhão, posições, rotações, sequência, volumes rejeitados, motivos e
+`algorithm_version`. Não contém nome, CPF/CNPJ, telefone ou endereço de cliente,
+nem dados pessoais de motorista.
+
+O fallback não encobre erros de autenticação, autorização, recurso inexistente
+ou plano tecnicamente inválido. Erros específicos:
+
+- `AUTH_INVALID_TOKEN` ou `AUTH_FORBIDDEN`;
+- `LOAD_PLAN_NOT_FOUND`;
+- `LOAD_PLAN_EXPLANATION_INVALID_PLAN`: conflito `409`; o plano persistido não
+  satisfaz os invariantes necessários para formar o contexto técnico;
+- `VALIDATION_ERROR`: UUID de path malformado.
+
+`CONFIRMADO`: o MVP usa uma implementação fake de `AIProvider`, sem rede ou
+credencial externa. O adapter concreto será integrado pelo Desenvolvedor 4.
 
 ## Carregamento
 

@@ -41,43 +41,43 @@ Crie somente os arquivos necessários para a ocorrência atual.
 imutáveis. Uma integração operacional futura deve escolher o descendente ativo
 sem reescrever os anteriores.
 
-## OC21 - comparação interna entre caminhões
+## OC21 - comparação entre caminhões
 
-`CONFIRMADO`: a fatia interna implementada da OC21 compara de forma transitória e não ranqueada
-no máximo 10 caminhões candidatos. Cada candidato recebe os mesmos volumes e é
-calculado integralmente pela engine `heuristic-v1`; a comparação não copia nem
-substitui regras de rotação, posicionamento, colisão, apoio, peso, profundidade,
-rejeição, sequência ou métricas.
+`CONFIRMADO`: `POST /api/v1/load-plans/compare-trucks` recebe um ou mais
+`order_ids` distintos e de 2 a 10 `truck_ids` distintos. Somente
+`LOGISTICS_MANAGER` executa. O service conclui o preflight de todas as fontes e do
+limite de 200 volumes antes de chamar a engine; qualquer pedido, produto ou
+caminhão inexistente ou inválido falha a requisição inteira.
 
-Os resultados por caminhão preservam as métricas, as colocações, as rejeições e a
-`algorithm_version` retornadas pela engine. Eles não recebem `score`, posição de
-ranking, indicação de vencedor ou preferência logística. A operação interna não
-persiste comparação, não cria nem persiste registro SQLAlchemy `load_plan` e não
-escolhe caminhão automaticamente; ela produz somente `TruckComparisonResult`
-contendo `LoadPlanResult`, em memória.
+Cada candidato recebe a mesma carga materializada e é calculado integralmente por
+`heuristic-v1`, sem copiar nem substituir regras de rotação, posicionamento,
+colisão, apoio, peso, profundidade, rejeição, sequência ou métricas. Caminhão
+válido que não comporte toda a carga retorna normalmente com `loaded_count`,
+`unloaded_count`, `rejection_counts`, ocupação e peso.
 
-Estado de entrega da OC21: parcial, porque somente essa fronteira interna está
-implementada e o contrato público permanece sem aprovação.
+A resposta `200` é um array direto na ordem de `truck_ids`. Essa ordem não é
+ranking. A operação não persiste, não cria `LoadPlan`, não altera pedidos e não
+retorna score, vencedor ou recomendação automática. Estado da OC21: concluída.
 
-`DECISÃO NECESSÁRIA`: antes de expor `POST /api/v1/load-plans/compare-trucks`,
-definir body, resposta, códigos de erro, ranking e desempates, eventual vencedor,
-persistência ou criação de plano, tratamento de duplicatas, caminhões inativos e
-falhas parciais, além do RBAC específico do endpoint. A matriz geral continua
-valendo por negação padrão, mas não substitui esse contrato público.
+## OC22 - explicação do plano
 
-## OC22 - contexto interno de explicação
+`CONFIRMADO`: `POST /api/v1/load-plans/{id}/explain` explica somente um plano
+persistido e tecnicamente válido. O builder recebe o agregado de `LoadPlan` com
+`orders` e `items` já carregados; `LoadPlanRepository.get` garante esse formato
+com `selectinload`. O service não chama a engine e não modifica o agregado.
 
-`CONFIRMADO`: a fatia interna implementada da OC22 limita-se a um builder determinístico
-de contexto. Ele transforma snapshots, métricas, volumes colocados/rejeitados,
-motivos, posições, rotações, sequência e `algorithm_version` já existentes em
-dados estruturados, sem recalcular ou alterar o plano e sem chamar provider de IA.
+`LoadPlanExplanationService` envia ao `AIProvider` somente métricas, snapshot do
+caminhão, posições, rotações, sequência, rejeições, motivos e
+`algorithm_version`. Nome, documento, telefone e endereço de cliente e dados
+pessoais de motorista ficam fora do contexto.
 
-O builder recebe o agregado de `LoadPlan` com `orders` e `items` já carregados; o
-caminho atual de leitura por `LoadPlanRepository.get` faz esse carregamento com
-`selectinload`.
+Uma saída válida retorna `source = AI`. Timeout, indisponibilidade ou resposta
+inválida retornam `source = FALLBACK` e texto determinístico; o timeout é
+configurável e vale 5 segundos por padrão. Fallback não mascara `401`, `403`,
+`404` nem `LOAD_PLAN_EXPLANATION_INVALID_PLAN`.
 
-A integração concreta com provider, SDK, credenciais e políticas externas pertence
-ao Desenvolvedor 4. `DECISÃO NECESSÁRIA`: definir endpoint, request, response,
-schema público, dados enviados ao modelo, fallback e prompt final. Estado de
-entrega da OC22: parcial e bloqueado por essas decisões; até sua aprovação, a
-OC22 não publica API nem produz explicação por IA.
+`LOGISTICS_MANAGER` e `ADMIN` explicam qualquer plano persistido tecnicamente
+válido; `CHECKER` somente plano `APPROVED`; `DRIVER` não acessa. A port e o
+provider fake permitem execução e testes sem rede. Adapter externo, SDK,
+credenciais e comunicação real pertencem ao Desenvolvedor 4. Estado da OC22:
+concluída.

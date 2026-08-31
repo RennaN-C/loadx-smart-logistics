@@ -5,16 +5,28 @@ from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.responses import error_response, openapi_error_responses
 from app.database.session import get_db
+from app.integrations.ai import AIProvider, get_ai_provider
 from app.modules.auth.dependencies import require_roles
+from app.modules.load_planning.explanation_service import (
+    LoadPlanExplanationForbiddenError,
+    LoadPlanExplanationInvalidPlanError,
+    LoadPlanExplanationNotFoundError,
+    LoadPlanExplanationService,
+)
 from app.modules.load_planning.models import LoadPlan
 from app.modules.load_planning.schemas import (
     LoadPlanCreate,
+    LoadPlanExplanationRead,
     LoadPlanRead,
     LoadPlanVisualizationRead,
+    TruckComparisonCreate,
+    TruckComparisonRead,
     map_load_plan_read,
     map_load_plan_visualization,
+    map_truck_comparison,
 )
 from app.modules.load_planning.service import (
     InvalidLoadPlanInputError,
@@ -41,12 +53,27 @@ LoadPlanManager = Annotated[
     User,
     Depends(require_roles("LOGISTICS_MANAGER")),
 ]
+LoadPlanExplainer = Annotated[
+    User,
+    Depends(require_roles("ADMIN", "CHECKER", "LOGISTICS_MANAGER")),
+]
 
 
 def get_load_planning_service(
     db: Annotated[Session, Depends(get_db)],
 ) -> LoadPlanningService:
     return LoadPlanningService(db)
+
+
+def get_load_plan_explanation_service(
+    db: Annotated[Session, Depends(get_db)],
+    provider: Annotated[AIProvider, Depends(get_ai_provider)],
+) -> LoadPlanExplanationService:
+    return LoadPlanExplanationService(
+        db,
+        provider,
+        timeout_seconds=settings.ai_explanation_timeout_seconds,
+    )
 
 
 def _not_found_response() -> JSONResponse:
@@ -73,11 +100,21 @@ def _ensure_read_access(
 
 def _calculation_error_response(error: Exception) -> JSONResponse | None:
     if isinstance(error, LoadPlanTruckNotFoundError):
+        details = (
+            [
+                {
+                    "field": "truck_ids",
+                    "ids": [str(truck_id) for truck_id in error.truck_ids],
+                }
+            ]
+            if error.truck_ids
+            else [{"field": "truck_id"}]
+        )
         return error_response(
             status.HTTP_404_NOT_FOUND,
             "LOAD_PLAN_TRUCK_NOT_FOUND",
             "Caminhão do plano de carga não encontrado.",
-            [{"field": "truck_id"}],
+            details,
         )
     if isinstance(error, LoadPlanOrdersNotFoundError):
         return error_response(
@@ -104,11 +141,21 @@ def _calculation_error_response(error: Exception) -> JSONResponse | None:
             ],
         )
     if isinstance(error, LoadPlanTruckInactiveError):
+        details = (
+            [
+                {
+                    "field": "truck_ids",
+                    "ids": [str(truck_id) for truck_id in error.truck_ids],
+                }
+            ]
+            if error.truck_ids
+            else [{"field": "truck_id"}]
+        )
         return error_response(
             status.HTTP_409_CONFLICT,
             "LOAD_PLAN_TRUCK_INACTIVE",
             "O caminhão selecionado está inativo.",
-            [{"field": "truck_id"}],
+            details,
         )
     if isinstance(error, LoadPlanOrdersNotEligibleError):
         return error_response(
@@ -177,6 +224,35 @@ def create_load_plan(
         return response
 
 
+@router.post(
+    "/compare-trucks",
+    response_model=list[TruckComparisonRead],
+    responses=openapi_error_responses(401, 403, 404, 409, 422),
+)
+def compare_trucks(
+    data: TruckComparisonCreate,
+    current_user: LoadPlanManager,
+    service: Annotated[LoadPlanningService, Depends(get_load_planning_service)],
+) -> list[TruckComparisonRead] | JSONResponse:
+    del current_user
+    try:
+        comparisons = service.compare_trucks(data)
+        return [map_truck_comparison(comparison) for comparison in comparisons]
+    except (
+        InvalidLoadPlanInputError,
+        LoadPlanOrdersNotEligibleError,
+        LoadPlanOrdersNotFoundError,
+        LoadPlanProductsNotFoundError,
+        LoadPlanTruckInactiveError,
+        LoadPlanTruckNotFoundError,
+        LoadPlanVolumeLimitExceededError,
+    ) as exc:
+        response = _calculation_error_response(exc)
+        if response is None:
+            raise
+        return response
+
+
 @router.get(
     "/{load_plan_id}",
     response_model=LoadPlanRead,
@@ -215,6 +291,47 @@ def get_load_plan_visualization(
     if forbidden is not None:
         return forbidden
     return map_load_plan_visualization(load_plan)
+
+
+@router.post(
+    "/{load_plan_id}/explain",
+    response_model=LoadPlanExplanationRead,
+    responses=openapi_error_responses(401, 403, 404, 409, 422),
+)
+def explain_load_plan(
+    load_plan_id: uuid.UUID,
+    current_user: LoadPlanExplainer,
+    service: Annotated[
+        LoadPlanExplanationService,
+        Depends(get_load_plan_explanation_service),
+    ],
+) -> LoadPlanExplanationRead | JSONResponse:
+    try:
+        result = service.explain(
+            load_plan_id,
+            requester_role=current_user.role,
+        )
+    except LoadPlanExplanationNotFoundError:
+        return _not_found_response()
+    except LoadPlanExplanationForbiddenError:
+        return error_response(
+            status.HTTP_403_FORBIDDEN,
+            "AUTH_FORBIDDEN",
+            "Usuário sem permissão para esta ação.",
+        )
+    except LoadPlanExplanationInvalidPlanError:
+        return error_response(
+            status.HTTP_409_CONFLICT,
+            "LOAD_PLAN_EXPLANATION_INVALID_PLAN",
+            "O plano persistido não pode ser explicado.",
+            [{"field": "id"}],
+        )
+    return LoadPlanExplanationRead(
+        load_plan_id=result.load_plan_id,
+        source=result.source,
+        explanation=result.explanation,
+        algorithm_version=result.algorithm_version,
+    )
 
 
 @router.post(

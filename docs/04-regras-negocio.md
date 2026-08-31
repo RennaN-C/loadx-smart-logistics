@@ -37,7 +37,7 @@ Legenda:
 | Caminhões | R | G | R | S futuro |
 | Produtos | R | G | R | S futuro |
 | Pedidos | R | G | R | S futuro |
-| Planos de carga | R | G, calcular e aprovar | S em plano aprovado | S em instruções atribuídas |
+| Planos de carga | R e explicar | G, calcular, comparar, aprovar e explicar | S e explicar plano aprovado | - |
 | Carregamento | R | G e supervisionar | S em checklist atribuído | S para consulta |
 | Viagens | R | G e atribuir | - | S em transições permitidas |
 | Entregas | R | G e tratar exceções | - | S em transições permitidas |
@@ -336,6 +336,52 @@ usa entrega decrescente, distância da porta decrescente e identidade estável.
 revalida partição, limites, rotações, colisões, apoio, peso, profundidade,
 sequência e métricas antes de retornar `heuristic-v1`.
 
+### OC21 - comparação entre caminhões
+
+`CONFIRMADO`: a comparação recebe um ou mais pedidos distintos e de 2 a 10
+caminhões distintos. O preflight valida todos os pedidos, produtos e caminhões,
+exige pedidos elegíveis e caminhões ativos e limita a carga compartilhada a 200
+volumes expandidos. Qualquer duplicidade, fonte inexistente ou inválida, quantidade
+fora dos limites ou carga acima de 200 volumes encerra a requisição inteira antes
+de iniciar os cálculos.
+
+`CONFIRMADO`: todos os caminhões recebem exatamente os mesmos volumes. Cada
+resultado é calculado integralmente pela engine `heuristic-v1`, sem alterar regras
+de rotação, posicionamento, colisão, apoio, peso, profundidade, rejeição, sequência
+ou métricas. Um caminhão válido que não comporte parte ou toda a carga retorna
+normalmente com contagens, rejeições, ocupação e peso; isso não é falha global.
+
+`CONFIRMADO`: a comparação é transitória. Ela não persiste comparação, não
+cria `LoadPlan`, não altera pedidos, não escolhe vencedor e não produz ranking,
+score ou recomendação automática. A ordem dos resultados acompanha `truck_ids`
+somente para reprodução do contrato e não expressa preferência.
+
+`CONFIRMADO`: somente `LOGISTICS_MANAGER` executa a comparação.
+
+### OC22 - explicação de plano
+
+`CONFIRMADO`: a explicação usa somente um `LoadPlan` persistido e tecnicamente
+válido. O `LoadPlanExplanationService` copia do plano as métricas, snapshot do
+caminhão, posições, rotações, sequência, volumes rejeitados, motivos e
+`algorithm_version`, e entrega esse contexto à port `AIProvider`.
+
+`CONFIRMADO`: nome, documento, telefone e endereço de cliente, dados pessoais de
+motorista e qualquer outra informação pessoal não integram o contexto do provider.
+A IA não aprova, valida, recalcula, reposiciona ou modifica o plano, suas métricas
+ou rejeições.
+
+`CONFIRMADO`: o timeout da explicação é configurável e usa 5 segundos por padrão.
+Timeout, provider indisponível ou resposta inválida retornam uma explicação
+determinística com `source = FALLBACK`. Uma resposta válida do provider usa
+`source = AI`. O fallback não encobre falta de autenticação, acesso proibido,
+plano inexistente ou plano persistido tecnicamente inválido.
+
+`CONFIRMADO`: `LOGISTICS_MANAGER` e `ADMIN` podem explicar qualquer plano
+persistido tecnicamente válido; `CHECKER` pode explicar somente plano `APPROVED`;
+`DRIVER` não acessa a operação. O MVP possui uma implementação fake da port para
+execução e testes sem rede. O provider externo concreto pertence ao
+Desenvolvedor 4.
+
 ## Carregamento
 
 - `CONFIRMADO`: carregamento só pode ser criado para plano `APPROVED` com ao
@@ -452,10 +498,13 @@ domínio. Operação rejeitada e repetição idempotente não geram notificaçã
 ## IA
 
 - Pode interpretar texto e explicar resultados.
-- Não pode aprovar plano.
-- Não pode ignorar validações determinísticas.
+- Não pode aprovar, alterar, validar ou recalcular plano.
+- Não pode ignorar validações determinísticas nem mudar posições, rejeições
+  ou métricas.
 - Respostas estruturadas devem ser validadas antes de executar ações.
-- Sistema deve continuar funcionando com provider mock.
+- Sistema deve continuar funcionando com provider fake e fallback determinístico.
+- Explicação de plano envia somente o contexto técnico definido na OC22 e nunca
+  envia dados pessoais de cliente ou motorista.
 
 ## Relatórios
 

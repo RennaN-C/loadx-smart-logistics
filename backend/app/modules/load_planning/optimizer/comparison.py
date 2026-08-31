@@ -10,8 +10,8 @@ from app.modules.load_planning.optimizer.engine import (
     LoadPlanVolumeLimitExceededError,
     calculate_load_plan,
 )
-from app.modules.load_planning.optimizer.volumes import expand_order_items
 
+MIN_COMPARISON_TRUCKS = 2
 MAX_COMPARISON_TRUCKS = 10
 
 
@@ -130,6 +130,11 @@ def compare_trucks(
 
     validated_candidates = tuple(candidates)
     truck_count = len(validated_candidates)
+    if truck_count < MIN_COMPARISON_TRUCKS:
+        raise InvalidTruckComparisonInputError(
+            "candidates",
+            f"must contain at least {MIN_COMPARISON_TRUCKS} candidates",
+        )
     if truck_count > MAX_COMPARISON_TRUCKS:
         raise TruckComparisonLimitExceededError(truck_count)
 
@@ -140,10 +145,14 @@ def compare_trucks(
                 "must be a TruckComparisonCandidate",
             )
 
+    candidate_ids = tuple(candidate.truck_id for candidate in validated_candidates)
+    if len(set(candidate_ids)) != len(candidate_ids):
+        raise InvalidTruckComparisonInputError(
+            "candidates",
+            "must not contain duplicate truck ids",
+        )
+
     prepared_order_items = _prepare_order_items(order_items)
-    if not validated_candidates:
-        expand_order_items(prepared_order_items)
-        return ()
 
     return tuple(
         TruckComparisonResult(

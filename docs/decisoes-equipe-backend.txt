@@ -366,12 +366,23 @@ D17 - COMPARAÇÃO ENTRE CAMINHÕES NO MVP
 ---------------------------------------
 Marcador: CONFIRMADO
 Pergunta: OC21 faz parte do MVP ou fica para fase futura?
-RECOMENDAÇÃO: decidir antes de criar endpoint, tela ou persistência específica.
 Impacta: roadmap, load_planning, frontend e prazo do MVP.
-Escolha da equipe: OC21 faz parte do trabalho e será implementada depois da
-publicação da OC20, comparando no máximo 10 caminhões por execução.
-Responsáveis: equipe LoadX; aprovação explícita do pacote D1-D19 pelo usuário.
-Data: 2026-08-03
+Escolha da equipe:
+- OC21 faz parte do MVP e expõe POST /api/v1/load-plans/compare-trucks;
+- recebe order_ids sem duplicatas e de 2 a 10 truck_ids sem duplicatas;
+- o preflight falha integralmente para pedido inexistente ou inelegível, produto
+  inexistente, caminhão inexistente ou inativo, duplicidade ou mais de 200 volumes;
+- todos os caminhões recebem exatamente os mesmos volumes e reutilizam sem
+  alteração a engine heuristic-v1;
+- incapacidade física de candidato válido é resultado normal com métricas e
+  rejection_counts, não falha global;
+- a resposta 200 é um array direto na ordem de truck_ids;
+- a comparação não persiste, não cria LoadPlan, não altera pedidos e não produz
+  vencedor, ranking, score ou recomendação;
+- somente LOGISTICS_MANAGER pode executar.
+Responsável: Desenvolvedor 2, com aprovação explícita do usuário.
+Data da definição inicial: 2026-08-03.
+Data de fechamento do contrato: 2026-08-31.
 
 
 D18 - POLÍTICA FINAL DE AUTENTICAÇÃO
@@ -431,7 +442,7 @@ Registrar separadamente antes das ocorrências correspondentes:
 - estratégia de logging estruturado;
 - metas objetivas de performance do otimizador.
 RECOMENDAÇÃO: não agrupar implementações diferentes em uma única ocorrência; usar este item apenas como pauta.
-Impacta: OC22, OC36 a OC45, infraestrutura e demonstração final.
+Impacta: OC36 a OC45, infraestrutura e demonstração final.
 Escolha da equipe:
 Responsáveis:
 Data:
@@ -459,6 +470,34 @@ Responsável: Desenvolvedor 1, com autorização explícita do usuário.
 Data: 2026-08-09.
 
 
+D22 - EXPLICAÇÃO DE PLANO COM IA E FALLBACK
+---------------------------------------------
+Marcador: CONFIRMADO
+Pergunta: qual é a fronteira da IA para explicar planos no MVP e como o sistema
+responde quando o provider não pode produzir uma explicação válida?
+Impacta: OC22, load_planning, integração de IA, segurança, API e testes.
+Escolha aprovada:
+- POST /api/v1/load-plans/{id}/explain explica somente plano persistido;
+- a IA não aprova, valida, recalcula, reposiciona ou modifica plano, rejeições
+  ou métricas;
+- LoadPlanExplanationService depende da port AIProvider;
+- o MVP entrega provider fake; o adapter externo concreto pertence ao
+  Desenvolvedor 4;
+- o contexto contém somente métricas, caminhão, posições, rotações, sequência,
+  volumes rejeitados, motivos e algorithm_version;
+- nome, CPF/CNPJ, telefone e endereço de cliente e dados pessoais de motorista
+  não são enviados ao provider;
+- resposta válida usa source AI; timeout, indisponibilidade ou resposta inválida
+  usam source FALLBACK e texto determinístico;
+- timeout é configurável e possui default de 5 segundos;
+- fallback não encobre 401, 403, 404 nem plano tecnicamente inválido;
+- LOGISTICS_MANAGER e ADMIN podem explicar plano persistido tecnicamente válido;
+  CHECKER somente plano APPROVED; DRIVER não acessa.
+Responsáveis: Desenvolvedor 2 pela port, fake, service, fallback e API;
+Desenvolvedor 4 pelo adapter externo concreto.
+Data: 2026-08-31.
+
+
 ENCERRAMENTO DA REUNIÃO
 =======================
 
@@ -469,9 +508,11 @@ D06, registrada em ADR-016 e docs/05.
 D12, registrada em ADR-017 e docs/05.
 D11, registrada em ADR-018, docs/02, docs/04, docs/05 e docs/08.
 D07, D08, D09, D10 e D21, registradas em ADR-022 e nos contratos operacionais.
+D17 e D22, registradas nos contratos de planejamento, arquitetura e integração
+de IA.
 
 Ocorrências desbloqueadas:
-OC09, OC51, OC52, OC56, OC58 e OC59.
+OC09, OC21, OC22, OC51, OC52, OC56, OC58 e OC59.
 
 ADRs que precisam ser criadas:
 Nenhuma para as decisões aprovadas; ADR-004, ADR-015, ADR-016, ADR-017 e

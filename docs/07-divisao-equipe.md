@@ -64,6 +64,8 @@ Pastas principais:
 
 - `backend/app/modules/load_planning`.
 - `backend/app/modules/load_planning/optimizer`.
+- `backend/app/integrations/ai` para a port e o provider fake da OC22, em
+  colaboração com o Desenvolvedor 4.
 - `backend/tests/unit`.
 - `backend/tests/unit/load_planning` quando a pasta existir.
 
@@ -79,18 +81,20 @@ Ocorrências do documento-base:
 - [x] `OC18`: controle de peso.
 - [x] `OC19`: cálculo do aproveitamento.
 - [x] `OC20`: sequência de carregamento.
-- [ ] `OC21`: comparação entre caminhões.
-- [ ] `OC22`: explicação do planejamento com IA.
+- [x] `OC21`: comparação entre caminhões.
+- [x] `OC22`: explicação do planejamento com IA.
 
 Entregas esperadas:
 
-- [ ] Algoritmo determinístico.
-- [ ] Coordenadas dos volumes.
-- [ ] Controle de colisão, limites, peso, rotação e apoio.
-- [ ] Percentual de ocupação.
-- [ ] Lista de volumes rejeitados.
-- [ ] Sequência de carregamento.
-- [ ] Testes unitários reproduzíveis.
+- [x] Algoritmo determinístico.
+- [x] Coordenadas dos volumes.
+- [x] Controle de colisão, limites, peso, rotação e apoio.
+- [x] Percentual de ocupação.
+- [x] Lista de volumes rejeitados.
+- [x] Sequência de carregamento.
+- [x] Comparação transitória entre 2 e 10 caminhões, sem ranking ou persistência.
+- [x] Port, provider fake, service e fallback determinístico para explicação.
+- [x] Testes unitários reproduzíveis.
 
 ## Desenvolvedor 3: frontend, dashboard e visualização 3D
 
@@ -133,7 +137,10 @@ Entregas esperadas:
 ## Desenvolvedor 4: WhatsApp, ocorrências, relatórios e testes
 
 Responsável por carregamento, ocorrências, notificações, relatórios, provider
-mock de WhatsApp/IA, testes integrados, e2e, Docker e documentação operacional.
+mock de WhatsApp, adapter externo concreto de IA, testes integrados, e2e, Docker
+e documentação operacional. A port, o provider fake e o fallback da explicação
+da OC22 pertencem ao módulo de planejamento; o Desenvolvedor 4 integra o provider
+externo sem mover regras de plano para o adapter.
 Colabora no fluxo de viagens e entregas consumindo o service público do módulo,
 sem assumir os models, migration, regras de transição ou API pertencentes à
 `OC09` do Desenvolvedor 1.
