@@ -408,6 +408,11 @@ Regras:
 
 - Ocorrência deve ter tipo e descrição.
 - Foto é opcional no MVP.
+- `CONFIRMADO`: quando informada, a foto usa somente uma referência controlada
+  no formato `mock://occurrences/<identificador>`, sem query string, fragmento
+  ou espaços.
+- `CONFIRMADO`: o MVP não realiza upload, armazenamento binário ou consulta a
+  serviço externo de fotos.
 - Ocorrência deve estar vinculada a viagem e, quando aplicável, a entrega.
 - Registro de ocorrência não deve excluir nem sobrescrever histórico.
 
@@ -434,6 +439,15 @@ Regras:
 `executed = true` após o service público concluir a ação. Motorista desconhecido
 ou inativo, usuário sem vínculo, viagem ambígua/ausente e estado inválido não
 alteram dados.
+
+`CONFIRMADO`: as notificações automáticas da OC40 usam o
+`MockWhatsAppProvider` e possuem somente dois gatilhos no MVP: início efetivo da
+viagem pelo fluxo HTTP e registro efetivo de ocorrência. O destinatário é o
+telefone do motorista vinculado à viagem.
+
+`CONFIRMADO`: o envio automático ocorre depois do commit e é best-effort. Falha
+do provider ou ausência de destinatário não altera nem reverte o estado do
+domínio. Operação rejeitada e repetição idempotente não geram notificação.
 
 ## IA
 

@@ -2,6 +2,7 @@ import uuid
 
 from fastapi.testclient import TestClient
 
+from app.integrations.whatsapp import mock_whatsapp_provider
 from app.modules.users.models import User
 from tests.integration.auth_helpers import issue_session_headers
 
@@ -166,6 +167,7 @@ def test_complete_v1_flow(client: TestClient, session_factory) -> None:
     )
     assert finished_trip.status_code == 200
 
+    mock_whatsapp_provider.sent_messages.clear()
     occurrence = client.post(
         "/api/v1/occurrences",
         json={
@@ -178,6 +180,12 @@ def test_complete_v1_flow(client: TestClient, session_factory) -> None:
         headers=manager_headers,
     )
     assert occurrence.status_code == 201
+    assert occurrence.json()["photo_url"] == "mock://occurrences/e2e-photo"
+    assert len(mock_whatsapp_provider.sent_messages) == 1
+    assert mock_whatsapp_provider.sent_messages[0].recipient_phone == driver["phone"]
+    assert mock_whatsapp_provider.sent_messages[0].content == (
+        f"Ocorrência DELAY registrada na viagem {trip['id']}."
+    )
 
     for path in (
         f"/api/v1/reports/load-plans/{plan['id']}",
