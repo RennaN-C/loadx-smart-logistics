@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core.pagination import PageResult, PaginationParams
 from app.database.integrity import get_integrity_constraint_name
 from app.modules.deliveries.models import (
     DELIVERY_STATUS_VALUES,
@@ -13,7 +14,7 @@ from app.modules.deliveries.models import (
     Delivery,
     Trip,
 )
-from app.modules.deliveries.repository import TripRepository
+from app.modules.deliveries.repository import TripListItem, TripRepository
 from app.modules.deliveries.schemas import TripCreate
 from app.modules.drivers.service import DriverNotFoundError, DriverService
 from app.modules.load_planning.reference_service import LoadPlanReferenceService
@@ -136,6 +137,24 @@ class TripService:
             raise TripNotFoundError
         self._ensure_can_read(current_user, trip)
         return trip
+
+    def list_trips(
+        self,
+        pagination: PaginationParams,
+        *,
+        current_user: User,
+    ) -> PageResult[TripListItem]:
+        if current_user.role in {"ADMIN", "LOGISTICS_MANAGER"}:
+            return self.repository.list(pagination)
+        if current_user.role != "DRIVER" or current_user.driver_id is None:
+            raise TripAccessForbiddenError
+        try:
+            driver = self.driver_service.get_driver(current_user.driver_id)
+        except DriverNotFoundError as exc:
+            raise TripAccessForbiddenError from exc
+        if not driver.active:
+            raise TripAccessForbiddenError
+        return self.repository.list(pagination, driver_id=driver.id)
 
     def create_trip(self, data: TripCreate, *, changed_by: uuid.UUID) -> Trip:
         try:

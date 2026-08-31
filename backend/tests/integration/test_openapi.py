@@ -167,6 +167,12 @@ EXPECTED_ERROR_STATUSES = {
         "422",
         "500",
     },
+    ("/api/v1/trips", "get"): {
+        "401",
+        "403",
+        "422",
+        "500",
+    },
     ("/api/v1/trips/{trip_id}", "get"): {
         "401",
         "403",

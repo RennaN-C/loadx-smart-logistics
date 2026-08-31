@@ -67,6 +67,22 @@ class DeliveryRead(BaseModel):
         return normalize_utc(value)
 
 
+class TripListRead(BaseModel):
+    id: uuid.UUID
+    load_plan_id: uuid.UUID
+    driver_id: uuid.UUID
+    status: str
+    started_at: datetime | None
+    finished_at: datetime | None
+    created_at: datetime
+    delivery_count: int = Field(ge=0)
+
+    @field_validator("started_at", "finished_at", "created_at")
+    @classmethod
+    def normalize_datetimes(cls, value: datetime | None) -> datetime | None:
+        return normalize_utc(value)
+
+
 class TripRead(BaseModel):
     id: uuid.UUID
     load_plan_id: uuid.UUID

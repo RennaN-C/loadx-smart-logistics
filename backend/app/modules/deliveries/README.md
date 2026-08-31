@@ -12,6 +12,7 @@ Viagem, entregas, estados e histórico. Roteirização externa não entra no MVP
 
 ## Endpoints
 
+- `GET /api/v1/trips`: lista viagens com paginação e resumo sem PII.
 - `POST /api/v1/trips`: cria viagem e uma entrega por pedido do plano.
 - `GET /api/v1/trips/{id}`: consulta viagem com entregas.
 - `PATCH /api/v1/trips/{id}/status`: avança a viagem.
@@ -33,10 +34,14 @@ Viagem, entregas, estados e histórico. Roteirização externa não entra no MVP
 - Mudanças do agregado, pedidos e histórico usam um único commit ou rollback.
 - `LOGISTICS_MANAGER` cria e opera; `ADMIN` consulta; `DRIVER` consulta e opera
   somente viagem própria com vínculo e motorista ativos; `CHECKER` é negado.
+- A listagem usa `page`, `page_size` e `sort_order`, ordena por `created_at` e
+  `id` na mesma direção e retorna `delivery_count` sem carregar dados pessoais.
+- `ADMIN` e `LOGISTICS_MANAGER` listam todas as viagens; `DRIVER` lista somente
+  as vinculadas ao próprio `users.driver_id` e falha fechado sem vínculo ou com
+  motorista inativo.
 
 ## Pendências
 
-- `PENDENTE DE DEFINIÇÃO`: o módulo `loading` precisa materializar o estado
-  finalizado para liberar o início real da viagem.
-- `PENDENTE DE DEFINIÇÃO`: estados de exceção, cancelamento, reentrega e
-  ocorrências exigem decisão e implementação futuras.
+- `PENDENTE DE DEFINIÇÃO`: estados de exceção, cancelamento e reentrega exigem
+  decisão e implementação futuras. Ocorrências já são persistidas pelo módulo
+  dono e adicionam contexto sem substituir o status operacional.

@@ -386,6 +386,7 @@ Viagens vinculadas ao plano carregado.
 - `status`: texto ou enum, obrigatório.
 - `started_at`: timestamptz UTC.
 - `finished_at`: timestamptz UTC.
+- `created_at`: timestamptz UTC, obrigatório.
 
 Índices e constraints:
 
@@ -400,6 +401,9 @@ Viagens vinculadas ao plano carregado.
 `CONFIRMADO`: `status` aceita `SCHEDULED`, `IN_ROUTE` e `FINISHED`.
 `started_at` é obrigatório a partir de `IN_ROUTE`; `finished_at` existe somente
 em `FINISHED` e não pode anteceder `started_at`.
+
+`CONFIRMADO`: `created_at` permite ordenar a listagem de viagens de forma
+determinística, usando `id` como desempate na mesma direção.
 
 ### `deliveries`
 
@@ -526,6 +530,9 @@ deterministicamente a partir de `order_items.quantity`, usam identidade
 `CONFIRMADO`: a migration `20260809_0007` cria o vínculo opcional e único
 `users.driver_id`; `20260809_0008` fecha o catálogo de `status_history` e cria
 `trips` e `deliveries` para a `OC09`.
+
+`CONFIRMADO`: a migration `20260830_0011` adiciona `trips.created_at` com valor
+gerado pelo PostgreSQL e retrocompatibilidade para viagens existentes.
 
 ## Observação
 
