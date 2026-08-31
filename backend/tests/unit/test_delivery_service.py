@@ -224,6 +224,47 @@ def test_trip_repository_lists_paginated_filtered_and_deterministic(
     assert second_driver.id != first_driver.id
 
 
+def test_trip_service_lists_all_for_privileged_roles_and_only_own_for_driver(
+    db_session: Session,
+) -> None:
+    first_service, manager, first_driver, first_trip, _orders = create_trip(db_session)
+    _service, _manager, second_driver, second_trip, _orders = create_trip(db_session)
+    admin = create_user(db_session, role="ADMIN")
+    driver_user = create_user(db_session, role="DRIVER", driver_id=first_driver.id)
+    db_session.commit()
+    pagination = PaginationParams(page=1, page_size=20, sort_order="desc")
+
+    manager_result = first_service.list_trips(pagination, current_user=manager)
+    admin_result = first_service.list_trips(pagination, current_user=admin)
+    driver_result = first_service.list_trips(pagination, current_user=driver_user)
+
+    expected_ids = {first_trip.id, second_trip.id}
+    assert {item.trip.id for item in manager_result.items} == expected_ids
+    assert {item.trip.id for item in admin_result.items} == expected_ids
+    assert [item.trip.id for item in driver_result.items] == [first_trip.id]
+    assert second_driver.id != first_driver.id
+
+
+def test_trip_service_listing_fails_closed_for_invalid_driver_scope(
+    db_session: Session,
+) -> None:
+    service, _manager, driver, _trip, _orders = create_trip(db_session)
+    unlinked_driver = create_user(db_session, role="DRIVER")
+    linked_driver = create_user(db_session, role="DRIVER", driver_id=driver.id)
+    checker = create_user(db_session, role="CHECKER")
+    db_session.commit()
+    pagination = PaginationParams(page=1, page_size=20, sort_order="desc")
+
+    for forbidden_user in (unlinked_driver, checker):
+        with pytest.raises(TripAccessForbiddenError):
+            service.list_trips(pagination, current_user=forbidden_user)
+
+    driver.active = False
+    db_session.commit()
+    with pytest.raises(TripAccessForbiddenError):
+        service.list_trips(pagination, current_user=linked_driver)
+
+
 def test_create_trip_rejects_inactive_driver_and_duplicate_plan(
     db_session: Session,
 ) -> None:
