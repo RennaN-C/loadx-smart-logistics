@@ -6,6 +6,30 @@ from pydantic import ValidationError
 from app.core.config import Settings
 
 
+def test_ai_explanation_timeout_defaults_to_five_seconds() -> None:
+    configured = Settings(app_env="local", _env_file=None)
+
+    assert configured.ai_explanation_timeout_seconds == 5.0
+
+
+def test_ai_explanation_timeout_reads_environment(monkeypatch) -> None:
+    monkeypatch.setenv("AI_EXPLANATION_TIMEOUT_SECONDS", "2.5")
+
+    configured = Settings(app_env="local", _env_file=None)
+
+    assert configured.ai_explanation_timeout_seconds == 2.5
+
+
+@pytest.mark.parametrize("timeout_seconds", [0, -1])
+def test_ai_explanation_timeout_must_be_positive(timeout_seconds: int) -> None:
+    with pytest.raises(ValidationError):
+        Settings(
+            app_env="local",
+            ai_explanation_timeout_seconds=timeout_seconds,
+            _env_file=None,
+        )
+
+
 def test_settings_accept_empty_password_blocklist_path() -> None:
     configured = Settings(
         app_env="local",

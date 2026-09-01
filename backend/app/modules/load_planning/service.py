@@ -10,6 +10,15 @@ from app.modules.load_planning.models import (
     LoadPlanOrder,
 )
 from app.modules.load_planning.optimizer.capacity import TruckCapacityInput
+from app.modules.load_planning.optimizer.comparison import (
+    MAX_COMPARISON_TRUCKS,
+    MIN_COMPARISON_TRUCKS,
+    TruckComparisonCandidate,
+    TruckComparisonResult,
+)
+from app.modules.load_planning.optimizer.comparison import (
+    compare_trucks as compare_truck_candidates,
+)
 from app.modules.load_planning.optimizer.contracts import (
     IndividualVolume,
     OrderItemInput,
@@ -23,7 +32,7 @@ from app.modules.load_planning.optimizer.engine import (
 )
 from app.modules.load_planning.optimizer.loading_sequence import SequencedPlacement
 from app.modules.load_planning.repository import LoadPlanRepository
-from app.modules.load_planning.schemas import LoadPlanCreate
+from app.modules.load_planning.schemas import LoadPlanCreate, TruckComparisonCreate
 from app.modules.orders.models import Order, OrderItem
 from app.modules.orders.service import OrderService
 from app.modules.products.models import Product
@@ -41,11 +50,15 @@ class LoadPlanNotFoundError(Exception):
 
 
 class LoadPlanTruckNotFoundError(Exception):
-    pass
+    def __init__(self, truck_ids: Sequence[uuid.UUID] = ()) -> None:
+        self.truck_ids = tuple(truck_ids)
+        super().__init__("One or more load plan trucks were not found")
 
 
 class LoadPlanTruckInactiveError(Exception):
-    pass
+    def __init__(self, truck_ids: Sequence[uuid.UUID] = ()) -> None:
+        self.truck_ids = tuple(truck_ids)
+        super().__init__("One or more load plan trucks are inactive")
 
 
 class LoadPlanOrdersNotFoundError(Exception):
@@ -116,6 +129,91 @@ class LoadPlanningService:
             recalculated_from_id=None,
             allow_planned_orders=False,
         )
+
+    def compare_trucks(
+        self,
+        data: TruckComparisonCreate,
+    ) -> tuple[TruckComparisonResult, ...]:
+        """Run the existing heuristic for each truck without persisting state."""
+
+        normalized_order_ids = self._validate_order_ids(data.order_ids)
+        truck_ids = self._validate_comparison_truck_ids(data.truck_ids)
+
+        trucks = tuple(self.truck_service.get_trucks(truck_ids))
+        trucks_by_id = {truck.id: truck for truck in trucks}
+        missing_truck_ids = tuple(
+            truck_id for truck_id in truck_ids if truck_id not in trucks_by_id
+        )
+        if missing_truck_ids:
+            raise LoadPlanTruckNotFoundError(missing_truck_ids)
+        inactive_truck_ids = tuple(
+            truck_id for truck_id in truck_ids if not trucks_by_id[truck_id].active
+        )
+        if inactive_truck_ids:
+            raise LoadPlanTruckInactiveError(inactive_truck_ids)
+
+        orders = tuple(
+            self.order_service.get_orders(normalized_order_ids, for_update=False)
+        )
+        orders_by_id = {order.id: order for order in orders}
+        missing_order_ids = tuple(
+            order_id
+            for order_id in normalized_order_ids
+            if order_id not in orders_by_id
+        )
+        if missing_order_ids:
+            raise LoadPlanOrdersNotFoundError(missing_order_ids)
+        ineligible_orders = tuple(order for order in orders if order.status != "READY")
+        if ineligible_orders:
+            raise LoadPlanOrdersNotEligibleError(ineligible_orders)
+
+        order_items = tuple(
+            sorted(
+                (item for order in orders for item in order.items),
+                key=lambda item: (item.order_id.int, item.id.int),
+            )
+        )
+        volume_count = sum(item.quantity for item in order_items)
+        if volume_count > MAX_VOLUMES:
+            raise LoadPlanVolumeLimitExceededError(volume_count)
+        if volume_count <= 0:
+            raise InvalidLoadPlanInputError(
+                "order_ids", "must reference at least one volume"
+            )
+
+        product_ids = tuple(
+            sorted(
+                {item.product_id for item in order_items},
+                key=lambda value: value.int,
+            )
+        )
+        products = tuple(
+            self.product_service.get_products(product_ids, for_update=False)
+        )
+        products_by_id = {product.id: product for product in products}
+        missing_product_ids = tuple(
+            product_id for product_id in product_ids if product_id not in products_by_id
+        )
+        if missing_product_ids:
+            raise LoadPlanProductsNotFoundError(missing_product_ids)
+
+        optimizer_items = tuple(
+            self._map_optimizer_item(item, products_by_id[item.product_id])
+            for item in order_items
+        )
+        candidates = tuple(
+            TruckComparisonCandidate(
+                truck_id=truck_id,
+                capacity=TruckCapacityInput(
+                    internal_width_cm=trucks_by_id[truck_id].internal_width_cm,
+                    internal_height_cm=trucks_by_id[truck_id].internal_height_cm,
+                    internal_length_cm=trucks_by_id[truck_id].internal_length_cm,
+                    max_weight_kg=trucks_by_id[truck_id].max_weight_kg,
+                ),
+            )
+            for truck_id in truck_ids
+        )
+        return compare_truck_candidates(candidates, optimizer_items)
 
     def recalculate_load_plan(
         self,
@@ -336,6 +434,27 @@ class LoadPlanningService:
         if len(set(identifiers)) != len(identifiers):
             raise InvalidLoadPlanInputError("order_ids", "must not contain duplicates")
         return tuple(sorted(identifiers, key=lambda value: value.int))
+
+    @staticmethod
+    def _validate_comparison_truck_ids(
+        truck_ids: Sequence[uuid.UUID],
+    ) -> tuple[uuid.UUID, ...]:
+        identifiers = tuple(truck_ids)
+        if len(identifiers) < MIN_COMPARISON_TRUCKS:
+            raise InvalidLoadPlanInputError(
+                "truck_ids",
+                f"must contain at least {MIN_COMPARISON_TRUCKS} values",
+            )
+        if len(identifiers) > MAX_COMPARISON_TRUCKS:
+            raise InvalidLoadPlanInputError(
+                "truck_ids",
+                f"must contain at most {MAX_COMPARISON_TRUCKS} values",
+            )
+        if any(not isinstance(truck_id, uuid.UUID) for truck_id in identifiers):
+            raise InvalidLoadPlanInputError("truck_ids", "must contain UUID values")
+        if len(set(identifiers)) != len(identifiers):
+            raise InvalidLoadPlanInputError("truck_ids", "must not contain duplicates")
+        return identifiers
 
     @staticmethod
     def _map_optimizer_item(

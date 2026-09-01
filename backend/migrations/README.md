@@ -9,11 +9,12 @@ O Alembic versiona toda alteração estrutural do PostgreSQL.
 - `migrations/script.py.mako`: template das revisions.
 - `migrations/versions`: migrations versionadas.
 
-`CONFIRMADO`: o head atual é `20260809_0008`. `20260809_0007` vincula usuários a
-motoristas; `20260809_0008` fecha o catálogo auditável e cria `trips` e
-`deliveries`. As revisões anteriores da OC60 criam `auth_login_throttles`, sem
-e-mail ou IP brutos, e `auth_sessions`, que persiste somente o hash do
-identificador opaco.
+`CONFIRMADO`: o head atual é `20260830_0011`. A revisão adiciona
+`trips.created_at` para ordenação determinística e sucede as migrations de
+ocorrências e carregamento. `20260809_0007` vincula usuários a motoristas;
+`20260809_0008` fecha o catálogo auditável e cria `trips` e `deliveries`. As
+revisões anteriores da OC60 criam `auth_login_throttles`, sem e-mail ou IP
+brutos, e `auth_sessions`, que persiste somente o hash do identificador opaco.
 
 ## Comandos
 

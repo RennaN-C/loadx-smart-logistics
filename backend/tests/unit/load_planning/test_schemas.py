@@ -11,6 +11,8 @@ from app.modules.load_planning.schemas import (
     LoadPlanItemRead,
     LoadPlanRead,
     PlacedLoadPlanItemRead,
+    TruckComparisonCreate,
+    TruckComparisonRead,
     UnloadedLoadPlanItemRead,
     map_load_plan_item,
     map_load_plan_read,
@@ -22,6 +24,7 @@ SOURCE_PLAN_ID = uuid.UUID("00000000-0000-0000-0000-000000000101")
 TRUCK_ID = uuid.UUID("00000000-0000-0000-0000-000000000200")
 FIRST_ORDER_ID = uuid.UUID("00000000-0000-0000-0000-000000000301")
 SECOND_ORDER_ID = uuid.UUID("00000000-0000-0000-0000-000000000302")
+SECOND_TRUCK_ID = uuid.UUID("00000000-0000-0000-0000-000000000201")
 
 
 def make_item(
@@ -147,6 +150,91 @@ def test_load_plan_create_rejects_empty_or_duplicate_order_ids(
 ) -> None:
     with pytest.raises(ValidationError):
         LoadPlanCreate(truck_id=TRUCK_ID, order_ids=order_ids)
+
+
+def test_truck_comparison_create_accepts_contract_boundaries() -> None:
+    truck_ids = [uuid.UUID(int=2_000 + index) for index in range(10)]
+
+    minimum = TruckComparisonCreate(
+        order_ids=[FIRST_ORDER_ID],
+        truck_ids=truck_ids[:2],
+    )
+    maximum = TruckComparisonCreate(
+        order_ids=[FIRST_ORDER_ID, SECOND_ORDER_ID],
+        truck_ids=truck_ids,
+    )
+
+    assert minimum.truck_ids == truck_ids[:2]
+    assert maximum.truck_ids == truck_ids
+
+
+@pytest.mark.parametrize(
+    ("order_ids", "truck_ids"),
+    [
+        ([FIRST_ORDER_ID], [TRUCK_ID]),
+        (
+            [FIRST_ORDER_ID],
+            [uuid.UUID(int=3_000 + index) for index in range(11)],
+        ),
+        ([FIRST_ORDER_ID], [TRUCK_ID, TRUCK_ID]),
+        (
+            [FIRST_ORDER_ID, FIRST_ORDER_ID],
+            [TRUCK_ID, SECOND_TRUCK_ID],
+        ),
+    ],
+)
+def test_truck_comparison_create_rejects_invalid_cardinality_or_duplicates(
+    order_ids: list[uuid.UUID],
+    truck_ids: list[uuid.UUID],
+) -> None:
+    with pytest.raises(ValidationError):
+        TruckComparisonCreate(order_ids=order_ids, truck_ids=truck_ids)
+
+
+def test_truck_comparison_read_exposes_only_the_decided_metrics() -> None:
+    comparison = TruckComparisonRead(
+        truck_id=TRUCK_ID,
+        internal_volume_cm3=37_440_000,
+        used_volume_cm3=32_400_000,
+        occupancy_percent=Decimal("86.54"),
+        total_weight_kg=Decimal("5420.000"),
+        loaded_count=28,
+        unloaded_count=0,
+        rejection_counts={},
+        algorithm_version="heuristic-v1",
+    )
+
+    assert set(comparison.model_dump()) == {
+        "truck_id",
+        "internal_volume_cm3",
+        "used_volume_cm3",
+        "occupancy_percent",
+        "total_weight_kg",
+        "loaded_count",
+        "unloaded_count",
+        "rejection_counts",
+        "algorithm_version",
+    }
+    assert not {"winner", "ranking", "score"} & set(comparison.model_dump())
+
+
+def test_truck_comparison_read_requires_rejections_to_match_unloaded_count() -> None:
+    # Valores montados antes: dentro do raises fica só o construtor sob teste,
+    # senão qualquer erro na preparação faria o teste passar pelo motivo errado.
+    payload = {
+        "truck_id": TRUCK_ID,
+        "internal_volume_cm3": 1_000,
+        "used_volume_cm3": 0,
+        "occupancy_percent": Decimal(0),
+        "total_weight_kg": Decimal(0),
+        "loaded_count": 0,
+        "unloaded_count": 2,
+        "rejection_counts": {"TRUCK_DIMENSIONS_EXCEEDED": 1},
+        "algorithm_version": "heuristic-v1",
+    }
+
+    with pytest.raises(ValidationError, match="must match unloaded_count"):
+        TruckComparisonRead(**payload)
 
 
 def test_map_load_plan_item_renames_flat_orm_snapshot_and_placement_fields() -> None:

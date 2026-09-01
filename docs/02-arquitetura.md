@@ -31,7 +31,7 @@ PostgreSQL
 - Referência de produção: Docker Compose com Caddy como terminador TLS e servidor
   estático, conforme `ADR-021`.
 - Testes: Pytest, Vitest e Testing Library.
-- Integrações: IA e WhatsApp por adapters, iniciando com providers mock.
+- Integrações: IA e WhatsApp por ports/adapters, iniciando com providers mock.
 
 `PENDENTE DE DEFINIÇÃO`: biblioteca final para relatórios PDF no frontend não está definida. No backend, `reportlab` já está listado em `backend/requirements.txt`.
 
@@ -44,6 +44,21 @@ router -> schemas -> service -> repository -> model
                          |
                          -> domain/optimizer
 ```
+
+Para a explicação de plano, a dependência aponta para a abstração e não para
+um SDK externo:
+
+```text
+load_planning router
+        -> LoadPlanExplanationService
+        -> AIProvider (port)
+        -> FakeAIProvider no MVP / adapter concreto do Desenvolvedor 4
+```
+
+`CONFIRMADO`: o service monta um contexto técnico a partir do plano persistido e
+valida a resposta do provider. A IA não acessa o banco, não chama o otimizador e
+não aprova, recalcula ou modifica o plano. Timeout, indisponibilidade e resposta
+inválida produzem fallback determinístico no próprio caso de uso.
 
 Responsabilidades por pasta:
 
@@ -69,12 +84,14 @@ sessão SQLAlchemy, liveness, readiness com PostgreSQL/Alembic, migrations e
 módulos backend para autenticação, usuários, caminhões, produtos, clientes,
 motoristas, pedidos e histórico de status.
 
-`CONFIRMADO`: o planejamento de carga está implementado até a `OC20`, com
-persistência, API protegida e engine determinística. A `OC51` aplica a matriz de
-permissões em todas as rotas atuais.
+`CONFIRMADO`: o planejamento de carga está implementado até a `OC22`, com
+persistência dos planos, API protegida e engine determinística. A `OC21` compara
+transitoriamente de 2 a 10 caminhões sem criar `LoadPlan`; a `OC22` explica um
+plano persistido por `AIProvider` ou fallback determinístico. A `OC51` aplica a
+matriz de permissões em todas as rotas atuais.
 
-`PENDENTE DE DEFINIÇÃO`: carregamento, viagens, entregas, ocorrências, relatórios
-e integrações ainda precisam ser implementados conforme suas ocorrências.
+`CONFIRMADO`: carregamento, viagens, entregas, ocorrências, notificações mock e
+relatórios possuem módulos backend integrados para o fluxo da v1.0.0.
 
 ## Frontend
 
@@ -112,11 +129,15 @@ Responsabilidades por pasta:
 - A visualização 3D consome somente o resultado aprovado ou calculado pela API.
 - Integrações externas chamam services públicos e não acessam o banco diretamente.
 - Regras puras podem ficar em `domain/` e serem testadas sem FastAPI, banco ou rede.
+- O caso de uso de explicação depende somente da port `AIProvider`; o adapter
+  concreto e suas credenciais pertencem ao Desenvolvedor 4.
 
 ## Dependências proibidas
 
 - Frontend calculando validade geométrica.
 - IA decidindo se uma solução física é válida.
+- IA recebendo dados pessoais de cliente, motorista, telefone, documento ou
+  endereço para explicar um plano.
 - Rotas HTTP contendo regras complexas.
 - Services com SQL direto.
 - Repositories chamando FastAPI ou integrações externas.

@@ -64,6 +64,8 @@ Pastas principais:
 
 - `backend/app/modules/load_planning`.
 - `backend/app/modules/load_planning/optimizer`.
+- `backend/app/integrations/ai` para a port e o provider fake da `OC22`, em
+  colaboração com o Desenvolvedor 4, a quem pertence o adapter externo real.
 - `backend/tests/unit`.
 - `backend/tests/unit/load_planning` quando a pasta existir.
 
@@ -90,6 +92,10 @@ Entregas esperadas:
 - Percentual de ocupação.
 - Lista de volumes rejeitados.
 - Sequência de carregamento.
+- Comparação transitória entre 2 e 10 caminhões, sem ranking, score ou
+  vencedor, e sem persistência.
+- Port `AIProvider` com provider fake e fallback determinístico, sobre um
+  contexto sem dado pessoal.
 - Testes unitários reproduzíveis.
 
 ## Desenvolvedor 3: frontend, dashboard e visualização 3D

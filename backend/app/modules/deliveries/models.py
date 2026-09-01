@@ -9,6 +9,7 @@ from sqlalchemy import (
     String,
     UniqueConstraint,
     Uuid,
+    func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -51,6 +52,9 @@ class Trip(Base):
     )
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
     deliveries: Mapped[list["Delivery"]] = relationship(
         back_populates="trip",
         order_by="Delivery.sequence, Delivery.id",

@@ -1,4 +1,5 @@
 import uuid
+from collections.abc import Sequence
 
 from sqlalchemy import asc, desc, func, select
 from sqlalchemy.orm import Session
@@ -28,6 +29,15 @@ class TruckRepository:
 
     def get(self, truck_id: uuid.UUID) -> Truck | None:
         return self.db.get(Truck, truck_id)
+
+    def get_many(self, truck_ids: Sequence[uuid.UUID]) -> Sequence[Truck]:
+        unique_ids = tuple(sorted(set(truck_ids), key=lambda value: value.int))
+        if not unique_ids:
+            return ()
+        statement = (
+            select(Truck).where(Truck.id.in_(unique_ids)).order_by(Truck.id.asc())
+        )
+        return self.db.scalars(statement).all()
 
     def get_for_update(self, truck_id: uuid.UUID) -> Truck | None:
         statement = select(Truck).where(Truck.id == truck_id).with_for_update()

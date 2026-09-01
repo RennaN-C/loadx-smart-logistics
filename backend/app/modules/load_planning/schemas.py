@@ -6,6 +6,10 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 from app.core.json_decimal import JsonDecimal
 from app.modules.load_planning.models import LoadPlan, LoadPlanItem
+from app.modules.load_planning.optimizer.comparison import TruckComparisonResult
+from app.modules.load_planning.optimizer.rejections import (
+    REJECTION_REASON_PRECEDENCE,
+)
 
 LoadPlanStatus = Literal["CALCULATED", "APPROVED", "REJECTED"]
 RotationCodeValue = Literal["XYZ", "XZY", "YXZ", "YZX", "ZXY", "ZYX"]
@@ -33,6 +37,59 @@ class LoadPlanCreate(BaseModel):
         if len(set(order_ids)) != len(order_ids):
             raise ValueError("order_ids must not contain duplicates")
         return order_ids
+
+
+class TruckComparisonCreate(BaseModel):
+    order_ids: list[uuid.UUID] = Field(min_length=1)
+    truck_ids: list[uuid.UUID] = Field(min_length=2, max_length=10)
+
+    @field_validator("order_ids", "truck_ids")
+    @classmethod
+    def require_distinct_ids(
+        cls,
+        identifiers: list[uuid.UUID],
+        info: object,
+    ) -> list[uuid.UUID]:
+        if len(set(identifiers)) != len(identifiers):
+            field_name = getattr(info, "field_name", "identifiers")
+            raise ValueError(f"{field_name} must not contain duplicates")
+        return identifiers
+
+
+class TruckComparisonRead(BaseModel):
+    truck_id: uuid.UUID
+    internal_volume_cm3: int = Field(gt=0)
+    used_volume_cm3: int = Field(ge=0)
+    occupancy_percent: JsonDecimal = Field(ge=0, le=100, decimal_places=2)
+    total_weight_kg: JsonDecimal = Field(ge=0, max_digits=11, decimal_places=3)
+    loaded_count: int = Field(ge=0)
+    unloaded_count: int = Field(ge=0)
+    rejection_counts: dict[RejectionReasonValue, int]
+    algorithm_version: str = Field(min_length=1, max_length=64)
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    @model_validator(mode="after")
+    def validate_comparison_metrics(self) -> Self:
+        if self.used_volume_cm3 > self.internal_volume_cm3:
+            raise ValueError("used_volume_cm3 must not exceed internal_volume_cm3")
+        if any(count <= 0 for count in self.rejection_counts.values()):
+            raise ValueError("rejection_counts must contain only positive counts")
+        if sum(self.rejection_counts.values()) != self.unloaded_count:
+            raise ValueError("rejection_counts must match unloaded_count")
+        return self
+
+
+LoadPlanExplanationSource = Literal["AI", "FALLBACK"]
+
+
+class LoadPlanExplanationRead(BaseModel):
+    load_plan_id: uuid.UUID
+    source: LoadPlanExplanationSource
+    explanation: str = Field(min_length=1)
+    algorithm_version: str = Field(min_length=1, max_length=64)
+
+    model_config = ConfigDict(str_strip_whitespace=True)
 
 
 class _LoadPlanItemSnapshotRead(BaseModel):
@@ -311,4 +368,30 @@ def map_load_plan_visualization(load_plan: LoadPlan) -> LoadPlanVisualizationRea
             )
             for item in unloaded_items
         ],
+    )
+
+
+def map_truck_comparison(
+    comparison: TruckComparisonResult,
+) -> TruckComparisonRead:
+    result = comparison.load_plan
+    metrics = result.metrics
+    rejection_counts = {
+        reason.value: sum(
+            rejected.rejection_reason == reason for rejected in result.rejected_volumes
+        )
+        for reason in REJECTION_REASON_PRECEDENCE
+    }
+    return TruckComparisonRead(
+        truck_id=comparison.truck_id,
+        internal_volume_cm3=metrics.internal_volume_cm3,
+        used_volume_cm3=metrics.used_volume_cm3,
+        occupancy_percent=metrics.occupancy_percent,
+        total_weight_kg=metrics.total_weight_kg,
+        loaded_count=metrics.loaded_count,
+        unloaded_count=metrics.unloaded_count,
+        rejection_counts={
+            reason: count for reason, count in rejection_counts.items() if count > 0
+        },
+        algorithm_version=metrics.algorithm_version,
     )

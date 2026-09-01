@@ -1,5 +1,7 @@
 import uuid
 from datetime import UTC, datetime
+from re import fullmatch
+from urllib.parse import urlsplit
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -31,6 +33,24 @@ class OccurrenceCreate(BaseModel):
         if normalized not in OCCURRENCE_TYPE_VALUES:
             raise ValueError("type must be a supported occurrence type")
         return normalized
+
+    @field_validator("photo_url")
+    @classmethod
+    def validate_photo_url(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        parsed = urlsplit(value)
+        identifier = parsed.path.removeprefix("/")
+        if (
+            parsed.scheme != "mock"
+            or parsed.netloc != "occurrences"
+            or not parsed.path.startswith("/")
+            or fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", identifier) is None
+            or parsed.query
+            or parsed.fragment
+        ):
+            raise ValueError("photo_url must use mock://occurrences/<identifier>")
+        return value
 
 
 class OccurrenceRead(BaseModel):

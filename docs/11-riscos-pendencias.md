@@ -34,6 +34,14 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
   e entregas, finalização somente com todas as entregas concluídas, bloqueio
   fechado sem carregamento finalizado, catálogo auditável fechado e vínculo
   único `users.driver_id`.
+- `CONFIRMADO`: as migrations `20260825_0009` e `20260825_0010` e seus models
+  materializam ocorrências e carregamento. Uma sessão `FINISHED` do mesmo plano
+  libera o início da viagem; ausência ou divergência continua falhando fechado.
+- `CONFIRMADO`: a OC40 envia notificações automáticas mock após início efetivo
+  de viagem e registro de ocorrência, sempre depois do commit e em modo
+  best-effort.
+- `CONFIRMADO`: fotos opcionais de ocorrência usam referência controlada
+  `mock://occurrences/<identificador>`; storage real permanece futuro.
 - `CONFIRMADO`: volumes individuais são expandidos de `order_items.quantity`, usam `volume_index` iniciado em `1` e são persistidos em `load_plan_items`, sem tabela `volumes`, conforme `ADR-005`.
 - `CONFIRMADO`: volumes usam a ordem total determinística de volume, peso, empilhamento, fragilidade, entrega e identidade, conforme `ADR-006`.
 - `CONFIRMADO`: rotações usam seis permutações ortogonais priorizadas, deduplicam simetrias e respeitam bloqueio por produto, conforme `ADR-007`.
@@ -44,6 +52,11 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
   `ADR-013`.
 - `CONFIRMADO`: snapshots, estados, aprovação e recálculo imutável seguem a
   `ADR-014`.
+- `CONFIRMADO`: D17 fecha a OC21 com comparação de 2 a 10 caminhões, preflight
+  integral, limite de 200 volumes, resposta não ranqueada e nenhuma persistência.
+- `CONFIRMADO`: D22 fecha a OC22 com explicação de plano persistido, contexto sem
+  dados pessoais, port e provider fake, timeout de 5 segundos por padrão, fallback
+  determinístico e RBAC por estado do plano.
 - `CONFIRMADO`: tecnologias oficiais descritas em `README.md` e `docs/02-arquitetura.md`.
 - `CONFIRMADO`: nomes técnicos em inglês.
 - `CONFIRMADO`: documentação oficial dentro da estrutura existente de `docs`.
@@ -87,7 +100,6 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 
 ## Pendências técnicas
 
-- `PENDENTE DE DEFINIÇÃO`: models e migrations de carregamento e ocorrências.
 - `PENDENTE DE DEFINIÇÃO`: contrato e filtros de uma eventual consulta protegida
   de histórico; D10 fechou as entidades em `ORDER`, `LOAD_PLAN`, `TRIP` e
   `DELIVERY`, mas não aprovou endpoint na OC09.
@@ -107,7 +119,20 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 - `PENDENTE DE DEFINIÇÃO`: política de armazenamento, expiração e proteção de fotos de ocorrência.
 - `PENDENTE DE DEFINIÇÃO`: SLA rígido de tempo do otimizador; o limite funcional
   aprovado é 200 volumes por cálculo síncrono.
+- `RISCO IDENTIFICADO`: perfil exploratório local com volumes integralmente
+  posicionáveis apontou a busca de candidatos, principalmente as verificações
+  AABB de colisão, como custo dominante no limite de 200 volumes. A medição não
+  define SLA; qualquer otimização que altere o resultado exige ocorrência própria,
+  testes, ADR e nova `algorithm_version`.
 - `PENDENTE DE DEFINIÇÃO`: mensagens finais do WhatsApp para confirmação, erro e status.
+- `CONFIRMADO`: a OC21 expõe comparação transitória de 2 a 10 caminhões, aplica
+  preflight integral, limita a carga compartilhada a 200 volumes e reutiliza a
+  mesma engine `heuristic-v1`; não persiste, não cria `LoadPlan` e não define
+  ranking, score ou vencedor. Estado da ocorrência: concluída.
+- `CONFIRMADO`: a OC22 expõe explicação de plano persistido por `AIProvider`,
+  possui provider fake, timeout configurável de 5 segundos por padrão e fallback
+  determinístico para timeout, indisponibilidade e resposta inválida. Estado da
+  ocorrência: concluída; o adapter externo concreto pertence ao Desenvolvedor 4.
 
 ## Gates detalhados do otimizador e planejamento
 
@@ -121,7 +146,10 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 - `CONFIRMADO`: conforme a `ADR-013`, a porta fica em `z = internal_length_cm`,
   profundidade usa a face voltada à porta e `loading_sequence` é topológica com
   suportes anteriores aos apoiados.
-- `PENDENTE DE DEFINIÇÃO`: definir contrato público, endpoint e campos do schema de explicação da OC22.
+- `CONFIRMADO`: a OC22 prepara deterministicamente somente o contexto técnico de
+  um plano persistido, sem dados pessoais de cliente ou motorista. A IA e o
+  fallback não recalculam, validam ou modificam o plano; erros `401`, `403`, `404`
+  e plano tecnicamente inválido não são mascarados pelo fallback.
 - `CONFIRMADO`: conforme a `ADR-014`, FKs preservam proveniência, snapshots
   preservam valores calculados e itens referenciados não podem ser substituídos.
 
@@ -130,6 +158,11 @@ o resultado com snapshots e expõe criação, detalhe, visualização, aprovaç�
 recálculo protegidos por RBAC.
 
 `CONFIRMADO`: a expansão usa identidade `(order_item_id, volume_index)` com índice 1-based e não expõe política alternativa de base.
+
+`CONFIRMADO`: a OC21 compara de 2 a 10 caminhões com a engine existente e retorna
+um array de resultados independentes, na ordem solicitada e sem significado de
+preferência. Falta de espaço em candidato válido é resultado normal; somente falha
+de preflight encerra a requisição inteira.
 
 `RISCO IDENTIFICADO`: mudança futura em gate determinístico exige testes, ADR e
 nova `algorithm_version`; a representação JSON de `Decimal` segue D06 e
@@ -167,10 +200,9 @@ nova `algorithm_version`; a representação JSON de `Decimal` segue D06 e
 - `CONFIRMADO`: o projeto fixa Node 22.23.1 nos Dockerfiles e em `.nvmrc`. O Node
   global 22.16 desta estação ainda impede o controlador visual externo, sem
   afetar build, testes ou runtime do projeto.
-- `RISCO IDENTIFICADO`: o início real de viagem permanece bloqueado até o módulo
-  de carregamento persistir e confirmar `FINISHED` para o mesmo plano. A
-  interface da OC09 falha fechada e não confunde plano aprovado com carga física
-  concluída.
+- `CONFIRMADO`: o risco de bloqueio permanente do início da viagem foi resolvido
+  pela persistência do carregamento. A OC09 continua exigindo `FINISHED` para o
+  mesmo plano e falha fechado em qualquer ausência ou divergência.
 - `RISCO IDENTIFICADO`: cancelamento, falha, ausência, atraso e reentrega não
   fazem parte da máquina de estados da OC09 e exigem decisão, migration e testes
   antes de serem aceitos.

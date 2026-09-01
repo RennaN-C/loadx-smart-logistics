@@ -9,6 +9,15 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+import app.modules.load_planning.explanation_service as explanation_service_module
+from app.core.config import settings
+from app.integrations.ai import (
+    AIProviderTimeoutError,
+    AIProviderUnavailableError,
+    FakeAIProvider,
+    get_ai_provider,
+)
+from app.main import app
 from app.modules.customers.models import Customer
 from app.modules.load_planning.models import LoadPlan, LoadPlanItem, LoadPlanOrder
 from app.modules.orders.models import Order, OrderItem
@@ -201,6 +210,37 @@ def seed_additional_order(
     finally:
         db.close()
     return order_id, order_item_id
+
+
+def seed_comparison_truck(
+    session_factory: SessionFactory,
+    *,
+    width_cm: int = 20,
+    height_cm: int = 10,
+    length_cm: int = 10,
+    max_weight_kg: Decimal = Decimal("100.00"),
+    active: bool = True,
+) -> uuid.UUID:
+    truck_id = uuid.uuid4()
+    unique_suffix = uuid.uuid4().hex[:8].upper()
+    db = session_factory()
+    try:
+        db.add(
+            Truck(
+                id=truck_id,
+                plate=f"C{unique_suffix[:6]}",
+                model="Bau de Comparacao",
+                internal_width_cm=width_cm,
+                internal_height_cm=height_cm,
+                internal_length_cm=length_cm,
+                max_weight_kg=max_weight_kg,
+                active=active,
+            )
+        )
+        db.commit()
+    finally:
+        db.close()
+    return truck_id
 
 
 def create_load_plan(
@@ -1104,3 +1144,458 @@ def test_approve_rolls_back_all_changes_when_history_write_fails(
         ] == [("LOAD_PLAN", plan_id, None, "CALCULATED")]
     finally:
         db.close()
+
+
+def test_compare_trucks_returns_each_candidate_without_persisting_or_ranking(
+    client: TestClient,
+    session_factory: SessionFactory,
+    manager: AuthenticatedUser,
+) -> None:
+    scenario = seed_planning_scenario(session_factory)
+    incapable_truck_id = seed_comparison_truck(
+        session_factory,
+        width_cm=5,
+        height_cm=5,
+        length_cm=5,
+    )
+    requested_truck_ids = [scenario.truck_id, incapable_truck_id]
+
+    response = client.post(
+        "/api/v1/load-plans/compare-trucks",
+        json={
+            "order_ids": [str(scenario.order_id)],
+            "truck_ids": [str(truck_id) for truck_id in requested_truck_ids],
+        },
+        headers=manager.headers,
+    )
+
+    assert response.status_code == 200
+    comparisons = response.json()
+    assert isinstance(comparisons, list)
+    assert [comparison["truck_id"] for comparison in comparisons] == [
+        str(truck_id) for truck_id in requested_truck_ids
+    ]
+    assert comparisons[0] == {
+        "truck_id": str(scenario.truck_id),
+        "internal_volume_cm3": 2000,
+        "used_volume_cm3": 1000,
+        "occupancy_percent": 50.0,
+        "total_weight_kg": 1.0,
+        "loaded_count": 1,
+        "unloaded_count": 0,
+        "rejection_counts": {},
+        "algorithm_version": "heuristic-v1",
+    }
+    assert comparisons[1] == {
+        "truck_id": str(incapable_truck_id),
+        "internal_volume_cm3": 125,
+        "used_volume_cm3": 0,
+        "occupancy_percent": 0.0,
+        "total_weight_kg": 0.0,
+        "loaded_count": 0,
+        "unloaded_count": 1,
+        "rejection_counts": {"TRUCK_DIMENSIONS_EXCEEDED": 1},
+        "algorithm_version": "heuristic-v1",
+    }
+    forbidden_fields = {"winner", "recommendation", "ranking", "score"}
+    assert all(forbidden_fields.isdisjoint(comparison) for comparison in comparisons)
+
+    db = session_factory()
+    try:
+        order = db.get(Order, scenario.order_id)
+        assert order is not None
+        assert order.status == "READY"
+        assert db.scalars(select(LoadPlan)).all() == []
+        assert db.scalars(select(LoadPlanOrder)).all() == []
+        assert db.scalars(select(LoadPlanItem)).all() == []
+        assert db.scalars(select(StatusHistory)).all() == []
+    finally:
+        db.close()
+
+
+def test_compare_trucks_is_manager_only(
+    client: TestClient,
+    session_factory: SessionFactory,
+    manager: AuthenticatedUser,
+) -> None:
+    scenario = seed_planning_scenario(session_factory)
+    other_truck_id = seed_comparison_truck(session_factory)
+    payload = {
+        "order_ids": [str(scenario.order_id)],
+        "truck_ids": [str(scenario.truck_id), str(other_truck_id)],
+    }
+
+    unauthenticated = client.post(
+        "/api/v1/load-plans/compare-trucks",
+        json=payload,
+    )
+    assert unauthenticated.status_code == 401
+    assert unauthenticated.json()["code"] == "AUTH_INVALID_TOKEN"
+
+    for role in ("ADMIN", "CHECKER", "DRIVER"):
+        user = create_authenticated_user(session_factory, role)
+        response = client.post(
+            "/api/v1/load-plans/compare-trucks",
+            json=payload,
+            headers=user.headers,
+        )
+        assert response.status_code == 403
+        assert response.json()["code"] == "AUTH_FORBIDDEN"
+
+    successful = client.post(
+        "/api/v1/load-plans/compare-trucks",
+        json=payload,
+        headers=manager.headers,
+    )
+    assert successful.status_code == 200
+
+
+def test_compare_trucks_validates_cardinality_and_duplicate_ids(
+    client: TestClient,
+    session_factory: SessionFactory,
+    manager: AuthenticatedUser,
+) -> None:
+    scenario = seed_planning_scenario(session_factory)
+    truck_ids = [scenario.truck_id]
+    truck_ids.extend(seed_comparison_truck(session_factory) for _ in range(10))
+    valid_truck_ids = [str(truck_id) for truck_id in truck_ids[:2]]
+
+    upper_bound_response = client.post(
+        "/api/v1/load-plans/compare-trucks",
+        json={
+            "order_ids": [str(scenario.order_id)],
+            "truck_ids": [str(truck_id) for truck_id in truck_ids[:10]],
+        },
+        headers=manager.headers,
+    )
+    assert upper_bound_response.status_code == 200
+    assert len(upper_bound_response.json()) == 10
+
+    cases = (
+        {
+            "order_ids": [str(scenario.order_id)],
+            "truck_ids": [str(scenario.truck_id)],
+        },
+        {
+            "order_ids": [str(scenario.order_id)],
+            "truck_ids": [str(truck_id) for truck_id in truck_ids],
+        },
+        {
+            "order_ids": [str(scenario.order_id)],
+            "truck_ids": [valid_truck_ids[0], valid_truck_ids[0]],
+        },
+        {
+            "order_ids": [str(scenario.order_id), str(scenario.order_id)],
+            "truck_ids": valid_truck_ids,
+        },
+    )
+
+    for payload in cases:
+        response = client.post(
+            "/api/v1/load-plans/compare-trucks",
+            json=payload,
+            headers=manager.headers,
+        )
+        assert response.status_code == 422
+        assert response.json()["code"] == "VALIDATION_ERROR"
+
+    db = session_factory()
+    try:
+        assert db.scalars(select(LoadPlan)).all() == []
+    finally:
+        db.close()
+
+
+def test_compare_trucks_fails_whole_request_during_preflight(
+    client: TestClient,
+    session_factory: SessionFactory,
+    manager: AuthenticatedUser,
+) -> None:
+    valid = seed_planning_scenario(session_factory)
+    second_truck_id = seed_comparison_truck(session_factory)
+    inactive_truck_id = seed_comparison_truck(session_factory, active=False)
+    valid_truck_ids = [str(valid.truck_id), str(second_truck_id)]
+
+    missing_truck = client.post(
+        "/api/v1/load-plans/compare-trucks",
+        json={
+            "order_ids": [str(valid.order_id)],
+            "truck_ids": [str(valid.truck_id), str(uuid.uuid4())],
+        },
+        headers=manager.headers,
+    )
+    inactive_truck = client.post(
+        "/api/v1/load-plans/compare-trucks",
+        json={
+            "order_ids": [str(valid.order_id)],
+            "truck_ids": [str(valid.truck_id), str(inactive_truck_id)],
+        },
+        headers=manager.headers,
+    )
+    missing_order = client.post(
+        "/api/v1/load-plans/compare-trucks",
+        json={
+            "order_ids": [str(uuid.uuid4())],
+            "truck_ids": valid_truck_ids,
+        },
+        headers=manager.headers,
+    )
+
+    ineligible = seed_planning_scenario(session_factory, order_status="DRAFT")
+    ineligible_response = client.post(
+        "/api/v1/load-plans/compare-trucks",
+        json={
+            "order_ids": [str(ineligible.order_id)],
+            "truck_ids": [str(ineligible.truck_id), str(second_truck_id)],
+        },
+        headers=manager.headers,
+    )
+
+    over_limit = seed_planning_scenario(session_factory, quantity=201)
+    over_limit_response = client.post(
+        "/api/v1/load-plans/compare-trucks",
+        json={
+            "order_ids": [str(over_limit.order_id)],
+            "truck_ids": [str(over_limit.truck_id), str(second_truck_id)],
+        },
+        headers=manager.headers,
+    )
+
+    assert missing_truck.status_code == 404
+    assert missing_truck.json()["code"] == "LOAD_PLAN_TRUCK_NOT_FOUND"
+    assert inactive_truck.status_code == 409
+    assert inactive_truck.json()["code"] == "LOAD_PLAN_TRUCK_INACTIVE"
+    assert missing_order.status_code == 404
+    assert missing_order.json()["code"] == "LOAD_PLAN_ORDER_NOT_FOUND"
+    assert ineligible_response.status_code == 409
+    assert ineligible_response.json()["code"] == "LOAD_PLAN_ORDER_NOT_ELIGIBLE"
+    assert over_limit_response.status_code == 422
+    assert over_limit_response.json()["code"] == ("LOAD_PLAN_VOLUME_LIMIT_EXCEEDED")
+    assert over_limit_response.json()["details"] == [
+        {
+            "field": "order_ids",
+            "volume_count": 201,
+            "max_volumes": 200,
+        }
+    ]
+
+    db = session_factory()
+    try:
+        assert db.scalars(select(LoadPlan)).all() == []
+    finally:
+        db.close()
+
+
+def test_compare_trucks_accepts_exactly_200_expanded_volumes(
+    client: TestClient,
+    session_factory: SessionFactory,
+    manager: AuthenticatedUser,
+) -> None:
+    scenario = seed_planning_scenario(
+        session_factory,
+        quantity=200,
+        product_width_cm=21,
+    )
+    other_truck_id = seed_comparison_truck(session_factory)
+
+    response = client.post(
+        "/api/v1/load-plans/compare-trucks",
+        json={
+            "order_ids": [str(scenario.order_id)],
+            "truck_ids": [str(scenario.truck_id), str(other_truck_id)],
+        },
+        headers=manager.headers,
+    )
+
+    assert response.status_code == 200
+    assert len(response.json()) == 2
+    assert all(result["loaded_count"] == 0 for result in response.json())
+    assert all(result["unloaded_count"] == 200 for result in response.json())
+
+    db = session_factory()
+    try:
+        assert db.scalars(select(LoadPlan)).all() == []
+    finally:
+        db.close()
+
+
+def test_explain_load_plan_uses_minimized_provider_context_without_mutation(
+    client: TestClient,
+    session_factory: SessionFactory,
+    manager: AuthenticatedUser,
+) -> None:
+    scenario = seed_planning_scenario(session_factory)
+    created = create_load_plan(client, scenario, manager)
+    plan_path = f"/api/v1/load-plans/{created['id']}"
+    provider = FakeAIProvider(
+        response={"explanation": "O volume foi posicionado na origem do bau."}
+    )
+    app.dependency_overrides[get_ai_provider] = lambda: provider
+    before = client.get(plan_path, headers=manager.headers).json()
+
+    response = client.post(
+        f"{plan_path}/explain",
+        headers=manager.headers,
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "load_plan_id": created["id"],
+        "source": "AI",
+        "explanation": "O volume foi posicionado na origem do bau.",
+        "algorithm_version": "heuristic-v1",
+    }
+    assert len(provider.calls) == 1
+    assert provider.calls[0].timeout_seconds == (
+        settings.ai_explanation_timeout_seconds
+    )
+    provider_payload = provider.calls[0].context.model_dump(mode="json")
+    payload_keys = str(provider_payload).lower()
+    for forbidden_key in (
+        "customer",
+        "document",
+        "cpf",
+        "cnpj",
+        "phone",
+        "address",
+        "driver",
+        "plate",
+        "model",
+        "order_id",
+        "product_id",
+        "load_plan_id",
+    ):
+        assert forbidden_key not in payload_keys
+    assert "cliente de planejamento" not in payload_keys
+    assert "rua exemplo" not in payload_keys
+
+    after = client.get(plan_path, headers=manager.headers).json()
+    assert after == before
+    db = session_factory()
+    try:
+        order = db.get(Order, scenario.order_id)
+        assert order is not None
+        assert order.status == "READY"
+        assert len(db.scalars(select(LoadPlan)).all()) == 1
+        assert len(db.scalars(select(StatusHistory)).all()) == 1
+    finally:
+        db.close()
+
+
+def test_explain_load_plan_enforces_authentication_and_role_matrix(
+    client: TestClient,
+    session_factory: SessionFactory,
+    manager: AuthenticatedUser,
+) -> None:
+    scenario = seed_planning_scenario(session_factory)
+    created = create_load_plan(client, scenario, manager)
+    explain_path = f"/api/v1/load-plans/{created['id']}/explain"
+    admin = create_authenticated_user(session_factory, "ADMIN")
+    checker = create_authenticated_user(session_factory, "CHECKER")
+    driver = create_authenticated_user(session_factory, "DRIVER")
+
+    unauthenticated = client.post(explain_path)
+    assert unauthenticated.status_code == 401
+    assert unauthenticated.json()["code"] == "AUTH_INVALID_TOKEN"
+
+    driver_response = client.post(explain_path, headers=driver.headers)
+    assert driver_response.status_code == 403
+    assert driver_response.json()["code"] == "AUTH_FORBIDDEN"
+
+    checker_before_approval = client.post(explain_path, headers=checker.headers)
+    assert checker_before_approval.status_code == 403
+    assert checker_before_approval.json()["code"] == "AUTH_FORBIDDEN"
+
+    for user in (manager, admin):
+        response = client.post(explain_path, headers=user.headers)
+        assert response.status_code == 200
+        assert response.json()["source"] == "AI"
+
+    approval = client.post(
+        f"/api/v1/load-plans/{created['id']}/approve",
+        headers=manager.headers,
+    )
+    assert approval.status_code == 200
+    checker_after_approval = client.post(explain_path, headers=checker.headers)
+    assert checker_after_approval.status_code == 200
+    assert checker_after_approval.json()["source"] == "AI"
+
+
+@pytest.mark.parametrize(
+    "provider",
+    (
+        FakeAIProvider(error=AIProviderTimeoutError()),
+        FakeAIProvider(error=AIProviderUnavailableError()),
+        FakeAIProvider(response={"explanation": ""}),
+    ),
+    ids=("timeout", "unavailable", "invalid-output"),
+)
+def test_explain_load_plan_uses_deterministic_fallback_for_provider_failures(
+    client: TestClient,
+    session_factory: SessionFactory,
+    manager: AuthenticatedUser,
+    provider: FakeAIProvider,
+) -> None:
+    scenario = seed_planning_scenario(session_factory)
+    created = create_load_plan(client, scenario, manager)
+    explain_path = f"/api/v1/load-plans/{created['id']}/explain"
+    app.dependency_overrides[get_ai_provider] = lambda: provider
+
+    first = client.post(explain_path, headers=manager.headers)
+    second = client.post(explain_path, headers=manager.headers)
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert first.json() == second.json()
+    assert first.json()["source"] == "FALLBACK"
+    assert first.json()["load_plan_id"] == created["id"]
+    assert first.json()["algorithm_version"] == "heuristic-v1"
+    assert first.json()["explanation"]
+    assert len(provider.calls) == 2
+
+
+def test_explain_load_plan_returns_not_found_without_calling_provider(
+    client: TestClient,
+    manager: AuthenticatedUser,
+) -> None:
+    provider = FakeAIProvider()
+    app.dependency_overrides[get_ai_provider] = lambda: provider
+
+    response = client.post(
+        f"/api/v1/load-plans/{uuid.uuid4()}/explain",
+        headers=manager.headers,
+    )
+
+    assert response.status_code == 404
+    assert response.json()["code"] == "LOAD_PLAN_NOT_FOUND"
+    assert provider.calls == []
+
+
+def test_explain_load_plan_does_not_hide_invalid_persisted_plan_with_fallback(
+    client: TestClient,
+    session_factory: SessionFactory,
+    manager: AuthenticatedUser,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    scenario = seed_planning_scenario(session_factory)
+    created = create_load_plan(client, scenario, manager)
+    provider = FakeAIProvider()
+    app.dependency_overrides[get_ai_provider] = lambda: provider
+
+    def invalid_snapshot(_load_plan: LoadPlan) -> None:
+        raise ValueError("invalid persisted snapshot")
+
+    monkeypatch.setattr(
+        explanation_service_module,
+        "build_load_plan_explanation_context",
+        invalid_snapshot,
+    )
+
+    response = client.post(
+        f"/api/v1/load-plans/{created['id']}/explain",
+        headers=manager.headers,
+    )
+
+    assert response.status_code == 409
+    assert response.json()["code"] == "LOAD_PLAN_EXPLANATION_INVALID_PLAN"
+    assert provider.calls == []
