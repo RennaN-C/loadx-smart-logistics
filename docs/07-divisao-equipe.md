@@ -36,25 +36,25 @@ Pastas principais:
 
 Ocorrências do documento-base:
 
-- [ ] `OC01`: configuração do projeto backend.
-- [ ] `OC02`: criação e configuração do banco de dados.
-- [ ] `OC03`: autenticação e controle de acesso.
-- [ ] `OC04`: cadastro de caminhões.
-- [ ] `OC05`: cadastro de motoristas.
-- [ ] `OC06`: cadastro de clientes.
-- [ ] `OC07`: cadastro de produtos e volumes.
-- [ ] `OC08`: cadastro de pedidos.
-- [ ] `OC09`: controle de viagens.
-- [ ] `OC10`: histórico de status.
+- `OC01`: configuração do projeto backend.
+- `OC02`: criação e configuração do banco de dados.
+- `OC03`: autenticação e controle de acesso.
+- `OC04`: cadastro de caminhões.
+- `OC05`: cadastro de motoristas.
+- `OC06`: cadastro de clientes.
+- `OC07`: cadastro de produtos e volumes.
+- `OC08`: cadastro de pedidos.
+- `OC09`: controle de viagens.
+- `OC10`: histórico de status.
 
 Entregas esperadas:
 
-- [ ] API REST funcional.
-- [ ] Migrations e banco funcionando.
-- [ ] Autenticação e perfis.
-- [ ] Cadastros principais.
-- [ ] Controle de viagens, entregas e histórico.
-- [ ] Endpoints documentados em `docs/05-contratos-api.md`.
+- API REST funcional.
+- Migrations e banco funcionando.
+- Autenticação e perfis.
+- Cadastros principais.
+- Controle de viagens, entregas e histórico.
+- Endpoints documentados em `docs/05-contratos-api.md`.
 
 ## Desenvolvedor 2: otimização, cálculos e inteligência
 
@@ -64,37 +64,39 @@ Pastas principais:
 
 - `backend/app/modules/load_planning`.
 - `backend/app/modules/load_planning/optimizer`.
-- `backend/app/integrations/ai` para a port e o provider fake da OC22, em
-  colaboração com o Desenvolvedor 4.
+- `backend/app/integrations/ai` para a port e o provider fake da `OC22`, em
+  colaboração com o Desenvolvedor 4, a quem pertence o adapter externo real.
 - `backend/tests/unit`.
 - `backend/tests/unit/load_planning` quando a pasta existir.
 
 Ocorrências do documento-base:
 
-- [x] `OC11`: cálculo da capacidade do caminhão.
-- [x] `OC12`: cálculo do volume dos produtos.
-- [x] `OC13`: ordenação dos volumes.
-- [x] `OC14`: rotação dos volumes.
-- [x] `OC15`: posicionamento dos volumes.
-- [x] `OC16`: validação de colisões.
-- [x] `OC17`: validação de empilhamento.
-- [x] `OC18`: controle de peso.
-- [x] `OC19`: cálculo do aproveitamento.
-- [x] `OC20`: sequência de carregamento.
-- [x] `OC21`: comparação entre caminhões.
-- [x] `OC22`: explicação do planejamento com IA.
+- `OC11`: cálculo da capacidade do caminhão.
+- `OC12`: cálculo do volume dos produtos.
+- `OC13`: ordenação dos volumes.
+- `OC14`: rotação dos volumes.
+- `OC15`: posicionamento dos volumes.
+- `OC16`: validação de colisões.
+- `OC17`: validação de empilhamento.
+- `OC18`: controle de peso.
+- `OC19`: cálculo do aproveitamento.
+- `OC20`: sequência de carregamento.
+- `OC21`: comparação entre caminhões.
+- `OC22`: explicação do planejamento com IA.
 
 Entregas esperadas:
 
-- [x] Algoritmo determinístico.
-- [x] Coordenadas dos volumes.
-- [x] Controle de colisão, limites, peso, rotação e apoio.
-- [x] Percentual de ocupação.
-- [x] Lista de volumes rejeitados.
-- [x] Sequência de carregamento.
-- [x] Comparação transitória entre 2 e 10 caminhões, sem ranking ou persistência.
-- [x] Port, provider fake, service e fallback determinístico para explicação.
-- [x] Testes unitários reproduzíveis.
+- Algoritmo determinístico.
+- Coordenadas dos volumes.
+- Controle de colisão, limites, peso, rotação e apoio.
+- Percentual de ocupação.
+- Lista de volumes rejeitados.
+- Sequência de carregamento.
+- Comparação transitória entre 2 e 10 caminhões, sem ranking, score ou
+  vencedor, e sem persistência.
+- Port `AIProvider` com provider fake e fallback determinístico, sobre um
+  contexto sem dado pessoal.
+- Testes unitários reproduzíveis.
 
 ## Desenvolvedor 3: frontend, dashboard e visualização 3D
 
@@ -110,37 +112,34 @@ Pastas principais:
 
 Ocorrências do documento-base:
 
-- [ ] `OC23`: configuração do frontend.
-- [ ] `OC24`: tela de login.
-- [ ] `OC25`: dashboard.
-- [ ] `OC26`: tela de caminhões.
-- [ ] `OC27`: tela de produtos.
-- [ ] `OC28`: tela de clientes e motoristas.
-- [ ] `OC29`: tela de pedidos.
-- [ ] `OC30`: tela de planejamento.
-- [ ] `OC31`: visualização 3D.
-- [ ] `OC32`: interação com a visualização 3D.
-- [ ] `OC33`: animação do carregamento.
-- [ ] `OC34`: tela de acompanhamento.
-- [ ] `OC35`: tela de indicadores e relatórios.
+- `OC23`: configuração do frontend.
+- `OC24`: tela de login.
+- `OC25`: dashboard.
+- `OC26`: tela de caminhões.
+- `OC27`: tela de produtos.
+- `OC28`: tela de clientes e motoristas.
+- `OC29`: tela de pedidos.
+- `OC30`: tela de planejamento.
+- `OC31`: visualização 3D.
+- `OC32`: interação com a visualização 3D.
+- `OC33`: animação do carregamento.
+- `OC34`: tela de acompanhamento.
+- `OC35`: tela de indicadores e relatórios.
 
 Entregas esperadas:
 
-- [ ] Interface integrada com API.
-- [ ] Dashboard e telas de cadastro.
-- [ ] Tela de planejamento.
-- [ ] Visualização 3D baseada no contrato da API.
-- [ ] Animação de carregamento.
-- [ ] Acompanhamento e indicadores visuais.
-- [ ] Tratamento de loading, vazio e erro.
+- Interface integrada com API.
+- Dashboard e telas de cadastro.
+- Tela de planejamento.
+- Visualização 3D baseada no contrato da API.
+- Animação de carregamento.
+- Acompanhamento e indicadores visuais.
+- Tratamento de loading, vazio e erro.
 
 ## Desenvolvedor 4: WhatsApp, ocorrências, relatórios e testes
 
 Responsável por carregamento, ocorrências, notificações, relatórios, provider
-mock de WhatsApp, adapter externo concreto de IA, testes integrados, e2e, Docker
-e documentação operacional. A port, o provider fake e o fallback da explicação
-da OC22 pertencem ao módulo de planejamento; o Desenvolvedor 4 integra o provider
-externo sem mover regras de plano para o adapter.
+mock de WhatsApp/IA, testes integrados, e2e, Docker e documentação operacional.
 Colabora no fluxo de viagens e entregas consumindo o service público do módulo,
 sem assumir os models, migration, regras de transição ou API pertencentes à
 `OC09` do Desenvolvedor 1.
@@ -161,29 +160,29 @@ Pastas principais:
 
 Ocorrências do documento-base:
 
-- [ ] `OC36`: configuração da integração com WhatsApp.
-- [ ] `OC37`: comandos do motorista.
-- [ ] `OC38`: interpretação de linguagem natural.
-- [ ] `OC39`: atualização de status pelo WhatsApp.
-- [ ] `OC40`: notificações automáticas.
-- [ ] `OC41`: registro de ocorrências.
-- [ ] `OC42`: envio de fotos.
-- [ ] `OC43`: relatório de carregamento.
-- [ ] `OC44`: relatório de viagem.
-- [ ] `OC45`: geração de relatório em PDF.
-- [ ] `OC46`: testes da API.
-- [ ] `OC47`: testes do fluxo completo.
-- [ ] `OC48`: documentação.
+- `OC36`: configuração da integração com WhatsApp.
+- `OC37`: comandos do motorista.
+- `OC38`: interpretação de linguagem natural.
+- `OC39`: atualização de status pelo WhatsApp.
+- `OC40`: notificações automáticas.
+- `OC41`: registro de ocorrências.
+- `OC42`: envio de fotos.
+- `OC43`: relatório de carregamento.
+- `OC44`: relatório de viagem.
+- `OC45`: geração de relatório em PDF.
+- `OC46`: testes da API.
+- `OC47`: testes do fluxo completo.
+- `OC48`: documentação.
 
 Entregas esperadas:
 
-- [ ] Integração ou simulador do WhatsApp.
-- [ ] Atualização de status.
-- [ ] Controle de ocorrências.
-- [ ] Notificações.
-- [ ] Relatórios e PDF.
-- [ ] Testes de API e fluxo completo.
-- [ ] Documentação atualizada.
+- Integração ou simulador do WhatsApp.
+- Atualização de status.
+- Controle de ocorrências.
+- Notificações.
+- Relatórios e PDF.
+- Testes de API e fluxo completo.
+- Documentação atualizada.
 
 ## Responsabilidades compartilhadas
 

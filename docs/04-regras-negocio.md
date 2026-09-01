@@ -372,7 +372,9 @@ ou rejeições.
 
 `CONFIRMADO`: o timeout da explicação é configurável e usa 5 segundos por padrão.
 Timeout, provider indisponível ou resposta inválida retornam uma explicação
-determinística com `source = FALLBACK`. Uma resposta válida do provider usa
+determinística com `source = FALLBACK`. Resposta acima de 8.000 caracteres é
+resposta inválida: sem esse teto, um adapter defeituoso devolveria megabytes que
+atravessariam a API até o navegador. Uma resposta válida do provider usa
 `source = AI`. O fallback não encobre falta de autenticação, acesso proibido,
 plano inexistente ou plano persistido tecnicamente inválido.
 

@@ -76,8 +76,34 @@ inválida retornam `source = FALLBACK` e texto determinístico; o timeout é
 configurável e vale 5 segundos por padrão. Fallback não mascara `401`, `403`,
 `404` nem `LOAD_PLAN_EXPLANATION_INVALID_PLAN`.
 
-`LOGISTICS_MANAGER` e `ADMIN` explicam qualquer plano persistido tecnicamente
-válido; `CHECKER` somente plano `APPROVED`; `DRIVER` não acessa. A port e o
-provider fake permitem execução e testes sem rede. Adapter externo, SDK,
-credenciais e comunicação real pertencem ao Desenvolvedor 4. Estado da OC22:
-concluída.
+`CONFIRMADO`: a saída do provider tem teto de `MAX_EXPLANATION_LENGTH` (8.000
+caracteres). Vazio já era recusado; sem teto superior, um adapter defeituoso ou
+um modelo em laço devolveria megabytes e a aplicação aceitaria, e esse texto
+atravessa a API até o navegador. Passar do limite é saída inválida como
+qualquer outra e cai no `FALLBACK`, sem tocar o plano e sem persistir nada. O
+limite é inclusivo: 8.000 é aceito, 8.001 não.
+
+### RBAC da OC22, por perfil
+
+A frase "aplica RBAC para LOGISTICS_MANAGER, ADMIN, CHECKER e DRIVER" pode ser
+lida como se `DRIVER` tivesse permissão. Não tem. Por perfil, sem ambiguidade:
+
+| Perfil | Acesso a `POST /load-plans/{id}/explain` |
+|---|---|
+| `ADMIN` | permitido, qualquer plano tecnicamente válido |
+| `LOGISTICS_MANAGER` | permitido, qualquer plano tecnicamente válido |
+| `CHECKER` | permitido **somente** para plano `APPROVED` |
+| `DRIVER` | **proibido** |
+
+### Provider fake e adapter externo
+
+O que existe nesta entrega é a PORT mais um provider fake, e é isso que permite
+executar e testar sem rede. O adapter externo concreto — SDK, credenciais,
+comunicação real e prompt final — **não** faz parte dela e pertence ao
+Desenvolvedor 4.
+
+O caminho é `LoadPlan` -> `LoadPlanExplanationService` -> `AIProvider` ->
+provider injetável -> validação da saída -> `AI` ou `FALLBACK`. Em nenhum ponto
+a IA recalcula, aprova ou altera o plano.
+
+Estado da OC22: concluída.
