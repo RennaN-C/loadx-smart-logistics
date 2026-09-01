@@ -265,47 +265,53 @@ def _build_rejected_item(
     )
 
 
-def build_load_plan_explanation_context(
+def _resolve_recalculated_from(
     load_plan: LoadPlan,
-) -> LoadPlanExplanationContext:
-    """Copy an eagerly loaded persisted plan into a provider-neutral context.
-
-    The caller must load ``orders`` and ``items`` before crossing a session
-    boundary. ``LoadPlanRepository.get`` already guarantees that aggregate shape.
-    """
-
-    if not isinstance(load_plan, LoadPlan):
-        raise TypeError("load_plan must be a persisted LoadPlan")
-
-    load_plan_id = _require_uuid(load_plan.id, "load_plan.id")
+    load_plan_id: uuid.UUID,
+) -> uuid.UUID | None:
     recalculated_from_id = load_plan.recalculated_from_id
-    if recalculated_from_id is not None:
-        recalculated_from_id = _require_uuid(
-            recalculated_from_id,
-            "recalculated_from_id",
-        )
-        if recalculated_from_id == load_plan_id:
-            raise _invalid("recalculated_from_id must differ from load_plan.id")
+    if recalculated_from_id is None:
+        return None
 
+    recalculated_from_id = _require_uuid(recalculated_from_id, "recalculated_from_id")
+    if recalculated_from_id == load_plan_id:
+        raise _invalid("recalculated_from_id must differ from load_plan.id")
+    return recalculated_from_id
+
+
+def _require_status(load_plan: LoadPlan) -> str:
     if load_plan.status not in LOAD_PLAN_STATUS_VALUES:
         raise _invalid("status is not allowed")
-    status = load_plan.status
+    return load_plan.status
 
+
+def _collect_order_ids(
+    load_plan: LoadPlan,
+    load_plan_id: uuid.UUID,
+) -> tuple[uuid.UUID, ...]:
     order_ids: list[uuid.UUID] = []
     for association in tuple(load_plan.orders):
         if association.load_plan_id != load_plan_id:
             raise _invalid("order association references another load plan")
         order_ids.append(_require_uuid(association.order_id, "order_id"))
+
     if not order_ids:
         raise _invalid("at least one order_id is required")
     if len(set(order_ids)) != len(order_ids):
         raise _invalid("order_ids must not contain duplicates")
-    sorted_order_ids = tuple(sorted(order_ids, key=lambda value: value.int))
-    order_id_set = set(sorted_order_ids)
 
+    return tuple(sorted(order_ids, key=lambda value: value.int))
+
+
+def _partition_plan_items(
+    load_plan: LoadPlan,
+    load_plan_id: uuid.UUID,
+    order_id_set: set[uuid.UUID],
+) -> tuple[list[ExplanationPlacedItem], list[ExplanationRejectedItem]]:
     placed_items: list[ExplanationPlacedItem] = []
     rejected_items: list[ExplanationRejectedItem] = []
     identities: set[tuple[uuid.UUID, int]] = set()
+
     for item in tuple(load_plan.items):
         if item.load_plan_id != load_plan_id:
             raise _invalid("item references another load plan")
@@ -340,10 +346,20 @@ def build_load_plan_explanation_context(
             item.volume.volume_index,
         )
     )
+    return placed_items, rejected_items
+
+
+def _validate_loading_sequences(placed_items: list[ExplanationPlacedItem]) -> None:
     loading_sequences = [item.loading_sequence for item in placed_items]
     if loading_sequences != list(range(1, len(placed_items) + 1)):
         raise _invalid("placed loading_sequence values must be contiguous")
 
+
+def _validate_persisted_counts(
+    load_plan: LoadPlan,
+    placed_items: list[ExplanationPlacedItem],
+    rejected_items: list[ExplanationRejectedItem],
+) -> tuple[int, int]:
     loaded_count = _require_int(load_plan.loaded_count, "loaded_count", minimum=0)
     unloaded_count = _require_int(
         load_plan.unloaded_count,
@@ -352,8 +368,13 @@ def build_load_plan_explanation_context(
     )
     if loaded_count != len(placed_items) or unloaded_count != len(rejected_items):
         raise _invalid("persisted counts must match placed and rejected items")
+    return loaded_count, unloaded_count
 
-    truck = _build_truck_snapshot(load_plan)
+
+def _validate_plan_metrics(
+    load_plan: LoadPlan,
+    truck: ExplanationTruckSnapshot,
+) -> tuple[int, int, Decimal, Decimal]:
     internal_volume_cm3 = _require_int(
         load_plan.internal_volume_cm3,
         "internal_volume_cm3",
@@ -387,16 +408,77 @@ def build_load_plan_explanation_context(
     if total_weight_kg < 0 or total_weight_kg > truck.max_weight_kg:
         raise _invalid("total_weight_kg must be within truck capacity")
 
+    return internal_volume_cm3, used_volume_cm3, occupancy_percent, total_weight_kg
+
+
+def _validate_status_consistency(
+    status: str,
+    placed_items: list[ExplanationPlacedItem],
+    rejected_items: list[ExplanationRejectedItem],
+    used_volume_cm3: int,
+    occupancy_percent: Decimal,
+    total_weight_kg: Decimal,
+) -> None:
     if status == "REJECTED":
         if placed_items or used_volume_cm3 != 0 or total_weight_kg != 0:
             raise _invalid("rejected plan must have no placed volume metrics")
         if occupancy_percent != 0:
             raise _invalid("rejected plan occupancy_percent must be zero")
-    else:
-        if not placed_items or used_volume_cm3 <= 0 or total_weight_kg <= 0:
-            raise _invalid("calculated or approved plan must include placed volumes")
+    elif not placed_items or used_volume_cm3 <= 0 or total_weight_kg <= 0:
+        raise _invalid("calculated or approved plan must include placed volumes")
+
     if status == "APPROVED" and rejected_items:
         raise _invalid("approved plan must not include rejected items")
+
+
+def build_load_plan_explanation_context(
+    load_plan: LoadPlan,
+) -> LoadPlanExplanationContext:
+    """Copy an eagerly loaded persisted plan into a provider-neutral context.
+
+    The caller must load ``orders`` and ``items`` before crossing a session
+    boundary. ``LoadPlanRepository.get`` already guarantees that aggregate shape.
+
+    This function only orchestrates. Each validation step lives in its own
+    helper above, and the ORDER of the calls below is part of the contract: it
+    decides which error a malformed plan reports first.
+    """
+
+    if not isinstance(load_plan, LoadPlan):
+        raise TypeError("load_plan must be a persisted LoadPlan")
+
+    load_plan_id = _require_uuid(load_plan.id, "load_plan.id")
+    recalculated_from_id = _resolve_recalculated_from(load_plan, load_plan_id)
+    status = _require_status(load_plan)
+
+    sorted_order_ids = _collect_order_ids(load_plan, load_plan_id)
+    placed_items, rejected_items = _partition_plan_items(
+        load_plan,
+        load_plan_id,
+        set(sorted_order_ids),
+    )
+    _validate_loading_sequences(placed_items)
+    loaded_count, unloaded_count = _validate_persisted_counts(
+        load_plan,
+        placed_items,
+        rejected_items,
+    )
+
+    truck = _build_truck_snapshot(load_plan)
+    (
+        internal_volume_cm3,
+        used_volume_cm3,
+        occupancy_percent,
+        total_weight_kg,
+    ) = _validate_plan_metrics(load_plan, truck)
+    _validate_status_consistency(
+        status,
+        placed_items,
+        rejected_items,
+        used_volume_cm3,
+        occupancy_percent,
+        total_weight_kg,
+    )
 
     return LoadPlanExplanationContext(
         load_plan_id=load_plan_id,
