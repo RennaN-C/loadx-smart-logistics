@@ -99,8 +99,10 @@ def test_comparison_rejects_eleven_trucks_before_calling_engine(
         make_candidate(identity) for identity in range(1, MAX_COMPARISON_TRUCKS + 2)
     )
 
+    workload = (make_item(),)
+
     with pytest.raises(TruckComparisonLimitExceededError) as exc_info:
-        compare_trucks(candidates, (make_item(),))
+        compare_trucks(candidates, workload)
 
     assert exc_info.value.truck_count == 11
     assert exc_info.value.max_trucks == MAX_COMPARISON_TRUCKS
@@ -123,8 +125,10 @@ def test_comparison_rejects_fewer_than_two_trucks_before_calling_engine(
         make_candidate(identity) for identity in range(1, truck_count + 1)
     )
 
+    workload = (make_item(),)
+
     with pytest.raises(InvalidTruckComparisonInputError) as exc_info:
-        compare_trucks(candidates, (make_item(),))
+        compare_trucks(candidates, workload)
 
     assert exc_info.value.field_name == "candidates"
     assert exc_info.value.reason == "must contain at least 2 candidates"
@@ -142,9 +146,11 @@ def test_comparison_rejects_duplicate_truck_ids_before_calling_engine(
         fail_if_engine_is_called,
     )
     candidate = make_candidate(1)
+    duplicated_candidates = (candidate, candidate)
+    workload = (make_item(),)
 
     with pytest.raises(InvalidTruckComparisonInputError) as exc_info:
-        compare_trucks((candidate, candidate), (make_item(),))
+        compare_trucks(duplicated_candidates, workload)
 
     assert exc_info.value.field_name == "candidates"
     assert exc_info.value.reason == "must not contain duplicate truck ids"
@@ -161,18 +167,20 @@ def test_comparison_rejects_duplicate_truck_ids_before_calling_engine(
 def test_comparison_requires_an_ordered_candidate_sequence(
     candidates: object,
 ) -> None:
+    workload = (make_item(),)
+
     with pytest.raises(InvalidTruckComparisonInputError) as exc_info:
-        compare_trucks(candidates, (make_item(),))  # type: ignore[arg-type]
+        compare_trucks(candidates, workload)  # type: ignore[arg-type]
 
     assert exc_info.value.field_name == "candidates"
 
 
 def test_comparison_validates_candidate_elements() -> None:
+    invalid_candidates = (object(), make_candidate(2))
+    workload = (make_item(),)
+
     with pytest.raises(InvalidTruckComparisonInputError) as exc_info:
-        compare_trucks(  # type: ignore[arg-type]
-            (object(), make_candidate(2)),
-            (make_item(),),
-        )
+        compare_trucks(invalid_candidates, workload)  # type: ignore[arg-type]
 
     assert exc_info.value.field_name == "candidates[0]"
 
@@ -188,41 +196,45 @@ def test_comparison_validates_candidate_elements() -> None:
 def test_comparison_requires_an_ordered_order_item_sequence(
     order_items: object,
 ) -> None:
+    candidates = (make_candidate(1), make_candidate(2))
+
     with pytest.raises(InvalidTruckComparisonInputError) as exc_info:
-        compare_trucks(
-            (make_candidate(1), make_candidate(2)),
-            order_items,  # type: ignore[arg-type]
-        )
+        compare_trucks(candidates, order_items)  # type: ignore[arg-type]
 
     assert exc_info.value.field_name == "order_items"
 
 
 def test_comparison_validates_order_item_elements_and_quantity() -> None:
+    candidates = (make_candidate(1), make_candidate(2))
+    invalid_element_items = (object(),)
+    invalid_quantity_items = (make_item(quantity=True),)
+
     with pytest.raises(InvalidTruckComparisonInputError) as element_error:
-        compare_trucks(  # type: ignore[arg-type]
-            (make_candidate(1), make_candidate(2)),
-            (object(),),
-        )
+        compare_trucks(candidates, invalid_element_items)  # type: ignore[arg-type]
+
     with pytest.raises(InvalidTruckComparisonInputError) as quantity_error:
-        compare_trucks(
-            (make_candidate(1), make_candidate(2)),
-            (make_item(quantity=True),),
-        )
+        compare_trucks(candidates, invalid_quantity_items)
 
     assert element_error.value.field_name == "order_items[0]"
     assert quantity_error.value.field_name == "order_items[0].quantity"
 
 
 def test_candidate_validates_uuid_and_pure_capacity_types() -> None:
+    valid_capacity = make_candidate(1).capacity
+    invalid_truck_id = "not-a-uuid"
+    valid_truck_id = UUID(int=1)
+    invalid_capacity = object()
+
     with pytest.raises(InvalidTruckComparisonInputError) as uuid_error:
         TruckComparisonCandidate(  # type: ignore[arg-type]
-            truck_id="not-a-uuid",
-            capacity=make_candidate(1).capacity,
+            truck_id=invalid_truck_id,
+            capacity=valid_capacity,
         )
+
     with pytest.raises(InvalidTruckComparisonInputError) as capacity_error:
         TruckComparisonCandidate(  # type: ignore[arg-type]
-            truck_id=UUID(int=1),
-            capacity=object(),
+            truck_id=valid_truck_id,
+            capacity=invalid_capacity,
         )
 
     assert uuid_error.value.field_name == "truck_id"
@@ -260,7 +272,12 @@ def test_comparison_is_deterministic() -> None:
     )
     items = (make_item(2, delivery_sequence=2), make_item(1))
 
-    assert compare_trucks(candidates, items) == compare_trucks(candidates, items)
+    first_run = compare_trucks(candidates, items)
+    second_run = compare_trucks(candidates, items)
+
+    # Duas execuções INDEPENDENTES: comparar a mesma expressão consigo mesma não
+    # demonstraria determinismo, só que o operador `==` existe.
+    assert first_run == second_run
 
 
 def test_candidates_are_isolated_from_each_other() -> None:
@@ -363,11 +380,10 @@ def test_comparison_propagates_the_engine_volume_limit() -> None:
     )[0]
     assert accepted.load_plan.metrics.unloaded_count == 200
 
+    overflow_workload = (make_item(quantity=201),)
+
     with pytest.raises(LoadPlanVolumeLimitExceededError) as exc_info:
-        compare_trucks(
-            candidates,
-            (make_item(quantity=201),),
-        )
+        compare_trucks(candidates, overflow_workload)
 
     assert exc_info.value.volume_count == 201
     assert exc_info.value.max_volumes == 200

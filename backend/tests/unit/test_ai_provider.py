@@ -165,9 +165,11 @@ def test_fake_provider_raises_configured_error_after_capturing_call() -> None:
 def test_fake_provider_rejects_invalid_timeout(timeout_seconds: float) -> None:
     provider = FakeAIProvider()
 
+    context = make_context()
+
     with pytest.raises(ValueError, match="positive finite"):
         provider.explain_load_plan(
-            make_context(),
+            context,
             timeout_seconds=timeout_seconds,
         )
 

@@ -195,13 +195,16 @@ def test_compare_trucks_fails_the_whole_preflight_for_invalid_trucks(
         )
         expected_error = LoadPlanTruckInactiveError
 
+    # O schema é construído FORA do bloco: ele também valida e poderia levantar,
+    # e aí o teste passaria pelo motivo errado. Dentro do raises fica só a
+    # chamada ao service, que é o que está sendo verificado.
+    data = TruckComparisonCreate(
+        order_ids=[order_id],
+        truck_ids=[first_truck_id, second_truck_id],
+    )
+
     with pytest.raises(expected_error):
-        service.compare_trucks(
-            TruckComparisonCreate(
-                order_ids=[order_id],
-                truck_ids=[first_truck_id, second_truck_id],
-            )
-        )
+        service.compare_trucks(data)
 
     service.order_service.get_orders.assert_not_called()
     service.product_service.get_products.assert_not_called()
@@ -216,13 +219,13 @@ def test_compare_trucks_fails_the_whole_preflight_for_missing_order() -> None:
     )
     service.order_service.get_orders.return_value = ()
 
+    data = TruckComparisonCreate(
+        order_ids=[missing_order_id],
+        truck_ids=truck_ids,
+    )
+
     with pytest.raises(LoadPlanOrdersNotFoundError):
-        service.compare_trucks(
-            TruckComparisonCreate(
-                order_ids=[missing_order_id],
-                truck_ids=truck_ids,
-            )
-        )
+        service.compare_trucks(data)
 
     service.product_service.get_products.assert_not_called()
 
@@ -243,13 +246,13 @@ def test_compare_trucks_rejects_more_than_200_expanded_volumes_before_engine(
     engine = Mock()
     monkeypatch.setattr(service_module, "compare_truck_candidates", engine)
 
+    data = TruckComparisonCreate(
+        order_ids=[order_id],
+        truck_ids=truck_ids,
+    )
+
     with pytest.raises(LoadPlanVolumeLimitExceededError) as exc_info:
-        service.compare_trucks(
-            TruckComparisonCreate(
-                order_ids=[order_id],
-                truck_ids=truck_ids,
-            )
-        )
+        service.compare_trucks(data)
 
     assert exc_info.value.volume_count == 201
     service.product_service.get_products.assert_not_called()

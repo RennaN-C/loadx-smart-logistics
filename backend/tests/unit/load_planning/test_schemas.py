@@ -219,18 +219,22 @@ def test_truck_comparison_read_exposes_only_the_decided_metrics() -> None:
 
 
 def test_truck_comparison_read_requires_rejections_to_match_unloaded_count() -> None:
+    # Valores montados antes: dentro do raises fica só o construtor sob teste,
+    # senão qualquer erro na preparação faria o teste passar pelo motivo errado.
+    payload = {
+        "truck_id": TRUCK_ID,
+        "internal_volume_cm3": 1_000,
+        "used_volume_cm3": 0,
+        "occupancy_percent": Decimal(0),
+        "total_weight_kg": Decimal(0),
+        "loaded_count": 0,
+        "unloaded_count": 2,
+        "rejection_counts": {"TRUCK_DIMENSIONS_EXCEEDED": 1},
+        "algorithm_version": "heuristic-v1",
+    }
+
     with pytest.raises(ValidationError, match="must match unloaded_count"):
-        TruckComparisonRead(
-            truck_id=TRUCK_ID,
-            internal_volume_cm3=1_000,
-            used_volume_cm3=0,
-            occupancy_percent=Decimal(0),
-            total_weight_kg=Decimal(0),
-            loaded_count=0,
-            unloaded_count=2,
-            rejection_counts={"TRUCK_DIMENSIONS_EXCEEDED": 1},
-            algorithm_version="heuristic-v1",
-        )
+        TruckComparisonRead(**payload)
 
 
 def test_map_load_plan_item_renames_flat_orm_snapshot_and_placement_fields() -> None:
