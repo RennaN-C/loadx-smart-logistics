@@ -7,6 +7,7 @@ import pytest
 from sqlalchemy.orm import Session
 
 from app.integrations.ai import (
+    MAX_EXPLANATION_LENGTH,
     AIProviderTimeoutError,
     AIProviderUnavailableError,
     FakeAIProvider,
@@ -209,6 +210,44 @@ def test_timeout_unavailable_and_invalid_output_use_identical_fallback() -> None
     assert {result.load_plan_id for result in results} == {plan.id}
     assert {result.algorithm_version for result in results} == {"heuristic-v1"}
     assert {result.explanation for result in results} == {expected_explanation}
+
+
+def test_explanation_above_the_length_cap_falls_back_without_touching_the_plan() -> (
+    None
+):
+    """Provider prolixo demais é saída INVÁLIDA, como texto vazio.
+
+    Sem teto, um adapter defeituoso ou um modelo em laço devolveria megabytes e
+    a aplicação aceitaria: o texto atravessa a API e chega ao navegador.
+    """
+
+    plan = make_partial_plan()
+    oversized = "a" * (MAX_EXPLANATION_LENGTH + 1)
+    provider = FakeAIProvider(response={"explanation": oversized})
+    service, db = make_service(plan, provider)
+
+    result = service.explain(plan.id, requester_role="LOGISTICS_MANAGER")
+
+    assert result.source == "FALLBACK"
+    assert oversized not in result.explanation
+    assert result.algorithm_version == "heuristic-v1"
+    assert len(provider.calls) == 1
+    assert_no_writes(db)
+
+
+def test_explanation_exactly_at_the_length_cap_is_accepted() -> None:
+    """O limite é inclusivo: 8.000 passa, 8.001 não."""
+
+    plan = make_partial_plan()
+    at_the_cap = "a" * MAX_EXPLANATION_LENGTH
+    provider = FakeAIProvider(response={"explanation": at_the_cap})
+    service, db = make_service(plan, provider)
+
+    result = service.explain(plan.id, requester_role="LOGISTICS_MANAGER")
+
+    assert result.source == "AI"
+    assert result.explanation == at_the_cap
+    assert_no_writes(db)
 
 
 def test_unexpected_provider_error_is_not_hidden_by_fallback() -> None:

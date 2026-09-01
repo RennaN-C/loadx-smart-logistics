@@ -119,10 +119,21 @@ class AIExplanationContext(_FrozenProviderModel):
         return self
 
 
+MAX_EXPLANATION_LENGTH = 8_000
+"""Teto do texto devolvido pelo provider.
+
+Vazio já era recusado, mas não havia limite superior: um adapter defeituoso ou
+um modelo em laço podia devolver megabytes, e a aplicação aceitaria. O texto
+atravessa a API e chega ao navegador, então o teto protege memória, banda e
+renderização. Passar do limite é saída inválida como qualquer outra, e cai no
+FALLBACK — o plano não é tocado e nada é persistido.
+"""
+
+
 class AIProviderOutput(_FrozenProviderModel):
     """Saída mínima validada antes de ser aceita pela aplicação."""
 
-    explanation: NonEmptyText
+    explanation: NonEmptyText = Field(max_length=MAX_EXPLANATION_LENGTH)
 
 
 def validate_ai_provider_output(value: object) -> AIProviderOutput:

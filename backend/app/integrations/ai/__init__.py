@@ -1,4 +1,5 @@
 from app.integrations.ai.provider import (
+    MAX_EXPLANATION_LENGTH,
     AIExplanationContext,
     AIPlacedVolumeContext,
     AIProvider,
@@ -15,6 +16,7 @@ from app.integrations.ai.provider import (
 )
 
 __all__ = [
+    "MAX_EXPLANATION_LENGTH",
     "AIExplanationContext",
     "AIPlacedVolumeContext",
     "AIProvider",
