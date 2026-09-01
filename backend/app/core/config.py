@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     secret_key: str = "local-only"
     password_blocklist_path: Path | None = None
     ai_provider: str = "mock"
+    ai_explanation_timeout_seconds: float = Field(default=5.0, gt=0)
     whatsapp_provider: str = "mock"
 
     model_config = SettingsConfigDict(

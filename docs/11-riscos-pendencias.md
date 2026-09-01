@@ -52,6 +52,11 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
   `ADR-013`.
 - `CONFIRMADO`: snapshots, estados, aprovação e recálculo imutável seguem a
   `ADR-014`.
+- `CONFIRMADO`: D17 fecha a OC21 com comparação de 2 a 10 caminhões, preflight
+  integral, limite de 200 volumes, resposta não ranqueada e nenhuma persistência.
+- `CONFIRMADO`: D22 fecha a OC22 com explicação de plano persistido, contexto sem
+  dados pessoais, port e provider fake, timeout de 5 segundos por padrão, fallback
+  determinístico e RBAC por estado do plano.
 - `CONFIRMADO`: tecnologias oficiais descritas em `README.md` e `docs/02-arquitetura.md`.
 - `CONFIRMADO`: nomes técnicos em inglês.
 - `CONFIRMADO`: documentação oficial dentro da estrutura existente de `docs`.
@@ -114,7 +119,20 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 - `PENDENTE DE DEFINIÇÃO`: política de armazenamento, expiração e proteção de fotos de ocorrência.
 - `PENDENTE DE DEFINIÇÃO`: SLA rígido de tempo do otimizador; o limite funcional
   aprovado é 200 volumes por cálculo síncrono.
+- `RISCO IDENTIFICADO`: perfil exploratório local com volumes integralmente
+  posicionáveis apontou a busca de candidatos, principalmente as verificações
+  AABB de colisão, como custo dominante no limite de 200 volumes. A medição não
+  define SLA; qualquer otimização que altere o resultado exige ocorrência própria,
+  testes, ADR e nova `algorithm_version`.
 - `PENDENTE DE DEFINIÇÃO`: mensagens finais do WhatsApp para confirmação, erro e status.
+- `CONFIRMADO`: a OC21 expõe comparação transitória de 2 a 10 caminhões, aplica
+  preflight integral, limita a carga compartilhada a 200 volumes e reutiliza a
+  mesma engine `heuristic-v1`; não persiste, não cria `LoadPlan` e não define
+  ranking, score ou vencedor. Estado da ocorrência: concluída.
+- `CONFIRMADO`: a OC22 expõe explicação de plano persistido por `AIProvider`,
+  possui provider fake, timeout configurável de 5 segundos por padrão e fallback
+  determinístico para timeout, indisponibilidade e resposta inválida. Estado da
+  ocorrência: concluída; o adapter externo concreto pertence ao Desenvolvedor 4.
 
 ## Gates detalhados do otimizador e planejamento
 
@@ -128,7 +146,10 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 - `CONFIRMADO`: conforme a `ADR-013`, a porta fica em `z = internal_length_cm`,
   profundidade usa a face voltada à porta e `loading_sequence` é topológica com
   suportes anteriores aos apoiados.
-- `PENDENTE DE DEFINIÇÃO`: definir contrato público, endpoint e campos do schema de explicação da OC22.
+- `CONFIRMADO`: a OC22 prepara deterministicamente somente o contexto técnico de
+  um plano persistido, sem dados pessoais de cliente ou motorista. A IA e o
+  fallback não recalculam, validam ou modificam o plano; erros `401`, `403`, `404`
+  e plano tecnicamente inválido não são mascarados pelo fallback.
 - `CONFIRMADO`: conforme a `ADR-014`, FKs preservam proveniência, snapshots
   preservam valores calculados e itens referenciados não podem ser substituídos.
 
@@ -137,6 +158,11 @@ o resultado com snapshots e expõe criação, detalhe, visualização, aprovaç�
 recálculo protegidos por RBAC.
 
 `CONFIRMADO`: a expansão usa identidade `(order_item_id, volume_index)` com índice 1-based e não expõe política alternativa de base.
+
+`CONFIRMADO`: a OC21 compara de 2 a 10 caminhões com a engine existente e retorna
+um array de resultados independentes, na ordem solicitada e sem significado de
+preferência. Falta de espaço em candidato válido é resultado normal; somente falha
+de preflight encerra a requisição inteira.
 
 `RISCO IDENTIFICADO`: mudança futura em gate determinístico exige testes, ADR e
 nova `algorithm_version`; a representação JSON de `Decimal` segue D06 e

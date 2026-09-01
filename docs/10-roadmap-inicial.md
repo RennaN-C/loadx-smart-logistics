@@ -76,9 +76,14 @@ Entregável integrado:
 
 - Usuário calcula plano, visualiza carga em 3D e entende volumes posicionados/rejeitados.
 
-`CONFIRMADO`: conforme `D17`, a `OC21` integra o MVP após a publicação da
-`OC20` e compara no máximo 10 caminhões por execução. Comparação automática
-avançada permanece evolução futura.
+`CONFIRMADO`: a `OC21` está concluída no MVP e compara de 2 a 10 caminhões por
+execução, sem persistência, ranking, score ou escolha automática. A comparação
+automática avançada permanece evolução futura.
+
+`CONFIRMADO`: a `OC22` está concluída com port de IA, provider fake, timeout
+configurável de 5 segundos por padrão e fallback determinístico. A IA explica
+somente plano persistido e não valida, recalcula ou altera o resultado. O adapter
+externo concreto permanece como integração do Desenvolvedor 4.
 
 ## Sprint 4: operação, WhatsApp e ocorrências
 

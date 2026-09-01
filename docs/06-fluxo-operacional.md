@@ -57,6 +57,40 @@ um único commit. Recálculo cria outro plano com dados atuais e
 
 `CONFIRMADO`: o frontend não corrige nem recalcula posições.
 
+## Fluxo de comparação entre caminhões
+
+1. `LOGISTICS_MANAGER` envia pedidos distintos e de 2 a 10 caminhões distintos
+   para `POST /load-plans/compare-trucks`.
+2. Service valida em preflight todos os pedidos, produtos e caminhões e confirma
+   o limite de 200 volumes expandidos.
+3. Qualquer fonte ausente ou inválida encerra a requisição inteira sem calcular
+   candidatos.
+4. Service materializa uma única carga compartilhada e chama a mesma engine
+   `heuristic-v1` independentemente para cada caminhão.
+5. API retorna um array `200`, na ordem solicitada, com métricas e contagens de
+   rejeição de cada caminhão.
+
+`CONFIRMADO`: incapacidade física de um caminhão válido é resultado normal desse
+candidato, não falha global. O fluxo não persiste, não cria `LoadPlan`, não altera
+pedidos e não produz ranking, score, vencedor ou recomendação.
+
+## Fluxo de explicação do plano
+
+1. Usuário autorizado solicita `POST /load-plans/{id}/explain`.
+2. Service busca o plano persistido e aplica o escopo de acesso: manager e admin
+   podem consultar; checker somente quando o plano está `APPROVED`; driver é negado.
+3. Builder valida o plano e monta somente o contexto técnico necessário, sem
+   dados pessoais de cliente ou motorista.
+4. `LoadPlanExplanationService` chama a port `AIProvider` com timeout configurável
+   de 5 segundos por padrão.
+5. Resposta válida retorna `source = AI`. Timeout, indisponibilidade ou resposta
+   inválida retornam texto determinístico com `source = FALLBACK`.
+6. API retorna `200` com o ID, explicação e `algorithm_version` originais.
+
+`CONFIRMADO`: autenticação inválida, acesso proibido, plano inexistente ou plano
+tecnicamente inválido encerram o fluxo com o erro correspondente e não acionam
+fallback. IA e fallback nunca aprovam, recalculam ou modificam o plano.
+
 ## Fluxo de visualização 3D
 
 1. Frontend solicita `GET /load-plans/{id}/visualization`.

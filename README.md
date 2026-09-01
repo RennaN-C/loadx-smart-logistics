@@ -55,6 +55,8 @@ A primeira versão do LoadX deverá permitir:
 * cálculo do percentual de ocupação;
 * identificação dos volumes que não couberam;
 * geração da sequência de carregamento;
+* comparação básica e determinística de até 10 caminhões candidatos;
+* explicação técnica de um plano persistido com IA ou fallback determinístico;
 * visualização tridimensional da carga;
 * acompanhamento do carregamento;
 * atualização do status das entregas;
@@ -216,8 +218,7 @@ Ela poderá:
 * interpretar mensagens enviadas pelos motoristas;
 * identificar a intenção de uma mensagem;
 * classificar ocorrências;
-* gerar explicações sobre o planejamento da carga;
-* apresentar recomendações logísticas;
+* gerar explicações técnicas sobre um planejamento já calculado;
 * resumir resultados e relatórios.
 
 As validações de espaço, dimensões, peso e colisões serão realizadas por algoritmos determinísticos.
@@ -290,6 +291,7 @@ Responsável por:
 * heurística de posicionamento;
 * cálculo de ocupação;
 * sequência de carregamento;
+* comparação básica entre caminhões e preparação dos dados explicáveis do plano;
 * testes matemáticos.
 
 ### Desenvolvedor 3: Frontend e visualização 3D
@@ -570,12 +572,21 @@ Após a conclusão do MVP, poderão ser adicionadas:
 * acompanhamento por GPS;
 * roteirização inteligente;
 * análise de peso por eixo;
-* comparação entre vários caminhões;
+* comparação automática avançada entre veículos, sujeita a regras futuras de ranking e escolha;
 * previsão de atrasos;
 * aplicativo móvel;
 * realidade aumentada;
 * aprendizado com viagens anteriores;
 * integração com sistemas ERP.
+
+`CONFIRMADO`: a comparação básica de 2 a 10 caminhões pertence ao MVP, reutiliza
+integralmente a mesma engine determinística e retorna os resultados sem persistir
+plano, ranquear, pontuar ou escolher vencedor. A comparação automática avançada
+permanece uma evolução futura.
+
+`CONFIRMADO`: a explicação do plano no MVP consome somente dados técnicos de um
+plano persistido. A IA não aprova, recalcula ou modifica o resultado; timeout,
+indisponibilidade ou resposta inválida do provider usam fallback determinístico.
 
 ## Status do projeto
 

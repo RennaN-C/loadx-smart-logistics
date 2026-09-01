@@ -58,3 +58,22 @@ def test_get_truck_raises_when_not_found(db_session: Session) -> None:
 
     with pytest.raises(TruckNotFoundError):
         service.get_truck(uuid.uuid4())
+
+
+def test_get_trucks_uses_one_bulk_lookup_without_mutating_ids(
+    db_session: Session,
+) -> None:
+    service = TruckService(db_session)
+    first = service.create_truck(make_truck_create("ABC1D23"))
+    second = service.create_truck(make_truck_create("XYZ9A88"))
+    missing_id = uuid.uuid4()
+    truck_ids = [second.id, missing_id, first.id]
+    original_ids = list(truck_ids)
+
+    trucks = service.get_trucks(truck_ids)
+
+    assert truck_ids == original_ids
+    assert [truck.id for truck in trucks] == sorted(
+        (first.id, second.id),
+        key=lambda value: value.int,
+    )
