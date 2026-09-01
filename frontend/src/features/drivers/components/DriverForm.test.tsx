@@ -39,6 +39,33 @@ describe("mapDriverErrorToMessage", () => {
 });
 
 describe("DriverForm", () => {
+  it("mascara documento e telefone, e explica a CNH numa dica", () => {
+    render(<DriverForm onSaved={vi.fn()} onCancel={vi.fn()} />);
+
+    fireEvent.change(screen.getByLabelText("DOCUMENTO"), { target: { value: "12345678901" } });
+    expect(screen.getByLabelText("DOCUMENTO")).toHaveValue("123.456.789-01");
+
+    fireEvent.change(screen.getByLabelText("TELEFONE"), { target: { value: "42999998888" } });
+    expect(screen.getByLabelText("TELEFONE")).toHaveValue("(42) 99999-8888");
+
+    // a dica da CNH existe porque confundir com CPF é o erro comum
+    fireEvent.focus(screen.getByRole("button", { name: "Sobre número da cnh" }));
+    expect(screen.getByRole("tooltip")).toHaveTextContent(/Não é o CPF/);
+  });
+
+  it("barra documento incompleto antes de chamar a API", async () => {
+    render(<DriverForm onSaved={vi.fn()} onCancel={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText("NOME"), { target: { value: "Rita" } });
+    fireEvent.change(screen.getByLabelText("DOCUMENTO"), { target: { value: "1234" } });
+    fireEvent.change(screen.getByLabelText("TELEFONE"), { target: { value: "42999998888" } });
+    fireEvent.change(screen.getByLabelText("NÚMERO DA CNH"), { target: { value: "09876543210" } });
+
+    fireEvent.click(screen.getByRole("button", { name: "Cadastrar motorista" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/Documento incompleto/);
+    expect(createDriver).not.toHaveBeenCalled();
+  });
+
   beforeEach(() => {
     vi.mocked(createDriver).mockReset();
     vi.mocked(updateDriver).mockReset();
@@ -55,8 +82,10 @@ describe("DriverForm", () => {
     await waitFor(() => expect(onSaved).toHaveBeenCalledOnce());
     expect(createDriver).toHaveBeenCalledWith({
       name: "Rita Alves",
-      document: "987.654.321-00",
-      phone: "(11) 92222-2222",
+      // Só os dígitos: a unicidade do documento é comparada como string no
+      // backend, e misturar formatos deixaria duplicata passar.
+      document: "98765432100",
+      phone: "11922222222",
       licenseNumber: "09876543210",
       licenseCategory: null,
     });
