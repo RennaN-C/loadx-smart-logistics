@@ -147,6 +147,9 @@ loadx-smart-logistics/
 │   ├── migrations/
 │   ├── tests/
 │   ├── requirements.txt
+│   ├── requirements.lock.txt
+│   ├── requirements-dev.txt
+│   ├── requirements-dev.lock.txt
 │   └── Dockerfile
 │
 ├── frontend/
@@ -331,6 +334,27 @@ Antes de iniciar, instale:
 * Git
 * Docker
 * Docker Compose
+
+### Ambiente de desenvolvimento
+
+`CONFIRMADO`: o backend separa as dependências da seguinte forma:
+
+* `requirements.txt`: dependências de runtime;
+* `requirements.lock.txt`: lock de produção;
+* `requirements-dev.txt`: dependências de runtime e ferramentas de desenvolvimento;
+* `requirements-dev.lock.txt`: lock usado para desenvolvimento e CI.
+
+Para desenvolver ou testar o backend, acesse a pasta `backend` e execute:
+
+```bash
+python -m pip install --require-hashes -r requirements-dev.lock.txt
+```
+
+No frontend, após atualizar a branch, acesse a pasta `frontend` e execute:
+
+```bash
+npm ci
+```
 
 ### Clonar o repositório
 
