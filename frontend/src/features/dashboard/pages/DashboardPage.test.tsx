@@ -10,6 +10,8 @@ import { listDrivers } from "../../drivers/api/driversApi";
 import { listOrders } from "../../orders/api/ordersApi";
 import type { OrderListItem } from "../../orders/types";
 import { listProducts } from "../../products/api/productsApi";
+import { listTrips } from "../../deliveries/api/tripsApi";
+import type { TripListItem } from "../../deliveries/types";
 import { listTrucks } from "../../trucks/api/trucksApi";
 import { DashboardPage } from "./DashboardPage";
 
@@ -19,6 +21,7 @@ vi.mock("../../customers/api/customersApi");
 vi.mock("../../drivers/api/driversApi");
 vi.mock("../../orders/api/ordersApi");
 vi.mock("../../auth/hooks/useAuth");
+vi.mock("../../deliveries/api/tripsApi");
 
 /** O contador usa `total`, não o tamanho de `items`. */
 function pageWithTotal(total: number) {
@@ -60,19 +63,63 @@ function renderPage() {
 }
 
 describe("DashboardPage", () => {
-  it("não mostra ao motorista um painel de traços, que é o que ele receberia", async () => {
+  function trip(overrides: Partial<TripListItem> = {}): TripListItem {
+    return {
+      id: "tp1",
+      loadPlanId: "lp1",
+      driverId: "d1",
+      status: "SCHEDULED",
+      startedAt: null,
+      finishedAt: null,
+      createdAt: "2026-08-20T10:00:00Z",
+      deliveryCount: 3,
+      ...overrides,
+    };
+  }
+
+  it("mostra ao motorista as viagens dele, não o painel de cadastros", async () => {
     // O motorista não lê caminhões, produtos, pedidos nem clientes: TODOS os
-    // contadores respondem 403 para ele. Sem o desvio, a tela abria com quatro
-    // traços e um aviso de falha, parecendo quebrada.
+    // contadores respondem 403 para ele, e a tela abria com quatro traços.
     mockRole("DRIVER");
+    vi.mocked(listTrips).mockResolvedValue(makePage([trip()]));
 
     renderPage();
 
-    expect(
-      await screen.findByText(/lista das suas viagens ainda não está disponível/),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Minhas viagens")).toBeInTheDocument();
+    expect(screen.getByText("3 paradas")).toBeInTheDocument();
     expect(screen.queryByText("CAMINHÕES")).not.toBeInTheDocument();
     expect(screen.queryByText(/não puderam ser carregados/)).not.toBeInTheDocument();
+  });
+
+  it("leva o motorista para a viagem escolhida", async () => {
+    mockRole("DRIVER");
+    vi.mocked(listTrips).mockResolvedValue(makePage([trip({ id: "tp-99" })]));
+
+    renderPage();
+
+    expect(await screen.findByRole("link", { name: "Abrir" })).toHaveAttribute(
+      "href",
+      "/trips/tp-99",
+    );
+  });
+
+  it("explica ao motorista sem viagem em vez de mostrar lista vazia", async () => {
+    mockRole("DRIVER");
+    vi.mocked(listTrips).mockResolvedValue(makePage([]));
+
+    renderPage();
+
+    expect(await screen.findByText(/ainda não tem viagens atribuídas/)).toBeInTheDocument();
+  });
+
+  it("oferece nova tentativa quando a lista de viagens falha", async () => {
+    mockRole("DRIVER");
+    vi.mocked(listTrips).mockRejectedValue(new ApiError("NETWORK_ERROR", "sem rede"));
+
+    renderPage();
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/Verifique sua conexão/);
+    expect(screen.getByRole("button", { name: "Tentar novamente" })).toBeInTheDocument();
   });
 
   beforeEach(() => {

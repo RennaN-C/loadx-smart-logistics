@@ -61,7 +61,7 @@ describe("TripPage", () => {
     vi.mocked(getTrip).mockResolvedValue(makeTrip());
   });
 
-  it("carrega a viagem pelo id da URL, já que o backend não lista viagens", async () => {
+  it("carrega a viagem pelo id da URL", async () => {
     renderPage();
 
     await waitFor(() => expect(getTrip).toHaveBeenCalledWith("tp1"));

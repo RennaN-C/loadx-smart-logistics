@@ -7,6 +7,7 @@ import { listCustomers } from "../../customers/api/customersApi";
 import { STATUS_LABELS, priorityLabel, statusTone } from "../../orders/components/orderLabels";
 import { useDashboardTotals } from "../hooks/useDashboardTotals";
 import "./DashboardPage.css";
+import { DriverTrips } from "../components/DriverTrips";
 
 const dateFormatter = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" });
 
@@ -36,12 +37,9 @@ export function DashboardPage() {
 
   /**
    * O motorista não lê caminhões, produtos, pedidos nem clientes: TODOS os
-   * contadores deste painel respondem 403 para ele. Sem este desvio a tela
-   * abria com quatro traços e um aviso de falha, parecendo quebrada — quando na
-   * verdade ela simplesmente não é para esse perfil.
-   *
-   * `PENDENTE`: não existe `GET /trips` (só `GET /trips/{id}`), então não há
-   * como listar as viagens dele. Quando o endpoint existir, é aqui que entra.
+   * contadores deste painel respondem 403 para ele. O painel de cadastros
+   * simplesmente não é para esse perfil — o que interessa a ele são as viagens
+   * que recebeu, e é isso que a tela mostra.
    */
   if (user?.role === "DRIVER") {
     return (
@@ -49,14 +47,16 @@ export function DashboardPage() {
         <header className="entity-header">
           <div>
             <h1>Olá, {user.name.split(" ")[0]}</h1>
-            <p className="entity-lede">Seu acesso é de motorista.</p>
+            <p className="entity-lede">Suas viagens e o que falta entregar.</p>
           </div>
         </header>
-        <p className="entity-state">
-          As telas de cadastro e planejamento não são do seu perfil. A lista das suas viagens ainda
-          não está disponível no sistema — enquanto isso, acesse a viagem pelo link que a operação
-          enviar.
-        </p>
+
+        <section className="dash-block">
+          <div className="dash-block-head">
+            <h2>Minhas viagens</h2>
+          </div>
+          <DriverTrips />
+        </section>
       </div>
     );
   }

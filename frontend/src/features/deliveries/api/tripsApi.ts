@@ -1,5 +1,14 @@
 import { api } from "../../../services/api";
-import type { Delivery, DeliveryStatus, Trip, TripInput, TripStatus } from "../types";
+import { mapPageFromDto, toPageQuery, type ListParams, type PageDto } from "../../../services/pagination";
+import type { Page } from "../../../types/api";
+import type {
+  Delivery,
+  DeliveryStatus,
+  Trip,
+  TripInput,
+  TripListItem,
+  TripStatus,
+} from "../types";
 
 interface DeliveryDto {
   id: string;
@@ -18,6 +27,41 @@ interface TripDto {
   started_at: string | null;
   finished_at: string | null;
   deliveries: DeliveryDto[];
+}
+
+interface TripListDto {
+  id: string;
+  load_plan_id: string;
+  driver_id: string;
+  status: TripStatus;
+  started_at: string | null;
+  finished_at: string | null;
+  created_at: string;
+  delivery_count: number;
+}
+
+function mapTripListItem(dto: TripListDto): TripListItem {
+  return {
+    id: dto.id,
+    loadPlanId: dto.load_plan_id,
+    driverId: dto.driver_id,
+    status: dto.status,
+    startedAt: dto.started_at,
+    finishedAt: dto.finished_at,
+    createdAt: dto.created_at,
+    deliveryCount: dto.delivery_count,
+  };
+}
+
+/**
+ * `GET /trips`, paginado. `ADMIN` e `LOGISTICS_MANAGER` veem todas as viagens;
+ * `DRIVER` recebe SOMENTE as dele — o recorte é feito no backend
+ * (`deliveries/service.py`), não aqui.
+ */
+export async function listTrips(params: ListParams = {}): Promise<Page<TripListItem>> {
+  const { data } = await api.get<PageDto<TripListDto>>("/trips", { params: toPageQuery(params) });
+
+  return mapPageFromDto(data, mapTripListItem);
 }
 
 function mapDelivery(dto: DeliveryDto): Delivery {
