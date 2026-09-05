@@ -6,14 +6,20 @@ COPY package*.json ./
 RUN npm ci
 
 COPY . .
+
 ARG VITE_API_URL=/api/v1
 ENV VITE_API_URL=${VITE_API_URL}
+
 RUN npm run build
+
 
 FROM caddy:2.11.4-alpine
 
+RUN apk upgrade --no-cache
+
 COPY Caddyfile /etc/caddy/Caddyfile
 COPY --from=build /app/dist /srv
+
 RUN addgroup -g 10001 loadx \
     && adduser -D -u 10001 -G loadx loadx \
     && setcap -r /usr/bin/caddy \
