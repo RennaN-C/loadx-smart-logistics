@@ -7,6 +7,7 @@ import { ApiError } from "../../../types/api";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { downloadLoadingReport } from "../../reports/api/reportsApi";
 import { ReportDownloadButton } from "../../reports/components/ReportDownloadButton";
+import { canReadReports } from "../../reports/permissions";
 import { approveLoadPlan, getLoadPlan, recalculateLoadPlan } from "../api/loadPlansApi";
 import { PlanBuilder } from "../components/PlanBuilder";
 import { PlanItemsTable } from "../components/PlanItemsTable";
@@ -35,14 +36,11 @@ const PLAN_TABS: readonly TabItem<PlanTab>[] = [
  * plano vive na URL (`/planning/:planId`): sem isso, recarregar a página perderia
  * o resultado sem nenhuma forma de recuperá-lo.
  */
-/** Só quem lê relatório no backend: ADMIN e LOGISTICS_MANAGER (reports/router.py). */
-const REPORT_READERS = ["ADMIN", "LOGISTICS_MANAGER"];
-
 export function PlanningPage() {
   const { planId } = useParams<{ planId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const podeBaixarRelatorio = user !== null && REPORT_READERS.includes(user.role);
+  const podeBaixarRelatorio = canReadReports(user?.role);
 
   const [plan, setPlan] = useState<LoadPlan | null>(null);
   const [isLoading, setIsLoading] = useState(false);

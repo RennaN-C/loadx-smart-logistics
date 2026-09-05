@@ -18,7 +18,7 @@ export function mapReportErrorToMessage(error: ApiError): string {
   }
 
   if (error.code === "AUTH_FORBIDDEN") {
-    return "Seu perfil não tem permissão para baixar este relatório, ou esta viagem não é sua.";
+    return "Seu perfil não tem permissão para baixar este relatório.";
   }
 
   return fallbackErrorMessage(error);

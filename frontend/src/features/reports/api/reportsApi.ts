@@ -5,30 +5,13 @@ import { ApiError, isApiErrorResponse } from "../../../types/api";
  * Download dos PDFs gerados pelo backend.
  *
  * `GET /reports/load-plans/{id}` e `GET /reports/trips/{id}` devolvem
- * `application/pdf`. Ambos são lidos por `ADMIN` e `LOGISTICS_MANAGER`; o de
- * viagem ainda barra viagem que não é do usuário.
+ * `application/pdf`. Os dois são lidos por `ADMIN` e `LOGISTICS_MANAGER`.
  */
-
-/**
- * `Blob.text()` não existe em todo lugar — o jsdom da suíte de testes é um
- * deles —, então o `FileReader` entra como alternativa. Sem isso o corpo do erro
- * ficava ilegível e todo 404 virava "erro inesperado".
- */
-function blobText(blob: Blob): Promise<string> {
-  if (typeof blob.text === "function") return blob.text();
-
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result ?? ""));
-    reader.onerror = () => reject(reader.error ?? new Error("Falha ao ler o corpo do erro."));
-    reader.readAsText(blob);
-  });
-}
 
 async function apiErrorFromBlob(body: unknown, status: number): Promise<ApiError> {
   if (body instanceof Blob) {
     try {
-      const parsed: unknown = JSON.parse(await blobText(body));
+      const parsed: unknown = JSON.parse(await body.text());
       if (isApiErrorResponse(parsed)) {
         return new ApiError(parsed.code, parsed.message, parsed.details);
       }
