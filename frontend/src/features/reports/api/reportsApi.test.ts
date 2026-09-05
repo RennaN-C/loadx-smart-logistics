@@ -6,14 +6,25 @@ import { downloadLoadingReport, downloadTripReport, saveBlob } from "./reportsAp
 
 vi.mock("../../../services/api", () => ({ api: { get: vi.fn() } }));
 
-/** Resposta de erro do backend, entregue como Blob por causa do responseType. */
+/**
+ * Resposta de erro do backend, entregue como Blob por causa do `responseType`.
+ *
+ * O `Blob` do jsdom não implementa `text()` nem `arrayBuffer()` — só o
+ * `FileReader` lê ali. Em vez de remendar `Blob.prototype` globalmente, o
+ * próprio teste entrega o método que falta nesta instância: continua sendo um
+ * `Blob` de verdade, então o `instanceof` do código de produção segue valendo,
+ * e nenhum `FileReader` entra no projeto.
+ */
 function erroComoBlob(status: number, code: string, message: string) {
-  return {
-    status,
-    data: new Blob([JSON.stringify({ code, message, details: [] })], {
-      type: "application/json",
-    }),
-  };
+  const corpo = JSON.stringify({ code, message, details: [] });
+  const data = comText(new Blob([corpo], { type: "application/json" }), corpo);
+
+  return { status, data };
+}
+
+function comText(blob: Blob, conteudo: string): Blob {
+  Object.defineProperty(blob, "text", { value: () => Promise.resolve(conteudo) });
+  return blob;
 }
 
 describe("reportsApi", () => {
@@ -58,7 +69,7 @@ describe("reportsApi", () => {
   it("não quebra quando o corpo do erro não é JSON", async () => {
     vi.mocked(api.get).mockResolvedValue({
       status: 500,
-      data: new Blob(["<html>erro</html>"], { type: "text/html" }),
+      data: comText(new Blob(["<html>erro</html>"], { type: "text/html" }), "<html>erro</html>"),
     });
 
     const erro = await downloadTripReport("t1").catch((e: unknown) => e);
