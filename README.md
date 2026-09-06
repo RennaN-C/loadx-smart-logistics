@@ -27,7 +27,6 @@ O sistema também acompanhará o processo de carregamento e entrega, permitindo 
 
 Desenvolver um sistema inteligente capaz de planejar automaticamente a disposição de volumes em caminhões, melhorar o aproveitamento do espaço disponível e acompanhar o processo logístico desde o carregamento até a conclusão das entregas.
 
-<<<<<<< HEAD
 1. `AGENTS.md`
 2. `docs/00-visao-produto.md`
 3. `docs/01-escopo-mvp.md`
@@ -38,9 +37,6 @@ Desenvolver um sistema inteligente capaz de planejar automaticamente a disposiç
 8. `docs/08-padroes-desenvolvimento.md`
 9. `docs/09-guia-para-ia.md`
 10. `docs/11-riscos-pendencias.md`
-=======
-## Funcionalidades do MVP
->>>>>>> 951b75cc3937e883a81c1017cd86a60729194875
 
 A primeira versão do LoadX deverá permitir:
 
@@ -59,6 +55,8 @@ A primeira versão do LoadX deverá permitir:
 * cálculo do percentual de ocupação;
 * identificação dos volumes que não couberam;
 * geração da sequência de carregamento;
+* comparação básica e determinística de até 10 caminhões candidatos;
+* explicação técnica de um plano persistido com IA ou fallback determinístico;
 * visualização tridimensional da carga;
 * acompanhamento do carregamento;
 * atualização do status das entregas;
@@ -149,6 +147,9 @@ loadx-smart-logistics/
 │   ├── migrations/
 │   ├── tests/
 │   ├── requirements.txt
+│   ├── requirements.lock.txt
+│   ├── requirements-dev.txt
+│   ├── requirements-dev.lock.txt
 │   └── Dockerfile
 │
 ├── frontend/
@@ -220,8 +221,7 @@ Ela poderá:
 * interpretar mensagens enviadas pelos motoristas;
 * identificar a intenção de uma mensagem;
 * classificar ocorrências;
-* gerar explicações sobre o planejamento da carga;
-* apresentar recomendações logísticas;
+* gerar explicações técnicas sobre um planejamento já calculado;
 * resumir resultados e relatórios.
 
 As validações de espaço, dimensões, peso e colisões serão realizadas por algoritmos determinísticos.
@@ -294,6 +294,7 @@ Responsável por:
 * heurística de posicionamento;
 * cálculo de ocupação;
 * sequência de carregamento;
+* comparação básica entre caminhões e preparação dos dados explicáveis do plano;
 * testes matemáticos.
 
 ### Desenvolvedor 3: Frontend e visualização 3D
@@ -334,6 +335,27 @@ Antes de iniciar, instale:
 * Docker
 * Docker Compose
 
+### Ambiente de desenvolvimento
+
+`CONFIRMADO`: o backend separa as dependências da seguinte forma:
+
+* `requirements.txt`: dependências de runtime;
+* `requirements.lock.txt`: lock de produção;
+* `requirements-dev.txt`: dependências de runtime e ferramentas de desenvolvimento;
+* `requirements-dev.lock.txt`: lock usado para desenvolvimento e CI.
+
+Para desenvolver ou testar o backend, acesse a pasta `backend` e execute:
+
+```bash
+python -m pip install --require-hashes -r requirements-dev.lock.txt
+```
+
+No frontend, após atualizar a branch, acesse a pasta `frontend` e execute:
+
+```bash
+npm ci
+```
+
 ### Clonar o repositório
 
 ```bash
@@ -360,13 +382,24 @@ Preencha as variáveis necessárias no arquivo `.env`.
 Exemplo:
 
 ```env
-DATABASE_URL=postgresql://loadx:loadx@db:5432/loadx
-SECRET_KEY=altere-esta-chave
+APP_ENV=local
+DATABASE_URL=postgresql+psycopg://loadx:loadx_local@db:5432/loadx
+SECRET_KEY=troque-esta-chave-no-env-local
+LOADX_SECRETS_DIR=
+PASSWORD_BLOCKLIST_PATH=
 WHATSAPP_TOKEN=
 OPENAI_API_KEY=
 ```
 
 Nunca envie o arquivo `.env` para o GitHub.
+
+`APP_ENV` aceita somente `local` ou `production`. Use `local` no desenvolvimento. Em produção, configure `APP_ENV=production` para não expor `/docs`, `/redoc`, `/docs/oauth2-redirect` e `/openapi.json`. Se a variável não for informada, o backend assume `production` por segurança.
+
+`CONFIRMADO`: em produção, o backend recusa iniciar com `SECRET_KEY` fraca ou
+com menos de 32 caracteres, `DATABASE_URL` local padrão ou origem CORS curinga.
+Conforme D18, produção autentica pelo cookie `__Host-loadx_session`; o ambiente
+local HTTP usa `loadx_session` para não violar os requisitos do prefixo
+reservado.
 
 ### Iniciar o sistema
 
@@ -380,6 +413,12 @@ Para executar em segundo plano:
 docker compose up -d --build
 ```
 
+O serviço `migrate` aplica `alembic upgrade head` depois que o PostgreSQL fica
+saudável. Backend e frontend só iniciam após a migration terminar com sucesso.
+As portas publicadas pelo Compose aceitam conexão apenas da máquina local por
+padrão; `POSTGRES_PORT`, `BACKEND_PORT` e `FRONTEND_PORT` permitem trocar as
+portas sem editar o arquivo.
+
 ### Encerrar o sistema
 
 ```bash
@@ -391,6 +430,21 @@ Para remover também os dados locais do banco:
 ```bash
 docker compose down -v
 ```
+
+### Referência de produção
+
+`compose.production.yaml` é separado do ambiente local. Ele exige domínio, duas
+URLs PostgreSQL e uma chave secreta fornecidos pelo ambiente seguro do host:
+
+```bash
+docker compose -f compose.production.yaml config --quiet
+docker compose -f compose.production.yaml up -d --build --wait
+```
+
+Leia `infra/production/README.md` antes de executar. `CONFIRMADO`: somente Caddy
+publica 80/443; backend permanece privado e recebe proxy headers somente do IP
+fixo do Caddy. `RISCO IDENTIFICADO`: essa referência não substitui backup,
+restauração, observabilidade e validação no domínio real.
 
 ## Endereços locais
 
@@ -408,7 +462,15 @@ http://localhost:8000/docs
 
 Verificação da API:
 http://localhost:8000/health
+
+Prontidão da API:
+http://localhost:8000/ready
 ```
+
+A documentação da API acima existe somente com `APP_ENV=local`.
+
+`/health` confirma apenas que o processo está em execução. `/ready` retorna
+sucesso somente com PostgreSQL acessível e a revisão Alembic no head.
 
 ## Banco de dados
 
@@ -423,6 +485,11 @@ Não devem ser realizadas alterações permanentes diretamente pelo pgAdmin.
 ```bash
 docker compose exec backend alembic upgrade head
 ```
+
+O Compose aplica as migrations automaticamente no início. O comando manual
+continua disponível para manutenção. O endpoint `/ready` permanece somente
+leitura e nunca aplica migrations; essa responsabilidade pertence ao serviço
+isolado `migrate`.
 
 ### Criar uma nova migration
 
@@ -529,12 +596,21 @@ Após a conclusão do MVP, poderão ser adicionadas:
 * acompanhamento por GPS;
 * roteirização inteligente;
 * análise de peso por eixo;
-* comparação entre vários caminhões;
+* comparação automática avançada entre veículos, sujeita a regras futuras de ranking e escolha;
 * previsão de atrasos;
 * aplicativo móvel;
 * realidade aumentada;
 * aprendizado com viagens anteriores;
 * integração com sistemas ERP.
+
+`CONFIRMADO`: a comparação básica de 2 a 10 caminhões pertence ao MVP, reutiliza
+integralmente a mesma engine determinística e retorna os resultados sem persistir
+plano, ranquear, pontuar ou escolher vencedor. A comparação automática avançada
+permanece uma evolução futura.
+
+`CONFIRMADO`: a explicação do plano no MVP consome somente dados técnicos de um
+plano persistido. A IA não aprova, recalcula ou modifica o resultado; timeout,
+indisponibilidade ou resposta inválida do provider usam fallback determinístico.
 
 ## Status do projeto
 
@@ -545,7 +621,7 @@ Planejamento: concluído
 Estrutura inicial: concluída
 Backend: em desenvolvimento
 Frontend: em desenvolvimento
-Algoritmo: não iniciado
+Algoritmo: implementado até a OC20
 Integrações: não iniciadas
 ```
 

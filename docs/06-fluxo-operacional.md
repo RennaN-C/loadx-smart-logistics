@@ -39,15 +39,57 @@ Conclusão e relatório
 1. Responsável logístico seleciona caminhão ativo.
 2. Responsável logístico seleciona pedidos elegíveis.
 3. Backend carrega dimensões, peso máximo, itens e regras físicas.
-4. Service do módulo `load_planning` expande quantidades em volumes individuais.
-5. Otimizador ordena volumes, testa rotações, gera pontos candidatos e valida cada posição.
-6. Volumes válidos recebem posição, dimensões usadas, rotação e sequência de carregamento.
+4. Service do módulo `load_planning` cria DTOs e snapshots imutáveis.
+5. Otimizador expande e ordena volumes, testa rotações, gera pontos candidatos e valida cada posição.
+6. Volumes válidos recebem posição, dimensões usadas, rotação e sequência topológica de carregamento.
 7. Volumes inválidos recebem `rejection_reason`.
-8. Service calcula ocupação, peso, totais e `algorithm_version`.
+8. Otimizador calcula ocupação, peso, totais e `algorithm_version`; o service orquestra e prepara a persistência.
 9. Repository persiste `load_plans`, `load_plan_orders` e `load_plan_items`.
 10. API retorna resumo para o frontend.
 
+`CONFIRMADO`: criação aceita somente caminhão ativo, pedidos `READY` e até 200
+volumes. O cálculo é síncrono. Pedido permanece `READY` até a aprovação de um
+plano completo.
+
+`CONFIRMADO`: aprovação grava plano `APPROVED`, pedidos `PLANNED` e históricos em
+um único commit. Recálculo cria outro plano com dados atuais e
+`recalculated_from_id`, sem alterar a origem.
+
 `CONFIRMADO`: o frontend não corrige nem recalcula posições.
+
+## Fluxo de comparação entre caminhões
+
+1. `LOGISTICS_MANAGER` envia pedidos distintos e de 2 a 10 caminhões distintos
+   para `POST /load-plans/compare-trucks`.
+2. Service valida em preflight todos os pedidos, produtos e caminhões e confirma
+   o limite de 200 volumes expandidos.
+3. Qualquer fonte ausente ou inválida encerra a requisição inteira sem calcular
+   candidatos.
+4. Service materializa uma única carga compartilhada e chama a mesma engine
+   `heuristic-v1` independentemente para cada caminhão.
+5. API retorna um array `200`, na ordem solicitada, com métricas e contagens de
+   rejeição de cada caminhão.
+
+`CONFIRMADO`: incapacidade física de um caminhão válido é resultado normal desse
+candidato, não falha global. O fluxo não persiste, não cria `LoadPlan`, não altera
+pedidos e não produz ranking, score, vencedor ou recomendação.
+
+## Fluxo de explicação do plano
+
+1. Usuário autorizado solicita `POST /load-plans/{id}/explain`.
+2. Service busca o plano persistido e aplica o escopo de acesso: manager e admin
+   podem consultar; checker somente quando o plano está `APPROVED`; driver é negado.
+3. Builder valida o plano e monta somente o contexto técnico necessário, sem
+   dados pessoais de cliente ou motorista.
+4. `LoadPlanExplanationService` chama a port `AIProvider` com timeout configurável
+   de 5 segundos por padrão.
+5. Resposta válida retorna `source = AI`. Timeout, indisponibilidade ou resposta
+   inválida retornam texto determinístico com `source = FALLBACK`.
+6. API retorna `200` com o ID, explicação e `algorithm_version` originais.
+
+`CONFIRMADO`: autenticação inválida, acesso proibido, plano inexistente ou plano
+tecnicamente inválido encerram o fluxo com o erro correspondente e não acionam
+fallback. IA e fallback nunca aprovam, recalculam ou modificam o plano.
 
 ## Fluxo de visualização 3D
 
@@ -65,41 +107,71 @@ Conclusão e relatório
 2. Sistema cria ou recupera `loading_session`.
 3. Checklist segue `loading_sequence`.
 4. Conferente marca volumes conferidos.
-5. Ao finalizar, sistema registra horário e libera criação/início de viagem.
+5. Ao finalizar, sistema registra horário e libera o início de uma viagem já
+   criada para o plano aprovado.
 
 `PENDENTE DE DEFINIÇÃO`: regra de bloqueio quando um item do checklist não for conferido.
 
 ## Fluxo de viagem e entrega
 
-1. Responsável logístico ou motorista inicia viagem.
-2. Sistema atualiza status da viagem e grava `status_history`.
-3. Motorista atualiza chegada, início e finalização de entrega via interface ou mensagem.
-4. Cada entrega concluída registra `delivered_at`.
-5. Ocorrências podem ser registradas sem apagar status anterior.
-6. Viagem é concluída quando as entregas aplicáveis chegam a estado final.
+1. Responsável logístico seleciona plano `APPROVED` e motorista ativo.
+2. Backend bloqueia plano, motorista e pedidos, cria a viagem `SCHEDULED`, gera
+   uma entrega `PENDING` por pedido em ordem determinística e grava os históricos
+   em uma transação.
+3. Responsável logístico ou motorista vinculado solicita `IN_ROUTE`.
+4. A interface pública de carregamento confirma `FINISHED`; sem essa confirmação
+   o início falha fechado.
+5. Backend registra `started_at`, move todos os pedidos `PLANNED -> IN_TRANSIT`
+   e grava os históricos no mesmo commit.
+6. Durante `IN_ROUTE`, o responsável ou motorista vinculado avança cada entrega
+   por `PENDING -> IN_DELIVERY -> DELIVERED`.
+7. A conclusão da entrega registra `delivered_at`, move seu pedido
+   `IN_TRANSIT -> DELIVERED` e grava ambos os históricos atomicamente.
+8. A viagem só executa `IN_ROUTE -> FINISHED` e registra `finished_at` quando
+   todas as entregas e pedidos estão `DELIVERED`.
+9. Ocorrências futuras poderão adicionar contexto sem apagar o histórico.
 
-`PENDENTE DE DEFINIÇÃO`: regra final para concluir viagem com entregas canceladas ou falhas.
+`CONFIRMADO`: quando a transição efetiva para `IN_ROUTE` ocorre pelo endpoint de
+viagem, o sistema envia depois do commit uma notificação mock ao motorista
+vinculado. Repetição idempotente ou transição rejeitada não envia novo aviso.
+
+`CONFIRMADO`: o módulo de carregamento materializa `FINISHED` e libera somente a
+viagem do mesmo plano. Estados de cancelamento, falha, ausência e atraso
+continuam fora do ciclo persistido da v1.0.0.
 
 ## Fluxo de WhatsApp simulado/controlado
 
-1. Provider recebe mensagem.
-2. Adapter identifica motorista pelo telefone.
-3. Serviço de mensagens interpreta comando controlado ou frase natural.
-4. Intenção estruturada é validada por schema.
-5. Service público executa a ação somente se o estado atual permitir.
-6. Sistema registra histórico/auditoria.
-7. Provider responde confirmação ou erro operacional.
+1. Usuário interno `ADMIN` ou `LOGISTICS_MANAGER` autentica a requisição ao
+   simulador `POST /messages/interpret`.
+2. Provider recebe a mensagem e usa `driver_phone` apenas para identificar o
+   motorista simulado.
+3. Adapter identifica motorista pelo telefone.
+4. Serviço de mensagens interpreta comando controlado ou frase natural.
+5. Intenção estruturada é validada por schema.
+6. Service público executa a ação somente se o estado atual permitir.
+7. Sistema registra histórico/auditoria.
+8. Provider responde confirmação ou erro operacional.
 
 `CONFIRMADO`: provider mock deve permitir desenvolver e testar sem serviço externo real.
+O telefone do motorista não autentica a requisição. Webhook, autenticação do
+WhatsApp e provider real permanecem fora da v1.0.0.
+
+`CONFIRMADO`: notificações automáticas reutilizam o mesmo provider mock. Falha
+de envio é best-effort e não reverte a operação já confirmada.
 
 ## Fluxo de ocorrência
 
 1. Usuário ou motorista informa tipo e descrição.
 2. Sistema valida tipo permitido.
-3. Foto opcional é associada por URL ou referência mock.
+3. Foto opcional é associada pela referência controlada
+   `mock://occurrences/<identificador>`.
 4. Ocorrência é vinculada à viagem e, quando aplicável, à entrega.
 5. Histórico de status permanece preservado.
-6. Relatórios passam a incluir a ocorrência.
+6. Depois do commit, o provider mock notifica o motorista da viagem.
+7. Relatórios passam a incluir a ocorrência.
+
+`CONFIRMADO`: o fluxo não envia nem armazena binário e não acessa serviço
+externo de upload ou mídia.
 
 ## Fluxo de relatório
 
@@ -108,4 +180,5 @@ Conclusão e relatório
 3. Serviço de relatórios monta PDF simples.
 4. API retorna download ou referência do arquivo.
 
-`PENDENTE DE DEFINIÇÃO`: política de armazenamento temporário, expiração e envio por e-mail/WhatsApp.
+`CONFIRMADO`: na v1.0.0 o PDF é gerado em memória e retornado como download;
+armazenamento permanente e envio por e-mail/WhatsApp ficam fora do escopo.

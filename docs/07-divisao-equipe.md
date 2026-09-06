@@ -29,6 +29,8 @@ Pastas principais:
 - `backend/app/modules/customers`.
 - `backend/app/modules/drivers`.
 - `backend/app/modules/orders`.
+- `backend/app/modules/deliveries`.
+- `backend/app/modules/status_history`.
 - `backend/migrations`.
 - `backend/tests/integration`.
 
@@ -62,6 +64,8 @@ Pastas principais:
 
 - `backend/app/modules/load_planning`.
 - `backend/app/modules/load_planning/optimizer`.
+- `backend/app/integrations/ai` para a port e o provider fake da `OC22`, em
+  colaboração com o Desenvolvedor 4, a quem pertence o adapter externo real.
 - `backend/tests/unit`.
 - `backend/tests/unit/load_planning` quando a pasta existir.
 
@@ -88,6 +92,10 @@ Entregas esperadas:
 - Percentual de ocupação.
 - Lista de volumes rejeitados.
 - Sequência de carregamento.
+- Comparação transitória entre 2 e 10 caminhões, sem ranking, score ou
+  vencedor, e sem persistência.
+- Port `AIProvider` com provider fake e fallback determinístico, sobre um
+  contexto sem dado pessoal.
 - Testes unitários reproduzíveis.
 
 ## Desenvolvedor 3: frontend, dashboard e visualização 3D
@@ -130,12 +138,15 @@ Entregas esperadas:
 
 ## Desenvolvedor 4: WhatsApp, ocorrências, relatórios e testes
 
-Responsável por carregamento, viagens, entregas, ocorrências, notificações, relatórios, provider mock de WhatsApp/IA, testes integrados, e2e, Docker e documentação operacional.
+Responsável por carregamento, ocorrências, notificações, relatórios, provider
+mock de WhatsApp/IA, testes integrados, e2e, Docker e documentação operacional.
+Colabora no fluxo de viagens e entregas consumindo o service público do módulo,
+sem assumir os models, migration, regras de transição ou API pertencentes à
+`OC09` do Desenvolvedor 1.
 
 Pastas principais:
 
 - `backend/app/modules/loading`.
-- `backend/app/modules/deliveries`.
 - `backend/app/modules/occurrences`.
 - `backend/app/modules/reports`.
 - `backend/app/integrations`.

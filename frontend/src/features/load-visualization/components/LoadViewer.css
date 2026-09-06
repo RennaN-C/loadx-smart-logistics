@@ -1,0 +1,343 @@
+.viewer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  grid-template-areas:
+    "kpis side"
+    "views side"
+    "canvas side"
+    "controls side"
+    "stepper side";
+  gap: 16px;
+  margin-top: 24px;
+}
+
+@media (max-width: 900px) {
+  .viewer {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "kpis"
+      "views"
+      "canvas"
+      "controls"
+      "stepper"
+      "side";
+  }
+}
+
+.viewer-canvas {
+  grid-area: canvas;
+  height: 460px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.viewer-controls {
+  grid-area: controls;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.viewer-controls input[type="range"] {
+  flex: 1;
+  min-width: 140px;
+  accent-color: var(--accent);
+}
+
+.viewer-step {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.viewer-hint {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.viewer-side {
+  grid-area: side;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.viewer-side h4 {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  font-weight: 600;
+  margin: 0 0 8px;
+  text-transform: uppercase;
+}
+
+.viewer-legend {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.85rem;
+}
+
+.viewer-legend li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.viewer-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  flex-shrink: 0;
+}
+
+.viewer-detail {
+  background: var(--card);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  padding: 14px;
+}
+
+.viewer-detail-name {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin: 0 0 10px;
+}
+
+.viewer-detail dl {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+}
+
+.viewer-detail dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.82rem;
+}
+
+.viewer-detail dt {
+  color: var(--muted);
+}
+
+.viewer-detail dd {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  margin: 0;
+  text-align: right;
+}
+
+.viewer-unloaded {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.82rem;
+}
+
+.viewer-unloaded li {
+  border-left: 2px solid var(--danger);
+  padding-left: 10px;
+}
+
+.viewer-unloaded span {
+  display: block;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+/* liga/desliga o exterior do caminhão: às vezes o baú sozinho lê melhor */
+.viewer-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+/* ---- indicadores e vistas ---- */
+
+.viewer-kpis {
+  grid-area: kpis;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.viewer-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+
+.viewer-kpi-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+}
+
+.viewer-kpi-value {
+  font-family: var(--font-mono);
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.viewer-kpi-value small {
+  font-size: 0.85rem;
+  margin-left: 2px;
+  color: var(--muted);
+}
+
+/* volume que ficou de fora exige ação, então não pode ter o peso dos outros */
+.viewer-kpi-alert .viewer-kpi-value {
+  color: var(--danger);
+}
+
+.viewer-views {
+  grid-area: views;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.viewer-view {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 7px 11px;
+  cursor: pointer;
+}
+
+.viewer-view:hover {
+  color: var(--ink);
+  border-color: var(--accent);
+}
+
+.viewer-view.is-active {
+  color: var(--accent-strong);
+  border-color: var(--accent);
+  background: var(--accent-bg);
+  font-weight: 700;
+}
+
+.viewer-view:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(201, 122, 34, 0.35);
+}
+
+/* ---- passo a passo do carregamento ---- */
+
+.viewer-stepper {
+  grid-area: stepper;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+
+.viewer-stepper-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.viewer-step-btn {
+  font-family: inherit;
+  font-size: 0.85rem;
+  color: var(--ink);
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 7px 13px;
+  cursor: pointer;
+}
+.viewer-step-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+.viewer-step-btn:disabled {
+  color: var(--muted);
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.viewer-step-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(201, 122, 34, 0.35);
+}
+
+.viewer-step-play {
+  min-width: 82px;
+  font-weight: 600;
+}
+
+.viewer-step-count {
+  font-family: var(--font-mono);
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.viewer-step-count small {
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.viewer-step-range {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+/* o volume do passo atual: é a linha que o conferente lê em voz alta */
+.viewer-step-now {
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.viewer-step-now strong {
+  font-family: var(--font-mono);
+  margin-right: 6px;
+}
+
+.viewer-step-now span {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-top: 3px;
+}
+
+.viewer-step-help {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin: 0;
+}

@@ -1,0 +1,198 @@
+/* A casca da tela (.entity-*) vem de app/styles.css. As medidas repetem as do
+   dashboard (.kpi) e das tabelas do planejamento (.plan-table) de propósito: as
+   três telas são a mesma família e não devem parecer produtos diferentes. */
+
+.report-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 14px;
+  margin-top: 28px;
+}
+
+.report-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+
+.report-kpi-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+}
+
+.report-kpi-value {
+  font-family: var(--font-mono);
+  font-size: 1.9rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* o número que exige ação não pode ter o mesmo peso visual dos outros */
+.report-kpi-alert .report-kpi-value {
+  color: var(--danger);
+}
+
+.report-kpi-note {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.report-block {
+  margin-top: 32px;
+}
+
+.report-block-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.report-block-head h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.report-block-head p {
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin: 0;
+}
+
+.report-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+/* ---- barras de distribuição ---- */
+
+.report-bars {
+  list-style: none;
+  padding: 18px;
+  margin: 0;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.report-bar-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+  font-size: 0.85rem;
+}
+
+.report-bar-count {
+  font-family: var(--font-mono);
+  font-weight: 700;
+}
+
+.report-bar-share {
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  margin-left: 6px;
+}
+
+/* mesma barra do aproveitamento do plano: trilho na linha, preenchimento no acento */
+.report-bar-track {
+  height: 8px;
+  background: var(--line);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.report-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+}
+
+.report-bar-fill-muted {
+  background: var(--muted);
+}
+
+.report-bar-fill-good {
+  background: var(--good);
+}
+
+/* ---- tabelas ---- */
+
+.report-table-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--card);
+}
+
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.87rem;
+}
+
+.report-table th {
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  font-weight: 600;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.report-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+
+.report-table tr:last-child td {
+  border-bottom: none;
+}
+
+.report-table-num {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.report-table-late {
+  color: var(--danger);
+}
+
+.report-table-who {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.report-table-who span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

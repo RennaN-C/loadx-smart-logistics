@@ -1,0 +1,220 @@
+/* A casca da tela (.entity-*) vem de app/styles.css. */
+
+.plan-builder {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 22px 24px;
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.plan-builder select {
+  font-family: inherit;
+  font-size: 0.95rem;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  /* não `transparent`: a lista suspensa herda esta cor (ver `option` em app/styles.css) */
+  background: var(--card);
+  color: var(--ink);
+  width: 100%;
+}
+
+.plan-builder select:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(201, 122, 34, 0.35);
+}
+
+.plan-order-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 8px;
+}
+
+.plan-order-list label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.plan-order-list label:hover {
+  border-color: var(--accent);
+}
+
+/* O cartão inteiro responde à marcação, não só a caixinha: numa grade de
+   pedidos, um quadradinho de 17px é pouco sinal para saber o que vai na carga.
+   `:has` evita carregar isso para o estado do React; onde não houver suporte o
+   cartão apenas não tinge e a seleção continua funcionando. */
+.plan-order-list label:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+
+.plan-order-list input {
+  margin-top: 2px;
+}
+
+.plan-order-list small {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.plan-builder-count {
+  margin-right: auto;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+/* ---- resultado ---- */
+
+.plan-summary {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 22px 24px;
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.plan-summary-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.plan-summary-head h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.plan-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 16px;
+  margin: 0;
+}
+
+.plan-metrics dt {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+
+.plan-metrics dd {
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin: 5px 0 0;
+}
+
+.plan-metric-strong {
+  font-size: 1.5rem !important;
+  color: var(--accent-strong);
+}
+
+.plan-metric-warn {
+  color: var(--danger);
+}
+
+/* barra de aproveitamento: o número sozinho não dá noção de quanto sobrou */
+.plan-occupancy {
+  height: 8px;
+  background: var(--line);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.plan-occupancy-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+}
+
+/* ---- tabelas ---- */
+
+.plan-table-block {
+  margin-top: 28px;
+}
+
+.plan-table-block h3 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 0 0 4px;
+}
+
+.plan-table-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--card);
+  margin-top: 12px;
+}
+
+.plan-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.87rem;
+}
+
+.plan-table th {
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  font-weight: 600;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.plan-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+
+.plan-table tr:last-child td {
+  border-bottom: none;
+}
+
+.plan-table-sub {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.plan-table-mono {
+  font-family: var(--font-mono);
+  white-space: nowrap;
+}
+
+.plan-table-num {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  text-align: center;
+}
+
+.plan-table-reason {
+  color: var(--danger);
+}

@@ -2,7 +2,17 @@
 
 ## Estado atual
 
-`CONFIRMADO`: o repositório ainda não possui migrations Alembic geradas nem models SQLAlchemy dos módulos de negócio.
+`CONFIRMADO`: o repositório possui models SQLAlchemy e migrations para `users`,
+`auth_sessions`, `auth_login_throttles`, `customers`, `drivers`, `trucks`,
+`products`, `orders`, `order_items`, `status_history`, `load_plans`,
+`load_plan_orders`, `load_plan_items`, `trips` e `deliveries`. As tabelas de
+autenticação foram aprovadas por D18 e `ADR-020`; viagens e entregas seguem
+D07 a D10, D21 e `ADR-022`.
+
+`CONFIRMADO`: `loading_sessions` e `loading_session_items` possuem models e
+migration no fluxo de carregamento da v1.0.0.
+
+`CONFIRMADO`: `occurrences` possui model e migration desde a OC41.
 
 `CONFIRMADO`: este documento é o contrato inicial para a criação do banco. Qualquer mudança estrutural deve ser registrada por migration e documentada aqui.
 
@@ -39,13 +49,64 @@ Usuários internos do sistema.
 - `email`: texto, obrigatório, único.
 - `password_hash`: texto, obrigatório.
 - `role`: texto ou enum, obrigatório.
+- `driver_id`: UUID, FK opcional para `drivers.id`.
 - `active`: booleano, obrigatório.
 - `created_at`: timestamptz UTC, obrigatório.
 
 Índices e constraints:
 
 - `uq_users__email`.
+- `fk_users__drivers` com `ON DELETE RESTRICT`.
+- `uq_users__driver_id`.
 - `ix_users__role` `RECOMENDAÇÃO`.
+
+`CONFIRMADO` por D21 e `ADR-022`: somente um usuário pode se vincular a cada
+motorista; vínculo não nulo exige `role = DRIVER`. Alterar o vínculo revoga as
+sessões do usuário na mesma transação.
+
+### `auth_sessions`
+
+Sessões opacas e revogáveis do frontend próprio.
+
+- `id`: UUID, PK.
+- `user_id`: UUID, FK obrigatória para `users.id`.
+- `token_hash`: texto hexadecimal de 64 caracteres, obrigatório e único.
+- `created_at`: timestamptz UTC, obrigatório.
+- `last_seen_at`: timestamptz UTC, obrigatório.
+- `idle_expires_at`: timestamptz UTC, obrigatório.
+- `absolute_expires_at`: timestamptz UTC, obrigatório.
+- `revoked_at`: timestamptz UTC, opcional.
+
+Índices e constraints:
+
+- `fk_auth_sessions__users` com `ON DELETE CASCADE`.
+- `uq_auth_sessions__token_hash`.
+- `ix_auth_sessions__user_id`.
+- `ix_auth_sessions__idle_expires_at`.
+- `ck_auth_sessions__absolute_expiration_after_creation`.
+
+`CONFIRMADO`: o identificador bruto da sessão e o token CSRF não são persistidos.
+O CSRF é derivado por HMAC do identificador bruto recebido no cookie.
+
+### `auth_login_throttles`
+
+Contadores duráveis de falhas de login por conta e por endereço IP.
+
+- `id`: UUID, PK.
+- `scope`: texto obrigatório, `ACCOUNT` ou `IP`.
+- `subject_hash`: HMAC-SHA-256 hexadecimal de 64 caracteres, obrigatório.
+- `failed_count`: inteiro obrigatório, maior ou igual a zero.
+- `blocked_until`: timestamptz UTC, opcional.
+- `updated_at`: timestamptz UTC, obrigatório.
+
+Índices e constraints:
+
+- `uq_auth_login_throttles__scope_subject_hash`.
+- `ix_auth_login_throttles__blocked_until`.
+- `ck_auth_login_throttles__scope_allowed`.
+- `ck_auth_login_throttles__failed_count_non_negative`.
+
+`CONFIRMADO`: e-mail e IP brutos não são persistidos nessa tabela.
 
 ### `customers`
 
@@ -85,6 +146,9 @@ Motoristas vinculados a viagens.
 - `uq_drivers__license_number` `RECOMENDAÇÃO`.
 - `ix_drivers__phone` `RECOMENDAÇÃO`.
 
+`CONFIRMADO`: o acesso operacional do perfil `DRIVER` exige `users.driver_id`
+igual ao motorista da viagem e ambos, usuário e motorista, ativos.
+
 ### `trucks`
 
 Caminhões e sua capacidade interna.
@@ -92,9 +156,9 @@ Caminhões e sua capacidade interna.
 - `id`: UUID, PK.
 - `plate`: texto, obrigatório, único.
 - `model`: texto, obrigatório.
-- `internal_width_cm`: inteiro ou numérico, obrigatório, maior que zero.
-- `internal_height_cm`: inteiro ou numérico, obrigatório, maior que zero.
-- `internal_length_cm`: inteiro ou numérico, obrigatório, maior que zero.
+- `internal_width_cm`: inteiro, obrigatório, maior que zero.
+- `internal_height_cm`: inteiro, obrigatório, maior que zero.
+- `internal_length_cm`: inteiro, obrigatório, maior que zero.
 - `max_weight_kg`: numérico, obrigatório, maior que zero.
 - `active`: booleano, obrigatório.
 - `created_at`: timestamptz UTC, obrigatório.
@@ -113,9 +177,9 @@ Produtos cadastrados com suas características físicas. Quantidade não pertenc
 - `code`: texto, obrigatório.
 - `name`: texto, obrigatório.
 - `description`: texto opcional.
-- `width_cm`: inteiro ou numérico, obrigatório, maior que zero.
-- `height_cm`: inteiro ou numérico, obrigatório, maior que zero.
-- `length_cm`: inteiro ou numérico, obrigatório, maior que zero.
+- `width_cm`: inteiro, obrigatório, maior que zero.
+- `height_cm`: inteiro, obrigatório, maior que zero.
+- `length_cm`: inteiro, obrigatório, maior que zero.
 - `weight_kg`: numérico, obrigatório, maior que zero.
 - `fragile`: booleano, obrigatório.
 - `stackable`: booleano, obrigatório.
@@ -135,8 +199,9 @@ Pedidos de entrega.
 
 - `id`: UUID, PK.
 - `customer_id`: UUID, FK para `customers.id`, obrigatório.
-- `status`: texto ou enum, obrigatório.
-- `priority`: texto ou inteiro, obrigatório.
+- `status`: texto, obrigatório, valores permitidos atuais `DRAFT`, `READY`, `PLANNED`, `IN_TRANSIT`, `DELIVERED` e `CANCELED`.
+- `priority`: texto, obrigatório, com valores permitidos `LOW`, `NORMAL`, `HIGH`
+  e `URGENT`, normalizado em maiúsculas pela API.
 - `delivery_address`: texto, obrigatório.
 - `expected_delivery_at`: timestamptz UTC.
 - `created_at`: timestamptz UTC, obrigatório.
@@ -147,6 +212,7 @@ Pedidos de entrega.
 - `ix_orders__customer_id`.
 - `ix_orders__status`.
 - `ix_orders__expected_delivery_at` `RECOMENDAÇÃO`.
+- `ck_orders__status_allowed`.
 
 ### `order_items`
 
@@ -164,8 +230,10 @@ Itens de pedido e quantidades solicitadas.
 - `fk_order_items__products`.
 - `ix_order_items__order_id`.
 - `ix_order_items__product_id`.
+- `uq_order_items__id_order_product`, chave candidata para validar a proveniência
+  composta dos volumes persistidos.
 - `ck_order_items__quantity_positive`.
-- `ck_order_items__delivery_sequence_positive` `RECOMENDAÇÃO`.
+- `ck_order_items__delivery_sequence_positive`.
 
 ### `load_plans`
 
@@ -173,22 +241,35 @@ Resultado calculado para uma carga.
 
 - `id`: UUID, PK.
 - `truck_id`: UUID, FK para `trucks.id`, obrigatório.
-- `status`: texto ou enum, obrigatório.
-- `occupancy_percent`: numérico, de 0 a 100.
-- `total_weight_kg`: numérico, obrigatório.
+- `recalculated_from_id`: UUID, FK autorreferente opcional para o plano de origem.
+- `status`: `VARCHAR`, obrigatório, limitado a `CALCULATED`, `APPROVED` e
+  `REJECTED`.
+- `truck_snapshot_plate` e `truck_snapshot_model`: textos obrigatórios.
+- `truck_snapshot_internal_width_cm`, `truck_snapshot_internal_height_cm` e
+  `truck_snapshot_internal_length_cm`: inteiros positivos.
+- `truck_snapshot_max_weight_kg`: numérico positivo com duas casas.
+- `internal_volume_cm3`: inteiro positivo igual ao produto das dimensões do
+  snapshot.
+- `used_volume_cm3`: inteiro entre zero e o volume interno.
+- `occupancy_percent`: `Decimal` de 0 a 100, com duas casas e `ROUND_HALF_UP`, calculado somente sobre o volume dos itens colocados.
+- `total_weight_kg`: numérico não negativo, obrigatório, soma somente dos volumes colocados.
 - `loaded_count`: inteiro, obrigatório.
 - `unloaded_count`: inteiro, obrigatório.
-- `algorithm_version`: texto, obrigatório.
+- `algorithm_version`: texto, obrigatório; versão inicial `heuristic-v1`.
 - `created_at`: timestamptz UTC, obrigatório.
 - `approved_at`: timestamptz UTC opcional.
 
 Índices e constraints:
 
 - `fk_load_plans__trucks`.
+- `fk_load_plans__load_plans` para `recalculated_from_id`, com exclusão restrita.
 - `ix_load_plans__truck_id`.
+- `ix_load_plans__recalculated_from_id`.
 - `ix_load_plans__status`.
 - `ck_load_plans__occupancy_percent_range`.
-- `ck_load_plans__counts_non_negative`.
+- `ck_load_plans__counts_valid`.
+- `ck_load_plans__status_metrics_consistent`.
+- `ck_load_plans__approval_consistent`.
 
 ### `load_plan_orders`
 
@@ -210,27 +291,53 @@ Volumes individuais posicionados ou rejeitados pelo plano.
 
 - `id`: UUID, PK.
 - `load_plan_id`: UUID, FK para `load_plans.id`, obrigatório.
+- `order_id`: UUID, FK para `orders.id`, obrigatório.
 - `order_item_id`: UUID, FK para `order_items.id`, obrigatório.
-- `volume_index`: inteiro, obrigatório, identifica a unidade dentro da quantidade do item.
-- `position_x_cm`: numérico, obrigatório quando `placed = true`.
-- `position_y_cm`: numérico, obrigatório quando `placed = true`.
-- `position_z_cm`: numérico, obrigatório quando `placed = true`.
-- `used_width_cm`: numérico, obrigatório quando `placed = true`.
-- `used_height_cm`: numérico, obrigatório quando `placed = true`.
-- `used_length_cm`: numérico, obrigatório quando `placed = true`.
-- `rotation_code`: texto, obrigatório quando `placed = true`.
+- `product_id`: UUID, FK para `products.id`, obrigatório.
+- `volume_index`: inteiro positivo iniciado em `1`, obrigatório, identifica a unidade dentro da quantidade do item.
+- `order_item_snapshot_quantity` e
+  `order_item_snapshot_delivery_sequence`: inteiros positivos usados no cálculo.
+- `product_snapshot_code`, `product_snapshot_name`, dimensões originais, peso e
+  flags `fragile`, `stackable` e `rotation_allowed`: fotografia obrigatória do
+  produto usado no cálculo.
+- `position_x_cm`: inteiro não negativo, obrigatório quando `placed = true`.
+- `position_y_cm`: inteiro não negativo, obrigatório quando `placed = true`.
+- `position_z_cm`: inteiro não negativo, obrigatório quando `placed = true`.
+- `used_width_cm`: inteiro positivo, obrigatório quando `placed = true`.
+- `used_height_cm`: inteiro positivo, obrigatório quando `placed = true`.
+- `used_length_cm`: inteiro positivo, obrigatório quando `placed = true`.
+- `rotation_code`: texto opcional, obrigatório quando `placed = true` e nulo quando `placed = false`, com um dos valores `XYZ`, `XZY`, `YXZ`, `YZX`, `ZXY` ou `ZYX`.
 - `loading_sequence`: inteiro, obrigatório quando `placed = true`.
 - `placed`: booleano, obrigatório.
-- `rejection_reason`: texto obrigatório quando `placed = false`.
+- `rejection_reason`: texto obrigatório quando `placed = false`, com um dos valores `TRUCK_DIMENSIONS_EXCEEDED`, `TRUCK_WEIGHT_EXCEEDED`, `NON_STACKABLE_SUPPORT`, `FRAGILE_SUPPORT_WEIGHT_EXCEEDED`, `INSUFFICIENT_SUPPORT`, `COLLISION` ou `NO_VALID_POSITION`.
 
 Índices e constraints:
 
 - `fk_load_plan_items__load_plans`.
+- `fk_load_plan_items__orders`.
 - `fk_load_plan_items__order_items`.
+- `fk_load_plan_items__products`.
+- `fk_load_plan_items__load_plan_orders`, sobre `load_plan_id` e `order_id`.
+- `fk_load_plan_items__order_item_provenance`, sobre `order_item_id`, `order_id`
+  e `product_id`.
 - `ix_load_plan_items__load_plan_id`.
+- `ix_load_plan_items__order_id`.
 - `ix_load_plan_items__order_item_id`.
-- `uq_load_plan_items__plan_item_volume`.
-- `ck_load_plan_items__placed_or_rejected` `RECOMENDAÇÃO`.
+- `ix_load_plan_items__product_id`.
+- `uq_load_plan_items__plan_item_volume`, sobre `load_plan_id`, `order_item_id` e `volume_index`.
+- `ck_load_plan_items__volume_index_positive`.
+- `ck_load_plan_items__rotation_code_allowed`, aceitando nulo para unidade rejeitada.
+- `uq_load_plan_items__plan_loading_sequence`.
+- `ck_load_plan_items__rejection_reason_allowed`, aceitando nulo para unidade
+  colocada e somente o catálogo da `ADR-011` para unidade rejeitada.
+- checks de coordenadas não negativas e dimensões usadas positivas.
+- `ck_load_plan_items__rotation_permission_consistent` e
+  `ck_load_plan_items__rotation_dimensions_consistent`.
+- `ck_load_plan_items__placed_or_rejected`.
+
+`CONFIRMADO`: todas as FKs históricas das três tabelas usam exclusão restrita.
+Em particular, um `order_item` referenciado não pode ser removido por uma
+substituição posterior do conjunto de itens do pedido.
 
 ### `loading_sessions`
 
@@ -248,6 +355,27 @@ Checklist e estado do carregamento físico.
 - `uq_loading_sessions__load_plan_id`.
 - `ix_loading_sessions__status`.
 
+`CONFIRMADO`: `status` aceita `PENDING`, `IN_PROGRESS` e `FINISHED`.
+`started_at` existe a partir de `IN_PROGRESS`; `finished_at` existe somente em
+`FINISHED`, nunca antes do início.
+
+### `loading_session_items`
+
+Checklist materializado dos volumes posicionados no plano.
+
+- `id`: UUID, PK.
+- `loading_session_id`: UUID, FK para `loading_sessions.id`, obrigatório.
+- `load_plan_item_id`: UUID, FK para `load_plan_items.id`, obrigatório.
+- `status`: texto obrigatório, `PENDING` ou `CHECKED`.
+
+Índices e constraints:
+
+- `fk_loading_session_items__loading_sessions`.
+- `fk_loading_session_items__load_plan_items`.
+- `uq_loading_session_items__session_plan_item`.
+- índices de `loading_session_id` e `load_plan_item_id`.
+- `ck_loading_session_items__status_allowed`.
+
 ### `trips`
 
 Viagens vinculadas ao plano carregado.
@@ -258,6 +386,7 @@ Viagens vinculadas ao plano carregado.
 - `status`: texto ou enum, obrigatório.
 - `started_at`: timestamptz UTC.
 - `finished_at`: timestamptz UTC.
+- `created_at`: timestamptz UTC, obrigatório.
 
 Índices e constraints:
 
@@ -266,6 +395,15 @@ Viagens vinculadas ao plano carregado.
 - `uq_trips__load_plan_id`.
 - `ix_trips__driver_id`.
 - `ix_trips__status`.
+- `ck_trips__status_allowed`.
+- `ck_trips__timestamps_consistent`.
+
+`CONFIRMADO`: `status` aceita `SCHEDULED`, `IN_ROUTE` e `FINISHED`.
+`started_at` é obrigatório a partir de `IN_ROUTE`; `finished_at` existe somente
+em `FINISHED` e não pode anteceder `started_at`.
+
+`CONFIRMADO`: `created_at` permite ordenar a listagem de viagens de forma
+determinística, usando `id` como desempate na mesma direção.
 
 ### `deliveries`
 
@@ -285,7 +423,18 @@ Entregas planejadas dentro de uma viagem.
 - `ix_deliveries__trip_id`.
 - `ix_deliveries__order_id`.
 - `ix_deliveries__status`.
-- `uq_deliveries__trip_sequence` `RECOMENDAÇÃO`.
+- `uq_deliveries__order_id`.
+- `uq_deliveries__trip_order`.
+- `uq_deliveries__trip_sequence`.
+- `ck_deliveries__status_allowed`.
+- `ck_deliveries__sequence_positive`.
+- `ck_deliveries__completion_consistent`.
+
+`CONFIRMADO`: `status` aceita `PENDING`, `IN_DELIVERY` e `DELIVERED`. Cada pedido
+gera no máximo uma entrega no MVP. `sequence` é 1-based, positiva, contígua e
+única na viagem; sua ordenação deriva de `order_items.delivery_sequence` e do
+UUID do pedido como desempate. Todos os itens de um pedido devem informar a
+mesma sequência. `delivered_at` existe se e somente se o status é `DELIVERED`.
 
 ### `occurrences`
 
@@ -325,6 +474,13 @@ Histórico auditável de mudanças de status.
 - `fk_status_history__users`.
 - `ix_status_history__entity`.
 - `ix_status_history__created_at`.
+- `ck_status_history__entity_type_allowed`.
+
+`CONFIRMADO`: `entity_type`, `old_status` e `new_status` são normalizados em maiúsculas pela camada de schema/service.
+
+`CONFIRMADO` por D10 e `ADR-022`: `entity_type` aceita somente `ORDER`,
+`LOAD_PLAN`, `TRIP` e `DELIVERY`. A OC09 não expõe consulta pública desse
+histórico.
 
 ## Relacionamentos principais
 
@@ -338,19 +494,21 @@ Histórico auditável de mudanças de status.
 - `load_plans` 1:1 `loading_sessions`.
 - `load_plans` 1:1 `trips`.
 - `drivers` 1:N `trips`.
+- `drivers` 1:0..1 `users` por `users.driver_id`.
 - `trips` 1:N `deliveries`.
-- `orders` 1:N `deliveries`.
+- `orders` 1:0..1 `deliveries` no MVP.
 - `trips` 1:N `occurrences`.
 - `deliveries` 1:N `occurrences`.
 - `users` 1:N `status_history` por `changed_by`.
 
 ## Volumes
 
-`CONFIRMADO`: o MVP fala em produtos e volumes.
+`CONFIRMADO`: conforme `ADR-005`, volumes individuais são gerados
+deterministicamente a partir de `order_items.quantity`, usam identidade
+`(order_item_id, volume_index)` com índice iniciado em `1` e são persistidos em
+`load_plan_items`.
 
-`SUPOSIÇÃO TÉCNICA`: no modelo atual, volumes individuais são materializados em `load_plan_items` a partir de `order_items.quantity`; não existe uma tabela separada `volumes`.
-
-`DECISÃO NECESSÁRIA`: o documento-base lista uma tabela `volumes`. A equipe deve decidir se cria uma tabela própria para volumes antes do planejamento ou se mantém a geração determinística por `order_items.quantity` e persistência em `load_plan_items`.
+`CONFIRMADO`: o MVP não terá tabela separada `volumes`.
 
 ## Migrations
 
@@ -360,7 +518,21 @@ Histórico auditável de mudanças de status.
 - Não alterar staging manualmente como solução definitiva.
 - Migrations devem ser pequenas e relacionadas a uma ocorrência.
 
-`PENDENTE DE DEFINIÇÃO`: ferramenta/comando oficial para gerar e aplicar migrations ainda não está documentado em script.
+`CONFIRMADO`: a configuração oficial do Alembic fica em `backend/alembic.ini` e `backend/migrations/env.py`. Os comandos estão documentados em `backend/migrations/README.md`.
+
+`CONFIRMADO`: a migration `20260730_0002` cria `orders` e `order_items` para a ocorrência `OC08`.
+
+`CONFIRMADO`: a migration `20260730_0003` cria `status_history` para a ocorrência `OC10`.
+
+`CONFIRMADO`: a migration `20260804_0004` cria `load_plans`,
+`load_plan_orders` e `load_plan_items` para a integração da `OC20`.
+
+`CONFIRMADO`: a migration `20260809_0007` cria o vínculo opcional e único
+`users.driver_id`; `20260809_0008` fecha o catálogo de `status_history` e cria
+`trips` e `deliveries` para a `OC09`.
+
+`CONFIRMADO`: a migration `20260830_0011` adiciona `trips.created_at` com valor
+gerado pelo PostgreSQL e retrocompatibilidade para viagens existentes.
 
 ## Observação
 

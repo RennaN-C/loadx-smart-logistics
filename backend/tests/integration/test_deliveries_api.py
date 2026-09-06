@@ -1,0 +1,590 @@
+import uuid
+from collections.abc import Callable
+from dataclasses import dataclass
+from datetime import UTC, datetime
+from decimal import Decimal
+
+from fastapi.testclient import TestClient
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from app.modules.customers.models import Customer
+from app.modules.deliveries.models import Delivery, Trip
+from app.modules.drivers.models import Driver
+from app.modules.load_planning.models import LoadPlan, LoadPlanItem, LoadPlanOrder
+from app.modules.loading.reference_service import LoadingReferenceService
+from app.modules.orders.models import Order, OrderItem
+from app.modules.products.models import Product
+from app.modules.status_history.models import StatusHistory
+from app.modules.trucks.models import Truck
+from app.modules.users.models import User
+from tests.integration.auth_helpers import issue_session_headers
+
+SessionFactory = Callable[[], Session]
+
+
+@dataclass(frozen=True)
+class OperationalScenario:
+    load_plan_id: uuid.UUID
+    driver_id: uuid.UUID
+    order_ids: tuple[uuid.UUID, ...]
+    manager_headers: dict[str, str]
+    admin_headers: dict[str, str]
+    driver_headers: dict[str, str]
+    other_driver_headers: dict[str, str]
+    checker_headers: dict[str, str]
+
+
+def seed_operational_scenario(
+    session_factory: SessionFactory,
+) -> OperationalScenario:
+    driver = Driver(
+        name="Motorista da Viagem",
+        document=f"DOC-{uuid.uuid4().hex[:28]}",
+        phone="5500000000000",
+        license_number=f"CNH-{uuid.uuid4().hex[:28]}",
+        license_category="D",
+        active=True,
+    )
+    other_driver = Driver(
+        name="Outro Motorista",
+        document=f"DOC-{uuid.uuid4().hex[:28]}",
+        phone="5511111111111",
+        license_number=f"CNH-{uuid.uuid4().hex[:28]}",
+        license_category="D",
+        active=True,
+    )
+    customer = Customer(
+        name="Cliente Operacional",
+        document=uuid.uuid4().hex,
+        address="Rua Exemplo, 100",
+        city="Sao Paulo",
+        state="SP",
+    )
+    truck = Truck(
+        plate=f"T{uuid.uuid4().hex[:6]}",
+        model="Bau operacional",
+        internal_width_cm=100,
+        internal_height_cm=100,
+        internal_length_cm=100,
+        max_weight_kg=Decimal("1000.00"),
+        active=True,
+    )
+    product = Product(
+        code=f"P-{uuid.uuid4().hex}",
+        name="Caixa operacional",
+        width_cm=10,
+        height_cm=10,
+        length_cm=10,
+        weight_kg=Decimal("1.000"),
+        fragile=False,
+        stackable=True,
+        rotation_allowed=True,
+    )
+
+    with session_factory() as db:
+        db.add_all((driver, other_driver, customer, truck, product))
+        db.flush()
+        manager = User(
+            name="Gestor Operacional",
+            email=f"manager-{uuid.uuid4().hex}@example.test",
+            password_hash="hash-ficticio",
+            role="LOGISTICS_MANAGER",
+            active=True,
+        )
+        admin = User(
+            name="Administrador",
+            email=f"admin-{uuid.uuid4().hex}@example.test",
+            password_hash="hash-ficticio",
+            role="ADMIN",
+            active=True,
+        )
+        driver_user = User(
+            name="Usuario Motorista",
+            email=f"driver-{uuid.uuid4().hex}@example.test",
+            password_hash="hash-ficticio",
+            role="DRIVER",
+            driver_id=driver.id,
+            active=True,
+        )
+        other_driver_user = User(
+            name="Outro Usuario Motorista",
+            email=f"driver-{uuid.uuid4().hex}@example.test",
+            password_hash="hash-ficticio",
+            role="DRIVER",
+            driver_id=other_driver.id,
+            active=True,
+        )
+        checker = User(
+            name="Conferente",
+            email=f"checker-{uuid.uuid4().hex}@example.test",
+            password_hash="hash-ficticio",
+            role="CHECKER",
+            active=True,
+        )
+        db.add_all((manager, admin, driver_user, other_driver_user, checker))
+        db.flush()
+
+        orders = [
+            Order(
+                customer_id=customer.id,
+                status="PLANNED",
+                priority="NORMAL",
+                delivery_address=f"Rua Exemplo, {number}",
+                items=[
+                    OrderItem(
+                        product_id=product.id,
+                        quantity=1,
+                        delivery_sequence=sequence,
+                    )
+                ],
+            )
+            for number, sequence in ((200, 20), (100, 10))
+        ]
+        db.add_all(orders)
+        db.flush()
+        plan = LoadPlan(
+            truck_id=truck.id,
+            status="APPROVED",
+            truck_snapshot_plate=truck.plate,
+            truck_snapshot_model=truck.model,
+            truck_snapshot_internal_width_cm=100,
+            truck_snapshot_internal_height_cm=100,
+            truck_snapshot_internal_length_cm=100,
+            truck_snapshot_max_weight_kg=Decimal("1000.00"),
+            internal_volume_cm3=1_000_000,
+            used_volume_cm3=2_000,
+            occupancy_percent=Decimal("0.20"),
+            total_weight_kg=Decimal("2.000"),
+            loaded_count=2,
+            unloaded_count=0,
+            algorithm_version="integration-test-v1",
+            approved_at=datetime.now(UTC),
+            orders=[LoadPlanOrder(order_id=order.id) for order in orders],
+        )
+        db.add(plan)
+        db.flush()
+        plan.items = [
+            LoadPlanItem(
+                order_id=order.id,
+                order_item_id=order.items[0].id,
+                product_id=product.id,
+                volume_index=1,
+                order_item_snapshot_quantity=1,
+                order_item_snapshot_delivery_sequence=(
+                    order.items[0].delivery_sequence
+                ),
+                product_snapshot_code=product.code,
+                product_snapshot_name=product.name,
+                product_snapshot_width_cm=product.width_cm,
+                product_snapshot_height_cm=product.height_cm,
+                product_snapshot_length_cm=product.length_cm,
+                product_snapshot_weight_kg=product.weight_kg,
+                product_snapshot_fragile=product.fragile,
+                product_snapshot_stackable=product.stackable,
+                product_snapshot_rotation_allowed=product.rotation_allowed,
+                position_x_cm=index * 10,
+                position_y_cm=0,
+                position_z_cm=0,
+                used_width_cm=10,
+                used_height_cm=10,
+                used_length_cm=10,
+                rotation_code="XYZ",
+                loading_sequence=index,
+                placed=True,
+            )
+            for index, order in enumerate(orders, start=1)
+        ]
+        db.commit()
+        identities = {
+            "manager": manager.id,
+            "admin": admin.id,
+            "driver": driver_user.id,
+            "other_driver": other_driver_user.id,
+            "checker": checker.id,
+        }
+        plan_id = plan.id
+        driver_id = driver.id
+        order_ids = tuple(order.id for order in orders)
+
+    return OperationalScenario(
+        load_plan_id=plan_id,
+        driver_id=driver_id,
+        order_ids=order_ids,
+        manager_headers=issue_session_headers(session_factory, identities["manager"]),
+        admin_headers=issue_session_headers(session_factory, identities["admin"]),
+        driver_headers=issue_session_headers(session_factory, identities["driver"]),
+        other_driver_headers=issue_session_headers(
+            session_factory,
+            identities["other_driver"],
+        ),
+        checker_headers=issue_session_headers(session_factory, identities["checker"]),
+    )
+
+
+def create_trip(client: TestClient, scenario: OperationalScenario) -> dict:
+    response = client.post(
+        "/api/v1/trips",
+        json={
+            "load_plan_id": str(scenario.load_plan_id),
+            "driver_id": str(scenario.driver_id),
+        },
+        headers=scenario.manager_headers,
+    )
+    assert response.status_code == 201
+    return response.json()
+
+
+def create_unlinked_driver_headers(
+    session_factory: SessionFactory,
+) -> dict[str, str]:
+    with session_factory() as db:
+        user = User(
+            name="Motorista sem Vinculo",
+            email=f"unlinked-{uuid.uuid4().hex}@example.test",
+            password_hash="hash-ficticio",
+            role="DRIVER",
+            active=True,
+        )
+        db.add(user)
+        db.commit()
+        user_id = user.id
+    return issue_session_headers(session_factory, user_id)
+
+
+def test_admin_and_manager_list_all_trips_while_driver_lists_only_own(
+    client: TestClient,
+    session_factory: SessionFactory,
+) -> None:
+    own_scenario = seed_operational_scenario(session_factory)
+    other_scenario = seed_operational_scenario(session_factory)
+    own_trip = create_trip(client, own_scenario)
+    other_trip = create_trip(client, other_scenario)
+
+    manager = client.get("/api/v1/trips", headers=own_scenario.manager_headers)
+    admin = client.get("/api/v1/trips", headers=own_scenario.admin_headers)
+    driver = client.get("/api/v1/trips", headers=own_scenario.driver_headers)
+
+    expected_ids = {own_trip["id"], other_trip["id"]}
+    assert manager.status_code == 200
+    assert admin.status_code == 200
+    assert {item["id"] for item in manager.json()["items"]} == expected_ids
+    assert {item["id"] for item in admin.json()["items"]} == expected_ids
+    assert driver.status_code == 200
+    assert [item["id"] for item in driver.json()["items"]] == [own_trip["id"]]
+    assert other_trip["id"] not in {item["id"] for item in driver.json()["items"]}
+
+
+def test_trip_listing_rejects_unlinked_inactive_checker_and_anonymous_users(
+    client: TestClient,
+    session_factory: SessionFactory,
+) -> None:
+    scenario = seed_operational_scenario(session_factory)
+    create_trip(client, scenario)
+    unlinked_headers = create_unlinked_driver_headers(session_factory)
+
+    unlinked = client.get("/api/v1/trips", headers=unlinked_headers)
+    checker = client.get("/api/v1/trips", headers=scenario.checker_headers)
+    anonymous = client.get("/api/v1/trips")
+
+    assert unlinked.status_code == 403
+    assert unlinked.json()["code"] == "AUTH_FORBIDDEN"
+    assert checker.status_code == 403
+    assert checker.json()["code"] == "AUTH_FORBIDDEN"
+    assert anonymous.status_code == 401
+    assert anonymous.json()["code"] == "AUTH_INVALID_TOKEN"
+
+    with session_factory() as db:
+        driver = db.get(Driver, scenario.driver_id)
+        assert driver is not None
+        driver.active = False
+        db.commit()
+
+    inactive = client.get("/api/v1/trips", headers=scenario.driver_headers)
+    assert inactive.status_code == 403
+    assert inactive.json()["code"] == "AUTH_FORBIDDEN"
+
+
+def test_trip_listing_paginates_and_orders_by_created_at_then_id(
+    client: TestClient,
+    session_factory: SessionFactory,
+) -> None:
+    scenarios = [seed_operational_scenario(session_factory) for _ in range(3)]
+    trips = [create_trip(client, scenario) for scenario in scenarios]
+    trip_ids = [uuid.UUID(trip["id"]) for trip in trips]
+    early = datetime(2026, 8, 30, 12, 0, tzinfo=UTC)
+    late = datetime(2026, 8, 30, 13, 0, tzinfo=UTC)
+    with session_factory() as db:
+        persisted = [db.get(Trip, trip_id) for trip_id in trip_ids]
+        assert all(trip is not None for trip in persisted)
+        persisted[0].created_at = early
+        persisted[1].created_at = early
+        persisted[2].created_at = late
+        db.commit()
+
+    early_ids = sorted((trip_ids[0], trip_ids[1]), key=lambda value: value.int)
+    expected_asc = [str(identifier) for identifier in (*early_ids, trip_ids[2])]
+    expected_desc = list(reversed(expected_asc))
+    asc = client.get(
+        "/api/v1/trips?sort_order=asc",
+        headers=scenarios[0].manager_headers,
+    )
+    desc = client.get(
+        "/api/v1/trips?sort_order=desc",
+        headers=scenarios[0].manager_headers,
+    )
+    second_page = client.get(
+        "/api/v1/trips?page=2&page_size=2&sort_order=asc",
+        headers=scenarios[0].manager_headers,
+    )
+    beyond = client.get(
+        "/api/v1/trips?page=3&page_size=2",
+        headers=scenarios[0].manager_headers,
+    )
+
+    assert [item["id"] for item in asc.json()["items"]] == expected_asc
+    assert [item["id"] for item in desc.json()["items"]] == expected_desc
+    assert [item["id"] for item in second_page.json()["items"]] == expected_asc[2:]
+    assert second_page.json() | {"items": []} == {
+        "items": [],
+        "page": 2,
+        "page_size": 2,
+        "total": 3,
+        "total_pages": 2,
+    }
+    assert beyond.status_code == 200
+    assert beyond.json()["items"] == []
+    assert beyond.json()["total"] == 3
+    assert beyond.json()["total_pages"] == 2
+
+
+def test_trip_listing_rejects_page_size_above_limit_and_omits_pii(
+    client: TestClient,
+    session_factory: SessionFactory,
+) -> None:
+    scenario = seed_operational_scenario(session_factory)
+    create_trip(client, scenario)
+
+    invalid = client.get(
+        "/api/v1/trips?page_size=101",
+        headers=scenario.manager_headers,
+    )
+    response = client.get(
+        "/api/v1/trips?page=1&page_size=1",
+        headers=scenario.manager_headers,
+    )
+
+    assert invalid.status_code == 422
+    assert response.status_code == 200
+    body = response.json()
+    assert body["page"] == 1
+    assert body["page_size"] == 1
+    assert body["total"] == 1
+    assert body["total_pages"] == 1
+    assert set(body["items"][0]) == {
+        "id",
+        "load_plan_id",
+        "driver_id",
+        "status",
+        "started_at",
+        "finished_at",
+        "created_at",
+        "delivery_count",
+    }
+    assert body["items"][0]["delivery_count"] == 2
+
+
+def test_manager_creates_trip_and_deliveries_in_deterministic_order(
+    client: TestClient,
+    session_factory: SessionFactory,
+) -> None:
+    scenario = seed_operational_scenario(session_factory)
+
+    body = create_trip(client, scenario)
+
+    assert body["status"] == "SCHEDULED"
+    assert [delivery["sequence"] for delivery in body["deliveries"]] == [1, 2]
+    assert [delivery["order_id"] for delivery in body["deliveries"]] == [
+        str(scenario.order_ids[1]),
+        str(scenario.order_ids[0]),
+    ]
+    duplicate = client.post(
+        "/api/v1/trips",
+        json={
+            "load_plan_id": str(scenario.load_plan_id),
+            "driver_id": str(scenario.driver_id),
+        },
+        headers=scenario.manager_headers,
+    )
+    assert duplicate.status_code == 409
+    assert duplicate.json()["code"] == "TRIP_LOAD_PLAN_ALREADY_ASSIGNED"
+
+
+def test_trip_routes_enforce_role_and_object_level_driver_access(
+    client: TestClient,
+    session_factory: SessionFactory,
+) -> None:
+    scenario = seed_operational_scenario(session_factory)
+    trip = create_trip(client, scenario)
+    trip_path = f"/api/v1/trips/{trip['id']}"
+
+    assert client.get(trip_path, headers=scenario.admin_headers).status_code == 200
+    assert client.get(trip_path, headers=scenario.driver_headers).status_code == 200
+    forbidden = client.get(trip_path, headers=scenario.other_driver_headers)
+    checker = client.get(trip_path, headers=scenario.checker_headers)
+
+    assert forbidden.status_code == 403
+    assert forbidden.json()["code"] == "AUTH_FORBIDDEN"
+    assert checker.status_code == 403
+    assert checker.json()["code"] == "AUTH_FORBIDDEN"
+
+
+def test_trip_start_fails_closed_until_loading_is_finished(
+    client: TestClient,
+    session_factory: SessionFactory,
+) -> None:
+    scenario = seed_operational_scenario(session_factory)
+    trip = create_trip(client, scenario)
+
+    response = client.patch(
+        f"/api/v1/trips/{trip['id']}/status",
+        json={"status": "IN_ROUTE"},
+        headers=scenario.manager_headers,
+    )
+
+    assert response.status_code == 409
+    assert response.json()["code"] == "TRIP_LOADING_NOT_FINISHED"
+
+
+def test_finished_loading_releases_only_matching_trip(
+    client: TestClient,
+    session_factory: SessionFactory,
+) -> None:
+    scenario = seed_operational_scenario(session_factory)
+    other_scenario = seed_operational_scenario(session_factory)
+    trip = create_trip(client, scenario)
+
+    loading_response = client.post(
+        "/api/v1/loading-sessions",
+        json={"load_plan_id": str(scenario.load_plan_id)},
+        headers=scenario.checker_headers,
+    )
+    assert loading_response.status_code == 201
+    loading = loading_response.json()
+
+    started = client.patch(
+        f"/api/v1/loading-sessions/{loading['id']}/status",
+        json={"status": "IN_PROGRESS"},
+        headers=scenario.checker_headers,
+    )
+    assert started.status_code == 200
+    assert started.json()["status"] == "IN_PROGRESS"
+
+    incomplete_trip = client.patch(
+        f"/api/v1/trips/{trip['id']}/status",
+        json={"status": "IN_ROUTE"},
+        headers=scenario.manager_headers,
+    )
+    assert incomplete_trip.status_code == 409
+    assert incomplete_trip.json()["code"] == "TRIP_LOADING_NOT_FINISHED"
+
+    incomplete_loading = client.patch(
+        f"/api/v1/loading-sessions/{loading['id']}/status",
+        json={"status": "FINISHED"},
+        headers=scenario.checker_headers,
+    )
+    assert incomplete_loading.status_code == 409
+    assert incomplete_loading.json()["code"] == "LOADING_CHECKLIST_INCOMPLETE"
+
+    for item in loading["items"]:
+        checked = client.patch(
+            f"/api/v1/loading-sessions/{loading['id']}/items/{item['id']}",
+            json={"status": "CHECKED"},
+            headers=scenario.checker_headers,
+        )
+        assert checked.status_code == 200
+
+    finished = client.patch(
+        f"/api/v1/loading-sessions/{loading['id']}/status",
+        json={"status": "FINISHED"},
+        headers=scenario.checker_headers,
+    )
+    assert finished.status_code == 200
+    assert finished.json()["status"] == "FINISHED"
+
+    unrelated_trip = create_trip(client, other_scenario)
+    unrelated_start = client.patch(
+        f"/api/v1/trips/{unrelated_trip['id']}/status",
+        json={"status": "IN_ROUTE"},
+        headers=other_scenario.manager_headers,
+    )
+    assert unrelated_start.status_code == 409
+    assert unrelated_start.json()["code"] == "TRIP_LOADING_NOT_FINISHED"
+
+    released = client.patch(
+        f"/api/v1/trips/{trip['id']}/status",
+        json={"status": "IN_ROUTE"},
+        headers=scenario.manager_headers,
+    )
+    assert released.status_code == 200
+    assert released.json()["status"] == "IN_ROUTE"
+
+
+def test_linked_driver_completes_atomic_trip_delivery_and_order_flow(
+    client: TestClient,
+    session_factory: SessionFactory,
+    monkeypatch,
+) -> None:
+    scenario = seed_operational_scenario(session_factory)
+    trip = create_trip(client, scenario)
+    monkeypatch.setattr(
+        LoadingReferenceService,
+        "is_load_plan_finished",
+        lambda _self, _load_plan_id: True,
+    )
+
+    started = client.patch(
+        f"/api/v1/trips/{trip['id']}/status",
+        json={"status": "IN_ROUTE"},
+        headers=scenario.driver_headers,
+    )
+    assert started.status_code == 200
+    assert started.json()["started_at"] is not None
+
+    for delivery in started.json()["deliveries"]:
+        in_delivery = client.patch(
+            f"/api/v1/deliveries/{delivery['id']}/status",
+            json={"status": "IN_DELIVERY"},
+            headers=scenario.driver_headers,
+        )
+        assert in_delivery.status_code == 200
+        delivered = client.patch(
+            f"/api/v1/deliveries/{delivery['id']}/status",
+            json={"status": "DELIVERED"},
+            headers=scenario.driver_headers,
+        )
+        assert delivered.status_code == 200
+        assert delivered.json()["delivered_at"] is not None
+
+    finished = client.patch(
+        f"/api/v1/trips/{trip['id']}/status",
+        json={"status": "FINISHED"},
+        headers=scenario.driver_headers,
+    )
+    assert finished.status_code == 200
+    assert finished.json()["finished_at"] is not None
+
+    with session_factory() as db:
+        assert {db.get(Order, order_id).status for order_id in scenario.order_ids} == {
+            "DELIVERED"
+        }
+        assert len(db.scalars(select(StatusHistory)).all()) == 13
+        persisted = db.get(Trip, uuid.UUID(trip["id"]))
+        assert persisted is not None
+        assert persisted.status == "FINISHED"
+        assert all(
+            delivery.status == "DELIVERED"
+            for delivery in db.scalars(
+                select(Delivery).where(Delivery.trip_id == persisted.id)
+            )
+        )
