@@ -7,6 +7,7 @@ import { listCustomers } from "../../customers/api/customersApi";
 import { STATUS_LABELS, priorityLabel, statusTone } from "../../orders/components/orderLabels";
 import { useDashboardTotals } from "../hooks/useDashboardTotals";
 import "./DashboardPage.css";
+import { DriverTrips } from "../components/DriverTrips";
 
 const dateFormatter = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" });
 
@@ -33,6 +34,32 @@ export function DashboardPage() {
   const customerNames = new Map(customers.map((customer) => [customer.id, customer.name]));
   const readsPersonalData = user?.role === "ADMIN" || user?.role === "LOGISTICS_MANAGER";
   const canPlan = user?.role === "LOGISTICS_MANAGER";
+
+  /**
+   * O motorista não lê caminhões, produtos, pedidos nem clientes: TODOS os
+   * contadores deste painel respondem 403 para ele. O painel de cadastros
+   * simplesmente não é para esse perfil — o que interessa a ele são as viagens
+   * que recebeu, e é isso que a tela mostra.
+   */
+  if (user?.role === "DRIVER") {
+    return (
+      <div className="entity-page">
+        <header className="entity-header">
+          <div>
+            <h1>Olá, {user.name.split(" ")[0]}</h1>
+            <p className="entity-lede">Suas viagens e o que falta entregar.</p>
+          </div>
+        </header>
+
+        <section className="dash-block">
+          <div className="dash-block-head">
+            <h2>Minhas viagens</h2>
+          </div>
+          <DriverTrips />
+        </section>
+      </div>
+    );
+  }
 
   return (
     <div className="entity-page">

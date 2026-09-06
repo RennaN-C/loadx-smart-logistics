@@ -2,6 +2,13 @@ import { useState, type FormEvent } from "react";
 
 import { AlertBanner } from "../../../components/AlertBanner";
 import { FormField } from "../../../components/FormField";
+import {
+  isCompleteDocument,
+  isCompletePhone,
+  maskDocument,
+  maskPhone,
+  onlyDigits,
+} from "../../../components/masks";
 import { ApiError } from "../../../types/api";
 import { createCustomer, updateCustomer } from "../api/customersApi";
 import type { Customer } from "../types";
@@ -22,8 +29,9 @@ interface CustomerFormProps {
 export function CustomerForm({ customer, onSaved, onCancel }: CustomerFormProps) {
   const isEditing = customer !== undefined;
   const [name, setName] = useState(customer?.name ?? "");
-  const [document, setDocument] = useState(customer?.document ?? "");
-  const [phone, setPhone] = useState(customer?.phone ?? "");
+  // Mascarado ao entrar: o banco guarda dígitos, a tela mostra formatado.
+  const [document, setDocument] = useState(maskDocument(customer?.document ?? ""));
+  const [phone, setPhone] = useState(maskPhone(customer?.phone ?? ""));
   const [address, setAddress] = useState(customer?.address ?? "");
   const [city, setCity] = useState(customer?.city ?? "");
   const [state, setState] = useState(customer?.state ?? "");
@@ -34,12 +42,29 @@ export function CustomerForm({ customer, onSaved, onCancel }: CustomerFormProps)
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setErrorMessage(null);
+
+    // Barra antes de sair da tela: o backend aceita texto livre em `document`,
+    // então um CPF pela metade seria GRAVADO sem reclamação nenhuma.
+    if (!isCompleteDocument(document)) {
+      setErrorMessage(
+        "Documento incompleto. Informe um CPF com 11 dígitos ou um CNPJ com 14.",
+      );
+      return;
+    }
+    if (phone.trim() !== "" && !isCompletePhone(phone)) {
+      setErrorMessage("Telefone incompleto. Informe DDD e número, com 10 ou 11 dígitos.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     const payload = {
       name: name.trim(),
-      document: document.trim(),
-      phone: orNull(phone),
+      // Só os dígitos viajam: a unicidade do documento é comparada como string
+      // no backend, e gravar ora com pontuação ora sem deixaria o mesmo CPF
+      // entrar duas vezes.
+      document: onlyDigits(document),
+      phone: phone.trim() === "" ? null : onlyDigits(phone),
       address: address.trim(),
       city: city.trim(),
       state: state.trim().toUpperCase(),
@@ -78,15 +103,21 @@ export function CustomerForm({ customer, onSaved, onCancel }: CustomerFormProps)
               onChange={(event) => setName(event.target.value)}
             />
           </FormField>
-          <FormField id="customer-document" label="DOCUMENTO" narrow>
+          <FormField
+            id="customer-document"
+            label="DOCUMENTO"
+            tooltip="CPF ou CNPJ do cliente. Digite só os números: a formatação é aplicada sozinha, e o sistema guarda apenas os dígitos."
+            narrow
+          >
             <input
               id="customer-document"
               name="document"
               required
-              maxLength={32}
-              placeholder="CNPJ ou CPF"
+              inputMode="numeric"
+              maxLength={18}
+              placeholder="CPF ou CNPJ"
               value={document}
-              onChange={(event) => setDocument(event.target.value)}
+              onChange={(event) => setDocument(maskDocument(event.target.value))}
             />
           </FormField>
         </div>
@@ -103,14 +134,20 @@ export function CustomerForm({ customer, onSaved, onCancel }: CustomerFormProps)
               onChange={(event) => setAddress(event.target.value)}
             />
           </FormField>
-          <FormField id="customer-phone" label="TELEFONE (OPCIONAL)" narrow>
+          <FormField
+            id="customer-phone"
+            label="TELEFONE (OPCIONAL)"
+            tooltip="Com DDD. Aceita fixo, com 10 dígitos, e celular, com 11."
+            narrow
+          >
             <input
               id="customer-phone"
               name="phone"
-              maxLength={32}
+              inputMode="tel"
+              maxLength={15}
               placeholder="(11) 90000-0000"
               value={phone}
-              onChange={(event) => setPhone(event.target.value)}
+              onChange={(event) => setPhone(maskPhone(event.target.value))}
             />
           </FormField>
         </div>

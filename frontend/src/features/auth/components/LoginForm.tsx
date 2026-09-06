@@ -3,6 +3,7 @@ import { useState, type FormEvent } from "react";
 import { ApiError } from "../../../types/api";
 import { useAuth } from "../hooks/useAuth";
 import { mapLoginErrorToMessage } from "./loginErrorMessages";
+import { AlertBanner } from "../../../components/AlertBanner";
 
 export function LoginForm() {
   const { login } = useAuth();
@@ -29,11 +30,7 @@ export function LoginForm() {
 
   return (
     <form className="login-card" onSubmit={handleSubmit}>
-      {errorMessage ? (
-        <div className="login-alert" role="alert">
-          {errorMessage}
-        </div>
-      ) : null}
+      {errorMessage ? <AlertBanner>{errorMessage}</AlertBanner> : null}
 
       <div>
         <h2>Entrar</h2>
@@ -85,7 +82,7 @@ export function LoginForm() {
         </div>
       </fieldset>
 
-      <button type="submit" className="login-submit" disabled={isSubmitting}>
+      <button type="submit" className="btn-primary login-submit" disabled={isSubmitting}>
         {isSubmitting ? (
           <>
             <span className="spinner" aria-hidden="true" />

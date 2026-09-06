@@ -38,6 +38,21 @@ export interface Trip {
   deliveries: Delivery[];
 }
 
+/**
+ * O que `GET /trips` devolve por item. É um resumo: sem as entregas, só a
+ * contagem delas — quem precisa da rota abre `GET /trips/{id}`.
+ */
+export interface TripListItem {
+  id: string;
+  loadPlanId: string;
+  driverId: string;
+  status: TripStatus;
+  startedAt: string | null;
+  finishedAt: string | null;
+  createdAt: string;
+  deliveryCount: number;
+}
+
 export interface TripInput {
   loadPlanId: string;
   driverId: string;

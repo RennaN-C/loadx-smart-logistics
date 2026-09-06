@@ -33,14 +33,18 @@ Duas travas do backend viram estado visível na tela, não erro depois do clique
 
 ## Como se chega aqui
 
-**O backend não lista viagens** — só `POST /trips` e `GET /trips/{id}`. A porta de entrada é o plano
-de carga aprovado: `PlanSummary` mostra "Criar viagem" quando o plano está `APPROVED`, e depois de
-criada a viagem vive em `/trips/:tripId`.
+Por dois caminhos.
 
-`RISCO IDENTIFICADO`: sem rota de listagem, **um motorista não tem como encontrar a própria viagem**
-pela interface — ele depende de receber o link. O caminho previsto é a notificação por WhatsApp
-(`OC36`-`OC40`), mas enquanto isso não existir, ou o backend precisa de um `GET /trips` filtrado pelo
-motorista logado, ou o perfil `DRIVER` fica sem porta de entrada.
+**Criando**, a partir do plano de carga aprovado: `PlanSummary` mostra "Criar viagem" quando o plano
+está `APPROVED`, e depois de criada a viagem vive em `/trips/:tripId`.
+
+**Pela lista**, com `GET /trips` paginado. `ADMIN` e `LOGISTICS_MANAGER` veem todas; `DRIVER` recebe
+**somente as dele** — o recorte é feito em `deliveries/service.py`, não no frontend. Repetir esse
+filtro aqui seria duplicar no cliente uma regra de acesso que já é aplicada onde importa.
+
+`RESOLVIDO`: o `DRIVER` tinha ficado sem porta de entrada enquanto a listagem não existia, e o
+painel dele abria com contadores que respondiam 403. Agora a tela inicial do motorista lista as
+viagens dele, com carregando, vazio, erro e link para cada uma.
 
 ## Bloqueio conhecido: nenhuma viagem inicia hoje
 

@@ -15,7 +15,7 @@ interface CreateTripActionProps {
 }
 
 /**
- * Único caminho para criar viagem: o plano aprovado. O backend não lista viagens
+ * Único caminho para CRIAR viagem: o plano aprovado. A viagem criada aparece
  * nem planos, então a navegação precisa partir daqui — depois de criada, a
  * viagem vive em `/trips/:tripId`.
  */
