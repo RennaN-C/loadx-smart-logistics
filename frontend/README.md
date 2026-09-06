@@ -16,6 +16,21 @@ Dockerfiles fixam `22.23.1` para manter o ambiente reproduzível.
 
 O frontend exibe o plano calculado. Ele não decide validade física nem recalcula posições.
 
+## API no desenvolvimento
+
+`CONFIRMADO`: o cliente usa `VITE_API_URL=/api/v1`, e o servidor de
+desenvolvimento do Vite encaminha `/api` sem reescrever o caminho. O target vem
+de `DEV_API_PROXY_TARGET` e usa `http://localhost:8000` quando a variável não
+está definida. No Compose, somente o frontend substitui esse target por
+`http://backend:8000` para acessar o backend pela rede interna.
+
+O desenvolvimento local normal não precisa definir `DEV_API_PROXY_ORIGIN`; sem
+ela, o proxy não força o header `Origin`. Em um ambiente atrás de túnel ou
+reverse proxy, como o GitHub Codespaces, essa variável pode receber
+explicitamente a origem pública do frontend. O mesmo valor deve continuar na
+lista exata de `BACKEND_CORS_ORIGINS`; não há wildcard nem confiança automática
+em headers recebidos pelo Vite.
+
 ## Headers do navegador
 
 `CONFIRMADO`: os servidores `vite` e `vite preview` emitem CSP com origens de

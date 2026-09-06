@@ -2,7 +2,8 @@ import react from "@vitejs/plugin-react";
 import { loadEnv } from "vite";
 import { defineConfig } from "vitest/config";
 
-const DEFAULT_API_URL = "http://localhost:8000/api/v1";
+const DEFAULT_API_URL = "/api/v1";
+const DEFAULT_DEV_API_PROXY_TARGET = "http://localhost:8000";
 
 function getApiOrigin(apiUrl: string): string | null {
   try {
@@ -50,14 +51,31 @@ function createSecurityHeaders(
   };
 }
 
+export function createDevApiProxyOptions(target: string, origin?: string) {
+  return {
+    target,
+    ...(origin ? { headers: { Origin: origin } } : {}),
+  };
+}
+
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
   const apiUrl = process.env.VITE_API_URL ?? env.VITE_API_URL ?? DEFAULT_API_URL;
+  const devApiProxyTarget =
+    process.env.DEV_API_PROXY_TARGET ??
+    env.DEV_API_PROXY_TARGET ??
+    DEFAULT_DEV_API_PROXY_TARGET;
+  const devApiProxyOrigin =
+    process.env.DEV_API_PROXY_ORIGIN ?? env.DEV_API_PROXY_ORIGIN;
+
   return {
     plugins: [react()],
     server: {
       // só o dev server precisa de inline; ver createSecurityHeaders
       headers: createSecurityHeaders(apiUrl, { allowInlineScripts: true }),
+      proxy: {
+        "/api": createDevApiProxyOptions(devApiProxyTarget, devApiProxyOrigin),
+      },
       watch: {
         usePolling: true,
       },
