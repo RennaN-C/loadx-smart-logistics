@@ -13,7 +13,9 @@ RUN python -m pip install --no-cache-dir --upgrade "pip==26.1.2" \
         /usr/local/bin/pip3 \
         /usr/local/bin/pip3.12
 
-COPY . .
+COPY alembic.ini ./
+COPY app/ ./app/
+COPY migrations/ ./migrations/
 
 RUN find . -type f -name "*.py" -exec chmod 0644 {} + \
     && useradd --create-home --uid 10001 loadx \
