@@ -722,6 +722,12 @@ Corpo das transições:
 }
 ```
 
+`CONFIRMADO`: `PATCH /trips/{id}/status` retorna `TripRead`, com as entregas da
+viagem. `PATCH /deliveries/{id}/status` retorna somente a entrega alterada em
+`DeliveryRead` (`id`, `trip_id`, `order_id`, `status`, `sequence`, `delivered_at`),
+conforme `deliveries/router.py`; não retorna a viagem inteira. Esta descrição
+explicita o contrato implementado, sem alterar a API.
+
 Regras de autorização:
 
 - somente `LOGISTICS_MANAGER` cria viagem;
@@ -852,6 +858,9 @@ automático para o mesmo fato.
 `CONFIRMADO`: ambos retornam `application/pdf` com `Content-Disposition:
 attachment`. O relatório é gerado em memória a partir dos dados persistidos e
 não exige armazenamento permanente na v1.0.0.
+
+`CONFIRMADO`: as duas rotas PDF aceitam somente `ADMIN` e `LOGISTICS_MANAGER`,
+conforme `ReportUser` em `reports/router.py`.
 
 ## Erros
 

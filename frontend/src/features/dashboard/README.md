@@ -24,5 +24,7 @@ que alguns números não carregaram. Para quem não lê dado pessoal, esses cont
 
 ## Fora de escopo
 
-Indicadores calculados (aproveitamento médio, evolução no tempo) dependem do módulo `reports`, que hoje
-é um stub vazio no backend — é a `OC35`. Gráficos entram junto com ela.
+`CONFIRMADO`: `/reports` já apresenta indicadores de pedidos e o backend gera
+PDFs de carregamento e viagem. Ocupação média da frota e evolução no tempo
+continuam futuras; não há endpoint de agregação geral. O painel do motorista
+já usa `DriverTrips` para listar suas viagens.

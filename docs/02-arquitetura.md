@@ -33,7 +33,8 @@ PostgreSQL
 - Testes: Pytest, Vitest e Testing Library.
 - Integrações: IA e WhatsApp por ports/adapters, iniciando com providers mock.
 
-`PENDENTE DE DEFINIÇÃO`: biblioteca final para relatórios PDF no frontend não está definida. No backend, `reportlab` já está listado em `backend/requirements.txt`.
+`CONFIRMADO`: o backend gera relatórios PDF com `reportlab`; o frontend baixa
+os arquivos por `features/reports/api/reportsApi.ts`, sem gerador PDF próprio.
 
 ## Backend
 
@@ -119,7 +120,7 @@ Responsabilidades por pasta:
   inicia backend e frontend para desenvolvimento local.
 - `infra/database`: instruções complementares de banco e seeds.
 - `infra/scripts`: scripts auxiliares idempotentes quando possível.
-- `infra/ci`: documentação do pipeline futuro.
+- `infra/ci`: documentação do pipeline implementado em `.github/workflows/ci.yml`.
 - `.env.example`: contrato de variáveis esperadas, sem segredos reais.
 
 ## Dependências permitidas

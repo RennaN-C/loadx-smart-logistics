@@ -5,7 +5,8 @@
   validação oficial das migrations.
 - `integration`: API, repositories e PostgreSQL 16 exclusivo de teste, criado
   pelas migrations Alembic.
-- `e2e`: fluxo completo quando o MVP estiver integrado.
+- `e2e`: `CONFIRMADO`, fluxo integrado de cadastro até entrega, ocorrência e
+  relatórios em `test_complete_flow.py`, usando PostgreSQL 16 exclusivo.
 
 `CONFIRMADO`: readiness possui testes unitários de orçamento, sigilo e
 comparação de revisions, além de integração real com PostgreSQL disponível,

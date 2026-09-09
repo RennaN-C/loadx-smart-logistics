@@ -108,9 +108,10 @@ export async function changeTripStatus(id: string, status: TripStatus): Promise<
   return mapTripFromDto(data);
 }
 
-/** Devolve a viagem inteira: a entrega alterada não vem sozinha. */
+/** O PATCH devolve somente a entrega; o GET seguinte recarrega a viagem completa. */
 export async function changeDeliveryStatus(id: string, status: DeliveryStatus): Promise<Trip> {
-  const { data } = await api.patch<TripDto>(`/deliveries/${id}/status`, { status });
+  const { data } = await api.patch<DeliveryDto>(`/deliveries/${id}/status`, { status });
+  const delivery = mapDelivery(data);
 
-  return mapTripFromDto(data);
+  return getTrip(delivery.tripId);
 }

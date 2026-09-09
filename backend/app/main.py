@@ -30,7 +30,7 @@ def create_app(app_settings: Settings | None = None) -> FastAPI:
     expose_api_docs = current_settings.app_env == "local"
     application = FastAPI(
         title="LoadX API",
-        version="0.1.0",
+        version="1.0.0",
         docs_url="/docs" if expose_api_docs else None,
         redoc_url="/redoc" if expose_api_docs else None,
         openapi_url="/openapi.json" if expose_api_docs else None,

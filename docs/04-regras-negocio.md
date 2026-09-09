@@ -38,12 +38,22 @@ Legenda:
 | Produtos | R | G | R | S futuro |
 | Pedidos | R | G | R | S futuro |
 | Planos de carga | R e explicar | G, calcular, comparar, aprovar e explicar | S e explicar plano aprovado | - |
-| Carregamento | R | G e supervisionar | S em checklist atribuído | S para consulta |
+| Carregamento | R | Criar, consultar e operar carregamento/checklist | Criar, consultar e operar carregamento/checklist | - |
 | Viagens | R | G e atribuir | - | S em transições permitidas |
 | Entregas | R | G e tratar exceções | - | S em transições permitidas |
-| Ocorrências | R | G, classificar e resolver | S em carregamento | S em viagem ou entrega |
+| Ocorrências | R | Criar e consultar | - | Criar e consultar somente nas próprias viagens/entregas |
 | Histórico geral | R | R | - | - |
-| Relatórios | R e gerar | R e gerar | S de carregamento | S da própria viagem |
+| Relatórios | R e gerar | R e gerar | - | - |
+
+`CONFIRMADO`: as linhas de carregamento, ocorrências e relatórios refletem o
+comportamento atual da v1.0.0, conforme ajuste documental autorizado pela equipe.
+Não existe vínculo de atribuição de carregamento/checklist a conferente, nem
+classificação/resolução de ocorrências. As evoluções de acesso desses três
+recursos constam no [roadmap pós-v1.0.0](10-roadmap-inicial.md#evolução-do-acesso-a-carregamento-ocorrências-e-relatórios).
+Este ajuste não altera permissões implementadas nem o restante da matriz.
+
+`RISCO IDENTIFICADO`: a referência de histórico geral permanece na matriz,
+mas não existe consulta pública de histórico geral, conforme `docs/05`.
 
 Regras complementares:
 
@@ -72,7 +82,7 @@ Regras complementares:
   próprio, salvo integração externa futura com autenticação própria aprovada.
 - O primeiro `ADMIN` é criado por comando administrativo local, executado antes da exposição da API e somente quando não existem usuários.
 - Depois do bootstrap, somente `ADMIN` cria usuários por `POST /api/v1/users`.
-- `POST /api/v1/auth/register` não faz parte do contrato aprovado e deve ser removido na `OC51`.
+- `CONFIRMADO`: `POST /api/v1/auth/register` foi removido na `OC51` e não faz parte do contrato aprovado.
 - O último `ADMIN` ativo não pode ser desativado ou rebaixado.
 
 `CONFIRMADO` por D18 e `ADR-020`:
@@ -395,8 +405,10 @@ Desenvolvedor 4.
   `finished_at` em UTC.
 - `CONFIRMADO`: somente a sessão `FINISHED` do mesmo plano libera o início da
   viagem; sessão ausente, incompleta ou pertencente a outro plano não libera.
-- `CONFIRMADO`: `CHECKER` e `LOGISTICS_MANAGER` operam; `ADMIN` apenas consulta;
-  `DRIVER` não acessa os endpoints de carregamento.
+- `CONFIRMADO`: `CHECKER` e `LOGISTICS_MANAGER` criam, consultam e operam
+  carregamento/checklist; `ADMIN` apenas consulta; `DRIVER` não tem acesso na
+  v1.0.0. Não existe atribuição a conferente nem autorização por objeto para
+  `CHECKER`; essas evoluções e a possível consulta pelo `DRIVER` são futuras.
 
 ## Viagem e entrega
 
@@ -463,6 +475,10 @@ Regras:
   serviço externo de fotos.
 - Ocorrência deve estar vinculada a viagem e, quando aplicável, a entrega.
 - Registro de ocorrência não deve excluir nem sobrescrever histórico.
+- `CONFIRMADO`: na v1.0.0, `ADMIN` consulta; `LOGISTICS_MANAGER` cria e consulta;
+  `DRIVER` cria e consulta somente nas próprias viagens/entregas. `CHECKER` não
+  tem acesso. Ocorrência vinculada ao carregamento, registro durante conferência
+  e acesso do `CHECKER` nesse contexto são evoluções futuras.
 
 ## WhatsApp e mensagens
 
@@ -510,6 +526,9 @@ domínio. Operação rejeitada e repetição idempotente não geram notificaçã
 
 ## Relatórios
 
+- `CONFIRMADO`: na v1.0.0, somente `ADMIN` e `LOGISTICS_MANAGER` geram e
+  consultam relatórios. `CHECKER` e `DRIVER` não têm acesso; relatório de
+  carregamento para `CHECKER` e da própria viagem para `DRIVER` são futuros.
 - `CONFIRMADO`: relatório de carregamento reflete plano, caminhão, volumes,
   sequência, conferência, início, fim e status.
 - `CONFIRMADO`: relatório de viagem reflete viagem, caminhão, entregas, status,

@@ -37,5 +37,8 @@ pessoais. Criar e editar é exclusivo do `LOGISTICS_MANAGER`.
 ## Fora de escopo
 
 Busca e filtro server-side (D12): atuam só na página carregada. Exclusão não existe rota; desativar é
-`active: false` via PATCH. O vínculo entre `users` e `drivers` não existe no backend, então o perfil
-`DRIVER` ainda não enxerga nada além de `/auth/me`.
+`active: false` via PATCH.
+
+`CONFIRMADO`: o vínculo `users.driver_id` existe no backend, é administrado por
+`ADMIN` e permite ao `DRIVER` ativo acessar suas viagens e entregas. Usuário
+sem vínculo permanece sem acesso operacional, conforme `ADR-022`.

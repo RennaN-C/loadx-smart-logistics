@@ -1,6 +1,6 @@
 # Feature: deliveries
 
-Acompanhamento de viagem e entregas (OC34). Consome `POST /trips`, `GET /trips/{id}`,
+Acompanhamento de viagem e entregas (OC34). Consome `GET /trips`, `POST /trips`, `GET /trips/{id}`,
 `PATCH /trips/{id}/status` e `PATCH /deliveries/{id}/status`.
 
 ## O que existe hoje
@@ -42,27 +42,35 @@ está `APPROVED`, e depois de criada a viagem vive em `/trips/:tripId`.
 **somente as dele** — o recorte é feito em `deliveries/service.py`, não no frontend. Repetir esse
 filtro aqui seria duplicar no cliente uma regra de acesso que já é aplicada onde importa.
 
-`RESOLVIDO`: o `DRIVER` tinha ficado sem porta de entrada enquanto a listagem não existia, e o
+`CONFIRMADO`: o `DRIVER` tinha ficado sem porta de entrada enquanto a listagem não existia, e o
 painel dele abria com contadores que respondiam 403. Agora a tela inicial do motorista lista as
 viagens dele, com carregando, vazio, erro e link para cada uma.
 
-## Bloqueio conhecido: nenhuma viagem inicia hoje
+## Carregamento e início da viagem
 
-Validado contra a API real em 2026-08-09: `PATCH /trips/{id}/status` com `IN_ROUTE` responde
-**409 `TRIP_LOADING_NOT_FINISHED`** — *"A viagem só pode iniciar após a finalização do carregamento."*
+`CONFIRMADO`: o backend possui carregamento persistido, checklist e finalização.
+`LoadingReferenceService` libera `SCHEDULED -> IN_ROUTE` quando a sessão do
+mesmo plano está `FINISHED`; ausência ou incompletude retorna
+`TRIP_LOADING_NOT_FINISHED`. O fluxo positivo está coberto por
+`backend/tests/e2e/test_complete_flow.py`.
 
-O módulo `loading` do backend ainda é um **stub vazio** (só `README.md` e `__init__.py`), então não
-existe como finalizar carregamento. Na prática **toda viagem fica presa em `SCHEDULED`**, e com ela o
-ciclo de entregas, que exige a viagem em rota.
+`RISCO IDENTIFICADO`: `components/tripsErrorMessages.ts` ainda afirma que o
+carregamento não existe ao traduzir esse erro. O texto está desatualizado e foi
+registrado para correção própria, preservando o comportamento nesta preparação.
 
-A tela está correta e trata o erro, mas a mensagem foi escrita para explicar a situação em vez de
-repetir o backend — sem isso o usuário ficaria tentando descobrir o que fazer. Quando o módulo de
-carregamento existir, a mensagem deve voltar a ser só a tradução do código.
+`CONFIRMADO`: `PATCH /deliveries/{id}/status` retorna somente `DeliveryRead`.
+`changeDeliveryStatus` interpreta essa resposta como `DeliveryDto`, mapeia a
+entrega e usa seu `trip_id` para recarregar `GET /trips/{trip_id}`. O hook
+`useTripPage` substitui o estado pela viagem completa desse GET, sem reconstrução
+parcial no navegador. A assinatura pública do adapter continua `Promise<Trip>`;
+`TripPage` permanece compatível e é seu único consumidor de produção.
 
-O que **foi** validado ao vivo: criação da viagem a partir do plano aprovado, recusa de plano não
-aprovado, recusa de plano já em viagem, chaves de viagem e entrega batendo com os DTOs, situação
-inicial `SCHEDULED`/`PENDING`, recusa de entrega antes da viagem em rota e recusa de transição pulando
-etapa.
+`CONFIRMADO`: falha no PATCH não dispara GET. Falha no GET posterior propaga o
+erro para a tela, preserva o último estado conhecido e não repete automaticamente
+o PATCH; a alteração pode já estar persistida e uma recarga da página consulta
+o estado atual. Os testes `api/tripsApi.test.ts` e
+`pages/TripPage.integration.test.tsx` cobrem contratos, erros e o ciclo
+`PENDING -> IN_DELIVERY -> DELIVERED` com adapter e hook reais.
 
 ## Permissões
 

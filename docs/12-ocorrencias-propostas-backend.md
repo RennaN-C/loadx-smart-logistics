@@ -17,13 +17,18 @@ e D05 em 2026-08-06. `OC56` foi desbloqueada por D06 na mesma data. D12 foi
 aprovada em 2026-08-07 e desbloqueou a `OC59`. `OC52`, `OC53`, `OC55`, `OC56`
 e `OC59` foram integradas em `desenvolvimento` pelo PR #14.
 
-`CONFIRMADO`: a `OC58` está implementada e validada localmente, pendente de PR e
-revisão.
+`CONFIRMADO`: a implementação da `OC58` já integra a base `desenvolvimento`
+utilizada na preparação da v1.0.0, com `/ready` e seus testes.
 
 `CONFIRMADO`: D07 a D10 e D21 foram aprovadas em 2026-08-09. A `OC09` está
-implementada e validada localmente na branch `rennan`, pendente de PR e revisão;
-o início real da viagem permanece bloqueado de forma segura até o módulo de
-carregamento confirmar `FINISHED`.
+integrada na base `desenvolvimento`, com listagem paginada de viagens. O
+carregamento persistido já confirma `FINISHED` e libera o início da viagem
+quando o checklist está completo. Registros de validação nas seções abaixo são
+históricos das ocorrências, não contagens atuais da suíte.
+
+`CONFIRMADO`: os problemas originais e critérios abaixo preservam o contexto de
+cada ocorrência; não significam que um defeito de ocorrência já integrada
+continue presente. A auditoria atual está em `docs/11-riscos-pendencias.md`.
 
 ## Resumo de prioridade
 
@@ -38,9 +43,9 @@ carregamento confirmar `FINISHED`.
 | `OC55` | Média | Desenvolvedor 1, com revisão do Desenvolvedor 4 | Integrada em `desenvolvimento` |
 | `OC56` | Média | Desenvolvedor 1 e Desenvolvedor 3 | Integrada em `desenvolvimento` |
 | `OC57` | Média | Desenvolvedor 2 | Absorvida e resolvida pela revisão da `OC11` |
-| `OC58` | Baixa | Desenvolvedor 1, com apoio do Desenvolvedor 4 | Implementada e validada localmente; pendente de PR e revisão |
+| `OC58` | Baixa | Desenvolvedor 1, com apoio do Desenvolvedor 4 | Integrada em `desenvolvimento` |
 | `OC59` | Média | Desenvolvedor 1 e Desenvolvedor 3 | Integrada em `desenvolvimento` |
-| `OC60` | Alta | Desenvolvedor 1 | Aprovada por D18; em implementação |
+| `OC60` | Alta | Desenvolvedor 1 | Implementada na base `desenvolvimento`, conforme D18 |
 
 As referências `DXX` apontam para `docs/decisoes-equipe-backend.txt`.
 
@@ -713,8 +718,8 @@ validação local cobre regras unitárias, rollback, OpenAPI, API e PostgreSQL 1
 ### Dependências e bloqueios
 
 - `CONFIRMADO`: planejamento de carga persistido e aprovado.
-- `PENDENTE DE DEFINIÇÃO`: carregamento implementado e finalizado para liberar
-  a transição positiva `SCHEDULED -> IN_ROUTE` no runtime real.
+- `CONFIRMADO`: carregamento persistido e checklist implementados; sessão
+  `FINISHED` do mesmo plano libera `SCHEDULED -> IN_ROUTE`.
 - `CONFIRMADO`: `OC51` fornece autenticação e ator da mudança.
 - `CONFIRMADO`: `OC52` fornece o padrão atômico de histórico.
 - `CONFIRMADO`: D07 a D10 e D21 foram resolvidas por `ADR-022`.
