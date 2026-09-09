@@ -8,19 +8,11 @@ Permitir que ChatGPT, Codex, Copilot, Claude ou outra IA compreenda o LoadX sem 
 
 ## Arquivos que a IA deve consultar
 
-Antes de programar:
-
-1. `AGENTS.md`.
-2. `README.md`.
-3. `docs/00-visao-produto.md`.
-4. `docs/01-escopo-mvp.md`.
-5. `docs/02-arquitetura.md`.
-6. `docs/03-modelo-dados.md`.
-7. `docs/04-regras-negocio.md`.
-8. `docs/05-contratos-api.md`.
-9. `docs/08-padroes-desenvolvimento.md`.
-10. README da pasta ou módulo afetado.
-11. ADRs relacionadas em `docs/decisions`.
+`CONFIRMADO`: antes de programar, siga a ordem de leitura de
+[AGENTS.md](../AGENTS.md#antes-de-qualquer-alteração), incluindo a identificação
+da ocorrência aprovada. As leituras específicas abaixo complementam essa
+ordem. Este guia preserva o contexto de tarefas, os procedimentos por área e os
+critérios de revisão; os READMEs técnicos dos módulos continuam necessários.
 
 Antes de alterar banco:
 
@@ -65,15 +57,11 @@ Adicione testes para colisão e limites.
 
 ## Padrões obrigatórios
 
-- Respeitar escopo do MVP.
-- Preservar monólito modular.
-- Manter nomes técnicos em inglês.
-- Usar centímetros, quilogramas e UTC.
-- Usar `x = largura`, `y = altura`, `z = comprimento`.
-- Seguir camadas `router -> schemas -> service -> repository -> model`.
-- Criar apenas arquivos necessários para a ocorrência atual.
-- Atualizar documentação quando mudar arquitetura, banco, regras, fluxos, API ou padrões.
-- Usar marcadores `CONFIRMADO`, `RECOMENDAÇÃO`, `SUPOSIÇÃO TÉCNICA`, `PENDENTE DE DEFINIÇÃO`, `DECISÃO NECESSÁRIA` e `RISCO IDENTIFICADO` quando houver incerteza.
+`CONFIRMADO`: escopo, convenções, arquitetura, marcadores de incerteza e regras
+de geração de código estão centralizados em [AGENTS.md](../AGENTS.md).
+Os padrões técnicos por camada e o fluxo Git estão em
+[docs/08](08-padroes-desenvolvimento.md). A seleção pós-MVP deve seguir o
+planejamento aprovado da versão, preservando as convenções existentes.
 
 ## Forma correta de implementar novas funcionalidades
 

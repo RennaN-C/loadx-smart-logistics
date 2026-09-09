@@ -12,6 +12,14 @@ Este arquivo é a fonte principal de contexto para qualquer IA que ajude a progr
 6. Verifique ADRs relacionadas em `docs/decisions/`.
 7. Verifique se a alteração pertence a uma ocorrência aprovada.
 
+`CONFIRMADO`: para trabalho pós-v1.0.0, consulte a divisão da versão em
+[docs/07-divisao-equipe.md](docs/07-divisao-equipe.md). O planejamento aprovado
+da v1.1.0 fica em [docs/planejamento/v1.1.0/00-visao-geral.md](docs/planejamento/v1.1.0/00-visao-geral.md).
+OC01–OC61 são histórico e não devem ser renumeradas nem ter seus números
+reutilizados. OC62 é a primeira ocorrência nova pós-v1.0.0; a v1.1.0 usa
+OC62–OC78. O planejamento não substitui os critérios de aceite das Issues nem
+aprova automaticamente novos contratos ou regras.
+
 ## Marcadores obrigatórios de incerteza
 
 Use estes marcadores sempre que documentar ou reportar algo:

@@ -4,7 +4,9 @@
 MVP. As entregas presentes na preparação da v1.0.0 estão no
 [Changelog](../CHANGELOG.md); a lista de sprints não é uma lista de pendências.
 
-`CONFIRMADO`: a numeração de referência para ocorrências passa a ser a do documento-base anexado: `OC01` a `OC48`.
+`CONFIRMADO`: a numeração histórica do MVP segue o documento-base anexado:
+`OC01` a `OC48`. A divisão pós-v1.0.0 de `OC62` a `OC78` está no
+[planejamento da v1.1.0](planejamento/v1.1.0/00-visao-geral.md).
 
 `RISCO IDENTIFICADO`: versões anteriores deste documento usavam outra sequência `OC-01` a `OC-30`. Para evitar conflito entre os 4 desenvolvedores, novas issues e PRs devem usar `OCXX` conforme `docs/07-divisao-equipe.md`.
 
@@ -135,12 +137,44 @@ Entregável integrado:
 ## Roadmap pós-v1.0.0
 
 `CONFIRMADO`: os itens desta seção foram registrados na preparação da release
-por solicitação da equipe e não foram implementados nesta tarefa.
-`DECISÃO NECESSÁRIA`: cada evolução exige ocorrência, critérios de aceite e
-aprovação antes de implementar; alterações de dados, contratos, estados,
-integrações e escopo seguem as ADRs. Não há fornecedor, prazo ou nova dependência
-aprovados por esta lista. Pendências técnicas existentes permanecem em
+por solicitação da equipe. A seleção abaixo oficializa o planejamento da
+v1.1.0; nenhuma funcionalidade foi implementada nesta tarefa documental.
+`PENDENTE DE DEFINIÇÃO`: detalhar os critérios de aceite nas Issues da v1.1.0.
+`DECISÃO NECESSÁRIA`: alterações de dados, contratos, estados, integrações e
+regras seguem as aprovações e ADRs do projeto. A seleção não define prazos,
+fornecedores de observabilidade ou storage nem novas dependências técnicas.
+Pendências técnicas existentes permanecem em
 [docs/11](11-riscos-pendencias.md).
+
+### Seleção planejada para v1.1.0
+
+`CONFIRMADO`: as funcionalidades abaixo estão **PLANEJADAS para v1.1.0**, com
+todas as OCs em status inicial **PENDENTE**. Responsáveis, resumos e dependências
+estão no [planejamento oficial](planejamento/v1.1.0/00-visao-geral.md).
+
+| Funcionalidade planejada | OCs da v1.1.0 | Responsáveis |
+|---|---|---|
+| ViaCEP no backend e cadastro de clientes | OC62, OC70 | Renan, Marlon |
+| Validação de CPF, CNPJ, CNH e telefone e feedback | OC63, OC71 | Renan, Marlon |
+| Conflitos de caminhões e motoristas | OC64, OC65 | Renan |
+| RBAC granular de carregamento e conferência | OC66 | Renan |
+| Serviço e interface de disponibilidade | OC67, OC72 | João, Marlon |
+| API de status dos caminhões e painel da frota | OC68, OC73 | João, Marlon |
+| API de indicadores e dashboard operacional | OC69, OC74 | João, Marlon |
+| Conferência por QR Code/código de barras | OC75, OC76 | Marlon, Marcelo |
+| Observabilidade de produção | OC77 | Marcelo |
+| Estrutura operacional para comprovante de entrega | OC78 | Marcelo |
+
+`CONFIRMADO`: os demais itens permanecem como evoluções futuras **fora da
+v1.1.0**, incluindo WhatsApp real, IA externa/conversacional, distribuição de
+pedido em múltiplos caminhões, GPS, acompanhamento e notificações ao cliente,
+roteirização e custos logísticos. A seleção de OC66 não inclui automaticamente
+as ampliações de ocorrências e relatórios; OC78 seleciona a estrutura
+operacional, sem aprovar todos os recursos futuros de evidências.
+
+`CONFIRMADO`: OC01–OC61 são histórico e permanecem sem renumeração.
+**OC62 é a primeira ocorrência nova pós-v1.0.0**; a seleção da v1.1.0 usa
+OC62–OC78, sem reutilizar números anteriores.
 
 ### Integração real com WhatsApp
 
@@ -211,6 +245,9 @@ histórico antes de alterar as cardinalidades atuais. Não implementar agora.
 
 ### Disponibilidade de caminhões
 
+`CONFIRMADO`: **PLANEJADA para v1.1.0** em OC64 (Renan), OC67 (João) e OC72
+(Marlon). Os critérios operacionais abaixo ainda precisam ser detalhados.
+
 `CONFIRMADO`: `Truck.active` controla habilitação cadastral; o planejamento
 recusa caminhão inativo. `Trip` obtém o caminhão pelo plano, e a unicidade de
 `trips.load_plan_id` impede duas viagens para o mesmo plano. Existem estados de
@@ -225,6 +262,9 @@ uso, planejado, carregando, em rota ou disponível; avaliar manutenção.
 
 ### Disponibilidade de motoristas
 
+`CONFIRMADO`: **PLANEJADA para v1.1.0** em OC65 (Renan) e OC72 (Marlon), com
+alinhamento de consulta junto a João na OC67.
+
 `CONFIRMADO`: a criação de viagem exige motorista ativo e bloqueia seu registro
 durante a transação, mas não consulta viagens incompatíveis do mesmo motorista.
 O vínculo único `users.driver_id` controla identidade, não agenda.
@@ -233,6 +273,10 @@ O vínculo único `users.driver_id` controla identidade, não agenda.
 incompatíveis, com critérios de reserva e liberação aprovados.
 
 ### Monitoramento operacional da frota
+
+`CONFIRMADO`: **PLANEJADO para v1.1.0** em OC68 (João) e OC73 (Marlon).
+`PENDENTE DE DEFINIÇÃO`: aprovar a correspondência dos rótulos operacionais;
+a inclusão do painel não aprova um fluxo de manutenção de veículos.
 
 `PENDENTE DE DEFINIÇÃO`: central operacional com visão de disponível, programado,
 carregando, em rota, finalizado e manutenção. Esses rótulos são possibilidades
@@ -260,6 +304,11 @@ não equivalem a notificações reais ao cliente.
 
 ### Comprovante de entrega
 
+`CONFIRMADO`: a **estrutura operacional está PLANEJADA para v1.1.0** na OC78
+(Marcelo). O limite dessa estrutura será detalhado na Issue; foto, assinatura,
+localização e storage real abaixo continuam como possibilidades futuras, sem
+inclusão automática nesta versão.
+
 `PENDENTE DE DEFINIÇÃO`: foto, assinatura, responsável pelo recebimento,
 data/hora, eventual localização e storage real de evidências.
 `CONFIRMADO`: já há `delivered_at`; foto de ocorrência é somente referência
@@ -267,6 +316,9 @@ data/hora, eventual localização e storage real de evidências.
 `DECISÃO NECESSÁRIA`: definir retenção, acesso e proteção das evidências.
 
 ### QR Code / código de barras
+
+`CONFIRMADO`: **PLANEJADO para v1.1.0** em OC75 (Marlon, interface) e OC76
+(Marcelo, backend), em alinhamento com OC66 (Renan, RBAC).
 
 `PENDENTE DE DEFINIÇÃO`: conferir volumes durante o carregamento por leitura de
 código vinculado à identidade do volume, preservando o checklist e suas regras.
@@ -285,6 +337,10 @@ integram o modelo atual do MVP.
 
 ### Dashboard operacional
 
+`CONFIRMADO`: **PLANEJADO para v1.1.0** em OC69 (João, API de indicadores) e
+OC74 (Marlon, dashboard). O catálogo e os períodos dos indicadores serão
+detalhados nas Issues; os exemplos abaixo não criam novos estados de domínio.
+
 `CONFIRMADO`: existem contadores de cadastros/pedidos, lista de viagens do
 motorista e indicadores de pedidos no frontend. Não há agregação geral de frota.
 
@@ -294,31 +350,51 @@ rejeitados e motivos de rejeição, com período e contratos de agregação defi
 
 ### Integração com ViaCEP
 
-`PENDENTE DE DEFINIÇÃO`: consultar futuramente a API ViaCEP para facilitar e
-padronizar endereços. Fluxo esperado: usuário informa CEP; frontend/backend
-consulta a integração; quando disponível, preenche logradouro, bairro,
+`CONFIRMADO`: **PLANEJADA para v1.1.0** em OC62 (Renan, integração no backend)
+e OC70 (Marlon, cadastro de clientes).
+
+`PENDENTE DE DEFINIÇÃO`: detalhar nas Issues a consulta ao ViaCEP para facilitar
+e padronizar endereços. Fluxo esperado: usuário informa CEP; o frontend consome
+a integração centralizada no backend; quando disponível, preenche logradouro, bairro,
 cidade/localidade, UF e demais informações úteis. O usuário completa número,
 complemento e campos ausentes e pode corrigir os valores manualmente.
 
-Requisitos futuros:
+`RECOMENDAÇÃO`: pontos para detalhamento nas Issues:
 
 - validar formato do CEP e tratar CEP inexistente;
 - tratar indisponibilidade e timeouts sem impedir inadequadamente o cadastro;
 - permitir preenchimento e correção manual em caso de falha externa;
-- definir cadastros abrangidos, avaliando inicialmente clientes;
+- atender o cadastro de clientes; outros cadastros permanecem fora da seleção;
 - evitar duplicação da regra de endereço entre frontend e backend;
 - centralizar a integração em adapter/service, sem espalhar HTTP pelo domínio;
 - testar com mocks/fakes, sem depender da API real na suíte automatizada.
 
-`DECISÃO NECESSÁRIA`: definir responsabilidade pela consulta e eventual evolução
-do contrato de endereço antes de criar campos, endpoints ou migrations.
-`CONFIRMADO`: ViaCEP foi somente documentado como evolução pós-v1.0.0; nenhuma
-consulta, dependência ou integração foi implementada nesta preparação.
+`DECISÃO NECESSÁRIA`: aprovar eventual evolução do contrato de endereço antes
+de criar campos, endpoints ou migrations.
+`CONFIRMADO`: ViaCEP permanece somente planejado; nenhuma consulta, dependência
+ou integração foi implementada nesta organização documental.
+
+### Validação formal de documentos e telefone
+
+`CONFIRMADO`: **PLANEJADA para v1.1.0** em OC63 (Renan, CPF, CNPJ, CNH e
+telefone no backend) e OC71 (Marlon, validações e feedback na interface).
+`PENDENTE DE DEFINIÇÃO`: detalhar regras, formatos aceitos e mensagens nas
+Issues, preservando a coerência entre backend e frontend.
+
+### Observabilidade de produção
+
+`CONFIRMADO`: **PLANEJADA para v1.1.0** na OC77 (Marcelo), sobre a base
+operacional já documentada em `docs/08` e na `ADR-021`.
+`PENDENTE DE DEFINIÇÃO`: detalhar sinais, logs, alertas, destino e retenção na
+Issue. Este planejamento não escolhe fornecedor nem altera infraestrutura.
 
 ### Evolução do acesso a carregamento, ocorrências e relatórios
 
 `CONFIRMADO`: o RBAC da v1.0.0 está descrito em `docs/04-regras-negocio.md`.
-Os itens abaixo são futuros e não concedem acesso nesta release:
+O **RBAC granular de carregamento e conferência está PLANEJADO para v1.1.0**
+na OC66 (Renan). A matriz detalhada deve ser aprovada na Issue; este registro
+não concede novas permissões. Ampliações de ocorrências e relatórios abaixo
+permanecem futuras, fora da seleção desta versão:
 
 - `PENDENTE DE DEFINIÇÃO`: atribuição de carregamento a conferente e autorização
   por objeto para `CHECKER`; avaliar possível consulta de carregamento pelo
