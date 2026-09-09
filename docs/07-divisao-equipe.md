@@ -4,6 +4,10 @@
 
 `CONFIRMADO`: a divisão abaixo consolida a estrutura atual do repositório e o documento-base anexado `LoadX_Divisao_4_Desenvolvedores_Ocorrencias.txt`.
 
+`CONFIRMADO`: as responsabilidades e OC01–OC48 abaixo são preservadas como
+histórico/MVP da v1.0.0, sem renumeração. A distribuição das novas ocorrências
+está na seção [pós-v1.0.0](#pós-v100--planejamento-da-v110).
+
 ## Regras de trabalho por ownership
 
 - Cada ocorrência deve ter um responsável primário.
@@ -206,3 +210,27 @@ Todos os desenvolvedores participam de:
 - A IA pode apoiar implementação, revisão e documentação, mas o responsável humano valida escopo, regra e teste.
 
 `RISCO IDENTIFICADO`: o roadmap antigo usava outra numeração de ocorrências. A partir desta padronização, a numeração do documento-base (`OC01` a `OC48`) deve ser a referência para divisão de trabalho.
+
+## Pós-v1.0.0 — planejamento da v1.1.0
+
+`CONFIRMADO`: a divisão oficial de OC62–OC78 para a v1.1.0 está em
+[docs/planejamento/v1.1.0](planejamento/v1.1.0/00-visao-geral.md), com objetivo,
+dependências, ordem recomendada e fluxo Git
+`branch do dev -> desenvolvimento -> release/v1.1.0 -> main`.
+
+| Desenvolvedor | Responsável | Ocorrências | Planejamento |
+|---|---|---|---|
+| DEV 1 | Renan | OC62–OC66 | [Renan](planejamento/v1.1.0/01-renan.md) |
+| DEV 2 | João | OC67–OC69 | [João](planejamento/v1.1.0/02-joao.md) |
+| DEV 3 | Marlon | OC70–OC75 | [Marlon](planejamento/v1.1.0/03-marlon.md) |
+| DEV 4 | Marcelo | OC76–OC78 | [Marcelo](planejamento/v1.1.0/04-marcelo.md) |
+
+`CONFIRMADO`: todas as novas OCs têm status inicial **PENDENTE**. Os arquivos
+individuais trazem resumos; descrição detalhada e critérios de aceite ficarão
+nas Issues do GitHub.
+
+`CONFIRMADO`: OC01–OC61 são histórico e permanecem sem renumeração, incluindo
+as [propostas anteriores](12-ocorrencias-propostas-backend.md) de OC49–OC60 e a
+OC61 registrada na [ADR-021](decisions/ADR-021-runtime-producao-tls-proxy-e-segredos.md).
+**OC62 é a primeira ocorrência nova pós-v1.0.0**; a v1.1.0 usa OC62–OC78,
+sem reutilizar números anteriores.

@@ -13,7 +13,7 @@ Alterações nesta documentação devem ser rastreáveis por ocorrência, PR ou 
 - `04-regras-negocio.md`: regras obrigatórias, estados, ocorrências, WhatsApp, IA e relatórios.
 - `05-contratos-api.md`: endpoints, formatos, erros, segurança de API e integrações.
 - `06-fluxo-operacional.md`: jornadas principais do cadastro ao relatório.
-- `07-divisao-equipe.md`: responsabilidade dos quatro integrantes e ocorrências `OC01` a `OC48`.
+- `07-divisao-equipe.md`: histórico/MVP de `OC01` a `OC48` e acesso à divisão pós-v1.0.0.
 - `08-padroes-desenvolvimento.md`: Git, PR, nomenclatura, camadas, banco, testes, logs e segurança.
 - `09-guia-para-ia.md`: como orientar agentes de programação.
 - `10-roadmap-inicial.md`: sequência original de sprints e roadmap pós-v1.0.0.
@@ -23,6 +23,9 @@ Alterações nesta documentação devem ser rastreáveis por ocorrência, PR ou 
 - `decisions/`: registros de decisões arquiteturais.
 - `diagrams/`: diagramas Mermaid, UML e banco.
 - `prompts/`: modelos de prompt para IA.
+- [planejamento/v1.1.0](planejamento/v1.1.0/00-visao-geral.md): divisão oficial
+  OC62–OC78 entre Renan, João, Marlon e Marcelo, dependências e fluxo da release.
+  OC01–OC61 são histórico; OC62 é a primeira ocorrência nova pós-v1.0.0.
 
 `CONFIRMADO`: as entregas da v1.0.0 estão no [Changelog](../CHANGELOG.md).
 
