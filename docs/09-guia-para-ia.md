@@ -98,7 +98,7 @@ Adicione testes para colisão e limites.
 6. Adicionar teste mínimo de repository, API ou regra afetada.
 7. Não alterar banco manualmente como solução definitiva.
 
-`PENDENTE DE DEFINIÇÃO`: comando oficial de Alembic ainda deve ser documentado quando a configuração inicial for implementada.
+`CONFIRMADO`: comandos oficiais de Alembic estão documentados em `backend/migrations/README.md`.
 
 ## Comportamentos proibidos
 

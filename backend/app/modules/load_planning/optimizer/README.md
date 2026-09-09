@@ -26,9 +26,176 @@ Implementa a heurística tridimensional do LoadX.
 5. validar limites;
 6. validar colisões;
 7. validar apoio e empilhamento;
-8. escolher posição;
-9. calcular métricas.
+8. validar peso e profundidade em relação à porta;
+9. escolher posição;
+10. gerar a sequência topológica de carregamento;
+11. calcular métricas e revalidar o resultado completo.
 
 ## Restrições
 
 O otimizador não acessa banco, HTTP, FastAPI ou provedor de IA. Ele recebe objetos simples e retorna resultado determinístico.
+
+## OC11 - capacidade do caminhão
+
+`CONFIRMADO`: o cálculo inicial de capacidade fica em `capacity.py`.
+
+Entrada:
+
+- `internal_width_cm`;
+- `internal_height_cm`;
+- `internal_length_cm`;
+- `max_weight_kg`.
+
+Saída:
+
+- dimensões internas preservadas em centímetros;
+- `internal_volume_cm3`;
+- `max_weight_kg`.
+
+Regras:
+
+- Dimensões internas devem ser maiores que zero.
+- Peso máximo deve ser maior que zero.
+- Peso máximo deve ser um `Decimal` finito.
+- O cálculo é determinístico e não acessa banco, HTTP ou IA.
+
+## OC12 - volume individual e expansão
+
+`CONFIRMADO`: `contracts.py` contém contratos imutáveis para o item antes da expansão, a identidade individual e o volume expandido. `volumes.py`:
+
+- calcula `width_cm * height_cm * length_cm` com inteiros positivos;
+- exige peso positivo e finito em `Decimal`;
+- exige uma sequência ordenada de itens;
+- rejeita `order_item_id` duplicado;
+- materializa exatamente `quantity` unidades;
+- preserva pedido, item, produto, nome opcional, dimensões originais, peso, flags físicas e sequência de entrega;
+- retorna uma tupla e não altera a sequência recebida.
+
+`CONFIRMADO`: conforme `ADR-005`, `expand_order_items` atribui `volume_index` de `1` a `quantity` para cada item, sem opção de base alternativa.
+
+`CONFIRMADO`: não existe tabela separada `volumes`; cada unidade é persistida diretamente em `load_plan_items`.
+
+## OC13 - ordenação determinística
+
+`CONFIRMADO`: `ordering.py` recebe uma sequência de volumes individuais e retorna uma nova tupla pela ordem total aprovada em `ADR-006`:
+
+1. `volume_cm3` decrescente;
+2. `weight_kg` decrescente;
+3. não empilhável primeiro;
+4. não frágil primeiro;
+5. `delivery_sequence` decrescente;
+6. valor inteiro não assinado do UUID de `order_item_id` crescente;
+7. `volume_index` crescente.
+
+`CONFIRMADO`: coleções não ordenadas, elementos com contrato incorreto e identidades duplicadas são rejeitados. A entrada não é alterada.
+
+## OC14 - rotações ortogonais
+
+`CONFIRMADO`: `rotations.py` gera orientações na ordem `XYZ`, `XZY`, `YXZ`, `YZX`, `ZXY`, `ZYX`, em que o código informa quais eixos originais ocupam os eixos usados `x`, `y` e `z`.
+
+`CONFIRMADO`: cada orientação registra `rotation_code`, `used_width_cm`, `used_height_cm` e `used_length_cm`.
+
+`CONFIRMADO`: `rotation_allowed = false` preserva somente `XYZ`. Orientações com dimensões usadas iguais são deduplicadas e mantêm o primeiro código da prioridade oficial, conforme `ADR-007`.
+
+## OC15 - posicionamento first-fit provisório
+
+`CONFIRMADO`: `placement.py` gera a origem `(0, 0, 0)` e as origens das três faces positivas de cada `PositionedAABB`: `(x + width, y, z)`, `(x, y + height, z)` e `(x, y, z + length)`. Coordenadas iguais são deduplicadas.
+
+`CONFIRMADO`: `select_first_valid_candidate` percorre as combinações pela chave `(y, z, x, rotation_rank)` e retorna a primeira que passa pelos limites internos e por `validate_candidate`. O rank das rotações segue a `ADR-007`.
+
+`CONFIRMADO`: `validate_candidate` é obrigatório, não possui default permissivo e só é chamado depois que o candidato passa por `fits_within_bounds`. O callback recebe um `PlacementCandidate` com o volume, a rotação e a caixa AABB.
+
+`CONFIRMADO`: quando nenhuma rotação cabe nas dimensões internas, a busca usa `TRUCK_DIMENSIONS_EXCEEDED`. Quando há rotação dimensionalmente viável, mas nenhuma combinação é aceita, usa o fallback `NO_VALID_POSITION`.
+
+`RISCO IDENTIFICADO`: `PlacementCandidate` representa somente um candidato provisório. A OC15 delega colisão ao validador da OC16 e apoio, empilhamento e fragilidade ao validador da OC17; mesmo com essas políticas, o resultado não pode ser publicado antes da composição do peso, do motivo final e da revalidação física integrada.
+
+## OC16 - colisão AABB
+
+`CONFIRMADO`: `geometry.py` valida dimensões positivas, coordenadas não negativas e os limites exatos dos três eixos. Também classifica duas caixas como `SEPARATED`, `TOUCHING` ou `POSITIVE_OVERLAP`.
+
+`CONFIRMADO`: as primitivas e os campos persistidos de dimensão e coordenada usam inteiros em centímetros, conforme as ADRs 002 e 008 e `docs/03-modelo-dados.md`.
+
+`CONFIRMADO`: conforme a `ADR-009`, somente `POSITIVE_OVERLAP`, com extensão estritamente positiva nos eixos `x`, `y` e `z`, é colisão. `TOUCHING` por face, aresta ou vértice é permitido e a tolerância geométrica é zero.
+
+`CONFIRMADO`: `is_collision_free(candidate_box, placed_boxes)` aceita o candidato apenas quando nenhuma caixa da sequência já posicionada possui sobreposição positiva com ele. A decisão não depende da ordem dessas caixas.
+
+`CONFIRMADO`: a OC16 não implementa apoio, empilhamento, fragilidade, engine, persistência ou API. `COLLISION` integra o catálogo aprovado na OC18, mas o validador permanece booleano e seu mapeamento para o motivo final pertence à engine.
+
+## OC17 - apoio, empilhamento e fragilidade
+
+`CONFIRMADO`: conforme a `ADR-010`, `support.py` considera integralmente apoiado o volume no piso, em `y = 0`. Acima do piso, um suporte direto exige que seu topo coincida exatamente com a base do volume apoiado e que haja sobreposição com extensão positiva nos eixos `x` e `z`.
+
+`CONFIRMADO`: a área apoiada é a união geométrica exata dos retângulos de contato de todos os suportes diretos. Regiões sobrepostas são contadas uma única vez, e a união deve cobrir 100% da base, sem tolerância, arredondamento ou apoio parcial.
+
+`CONFIRMADO`: toda aresta de apoio transmite carga positiva por todos os ramos até os ancestrais. Cada suporte direto deve ter `stackable = true`, e nenhum suporte direto ou ancestral que receba carga pode ter `fragile = true`.
+
+`CONFIRMADO`: um candidato `fragile` ou `stackable = false` pode ficar no topo quando nenhum volume acima transmite carga para ele. Não existe conceito nem limite de volume "pesado" para a regra de fragilidade.
+
+`CONFIRMADO`: a API pura é formada por `SupportAssessment`, `analyze_support_configuration`, `is_support_configuration_valid` e `is_candidate_support_valid`. Ela valida a configuração completa para que um novo candidato também não torne inválidos volumes já posicionados.
+
+`CONFIRMADO`: a OC17 não implementa engine, API HTTP ou persistência. Seus motivos estruturais integram o catálogo aprovado na OC18, mas o mapeamento do resultado booleano para o motivo final pertence à engine.
+
+## OC18 - controle de peso isolado
+
+`CONFIRMADO`: `weight.py` calcula o próximo peso com `Decimal`, aceita igualdade ao máximo e levanta exceção de domínio quando o candidato excede a capacidade, sem mutar o peso atual.
+
+`CONFIRMADO`: excesso usa `TRUCK_WEIGHT_EXCEEDED`; entrada inválida usa `INVALID_WEIGHT_INPUT` e aborta o cálculo em vez de rejeitar um volume. O acumulado só deve ser substituído pelo valor retornado em uma tentativa aceita, garantindo que apenas volumes colocados componham o total.
+
+`CONFIRMADO`: `rejections.py` define o catálogo e a precedência total da `ADR-011`. `select_rejection_reason` escolhe o motivo de maior prioridade independentemente da ordem recebida e rejeita valores fora do catálogo.
+
+## OC19 - aproveitamento e métricas
+
+`CONFIRMADO`: `metrics.py` recebe coleções explícitas e disjuntas de volumes colocados e rejeitados. `used_volume_cm3` e `total_weight_kg` somam somente os colocados; as contagens refletem o tamanho de cada coleção.
+
+`CONFIRMADO`: conforme a `ADR-012`, `occupancy_percent = used_volume_cm3 / internal_volume_cm3 * 100`. O cálculo usa `Decimal`, arredonda somente o resultado final para duas casas com `ROUND_HALF_UP` e não usa `float`.
+
+`CONFIRMADO`: carga sem colocados retorna `0.00`, ocupação integral retorna `100.00` e volume colocado acima da capacidade é erro de domínio, sem clamp silencioso. A API pura é formada por `LoadMetrics` e `calculate_load_metrics`.
+
+`CONFIRMADO`: a versão inicial exposta pelo núcleo é `heuristic-v1`. Mudança futura em regra determinística que altere o resultado exige nova versão.
+
+## OC20 - engine e sequência de carregamento
+
+`CONFIRMADO`: `engine.py` compõe capacidade, expansão, ordenação, rotações,
+first-fit, colisão, apoio, peso, motivos e métricas. Dimensão e peso são gates
+universais; a busca espacial registra o estágio físico mais avançado alcançado
+para escolher um motivo explicativo.
+
+`CONFIRMADO`: a porta fica em `z = internal_length_cm`. A profundidade usa a
+distância da face do volume voltada à porta, e maior `delivery_sequence` não pode
+ficar menos profunda que uma entrega anterior.
+
+`CONFIRMADO`: `loading_sequence.py` ordena o grafo de apoio por Kahn. Suportes
+sempre aparecem antes dos volumes apoiados; os disponíveis usam entrega
+decrescente, distância da porta decrescente e identidade estável.
+
+`CONFIRMADO`: a engine rejeita input vazio e mais de 200 volumes antes de alocar a
+expansão, retorna partição completa de colocados/rejeitados e revalida limites,
+rotações, colisões, apoio, peso, profundidade, sequência e métricas.
+
+## OC21 - reutilização da engine
+
+`CONFIRMADO`: a comparação em `comparison.py` executa `calculate_load_plan` sem
+alteração para cada um de 2 a 10 caminhões candidatos, sempre com o mesmo conjunto
+de no máximo 200 volumes. O resultado individual é equivalente à execução direta
+da engine, inclusive nas posições, rejeições, métricas e `algorithm_version`.
+
+A comparação é transitória e não ranqueada. Ela não adiciona `score`, pesos de
+ranking, desempates entre caminhões ou vencedor; também não persiste resultados
+nem cria ou persiste registros SQLAlchemy de plano; produz apenas resultados da
+engine em memória. Uma eventual ordem técnica da coleção não representa
+preferência de negócio. Schema, preflight de banco, resposta HTTP, RBAC e garantia
+de não persistência ficam nas camadas públicas do módulo. Caminhão válido que não
+comporte a carga produz rejeições normais da engine. Estado da OC21: concluída.
+
+## Fronteira com a OC22
+
+`CONFIRMADO`: o builder interno em `load_planning/explanation.py` consome somente
+um plano persistido já calculado e o transforma deterministicamente em dados
+estruturados. Ele não integra provider, não produz texto por IA, não recalcula o
+plano e não participa de nenhuma decisão física.
+
+Provider, credenciais, comunicação externa e políticas de disponibilidade
+ficam fora do otimizador. A OC22 usa `LoadPlanExplanationService`, a port
+`AIProvider`, provider fake e fallback determinístico sem participar de nenhuma
+decisão física. O adapter externo concreto pertence ao Desenvolvedor 4. Estado da
+OC22: concluída.

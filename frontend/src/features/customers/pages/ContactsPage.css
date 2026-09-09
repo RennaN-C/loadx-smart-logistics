@@ -1,0 +1,77 @@
+/* A casca da tela (.entity-*) e as abas (.tabs) vêm de app/styles.css.
+   Aqui fica só o card, compartilhado pelos painéis de clientes e de motoristas
+   porque os dois mostram a mesma coisa: uma pessoa/empresa com contato. */
+
+.contacts-panel {
+  padding-top: 4px;
+}
+
+.contact-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.contact-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.contact-card-name {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.contact-card-line {
+  font-size: 0.87rem;
+  color: var(--muted);
+  margin: 0;
+}
+
+.contact-card-notes {
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--muted);
+  border-left: 2px solid var(--accent);
+  padding-left: 10px;
+  margin: 6px 0 0;
+}
+
+.contact-card-license {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+  margin: 10px 0 0;
+}
+
+.contact-card-license dt {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+
+.contact-card-license dd {
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+  font-weight: 700;
+  margin: 4px 0 0;
+}
+
+.contact-card-foot {
+  display: flex;
+  justify-content: flex-end;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+  margin-top: auto;
+}

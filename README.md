@@ -4,6 +4,17 @@ Sistema inteligente para otimização, planejamento e acompanhamento de cargas l
 
 O **LoadX** é um projeto acadêmico desenvolvido por uma equipe de quatro integrantes. Seu objetivo é auxiliar empresas de transporte na organização de volumes dentro do baú de caminhões, buscando melhorar o aproveitamento do espaço, reduzir erros no carregamento e facilitar a comunicação entre responsáveis logísticos, conferentes e motoristas.
 
+## Versão atual
+
+`CONFIRMADO`: **LoadX v1.0.0 — MVP**, em preparação para a primeira release
+oficial. É a primeira versão funcional integrada do sistema, com planejamento
+tridimensional de cargas, operação logística, frontend, backend, banco de dados,
+testes e infraestrutura. As entregas estão no [Changelog](CHANGELOG.md).
+
+`CONFIRMADO`: WhatsApp usa provider mock e simulador controlado; a explicação de
+planos usa `AIProvider` com provider fake e fallback determinístico. Integrações
+reais e outras evoluções estão no [roadmap pós-v1.0.0](docs/10-roadmap-inicial.md#roadmap-pós-v100).
+
 ## Sobre o projeto
 
 O sistema recebe as dimensões internas do baú do caminhão e as informações dos volumes que serão transportados, como:
@@ -19,15 +30,14 @@ O sistema recebe as dimensões internas do baú do caminhão e as informações 
 
 Com base nesses dados, o LoadX utiliza algoritmos de otimização tridimensional para encontrar uma disposição válida para os volumes.
 
-O resultado do planejamento poderá ser visualizado em uma representação 3D do baú, exibindo a posição, orientação e sequência de carregamento de cada volume.
+`CONFIRMADO`: o resultado do planejamento é visualizado em uma representação 3D do baú, exibindo a posição, orientação e sequência de carregamento de cada volume.
 
-O sistema também acompanhará o processo de carregamento e entrega, permitindo atualizações de status, registro de ocorrências, geração de relatórios e comunicação com motoristas por meio do WhatsApp.
+`CONFIRMADO`: o sistema acompanha carregamento e entrega, permite atualizações de status, ocorrências e relatórios e simula comunicação com motoristas por meio do provider mock de WhatsApp.
 
 ## Objetivo geral
 
 Desenvolver um sistema inteligente capaz de planejar automaticamente a disposição de volumes em caminhões, melhorar o aproveitamento do espaço disponível e acompanhar o processo logístico desde o carregamento até a conclusão das entregas.
 
-<<<<<<< HEAD
 1. `AGENTS.md`
 2. `docs/00-visao-produto.md`
 3. `docs/01-escopo-mvp.md`
@@ -38,11 +48,8 @@ Desenvolver um sistema inteligente capaz de planejar automaticamente a disposiç
 8. `docs/08-padroes-desenvolvimento.md`
 9. `docs/09-guia-para-ia.md`
 10. `docs/11-riscos-pendencias.md`
-=======
-## Funcionalidades do MVP
->>>>>>> 951b75cc3937e883a81c1017cd86a60729194875
 
-A primeira versão do LoadX deverá permitir:
+`CONFIRMADO`: o MVP funcional permite:
 
 * autenticação de usuários;
 * cadastro de clientes;
@@ -59,11 +66,13 @@ A primeira versão do LoadX deverá permitir:
 * cálculo do percentual de ocupação;
 * identificação dos volumes que não couberam;
 * geração da sequência de carregamento;
+* comparação básica e determinística de até 10 caminhões candidatos;
+* explicação técnica de um plano persistido pela port de IA com provider fake ou fallback determinístico;
 * visualização tridimensional da carga;
 * acompanhamento do carregamento;
 * atualização do status das entregas;
 * registro de ocorrências;
-* integração real ou simulada com WhatsApp;
+* integração simulada com WhatsApp;
 * geração de relatórios em PDF.
 
 ## Tecnologias
@@ -103,14 +112,14 @@ A primeira versão do LoadX deverá permitir:
 
 ### Integrações
 
-* WhatsApp Business Cloud API
-* API de Inteligência Artificial
+* `CONFIRMADO`: WhatsApp por interface e provider mock, sem envio real.
+* `CONFIRMADO`: IA por port `AIProvider`, provider fake e fallback determinístico.
 
 ## Arquitetura
 
 O projeto utiliza uma arquitetura de monólito modular.
 
-A aplicação será dividida em módulos internos, mas continuará sendo executada como um único sistema.
+`CONFIRMADO`: a aplicação é dividida em módulos internos e executada como um único sistema.
 
 ```text
 Frontend React
@@ -149,6 +158,9 @@ loadx-smart-logistics/
 │   ├── migrations/
 │   ├── tests/
 │   ├── requirements.txt
+│   ├── requirements.lock.txt
+│   ├── requirements-dev.txt
+│   ├── requirements-dev.lock.txt
 │   └── Dockerfile
 │
 ├── frontend/
@@ -179,9 +191,9 @@ loadx-smart-logistics/
 
 ## Convenções do cálculo tridimensional
 
-O sistema utilizará centímetros para dimensões e quilogramas para peso.
+`CONFIRMADO`: o sistema utiliza centímetros para dimensões e quilogramas para peso.
 
-O sistema de coordenadas será:
+`CONFIRMADO`: o sistema de coordenadas é:
 
 ```text
 X = largura do baú
@@ -189,44 +201,45 @@ Y = altura do baú
 Z = comprimento do baú
 ```
 
-A origem das coordenadas será o canto frontal esquerdo do piso do baú.
+`CONFIRMADO`: a origem das coordenadas é o canto frontal esquerdo do piso do baú.
 
 ```text
 Origem: X = 0, Y = 0, Z = 0
 ```
 
-Cada volume planejado deverá possuir:
+`CONFIRMADO`: exemplo parcial dos campos de um volume posicionado retornado pela
+API; o contrato completo está em `docs/05-contratos-api.md`:
 
 ```json
 {
-  "volume_id": 1,
-  "posicao_x": 0,
-  "posicao_y": 0,
-  "posicao_z": 0,
-  "largura": 60,
-  "altura": 50,
-  "comprimento": 40,
-  "rotacao": "XYZ",
-  "ordem_carregamento": 1
+  "id": "00000000-0000-4000-8000-000000000001",
+  "x_cm": 0,
+  "y_cm": 0,
+  "z_cm": 0,
+  "width_cm": 60,
+  "height_cm": 50,
+  "length_cm": 40,
+  "rotation_code": "XYZ",
+  "loading_sequence": 1
 }
 ```
 
 ## Papel da Inteligência Artificial
 
-A Inteligência Artificial será utilizada como apoio ao sistema.
+`CONFIRMADO`: a port de Inteligência Artificial apoia a explicação de planos
+persistidos, com provider fake e fallback determinístico no MVP.
 
-Ela poderá:
+`PENDENTE DE DEFINIÇÃO`: uma integração externa futura poderá:
 
 * interpretar mensagens enviadas pelos motoristas;
 * identificar a intenção de uma mensagem;
 * classificar ocorrências;
-* gerar explicações sobre o planejamento da carga;
-* apresentar recomendações logísticas;
+* gerar explicações técnicas sobre um planejamento já calculado;
 * resumir resultados e relatórios.
 
-As validações de espaço, dimensões, peso e colisões serão realizadas por algoritmos determinísticos.
+`CONFIRMADO`: as validações de espaço, dimensões, peso e colisões são realizadas por algoritmos determinísticos.
 
-A IA não será responsável por decidir matematicamente se um volume cabe ou não no caminhão.
+`CONFIRMADO`: a IA não decide matematicamente se um volume cabe ou não no caminhão.
 
 ## Fluxo principal
 
@@ -294,6 +307,7 @@ Responsável por:
 * heurística de posicionamento;
 * cálculo de ocupação;
 * sequência de carregamento;
+* comparação básica entre caminhões e preparação dos dados explicáveis do plano;
 * testes matemáticos.
 
 ### Desenvolvedor 3: Frontend e visualização 3D
@@ -334,6 +348,27 @@ Antes de iniciar, instale:
 * Docker
 * Docker Compose
 
+### Ambiente de desenvolvimento
+
+`CONFIRMADO`: o backend separa as dependências da seguinte forma:
+
+* `requirements.txt`: dependências de runtime;
+* `requirements.lock.txt`: lock de produção;
+* `requirements-dev.txt`: dependências de runtime e ferramentas de desenvolvimento;
+* `requirements-dev.lock.txt`: lock usado para desenvolvimento e CI.
+
+Para desenvolver ou testar o backend, acesse a pasta `backend` e execute:
+
+```bash
+python -m pip install --require-hashes -r requirements-dev.lock.txt
+```
+
+No frontend, após atualizar a branch, acesse a pasta `frontend` e execute:
+
+```bash
+npm ci
+```
+
 ### Clonar o repositório
 
 ```bash
@@ -360,13 +395,24 @@ Preencha as variáveis necessárias no arquivo `.env`.
 Exemplo:
 
 ```env
-DATABASE_URL=postgresql://loadx:loadx@db:5432/loadx
-SECRET_KEY=altere-esta-chave
+APP_ENV=local
+DATABASE_URL=postgresql+psycopg://loadx:loadx_local@db:5432/loadx
+SECRET_KEY=troque-esta-chave-no-env-local
+LOADX_SECRETS_DIR=
+PASSWORD_BLOCKLIST_PATH=
 WHATSAPP_TOKEN=
 OPENAI_API_KEY=
 ```
 
 Nunca envie o arquivo `.env` para o GitHub.
+
+`APP_ENV` aceita somente `local` ou `production`. Use `local` no desenvolvimento. Em produção, configure `APP_ENV=production` para não expor `/docs`, `/redoc`, `/docs/oauth2-redirect` e `/openapi.json`. Se a variável não for informada, o backend assume `production` por segurança.
+
+`CONFIRMADO`: em produção, o backend recusa iniciar com `SECRET_KEY` fraca ou
+com menos de 32 caracteres, `DATABASE_URL` local padrão ou origem CORS curinga.
+Conforme D18, produção autentica pelo cookie `__Host-loadx_session`; o ambiente
+local HTTP usa `loadx_session` para não violar os requisitos do prefixo
+reservado.
 
 ### Iniciar o sistema
 
@@ -380,6 +426,12 @@ Para executar em segundo plano:
 docker compose up -d --build
 ```
 
+O serviço `migrate` aplica `alembic upgrade head` depois que o PostgreSQL fica
+saudável. Backend e frontend só iniciam após a migration terminar com sucesso.
+As portas publicadas pelo Compose aceitam conexão apenas da máquina local por
+padrão; `POSTGRES_PORT`, `BACKEND_PORT` e `FRONTEND_PORT` permitem trocar as
+portas sem editar o arquivo.
+
 ### Encerrar o sistema
 
 ```bash
@@ -391,6 +443,21 @@ Para remover também os dados locais do banco:
 ```bash
 docker compose down -v
 ```
+
+### Referência de produção
+
+`compose.production.yaml` é separado do ambiente local. Ele exige domínio, duas
+URLs PostgreSQL e uma chave secreta fornecidos pelo ambiente seguro do host:
+
+```bash
+docker compose -f compose.production.yaml config --quiet
+docker compose -f compose.production.yaml up -d --build --wait
+```
+
+Leia `infra/production/README.md` antes de executar. `CONFIRMADO`: somente Caddy
+publica 80/443; backend permanece privado e recebe proxy headers somente do IP
+fixo do Caddy. `RISCO IDENTIFICADO`: essa referência não substitui backup,
+restauração, observabilidade e validação no domínio real.
 
 ## Endereços locais
 
@@ -408,7 +475,15 @@ http://localhost:8000/docs
 
 Verificação da API:
 http://localhost:8000/health
+
+Prontidão da API:
+http://localhost:8000/ready
 ```
+
+A documentação da API acima existe somente com `APP_ENV=local`.
+
+`/health` confirma apenas que o processo está em execução. `/ready` retorna
+sucesso somente com PostgreSQL acessível e a revisão Alembic no head.
 
 ## Banco de dados
 
@@ -424,6 +499,11 @@ Não devem ser realizadas alterações permanentes diretamente pelo pgAdmin.
 docker compose exec backend alembic upgrade head
 ```
 
+O Compose aplica as migrations automaticamente no início. O comando manual
+continua disponível para manutenção. O endpoint `/ready` permanece somente
+leitura e nunca aplica migrations; essa responsabilidade pertence ao serviço
+isolado `migrate`.
+
 ### Criar uma nova migration
 
 ```bash
@@ -436,12 +516,12 @@ O projeto utiliza as seguintes branches principais:
 
 ```text
 main
-develop
+desenvolvimento
 ```
 
 A branch `main` contém apenas versões estáveis.
 
-A branch `develop` contém a versão integrada em desenvolvimento.
+A branch `desenvolvimento` contém a versão integrada em desenvolvimento.
 
 Cada ocorrência deve ser desenvolvida em uma branch própria.
 
@@ -457,8 +537,8 @@ feature/OC-30-integracao-whatsapp
 ### Criar uma branch
 
 ```bash
-git checkout develop
-git pull origin develop
+git checkout desenvolvimento
+git pull origin desenvolvimento
 git checkout -b feature/OC-01-configurar-backend
 ```
 
@@ -470,11 +550,12 @@ git commit -m "feat: configura estrutura inicial do backend"
 git push origin feature/OC-01-configurar-backend
 ```
 
-Depois disso, deverá ser aberto um Pull Request para a branch `develop`.
+Depois disso, deverá ser aberto um Pull Request para a branch `desenvolvimento`.
 
 ## Padrão de commits
 
-Utilize mensagens claras:
+`CONFIRMADO`: todos os commits futuros devem seguir Conventional Commits, com
+descrições em português, conforme a orientação da preparação da v1.0.0:
 
 ```text
 feat: adiciona cadastro de caminhões
@@ -495,7 +576,7 @@ Uma ocorrência será considerada concluída quando:
 * a documentação estiver atualizada;
 * o código tiver sido enviado para uma branch;
 * o Pull Request tiver sido revisado;
-* a integração com a branch `develop` estiver funcionando.
+* a integração com a branch `desenvolvimento` estiver funcionando.
 
 ## Documentação para ferramentas de IA
 
@@ -529,25 +610,32 @@ Após a conclusão do MVP, poderão ser adicionadas:
 * acompanhamento por GPS;
 * roteirização inteligente;
 * análise de peso por eixo;
-* comparação entre vários caminhões;
+* comparação automática avançada entre veículos, sujeita a regras futuras de ranking e escolha;
 * previsão de atrasos;
 * aplicativo móvel;
 * realidade aumentada;
 * aprendizado com viagens anteriores;
 * integração com sistemas ERP.
 
+`CONFIRMADO`: a comparação básica de 2 a 10 caminhões pertence ao MVP, reutiliza
+integralmente a mesma engine determinística e retorna os resultados sem persistir
+plano, ranquear, pontuar ou escolher vencedor. A comparação automática avançada
+permanece uma evolução futura.
+
+`CONFIRMADO`: a explicação do plano no MVP consome somente dados técnicos de um
+plano persistido. A IA não aprova, recalcula ou modifica o resultado; timeout,
+indisponibilidade ou resposta inválida do provider usam fallback determinístico.
+
 ## Status do projeto
 
-Projeto em fase inicial de desenvolvimento.
+`CONFIRMADO`: MVP funcional integrado, com backend, frontend, otimizador,
+carregamento, viagens, entregas, ocorrências, relatórios e integrações mock/fake.
+OC21 e OC22 estão implementadas no backend; a tela de planejamento ainda não
+consome comparação nem explicação.
 
-```text
-Planejamento: concluído
-Estrutura inicial: concluída
-Backend: em desenvolvimento
-Frontend: em desenvolvimento
-Algoritmo: não iniciado
-Integrações: não iniciadas
-```
+`PENDENTE DE DEFINIÇÃO`: a publicação da v1.0.0 depende da revisão desta
+preparação. Pendências técnicas e validações do ambiente real de produção
+permanecem em [docs/11](docs/11-riscos-pendencias.md).
 
 ## Projeto acadêmico
 
