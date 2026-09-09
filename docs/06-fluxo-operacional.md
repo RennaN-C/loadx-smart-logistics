@@ -110,7 +110,8 @@ fallback. IA e fallback nunca aprovam, recalculam ou modificam o plano.
 5. Ao finalizar, sistema registra horário e libera o início de uma viagem já
    criada para o plano aprovado.
 
-`PENDENTE DE DEFINIÇÃO`: regra de bloqueio quando um item do checklist não for conferido.
+`CONFIRMADO`: a finalização é bloqueada com `LOADING_CHECKLIST_INCOMPLETE`
+enquanto existir item sem `CHECKED`, conforme `loading/service.py` e `docs/04`.
 
 ## Fluxo de viagem e entrega
 

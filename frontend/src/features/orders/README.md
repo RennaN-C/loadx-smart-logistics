@@ -65,6 +65,7 @@ para maiúsculas antes da validação, e o `<select>` do frontend oferece os mes
 
 ## Fora de escopo
 
-Paginação e busca server-side (não suportadas pelo backend) e exclusão (não existe rota). Alterar
+`CONFIRMADO`: a paginação é suportada pelo backend e consumida pela tela.
+Busca server-side e exclusão permanecem fora do contrato. Alterar
 itens de pedido já usado em plano de carga é recusado pelo backend com
 `ORDER_ITEMS_REFERENCED_BY_LOAD_PLAN`, e a mensagem explica isso.

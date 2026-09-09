@@ -16,13 +16,15 @@ Alterações nesta documentação devem ser rastreáveis por ocorrência, PR ou 
 - `07-divisao-equipe.md`: responsabilidade dos quatro integrantes e ocorrências `OC01` a `OC48`.
 - `08-padroes-desenvolvimento.md`: Git, PR, nomenclatura, camadas, banco, testes, logs e segurança.
 - `09-guia-para-ia.md`: como orientar agentes de programação.
-- `10-roadmap-inicial.md`: sequência de sprints baseada no documento-base.
+- `10-roadmap-inicial.md`: sequência original de sprints e roadmap pós-v1.0.0.
 - `11-riscos-pendencias.md`: decisões necessárias, riscos, dúvidas e pendências.
 - `12-ocorrencias-propostas-backend.md`: ocorrências de correção e melhoria preparadas para aprovação da equipe.
 - `decisoes-equipe-backend.txt`: pauta preenchível para decisões que bloqueiam ocorrências do backend.
 - `decisions/`: registros de decisões arquiteturais.
 - `diagrams/`: diagramas Mermaid, UML e banco.
 - `prompts/`: modelos de prompt para IA.
+
+`CONFIRMADO`: as entregas da v1.0.0 estão no [Changelog](../CHANGELOG.md).
 
 ## Regra de manutenção
 

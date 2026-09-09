@@ -80,11 +80,13 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
   passaram integralmente no PR.
 - `CONFIRMADO`: a CI do backend usa Python 3.12, PostgreSQL 16, Ruff, validação
   de formatação, Alembic e Pytest com cobertura. As dependências continuam
-  declaradas em `requirements.txt` e são instaladas do
-  `requirements.lock.txt`, com versões resolvidas, hashes e
+  separadas em runtime (`requirements.txt`) e desenvolvimento
+  (`requirements-dev.txt`); a CI instala `requirements-dev.lock.txt`, com hashes e
   `--require-hashes`.
 - `CONFIRMADO`: a CI do frontend usa o Node definido em `.nvmrc`, instala com
-  `npm ci --ignore-scripts` e executa ESLint, Vitest e build.
+  `npm ci --ignore-scripts` e executa auditoria npm, ESLint, Vitest e build.
+- `CONFIRMADO`: o workflow também constrói a imagem backend e executa Trivy
+  para vulnerabilidades altas/críticas com correção disponível.
 - `CONFIRMADO`: o ruleset de `main` exige os checks `Backend`, `Frontend` e
   `SonarCloud` e pelo menos uma aprovação antes do merge.
 - `CONFIRMADO`: `ADR-019` define inicialização segura em produção, migrations
@@ -173,7 +175,8 @@ nova `algorithm_version`; a representação JSON de `Decimal` segue D06 e
 - `SUPOSIÇÃO TÉCNICA`: o backend seguirá sessão SQLAlchemy síncrona, conforme `backend/AGENTS.md`, até decisão explícita em contrário.
 - `SUPOSIÇÃO TÉCNICA`: exclusões de cadastros principais serão lógicas por `active = false` quando houver histórico ou vínculo.
 - `SUPOSIÇÃO TÉCNICA`: IDs UUID podem ser gerados pela aplicação ou banco, desde que o padrão seja único e documentado na primeira migration.
-- `SUPOSIÇÃO TÉCNICA`: fotos de ocorrência no MVP podem usar URL mock ou storage local controlado até definição de provider.
+- `CONFIRMADO`: fotos de ocorrência aceitam apenas referência mock controlada;
+  não há storage local binário no MVP.
 - `CONFIRMADO`: sessões opacas expiram após 30 minutos de inatividade ou 8 horas
   absolutas, conforme D18 e `ADR-020`.
 - `CONFIRMADO`: novos hashes usam Argon2id m=19 MiB, t=2 e p=1; PBKDF2 fica
@@ -182,9 +185,9 @@ nova `algorithm_version`; a representação JSON de `Decimal` segue D06 e
 ## Riscos identificados
 
 - `CONFIRMADO`: o risco de dependências vulneráveis registrado em 2026-08-06 foi
-  corrigido em 2026-08-07; o `package-lock.json` atualizado retorna zero achados
-  no `npm audit` e passou por lint, 159 testes e build de produção na validação
-  da OC60 em 2026-08-09.
+  corrigido em 2026-08-07. A validação histórica da OC60, em 2026-08-09,
+  registrou zero achados, lint, 159 testes e build; esses resultados não
+  representam a auditoria atual da release, registrada abaixo.
 - `RISCO IDENTIFICADO`: a blocklist embutida é intencionalmente limitada. A
   operação pode montar um arquivo UTF-8 de até 100 mil entradas, mas ainda deve
   escolher uma fonte confiável e definir sua rotina de atualização.
@@ -192,14 +195,14 @@ nova `algorithm_version`; a representação JSON de `Decimal` segue D06 e
   assinatura do backend na referência de produção. Certificado, DNS e headers
   ainda precisam ser verificados no domínio real antes da publicação.
 - `CONFIRMADO`: a suíte migrou do adaptador `httpx` descontinuado para `httpx2`;
-  os 941 testes de backend passaram sem o aviso anterior.
-- `RISCO IDENTIFICADO`: o chunk lazy da visualização 3D ainda possui cerca de
-  827 KB bruto, embora tenha 218 KB gzip no relatório do Vite. O build bloqueia
-  regressões acima de 250 KiB gzip, mas tempo de parse e GPU devem ser medidos em
+  o registro histórico da OC61 contém 941 testes, não a contagem atual.
+- `RISCO IDENTIFICADO`: a cena 3D continua sendo o maior chunk do frontend.
+  O build bloqueia regressões acima de 250 KiB gzip; a medição atual consta na
+  auditoria da release abaixo. Tempo de parse e GPU devem ser medidos em
   equipamento operacional representativo.
-- `CONFIRMADO`: o projeto fixa Node 22.23.1 nos Dockerfiles e em `.nvmrc`. O Node
-  global 22.16 desta estação ainda impede o controlador visual externo, sem
-  afetar build, testes ou runtime do projeto.
+- `CONFIRMADO`: o projeto fixa Node 22.23.1 nos Dockerfiles e em `.nvmrc`;
+  validações devem usar essa versão. O relato antigo sobre Node global 22.16
+  descrevia uma estação específica, não um requisito ou bloqueio do projeto.
 - `CONFIRMADO`: o risco de bloqueio permanente do início da viagem foi resolvido
   pela persistência do carregamento. A OC09 continua exigindo `FINISHED` para o
   mesmo plano e falha fechado em qualquer ausência ou divergência.
@@ -219,7 +222,171 @@ nova `algorithm_version`; a representação JSON de `Decimal` segue D06 e
 - `CONFIRMADO`: `SECRET_KEY=local-only` ou valor fraco só funciona em ambiente
   local; a validação impede inicialização em produção.
 
-## Recomendações
+## Auditoria da preparação v1.0.0 — 2026-09-09
+
+`CONFIRMADO`: preparação autorizada a partir de `desenvolvimento`, base
+`a685c51`, na branch `release/v1.0.0`. A versão da aplicação passa de `0.1.0`
+para `1.0.0` em FastAPI, `package.json` e nos dois metadados raiz do lock npm.
+Na primeira etapa, as dependências foram preservadas; a etapa seguinte autorizou
+as correções pontuais de segurança descritas abaixo. `/api/v1`, `heuristic-v1`,
+migrations e regras de domínio permanecem iguais.
+Não há commit, push, merge, tag ou GitHub Release nesta preparação.
+
+### Verificações iniciais, antes das correções dos bloqueadores
+
+`CONFIRMADO`: Python 3.12.1 com instalação isolada de
+`requirements-dev.lock.txt` por hashes, Node 22.23.1 e PostgreSQL 16 exclusivo de
+teste. Resultados desta execução, sem substituir registros históricos:
+
+- Ruff check e format check: aprovados, 261 arquivos formatados.
+- `pytest -q tests --cov=app --cov-report=term`: 1.143 testes aprovados,
+  cobertura total de 94%. A fixture aplica migrations do banco vazio, downgrade
+  mínimo e upgrade; `alembic upgrade head`, `current` e `check` também passaram,
+  com head `20260830_0011` e sem operações novas detectadas.
+- `npm ci --ignore-scripts`, lint, 300 testes em 42 arquivos e build: aprovados.
+  O orçamento da cena 3D passou com 215,6 KiB gzip para limite de 250 KiB.
+- Compose local, teste e produção: `config --quiet` aprovado. Produção foi
+  validada com placeholders e domínio reservado `example.test`, sem subir
+  serviços ou validar DNS/TLS real.
+- Build da imagem backend com `--pull` e Trivy com os parâmetros da CI:
+  aprovados, sem achados `HIGH,CRITICAL` com correção disponível
+  (`--ignore-unfixed`). O PostgreSQL de teste foi removido após a validação.
+- `npm audit --audit-level=high`: reprovado, com 1 vulnerabilidade alta e
+  2 moderadas; detalhes abaixo.
+- `git diff --check`, links locais da documentação e versão OpenAPI:
+  aprovados. Comparação estrutural dos manifestos confirmou que somente a
+  versão da aplicação mudou, sem mudanças na árvore de dependências.
+- Revisão das adições para chaves privadas, tokens, credenciais em URLs,
+  atribuições de segredos e URLs pessoais de Codespaces: nenhum achado.
+
+### Achados da auditoria e acompanhamento
+
+- `CONFIRMADO`: a auditoria npm inicial apontou `js-yaml` como alta
+  (`GHSA-2883-xcg3-v3hh`) e `@vitest/mocker`/`vitest` como moderadas
+  (`GHSA-82fw-gwwq-j7x9`). São dependências de desenvolvimento da árvore
+  instalada. A primeira etapa não autorizava mudar dependências; a solicitação
+  posterior autorizou a menor atualização segura, registrada abaixo.
+- `CONFIRMADO`: `changeDeliveryStatus` em
+  `frontend/src/features/deliveries/api/tripsApi.ts` interpretava `TripDto`, mas
+  `PATCH /deliveries/{id}/status` retorna `DeliveryRead`. Uma reprodução isolada
+  com o adapter real e resposta fake no contrato backend confirmou `TypeError`
+  ao ler `deliveries.map`. A atualização podia ser persistida pelo backend e a
+  interface exibir erro sem atualizar a viagem. O adapter e a cobertura desse
+  contrato foram corrigidos na etapa seguinte autorizada para a release.
+- `RISCO IDENTIFICADO`: `tripsErrorMessages.ts` ainda informa que carregamento
+  não existe. O backend já o implementa; corrigir esse texto de interface em
+  tarefa própria. Os READMEs foram corrigidos nesta preparação.
+- `CONFIRMADO`: a equipe autorizou alinhar documentalmente o RBAC de
+  carregamento, ocorrências e relatórios ao comportamento atual da v1.0.0.
+  A matriz e as regras em `docs/04` refletem essa decisão, sem mudar permissões
+  implementadas ou o restante do RBAC. A ausência de consulta pública de
+  histórico geral permanece registrada em `docs/04`.
+- `RISCO IDENTIFICADO`: caminhão/motorista ativo não significa disponível para
+  uma nova viagem. Não há prevenção de conflitos entre viagens distintas,
+  conforme auditoria de models, services e repositories registrada no roadmap.
+- `CONFIRMADO`: OC21 e OC22 existem no backend, mas a tela de planejamento ainda
+  não consome comparação nem explicação; não foi adicionada integração de UI.
+- `RISCO IDENTIFICADO`: Pytest emite aviso de depreciação de `crypt` pelo
+  `passlib`; Vitest emite erros de conexão recusada em requisições do jsdom,
+  apesar de todos os testes passarem. Investigar isolamento dos mocks em tarefa
+  própria; esses avisos não foram mascarados.
+
+`CONFIRMADO`: os dois bloqueadores técnicos foram corrigidos e a divergência
+documental dos três recursos de RBAC foi conciliada por decisão da equipe.
+Os checks aprovados não equivalem a uma
+homologação completa em navegador nem à validação do ambiente real de produção.
+
+`PENDENTE DE DEFINIÇÃO`: WhatsApp real, Grok/xAI, conversas e automações por IA
+externa, distribuição entre caminhões e ViaCEP constam somente como evoluções
+no [roadmap pós-v1.0.0](10-roadmap-inicial.md#roadmap-pós-v100). Recuperação de
+senha, MFA, validações formais de CPF/CNPJ/CNH/telefone, storage de fotos e
+observabilidade continuam pendentes; a release não os declara concluídos.
+
+### Correções autorizadas dos bloqueadores
+
+`CONFIRMADO`: a solicitação posterior da preparação autoriza corrigir somente
+o consumo de `DeliveryRead` no frontend e as dependências vulneráveis. A
+preparação anterior foi preservada, sem commit, stash, reset ou publicação.
+
+`CONFIRMADO`: `changeDeliveryStatus` usa `api.patch<DeliveryDto>`, mapeia a
+entrega e recarrega a viagem pelo `trip_id` da resposta. A assinatura permanece
+compatível com `TripPage` e `useTripPage`; nenhuma resposta de backend ou regra
+de domínio mudou. Testes novos usam o adapter e o hook reais com HTTP simulado,
+incluindo o ciclo de entrega, espera pelo GET, falha de PATCH e falha de recarga.
+
+`CONFIRMADO`: antes da atualização foram executados `npm audit`,
+`npm audit --json` e `npm audit --omit=dev --audit-level=moderate`.
+Os dois primeiros retornaram 3 achados; o último retornou zero.
+
+| Pacote e cadeia instalada antes | Tipo/uso | Severidade | Correção mínima |
+|---|---|---|---|
+| `eslint 9.39.5 -> @eslint/eslintrc 3.3.6 -> js-yaml 4.3.1` | Transitiva, lint | Alta | `js-yaml 4.3.2` |
+| `vitest 4.1.10` | Direta, testes | Moderada | `vitest 4.1.11` |
+| `vitest 4.1.10 -> @vitest/mocker 4.1.10` | Transitiva, testes | Moderada | `@vitest/mocker 4.1.11` |
+
+`CONFIRMADO`: `js-yaml` é afetado por consumo excessivo de CPU ao processar
+merges YAML vazios, corrigido na versão `4.3.2`
+([GHSA-2883-xcg3-v3hh / CVE-2026-84375](https://github.com/advisories/GHSA-2883-xcg3-v3hh)).
+Vitest/mocker compartilham o advisory de leitura de arquivos por redirect mock,
+corrigido em `4.1.11`
+([GHSA-82fw-gwwq-j7x9 / CVE-2026-84373](https://github.com/advisories/GHSA-82fw-gwwq-j7x9)).
+Todos estão na árvore de desenvolvimento; não compõem o runtime estático servido
+pelo Caddy. Isso não dispensa corrigir ferramentas de desenvolvimento e CI.
+
+`CONFIRMADO`: são patches dentro das mesmas versões major/minor; Vitest continua
+compatível com Node `>=22.22 <23`. O pin direto passa a `4.1.11`; o lock atualiza
+os sete pacotes `@vitest/*` instalados para a versão exigida pelo Vitest e
+`js-yaml` para `4.3.2`, compatível com a dependência do ESLint. Nenhum pacote de
+runtime, override, ignore, dependência nova ou `npm audit fix --force` foi usado.
+
+`CONFIRMADO`: npm 10.9.8 falhou internamente ao resolver a atualização
+(`edgesOut`). O lock foi resolvido com npm 11.9.0 já disponível, executado sob
+Node 22.23.1. A atualização incidental de `@jridgewell/sourcemap-codec` foi
+excluída desta mudança, preservando `1.5.5` compatível com `magic-string`.
+`npm ci --ignore-scripts` com npm 10.9.8 instalou o lock resultante com sucesso.
+
+### Verificação após as correções
+
+`CONFIRMADO`: com Node 22.23.1, npm 10.9.8 e o lock atualizado, passaram
+`npm ci --ignore-scripts`, `npm run lint`, os 306 testes em 44 arquivos de
+`npm test -- --run` e `npm run build`. O orçamento 3D permaneceu em 215,6 KiB
+gzip, abaixo de 250 KiB. `npm audit`, `npm audit --audit-level=high` e
+`npm audit --omit=dev --audit-level=moderate` retornaram zero vulnerabilidades.
+
+`CONFIRMADO`: Ruff check e format check passaram novamente; Pytest completo
+com a configuração de cobertura da CI aprovou 1.143 testes e 94% de cobertura
+em PostgreSQL 16. Inclui integração das rotas de entrega e o E2E
+`test_complete_v1_flow`, que percorre viagem/entrega por comandos controlados.
+O novo teste de tela percorre `PENDING -> IN_DELIVERY -> DELIVERED` usando PATCH
+e GET simulados com o adapter real. Compose local e `git diff --check` passaram.
+
+`CONFIRMADO`: os dois bloqueadores solicitados estão corrigidos. A revisão de
+escopo manteve as alterações de versão, release, documentação obsoleta, roadmap,
+contrato frontend e segurança; não identificou implementação fora do escopo.
+WhatsApp real, Grok/xAI, ViaCEP, distribuição entre caminhões e GPS/rastreamento
+continuam futuros, sem integração implementada ou declaração de entrega.
+
+`CONFIRMADO`: o ajuste documental final registra `ADMIN` consultando
+carregamento e ocorrências; `LOGISTICS_MANAGER` e `CHECKER` criando e operando
+carregamento/checklist, sem atribuição a conferente; `LOGISTICS_MANAGER` criando
+e consultando ocorrências e `DRIVER` fazendo isso somente nas próprias
+viagens/entregas. `DRIVER` não acessa carregamento e `CHECKER` não acessa
+ocorrências na v1.0.0. Somente `ADMIN` e `LOGISTICS_MANAGER` geram e consultam
+relatórios; `CHECKER` e `DRIVER` não têm acesso.
+
+`PENDENTE DE DEFINIÇÃO`: atribuição de carregamento a conferente, autorização
+por objeto para `CHECKER`, possível consulta de carregamento pelo `DRIVER`,
+ocorrência vinculada ao carregamento/durante conferência com acesso do `CHECKER`,
+relatório de carregamento para `CHECKER` e relatório da própria viagem para
+`DRIVER` permanecem no roadmap pós-v1.0.0.
+
+`RECOMENDAÇÃO`: **READY para v1.0.0**, considerando as verificações anteriores,
+as correções dos dois bloqueadores técnicos e a decisão documental de RBAC.
+O texto obsoleto de carregamento e os avisos de `passlib`/jsdom continuam
+registrados como pendências de manutenção, sem impedir os checks já aprovados.
+Este ajuste final é somente documental e não representa publicação da release.
+
+## Recomendações de manutenção
 
 - `RECOMENDAÇÃO`: registrar novas decisões estruturais como ADR antes de implementar.
 - `RECOMENDAÇÃO`: manter cada PR limitado a uma ocorrência ou a uma fatia pequena e testável.

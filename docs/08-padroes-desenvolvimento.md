@@ -13,6 +13,9 @@ Branches:
 
 Commits:
 
+`CONFIRMADO`: todos os commits futuros seguem Conventional Commits, com
+descrições em português, conforme orientação da preparação da v1.0.0.
+
 - `feat: ...`.
 - `fix: ...`.
 - `test: ...`.
@@ -198,7 +201,9 @@ total de 2 segundos e retorna falha genérica sem detalhes de infraestrutura.
 - Logs devem incluir contexto técnico suficiente, como módulo, ação e ID da entidade.
 - Erros de domínio devem ser testáveis sem FastAPI quando possível.
 
-`PENDENTE DE DEFINIÇÃO`: biblioteca/configuração final de logging estruturado.
+`CONFIRMADO`: `app/core/security_events.py` emite eventos JSON no logger
+`loadx.security`. `PENDENTE DE DEFINIÇÃO`: padronização dos demais logs,
+coletor, retenção, destino e SLA dos alertas.
 
 ## Segurança
 
@@ -272,4 +277,7 @@ Uma ocorrência está pronta quando:
 - Erros de API no formato documentado.
 - Mudanças pequenas e focadas.
 
-`PENDENTE DE DEFINIÇÃO`: comandos oficiais de lint/test/build em CI ainda não estão implementados em pipeline.
+`CONFIRMADO`: `.github/workflows/ci.yml` executa Ruff check e format check,
+Alembic e Pytest com cobertura no backend; npm ci, auditoria, ESLint, Vitest e
+build no frontend; e Trivy na imagem backend. Comandos e ambientes estão em
+`infra/ci/README.md`.

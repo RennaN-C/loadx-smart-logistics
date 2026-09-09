@@ -43,5 +43,7 @@ caminhão, outra a quem resolve pendência. Uma tabela só, com coluna de situa�
 
 ## Fora de escopo
 
-Listagem/histórico de planos (não existe rota) e comparação entre caminhões (`OC21`, backend).
-A visualização 3D é a `OC31`, em `features/load-visualization`.
+`CONFIRMADO`: não há listagem/histórico público de planos. A API já implementa
+comparação entre caminhões (`OC21`) e explicação por `AIProvider` com fallback
+(`OC22`); `loadPlansApi.ts` e a tela atual ainda não consomem essas operações.
+A visualização 3D está integrada em `features/load-visualization` (`OC31`).

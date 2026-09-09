@@ -15,10 +15,14 @@ Não existe endpoint de agregação no backend — o mesmo motivo que levou o da
 contar pelo `total` do envelope de paginação. A diferença é que aqui os indicadores exigem as
 **linhas**, não só a contagem, então a tela pagina a coleção e agrega no cliente.
 
-Só os pedidos entram. `load-plans` e `deliveries` **não têm endpoint de listagem** (apenas
-`GET /{id}`), então não há como apurar ocupação média de caminhão, viagens no período ou entregas
-por motorista sem inventar contrato. Quando a equipe expuser `GET /load-plans` e `GET /trips`,
-esses indicadores entram aqui.
+`CONFIRMADO`: os indicadores desta tela agregam somente pedidos por
+`useOrderReport`. `GET /trips` já existe e é consumido por `tripsApi.ts`, mas
+seus dados ainda não entram nesses indicadores. Não há listagem pública de
+planos nem agregação de ocupação da frota.
+
+`CONFIRMADO`: `reportsApi.ts` e `ReportDownloadButton` também oferecem download
+dos PDFs gerados pelo backend para carregamento e viagem, com permissões
+próprias. Os PDFs não são gerados pelos indicadores desta tela.
 
 ## Por que a data de referência entra por parâmetro
 

@@ -44,7 +44,8 @@
 ## Requisitos funcionais
 
 - `RF-01` `CONFIRMADO`: cadastrar e manter usuários internos com perfil de acesso.
-- `RF-02` `CONFIRMADO`: autenticar usuário com senha criptografada e token.
+- `RF-02` `CONFIRMADO`: autenticar usuário com hash de senha e sessão opaca
+  revogável em cookie, conforme `ADR-020`.
 - `RF-03` `CONFIRMADO`: cadastrar caminhões com placa, modelo, dimensões internas em centímetros, peso máximo em quilogramas e status.
 - `RF-04` `CONFIRMADO`: cadastrar motoristas com dados mínimos, CNH e status.
 - `RF-05` `CONFIRMADO`: cadastrar clientes com documento, telefone, endereço, cidade, estado e observações.

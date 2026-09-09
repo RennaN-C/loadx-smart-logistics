@@ -4,6 +4,17 @@ Sistema inteligente para otimização, planejamento e acompanhamento de cargas l
 
 O **LoadX** é um projeto acadêmico desenvolvido por uma equipe de quatro integrantes. Seu objetivo é auxiliar empresas de transporte na organização de volumes dentro do baú de caminhões, buscando melhorar o aproveitamento do espaço, reduzir erros no carregamento e facilitar a comunicação entre responsáveis logísticos, conferentes e motoristas.
 
+## Versão atual
+
+`CONFIRMADO`: **LoadX v1.0.0 — MVP**, em preparação para a primeira release
+oficial. É a primeira versão funcional integrada do sistema, com planejamento
+tridimensional de cargas, operação logística, frontend, backend, banco de dados,
+testes e infraestrutura. As entregas estão no [Changelog](CHANGELOG.md).
+
+`CONFIRMADO`: WhatsApp usa provider mock e simulador controlado; a explicação de
+planos usa `AIProvider` com provider fake e fallback determinístico. Integrações
+reais e outras evoluções estão no [roadmap pós-v1.0.0](docs/10-roadmap-inicial.md#roadmap-pós-v100).
+
 ## Sobre o projeto
 
 O sistema recebe as dimensões internas do baú do caminhão e as informações dos volumes que serão transportados, como:
@@ -19,9 +30,9 @@ O sistema recebe as dimensões internas do baú do caminhão e as informações 
 
 Com base nesses dados, o LoadX utiliza algoritmos de otimização tridimensional para encontrar uma disposição válida para os volumes.
 
-O resultado do planejamento poderá ser visualizado em uma representação 3D do baú, exibindo a posição, orientação e sequência de carregamento de cada volume.
+`CONFIRMADO`: o resultado do planejamento é visualizado em uma representação 3D do baú, exibindo a posição, orientação e sequência de carregamento de cada volume.
 
-O sistema também acompanhará o processo de carregamento e entrega, permitindo atualizações de status, registro de ocorrências, geração de relatórios e comunicação com motoristas por meio do WhatsApp.
+`CONFIRMADO`: o sistema acompanha carregamento e entrega, permite atualizações de status, ocorrências e relatórios e simula comunicação com motoristas por meio do provider mock de WhatsApp.
 
 ## Objetivo geral
 
@@ -38,7 +49,7 @@ Desenvolver um sistema inteligente capaz de planejar automaticamente a disposiç
 9. `docs/09-guia-para-ia.md`
 10. `docs/11-riscos-pendencias.md`
 
-A primeira versão do LoadX deverá permitir:
+`CONFIRMADO`: o MVP funcional permite:
 
 * autenticação de usuários;
 * cadastro de clientes;
@@ -56,12 +67,12 @@ A primeira versão do LoadX deverá permitir:
 * identificação dos volumes que não couberam;
 * geração da sequência de carregamento;
 * comparação básica e determinística de até 10 caminhões candidatos;
-* explicação técnica de um plano persistido com IA ou fallback determinístico;
+* explicação técnica de um plano persistido pela port de IA com provider fake ou fallback determinístico;
 * visualização tridimensional da carga;
 * acompanhamento do carregamento;
 * atualização do status das entregas;
 * registro de ocorrências;
-* integração real ou simulada com WhatsApp;
+* integração simulada com WhatsApp;
 * geração de relatórios em PDF.
 
 ## Tecnologias
@@ -101,14 +112,14 @@ A primeira versão do LoadX deverá permitir:
 
 ### Integrações
 
-* WhatsApp Business Cloud API
-* API de Inteligência Artificial
+* `CONFIRMADO`: WhatsApp por interface e provider mock, sem envio real.
+* `CONFIRMADO`: IA por port `AIProvider`, provider fake e fallback determinístico.
 
 ## Arquitetura
 
 O projeto utiliza uma arquitetura de monólito modular.
 
-A aplicação será dividida em módulos internos, mas continuará sendo executada como um único sistema.
+`CONFIRMADO`: a aplicação é dividida em módulos internos e executada como um único sistema.
 
 ```text
 Frontend React
@@ -180,9 +191,9 @@ loadx-smart-logistics/
 
 ## Convenções do cálculo tridimensional
 
-O sistema utilizará centímetros para dimensões e quilogramas para peso.
+`CONFIRMADO`: o sistema utiliza centímetros para dimensões e quilogramas para peso.
 
-O sistema de coordenadas será:
+`CONFIRMADO`: o sistema de coordenadas é:
 
 ```text
 X = largura do baú
@@ -190,33 +201,35 @@ Y = altura do baú
 Z = comprimento do baú
 ```
 
-A origem das coordenadas será o canto frontal esquerdo do piso do baú.
+`CONFIRMADO`: a origem das coordenadas é o canto frontal esquerdo do piso do baú.
 
 ```text
 Origem: X = 0, Y = 0, Z = 0
 ```
 
-Cada volume planejado deverá possuir:
+`CONFIRMADO`: exemplo parcial dos campos de um volume posicionado retornado pela
+API; o contrato completo está em `docs/05-contratos-api.md`:
 
 ```json
 {
-  "volume_id": 1,
-  "posicao_x": 0,
-  "posicao_y": 0,
-  "posicao_z": 0,
-  "largura": 60,
-  "altura": 50,
-  "comprimento": 40,
-  "rotacao": "XYZ",
-  "ordem_carregamento": 1
+  "id": "00000000-0000-4000-8000-000000000001",
+  "x_cm": 0,
+  "y_cm": 0,
+  "z_cm": 0,
+  "width_cm": 60,
+  "height_cm": 50,
+  "length_cm": 40,
+  "rotation_code": "XYZ",
+  "loading_sequence": 1
 }
 ```
 
 ## Papel da Inteligência Artificial
 
-A Inteligência Artificial será utilizada como apoio ao sistema.
+`CONFIRMADO`: a port de Inteligência Artificial apoia a explicação de planos
+persistidos, com provider fake e fallback determinístico no MVP.
 
-Ela poderá:
+`PENDENTE DE DEFINIÇÃO`: uma integração externa futura poderá:
 
 * interpretar mensagens enviadas pelos motoristas;
 * identificar a intenção de uma mensagem;
@@ -224,9 +237,9 @@ Ela poderá:
 * gerar explicações técnicas sobre um planejamento já calculado;
 * resumir resultados e relatórios.
 
-As validações de espaço, dimensões, peso e colisões serão realizadas por algoritmos determinísticos.
+`CONFIRMADO`: as validações de espaço, dimensões, peso e colisões são realizadas por algoritmos determinísticos.
 
-A IA não será responsável por decidir matematicamente se um volume cabe ou não no caminhão.
+`CONFIRMADO`: a IA não decide matematicamente se um volume cabe ou não no caminhão.
 
 ## Fluxo principal
 
@@ -503,12 +516,12 @@ O projeto utiliza as seguintes branches principais:
 
 ```text
 main
-develop
+desenvolvimento
 ```
 
 A branch `main` contém apenas versões estáveis.
 
-A branch `develop` contém a versão integrada em desenvolvimento.
+A branch `desenvolvimento` contém a versão integrada em desenvolvimento.
 
 Cada ocorrência deve ser desenvolvida em uma branch própria.
 
@@ -524,8 +537,8 @@ feature/OC-30-integracao-whatsapp
 ### Criar uma branch
 
 ```bash
-git checkout develop
-git pull origin develop
+git checkout desenvolvimento
+git pull origin desenvolvimento
 git checkout -b feature/OC-01-configurar-backend
 ```
 
@@ -537,11 +550,12 @@ git commit -m "feat: configura estrutura inicial do backend"
 git push origin feature/OC-01-configurar-backend
 ```
 
-Depois disso, deverá ser aberto um Pull Request para a branch `develop`.
+Depois disso, deverá ser aberto um Pull Request para a branch `desenvolvimento`.
 
 ## Padrão de commits
 
-Utilize mensagens claras:
+`CONFIRMADO`: todos os commits futuros devem seguir Conventional Commits, com
+descrições em português, conforme a orientação da preparação da v1.0.0:
 
 ```text
 feat: adiciona cadastro de caminhões
@@ -562,7 +576,7 @@ Uma ocorrência será considerada concluída quando:
 * a documentação estiver atualizada;
 * o código tiver sido enviado para uma branch;
 * o Pull Request tiver sido revisado;
-* a integração com a branch `develop` estiver funcionando.
+* a integração com a branch `desenvolvimento` estiver funcionando.
 
 ## Documentação para ferramentas de IA
 
@@ -614,16 +628,14 @@ indisponibilidade ou resposta inválida do provider usam fallback determinístic
 
 ## Status do projeto
 
-Projeto em fase inicial de desenvolvimento.
+`CONFIRMADO`: MVP funcional integrado, com backend, frontend, otimizador,
+carregamento, viagens, entregas, ocorrências, relatórios e integrações mock/fake.
+OC21 e OC22 estão implementadas no backend; a tela de planejamento ainda não
+consome comparação nem explicação.
 
-```text
-Planejamento: concluído
-Estrutura inicial: concluída
-Backend: em desenvolvimento
-Frontend: em desenvolvimento
-Algoritmo: implementado até a OC20
-Integrações: não iniciadas
-```
+`PENDENTE DE DEFINIÇÃO`: a publicação da v1.0.0 depende da revisão desta
+preparação. Pendências técnicas e validações do ambiente real de produção
+permanecem em [docs/11](docs/11-riscos-pendencias.md).
 
 ## Projeto acadêmico
 

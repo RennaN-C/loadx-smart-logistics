@@ -1,5 +1,9 @@
 # Roadmap inicial
 
+`CONFIRMADO`: as sprints abaixo preservam a sequência original de construção do
+MVP. As entregas presentes na preparação da v1.0.0 estão no
+[Changelog](../CHANGELOG.md); a lista de sprints não é uma lista de pendências.
+
 `CONFIRMADO`: a numeração de referência para ocorrências passa a ser a do documento-base anexado: `OC01` a `OC48`.
 
 `RISCO IDENTIFICADO`: versões anteriores deste documento usavam outra sequência `OC-01` a `OC-30`. Para evitar conflito entre os 4 desenvolvedores, novas issues e PRs devem usar `OCXX` conforme `docs/07-divisao-equipe.md`.
@@ -127,3 +131,199 @@ Entregável integrado:
 - Testes mínimos passando.
 - PR revisado por outro desenvolvedor.
 - Pendências registradas em `docs/11-riscos-pendencias.md` quando não forem resolvidas na sprint.
+
+## Roadmap pós-v1.0.0
+
+`CONFIRMADO`: os itens desta seção foram registrados na preparação da release
+por solicitação da equipe e não foram implementados nesta tarefa.
+`DECISÃO NECESSÁRIA`: cada evolução exige ocorrência, critérios de aceite e
+aprovação antes de implementar; alterações de dados, contratos, estados,
+integrações e escopo seguem as ADRs. Não há fornecedor, prazo ou nova dependência
+aprovados por esta lista. Pendências técnicas existentes permanecem em
+[docs/11](11-riscos-pendencias.md).
+
+### Integração real com WhatsApp
+
+`PENDENTE DE DEFINIÇÃO`: substituir o provider mock por integração real, com
+envio e recebimento de mensagens para motorista, conferente e logística e
+vínculo de cada mensagem ao usuário, viagem e entrega correspondentes. Definir
+autenticação do webhook, assinatura, permissões e tratamento de duplicatas.
+
+`CONFIRMADO`: hoje há simulador interno protegido em `/messages/interpret` e
+`MockWhatsAppProvider`; não há webhook real. Notificações automáticas atuais
+destinam-se ao motorista, após início da viagem via HTTP ou ocorrência registrada.
+
+### IA aplicada às conversas operacionais
+
+`PENDENTE DE DEFINIÇÃO`: interpretar mensagens naturais recebidas pelo WhatsApp
+e convertê-las em intenções estruturadas, por exemplo: "já saí", "cheguei no
+cliente", "já entreguei", "cliente não estava" e ocorrência durante a rota.
+A interpretação externa deverá validar schema, identidade, autorização e estado.
+A IA não deve escrever diretamente no banco: toda ação passa pelos services e
+regras de domínio existentes.
+
+`CONFIRMADO`: o MVP já interpreta comandos controlados no simulador e delega
+ações ao `TripService`; isso não representa IA externa nem recepção real pelo
+WhatsApp.
+
+### Provider real de IA com Grok / xAI
+
+`DECISÃO NECESSÁRIA`: avaliar Grok/xAI como provider externo futuro e implementar
+adapter compatível com a port existente para explicação de planos. A port
+`AIProvider` atual atende explicação; um contrato para conversas operacionais
+precisa de definição própria. Manter provider fake nos testes, fallback
+determinístico e impedir envio desnecessário de dados pessoais; explicação de
+planos continua restrita ao contexto técnico já aprovado.
+
+`CONFIRMADO`: esta release não adiciona SDK, chave, dependência ou integração
+real com Grok/xAI ou outro provider externo.
+
+### Atualização automática do fluxo via IA
+
+`PENDENTE DE DEFINIÇÃO`: exemplo futuro, sujeito às validações existentes:
+
+```text
+Motorista: "já saí"
+    -> interpretação da intenção
+    -> identidade, autorização e validações de domínio
+    -> viagem SCHEDULED -> IN_ROUTE (exige carregamento FINISHED)
+    -> atualização do sistema e histórico pelos services
+    -> notificação para logística e/ou cliente
+```
+
+Outras ações devem respeitar as transições existentes, inclusive idempotência.
+`DECISÃO NECESSÁRIA`: exceções, atrasos e reentregas não autorizam criar estados
+automaticamente; dependem de regras e contratos futuros.
+
+### Distribuição de um pedido em múltiplos caminhões
+
+`CONFIRMADO`: cada `LoadPlan` referencia um caminhão. A OC21 compara a carga
+inteira em candidatos independentes e não distribui sobras. A aprovação rejeita
+planos parciais; `deliveries.order_id` é único e um pedido gera no máximo uma
+entrega no MVP (`ADR-014`, `ADR-022`).
+
+`PENDENTE DE DEFINIÇÃO`: quando um pedido não couber em um caminhão, distribuir
+os volumes restantes entre outros disponíveis e relacionar múltiplos planos ao
+mesmo pedido/conjunto. Objetivos propostos, nesta ordem: completar 100% da carga,
+minimizar a quantidade de caminhões e considerar eficiência de ocupação/capacidade.
+`DECISÃO NECESSÁRIA`: rever aprovação, rastreabilidade por volume, entrega e
+histórico antes de alterar as cardinalidades atuais. Não implementar agora.
+
+### Disponibilidade de caminhões
+
+`CONFIRMADO`: `Truck.active` controla habilitação cadastral; o planejamento
+recusa caminhão inativo. `Trip` obtém o caminhão pelo plano, e a unicidade de
+`trips.load_plan_id` impede duas viagens para o mesmo plano. Existem estados de
+plano, carregamento e viagem, mas não há estado operacional persistido do caminhão
+nem verificação de conflito entre viagens de planos diferentes do mesmo veículo.
+Evidências: models de `trucks`/`deliveries` e services de `load_planning`/`deliveries`.
+
+`PENDENTE DE DEFINIÇÃO`: impedir alocação conflitante e identificar caminhão em
+uso, planejado, carregando, em rota ou disponível; avaliar manutenção.
+`DECISÃO NECESSÁRIA`: definir reservas, intervalos, liberação e concorrência;
+`active` não comprova disponibilidade em um período.
+
+### Disponibilidade de motoristas
+
+`CONFIRMADO`: a criação de viagem exige motorista ativo e bloqueia seu registro
+durante a transação, mas não consulta viagens incompatíveis do mesmo motorista.
+O vínculo único `users.driver_id` controla identidade, não agenda.
+
+`PENDENTE DE DEFINIÇÃO`: evitar conflitos de motorista em viagens simultâneas
+incompatíveis, com critérios de reserva e liberação aprovados.
+
+### Monitoramento operacional da frota
+
+`PENDENTE DE DEFINIÇÃO`: central operacional com visão de disponível, programado,
+carregando, em rota, finalizado e manutenção. Esses rótulos são possibilidades
+futuras, não novos estados aprovados para as entidades atuais.
+
+### Rastreamento e localização
+
+`PENDENTE DE DEFINIÇÃO`: avaliar GPS, localização em tempo real, ETA, geofencing
+e previsão de chegada. Nenhum fornecedor está definido. GPS real e telemetria
+continuam fora do escopo da v1.0.0.
+
+### Status para o cliente
+
+`PENDENTE DE DEFINIÇÃO`: oferecer acompanhamento de pedido planejado, carregado,
+saiu para entrega, em rota, próximo da entrega, entregue e ocorrência/atraso
+quando aplicável. Definir acesso e correspondência com os estados existentes,
+sem expor dados pessoais ou operacionais desnecessários.
+
+### Notificações reais ao cliente
+
+`PENDENTE DE DEFINIÇÃO`: WhatsApp ou outro canal no início da viagem, entrega em
+andamento, entrega concluída e atraso/ocorrência. Definir destinatários,
+permissões, repetição e falhas de envio. Os avisos mock ao motorista existentes
+não equivalem a notificações reais ao cliente.
+
+### Comprovante de entrega
+
+`PENDENTE DE DEFINIÇÃO`: foto, assinatura, responsável pelo recebimento,
+data/hora, eventual localização e storage real de evidências.
+`CONFIRMADO`: já há `delivered_at`; foto de ocorrência é somente referência
+`mock://occurrences/<identificador>`, sem upload ou armazenamento binário.
+`DECISÃO NECESSÁRIA`: definir retenção, acesso e proteção das evidências.
+
+### QR Code / código de barras
+
+`PENDENTE DE DEFINIÇÃO`: conferir volumes durante o carregamento por leitura de
+código vinculado à identidade do volume, preservando o checklist e suas regras.
+
+### Otimização de rota
+
+`PENDENTE DE DEFINIÇÃO`: calcular a ordem das entregas por distância, prioridade
+e janelas, além da disposição dentro do caminhão. A sequência informada nos
+pedidos e usada hoje pelo otimizador não é roteirização geográfica.
+
+### Custos logísticos
+
+`PENDENTE DE DEFINIÇÃO`: considerar distância, combustível, pedágio, capacidade,
+quantidade de veículos e custo estimado da operação. Valores monetários não
+integram o modelo atual do MVP.
+
+### Dashboard operacional
+
+`CONFIRMADO`: existem contadores de cadastros/pedidos, lista de viagens do
+motorista e indicadores de pedidos no frontend. Não há agregação geral de frota.
+
+`PENDENTE DE DEFINIÇÃO`: ampliar indicadores para viagens em rota, entregas
+concluídas, atrasos, ocorrências, utilização da frota, ocupação média, volumes
+rejeitados e motivos de rejeição, com período e contratos de agregação definidos.
+
+### Integração com ViaCEP
+
+`PENDENTE DE DEFINIÇÃO`: consultar futuramente a API ViaCEP para facilitar e
+padronizar endereços. Fluxo esperado: usuário informa CEP; frontend/backend
+consulta a integração; quando disponível, preenche logradouro, bairro,
+cidade/localidade, UF e demais informações úteis. O usuário completa número,
+complemento e campos ausentes e pode corrigir os valores manualmente.
+
+Requisitos futuros:
+
+- validar formato do CEP e tratar CEP inexistente;
+- tratar indisponibilidade e timeouts sem impedir inadequadamente o cadastro;
+- permitir preenchimento e correção manual em caso de falha externa;
+- definir cadastros abrangidos, avaliando inicialmente clientes;
+- evitar duplicação da regra de endereço entre frontend e backend;
+- centralizar a integração em adapter/service, sem espalhar HTTP pelo domínio;
+- testar com mocks/fakes, sem depender da API real na suíte automatizada.
+
+`DECISÃO NECESSÁRIA`: definir responsabilidade pela consulta e eventual evolução
+do contrato de endereço antes de criar campos, endpoints ou migrations.
+`CONFIRMADO`: ViaCEP foi somente documentado como evolução pós-v1.0.0; nenhuma
+consulta, dependência ou integração foi implementada nesta preparação.
+
+### Evolução do acesso a carregamento, ocorrências e relatórios
+
+`CONFIRMADO`: o RBAC da v1.0.0 está descrito em `docs/04-regras-negocio.md`.
+Os itens abaixo são futuros e não concedem acesso nesta release:
+
+- `PENDENTE DE DEFINIÇÃO`: atribuição de carregamento a conferente e autorização
+  por objeto para `CHECKER`; avaliar possível consulta de carregamento pelo
+  `DRIVER`.
+- `PENDENTE DE DEFINIÇÃO`: ocorrência vinculada ao carregamento, registro de
+  ocorrência durante conferência e acesso do `CHECKER` nesse contexto.
+- `PENDENTE DE DEFINIÇÃO`: relatório de carregamento para `CHECKER` e relatório
+  da própria viagem para `DRIVER`.
