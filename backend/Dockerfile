@@ -4,7 +4,7 @@ WORKDIR /app
 
 COPY requirements.lock.txt .
 
-RUN python -m pip install --no-cache-dir --upgrade "pip>=26.1.2,<27" \
+RUN python -m pip install --no-cache-dir --upgrade "pip==26.1.2" \
     && python -m pip install --no-cache-dir --require-hashes -r requirements.lock.txt \
     && rm -rf \
         /usr/local/lib/python3.12/site-packages/pip \
