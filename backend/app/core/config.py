@@ -5,8 +5,9 @@ from typing import Literal
 
 from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from sqlalchemy.engine import make_url
+from sqlalchemy.exc import ArgumentError
 
-LOCAL_DATABASE_URL = "postgresql+psycopg://loadx:loadx_local@db:5432/loadx"
 INSECURE_SECRET_KEYS = frozenset(
     {
         "local-only",
@@ -17,7 +18,7 @@ INSECURE_SECRET_KEYS = frozenset(
 
 class Settings(BaseSettings):
     app_env: Literal["local", "production"] = "production"
-    database_url: str = LOCAL_DATABASE_URL
+    database_url: str
     backend_cors_origins_raw: str = Field(
         default="http://localhost:5173", validation_alias="BACKEND_CORS_ORIGINS"
     )
@@ -32,6 +33,19 @@ class Settings(BaseSettings):
         extra="ignore",
         populate_by_name=True,
     )
+
+    @field_validator("database_url")
+    @classmethod
+    def validate_database_url(cls, value: str) -> str:
+        try:
+            url = make_url(value)
+        except (ArgumentError, ValueError):
+            raise ValueError("DATABASE_URL must be a valid PostgreSQL URL.") from None
+        if url.drivername != "postgresql+psycopg" or not url.database:
+            raise ValueError(
+                "DATABASE_URL must use postgresql+psycopg and name a database."
+            )
+        return value
 
     @field_validator("password_blocklist_path", mode="before")
     @classmethod
@@ -51,10 +65,6 @@ class Settings(BaseSettings):
             raise ValueError(
                 "SECRET_KEY must be unique and contain at least 32 characters "
                 "in production."
-            )
-        if self.database_url == LOCAL_DATABASE_URL:
-            raise ValueError(
-                "DATABASE_URL must be explicitly configured in production."
             )
         if "*" in self.backend_cors_origins:
             raise ValueError("Wildcard CORS origins are forbidden in production.")
