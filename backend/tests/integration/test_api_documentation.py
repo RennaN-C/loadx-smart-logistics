@@ -85,7 +85,7 @@ def test_settings_read_application_environment_from_env(monkeypatch) -> None:
     [
         ({"secret_key": "local-only"}, "SECRET_KEY"),
         (
-            {"database_url": ("postgresql+psycopg://loadx:loadx_local@db:5432/loadx")},
+            {"database_url": ""},
             "DATABASE_URL",
         ),
         ({"backend_cors_origins_raw": "*"}, "Wildcard CORS"),

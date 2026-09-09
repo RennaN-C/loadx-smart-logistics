@@ -45,16 +45,16 @@ def create_app(app_settings: Settings | None = None) -> FastAPI:
         allowed_origins=current_settings.backend_cors_origins,
     )
     application.add_middleware(
+        SecurityHeadersMiddleware,
+        enable_hsts=current_settings.app_env == "production",
+    )
+    application.add_middleware(
         CORSMiddleware,
         allow_origins=current_settings.backend_cors_origins,
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["Content-Type", "X-CSRF-Token"],
         expose_headers=["X-CSRF-Token"],
-    )
-    application.add_middleware(
-        SecurityHeadersMiddleware,
-        enable_hsts=current_settings.app_env == "production",
     )
 
     application.include_router(api_router, prefix="/api/v1")
