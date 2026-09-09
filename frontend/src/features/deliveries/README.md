@@ -64,6 +64,20 @@ aprovado, recusa de plano já em viagem, chaves de viagem e entrega batendo com 
 inicial `SCHEDULED`/`PENDING`, recusa de entrega antes da viagem em rota e recusa de transição pulando
 etapa.
 
+`CONFIRMADO`: `PATCH /deliveries/{id}/status` retorna somente `DeliveryRead`.
+`changeDeliveryStatus` interpreta essa resposta como `DeliveryDto`, mapeia a
+entrega e usa seu `trip_id` para recarregar `GET /trips/{trip_id}`. O hook
+`useTripPage` substitui o estado pela viagem completa desse GET, sem reconstrução
+parcial no navegador. A assinatura pública do adapter continua `Promise<Trip>`;
+`TripPage` permanece compatível e é seu único consumidor de produção.
+
+`CONFIRMADO`: falha no PATCH não dispara GET. Falha no GET posterior propaga o
+erro para a tela, preserva o último estado conhecido e não repete automaticamente
+o PATCH; a alteração pode já estar persistida e uma recarga da página consulta
+o estado atual. Os testes `api/tripsApi.test.ts` e
+`pages/TripPage.integration.test.tsx` cobrem contratos, erros e o ciclo
+`PENDING -> IN_DELIVERY -> DELIVERED` com adapter e hook reais.
+
 ## Permissões
 
 Ler: `ADMIN`, `LOGISTICS_MANAGER` e `DRIVER`. Operar (mover viagem e entregas):
