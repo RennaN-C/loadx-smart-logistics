@@ -1,0 +1,65 @@
+name: Sincronizar tarefas com Discord
+
+on:
+  workflow_dispatch:
+
+permissions:
+  issues: read
+  contents: read
+
+jobs:
+  sincronizar:
+    name: Enviar Issues existentes para o Discord
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Enviar tarefas
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_TASKS_WEBHOOK }}
+          REPOSITORY: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          for ISSUE_NUMBER in $(seq 44 60); do
+            ISSUE=$(gh api "repos/${REPOSITORY}/issues/${ISSUE_NUMBER}")
+
+            TITLE=$(echo "$ISSUE" | jq -r '.title')
+            URL=$(echo "$ISSUE" | jq -r '.html_url')
+            STATE=$(echo "$ISSUE" | jq -r '.state')
+            ASSIGNEE=$(echo "$ISSUE" | jq -r '.assignee.login // "Não atribuído"')
+            MILESTONE=$(echo "$ISSUE" | jq -r '.milestone.title // "Sem milestone"')
+
+            PAYLOAD=$(jq -n \
+              --arg title "$TITLE" \
+              --arg url "$URL" \
+              --arg state "$STATE" \
+              --arg assignee "$ASSIGNEE" \
+              --arg milestone "$MILESTONE" \
+              --arg issue "#${ISSUE_NUMBER}" \
+              '{
+                username: "LoadX • Tarefas",
+                embeds: [
+                  {
+                    title: $title,
+                    url: $url,
+                    description:
+                      ("**Issue:** " + $issue +
+                       "\n**Responsável:** @" + $assignee +
+                       "\n**Milestone:** " + $milestone +
+                       "\n**Estado:** " + $state),
+                    footer: {
+                      text: "LoadX — Desenvolvimento"
+                    }
+                  }
+                ]
+              }')
+
+            curl --fail-with-body \
+              -H "Content-Type: application/json" \
+              -d "$PAYLOAD" \
+              "$DISCORD_WEBHOOK"
+
+            sleep 1
+          done
