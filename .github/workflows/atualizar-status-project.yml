@@ -1,0 +1,281 @@
+name: Atualizar status do Project
+
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - converted_to_draft
+      - ready_for_review
+      - closed
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+jobs:
+  atualizar-status:
+    name: Atualizar tarefa vinculada
+    runs-on: ubuntu-latest
+
+    if: github.event.pull_request.base.ref == 'desenvolvimento'
+
+    env:
+      GH_TOKEN: ${{ secrets.PROJECT_AUTOMATION_TOKEN }}
+      PROJECT_OWNER: ${{ github.repository_owner }}
+      PROJECT_TITLE: LoadX — Desenvolvimento
+      STATUS_FIELD: Status
+
+    steps:
+      - name: Definir novo status
+        id: status
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ACTION="${{ github.event.action }}"
+          DRAFT="${{ github.event.pull_request.draft }}"
+          MERGED="${{ github.event.pull_request.merged }}"
+
+          case "$ACTION" in
+            converted_to_draft)
+              STATUS="Em desenvolvimento"
+              ;;
+
+            ready_for_review)
+              STATUS="Em revisão"
+              ;;
+
+            opened|reopened)
+              if [ "$DRAFT" = "true" ]; then
+                STATUS="Em desenvolvimento"
+              else
+                STATUS="Em revisão"
+              fi
+              ;;
+
+            closed)
+              if [ "$MERGED" = "true" ]; then
+                STATUS="Concluído"
+              else
+                echo "PR fechado sem merge. Nenhum status será alterado."
+                exit 0
+              fi
+              ;;
+
+            *)
+              exit 0
+              ;;
+          esac
+
+          echo "status=$STATUS" >> "$GITHUB_OUTPUT"
+          echo "Novo status: $STATUS"
+
+      - name: Localizar Issues informadas no PR
+        id: issues
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ISSUE_NUMBERS=$(
+            printf '%s\n' "$PR_BODY" |
+            grep -Eio \
+              '(close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)[[:space:]]+#[0-9]+' |
+            grep -Eo '#[0-9]+' |
+            tr -d '#' |
+            sort -nu |
+            xargs || true
+          )
+
+          if [ -z "$ISSUE_NUMBERS" ]; then
+            echo "::warning::Nenhuma Issue encontrada. Use 'Closes #NUMERO' na descrição do PR."
+          else
+            echo "Issues encontradas: $ISSUE_NUMBERS"
+          fi
+
+          echo "numbers=$ISSUE_NUMBERS" >> "$GITHUB_OUTPUT"
+
+      - name: Atualizar Issues no Project
+        if: steps.issues.outputs.numbers != ''
+        env:
+          TARGET_STATUS: ${{ steps.status.outputs.status }}
+          ISSUE_NUMBERS: ${{ steps.issues.outputs.numbers }}
+          REPOSITORY: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          PROJECT_DATA=$(gh api graphql \
+            -f query='
+              query($owner: String!) {
+                repositoryOwner(login: $owner) {
+                  ... on User {
+                    projectsV2(first: 100) {
+                      nodes {
+                        id
+                        title
+                        fields(first: 100) {
+                          nodes {
+                            ... on ProjectV2SingleSelectField {
+                              id
+                              name
+                              options {
+                                id
+                                name
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+
+                  ... on Organization {
+                    projectsV2(first: 100) {
+                      nodes {
+                        id
+                        title
+                        fields(first: 100) {
+                          nodes {
+                            ... on ProjectV2SingleSelectField {
+                              id
+                              name
+                              options {
+                                id
+                                name
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            ' \
+            -F owner="$PROJECT_OWNER")
+
+          PROJECT_ID=$(echo "$PROJECT_DATA" | jq -r \
+            --arg title "$PROJECT_TITLE" \
+            '.data.repositoryOwner.projectsV2.nodes[]
+             | select(.title == $title)
+             | .id' | head -n 1)
+
+          FIELD_ID=$(echo "$PROJECT_DATA" | jq -r \
+            --arg title "$PROJECT_TITLE" \
+            --arg field "$STATUS_FIELD" \
+            '.data.repositoryOwner.projectsV2.nodes[]
+             | select(.title == $title)
+             | .fields.nodes[]
+             | select(.name == $field)
+             | .id' | head -n 1)
+
+          OPTION_ID=$(echo "$PROJECT_DATA" | jq -r \
+            --arg title "$PROJECT_TITLE" \
+            --arg field "$STATUS_FIELD" \
+            --arg status "$TARGET_STATUS" \
+            '.data.repositoryOwner.projectsV2.nodes[]
+             | select(.title == $title)
+             | .fields.nodes[]
+             | select(.name == $field)
+             | .options[]
+             | select(.name == $status)
+             | .id' | head -n 1)
+
+          if [ -z "$PROJECT_ID" ] || [ "$PROJECT_ID" = "null" ]; then
+            echo "::error::Project '$PROJECT_TITLE' não encontrado."
+            exit 1
+          fi
+
+          if [ -z "$FIELD_ID" ] || [ "$FIELD_ID" = "null" ]; then
+            echo "::error::Campo '$STATUS_FIELD' não encontrado."
+            exit 1
+          fi
+
+          if [ -z "$OPTION_ID" ] || [ "$OPTION_ID" = "null" ]; then
+            echo "::error::Status '$TARGET_STATUS' não encontrado."
+            exit 1
+          fi
+
+          for ISSUE_NUMBER in $ISSUE_NUMBERS; do
+            ISSUE=$(gh api "repos/${REPOSITORY}/issues/${ISSUE_NUMBER}")
+
+            ISSUE_ID=$(echo "$ISSUE" | jq -r '.node_id')
+            ISSUE_TITLE=$(echo "$ISSUE" | jq -r '.title')
+            ISSUE_STATE=$(echo "$ISSUE" | jq -r '.state')
+
+            ITEM_DATA=$(gh api graphql \
+              -f query='
+                query($issueId: ID!) {
+                  node(id: $issueId) {
+                    ... on Issue {
+                      projectItems(first: 100) {
+                        nodes {
+                          id
+                          project {
+                            id
+                            title
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              ' \
+              -F issueId="$ISSUE_ID")
+
+            ITEM_ID=$(echo "$ITEM_DATA" | jq -r \
+              --arg projectId "$PROJECT_ID" \
+              '.data.node.projectItems.nodes[]
+               | select(.project.id == $projectId)
+               | .id' | head -n 1)
+
+            if [ -z "$ITEM_ID" ] || [ "$ITEM_ID" = "null" ]; then
+              echo "::warning::Issue #${ISSUE_NUMBER} não está no Project."
+              continue
+            fi
+
+            gh api graphql \
+              -f query='
+                mutation(
+                  $projectId: ID!,
+                  $itemId: ID!,
+                  $fieldId: ID!,
+                  $optionId: String!
+                ) {
+                  updateProjectV2ItemFieldValue(
+                    input: {
+                      projectId: $projectId
+                      itemId: $itemId
+                      fieldId: $fieldId
+                      value: {
+                        singleSelectOptionId: $optionId
+                      }
+                    }
+                  ) {
+                    projectV2Item {
+                      id
+                    }
+                  }
+                }
+              ' \
+              -F projectId="$PROJECT_ID" \
+              -F itemId="$ITEM_ID" \
+              -F fieldId="$FIELD_ID" \
+              -F optionId="$OPTION_ID" >/dev/null
+
+            echo "Issue #${ISSUE_NUMBER} — ${ISSUE_TITLE}"
+            echo "Status atualizado para: ${TARGET_STATUS}"
+
+            if [ "$TARGET_STATUS" = "Concluído" ] &&
+               [ "$ISSUE_STATE" = "open" ]; then
+              gh issue close "$ISSUE_NUMBER" \
+                --repo "$REPOSITORY" \
+                --reason completed
+
+              echo "Issue #${ISSUE_NUMBER} fechada como concluída."
+            fi
+          done
