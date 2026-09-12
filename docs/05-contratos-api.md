@@ -263,6 +263,18 @@ Campos de `GET /customers`: `id`, `name`, `city`, `state` e `created_at`.
 Documento, telefone, endereço e observações aparecem somente no detalhe e nas
 respostas de escrita já protegidas pelo RBAC.
 
+### Consulta auxiliar de CEP — OC62
+
+`CONFIRMADO`: a OC62 implementa a integração interna do backend com ViaCEP,
+sem modificar os endpoints ou o cadastro manual de clientes. A porta recebe
+somente CEP e retorna `cep`, `street`, `neighborhood`, `complement`, `city` e
+`state` validados. Contrato, normalização, erros, adapter e fake estão em
+[ViaCEP — contrato interno para a OC70](../backend/app/integrations/viacep/README.md).
+
+`PENDENTE DE DEFINIÇÃO`: não há endpoint HTTP de consulta de CEP nesta entrega.
+Caminho, autorização e status HTTP precisam ser aprovados antes do consumo
+pelo frontend da OC70. O frontend não deve acessar o ViaCEP diretamente.
+
 ## Motoristas
 
 - `GET /drivers`.
