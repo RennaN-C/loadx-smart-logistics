@@ -1,3 +1,4 @@
+from app.integrations.viacep.adapter import HTTPViaCEPProvider
 from app.integrations.viacep.provider import (
     ViaCEPAddress,
     ViaCEPInvalidCEPError,
@@ -12,6 +13,7 @@ from app.integrations.viacep.provider import (
 )
 
 __all__ = [
+    "HTTPViaCEPProvider",
     "ViaCEPAddress",
     "ViaCEPInvalidCEPError",
     "ViaCEPInvalidResponseError",
