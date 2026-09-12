@@ -106,7 +106,9 @@ StateCode = Literal[
 class ViaCEPAddress(BaseModel):
     """Dados transitórios para preenchimento, sem alterar o modelo de Customer."""
 
-    model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
+    model_config = ConfigDict(
+        extra="forbid", frozen=True, strict=True, revalidate_instances="always"
+    )
 
     cep: StrictStr
     street: AddressText | None = None
