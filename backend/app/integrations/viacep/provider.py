@@ -70,8 +70,10 @@ def validate_timeout_seconds(value: float) -> float:
     return float(value)
 
 
-AddressText = Annotated[StrictStr, StringConstraints(strip_whitespace=True)]
-CityText = Annotated[AddressText, StringConstraints(min_length=1)]
+AddressText = Annotated[
+    StrictStr, StringConstraints(strip_whitespace=True, max_length=255)
+]
+CityText = Annotated[AddressText, StringConstraints(min_length=1, max_length=120)]
 StateCode = Literal[
     "AC",
     "AL",
