@@ -265,15 +265,36 @@ respostas de escrita já protegidas pelo RBAC.
 
 ### Consulta auxiliar de CEP — OC62
 
-`CONFIRMADO`: a OC62 implementa a integração interna do backend com ViaCEP,
-sem modificar os endpoints ou o cadastro manual de clientes. A porta recebe
-somente CEP e retorna `cep`, `street`, `neighborhood`, `complement`, `city` e
-`state` validados. Contrato, normalização, erros, adapter e fake estão em
-[ViaCEP — contrato interno para a OC70](../backend/app/integrations/viacep/README.md).
+`CONFIRMADO`: `GET /api/v1/customers/cep/{cep}` exige sessão e acesso exclusivo
+de `LOGISTICS_MANAGER`. `ADMIN`, `CHECKER` e `DRIVER` não podem consultá-la.
+A rota recebe somente CEP, normaliza oito dígitos com hífen opcional antes da
+consulta e aplica timeout HTTP de 5 segundos por fase. O cadastro manual é
+independente.
 
-`PENDENTE DE DEFINIÇÃO`: não há endpoint HTTP de consulta de CEP nesta entrega.
-Caminho, autorização e status HTTP precisam ser aprovados antes do consumo
-pelo frontend da OC70. O frontend não deve acessar o ViaCEP diretamente.
+`CONFIRMADO`: resposta `200` usa `ViaCEPAddress`, com `cep`, `street`,
+`neighborhood`, `complement`, `city` e `state`, sem envelope. CEP retorna oito
+dígitos; rua, bairro e complemento são opcionais (`null`) e aceitam até 255
+caracteres cada; cidade é obrigatória, de 1 a 120 caracteres; UF é uma sigla
+brasileira válida de duas letras maiúsculas. Dados externos acima dos limites
+são rejeitados. O endereço composto continua sujeito ao limite de Customer.
+
+`CONFIRMADO`: os erros usam `ErrorResponse` (`code`, `message`, `details`):
+
+| Status | Código | Condição |
+| --- | --- | --- |
+| `401` | `AUTH_INVALID_TOKEN` | Sessão ausente ou inválida. |
+| `403` | `AUTH_FORBIDDEN` | Perfil sem acesso à consulta. |
+| `422` | `VIACEP_INVALID_CEP` | Formato inválido; nenhuma consulta externa. |
+| `404` | `VIACEP_NOT_FOUND` | CEP inexistente. |
+| `503` | `VIACEP_UNAVAILABLE` | Serviço indisponível. |
+| `504` | `VIACEP_TIMEOUT` | Timeout do serviço externo. |
+| `502` | `VIACEP_INVALID_RESPONSE` | Resposta inválida, incompleta ou acima dos limites. |
+
+`CONFIRMADO`: `VIACEP_INVALID_CEP` identifica `cep` em `details`; as falhas do
+provider retornam `details: []` e mensagens normalizadas, sem detalhes internos.
+Contrato, exemplo de sucesso e injeção de fake estão em
+[ViaCEP — contrato público para a OC70](../backend/app/integrations/viacep/README.md).
+O frontend deve consultar o backend, nunca o ViaCEP diretamente.
 
 ## Motoristas
 

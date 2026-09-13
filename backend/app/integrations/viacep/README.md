@@ -1,6 +1,7 @@
 # ViaCEP — OC62
 
-`CONFIRMADO`: integração interna do backend referente à Issue #44. Segue o
+`CONFIRMADO`: integração do backend referente à Issue #44, exposta em
+`GET /api/v1/customers/cep/{cep}` somente para `LOGISTICS_MANAGER`. Segue o
 padrão de Protocol, modelos estritos, erros normalizados e fake da integração
 de IA. Não altera Customer, banco, migrations, frontend ou cadastro manual.
 
@@ -27,16 +28,19 @@ e revalida inclusive instâncias previamente construídas. A saída contém apen
 | Campo interno | Campo ViaCEP | Contrato |
 | --- | --- | --- |
 | `cep` | `cep` | Obrigatório; oito dígitos, igual ao CEP solicitado. |
-| `street` | `logradouro` | String ou `null`. |
-| `neighborhood` | `bairro` | String ou `null`. |
-| `complement` | `complemento` | String ou `null`. |
-| `city` | `localidade` | String obrigatória, não vazia. |
+| `street` | `logradouro` | String de até 255 caracteres ou `null`. |
+| `neighborhood` | `bairro` | String de até 255 caracteres ou `null`. |
+| `complement` | `complemento` | String de até 255 caracteres ou `null`. |
+| `city` | `localidade` | String obrigatória, de 1 a 120 caracteres. |
 | `state` | `uf` | Sigla obrigatória de UF brasileira em maiúsculas. |
 
 `CONFIRMADO`: textos são aparados; campos opcionais ausentes, nulos ou vazios
 viram `None` (`null` em JSON). Um CEP municipal pode não conter rua, bairro ou
 complemento. Ausência de CEP, cidade ou UF, tipos incorretos e CEP divergente
 geram resposta inválida, sem devolver preenchimento parcial não validado.
+Os limites seguem `Customer.address` (255) e `Customer.city` (120). Textos
+acima dos limites são rejeitados, não truncados. Os limites individuais não
+substituem a validação de `Customer.address` ao salvar um endereço composto.
 
 ## Adapter externo e erros
 
@@ -68,22 +72,52 @@ na [documentação oficial do ViaCEP](https://viacep.com.br/).
 | `ViaCEPUnavailableError` | `VIACEP_UNAVAILABLE` | Falha de transporte ou HTTP diferente de `200`, inclusive `404`. |
 | `ViaCEPInvalidResponseError` | `VIACEP_INVALID_RESPONSE` | JSON, codificação ou endereço inválido/incompleto. |
 
-## Cadastro manual e futura API
+## API pública para a OC70 e cadastro manual
+
+`CONFIRMADO`: `GET /api/v1/customers/cep/{cep}` exige sessão válida e perfil
+`LOGISTICS_MANAGER`. Sem autenticação retorna `401 AUTH_INVALID_TOKEN`;
+`ADMIN`, `CHECKER` e `DRIVER` recebem `403 AUTH_FORBIDDEN` antes de consultar o
+provider. A rota injeta `ViaCEPProvider` por `get_viacep_provider`, aplica
+normalização antes da chamada e utiliza timeout de 5 segundos por fase HTTP.
+
+`CONFIRMADO`: resposta `200` usa o próprio `ViaCEPAddress`, sem envelope.
+Exemplo fictício para `GET /api/v1/customers/cep/01234-567`:
+
+```json
+{
+  "cep": "01234567",
+  "street": "Rua Fictícia",
+  "neighborhood": "Bairro Fictício",
+  "complement": null,
+  "city": "Cidade Fictícia",
+  "state": "SP"
+}
+```
+
+`CONFIRMADO`: os erros usam o envelope existente `code`, `message`, `details`:
+
+| Exceção | Status HTTP | Código público |
+| --- | --- | --- |
+| `ViaCEPInvalidCEPError` | `422` | `VIACEP_INVALID_CEP` |
+| `ViaCEPNotFoundError` | `404` | `VIACEP_NOT_FOUND` |
+| `ViaCEPUnavailableError` | `503` | `VIACEP_UNAVAILABLE` |
+| `ViaCEPTimeoutError` | `504` | `VIACEP_TIMEOUT` |
+| `ViaCEPInvalidResponseError` | `502` | `VIACEP_INVALID_RESPONSE` |
+
+`CONFIRMADO`: CEP inválido usa `details: [{"field": "cep"}]`. Nas falhas de
+consulta, `details` é vazio; mensagens são as normalizadas do provider, sem
+detalhes do serviço externo. O OpenAPI referencia `ViaCEPAddress` no sucesso
+e `ErrorResponse` nos erros.
 
 `CONFIRMADO`: os serviços de criação/atualização de clientes não chamam o
 ViaCEP e continuam aceitando endereço informado manualmente. A consulta é
 auxiliar e não autoriza criar campos persistidos nem compor automaticamente
 `Customer.address` com uma regra ainda não aprovada.
 
-`RECOMENDAÇÃO`: o futuro consumidor deve tratar `ViaCEPProviderError` como
-falha de preenchimento auxiliar, preservar os dados digitados e permitir
-cadastro manual. Usar apenas `code`/`message`, sem serializar traceback ou
-detalhes externos. O frontend deverá consultar o backend, nunca o ViaCEP.
-
-`PENDENTE DE DEFINIÇÃO`: esta OC62 entrega o contrato interno, não um endpoint
-HTTP público. Caminho, RBAC, status HTTP e composição do endereço precisam de
-aprovação antes de expor a consulta para a OC70. Os códigos acima ainda não
-são um contrato público de erros HTTP.
+`RECOMENDAÇÃO`: o consumidor da OC70 deve tratar erros de consulta como falha
+de preenchimento auxiliar, preservar os dados digitados e permitir cadastro
+manual. Usar apenas `code`/`message`, sem detalhes externos. O frontend deverá
+consultar este endpoint do backend, nunca o ViaCEP diretamente.
 
 ## Fake e testes sem rede
 
@@ -98,9 +132,14 @@ resposta inválida/incompleta, privacidade e revalidação. Os testes do adapter
 usam `httpx2.MockTransport`; uma fixture automática bloqueia o transporte HTTP
 real. Não exigem credenciais, banco ou disponibilidade do ViaCEP.
 
+`CONFIRMADO`: os testes do endpoint em `tests/unit/test_customer_cep_api.py`
+injetam `FakeViaCEPProvider` por override de `get_viacep_provider`, verificam
+o RBAC real da rota, os erros e os limites de texto com acesso HTTP externo
+bloqueado. O cadastro manual mantém seus testes e comportamento existentes.
+
 Executar a partir de `backend`:
 
 ```bash
-python -m pytest tests/unit/test_viacep_provider.py -q
-python -m ruff check app/integrations/viacep tests/unit/test_viacep_provider.py
+python -m pytest tests/unit/test_viacep_provider.py tests/unit/test_customer_cep_api.py -q
+python -m ruff check app/integrations/viacep app/modules/customers/router.py tests/unit/test_viacep_provider.py tests/unit/test_customer_cep_api.py
 ```
