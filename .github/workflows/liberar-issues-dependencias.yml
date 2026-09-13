@@ -1,0 +1,333 @@
+name: Liberar Issues por dependências
+
+on:
+  pull_request:
+    types:
+      - closed
+  push:
+    branches:
+      - desenvolvimento
+    paths:
+      - ".github/workflows/liberar-issues-dependencias.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+jobs:
+  liberar-issues:
+    name: Atualizar dependências e liberar tarefas
+    runs-on: ubuntu-latest
+
+    if: >-
+      github.event_name != 'pull_request' ||
+      (github.event.pull_request.base.ref == 'desenvolvimento' &&
+      github.event.pull_request.merged == true)
+
+    env:
+      GH_TOKEN: ${{ secrets.PROJECT_AUTOMATION_TOKEN }}
+      REPOSITORY: ${{ github.repository }}
+      PROJECT_OWNER: ${{ github.repository_owner }}
+      PROJECT_TITLE: LoadX — Desenvolvimento
+      STATUS_FIELD: Status
+      BACKLOG_STATUS: Backlog
+      READY_STATUS: Pronto para iniciar
+      API_VERSION: 2026-03-10
+
+    steps:
+      - name: Sincronizar dependências nativas da v1.1.0
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          RULES=(
+            "49:46 47"
+            "50:49"
+            "51:49 50"
+            "52:44"
+            "53:45"
+            "54:46 47 49"
+            "55:50"
+            "56:51"
+            "57:48 58"
+            "58:48"
+          )
+
+          for RULE in "${RULES[@]}"; do
+            TARGET="${RULE%%:*}"
+            BLOCKERS="${RULE#*:}"
+
+            CURRENT=$(gh api \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: ${API_VERSION}" \
+              "repos/${REPOSITORY}/issues/${TARGET}/dependencies/blocked_by?per_page=100")
+
+            for BLOCKER in $BLOCKERS; do
+              BLOCKER_ID=$(gh api \
+                "repos/${REPOSITORY}/issues/${BLOCKER}" \
+                --jq '.id')
+
+              if echo "$CURRENT" | jq -e \
+                --argjson blockerId "$BLOCKER_ID" \
+                '.[] | select(.id == $blockerId)' >/dev/null; then
+                echo "Dependência já existe: #${TARGET} bloqueada por #${BLOCKER}."
+                continue
+              fi
+
+              gh api \
+                --method POST \
+                -H "Accept: application/vnd.github+json" \
+                -H "X-GitHub-Api-Version: ${API_VERSION}" \
+                "repos/${REPOSITORY}/issues/${TARGET}/dependencies/blocked_by" \
+                -F issue_id="$BLOCKER_ID" >/dev/null
+
+              echo "Dependência criada: #${TARGET} bloqueada por #${BLOCKER}."
+              sleep 1
+            done
+          done
+
+      - name: Aguardar fechamento das Issues vinculadas ao PR
+        if: github.event_name == 'pull_request'
+        env:
+          PR_BODY: ${{ github.event.pull_request.body || '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ISSUE_NUMBERS=$(
+            printf '%s\n' "$PR_BODY" |
+            grep -Eio \
+              '(close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)[[:space:]]+#[0-9]+' |
+            grep -Eo '#[0-9]+' |
+            tr -d '#' |
+            sort -nu |
+            xargs || true
+          )
+
+          if [ -z "$ISSUE_NUMBERS" ]; then
+            echo "PR sem Issue de fechamento explícita. Recalculando dependências mesmo assim."
+            exit 0
+          fi
+
+          for ATTEMPT in $(seq 1 12); do
+            ALL_CLOSED=true
+
+            for ISSUE_NUMBER in $ISSUE_NUMBERS; do
+              STATE=$(gh api \
+                "repos/${REPOSITORY}/issues/${ISSUE_NUMBER}" \
+                --jq '.state')
+
+              if [ "$STATE" != "closed" ]; then
+                ALL_CLOSED=false
+                break
+              fi
+            done
+
+            if [ "$ALL_CLOSED" = "true" ]; then
+              echo "Issues vinculadas já estão fechadas."
+              exit 0
+            fi
+
+            echo "Aguardando workflow de conclusão fechar as Issues... tentativa ${ATTEMPT}/12."
+            sleep 5
+          done
+
+          echo "::warning::Nem todas as Issues vinculadas fecharam dentro de 60 segundos."
+
+      - name: Liberar Issues sem bloqueios pendentes
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          PROJECT_DATA=$(gh api graphql \
+            -f query='
+              query($owner: String!) {
+                repositoryOwner(login: $owner) {
+                  ... on User {
+                    projectsV2(first: 100) {
+                      nodes {
+                        id
+                        title
+                        fields(first: 100) {
+                          nodes {
+                            ... on ProjectV2SingleSelectField {
+                              id
+                              name
+                              options {
+                                id
+                                name
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+
+                  ... on Organization {
+                    projectsV2(first: 100) {
+                      nodes {
+                        id
+                        title
+                        fields(first: 100) {
+                          nodes {
+                            ... on ProjectV2SingleSelectField {
+                              id
+                              name
+                              options {
+                                id
+                                name
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            ' \
+            -F owner="$PROJECT_OWNER")
+
+          PROJECT_ID=$(echo "$PROJECT_DATA" | jq -r \
+            --arg title "$PROJECT_TITLE" \
+            '.data.repositoryOwner.projectsV2.nodes[]
+             | select(.title == $title)
+             | .id' | head -n 1)
+
+          FIELD_ID=$(echo "$PROJECT_DATA" | jq -r \
+            --arg title "$PROJECT_TITLE" \
+            --arg field "$STATUS_FIELD" \
+            '.data.repositoryOwner.projectsV2.nodes[]
+             | select(.title == $title)
+             | .fields.nodes[]
+             | select(.name == $field)
+             | .id' | head -n 1)
+
+          READY_OPTION_ID=$(echo "$PROJECT_DATA" | jq -r \
+            --arg title "$PROJECT_TITLE" \
+            --arg field "$STATUS_FIELD" \
+            --arg status "$READY_STATUS" \
+            '.data.repositoryOwner.projectsV2.nodes[]
+             | select(.title == $title)
+             | .fields.nodes[]
+             | select(.name == $field)
+             | .options[]
+             | select(.name == $status)
+             | .id' | head -n 1)
+
+          if [ -z "$PROJECT_ID" ] || [ "$PROJECT_ID" = "null" ]; then
+            echo "::error::Project '$PROJECT_TITLE' não encontrado."
+            exit 1
+          fi
+
+          if [ -z "$FIELD_ID" ] || [ "$FIELD_ID" = "null" ]; then
+            echo "::error::Campo '$STATUS_FIELD' não encontrado."
+            exit 1
+          fi
+
+          if [ -z "$READY_OPTION_ID" ] || [ "$READY_OPTION_ID" = "null" ]; then
+            echo "::error::Status '$READY_STATUS' não encontrado."
+            exit 1
+          fi
+
+          ITEMS_DATA=$(gh api graphql \
+            -f query='
+              query($projectId: ID!, $statusField: String!) {
+                node(id: $projectId) {
+                  ... on ProjectV2 {
+                    items(first: 100) {
+                      nodes {
+                        id
+                        content {
+                          __typename
+                          ... on Issue {
+                            number
+                            title
+                            state
+                            repository {
+                              nameWithOwner
+                            }
+                          }
+                        }
+                        fieldValueByName(name: $statusField) {
+                          ... on ProjectV2ItemFieldSingleSelectValue {
+                            name
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            ' \
+            -f projectId="$PROJECT_ID" \
+            -f statusField="$STATUS_FIELD")
+
+          echo "$ITEMS_DATA" | jq -c \
+            --arg repository "$REPOSITORY" \
+            --arg backlog "$BACKLOG_STATUS" \
+            '.data.node.items.nodes[]
+             | select(.content.__typename == "Issue")
+             | select(.content.repository.nameWithOwner == $repository)
+             | select(.content.state == "OPEN")
+             | select((.fieldValueByName.name // "") == $backlog)' |
+          while IFS= read -r ITEM; do
+            ISSUE_NUMBER=$(echo "$ITEM" | jq -r '.content.number')
+            ISSUE_TITLE=$(echo "$ITEM" | jq -r '.content.title')
+            ITEM_ID=$(echo "$ITEM" | jq -r '.id')
+
+            DEPENDENCIES=$(gh api \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: ${API_VERSION}" \
+              "repos/${REPOSITORY}/issues/${ISSUE_NUMBER}/dependencies/blocked_by?per_page=100")
+
+            DEPENDENCY_COUNT=$(echo "$DEPENDENCIES" | jq 'length')
+            if [ "$DEPENDENCY_COUNT" -eq 0 ]; then
+              continue
+            fi
+
+            OPEN_DEPENDENCIES=$(echo "$DEPENDENCIES" | jq \
+              '[.[] | select(.state != "closed")] | length')
+
+            if [ "$OPEN_DEPENDENCIES" -ne 0 ]; then
+              BLOCKERS=$(echo "$DEPENDENCIES" | jq -r \
+                'map("#\(.number)=\(.state)") | join(", ")')
+              echo "Issue #${ISSUE_NUMBER} ainda bloqueada: ${BLOCKERS}."
+              continue
+            fi
+
+            gh api graphql \
+              -f query='
+                mutation(
+                  $projectId: ID!,
+                  $itemId: ID!,
+                  $fieldId: ID!,
+                  $optionId: String!
+                ) {
+                  updateProjectV2ItemFieldValue(
+                    input: {
+                      projectId: $projectId
+                      itemId: $itemId
+                      fieldId: $fieldId
+                      value: {
+                        singleSelectOptionId: $optionId
+                      }
+                    }
+                  ) {
+                    projectV2Item {
+                      id
+                    }
+                  }
+                }
+              ' \
+              -f projectId="$PROJECT_ID" \
+              -f itemId="$ITEM_ID" \
+              -f fieldId="$FIELD_ID" \
+              -f optionId="$READY_OPTION_ID" >/dev/null
+
+            echo "Issue #${ISSUE_NUMBER} — ${ISSUE_TITLE}"
+            echo "Todas as dependências foram concluídas. Status: ${READY_STATUS}."
+          done
