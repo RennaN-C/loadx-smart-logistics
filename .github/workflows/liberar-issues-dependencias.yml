@@ -28,12 +28,14 @@ jobs:
 
     env:
       GH_TOKEN: ${{ secrets.PROJECT_AUTOMATION_TOKEN }}
+      DISCORD_WEBHOOK: ${{ secrets.DISCORD_TASKS_WEBHOOK }}
       REPOSITORY: ${{ github.repository }}
       PROJECT_OWNER: ${{ github.repository_owner }}
       PROJECT_TITLE: LoadX — Desenvolvimento
       STATUS_FIELD: Status
       BACKLOG_STATUS: Backlog
       READY_STATUS: Pronto para iniciar
+      TARGET_MILESTONE: v1.1.0
       API_VERSION: 2026-03-10
 
     steps:
@@ -136,10 +138,45 @@ jobs:
 
           echo "::warning::Nem todas as Issues vinculadas fecharam dentro de 60 segundos."
 
-      - name: Liberar Issues sem bloqueios pendentes
+      - name: Liberar Issues disponíveis
         shell: bash
         run: |
           set -euo pipefail
+
+          notificar_discord() {
+            local payload="$1"
+
+            if [ -z "${DISCORD_WEBHOOK:-}" ]; then
+              echo "::warning::DISCORD_TASKS_WEBHOOK não configurado. Notificação ignorada."
+              return 0
+            fi
+
+            for ATTEMPT in 1 2 3; do
+              HTTP_CODE=$(curl -sS \
+                -o /tmp/discord-response.json \
+                -w "%{http_code}" \
+                -H "Content-Type: application/json" \
+                -d "$payload" \
+                "$DISCORD_WEBHOOK" || true)
+
+              if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+                return 0
+              fi
+
+              if [ "$HTTP_CODE" = "429" ]; then
+                RETRY_AFTER=$(jq -r '.retry_after // 1' /tmp/discord-response.json 2>/dev/null || echo "1")
+                echo "Discord limitou a requisição. Nova tentativa em ${RETRY_AFTER}s."
+                sleep "$RETRY_AFTER"
+                continue
+              fi
+
+              echo "::warning::Falha ao notificar Discord. HTTP ${HTTP_CODE}."
+              cat /tmp/discord-response.json || true
+              return 0
+            done
+
+            echo "::warning::Não foi possível notificar o Discord após 3 tentativas."
+          }
 
           PROJECT_DATA=$(gh api graphql \
             -f query='
@@ -247,6 +284,9 @@ jobs:
                             number
                             title
                             state
+                            milestone {
+                              title
+                            }
                             repository {
                               nameWithOwner
                             }
@@ -269,10 +309,12 @@ jobs:
           echo "$ITEMS_DATA" | jq -c \
             --arg repository "$REPOSITORY" \
             --arg backlog "$BACKLOG_STATUS" \
+            --arg milestone "$TARGET_MILESTONE" \
             '.data.node.items.nodes[]
              | select(.content.__typename == "Issue")
              | select(.content.repository.nameWithOwner == $repository)
              | select(.content.state == "OPEN")
+             | select((.content.milestone.title // "") == $milestone)
              | select((.fieldValueByName.name // "") == $backlog)' |
           while IFS= read -r ITEM; do
             ISSUE_NUMBER=$(echo "$ITEM" | jq -r '.content.number')
@@ -285,18 +327,17 @@ jobs:
               "repos/${REPOSITORY}/issues/${ISSUE_NUMBER}/dependencies/blocked_by?per_page=100")
 
             DEPENDENCY_COUNT=$(echo "$DEPENDENCIES" | jq 'length')
-            if [ "$DEPENDENCY_COUNT" -eq 0 ]; then
-              continue
-            fi
 
-            OPEN_DEPENDENCIES=$(echo "$DEPENDENCIES" | jq \
-              '[.[] | select(.state != "closed")] | length')
+            if [ "$DEPENDENCY_COUNT" -gt 0 ]; then
+              OPEN_DEPENDENCIES=$(echo "$DEPENDENCIES" | jq \
+                '[.[] | select(.state != "closed")] | length')
 
-            if [ "$OPEN_DEPENDENCIES" -ne 0 ]; then
-              BLOCKERS=$(echo "$DEPENDENCIES" | jq -r \
-                'map("#\(.number)=\(.state)") | join(", ")')
-              echo "Issue #${ISSUE_NUMBER} ainda bloqueada: ${BLOCKERS}."
-              continue
+              if [ "$OPEN_DEPENDENCIES" -ne 0 ]; then
+                BLOCKERS=$(echo "$DEPENDENCIES" | jq -r \
+                  'map("#\(.number)=\(.state)") | join(", ")')
+                echo "Issue #${ISSUE_NUMBER} ainda bloqueada: ${BLOCKERS}."
+                continue
+              fi
             fi
 
             gh api graphql \
@@ -328,6 +369,50 @@ jobs:
               -f fieldId="$FIELD_ID" \
               -f optionId="$READY_OPTION_ID" >/dev/null
 
+            ISSUE=$(gh api "repos/${REPOSITORY}/issues/${ISSUE_NUMBER}")
+            ISSUE_URL=$(echo "$ISSUE" | jq -r '.html_url')
+            ISSUE_BODY=$(echo "$ISSUE" | jq -r '.body // ""')
+            ASSIGNEE=$(echo "$ISSUE" | jq -r '.assignee.login // "Não atribuído"')
+
+            RESPONSAVEL=$(printf '%s\n' "$ISSUE_BODY" |
+              awk '/^## Responsável[[:space:]]*$/ { getline; print; exit }')
+
+            if [ -z "$RESPONSAVEL" ]; then
+              RESPONSAVEL="@${ASSIGNEE}"
+            fi
+
+            PAYLOAD=$(jq -n \
+              --arg title "$ISSUE_TITLE" \
+              --arg url "$ISSUE_URL" \
+              --arg issue "#${ISSUE_NUMBER}" \
+              --arg responsavel "$RESPONSAVEL" \
+              --arg status "$READY_STATUS" \
+              '{
+                username: "LoadX • Tarefas",
+                embeds: [
+                  {
+                    title: "🟢 OC liberada para início",
+                    description:
+                      ("**Tarefa:** " + $title +
+                       "\n**Issue:** " + $issue +
+                       "\n**Desenvolvedor:** " + $responsavel +
+                       "\n**Status:** " + $status),
+                    url: $url,
+                    footer: {
+                      text: "LoadX — Desenvolvimento"
+                    }
+                  }
+                ]
+              }')
+
+            notificar_discord "$PAYLOAD"
+
             echo "Issue #${ISSUE_NUMBER} — ${ISSUE_TITLE}"
-            echo "Todas as dependências foram concluídas. Status: ${READY_STATUS}."
+            if [ "$DEPENDENCY_COUNT" -eq 0 ]; then
+              echo "Sem dependências pendentes. Status: ${READY_STATUS}."
+            else
+              echo "Todas as dependências foram concluídas. Status: ${READY_STATUS}."
+            fi
+
+            sleep 1
           done
