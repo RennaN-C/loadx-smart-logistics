@@ -2,6 +2,10 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
+RUN apt-get update \
+    && apt-get upgrade -y \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY requirements.lock.txt .
 
 RUN python -m pip install --no-cache-dir --upgrade "pip==26.1.2" \
