@@ -265,7 +265,7 @@ jobs:
               -F projectId="$PROJECT_ID" \
               -F itemId="$ITEM_ID" \
               -F fieldId="$FIELD_ID" \
-              -F optionId="$OPTION_ID" >/dev/null
+              -f optionId="$OPTION_ID" >/dev/null
 
             echo "Issue #${ISSUE_NUMBER} — ${ISSUE_TITLE}"
             echo "Status atualizado para: ${TARGET_STATUS}"
