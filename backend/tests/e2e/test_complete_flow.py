@@ -19,32 +19,39 @@ def test_complete_v1_flow(client: TestClient, session_factory) -> None:
         db.add(manager)
         db.commit()
         manager_id = manager.id
+
     manager_headers = issue_session_headers(session_factory, manager_id)
 
-    customer = client.post(
+    customer_response = client.post(
         "/api/v1/customers",
         json={
             "name": "Cliente E2E",
-            "document": uuid.uuid4().hex,
-            "phone": "551100000001",
+            "document": "00000000000191",
+            "phone": "11900000000",
             "address": "Rua E2E, 100",
             "city": "Sao Paulo",
             "state": "SP",
         },
         headers=manager_headers,
-    ).json()
-    driver = client.post(
+    )
+    assert customer_response.status_code == 201
+    customer = customer_response.json()
+
+    driver_response = client.post(
         "/api/v1/drivers",
         json={
             "name": "Motorista E2E",
-            "document": f"DOC-{uuid.uuid4().hex[:20]}",
-            "phone": "551100000002",
-            "license_number": f"CNH-{uuid.uuid4().hex[:20]}",
+            "document": "12345678909",
+            "phone": "11900000000",
+            "license_number": "12345678900",
             "license_category": "D",
         },
         headers=manager_headers,
-    ).json()
-    truck = client.post(
+    )
+    assert driver_response.status_code == 201
+    driver = driver_response.json()
+
+    truck_response = client.post(
         "/api/v1/trucks",
         json={
             "plate": f"E{uuid.uuid4().hex[:6]}",
@@ -55,8 +62,11 @@ def test_complete_v1_flow(client: TestClient, session_factory) -> None:
             "max_weight_kg": 1000.0,
         },
         headers=manager_headers,
-    ).json()
-    product = client.post(
+    )
+    assert truck_response.status_code == 201
+    truck = truck_response.json()
+
+    product_response = client.post(
         "/api/v1/products",
         json={
             "code": f"E2E-{uuid.uuid4().hex[:8]}",
@@ -70,7 +80,9 @@ def test_complete_v1_flow(client: TestClient, session_factory) -> None:
             "rotation_allowed": True,
         },
         headers=manager_headers,
-    ).json()
+    )
+    assert product_response.status_code == 201
+    product = product_response.json()
 
     with session_factory() as db:
         driver_user = User(
@@ -102,6 +114,7 @@ def test_complete_v1_flow(client: TestClient, session_factory) -> None:
     )
     assert order_response.status_code == 201
     order = order_response.json()
+
     ready = client.patch(
         f"/api/v1/orders/{order['id']}/status",
         json={"status": "READY"},
@@ -116,27 +129,36 @@ def test_complete_v1_flow(client: TestClient, session_factory) -> None:
     )
     assert plan_response.status_code == 201
     plan = plan_response.json()
+
     approved = client.post(
-        f"/api/v1/load-plans/{plan['id']}/approve", headers=manager_headers
+        f"/api/v1/load-plans/{plan['id']}/approve",
+        headers=manager_headers,
     )
     assert approved.status_code == 200
 
-    loading = client.post(
+    loading_response = client.post(
         "/api/v1/loading-sessions",
         json={"load_plan_id": plan["id"]},
         headers=manager_headers,
-    ).json()
-    client.patch(
+    )
+    assert loading_response.status_code == 201
+    loading = loading_response.json()
+
+    started_loading = client.patch(
         f"/api/v1/loading-sessions/{loading['id']}/status",
         json={"status": "IN_PROGRESS"},
         headers=manager_headers,
     )
+    assert started_loading.status_code == 200
+
     for item in loading["items"]:
-        client.patch(
+        checked_item = client.patch(
             f"/api/v1/loading-sessions/{loading['id']}/items/{item['id']}",
             json={"status": "CHECKED"},
             headers=manager_headers,
         )
+        assert checked_item.status_code == 200
+
     finished_loading = client.patch(
         f"/api/v1/loading-sessions/{loading['id']}/status",
         json={"status": "FINISHED"},
@@ -146,15 +168,22 @@ def test_complete_v1_flow(client: TestClient, session_factory) -> None:
 
     trip_response = client.post(
         "/api/v1/trips",
-        json={"load_plan_id": plan["id"], "driver_id": driver["id"]},
+        json={
+            "load_plan_id": plan["id"],
+            "driver_id": driver["id"],
+        },
         headers=manager_headers,
     )
     assert trip_response.status_code == 201
     trip = trip_response.json()
+
     for command in ("INICIAR VIAGEM", "INICIAR ENTREGA", "FINALIZAR ENTREGA"):
         executed = client.post(
             "/api/v1/messages/interpret",
-            json={"driver_phone": driver["phone"], "message": command},
+            json={
+                "driver_phone": driver["phone"],
+                "message": command,
+            },
             headers=manager_headers,
         )
         assert executed.status_code == 200
@@ -168,6 +197,7 @@ def test_complete_v1_flow(client: TestClient, session_factory) -> None:
     assert finished_trip.status_code == 200
 
     mock_whatsapp_provider.sent_messages.clear()
+
     occurrence = client.post(
         "/api/v1/occurrences",
         json={
@@ -181,6 +211,7 @@ def test_complete_v1_flow(client: TestClient, session_factory) -> None:
     )
     assert occurrence.status_code == 201
     assert occurrence.json()["photo_url"] == "mock://occurrences/e2e-photo"
+
     assert len(mock_whatsapp_provider.sent_messages) == 1
     assert mock_whatsapp_provider.sent_messages[0].recipient_phone == driver["phone"]
     assert mock_whatsapp_provider.sent_messages[0].content == (
@@ -192,6 +223,7 @@ def test_complete_v1_flow(client: TestClient, session_factory) -> None:
         f"/api/v1/reports/trips/{trip['id']}",
     ):
         report = client.get(path, headers=manager_headers)
+
         assert report.status_code == 200
         assert report.headers["content-type"] == "application/pdf"
         assert report.content.startswith(b"%PDF-")

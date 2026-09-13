@@ -74,9 +74,9 @@ def create_driver_in_db(session_factory: SessionFactory):
         return DriverService(db).create_driver(
             DriverCreate(
                 name="Motorista de Teste",
-                document=f"DOC-{uuid.uuid4().hex[:28]}",
-                phone="+5500000000000",
-                license_number=f"CNH-{uuid.uuid4().hex[:28]}",
+                document="12345678909",
+                phone="11900000000",
+                license_number="12345678900",
                 license_category="D",
                 active=True,
             )

@@ -29,6 +29,14 @@ Crie somente os arquivos necessários para a ocorrência atual.
 - Nome, documento, telefone e CNH são obrigatórios.
 - `document` deve ser único.
 - `license_number` deve ser único.
+- `CONFIRMADO` (OC63): create/update exigem CPF válido e CNH de 11 dígitos,
+  validando ambos os verificadores e rejeitando sequências repetidas. CPF
+  aceita máscara padrão; CNH aceita somente dígitos. Letras são inválidas.
+- `CONFIRMADO`: telefone nacional obrigatório, com 10 ou 11 dígitos e DDD
+  não iniciado em zero; celular começa com 9 após o DDD. Máscara de telefone
+  é removida. CPF, CNH e telefone novos/alterados são persistidos só com dígitos.
+- `CONFIRMADO`: PATCH preserva campos omitidos, mas rejeita `null` em
+  documento, CNH e telefone. Falhas usam o erro Pydantic padrão, HTTP `422`.
 - `license_category` é opcional e normalizada para maiúsculas quando informada.
 - `active = false` representa motorista indisponível para viagens futuras.
 - O módulo de viagens bloqueia o motorista durante a criação e rejeita motorista
@@ -38,4 +46,4 @@ Crie somente os arquivos necessários para a ocorrência atual.
 
 ## Pendências
 
-- `PENDENTE DE DEFINIÇÃO`: validação formal de CPF, telefone e categoria de CNH.
+- `PENDENTE DE DEFINIÇÃO`: validação formal da categoria de CNH.

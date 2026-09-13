@@ -231,7 +231,7 @@ def seed_resources(session_factory: SessionFactory) -> dict[str, str]:
             CustomerCreate(
                 name="Cliente de Auditoria",
                 document="00000000000191",
-                phone="5500000000000",
+                phone="11900000000",
                 address="Rua Exemplo, 100",
                 city="Sao Paulo",
                 state="SP",
@@ -240,9 +240,9 @@ def seed_resources(session_factory: SessionFactory) -> dict[str, str]:
         driver = DriverService(db).create_driver(
             DriverCreate(
                 name="Motorista de Auditoria",
-                document="00000000000",
-                phone="5500000000000",
-                license_number="CNH0001",
+                document="12345678909",
+                phone="11900000000",
+                license_number="12345678900",
                 license_category="D",
             )
         )
@@ -307,7 +307,7 @@ def get_payload(payload_name: str | None, resource_ids: dict[str, str]):
         "customer_create": {
             "name": "Novo Cliente",
             "document": "00000000000272",
-            "phone": "5511000000000",
+            "phone": "11900000000",
             "address": "Rua Exemplo, 200",
             "city": "Campinas",
             "state": "SP",
@@ -315,12 +315,12 @@ def get_payload(payload_name: str | None, resource_ids: dict[str, str]):
         "customer_update": {"city": "Campinas"},
         "driver_create": {
             "name": "Novo Motorista",
-            "document": "00000000001",
-            "phone": "5511000000000",
-            "license_number": "CNH0002",
+            "document": "98765432100",
+            "phone": "11900000000",
+            "license_number": "98765432109",
             "license_category": "E",
         },
-        "driver_update": {"phone": "5511999999999"},
+        "driver_update": {"phone": "11999999999"},
         "truck_create": {
             "plate": "DEF4G56",
             "model": "Bau pequeno",

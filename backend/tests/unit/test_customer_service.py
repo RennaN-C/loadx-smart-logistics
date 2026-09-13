@@ -18,7 +18,7 @@ def make_customer_create(document: str = "00000000000191") -> CustomerCreate:
     return CustomerCreate(
         name="Cliente Demonstracao",
         document=document,
-        phone="5500000000000",
+        phone="11900000000",
         address="Rua Exemplo, 100",
         city="Sao Paulo",
         state="sp",

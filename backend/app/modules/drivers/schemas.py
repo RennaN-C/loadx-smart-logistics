@@ -3,6 +3,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.shared.validators import CNH, CPF, PhoneNumber
+
 
 class DriverBase(BaseModel):
     name: str = Field(min_length=1, max_length=160)
@@ -23,14 +25,16 @@ class DriverBase(BaseModel):
 
 
 class DriverCreate(DriverBase):
-    pass
+    document: CPF = Field(min_length=1, max_length=32)
+    phone: PhoneNumber = Field(min_length=1, max_length=32)
+    license_number: CNH = Field(min_length=1, max_length=32)
 
 
 class DriverUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=160)
-    document: str | None = Field(default=None, min_length=1, max_length=32)
-    phone: str | None = Field(default=None, min_length=1, max_length=32)
-    license_number: str | None = Field(default=None, min_length=1, max_length=32)
+    document: CPF | None = Field(default=None, min_length=1, max_length=32)
+    phone: PhoneNumber | None = Field(default=None, min_length=1, max_length=32)
+    license_number: CNH | None = Field(default=None, min_length=1, max_length=32)
     license_category: str | None = Field(default=None, min_length=1, max_length=8)
     active: bool | None = None
 
