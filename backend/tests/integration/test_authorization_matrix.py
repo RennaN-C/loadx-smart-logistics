@@ -1,10 +1,13 @@
 from collections.abc import Callable
 from dataclasses import dataclass
 
+import httpx2
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
+from app.integrations.viacep import FakeViaCEPProvider
+from app.modules.customers.router import get_viacep_provider
 from app.modules.customers.schemas import CustomerCreate
 from app.modules.customers.service import CustomerService
 from app.modules.drivers.schemas import DriverCreate
@@ -64,6 +67,9 @@ AUTHORIZATION_CASES = (
         MANAGER_ONLY,
         201,
         "customer_create",
+    ),
+    AuthorizationCase(
+        "customers_cep", "GET", "/api/v1/customers/cep/01234567", MANAGER_ONLY, 200
     ),
     AuthorizationCase(
         "customers_get",
@@ -360,9 +366,21 @@ def get_payload(payload_name: str | None, resource_ids: dict[str, str]):
 def test_complete_authorization_matrix(
     client: TestClient,
     session_factory: SessionFactory,
+    monkeypatch: pytest.MonkeyPatch,
     case: AuthorizationCase,
     role: str,
 ) -> None:
+    if case.name == "customers_cep":
+
+        def forbidden_request(*args: object, **kwargs: object) -> None:
+            raise AssertionError("OC62 authorization tests must not access the network")
+
+        monkeypatch.setattr(httpx2.HTTPTransport, "handle_request", forbidden_request)
+        fake = FakeViaCEPProvider()
+        monkeypatch.setitem(
+            client.app.dependency_overrides, get_viacep_provider, lambda: fake
+        )
+
     resource_ids = seed_resources(session_factory)
     current_user = create_user(
         session_factory,

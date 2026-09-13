@@ -33,6 +33,7 @@ Legenda:
 |---|---|---|---|---|
 | Usuários | G | Próprio em `/auth/me` | Próprio em `/auth/me` | Próprio em `/auth/me` |
 | Clientes | R | G | - | - |
+| Consulta auxiliar de CEP (OC62) | - | Consultar | - | - |
 | Motoristas | R | G | - | - |
 | Caminhões | R | G | R | S futuro |
 | Produtos | R | G | R | S futuro |

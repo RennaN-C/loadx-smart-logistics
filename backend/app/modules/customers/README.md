@@ -20,8 +20,19 @@ Crie somente os arquivos necessários para a ocorrência atual.
 - `POST /api/v1/customers`: cria cliente.
 - `GET /api/v1/customers/{id}`: consulta cliente por ID.
 - `PATCH /api/v1/customers/{id}`: atualiza campos enviados.
+- `GET /api/v1/customers/cep/{cep}`: consulta auxiliar de endereço por CEP,
+  somente para `LOGISTICS_MANAGER`, com timeout HTTP de 5 segundos por fase.
 
-`CONFIRMADO`: `ADMIN` e `LOGISTICS_MANAGER` podem consultar. Somente `LOGISTICS_MANAGER` pode criar ou atualizar. `CHECKER` e `DRIVER` não acessam o módulo.
+`CONFIRMADO`: `ADMIN` e `LOGISTICS_MANAGER` podem consultar clientes. Somente
+`LOGISTICS_MANAGER` pode criar, atualizar ou consultar CEP. `CHECKER` e
+`DRIVER` não acessam o módulo.
+
+`CONFIRMADO`: a OC62 retorna `ViaCEPAddress` em `200` e o envelope padrão nos
+erros: CEP inválido `422`, não encontrado `404`, resposta inválida `502`,
+indisponibilidade `503` e timeout `504`. A dependência `get_viacep_provider`
+permite fake nos testes. Rua, bairro e complemento aceitam até 255 caracteres
+cada; cidade, até 120. O cadastro manual não depende desta consulta.
+Contrato completo: [ViaCEP — OC62/OC70](../../integrations/viacep/README.md).
 
 ## Regras implementadas
 
