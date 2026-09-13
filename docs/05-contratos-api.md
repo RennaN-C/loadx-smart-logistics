@@ -263,6 +263,12 @@ Campos de `GET /customers`: `id`, `name`, `city`, `state` e `created_at`.
 Documento, telefone, endereço e observações aparecem somente no detalhe e nas
 respostas de escrita já protegidas pelo RBAC.
 
+`CONFIRMADO` (OC63): `POST`/`PATCH` validam `document` como CPF de 11 dígitos ou
+CNPJ numérico de 14 dígitos, aceitando as máscaras `XXX.XXX.XXX-XX` e
+`XX.XXX.XXX/XXXX-XX`. Ambos verificadores devem ser válidos; letras, máscaras
+incorretas e sequências repetidas são rejeitadas. `phone` continua opcional.
+Campos novos/alterados são persistidos e retornados sem máscara.
+
 ### Consulta auxiliar de CEP — OC62
 
 `CONFIRMADO`: `GET /api/v1/customers/cep/{cep}` exige sessão e acesso exclusivo
@@ -312,6 +318,23 @@ Regras de autorização:
 Campos de `GET /drivers`: `id`, `name`, `license_category`, `active` e
 `created_at`. Documento, telefone e número da CNH aparecem somente no detalhe e
 nas respostas de escrita já protegidas pelo RBAC.
+
+`CONFIRMADO` (OC63): `POST`/`PATCH` validam `document` como CPF e
+`license_number` como CNH de 11 dígitos, incluindo ambos os verificadores e
+rejeição de sequências repetidas. CPF aceita máscara padrão; CNH, somente
+dígitos. `phone` é obrigatório. Campos novos/alterados retornam sem máscara.
+
+`CONFIRMADO`: nos dois cadastros, telefone aceita 10 ou 11 dígitos nacionais,
+DDD não iniciado em 0 e celular iniciado em 9 após o DDD. Aceita DDD com ou
+sem parênteses, espaço após DDD e hífen antes dos quatro últimos dígitos,
+ambos opcionais. Código internacional e ramal não são aceitos. Entrada é
+string; os formatos aceitam espaços nas extremidades e somente dígitos ASCII.
+
+`CONFIRMADO`: PATCH mantém campos omitidos. `null` é aceito apenas no telefone
+do cliente, entre os campos da OC63; string vazia não limpa o telefone.
+Valor inválido retorna `422 VALIDATION_ERROR`, com o campo em `details`,
+preservando o envelope atual. Leituras de registros legados não são revalidadas
+nem corrigidas automaticamente nesta ocorrência.
 
 ## Pedidos
 

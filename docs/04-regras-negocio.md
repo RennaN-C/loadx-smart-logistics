@@ -128,7 +128,11 @@ tratados em ocorrências próprias.
 - Alterar ou remover o vínculo revoga todas as sessões do usuário na mesma
   transação.
 
-`PENDENTE DE DEFINIÇÃO`: validação formal de CPF, telefone e categoria de CNH.
+`CONFIRMADO` (OC63): documento do motorista é CPF válido; CNH tem 11 dígitos
+com os dois verificadores válidos. Sequências repetidas são rejeitadas.
+Telefone é obrigatório e segue o formato nacional descrito abaixo.
+
+`PENDENTE DE DEFINIÇÃO`: validação formal da categoria de CNH.
 
 ## Cliente
 
@@ -136,7 +140,19 @@ tratados em ocorrências próprias.
 - Documento do cliente deve ser armazenado como texto.
 - Dados pessoais reais não podem ser usados em seeds ou testes.
 
-`PENDENTE DE DEFINIÇÃO`: regra final de unicidade para CPF/CNPJ em clientes.
+`CONFIRMADO` (OC63): documento do cliente aceita CPF ou CNPJ numérico válidos,
+com dois verificadores e sem sequências repetidas. A unicidade existente é
+verificada sobre o documento normalizado recebido. Telefone continua opcional.
+
+`CONFIRMADO`: clientes e motoristas compartilham `app/shared/validators.py`.
+CPF/CNPJ aceitam dígitos ASCII ou a máscara padrão; CNH aceita 11 dígitos.
+Telefone aceita 10 dígitos (fixo) ou 11 (celular), com DDD não iniciado em 0
+e celular iniciado em 9 após o DDD. DDD pode vir entre parênteses, seguido
+de espaço opcional; hífen antes dos quatro últimos dígitos é opcional.
+Não são aceitos código internacional, ramal ou letras. Espaços nas
+extremidades são removidos; persistência de campos novos/alterados usa dígitos.
+As regras são aplicadas em create/update, antes da persistência. Não há
+consulta cadastral externa nem saneamento automático de registros legados.
 
 ## Produto
 

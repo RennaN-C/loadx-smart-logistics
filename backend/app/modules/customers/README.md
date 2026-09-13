@@ -38,6 +38,13 @@ Contrato completo: [ViaCEP — OC62/OC70](../../integrations/viacep/README.md).
 
 - Documento deve ser único.
 - Estado é normalizado para maiúsculas.
-- Validação formal de CPF/CNPJ ainda está pendente de definição.
+- `CONFIRMADO` (OC63): create/update aceitam CPF (11 dígitos) ou CNPJ numérico
+  (14 dígitos), sem máscara ou com a máscara padrão. Validam os dois dígitos
+  verificadores e rejeitam sequências repetidas, letras e máscaras incorretas.
+- `CONFIRMADO`: documento e telefone novos/alterados são persistidos sem
+  máscara. Telefone é opcional (`null` permitido), aceita 10 ou 11 dígitos com
+  DDD não iniciado em zero; celular deve começar com 9 após o DDD.
+- `CONFIRMADO`: PATCH mantém campos omitidos; documento `null` e telefone
+  vazio são inválidos. Falhas usam o erro Pydantic padrão, HTTP `422`.
 - Dados pessoais reais não devem ser usados em seeds, testes ou exemplos.
 - Todas as rotas exigem sessão em cookie e consultam o papel e o estado atual do usuário no banco.
