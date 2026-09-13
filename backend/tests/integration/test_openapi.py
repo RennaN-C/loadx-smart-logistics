@@ -30,6 +30,16 @@ EXPECTED_ERROR_STATUSES = {
     },
     ("/api/v1/customers", "get"): {"401", "403", "422", "500"},
     ("/api/v1/customers", "post"): {"401", "403", "409", "422", "500"},
+    ("/api/v1/customers/cep/{cep}", "get"): {
+        "401",
+        "403",
+        "404",
+        "422",
+        "500",
+        "502",
+        "503",
+        "504",
+    },
     ("/api/v1/customers/{customer_id}", "get"): {
         "401",
         "403",
@@ -384,3 +394,29 @@ def test_openapi_does_not_expose_public_registration() -> None:
     schema = get_openapi_schema()
 
     assert "/api/v1/auth/register" not in schema["paths"]
+
+
+def test_openapi_cep_lookup_exposes_existing_address_schema_with_text_limits() -> None:
+    schema = get_openapi_schema()
+    response_schema = schema["paths"]["/api/v1/customers/cep/{cep}"]["get"][
+        "responses"
+    ]["200"]["content"]["application/json"]["schema"]
+
+    assert response_schema == {"$ref": "#/components/schemas/ViaCEPAddress"}
+    properties = schema["components"]["schemas"]["ViaCEPAddress"]["properties"]
+    assert set(properties) == {
+        "cep",
+        "street",
+        "neighborhood",
+        "complement",
+        "city",
+        "state",
+    }
+    assert properties["city"]["maxLength"] == 120
+    for field in ("street", "neighborhood", "complement"):
+        text_schema = next(
+            variant
+            for variant in properties[field]["anyOf"]
+            if variant["type"] == "string"
+        )
+        assert text_schema["maxLength"] == 255
