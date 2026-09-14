@@ -6,7 +6,9 @@ from discord.ext import tasks
 from discord.ui import Button, View
 
 from app.integrations.discord.cards import (
+    ProjectDashboardData,
     TaskCardData,
+    build_project_dashboard_embed,
     build_task_embed,
 )
 from app.integrations.discord.config import settings
@@ -34,6 +36,26 @@ TEAM_DISCORD_IDS = {
     "dacelofe": settings.discord_marcelo_user_id,
 }
 
+DASHBOARD_FOOTER_TEXT = "LoadX • Dashboard atualizado automaticamente"
+
+
+def contexts_to_dashboard_data(
+    contexts: list[IssueProjectContext],
+) -> ProjectDashboardData:
+    return ProjectDashboardData(
+        version=settings.github_target_milestone,
+        total=len(contexts),
+        backlog=sum(context.current_status == "Backlog" for context in contexts),
+        ready=sum(
+            context.current_status == "Pronto para iniciar" for context in contexts
+        ),
+        development=sum(
+            context.current_status == "Em desenvolvimento" for context in contexts
+        ),
+        review=sum(context.current_status == "Em revisão" for context in contexts),
+        completed=sum(context.current_status == "Concluído" for context in contexts),
+    )
+
 
 def get_authorized_user_ids(
     context: IssueProjectContext,
@@ -51,6 +73,20 @@ def get_authorized_user_ids(
     return authorized
 
 
+def get_responsible_discord_user_ids(
+    context: IssueProjectContext,
+) -> set[int]:
+    user_ids: set[int] = set()
+
+    for github_login in context.assignees:
+        discord_user_id = TEAM_DISCORD_IDS.get(github_login)
+
+        if discord_user_id:
+            user_ids.add(discord_user_id)
+
+    return user_ids
+
+
 def context_to_card_data(
     context: IssueProjectContext,
 ) -> TaskCardData:
@@ -63,6 +99,8 @@ def context_to_card_data(
         version=context.version,
         branch=context.branch,
         pr_url=context.pr_url,
+        ci_status=context.ci_status,
+        ci_url=context.ci_url,
     )
 
 
@@ -85,6 +123,58 @@ def issue_number_from_message(
                 return int(match.group(1))
 
     return None
+
+
+def build_released_task_dm_embed(
+    context: IssueProjectContext,
+) -> discord.Embed:
+    title = context.issue_title.strip()
+
+    if title.startswith("[") and "]" in title:
+        oc_code = title[1 : title.index("]")].strip()
+
+        task_title = title.split(
+            "]",
+            1,
+        )[1].strip()
+
+    else:
+        oc_code = f"ISSUE #{context.issue_number}"
+
+        task_title = title
+
+    embed = discord.Embed(
+        title=(f"🔓 OC LIBERADA • {oc_code}"),
+        description=(
+            f"### {task_title}\n\n"
+            "Todas as dependências foram concluídas "
+            "e esta tarefa já pode ser iniciada."
+        ),
+        color=discord.Color.green(),
+        url=context.issue_url,
+    )
+
+    embed.add_field(
+        name="📦 Versão",
+        value=context.version,
+        inline=True,
+    )
+
+    embed.add_field(
+        name="📌 Status",
+        value="Pronto para iniciar",
+        inline=True,
+    )
+
+    embed.add_field(
+        name="🔗 Issue",
+        value=(f"[#{context.issue_number} • Abrir no GitHub]({context.issue_url})"),
+        inline=False,
+    )
+
+    embed.set_footer(text=("LoadX • Sua próxima tarefa está disponível"))
+
+    return embed
 
 
 class StartTaskButton(Button):
@@ -126,6 +216,7 @@ class StartTaskButton(Button):
                     f"**{current.responsible}**",
                     ephemeral=True,
                 )
+
                 return
 
             if current.current_status != "Pronto para iniciar":
@@ -142,6 +233,7 @@ class StartTaskButton(Button):
                     f"**{current.current_status}**",
                     ephemeral=True,
                 )
+
                 return
 
             updated = await asyncio.to_thread(
@@ -164,7 +256,11 @@ class StartTaskButton(Button):
                 ephemeral=True,
             )
 
-        except (RuntimeError, discord.DiscordException, OSError) as exc:
+        except (
+            RuntimeError,
+            discord.DiscordException,
+            OSError,
+        ) as exc:
             await interaction.followup.send(
                 f"❌ Não foi possível iniciar a OC.\n\n`{exc}`",
                 ephemeral=True,
@@ -185,7 +281,7 @@ class TaskCardView(View):
             started_button = Button(
                 label="OC iniciada",
                 emoji="🟡",
-                style=(discord.ButtonStyle.secondary),
+                style=discord.ButtonStyle.secondary,
                 disabled=True,
                 custom_id=(f"loadx:issue:{context.issue_number}:started"),
             )
@@ -201,6 +297,26 @@ class TaskCardView(View):
             )
         )
 
+        if context.pr_url:
+            self.add_item(
+                Button(
+                    label="Ver PR",
+                    emoji="🔎",
+                    style=discord.ButtonStyle.link,
+                    url=context.pr_url,
+                )
+            )
+
+        if context.ci_url:
+            self.add_item(
+                Button(
+                    label="Ver CI",
+                    emoji="🧪",
+                    style=discord.ButtonStyle.link,
+                    url=context.ci_url,
+                )
+            )
+
 
 class LoadXBot(discord.Client):
     def __init__(self) -> None:
@@ -215,9 +331,21 @@ class LoadXBot(discord.Client):
         ] = {}
 
         self.initialized = False
+
         self.sync_lock = asyncio.Lock()
 
-    async def setup_hook(self) -> None:
+        self.dashboard_message: discord.Message | None = None
+
+        self.previous_statuses: dict[
+            int,
+            str | None,
+        ] = {}
+
+        self.status_snapshot_initialized = False
+
+    async def setup_hook(
+        self,
+    ) -> None:
         try:
             contexts = await asyncio.to_thread(list_project_issues)
 
@@ -226,12 +354,18 @@ class LoadXBot(discord.Client):
 
             print(f"Views persistentes registradas: {len(contexts)}")
 
-        except (RuntimeError, discord.DiscordException, OSError) as exc:
+        except (
+            RuntimeError,
+            discord.DiscordException,
+            OSError,
+        ) as exc:
             print(f"ERRO ao registrar views: {exc}")
 
         self.sync_loop.start()
 
-    async def on_ready(self) -> None:
+    async def on_ready(
+        self,
+    ) -> None:
         print(f"Bot conectado: {self.user}")
 
     async def get_tasks_channel(
@@ -249,6 +383,73 @@ class LoadXBot(discord.Client):
             raise TypeError("O canal configurado não é um canal de texto.")
 
         return channel
+
+    async def get_status_channel(
+        self,
+    ) -> discord.TextChannel:
+        channel = self.get_channel(settings.discord_status_channel_id)
+
+        if channel is None:
+            channel = await self.fetch_channel(settings.discord_status_channel_id)
+
+        if not isinstance(
+            channel,
+            discord.TextChannel,
+        ):
+            raise TypeError("O canal de status configurado não é um canal de texto.")
+
+        return channel
+
+    async def discover_dashboard_message(
+        self,
+        channel: discord.TextChannel,
+    ) -> None:
+        if self.user is None:
+            return
+
+        async for message in channel.history(limit=50):
+            if message.author.id != self.user.id:
+                continue
+
+            for embed in message.embeds:
+                footer_text = embed.footer.text if embed.footer else None
+
+                if footer_text == DASHBOARD_FOOTER_TEXT:
+                    self.dashboard_message = message
+
+                    print("Dashboard existente encontrado.")
+
+                    return
+
+    async def sync_dashboard(
+        self,
+        contexts: list[IssueProjectContext],
+    ) -> None:
+        channel = await self.get_status_channel()
+
+        if self.dashboard_message is None:
+            await self.discover_dashboard_message(channel)
+
+        embed = build_project_dashboard_embed(contexts_to_dashboard_data(contexts))
+
+        if self.dashboard_message is not None:
+            try:
+                await self.dashboard_message.edit(
+                    embed=embed,
+                )
+
+                print("Dashboard atualizado.")
+
+                return
+
+            except discord.NotFound:
+                self.dashboard_message = None
+
+        self.dashboard_message = await channel.send(
+            embed=embed,
+        )
+
+        print("Dashboard criado.")
 
     async def discover_existing_cards(
         self,
@@ -311,6 +512,82 @@ class LoadXBot(discord.Client):
             f"Card atualizado: Issue #{context.issue_number} → {context.current_status}"
         )
 
+    async def send_released_task_dm(
+        self,
+        context: IssueProjectContext,
+    ) -> None:
+        responsible_user_ids = get_responsible_discord_user_ids(context)
+
+        if not responsible_user_ids:
+            print(
+                "DM não enviada: "
+                f"Issue #{context.issue_number} "
+                "não possui responsável "
+                "mapeado no Discord."
+            )
+
+            return
+
+        embed = build_released_task_dm_embed(context)
+
+        for user_id in responsible_user_ids:
+            try:
+                user = self.get_user(user_id)
+
+                if user is None:
+                    user = await self.fetch_user(user_id)
+
+                await user.send(embed=embed)
+
+                print(
+                    "DM de OC liberada enviada: "
+                    f"Issue #{context.issue_number} "
+                    f"→ Discord User {user_id}"
+                )
+
+            except discord.Forbidden:
+                print(
+                    "DM ignorada: usuário "
+                    f"{user_id} bloqueou ou "
+                    "não aceita mensagens privadas. "
+                    f"Issue #{context.issue_number}"
+                )
+
+            except discord.DiscordException as exc:
+                print(
+                    "ERRO ao enviar DM da "
+                    f"Issue #{context.issue_number} "
+                    f"para {user_id}: {exc}"
+                )
+
+    async def notify_released_tasks(
+        self,
+        contexts: list[IssueProjectContext],
+    ) -> None:
+        current_statuses = {
+            context.issue_number: context.current_status for context in contexts
+        }
+
+        if not self.status_snapshot_initialized:
+            self.previous_statuses = current_statuses
+
+            self.status_snapshot_initialized = True
+
+            print("Snapshot inicial de status registrado.")
+
+            return
+
+        for context in contexts:
+            previous_status = self.previous_statuses.get(context.issue_number)
+
+            if (
+                previous_status == "Backlog"
+                and context.current_status == "Pronto para iniciar"
+            ):
+                await self.send_released_task_dm(context)
+
+        self.previous_statuses = current_statuses
+
     async def sync_cards(
         self,
     ) -> None:
@@ -324,6 +601,17 @@ class LoadXBot(discord.Client):
 
             contexts = await asyncio.to_thread(list_project_issues)
 
+            try:
+                await self.sync_dashboard(contexts)
+
+            except (
+                RuntimeError,
+                TypeError,
+                discord.DiscordException,
+                OSError,
+            ) as exc:
+                print(f"ERRO ao sincronizar dashboard: {exc}")
+
             for context in contexts:
                 issue_number = context.issue_number
 
@@ -335,6 +623,7 @@ class LoadXBot(discord.Client):
                     if existing:
                         try:
                             await existing.delete()
+
                         except discord.NotFound:
                             pass
 
@@ -354,15 +643,17 @@ class LoadXBot(discord.Client):
                 if status == "Concluído":
                     if existing:
                         try:
-                            await self.update_card(
-                                context,
-                                existing,
-                            )
+                            await existing.delete()
+
                         except discord.NotFound:
-                            self.cards.pop(
-                                issue_number,
-                                None,
-                            )
+                            pass
+
+                        self.cards.pop(
+                            issue_number,
+                            None,
+                        )
+
+                        print(f"Card removido por conclusão: Issue #{issue_number}")
 
                     continue
 
@@ -393,14 +684,22 @@ class LoadXBot(discord.Client):
                         context,
                     )
 
+            await self.notify_released_tasks(contexts)
+
             print("Sincronização concluída.")
 
     @tasks.loop(seconds=60)
-    async def sync_loop(self) -> None:
+    async def sync_loop(
+        self,
+    ) -> None:
         try:
             await self.sync_cards()
 
-        except (RuntimeError, discord.DiscordException, OSError) as exc:
+        except (
+            RuntimeError,
+            discord.DiscordException,
+            OSError,
+        ) as exc:
             print(f"ERRO na sincronização: {exc}")
 
     @sync_loop.before_loop
