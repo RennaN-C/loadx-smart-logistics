@@ -32,7 +32,10 @@ class DiscordBotSettings(BaseSettings):
     github_target_milestone: str = "v1.1.0"
 
     model_config = SettingsConfigDict(
-        env_file=ROOT_DIR / ".env.discord",
+        env_file=(
+            ROOT_DIR / ".env.discord",
+            Path.cwd() / ".env",
+        ),
         env_file_encoding="utf-8",
         secrets_dir=(
             DOCKER_SECRETS_DIR
