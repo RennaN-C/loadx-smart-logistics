@@ -119,7 +119,11 @@ def issue_context(
     *,
     pr_url=None,
     status="Em revisão",
+    assignees=None,
 ):
+    if assignees is None:
+        assignees = ["test-user"]
+
     return discord_modules.github.IssueProjectContext(
         issue_number=44,
         issue_title="[OC62] Tarefa de teste",
@@ -129,7 +133,7 @@ def issue_context(
         responsible="Pessoa de teste",
         version="v1.1.0",
         branch="feature/test",
-        assignees=["test-user"],
+        assignees=assignees,
         project_id="test-project",
         project_item_id="test-item",
         status_field_id="test-status-field",
@@ -677,6 +681,285 @@ def test_completed_issue_removes_existing_card(
             assert 44 not in client.cards
 
             channel.send.assert_not_awaited()
+
+        finally:
+            await client.close()
+
+    asyncio.run(synchronize())
+
+
+def test_responsible_discord_ids_ignore_unknown_users(
+    discord_modules,
+):
+    bot = discord_modules.bot
+
+    context = issue_context(
+        discord_modules,
+        assignees=[
+            "RennaN-C",
+            "usuario-desconhecido",
+            "dacelofe",
+        ],
+    )
+
+    assert bot.get_responsible_discord_user_ids(context) == {
+        2,
+        5,
+    }
+
+
+def test_initial_snapshot_does_not_send_release_dm(
+    discord_modules,
+    monkeypatch,
+):
+    bot = discord_modules.bot
+
+    ready = issue_context(
+        discord_modules,
+        status="Pronto para iniciar",
+        assignees=["RennaN-C"],
+    )
+
+    async def synchronize():
+        client = bot.LoadXBot()
+
+        try:
+            send_dm = AsyncMock()
+
+            monkeypatch.setattr(
+                client,
+                "send_released_task_dm",
+                send_dm,
+            )
+
+            await client.notify_released_tasks([ready])
+
+            send_dm.assert_not_awaited()
+
+            assert client.status_snapshot_initialized is True
+
+            assert client.previous_statuses == {
+                44: "Pronto para iniciar",
+            }
+
+        finally:
+            await client.close()
+
+    asyncio.run(synchronize())
+
+
+def test_backlog_to_ready_sends_one_release_dm(
+    discord_modules,
+    monkeypatch,
+):
+    bot = discord_modules.bot
+
+    backlog = issue_context(
+        discord_modules,
+        status="Backlog",
+        assignees=["RennaN-C"],
+    )
+
+    ready = issue_context(
+        discord_modules,
+        status="Pronto para iniciar",
+        assignees=["RennaN-C"],
+    )
+
+    async def synchronize():
+        client = bot.LoadXBot()
+
+        try:
+            send_dm = AsyncMock()
+
+            monkeypatch.setattr(
+                client,
+                "send_released_task_dm",
+                send_dm,
+            )
+
+            await client.notify_released_tasks([backlog])
+
+            send_dm.assert_not_awaited()
+
+            await client.notify_released_tasks([ready])
+
+            send_dm.assert_awaited_once_with(ready)
+
+            await client.notify_released_tasks([ready])
+
+            send_dm.assert_awaited_once()
+
+            assert client.previous_statuses == {
+                44: "Pronto para iniciar",
+            }
+
+        finally:
+            await client.close()
+
+    asyncio.run(synchronize())
+
+
+def test_non_backlog_transition_does_not_send_release_dm(
+    discord_modules,
+    monkeypatch,
+):
+    bot = discord_modules.bot
+
+    development = issue_context(
+        discord_modules,
+        status="Em desenvolvimento",
+        assignees=["RennaN-C"],
+    )
+
+    ready = issue_context(
+        discord_modules,
+        status="Pronto para iniciar",
+        assignees=["RennaN-C"],
+    )
+
+    async def synchronize():
+        client = bot.LoadXBot()
+
+        try:
+            send_dm = AsyncMock()
+
+            monkeypatch.setattr(
+                client,
+                "send_released_task_dm",
+                send_dm,
+            )
+
+            await client.notify_released_tasks([development])
+
+            await client.notify_released_tasks([ready])
+
+            send_dm.assert_not_awaited()
+
+        finally:
+            await client.close()
+
+    asyncio.run(synchronize())
+
+
+def test_release_dm_goes_to_mapped_responsible_users(
+    discord_modules,
+    monkeypatch,
+):
+    bot = discord_modules.bot
+
+    context = issue_context(
+        discord_modules,
+        status="Pronto para iniciar",
+        assignees=[
+            "RennaN-C",
+            "dacelofe",
+            "usuario-desconhecido",
+        ],
+    )
+
+    renan = SimpleNamespace(
+        send=AsyncMock(),
+    )
+
+    marcelo = SimpleNamespace(
+        send=AsyncMock(),
+    )
+
+    users = {
+        2: renan,
+        5: marcelo,
+    }
+
+    async def synchronize():
+        client = bot.LoadXBot()
+
+        try:
+            monkeypatch.setattr(
+                client,
+                "get_user",
+                lambda user_id: users.get(user_id),
+            )
+
+            fetch_user = AsyncMock()
+
+            monkeypatch.setattr(
+                client,
+                "fetch_user",
+                fetch_user,
+            )
+
+            await client.send_released_task_dm(context)
+
+            renan.send.assert_awaited_once()
+            marcelo.send.assert_awaited_once()
+
+            fetch_user.assert_not_awaited()
+
+            renan_embed = renan.send.call_args.kwargs["embed"]
+
+            assert renan_embed.title == "🔓 OC LIBERADA • OC62"
+
+            assert "Tarefa de teste" in renan_embed.description
+
+            assert any(
+                field.name == "📌 Status" and field.value == "Pronto para iniciar"
+                for field in renan_embed.fields
+            )
+
+        finally:
+            await client.close()
+
+    asyncio.run(synchronize())
+
+
+def test_blocked_dm_does_not_break_notification(
+    discord_modules,
+    monkeypatch,
+):
+    bot = discord_modules.bot
+
+    context = issue_context(
+        discord_modules,
+        status="Pronto para iniciar",
+        assignees=["RennaN-C"],
+    )
+
+    forbidden = discord.Forbidden(
+        SimpleNamespace(
+            status=403,
+            reason="Forbidden",
+        ),
+        "Cannot send messages to this user",
+    )
+
+    blocked_user = SimpleNamespace(
+        send=AsyncMock(side_effect=forbidden),
+    )
+
+    async def synchronize():
+        client = bot.LoadXBot()
+
+        try:
+            monkeypatch.setattr(
+                client,
+                "get_user",
+                lambda user_id: blocked_user,
+            )
+
+            fetch_user = AsyncMock()
+
+            monkeypatch.setattr(
+                client,
+                "fetch_user",
+                fetch_user,
+            )
+
+            await client.send_released_task_dm(context)
+
+            blocked_user.send.assert_awaited_once()
+
+            fetch_user.assert_not_awaited()
 
         finally:
             await client.close()

@@ -73,6 +73,20 @@ def get_authorized_user_ids(
     return authorized
 
 
+def get_responsible_discord_user_ids(
+    context: IssueProjectContext,
+) -> set[int]:
+    user_ids: set[int] = set()
+
+    for github_login in context.assignees:
+        discord_user_id = TEAM_DISCORD_IDS.get(github_login)
+
+        if discord_user_id:
+            user_ids.add(discord_user_id)
+
+    return user_ids
+
+
 def context_to_card_data(
     context: IssueProjectContext,
 ) -> TaskCardData:
@@ -107,6 +121,57 @@ def issue_number_from_message(
                 return int(match.group(1))
 
     return None
+
+
+def build_released_task_dm_embed(
+    context: IssueProjectContext,
+) -> discord.Embed:
+    title = context.issue_title.strip()
+
+    if title.startswith("[") and "]" in title:
+        oc_code = title[1 : title.index("]")].strip()
+
+        task_title = title.split(
+            "]",
+            1,
+        )[1].strip()
+
+    else:
+        oc_code = f"ISSUE #{context.issue_number}"
+        task_title = title
+
+    embed = discord.Embed(
+        title=f"🔓 OC LIBERADA • {oc_code}",
+        description=(
+            f"### {task_title}\n\n"
+            "Todas as dependências foram concluídas "
+            "e esta tarefa já pode ser iniciada."
+        ),
+        color=discord.Color.green(),
+        url=context.issue_url,
+    )
+
+    embed.add_field(
+        name="📦 Versão",
+        value=context.version,
+        inline=True,
+    )
+
+    embed.add_field(
+        name="📌 Status",
+        value="Pronto para iniciar",
+        inline=True,
+    )
+
+    embed.add_field(
+        name="🔗 Issue",
+        value=(f"[#{context.issue_number} • Abrir no GitHub]({context.issue_url})"),
+        inline=False,
+    )
+
+    embed.set_footer(text=("LoadX • Sua próxima tarefa está disponível"))
+
+    return embed
 
 
 class StartTaskButton(Button):
@@ -148,6 +213,7 @@ class StartTaskButton(Button):
                     f"**{current.responsible}**",
                     ephemeral=True,
                 )
+
                 return
 
             if current.current_status != "Pronto para iniciar":
@@ -164,6 +230,7 @@ class StartTaskButton(Button):
                     f"**{current.current_status}**",
                     ephemeral=True,
                 )
+
                 return
 
             updated = await asyncio.to_thread(
@@ -244,6 +311,13 @@ class LoadXBot(discord.Client):
         self.sync_lock = asyncio.Lock()
 
         self.dashboard_message: discord.Message | None = None
+
+        self.previous_statuses: dict[
+            int,
+            str | None,
+        ] = {}
+
+        self.status_snapshot_initialized = False
 
     async def setup_hook(self) -> None:
         try:
@@ -410,6 +484,82 @@ class LoadXBot(discord.Client):
             f"Card atualizado: Issue #{context.issue_number} → {context.current_status}"
         )
 
+    async def send_released_task_dm(
+        self,
+        context: IssueProjectContext,
+    ) -> None:
+        responsible_user_ids = get_responsible_discord_user_ids(context)
+
+        if not responsible_user_ids:
+            print(
+                "DM não enviada: "
+                f"Issue #{context.issue_number} "
+                "não possui responsável "
+                "mapeado no Discord."
+            )
+
+            return
+
+        embed = build_released_task_dm_embed(context)
+
+        for user_id in responsible_user_ids:
+            try:
+                user = self.get_user(user_id)
+
+                if user is None:
+                    user = await self.fetch_user(user_id)
+
+                await user.send(embed=embed)
+
+                print(
+                    "DM de OC liberada enviada: "
+                    f"Issue #{context.issue_number} "
+                    f"→ Discord User {user_id}"
+                )
+
+            except discord.Forbidden:
+                print(
+                    "DM ignorada: usuário "
+                    f"{user_id} bloqueou ou "
+                    "não aceita mensagens privadas. "
+                    f"Issue #{context.issue_number}"
+                )
+
+            except discord.DiscordException as exc:
+                print(
+                    "ERRO ao enviar DM da "
+                    f"Issue #{context.issue_number} "
+                    f"para {user_id}: {exc}"
+                )
+
+    async def notify_released_tasks(
+        self,
+        contexts: list[IssueProjectContext],
+    ) -> None:
+        current_statuses = {
+            context.issue_number: context.current_status for context in contexts
+        }
+
+        if not self.status_snapshot_initialized:
+            self.previous_statuses = current_statuses
+
+            self.status_snapshot_initialized = True
+
+            print("Snapshot inicial de status registrado.")
+
+            return
+
+        for context in contexts:
+            previous_status = self.previous_statuses.get(context.issue_number)
+
+            if (
+                previous_status == "Backlog"
+                and context.current_status == "Pronto para iniciar"
+            ):
+                await self.send_released_task_dm(context)
+
+        self.previous_statuses = current_statuses
+
     async def sync_cards(
         self,
     ) -> None:
@@ -506,10 +656,14 @@ class LoadXBot(discord.Client):
                         context,
                     )
 
+            await self.notify_released_tasks(contexts)
+
             print("Sincronização concluída.")
 
     @tasks.loop(seconds=60)
-    async def sync_loop(self) -> None:
+    async def sync_loop(
+        self,
+    ) -> None:
         try:
             await self.sync_cards()
 
