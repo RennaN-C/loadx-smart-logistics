@@ -64,9 +64,7 @@ def _remote_head(
     )
 
     if not output:
-        raise RuntimeError(
-            f"Branch remota não encontrada: {branch}"
-        )
+        raise RuntimeError(f"Branch remota não encontrada: {branch}")
 
     return output.split()[0]
 
@@ -78,9 +76,7 @@ def _remote_update_available(
 
     if current_branch != branch:
         raise RuntimeError(
-            "Branch local inesperada: "
-            f"{current_branch}. "
-            f"Esperada: {branch}."
+            f"Branch local inesperada: {current_branch}. Esperada: {branch}."
         )
 
     return _local_head() != _remote_head(branch)
@@ -129,19 +125,13 @@ def main() -> int:
 
     while True:
         try:
-            return bot_process.wait(
-                timeout=CHECK_INTERVAL_SECONDS
-            )
+            return bot_process.wait(timeout=CHECK_INTERVAL_SECONDS)
 
         except subprocess.TimeoutExpired:
             pass
 
         try:
-            update_available = (
-                _remote_update_available(
-                    DEPLOY_BRANCH
-                )
-            )
+            update_available = _remote_update_available(DEPLOY_BRANCH)
 
         except (
             OSError,
@@ -149,9 +139,7 @@ def main() -> int:
             subprocess.SubprocessError,
         ) as exc:
             print(
-                "Falha ao verificar atualização "
-                "remota; bot seguirá online: "
-                f"{exc}",
+                f"Falha ao verificar atualização remota; bot seguirá online: {exc}",
                 flush=True,
             )
 
