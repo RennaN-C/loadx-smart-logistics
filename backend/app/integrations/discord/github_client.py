@@ -15,10 +15,23 @@ PR_ISSUE_PATTERN = re.compile(
 )
 
 
+HTML_COMMENT_PATTERN = re.compile(
+    r"<!--.*?-->",
+    re.DOTALL,
+)
+
+OC_TITLE_PATTERN = re.compile(
+    r"^\[(OC[0-9]+)\](?:\s|$)",
+    re.IGNORECASE,
+)
+
+
 @dataclass
 class PullRequestInfo:
     url: str
     number: int | None = None
+    title: str | None = None
+    head_ref: str | None = None
     merged_at: str | None = None
     ci_status: str | None = None
     ci_url: str | None = None
@@ -285,11 +298,13 @@ query(
     ) {
       nodes {
         number
+        title
         url
         body
         updatedAt
         mergedAt
         baseRefName
+        headRefName
 
         commits(last: 1) {
           nodes {
@@ -455,7 +470,45 @@ def _get_responsible(
 def _extract_closing_issue_numbers(
     body: str,
 ) -> set[int]:
-    return {int(number) for number in PR_ISSUE_PATTERN.findall(body)}
+    visible_body = HTML_COMMENT_PATTERN.sub(
+        "",
+        body,
+    )
+
+    return {int(number) for number in PR_ISSUE_PATTERN.findall(visible_body)}
+
+
+def _extract_oc_code(
+    title: str,
+) -> str | None:
+    match = OC_TITLE_PATTERN.match(title.strip())
+
+    if match is None:
+        return None
+
+    return match.group(1).upper()
+
+
+def _pull_request_matches_issue(
+    pull_request: PullRequestInfo,
+    *,
+    issue_title: str,
+    branch: str | None,
+) -> bool:
+    issue_oc = _extract_oc_code(issue_title)
+
+    if issue_oc is None:
+        return True
+
+    pr_oc = _extract_oc_code(pull_request.title or "")
+
+    if pr_oc != issue_oc:
+        return False
+
+    if not branch:
+        return False
+
+    return pull_request.head_ref == branch
 
 
 def _get_ci_details(
@@ -557,6 +610,12 @@ def _get_pull_request_info() -> dict[
                 pull_request.get("body") or ""
             )
 
+            # O contrato do LoadX permite exatamente uma Issue
+            # por Pull Request. PR inválido não deve contaminar
+            # nenhum card enquanto aguarda correção.
+            if len(issue_numbers) != 1:
+                continue
+
             updated_at = pull_request["updatedAt"]
 
             (
@@ -572,6 +631,8 @@ def _get_pull_request_info() -> dict[
                     result[issue_number] = PullRequestInfo(
                         url=pull_request["url"],
                         number=pull_request.get("number"),
+                        title=pull_request.get("title"),
+                        head_ref=pull_request.get("headRefName"),
                         merged_at=pull_request.get("mergedAt"),
                         ci_status=ci_status,
                         ci_url=ci_url,
@@ -698,6 +759,13 @@ def get_issue_context(
     pull_request_info = _get_pull_request_info()
 
     pr_info = pull_request_info.get(issue["number"])
+
+    if pr_info is not None and not _pull_request_matches_issue(
+        pr_info,
+        issue_title=issue["title"],
+        branch=branch,
+    ):
+        pr_info = None
 
     return IssueProjectContext(
         issue_number=issue["number"],
@@ -832,6 +900,13 @@ def list_project_issues(
                 break
 
         pr_info = pull_request_info.get(issue["number"])
+
+        if pr_info is not None and not _pull_request_matches_issue(
+            pr_info,
+            issue_title=issue["title"],
+            branch=branch,
+        ):
+            pr_info = None
 
         issues.append(
             IssueProjectContext(

@@ -60,6 +60,7 @@ jobs:
                 STATUS="Concluído"
               else
                 echo "PR fechado sem merge. Nenhum status será alterado."
+                echo "skip=true" >> "$GITHUB_OUTPUT"
                 exit 0
               fi
               ;;
@@ -70,39 +71,33 @@ jobs:
           esac
 
           echo "status=$STATUS" >> "$GITHUB_OUTPUT"
+          echo "skip=false" >> "$GITHUB_OUTPUT"
           echo "Novo status: $STATUS"
 
-      - name: Localizar Issues informadas no PR
-        id: issues
+      - name: Baixar código
+        if: steps.status.outputs.skip != 'true'
+        uses: actions/checkout@v4
+
+      - name: Validar contrato do PR
+        id: contract
+        if: steps.status.outputs.skip != 'true'
         env:
           PR_BODY: ${{ github.event.pull_request.body }}
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          ISSUE_NUMBERS=$(
-            printf '%s\n' "$PR_BODY" |
-            grep -Eio \
-              '(close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)[[:space:]]+#[0-9]+' |
-            grep -Eo '#[0-9]+' |
-            tr -d '#' |
-            sort -nu |
-            xargs || true
-          )
-
-          if [ -z "$ISSUE_NUMBERS" ]; then
-            echo "::warning::Nenhuma Issue encontrada. Use 'Closes #NUMERO' na descrição do PR."
-          else
-            echo "Issues encontradas: $ISSUE_NUMBERS"
-          fi
-
-          echo "numbers=$ISSUE_NUMBERS" >> "$GITHUB_OUTPUT"
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          REPOSITORY: ${{ github.repository }}
+          PROJECT_TITLE: LoadX — Desenvolvimento
+          TARGET_MILESTONE: v1.1.0
+          ALLOW_CLOSED_ISSUE: "${{ github.event.action == 'closed' && github.event.pull_request.merged == true }}"
+        run: python .github/scripts/validate_pr_contract.py
 
       - name: Atualizar Issues no Project
-        if: steps.issues.outputs.numbers != ''
+        if: >-
+          steps.status.outputs.skip != 'true' &&
+          steps.contract.outputs.issue_number != ''
         env:
           TARGET_STATUS: ${{ steps.status.outputs.status }}
-          ISSUE_NUMBERS: ${{ steps.issues.outputs.numbers }}
+          ISSUE_NUMBERS: ${{ steps.contract.outputs.issue_number }}
           REPOSITORY: ${{ github.repository }}
         shell: bash
         run: |

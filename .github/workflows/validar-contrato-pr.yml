@@ -1,0 +1,43 @@
+name: Validar contrato do PR
+
+on:
+  pull_request:
+    branches:
+      - desenvolvimento
+    types:
+      - opened
+      - edited
+      - reopened
+      - synchronize
+      - ready_for_review
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
+concurrency:
+  group: validar-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  validar-contrato:
+    name: Contrato da OC
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    env:
+      GH_TOKEN: ${{ secrets.PROJECT_AUTOMATION_TOKEN }}
+      REPOSITORY: ${{ github.repository }}
+      PR_BODY: ${{ github.event.pull_request.body }}
+      PR_TITLE: ${{ github.event.pull_request.title }}
+      PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+      PROJECT_TITLE: LoadX — Desenvolvimento
+      TARGET_MILESTONE: v1.1.0
+
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+
+      - name: Validar vínculo com Issue e OC
+        run: python .github/scripts/validate_pr_contract.py
