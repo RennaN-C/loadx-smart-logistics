@@ -70,6 +70,43 @@ services:
       retries: 5
       start_period: 10s
 
+  discord-bot:
+    build: ./backend
+    environment:
+      PYTHONUNBUFFERED: "1"
+
+      DISCORD_TASKS_CHANNEL_ID: "${DISCORD_TASKS_CHANNEL_ID:?Defina DISCORD_TASKS_CHANNEL_ID}"
+      DISCORD_GUILD_ID: "${DISCORD_GUILD_ID:?Defina DISCORD_GUILD_ID}"
+
+      DISCORD_OWNER_USER_ID: "${DISCORD_OWNER_USER_ID:?Defina DISCORD_OWNER_USER_ID}"
+
+      DISCORD_RENNAN_USER_ID: "${DISCORD_RENNAN_USER_ID:?Defina DISCORD_RENNAN_USER_ID}"
+      DISCORD_JOAO_USER_ID: "${DISCORD_JOAO_USER_ID:?Defina DISCORD_JOAO_USER_ID}"
+      DISCORD_MARLON_USER_ID: "${DISCORD_MARLON_USER_ID:?Defina DISCORD_MARLON_USER_ID}"
+      DISCORD_MARCELO_USER_ID: "${DISCORD_MARCELO_USER_ID:?Defina DISCORD_MARCELO_USER_ID}"
+
+    command:
+      - python
+      - -m
+      - app.integrations.discord.bot
+
+    secrets:
+      - source: discord_bot_token
+        target: discord_bot_token
+      - source: github_token
+        target: github_token
+
+    networks:
+      - private
+
+    security_opt:
+      - no-new-privileges:true
+
+    cap_drop:
+      - ALL
+
+    restart: unless-stopped
+
   frontend:
     build:
       context: ./frontend
@@ -110,9 +147,18 @@ volumes:
 secrets:
   app_database_url:
     environment: LOADX_APP_DATABASE_URL
+
   migration_database_url:
     environment: LOADX_MIGRATION_DATABASE_URL
+
   secret_key:
     environment: LOADX_SECRET_KEY
+
   password_blocklist:
     file: ${LOADX_PASSWORD_BLOCKLIST_FILE:-./infra/production/password-blocklist.example.txt}
+
+  discord_bot_token:
+    environment: DISCORD_BOT_TOKEN
+
+  github_token:
+    environment: GITHUB_TOKEN
