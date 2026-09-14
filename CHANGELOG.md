@@ -48,6 +48,7 @@ a preparação não cria tag nem GitHub Release.
 - `CONFIRMADO`: testes automatizados de regras, contratos, integração e fluxo
   operacional; hardening com Argon2id, CSRF/Origin, limitação de login, headers
   defensivos, minimização de dados e containers sem privilégios.
+- Adicionado deploy automático do bot do Discord no WispByte após atualizações em `desenvolvimento`.
 
 ### Correções para a release
 
