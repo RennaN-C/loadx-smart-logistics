@@ -1,4 +1,5 @@
 import json
+import re
 from dataclasses import dataclass
 from typing import Any
 from urllib.error import HTTPError
@@ -6,8 +7,11 @@ from urllib.request import Request, urlopen
 
 from app.integrations.discord.config import settings
 
-
 GITHUB_GRAPHQL_URL = "https://api.github.com/graphql"
+PR_ISSUE_PATTERN = re.compile(
+    r"\b(?:close[sd]?|fix(?:es|ed)?|resolve[sd]?)\s+#([0-9]+)\b",
+    re.IGNORECASE,
+)
 
 
 @dataclass
@@ -30,6 +34,8 @@ class IssueProjectContext:
     current_status: str | None
 
     status_options: dict[str, str]
+
+    pr_url: str | None = None
 
 
 PROJECT_ISSUE_QUERY = """
@@ -240,6 +246,41 @@ query($projectId: ID!) {
 }
 """
 
+
+PULL_REQUESTS_QUERY = """
+query(
+  $owner: String!,
+  $repository: String!,
+  $cursor: String
+) {
+  repository(
+    owner: $owner,
+    name: $repository
+  ) {
+    pullRequests(
+      first: 100,
+      after: $cursor,
+      baseRefName: "desenvolvimento",
+      orderBy: {
+        field: UPDATED_AT,
+        direction: DESC
+      }
+    ) {
+      nodes {
+        url
+        body
+        updatedAt
+        baseRefName
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+    }
+  }
+}
+"""
+
 UPDATE_STATUS_MUTATION = """
 mutation(
   $projectId: ID!,
@@ -366,6 +407,49 @@ def _get_responsible(
         return f"@{assignees[0]}"
 
     return "Não atribuído"
+
+
+def _extract_closing_issue_numbers(body: str) -> set[int]:
+    return {int(number) for number in PR_ISSUE_PATTERN.findall(body)}
+
+
+def _get_pull_request_urls() -> dict[int, str]:
+    result: dict[int, str] = {}
+    latest_updates: dict[int, str] = {}
+    cursor = None
+
+    while True:
+        data = _graphql(
+            PULL_REQUESTS_QUERY,
+            {
+                "owner": settings.github_owner,
+                "repository": settings.github_repository,
+                "cursor": cursor,
+            },
+        )
+        repository = data.get("repository")
+        if repository is None:
+            return result
+
+        pull_requests = repository["pullRequests"]
+        for pull_request in pull_requests["nodes"]:
+            if pull_request.get("baseRefName") != "desenvolvimento":
+                continue
+
+            issue_numbers = _extract_closing_issue_numbers(pull_request.get("body") or "")
+            updated_at = pull_request["updatedAt"]
+            for issue_number in issue_numbers:
+                if (
+                    issue_number not in result
+                    or updated_at > latest_updates[issue_number]
+                ):
+                    result[issue_number] = pull_request["url"]
+                    latest_updates[issue_number] = updated_at
+
+        page_info = pull_requests["pageInfo"]
+        if not page_info["hasNextPage"]:
+            return result
+        cursor = page_info["endCursor"]
 
 
 def get_issue_context(
@@ -495,6 +579,8 @@ def get_issue_context(
         "Branch sugerida",
     )
 
+    pull_request_urls = _get_pull_request_urls()
+
     return IssueProjectContext(
         issue_number=issue["number"],
         issue_title=issue["title"],
@@ -510,6 +596,7 @@ def get_issue_context(
         status_field_id=status_field["id"],
         current_status=current_status,
         status_options=status_options,
+        pr_url=pull_request_urls.get(issue["number"]),
     )
 
 
@@ -586,6 +673,8 @@ def list_project_issues(
             "Project não encontrado pelo ID."
         )
 
+    pull_request_urls = _get_pull_request_urls()
+
     issues: list[IssueProjectContext] = []
 
     for project_item in node["items"]["nodes"]:
@@ -661,6 +750,7 @@ def list_project_issues(
                 status_field_id=status_field["id"],
                 current_status=current_status,
                 status_options=status_options.copy(),
+                pr_url=pull_request_urls.get(issue["number"]),
             )
         )
 
@@ -668,6 +758,7 @@ def list_project_issues(
         issues,
         key=lambda item: item.issue_number,
     )
+
 
 def update_issue_status(
     issue_number: int,

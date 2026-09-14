@@ -17,7 +17,6 @@ from app.integrations.discord.github_client import (
     update_issue_status,
 )
 
-
 ACTIVE_STATUSES = {
     "Pronto para iniciar",
     "Em desenvolvimento",
@@ -69,6 +68,7 @@ def context_to_card_data(
         responsible=context.responsible,
         version=context.version,
         branch=context.branch,
+        pr_url=context.pr_url,
     )
 
 
