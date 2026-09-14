@@ -116,6 +116,27 @@ tratados em ocorrências próprias.
 - Caminhão inativo não pode receber novo plano.
 - Caminhão usado em plano aprovado não deve ser removido fisicamente.
 
+`CONFIRMADO` (OC64): o conflito operacional de caminhões é definido pelos
+artefatos de carregamento e viagem, sem criar novos estados.
+
+- `CALCULATED`, `REJECTED` e `APPROVED`, isoladamente, não reservam o caminhão.
+- Uma sessão de carregamento pertencente a um plano reserva o caminhão enquanto
+  a operação ainda não possuir viagem `FINISHED`.
+- `PENDING` e `IN_PROGRESS` representam reserva operacional.
+- `FINISHED` no carregamento não libera sozinho o caminhão; se a viagem ainda
+  não existir, a reserva continua.
+- Viagens `SCHEDULED` e `IN_ROUTE` mantêm a reserva.
+- A viagem `FINISHED` libera o caminhão.
+- Artefatos do mesmo `load_plan_id` pertencem à mesma operação e não conflitam
+  entre si.
+- O conflito existe somente contra outro `load_plan_id` que use o mesmo
+  caminhão.
+- A verificação transacional bloqueia a linha de `Truck` antes da consulta de
+  conflito, serializando tentativas concorrentes de reserva.
+- O erro público é `TRUCK_OPERATION_CONFLICT`.
+- Estado `active` e conflito operacional são conceitos independentes. A consulta
+  de disponibilidade da OC67 deve considerar ambos, sem duplicar esta regra.
+
 `RECOMENDAÇÃO`: usar `active = false` para indisponibilidade operacional em vez de exclusão física.
 
 ## Motorista

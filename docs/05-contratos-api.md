@@ -712,7 +712,13 @@ item, e a finalização falha enquanto algum item estiver pendente.
 `CHECKER` e `LOGISTICS_MANAGER` consultam. Erros específicos:
 `LOADING_PLAN_NOT_APPROVED`, `LOADING_SESSION_NOT_FOUND`,
 `LOADING_ITEM_NOT_FOUND`, `LOADING_ITEM_SESSION_MISMATCH`,
-`LOADING_CHECKLIST_INCOMPLETE` e `LOADING_STATUS_TRANSITION_NOT_ALLOWED`.
+`LOADING_CHECKLIST_INCOMPLETE`, `LOADING_STATUS_TRANSITION_NOT_ALLOWED` e
+`TRUCK_OPERATION_CONFLICT`.
+
+`CONFIRMADO` (OC64): `POST /loading-sessions` retorna `409
+TRUCK_OPERATION_CONFLICT` quando o caminhão do plano já estiver reservado por
+outra operação ativa. `details` identifica `truck_id`. A validação ocorre no
+backend e é protegida pelo bloqueio transacional do caminhão.
 
 ## Viagens e entregas
 
@@ -819,7 +825,13 @@ Erros específicos:
 - `TRIP_LOADING_NOT_FINISHED` e `TRIP_DELIVERIES_NOT_FINISHED`;
 - `DELIVERY_TRIP_NOT_IN_ROUTE`;
 - `TRIP_STATUS_TRANSITION_NOT_ALLOWED` e
-  `DELIVERY_STATUS_TRANSITION_NOT_ALLOWED`.
+  `DELIVERY_STATUS_TRANSITION_NOT_ALLOWED`;
+- `TRUCK_OPERATION_CONFLICT`: conflito `409` quando o caminhão do plano já
+  pertence a outra operação ativa.
+
+`CONFIRMADO` (OC64): `POST /trips` reutiliza a mesma regra de conflito aplicada
+ao carregamento. O erro retorna `truck_id` em `details`. Nenhum endpoint mantém
+uma implementação própria da regra.
 
 ## Histórico de status
 

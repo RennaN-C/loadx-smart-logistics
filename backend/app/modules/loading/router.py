@@ -24,6 +24,7 @@ from app.modules.loading.service import (
     LoadingSessionNotFoundError,
     LoadingStatusTransitionError,
 )
+from app.modules.trucks.service import TruckOperationConflictError
 from app.modules.users.models import User
 
 router = APIRouter(prefix="/loading-sessions", tags=["loading"])
@@ -54,6 +55,13 @@ def create_session(
     except LoadingPlanNotApprovedError:
         return error_response(
             409, "LOADING_PLAN_NOT_APPROVED", "O carregamento exige plano aprovado."
+        )
+    except TruckOperationConflictError as exc:
+        return error_response(
+            409,
+            "TRUCK_OPERATION_CONFLICT",
+            "O caminhão já está reservado por outra operação ativa.",
+            [{"field": "truck_id", "value": str(exc.truck_id)}],
         )
 
 

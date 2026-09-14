@@ -22,10 +22,12 @@ from app.modules.deliveries.service import (
 )
 from app.modules.drivers.models import Driver
 from app.modules.load_planning.models import LoadPlan, LoadPlanItem, LoadPlanOrder
+from app.modules.loading.models import LoadingSession
 from app.modules.orders.models import Order, OrderItem
 from app.modules.products.models import Product
 from app.modules.status_history.models import StatusHistory
 from app.modules.trucks.models import Truck
+from app.modules.trucks.service import TruckOperationConflictError
 from app.modules.users.models import User
 
 SQLITE_TABLES = (
@@ -40,6 +42,7 @@ SQLITE_TABLES = (
     LoadPlan.__table__,
     LoadPlanOrder.__table__,
     LoadPlanItem.__table__,
+    LoadingSession.__table__,
     Trip.__table__,
     Delivery.__table__,
 )
@@ -394,3 +397,36 @@ def test_history_failure_rolls_back_trip_and_orders(
     db_session.expire_all()
     assert db_session.get(Trip, trip.id).status == "SCHEDULED"
     assert {db_session.get(Order, order.id).status for order in orders} == {"PLANNED"}
+
+
+def test_create_trip_rejects_truck_reserved_by_other_plan(
+    db_session: Session,
+) -> None:
+    first_manager, first_driver, first_plan, _ = seed_operational_plan(db_session)
+    second_manager, second_driver, second_plan, _ = seed_operational_plan(db_session)
+
+    second_plan.truck_id = first_plan.truck_id
+    db_session.commit()
+
+    service = TripService(db_session)
+
+    first_trip = service.create_trip(
+        TripCreate(
+            load_plan_id=first_plan.id,
+            driver_id=first_driver.id,
+        ),
+        changed_by=first_manager.id,
+    )
+
+    assert first_trip.status == "SCHEDULED"
+
+    with pytest.raises(TruckOperationConflictError) as exc_info:
+        service.create_trip(
+            TripCreate(
+                load_plan_id=second_plan.id,
+                driver_id=second_driver.id,
+            ),
+            changed_by=second_manager.id,
+        )
+
+    assert exc_info.value.truck_id == first_plan.truck_id
