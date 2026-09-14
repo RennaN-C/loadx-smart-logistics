@@ -333,16 +333,12 @@ def _graphql(
             request,
             timeout=30,
         ) as response:
-            result = json.loads(
-                response.read().decode("utf-8")
-            )
+            result = json.loads(response.read().decode("utf-8"))
 
     except HTTPError as exc:
         body = exc.read().decode("utf-8")
 
-        raise RuntimeError(
-            f"GitHub respondeu HTTP {exc.code}: {body}"
-        ) from exc
+        raise RuntimeError(f"GitHub respondeu HTTP {exc.code}: {body}") from exc
 
     errors = result.get("errors")
 
@@ -358,9 +354,7 @@ def _graphql(
     data = result.get("data")
 
     if not isinstance(data, dict):
-        raise RuntimeError(
-            "Resposta inválida da API do GitHub."
-        )
+        raise TypeError("Resposta inválida da API do GitHub.")
 
     return data
 
@@ -377,7 +371,7 @@ def _extract_body_value(
         if line.strip().lower() != target:
             continue
 
-        for value in lines[index + 1:]:
+        for value in lines[index + 1 :]:
             value = value.strip()
 
             if not value:
@@ -436,7 +430,9 @@ def _get_pull_request_urls() -> dict[int, str]:
             if pull_request.get("baseRefName") != "desenvolvimento":
                 continue
 
-            issue_numbers = _extract_closing_issue_numbers(pull_request.get("body") or "")
+            issue_numbers = _extract_closing_issue_numbers(
+                pull_request.get("body") or ""
+            )
             updated_at = pull_request["updatedAt"]
             for issue_number in issue_numbers:
                 if (
@@ -467,72 +463,53 @@ def get_issue_context(
     owner = data.get("repositoryOwner")
 
     if owner is None:
-        raise RuntimeError(
-            "Owner do GitHub não encontrado."
-        )
+        raise RuntimeError("Owner do GitHub não encontrado.")
 
     projects = owner["projectsV2"]["nodes"]
 
     project = next(
-        (
-            item
-            for item in projects
-            if item["title"]
-            == settings.github_project_title
-        ),
+        (item for item in projects if item["title"] == settings.github_project_title),
         None,
     )
 
     if project is None:
-        raise RuntimeError(
-            "Project não encontrado: "
-            f"{settings.github_project_title}"
-        )
+        raise RuntimeError(f"Project não encontrado: {settings.github_project_title}")
 
     status_field = next(
         (
             field
             for field in project["fields"]["nodes"]
-            if field.get("name")
-            == settings.github_status_field
+            if field.get("name") == settings.github_status_field
         ),
         None,
     )
 
     if status_field is None:
         raise RuntimeError(
-            "Campo de status não encontrado: "
-            f"{settings.github_status_field}"
+            f"Campo de status não encontrado: {settings.github_status_field}"
         )
 
     repository = data.get("repository")
 
     if repository is None:
-        raise RuntimeError(
-            "Repositório não encontrado."
-        )
+        raise RuntimeError("Repositório não encontrado.")
 
     issue = repository.get("issue")
 
     if issue is None:
-        raise RuntimeError(
-            f"Issue #{issue_number} não encontrada."
-        )
+        raise RuntimeError(f"Issue #{issue_number} não encontrada.")
 
     project_item = next(
         (
             item
             for item in issue["projectItems"]["nodes"]
-            if item["project"]["id"]
-            == project["id"]
+            if item["project"]["id"] == project["id"]
         ),
         None,
     )
 
     if project_item is None:
-        raise RuntimeError(
-            f"Issue #{issue_number} não está no Project."
-        )
+        raise RuntimeError(f"Issue #{issue_number} não está no Project.")
 
     current_status = None
 
@@ -542,24 +519,17 @@ def get_issue_context(
         if not field:
             continue
 
-        if (
-            field.get("name")
-            == settings.github_status_field
-        ):
+        if field.get("name") == settings.github_status_field:
             current_status = value.get("name")
             break
 
     status_options = {
-        option["name"]: option["id"]
-        for option in status_field["options"]
+        option["name"]: option["id"] for option in status_field["options"]
     }
 
     body = issue.get("body") or ""
 
-    assignees = [
-        item["login"]
-        for item in issue["assignees"]["nodes"]
-    ]
+    assignees = [item["login"] for item in issue["assignees"]["nodes"]]
 
     responsible = _get_responsible(
         body,
@@ -568,11 +538,7 @@ def get_issue_context(
 
     milestone = issue.get("milestone")
 
-    version = (
-        milestone["title"]
-        if milestone
-        else settings.github_target_milestone
-    )
+    version = milestone["title"] if milestone else settings.github_target_milestone
 
     branch = _extract_body_value(
         body,
@@ -603,10 +569,7 @@ def get_issue_context(
 def list_project_issues(
     milestone: str | None = None,
 ) -> list[IssueProjectContext]:
-    target_milestone = (
-        milestone
-        or settings.github_target_milestone
-    )
+    target_milestone = milestone or settings.github_target_milestone
 
     metadata = _graphql(
         PROJECT_METADATA_QUERY,
@@ -618,45 +581,36 @@ def list_project_issues(
     owner = metadata.get("repositoryOwner")
 
     if owner is None:
-        raise RuntimeError(
-            "Owner do GitHub não encontrado."
-        )
+        raise RuntimeError("Owner do GitHub não encontrado.")
 
     project = next(
         (
             item
             for item in owner["projectsV2"]["nodes"]
-            if item["title"]
-            == settings.github_project_title
+            if item["title"] == settings.github_project_title
         ),
         None,
     )
 
     if project is None:
-        raise RuntimeError(
-            "Project não encontrado: "
-            f"{settings.github_project_title}"
-        )
+        raise RuntimeError(f"Project não encontrado: {settings.github_project_title}")
 
     status_field = next(
         (
             field
             for field in project["fields"]["nodes"]
-            if field.get("name")
-            == settings.github_status_field
+            if field.get("name") == settings.github_status_field
         ),
         None,
     )
 
     if status_field is None:
         raise RuntimeError(
-            "Campo de status não encontrado: "
-            f"{settings.github_status_field}"
+            f"Campo de status não encontrado: {settings.github_status_field}"
         )
 
     status_options = {
-        option["name"]: option["id"]
-        for option in status_field["options"]
+        option["name"]: option["id"] for option in status_field["options"]
     }
 
     items_data = _graphql(
@@ -669,9 +623,7 @@ def list_project_issues(
     node = items_data.get("node")
 
     if node is None:
-        raise RuntimeError(
-            "Project não encontrado pelo ID."
-        )
+        raise RuntimeError("Project não encontrado pelo ID.")
 
     pull_request_urls = _get_pull_request_urls()
 
@@ -690,24 +642,14 @@ def list_project_issues(
 
         milestone_data = issue.get("milestone")
 
-        version = (
-            milestone_data["title"]
-            if milestone_data
-            else "Não informada"
-        )
+        version = milestone_data["title"] if milestone_data else "Não informada"
 
-        if (
-            target_milestone
-            and version != target_milestone
-        ):
+        if target_milestone and version != target_milestone:
             continue
 
         body = issue.get("body") or ""
 
-        assignees = [
-            item["login"]
-            for item in issue["assignees"]["nodes"]
-        ]
+        assignees = [item["login"] for item in issue["assignees"]["nodes"]]
 
         responsible = _get_responsible(
             body,
@@ -727,10 +669,7 @@ def list_project_issues(
             if not field:
                 continue
 
-            if (
-                field.get("name")
-                == settings.github_status_field
-            ):
+            if field.get("name") == settings.github_status_field:
                 current_status = value.get("name")
                 break
 
@@ -764,22 +703,15 @@ def update_issue_status(
     issue_number: int,
     target_status: str,
 ) -> IssueProjectContext:
-    context = get_issue_context(
-        issue_number
-    )
+    context = get_issue_context(issue_number)
 
     if context.current_status == target_status:
         return context
 
-    option_id = context.status_options.get(
-        target_status
-    )
+    option_id = context.status_options.get(target_status)
 
     if option_id is None:
-        raise RuntimeError(
-            "Status não encontrado no Project: "
-            f"{target_status}"
-        )
+        raise RuntimeError(f"Status não encontrado no Project: {target_status}")
 
     _graphql(
         UPDATE_STATUS_MUTATION,

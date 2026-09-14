@@ -44,7 +44,7 @@ def extract_oc_code(issue_title: str) -> str:
     title = issue_title.strip()
 
     if title.startswith("[") and "]" in title:
-        return title[1:title.index("]")].strip()
+        return title[1 : title.index("]")].strip()
 
     return "OC"
 
@@ -65,28 +65,17 @@ def build_task_embed(
         data.status,
         {
             "emoji": "⚪",
-            "label": (
-                data.status.upper()
-                if data.status
-                else "SEM STATUS"
-            ),
+            "label": (data.status.upper() if data.status else "SEM STATUS"),
             "color": discord.Color.light_grey(),
         },
     )
 
-    oc_code = extract_oc_code(
-        data.issue_title
-    )
+    oc_code = extract_oc_code(data.issue_title)
 
-    task_title = extract_task_title(
-        data.issue_title
-    )
+    task_title = extract_task_title(data.issue_title)
 
     embed = discord.Embed(
-        title=(
-            f"{visual['emoji']} "
-            f"{oc_code} • {visual['label']}"
-        ),
+        title=(f"{visual['emoji']} {oc_code} • {visual['label']}"),
         description=f"### {task_title}",
         color=visual["color"],
         url=data.issue_url,
@@ -112,10 +101,7 @@ def build_task_embed(
 
     embed.add_field(
         name="🔗 Issue",
-        value=(
-            f"[#{data.issue_number} • Abrir no GitHub]"
-            f"({data.issue_url})"
-        ),
+        value=(f"[#{data.issue_number} • Abrir no GitHub]({data.issue_url})"),
         inline=False,
     )
 
@@ -133,11 +119,6 @@ def build_task_embed(
             inline=False,
         )
 
-    embed.set_footer(
-    text=(
-        "LoadX • Desenvolvimento"
-        f" • Issue #{data.issue_number}"
-    )
-)
+    embed.set_footer(text=(f"LoadX • Desenvolvimento • Issue #{data.issue_number}"))
 
     return embed

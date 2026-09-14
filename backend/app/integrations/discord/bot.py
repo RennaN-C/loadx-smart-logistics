@@ -23,13 +23,9 @@ ACTIVE_STATUSES = {
     "Em revisão",
 }
 
-ISSUE_FOOTER_PATTERN = re.compile(
-    r"Issue #(\d+)"
-)
+ISSUE_FOOTER_PATTERN = re.compile(r"Issue #(\d+)")
 
-ISSUE_URL_PATTERN = re.compile(
-    r"/issues/(\d+)/?$"
-)
+ISSUE_URL_PATTERN = re.compile(r"/issues/(\d+)/?$")
 
 TEAM_DISCORD_IDS = {
     "RennaN-C": settings.discord_rennan_user_id,
@@ -47,9 +43,7 @@ def get_authorized_user_ids(
     }
 
     for github_login in context.assignees:
-        discord_user_id = TEAM_DISCORD_IDS.get(
-            github_login
-        )
+        discord_user_id = TEAM_DISCORD_IDS.get(github_login)
 
         if discord_user_id:
             authorized.add(discord_user_id)
@@ -76,24 +70,16 @@ def issue_number_from_message(
     message: discord.Message,
 ) -> int | None:
     for embed in message.embeds:
-        footer_text = (
-            embed.footer.text
-            if embed.footer
-            else None
-        )
+        footer_text = embed.footer.text if embed.footer else None
 
         if footer_text:
-            match = ISSUE_FOOTER_PATTERN.search(
-                footer_text
-            )
+            match = ISSUE_FOOTER_PATTERN.search(footer_text)
 
             if match:
                 return int(match.group(1))
 
         if embed.url:
-            match = ISSUE_URL_PATTERN.search(
-                embed.url
-            )
+            match = ISSUE_URL_PATTERN.search(embed.url)
 
             if match:
                 return int(match.group(1))
@@ -110,10 +96,7 @@ class StartTaskButton(Button):
             label="Iniciar OC",
             emoji="▶️",
             style=discord.ButtonStyle.success,
-            custom_id=(
-                f"loadx:issue:"
-                f"{issue_number}:start"
-            ),
+            custom_id=(f"loadx:issue:{issue_number}:start"),
         )
 
         self.issue_number = issue_number
@@ -133,14 +116,9 @@ class StartTaskButton(Button):
                 self.issue_number,
             )
 
-            authorized_users = (
-                get_authorized_user_ids(current)
-            )
+            authorized_users = get_authorized_user_ids(current)
 
-            if (
-                interaction.user.id
-                not in authorized_users
-            ):
+            if interaction.user.id not in authorized_users:
                 await interaction.followup.send(
                     "⛔ Você não pode iniciar "
                     "esta OC.\n\n"
@@ -150,17 +128,10 @@ class StartTaskButton(Button):
                 )
                 return
 
-            if (
-                current.current_status
-                != "Pronto para iniciar"
-            ):
+            if current.current_status != "Pronto para iniciar":
                 if interaction.message:
                     await interaction.message.edit(
-                        embed=build_task_embed(
-                            context_to_card_data(
-                                current
-                            )
-                        ),
+                        embed=build_task_embed(context_to_card_data(current)),
                         view=TaskCardView(current),
                     )
 
@@ -181,11 +152,7 @@ class StartTaskButton(Button):
 
             if interaction.message:
                 await interaction.message.edit(
-                    embed=build_task_embed(
-                        context_to_card_data(
-                            updated
-                        )
-                    ),
+                    embed=build_task_embed(context_to_card_data(updated)),
                     view=TaskCardView(updated),
                 )
 
@@ -197,11 +164,9 @@ class StartTaskButton(Button):
                 ephemeral=True,
             )
 
-        except Exception as exc:
+        except (RuntimeError, discord.DiscordException, OSError) as exc:
             await interaction.followup.send(
-                "❌ Não foi possível iniciar "
-                "a OC.\n\n"
-                f"`{exc}`",
+                f"❌ Não foi possível iniciar a OC.\n\n`{exc}`",
                 ephemeral=True,
             )
 
@@ -211,35 +176,18 @@ class TaskCardView(View):
         self,
         context: IssueProjectContext,
     ) -> None:
-        super().__init__(
-            timeout=None
-        )
+        super().__init__(timeout=None)
 
-        if (
-            context.current_status
-            == "Pronto para iniciar"
-        ):
-            self.add_item(
-                StartTaskButton(
-                    context.issue_number
-                )
-            )
+        if context.current_status == "Pronto para iniciar":
+            self.add_item(StartTaskButton(context.issue_number))
 
-        elif (
-            context.current_status
-            == "Em desenvolvimento"
-        ):
+        elif context.current_status == "Em desenvolvimento":
             started_button = Button(
                 label="OC iniciada",
                 emoji="🟡",
-                style=(
-                    discord.ButtonStyle.secondary
-                ),
+                style=(discord.ButtonStyle.secondary),
                 disabled=True,
-                custom_id=(
-                    f"loadx:issue:"
-                    f"{context.issue_number}:started"
-                ),
+                custom_id=(f"loadx:issue:{context.issue_number}:started"),
             )
 
             self.add_item(started_button)
@@ -259,9 +207,7 @@ class LoadXBot(discord.Client):
         intents = discord.Intents.none()
         intents.guilds = True
 
-        super().__init__(
-            intents=intents
-        )
+        super().__init__(intents=intents)
 
         self.cards: dict[
             int,
@@ -273,53 +219,34 @@ class LoadXBot(discord.Client):
 
     async def setup_hook(self) -> None:
         try:
-            contexts = await asyncio.to_thread(
-                list_project_issues
-            )
+            contexts = await asyncio.to_thread(list_project_issues)
 
             for context in contexts:
-                self.add_view(
-                    TaskCardView(context)
-                )
+                self.add_view(TaskCardView(context))
 
-            print(
-                "Views persistentes registradas: "
-                f"{len(contexts)}"
-            )
+            print(f"Views persistentes registradas: {len(contexts)}")
 
-        except Exception as exc:
-            print(
-                "ERRO ao registrar views: "
-                f"{exc}"
-            )
+        except (RuntimeError, discord.DiscordException, OSError) as exc:
+            print(f"ERRO ao registrar views: {exc}")
 
         self.sync_loop.start()
 
     async def on_ready(self) -> None:
-        print(
-            f"Bot conectado: {self.user}"
-        )
+        print(f"Bot conectado: {self.user}")
 
     async def get_tasks_channel(
         self,
     ) -> discord.TextChannel:
-        channel = self.get_channel(
-            settings.discord_tasks_channel_id
-        )
+        channel = self.get_channel(settings.discord_tasks_channel_id)
 
         if channel is None:
-            channel = await self.fetch_channel(
-                settings.discord_tasks_channel_id
-            )
+            channel = await self.fetch_channel(settings.discord_tasks_channel_id)
 
         if not isinstance(
             channel,
             discord.TextChannel,
         ):
-            raise RuntimeError(
-                "O canal configurado "
-                "não é um canal de texto."
-            )
+            raise TypeError("O canal configurado não é um canal de texto.")
 
         return channel
 
@@ -332,32 +259,18 @@ class LoadXBot(discord.Client):
 
         self.cards.clear()
 
-        async for message in channel.history(
-            limit=200
-        ):
-            if (
-                message.author.id
-                != self.user.id
-            ):
+        async for message in channel.history(limit=200):
+            if message.author.id != self.user.id:
                 continue
 
-            issue_number = (
-                issue_number_from_message(
-                    message
-                )
-            )
+            issue_number = issue_number_from_message(message)
 
             if issue_number is None:
                 continue
 
-            self.cards[issue_number] = (
-                message
-            )
+            self.cards[issue_number] = message
 
-        print(
-            "Cards existentes encontrados: "
-            f"{len(self.cards)}"
-        )
+        print(f"Cards existentes encontrados: {len(self.cards)}")
 
     async def create_card(
         self,
@@ -365,44 +278,25 @@ class LoadXBot(discord.Client):
         context: IssueProjectContext,
     ) -> None:
         message = await channel.send(
-            embed=build_task_embed(
-                context_to_card_data(
-                    context
-                )
-            ),
+            embed=build_task_embed(context_to_card_data(context)),
             view=TaskCardView(context),
         )
 
-        self.cards[
-            context.issue_number
-        ] = message
+        self.cards[context.issue_number] = message
 
-        print(
-            f"Card criado: "
-            f"Issue #{context.issue_number}"
-        )
+        print(f"Card criado: Issue #{context.issue_number}")
 
     async def update_card(
         self,
         context: IssueProjectContext,
         message: discord.Message,
     ) -> None:
-        new_embed = build_task_embed(
-            context_to_card_data(
-                context
-            )
-        )
+        new_embed = build_task_embed(context_to_card_data(context))
 
-        current_embed = (
-            message.embeds[0]
-            if message.embeds
-            else None
-        )
+        current_embed = message.embeds[0] if message.embeds else None
 
         needs_update = (
-            current_embed is None
-            or current_embed.to_dict()
-            != new_embed.to_dict()
+            current_embed is None or current_embed.to_dict() != new_embed.to_dict()
         )
 
         if not needs_update:
@@ -414,42 +308,28 @@ class LoadXBot(discord.Client):
         )
 
         print(
-            f"Card atualizado: "
-            f"Issue #{context.issue_number} "
-            f"→ {context.current_status}"
+            f"Card atualizado: Issue #{context.issue_number} → {context.current_status}"
         )
 
     async def sync_cards(
         self,
     ) -> None:
         async with self.sync_lock:
-            channel = (
-                await self.get_tasks_channel()
-            )
+            channel = await self.get_tasks_channel()
 
             if not self.initialized:
-                await self.discover_existing_cards(
-                    channel
-                )
+                await self.discover_existing_cards(channel)
 
                 self.initialized = True
 
-            contexts = await asyncio.to_thread(
-                list_project_issues
-            )
+            contexts = await asyncio.to_thread(list_project_issues)
 
             for context in contexts:
-                issue_number = (
-                    context.issue_number
-                )
+                issue_number = context.issue_number
 
-                status = (
-                    context.current_status
-                )
+                status = context.current_status
 
-                existing = self.cards.get(
-                    issue_number
-                )
+                existing = self.cards.get(issue_number)
 
                 if status == "Backlog":
                     if existing:
@@ -513,22 +393,15 @@ class LoadXBot(discord.Client):
                         context,
                     )
 
-            print(
-                "Sincronização concluída."
-            )
+            print("Sincronização concluída.")
 
-    @tasks.loop(
-        seconds=60
-    )
+    @tasks.loop(seconds=60)
     async def sync_loop(self) -> None:
         try:
             await self.sync_cards()
 
-        except Exception as exc:
-            print(
-                "ERRO na sincronização: "
-                f"{exc}"
-            )
+        except (RuntimeError, discord.DiscordException, OSError) as exc:
+            print(f"ERRO na sincronização: {exc}")
 
     @sync_loop.before_loop
     async def before_sync_loop(
@@ -540,9 +413,7 @@ class LoadXBot(discord.Client):
 def main() -> None:
     client = LoadXBot()
 
-    client.run(
-        settings.discord_bot_token
-    )
+    client.run(settings.discord_bot_token)
 
 
 if __name__ == "__main__":

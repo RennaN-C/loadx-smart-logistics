@@ -2,7 +2,6 @@ from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-
 ROOT_DIR = Path(__file__).resolve().parents[4]
 DOCKER_SECRETS_DIR = Path("/run/secrets")
 
@@ -37,11 +36,7 @@ class DiscordBotSettings(BaseSettings):
             Path.cwd() / ".env",
         ),
         env_file_encoding="utf-8",
-        secrets_dir=(
-            DOCKER_SECRETS_DIR
-            if DOCKER_SECRETS_DIR.exists()
-            else None
-        ),
+        secrets_dir=(DOCKER_SECRETS_DIR if DOCKER_SECRETS_DIR.exists() else None),
         extra="ignore",
     )
 
