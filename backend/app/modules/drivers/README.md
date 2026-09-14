@@ -47,3 +47,21 @@ Crie somente os arquivos necessários para a ocorrência atual.
 ## Pendências
 
 - `PENDENTE DE DEFINIÇÃO`: validação formal da categoria de CNH.
+
+## OC65 — contrato interno para OC67/OC72
+
+`CONFIRMADO`: `DriverService.has_operation_conflict(driver_id,
+exclude_trip_id=None)` consulta somente conflito, sem bloquear ou escrever.
+`ensure_no_operation_conflict(...)` bloqueia o motorista, valida pela mesma
+consulta e retorna `Driver` ou lança `DriverOperationConflictError` com
+`driver_id`; motorista inexistente lança `DriverNotFoundError`.
+O chamador mantém o bloqueio até o commit/rollback da operação completa.
+
+`CONFIRMADO`: `SCHEDULED` e `IN_ROUTE` reservam; `FINISHED` libera. Plano e
+carregamento isolados não reservam motorista. A exclusão serve apenas à própria
+viagem em alteração; criação não exclui nenhuma viagem.
+
+`CONFIRMADO`: ausência de conflito não verifica existência, `active` ou acesso
+do usuário. A OC67 deve combinar cadastro ativo com esta consulta; a OC72 deve
+consumir o contrato HTTP de disponibilidade a definir, sem reproduzir a regra.
+`PENDENTE DE DEFINIÇÃO`: endpoint de disponibilidade pertence à OC67/OC72.

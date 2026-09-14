@@ -722,6 +722,14 @@ backend e é protegida pelo bloqueio transacional do caminhão.
 
 ## Viagens e entregas
 
+`CONFIRMADO` (OC65): `POST /trips` e a transição efetiva para `IN_ROUTE` em
+`PATCH /trips/{id}/status` retornam HTTP `409` com código estável
+`DRIVER_OPERATION_CONFLICT` quando outra viagem `SCHEDULED` ou `IN_ROUTE`
+reserva o motorista. `details` contém
+`[{"field": "driver_id", "value": "uuid-do-motorista"}]`.
+Nenhuma alteração parcial de viagem, entregas, pedidos ou histórico é salva.
+
+
 - `GET /trips`.
 - `POST /trips`.
 - `GET /trips/{id}`.

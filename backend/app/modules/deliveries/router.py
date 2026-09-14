@@ -38,6 +38,7 @@ from app.modules.deliveries.service import (
     TripService,
     TripStatusTransitionNotAllowedError,
 )
+from app.modules.drivers.service import DriverOperationConflictError
 from app.modules.notifications.service import OperationalNotificationService
 from app.modules.trucks.service import TruckOperationConflictError
 from app.modules.users.models import User
@@ -70,6 +71,7 @@ TRIP_SERVICE_ERRORS = (
     TripOrderNotEligibleError,
     TripStatusTransitionNotAllowedError,
     TruckOperationConflictError,
+    DriverOperationConflictError,
 )
 
 
@@ -191,6 +193,13 @@ def change_delivery_status(
 
 
 def _trip_error_response(exc: Exception) -> JSONResponse:
+    if isinstance(exc, DriverOperationConflictError):
+        return error_response(
+            status.HTTP_409_CONFLICT,
+            "DRIVER_OPERATION_CONFLICT",
+            "Motorista reservado por outra viagem ativa.",
+            [{"field": "driver_id", "value": str(exc.driver_id)}],
+        )
     if isinstance(exc, TruckOperationConflictError):
         return error_response(
             status.HTTP_409_CONFLICT,

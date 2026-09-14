@@ -1,9 +1,11 @@
 import uuid
+from collections.abc import Sequence
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.modules.deliveries.models import Delivery, Trip
+from app.modules.deliveries.repository import TripRepository
 
 
 class DeliveryReferenceService:
@@ -16,17 +18,21 @@ class DeliveryReferenceService:
         return self.db.get(Delivery, delivery_id)
 
     def get_active_trip_for_driver(self, driver_id: uuid.UUID) -> Trip | None:
-        statement = (
-            select(Trip)
-            .where(
-                Trip.driver_id == driver_id,
-                Trip.status.in_(("SCHEDULED", "IN_ROUTE")),
-            )
-            .order_by(Trip.id)
-            .limit(2)
-        )
-        trips = tuple(self.db.scalars(statement))
+        trips = self.list_active_trips_for_driver(driver_id)
         return trips[0] if len(trips) == 1 else None
+
+    def list_active_trips_for_driver(
+        self,
+        driver_id: uuid.UUID,
+        *,
+        exclude_trip_id: uuid.UUID | None = None,
+    ) -> Sequence[Trip]:
+        """Return at most two trips; two also signal ambiguous legacy allocation."""
+        return TripRepository(self.db).list_driver_trips(
+            driver_id,
+            statuses=("SCHEDULED", "IN_ROUTE"),
+            exclude_trip_id=exclude_trip_id,
+        )
 
     def get_current_delivery(self, trip_id: uuid.UUID) -> Delivery | None:
         statement = (
