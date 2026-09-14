@@ -155,6 +155,32 @@ Telefone é obrigatório e segue o formato nacional descrito abaixo.
 
 `PENDENTE DE DEFINIÇÃO`: validação formal da categoria de CNH.
 
+### Conflito operacional — OC65
+
+`CONFIRMADO`: a alocação em `Trip.driver_id` reserva o motorista desde a
+criação em `SCHEDULED` e durante `IN_ROUTE`. Outra viagem nesses estados
+impede nova alocação, mesmo em caminhão diferente. `FINISHED` libera a reserva;
+concluir carregamento ou entregas isoladamente não libera o motorista.
+Planos e carregamentos sem viagem não possuem vínculo com motorista e não o
+reservam. Não há comparação de horários futuros nem novos estados.
+
+`CONFIRMADO`: `DriverService` centraliza consulta e validação, consumindo a
+interface pública de viagens. A validação bloqueia a linha do motorista até
+commit/rollback da operação, impedindo duas reservas concorrentes. Criação e
+início da viagem validam conflito; o início exclui a própria viagem, protegendo
+também contra alocações conflitantes anteriores à OC65. Finalização e repetições
+idempotentes continuam permitidas para não impedir a liberação.
+
+`CONFIRMADO`: `active` e autorização continuam independentes da reserva.
+Motorista inativo não recebe nova viagem; usuário sem `users.driver_id` não
+opera viagens. Criar viagem não exige conta vinculada ao motorista. Alterar
+cadastro ou vínculo de usuário não libera nem transfere `Trip.driver_id`.
+
+`RISCO IDENTIFICADO`: conflitos já persistidos não são corrigidos automaticamente.
+Duas viagens antigas `SCHEDULED` do mesmo motorista terão início bloqueado;
+a regularização depende de definição da equipe, pois cancelamento e troca de
+motorista não possuem contrato neste fluxo.
+
 ## Cliente
 
 - Pedido deve estar vinculado a um cliente.

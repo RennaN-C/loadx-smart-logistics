@@ -177,7 +177,9 @@ class TripService:
             )
 
             try:
-                driver = self.driver_service.get_driver_for_update(data.driver_id)
+                driver = self.driver_service.ensure_no_operation_conflict(
+                    data.driver_id
+                )
             except DriverNotFoundError as exc:
                 raise TripDriverNotFoundError from exc
             if not driver.active:
@@ -333,6 +335,9 @@ class TripService:
         deliveries: Sequence[Delivery],
         changed_by: uuid.UUID,
     ) -> None:
+        self.driver_service.ensure_no_operation_conflict(
+            trip.driver_id, exclude_trip_id=trip.id
+        )
         if not self.loading_reference_service.is_load_plan_finished(trip.load_plan_id):
             raise TripLoadingNotFinishedError
         order_ids = tuple(delivery.order_id for delivery in deliveries)

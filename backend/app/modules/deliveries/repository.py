@@ -57,6 +57,21 @@ class TripRepository:
         )
         return PageResult.create(items, pagination, total)
 
+    def list_driver_trips(
+        self,
+        driver_id: uuid.UUID,
+        *,
+        statuses: Sequence[str],
+        exclude_trip_id: uuid.UUID | None = None,
+    ) -> Sequence[Trip]:
+        statement = select(Trip).where(
+            Trip.driver_id == driver_id,
+            Trip.status.in_(statuses),
+        )
+        if exclude_trip_id is not None:
+            statement = statement.where(Trip.id != exclude_trip_id)
+        return self.db.scalars(statement.order_by(Trip.id).limit(2)).all()
+
     def get_for_update(self, trip_id: uuid.UUID) -> Trip | None:
         statement = select(Trip).where(Trip.id == trip_id).with_for_update()
         return self.db.scalar(statement)

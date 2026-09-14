@@ -45,3 +45,12 @@ Viagem, entregas, estados e histórico. Roteirização externa não entra no MVP
 - `PENDENTE DE DEFINIÇÃO`: estados de exceção, cancelamento e reentrega exigem
   decisão e implementação futuras. Ocorrências já são persistidas pelo módulo
   dono e adicionam contexto sem substituir o status operacional.
+
+## OC65 — reserva do motorista
+
+`CONFIRMADO`: criação e início efetivo usam a validação pública de
+`DriverService`; o início exclui a própria viagem. A reserva dura de `SCHEDULED`
+até o commit de `FINISHED`. Repetição idempotente e conclusão mantêm seu fluxo.
+`DeliveryReferenceService` expõe a consulta de viagens ativas através do
+repository dono, também reutilizada pela identificação de viagem no WhatsApp.
+Conflito retorna HTTP `409 DRIVER_OPERATION_CONFLICT` (ver `docs/05`).
