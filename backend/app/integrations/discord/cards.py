@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import datetime
 
 import discord
 
@@ -16,6 +17,23 @@ class TaskCardData:
     pr_url: str | None = None
     ci_status: str | None = None
     ci_url: str | None = None
+
+
+@dataclass(frozen=True)
+class CompletedTaskCardData:
+    issue_number: int
+    issue_title: str
+    issue_url: str
+
+    responsible: str = "Não atribuído"
+    version: str = "Não informada"
+    branch: str | None = None
+
+    pr_number: int | None = None
+    pr_url: str | None = None
+    ci_status: str | None = None
+    ci_url: str | None = None
+    completed_at: str | None = None
 
 
 @dataclass(frozen=True)
@@ -79,7 +97,7 @@ def extract_task_title(
 
 
 def get_ci_display(
-    data: TaskCardData,
+    data: TaskCardData | CompletedTaskCardData,
 ) -> str:
     if not data.pr_url:
         return "⚪ Aguardando PR"
@@ -164,6 +182,88 @@ def build_task_embed(
         )
 
     embed.set_footer(text=(f"LoadX • Desenvolvimento • Issue #{data.issue_number}"))
+
+    return embed
+
+
+def _discord_timestamp(
+    value: str | None,
+) -> str:
+    if not value:
+        return "Não informada"
+
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return value
+
+    return f"<t:{int(parsed.timestamp())}:F>"
+
+
+def build_completed_task_embed(
+    data: CompletedTaskCardData,
+) -> discord.Embed:
+    oc_code = extract_oc_code(data.issue_title)
+    task_title = extract_task_title(data.issue_title)
+
+    embed = discord.Embed(
+        title=f"✅ {oc_code} • CONCLUÍDA",
+        description=f"### {task_title}",
+        color=discord.Color.green(),
+        url=data.issue_url,
+    )
+
+    embed.add_field(
+        name="👤 Responsável",
+        value=data.responsible,
+        inline=True,
+    )
+
+    embed.add_field(
+        name="📦 Versão",
+        value=data.version,
+        inline=True,
+    )
+
+    embed.add_field(
+        name="📅 Concluída em",
+        value=_discord_timestamp(data.completed_at),
+        inline=False,
+    )
+
+    embed.add_field(
+        name="🧪 CI",
+        value=get_ci_display(data),
+        inline=False,
+    )
+
+    embed.add_field(
+        name="🔗 Issue",
+        value=(f"[#{data.issue_number} • Abrir no GitHub]({data.issue_url})"),
+        inline=False,
+    )
+
+    if data.pr_url:
+        pr_label = (
+            f"#{data.pr_number} • Abrir PR"
+            if data.pr_number is not None
+            else "Abrir PR"
+        )
+
+        embed.add_field(
+            name="🔀 Pull Request",
+            value=f"[{pr_label}]({data.pr_url})",
+            inline=False,
+        )
+
+    if data.branch:
+        embed.add_field(
+            name="🌿 Branch",
+            value=f"`{data.branch}`",
+            inline=False,
+        )
+
+    embed.set_footer(text=f"LoadX • Histórico • Issue #{data.issue_number}")
 
     return embed
 
