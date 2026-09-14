@@ -16,6 +16,17 @@ class TaskCardData:
     pr_url: str | None = None
 
 
+@dataclass(frozen=True)
+class ProjectDashboardData:
+    version: str
+    total: int
+    backlog: int
+    ready: int
+    development: int
+    review: int
+    completed: int
+
+
 STATUS_VISUALS = {
     "Pronto para iniciar": {
         "emoji": "🟢",
@@ -120,5 +131,66 @@ def build_task_embed(
         )
 
     embed.set_footer(text=(f"LoadX • Desenvolvimento • Issue #{data.issue_number}"))
+
+    return embed
+
+
+def build_project_dashboard_embed(
+    data: ProjectDashboardData,
+) -> discord.Embed:
+    progress = round((data.completed / data.total) * 100) if data.total else 0
+
+    filled_blocks = round(progress / 10)
+    progress_bar = "█" * filled_blocks + "░" * (10 - filled_blocks)
+
+    embed = discord.Embed(
+        title=f"📦 LOADX • {data.version}",
+        description=(
+            f"### Status do projeto\n`{progress_bar}` **{progress}% concluído**"
+        ),
+        color=discord.Color.blue(),
+    )
+
+    embed.add_field(
+        name="✅ Concluídas",
+        value=str(data.completed),
+        inline=True,
+    )
+
+    embed.add_field(
+        name="🔵 Em revisão",
+        value=str(data.review),
+        inline=True,
+    )
+
+    embed.add_field(
+        name="🟡 Em desenvolvimento",
+        value=str(data.development),
+        inline=True,
+    )
+
+    embed.add_field(
+        name="🟢 Prontas para iniciar",
+        value=str(data.ready),
+        inline=True,
+    )
+
+    embed.add_field(
+        name="🔒 Backlog / bloqueadas",
+        value=str(data.backlog),
+        inline=True,
+    )
+
+    embed.add_field(
+        name="📋 Total de OCs",
+        value=str(data.total),
+        inline=True,
+    )
+
+    embed.set_footer(
+        text="LoadX • Dashboard atualizado automaticamente",
+    )
+
+    embed.timestamp = discord.utils.utcnow()
 
     return embed

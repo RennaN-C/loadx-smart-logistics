@@ -10,6 +10,7 @@ class DiscordBotSettings(BaseSettings):
     # Discord
     discord_bot_token: str
     discord_tasks_channel_id: int
+    discord_status_channel_id: int
     discord_guild_id: int
 
     # Administrador
