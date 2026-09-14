@@ -23,7 +23,6 @@ jobs:
 
     env:
       GH_TOKEN: ${{ secrets.PROJECT_AUTOMATION_TOKEN }}
-      DISCORD_WEBHOOK: ${{ secrets.DISCORD_TASKS_WEBHOOK }}
       PROJECT_OWNER: ${{ github.repository_owner }}
       PROJECT_TITLE: LoadX — Desenvolvimento
       STATUS_FIELD: Status
@@ -99,52 +98,15 @@ jobs:
 
           echo "numbers=$ISSUE_NUMBERS" >> "$GITHUB_OUTPUT"
 
-      - name: Atualizar Issues no Project e notificar Discord
+      - name: Atualizar Issues no Project
         if: steps.issues.outputs.numbers != ''
         env:
           TARGET_STATUS: ${{ steps.status.outputs.status }}
           ISSUE_NUMBERS: ${{ steps.issues.outputs.numbers }}
           REPOSITORY: ${{ github.repository }}
-          PR_URL: ${{ github.event.pull_request.html_url }}
         shell: bash
         run: |
           set -euo pipefail
-
-          notificar_discord() {
-            local payload="$1"
-
-            if [ -z "${DISCORD_WEBHOOK:-}" ]; then
-              echo "::warning::DISCORD_TASKS_WEBHOOK não configurado. Notificação ignorada."
-              return 0
-            fi
-
-            for ATTEMPT in 1 2 3; do
-              HTTP_CODE=$(curl -sS \
-                -o /tmp/discord-response.json \
-                -w "%{http_code}" \
-                -H "Content-Type: application/json" \
-                -d "$payload" \
-                "$DISCORD_WEBHOOK" || true)
-
-              if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
-                return 0
-              fi
-
-              if [ "$HTTP_CODE" = "429" ]; then
-                RETRY_AFTER=$(jq -r '.retry_after // 1' /tmp/discord-response.json 2>/dev/null || echo "1")
-                echo "Discord limitou a requisição. Nova tentativa em ${RETRY_AFTER}s."
-                sleep "$RETRY_AFTER"
-                continue
-              fi
-
-              echo "::warning::Falha ao notificar Discord. HTTP ${HTTP_CODE}."
-              cat /tmp/discord-response.json || true
-              return 0
-            done
-
-            echo "::warning::Não foi possível notificar o Discord após 3 tentativas."
-          }
-
           PROJECT_DATA=$(gh api graphql \
             -f query='
               query($owner: String!) {
@@ -243,16 +205,6 @@ jobs:
             ISSUE_ID=$(echo "$ISSUE" | jq -r '.node_id')
             ISSUE_TITLE=$(echo "$ISSUE" | jq -r '.title')
             ISSUE_STATE=$(echo "$ISSUE" | jq -r '.state')
-            ISSUE_URL=$(echo "$ISSUE" | jq -r '.html_url')
-            ISSUE_BODY=$(echo "$ISSUE" | jq -r '.body // ""')
-            ASSIGNEE=$(echo "$ISSUE" | jq -r '.assignee.login // "Não atribuído"')
-
-            RESPONSAVEL=$(printf '%s\n' "$ISSUE_BODY" |
-              awk '/^## Responsável[[:space:]]*$/ { getline; print; exit }')
-
-            if [ -z "$RESPONSAVEL" ]; then
-              RESPONSAVEL="@${ASSIGNEE}"
-            fi
 
             ITEM_DATA=$(gh api graphql \
               -f query='
@@ -325,49 +277,5 @@ jobs:
 
               echo "Issue #${ISSUE_NUMBER} fechada como concluída."
             fi
-
-            case "$TARGET_STATUS" in
-              "Em desenvolvimento")
-                EVENT_TITLE="🟡 OC em desenvolvimento"
-                ;;
-              "Em revisão")
-                EVENT_TITLE="🔵 OC em revisão"
-                ;;
-              "Concluído")
-                EVENT_TITLE="✅ OC concluída"
-                ;;
-              *)
-                EVENT_TITLE="📌 Status da OC atualizado"
-                ;;
-            esac
-
-            PAYLOAD=$(jq -n \
-              --arg event_title "$EVENT_TITLE" \
-              --arg title "$ISSUE_TITLE" \
-              --arg url "$ISSUE_URL" \
-              --arg issue "#${ISSUE_NUMBER}" \
-              --arg responsavel "$RESPONSAVEL" \
-              --arg status "$TARGET_STATUS" \
-              --arg pr_url "$PR_URL" \
-              '{
-                username: "LoadX • Tarefas",
-                embeds: [
-                  {
-                    title: $event_title,
-                    description:
-                      ("**Tarefa:** " + $title +
-                       "\n**Issue:** " + $issue +
-                       "\n**Desenvolvedor:** " + $responsavel +
-                       "\n**Status:** " + $status +
-                       "\n**PR:** " + $pr_url),
-                    url: $url,
-                    footer: {
-                      text: "LoadX — Desenvolvimento"
-                    }
-                  }
-                ]
-              }')
-
-            notificar_discord "$PAYLOAD"
             sleep 1
           done
