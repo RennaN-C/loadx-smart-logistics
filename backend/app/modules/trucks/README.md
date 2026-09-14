@@ -33,3 +33,29 @@ módulo na API atual.
   JSON na entrada e na saída, conforme D06 e ADR-016.
 - Exclusão física ainda não foi implementada; use `active = false` para indisponibilidade.
 - Todas as rotas exigem sessão em cookie e consultam o papel e o estado atual do usuário no banco.
+
+## OC64 — conflito operacional
+
+`CONFIRMADO`: o módulo de caminhões centraliza a regra reutilizável de conflito
+operacional.
+
+`TruckService.has_operation_conflict(...)` executa a consulta somente de
+conflito e pode ignorar o próprio `load_plan_id` da operação consultada.
+
+`TruckService.ensure_no_operation_conflict(...)` bloqueia a linha do caminhão
+para atualização antes da consulta e lança `TruckOperationConflictError` quando
+outra operação ativa utiliza o mesmo veículo.
+
+A regra considera carregamento e viagem:
+
+- plano sem artefato operacional não causa conflito;
+- sessão de carregamento mantém a reserva enquanto a viagem não estiver
+  `FINISHED`;
+- viagem `SCHEDULED` ou `IN_ROUTE` causa conflito;
+- viagem `FINISHED` libera o caminhão;
+- o mesmo `load_plan_id` não conflita consigo próprio.
+
+`IMPORTANTE`: ausência de conflito não significa disponibilidade completa.
+`Truck.active` continua sendo uma regra independente. A OC67 deve combinar o
+estado cadastral do caminhão com esta consulta, sem acessar diretamente as
+tabelas de carregamento ou viagens e sem duplicar a regra.

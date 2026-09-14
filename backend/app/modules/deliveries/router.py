@@ -39,6 +39,7 @@ from app.modules.deliveries.service import (
     TripStatusTransitionNotAllowedError,
 )
 from app.modules.notifications.service import OperationalNotificationService
+from app.modules.trucks.service import TruckOperationConflictError
 from app.modules.users.models import User
 
 router = APIRouter(tags=["trips"])
@@ -68,6 +69,7 @@ TRIP_SERVICE_ERRORS = (
     TripOrderAlreadyAssignedError,
     TripOrderNotEligibleError,
     TripStatusTransitionNotAllowedError,
+    TruckOperationConflictError,
 )
 
 
@@ -189,6 +191,13 @@ def change_delivery_status(
 
 
 def _trip_error_response(exc: Exception) -> JSONResponse:
+    if isinstance(exc, TruckOperationConflictError):
+        return error_response(
+            status.HTTP_409_CONFLICT,
+            "TRUCK_OPERATION_CONFLICT",
+            "O caminhão já está reservado por outra operação ativa.",
+            [{"field": "truck_id", "value": str(exc.truck_id)}],
+        )
     if isinstance(exc, TripAccessForbiddenError):
         return error_response(
             status.HTTP_403_FORBIDDEN,

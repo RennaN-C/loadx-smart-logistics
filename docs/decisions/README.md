@@ -28,3 +28,4 @@ Registros aceitos relevantes:
   montados e papéis PostgreSQL separados.
 - `ADR-022`: ciclo mínimo de viagens e entregas, integração atômica com pedidos
   e histórico, gate de carregamento e vínculo 1:1 entre usuário e motorista.
+- `ADR-023`: conflito e reserva operacional de caminhões entre carregamento e viagens.

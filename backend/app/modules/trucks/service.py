@@ -19,6 +19,12 @@ class TruckPlateAlreadyExistsError(Exception):
     pass
 
 
+class TruckOperationConflictError(Exception):
+    def __init__(self, truck_id: uuid.UUID) -> None:
+        self.truck_id = truck_id
+        super().__init__("truck already belongs to another active operation")
+
+
 class TruckService:
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -40,6 +46,32 @@ class TruckService:
         truck = self.repository.get_for_update(truck_id)
         if truck is None:
             raise TruckNotFoundError
+        return truck
+
+    def has_operation_conflict(
+        self,
+        truck_id: uuid.UUID,
+        *,
+        exclude_load_plan_id: uuid.UUID | None = None,
+    ) -> bool:
+        self.get_truck(truck_id)
+        return self.repository.has_operation_conflict(
+            truck_id,
+            exclude_load_plan_id=exclude_load_plan_id,
+        )
+
+    def ensure_no_operation_conflict(
+        self,
+        truck_id: uuid.UUID,
+        *,
+        exclude_load_plan_id: uuid.UUID | None = None,
+    ) -> Truck:
+        truck = self.get_truck_for_update(truck_id)
+        if self.repository.has_operation_conflict(
+            truck_id,
+            exclude_load_plan_id=exclude_load_plan_id,
+        ):
+            raise TruckOperationConflictError(truck_id)
         return truck
 
     def create_truck(self, data: TruckCreate) -> Truck:

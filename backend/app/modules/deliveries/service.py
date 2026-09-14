@@ -24,6 +24,7 @@ from app.modules.orders.models import Order
 from app.modules.orders.service import OrderService
 from app.modules.status_history.schemas import StatusHistoryCreate
 from app.modules.status_history.service import StatusHistoryService
+from app.modules.trucks.service import TruckService
 from app.modules.users.models import User
 
 logger = logging.getLogger(__name__)
@@ -130,6 +131,7 @@ class TripService:
         self.notification_service = notification_service
         self.order_service = OrderService(db)
         self.status_history_service = StatusHistoryService(db)
+        self.truck_service = TruckService(db)
 
     def get_trip(self, trip_id: uuid.UUID, *, current_user: User) -> Trip:
         trip = self.repository.get(trip_id)
@@ -168,6 +170,11 @@ class TripService:
                 raise TripLoadPlanNotApprovedError
             if self.repository.get_by_load_plan_id(load_plan.id) is not None:
                 raise TripLoadPlanAlreadyAssignedError
+
+            self.truck_service.ensure_no_operation_conflict(
+                load_plan.truck_id,
+                exclude_load_plan_id=load_plan.id,
+            )
 
             try:
                 driver = self.driver_service.get_driver_for_update(data.driver_id)

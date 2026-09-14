@@ -588,3 +588,106 @@ def test_linked_driver_completes_atomic_trip_delivery_and_order_flow(
                 select(Delivery).where(Delivery.trip_id == persisted.id)
             )
         )
+
+
+def test_truck_operation_conflict_returns_stable_public_error(
+    client: TestClient,
+    session_factory: SessionFactory,
+) -> None:
+    # --------------------------------------------------------
+    # Conflito ao iniciar carregamento de outro plano
+    # --------------------------------------------------------
+    first_loading_scenario = seed_operational_scenario(session_factory)
+    second_loading_scenario = seed_operational_scenario(session_factory)
+
+    with session_factory() as db:
+        first_plan = db.get(
+            LoadPlan,
+            first_loading_scenario.load_plan_id,
+        )
+        second_plan = db.get(
+            LoadPlan,
+            second_loading_scenario.load_plan_id,
+        )
+
+        assert first_plan is not None
+        assert second_plan is not None
+
+        truck_id = first_plan.truck_id
+        second_plan.truck_id = truck_id
+        db.commit()
+
+    first_loading = client.post(
+        "/api/v1/loading-sessions",
+        json={"load_plan_id": str(first_loading_scenario.load_plan_id)},
+        headers=first_loading_scenario.manager_headers,
+    )
+
+    assert first_loading.status_code == 201
+
+    loading_conflict = client.post(
+        "/api/v1/loading-sessions",
+        json={"load_plan_id": str(second_loading_scenario.load_plan_id)},
+        headers=second_loading_scenario.manager_headers,
+    )
+
+    assert loading_conflict.status_code == 409
+    assert loading_conflict.json()["code"] == ("TRUCK_OPERATION_CONFLICT")
+    assert loading_conflict.json()["details"] == [
+        {
+            "field": "truck_id",
+            "value": str(truck_id),
+        }
+    ]
+
+    # --------------------------------------------------------
+    # Conflito ao criar viagem de outro plano
+    # --------------------------------------------------------
+    first_trip_scenario = seed_operational_scenario(session_factory)
+    second_trip_scenario = seed_operational_scenario(session_factory)
+
+    with session_factory() as db:
+        first_plan = db.get(
+            LoadPlan,
+            first_trip_scenario.load_plan_id,
+        )
+        second_plan = db.get(
+            LoadPlan,
+            second_trip_scenario.load_plan_id,
+        )
+
+        assert first_plan is not None
+        assert second_plan is not None
+
+        trip_truck_id = first_plan.truck_id
+        second_plan.truck_id = trip_truck_id
+        db.commit()
+
+    first_trip = client.post(
+        "/api/v1/trips",
+        json={
+            "load_plan_id": str(first_trip_scenario.load_plan_id),
+            "driver_id": str(first_trip_scenario.driver_id),
+        },
+        headers=first_trip_scenario.manager_headers,
+    )
+
+    assert first_trip.status_code == 201
+
+    trip_conflict = client.post(
+        "/api/v1/trips",
+        json={
+            "load_plan_id": str(second_trip_scenario.load_plan_id),
+            "driver_id": str(second_trip_scenario.driver_id),
+        },
+        headers=second_trip_scenario.manager_headers,
+    )
+
+    assert trip_conflict.status_code == 409
+    assert trip_conflict.json()["code"] == ("TRUCK_OPERATION_CONFLICT")
+    assert trip_conflict.json()["details"] == [
+        {
+            "field": "truck_id",
+            "value": str(trip_truck_id),
+        }
+    ]

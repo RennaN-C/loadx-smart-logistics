@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.modules.load_planning.reference_service import LoadPlanReferenceService
 from app.modules.loading.models import LoadingSession, LoadingSessionItem
 from app.modules.loading.repository import LoadingRepository
+from app.modules.trucks.service import TruckService
 
 
 class LoadingSessionNotFoundError(Exception):
@@ -37,6 +38,7 @@ class LoadingService:
         self.db = db
         self.repository = LoadingRepository(db)
         self.load_plan_reference_service = LoadPlanReferenceService(db)
+        self.truck_service = TruckService(db)
 
     def create_session(self, load_plan_id: uuid.UUID) -> LoadingSession:
         existing = self.repository.get_by_load_plan_id(load_plan_id)
@@ -46,6 +48,7 @@ class LoadingService:
         items = self.load_plan_reference_service.get_loading_items(load_plan_id)
         if plan is None or plan.status != "APPROVED" or not items:
             raise LoadingPlanNotApprovedError
+
         session = LoadingSession(
             load_plan_id=load_plan_id,
             status="PENDING",
@@ -55,6 +58,16 @@ class LoadingService:
             ],
         )
         try:
+            self.truck_service.ensure_no_operation_conflict(
+                plan.truck_id,
+                exclude_load_plan_id=plan.id,
+            )
+
+            concurrent_existing = self.repository.get_by_load_plan_id(load_plan_id)
+            if concurrent_existing is not None:
+                self.db.commit()
+                return concurrent_existing
+
             self.repository.add(session)
             self.db.commit()
             return self._get_session(session.id)
