@@ -8,10 +8,18 @@ from urllib.request import Request, urlopen
 from app.integrations.discord.config import settings
 
 GITHUB_GRAPHQL_URL = "https://api.github.com/graphql"
+
 PR_ISSUE_PATTERN = re.compile(
     r"\b(?:close[sd]?|fix(?:es|ed)?|resolve[sd]?)\s+#([0-9]+)\b",
     re.IGNORECASE,
 )
+
+
+@dataclass
+class PullRequestInfo:
+    url: str
+    ci_status: str | None = None
+    ci_url: str | None = None
 
 
 @dataclass
@@ -36,6 +44,8 @@ class IssueProjectContext:
     status_options: dict[str, str]
 
     pr_url: str | None = None
+    ci_status: str | None = None
+    ci_url: str | None = None
 
 
 PROJECT_ISSUE_QUERY = """
@@ -271,7 +281,33 @@ query(
         body
         updatedAt
         baseRefName
+
+        commits(last: 1) {
+          nodes {
+            commit {
+              statusCheckRollup {
+                state
+
+                contexts(first: 100) {
+                  nodes {
+                    ... on CheckRun {
+                      status
+                      conclusion
+                      detailsUrl
+                    }
+
+                    ... on StatusContext {
+                      state
+                      targetUrl
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       }
+
       pageInfo {
         hasNextPage
         endCursor
@@ -280,6 +316,7 @@ query(
   }
 }
 """
+
 
 UPDATE_STATUS_MUTATION = """
 mutation(
@@ -353,7 +390,10 @@ def _graphql(
 
     data = result.get("data")
 
-    if not isinstance(data, dict):
+    if not isinstance(
+        data,
+        dict,
+    ):
         raise TypeError("Resposta inválida da API do GitHub.")
 
     return data
@@ -403,13 +443,84 @@ def _get_responsible(
     return "Não atribuído"
 
 
-def _extract_closing_issue_numbers(body: str) -> set[int]:
+def _extract_closing_issue_numbers(
+    body: str,
+) -> set[int]:
     return {int(number) for number in PR_ISSUE_PATTERN.findall(body)}
 
 
-def _get_pull_request_urls() -> dict[int, str]:
-    result: dict[int, str] = {}
-    latest_updates: dict[int, str] = {}
+def _get_ci_details(
+    pull_request: dict[str, Any],
+) -> tuple[
+    str | None,
+    str | None,
+]:
+    commits = pull_request.get("commits") or {}
+
+    commit_nodes = commits.get("nodes") or []
+
+    if not commit_nodes:
+        return None, None
+
+    commit = commit_nodes[-1].get("commit") or {}
+
+    rollup = commit.get("statusCheckRollup")
+
+    if not rollup:
+        return None, None
+
+    state = rollup.get("state")
+
+    if state == "SUCCESS":
+        ci_status = "success"
+
+    elif state in {
+        "FAILURE",
+        "ERROR",
+    }:
+        ci_status = "failure"
+
+    else:
+        ci_status = "pending"
+
+    contexts = (rollup.get("contexts") or {}).get("nodes") or []
+
+    candidate_urls: list[str] = []
+
+    for context in contexts:
+        url = context.get("detailsUrl") or context.get("targetUrl")
+
+        if url:
+            candidate_urls.append(url)
+
+    ci_url = next(
+        (url for url in candidate_urls if "/actions/runs/" in url),
+        (candidate_urls[0] if candidate_urls else None),
+    )
+
+    if ci_url is None:
+        ci_url = f"{pull_request['url']}/checks"
+
+    return (
+        ci_status,
+        ci_url,
+    )
+
+
+def _get_pull_request_info() -> dict[
+    int,
+    PullRequestInfo,
+]:
+    result: dict[
+        int,
+        PullRequestInfo,
+    ] = {}
+
+    latest_updates: dict[
+        int,
+        str,
+    ] = {}
+
     cursor = None
 
     while True:
@@ -417,15 +528,18 @@ def _get_pull_request_urls() -> dict[int, str]:
             PULL_REQUESTS_QUERY,
             {
                 "owner": settings.github_owner,
-                "repository": settings.github_repository,
+                "repository": (settings.github_repository),
                 "cursor": cursor,
             },
         )
+
         repository = data.get("repository")
+
         if repository is None:
             return result
 
         pull_requests = repository["pullRequests"]
+
         for pull_request in pull_requests["nodes"]:
             if pull_request.get("baseRefName") != "desenvolvimento":
                 continue
@@ -433,19 +547,43 @@ def _get_pull_request_urls() -> dict[int, str]:
             issue_numbers = _extract_closing_issue_numbers(
                 pull_request.get("body") or ""
             )
+
             updated_at = pull_request["updatedAt"]
+
+            (
+                ci_status,
+                ci_url,
+            ) = _get_ci_details(pull_request)
+
             for issue_number in issue_numbers:
                 if (
                     issue_number not in result
                     or updated_at > latest_updates[issue_number]
                 ):
-                    result[issue_number] = pull_request["url"]
+                    result[issue_number] = PullRequestInfo(
+                        url=pull_request["url"],
+                        ci_status=ci_status,
+                        ci_url=ci_url,
+                    )
+
                     latest_updates[issue_number] = updated_at
 
         page_info = pull_requests["pageInfo"]
+
         if not page_info["hasNextPage"]:
             return result
+
         cursor = page_info["endCursor"]
+
+
+def _get_pull_request_urls() -> dict[
+    int,
+    str,
+]:
+    return {
+        issue_number: info.url
+        for issue_number, info in _get_pull_request_info().items()
+    }
 
 
 def get_issue_context(
@@ -455,7 +593,7 @@ def get_issue_context(
         PROJECT_ISSUE_QUERY,
         {
             "owner": settings.github_owner,
-            "repository": settings.github_repository,
+            "repository": (settings.github_repository),
             "issueNumber": issue_number,
         },
     )
@@ -521,6 +659,7 @@ def get_issue_context(
 
         if field.get("name") == settings.github_status_field:
             current_status = value.get("name")
+
             break
 
     status_options = {
@@ -545,7 +684,9 @@ def get_issue_context(
         "Branch sugerida",
     )
 
-    pull_request_urls = _get_pull_request_urls()
+    pull_request_info = _get_pull_request_info()
+
+    pr_info = pull_request_info.get(issue["number"])
 
     return IssueProjectContext(
         issue_number=issue["number"],
@@ -562,7 +703,9 @@ def get_issue_context(
         status_field_id=status_field["id"],
         current_status=current_status,
         status_options=status_options,
-        pr_url=pull_request_urls.get(issue["number"]),
+        pr_url=(pr_info.url if pr_info else None),
+        ci_status=(pr_info.ci_status if pr_info else None),
+        ci_url=(pr_info.ci_url if pr_info else None),
     )
 
 
@@ -625,7 +768,7 @@ def list_project_issues(
     if node is None:
         raise RuntimeError("Project não encontrado pelo ID.")
 
-    pull_request_urls = _get_pull_request_urls()
+    pull_request_info = _get_pull_request_info()
 
     issues: list[IssueProjectContext] = []
 
@@ -671,7 +814,10 @@ def list_project_issues(
 
             if field.get("name") == settings.github_status_field:
                 current_status = value.get("name")
+
                 break
+
+        pr_info = pull_request_info.get(issue["number"])
 
         issues.append(
             IssueProjectContext(
@@ -685,11 +831,13 @@ def list_project_issues(
                 branch=branch,
                 assignees=assignees,
                 project_id=project["id"],
-                project_item_id=project_item["id"],
-                status_field_id=status_field["id"],
-                current_status=current_status,
-                status_options=status_options.copy(),
-                pr_url=pull_request_urls.get(issue["number"]),
+                project_item_id=(project_item["id"]),
+                status_field_id=(status_field["id"]),
+                current_status=(current_status),
+                status_options=(status_options.copy()),
+                pr_url=(pr_info.url if pr_info else None),
+                ci_status=(pr_info.ci_status if pr_info else None),
+                ci_url=(pr_info.ci_url if pr_info else None),
             )
         )
 
@@ -716,9 +864,9 @@ def update_issue_status(
     _graphql(
         UPDATE_STATUS_MUTATION,
         {
-            "projectId": context.project_id,
-            "itemId": context.project_item_id,
-            "fieldId": context.status_field_id,
+            "projectId": (context.project_id),
+            "itemId": (context.project_item_id),
+            "fieldId": (context.status_field_id),
             "optionId": option_id,
         },
     )

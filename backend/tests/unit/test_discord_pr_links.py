@@ -9,11 +9,14 @@ import pytest
 
 PR_URL = "https://github.com/example/logistics/pull/63"
 
+CI_URL = "https://github.com/example/logistics/actions/runs/123456789"
+
 
 @pytest.fixture(scope="module")
 def discord_modules():
     # Import the real modules without loading .env files or Docker secrets.
     config = ModuleType("app.integrations.discord.config")
+
     config.settings = SimpleNamespace(
         github_owner="example",
         github_repository="logistics",
@@ -35,7 +38,9 @@ def discord_modules():
         },
     ):
         github = importlib.import_module("app.integrations.discord.github_client")
+
         bot = importlib.import_module("app.integrations.discord.bot")
+
         cards = importlib.import_module("app.integrations.discord.cards")
 
         yield SimpleNamespace(
@@ -87,13 +92,50 @@ def pull_request(
     base="desenvolvimento",
     url=PR_URL,
     updated_at="2026-09-13T12:00:00Z",
+    ci_state=None,
+    ci_url=None,
 ):
-    return {
+    result = {
         "body": body,
         "baseRefName": base,
         "url": url,
         "updatedAt": updated_at,
     }
+
+    if ci_state is None:
+        result["commits"] = {
+            "nodes": [],
+        }
+
+        return result
+
+    contexts = []
+
+    if ci_url:
+        contexts.append(
+            {
+                "status": "COMPLETED",
+                "conclusion": ci_state,
+                "detailsUrl": ci_url,
+            }
+        )
+
+    result["commits"] = {
+        "nodes": [
+            {
+                "commit": {
+                    "statusCheckRollup": {
+                        "state": ci_state,
+                        "contexts": {
+                            "nodes": contexts,
+                        },
+                    }
+                }
+            }
+        ]
+    }
+
+    return result
 
 
 def pull_request_page(
@@ -106,7 +148,7 @@ def pull_request_page(
             "pullRequests": {
                 "nodes": nodes,
                 "pageInfo": {
-                    "hasNextPage": cursor is not None,
+                    "hasNextPage": (cursor is not None),
                     "endCursor": cursor,
                 },
             }
@@ -118,28 +160,34 @@ def issue_context(
     discord_modules,
     *,
     pr_url=None,
+    ci_status=None,
+    ci_url=None,
     status="Em revisão",
     assignees=None,
 ):
     if assignees is None:
-        assignees = ["test-user"]
+        assignees = [
+            "test-user",
+        ]
 
     return discord_modules.github.IssueProjectContext(
         issue_number=44,
-        issue_title="[OC62] Tarefa de teste",
-        issue_url="https://github.com/example/logistics/issues/44",
+        issue_title=("[OC62] Tarefa de teste"),
+        issue_url=("https://github.com/example/logistics/issues/44"),
         issue_state="OPEN",
         issue_body="",
-        responsible="Pessoa de teste",
+        responsible=("Pessoa de teste"),
         version="v1.1.0",
         branch="feature/test",
         assignees=assignees,
         project_id="test-project",
         project_item_id="test-item",
-        status_field_id="test-status-field",
+        status_field_id=("test-status-field"),
         current_status=status,
         status_options={},
         pr_url=pr_url,
+        ci_status=ci_status,
+        ci_url=ci_url,
     )
 
 
@@ -174,7 +222,11 @@ def test_multiple_issues_and_duplicate_references(
 ):
     body = "## Entrega\nCloses #46\nFixes #47\nResolves #48\nCloses #46"
 
-    assert discord_modules.github._extract_closing_issue_numbers(body) == {46, 47, 48}
+    assert discord_modules.github._extract_closing_issue_numbers(body) == {
+        46,
+        47,
+        48,
+    }
 
 
 @pytest.mark.parametrize(
@@ -292,6 +344,125 @@ def test_latest_updated_pr_wins_across_pages(
 
 
 @pytest.mark.parametrize(
+    (
+        "rollup_state",
+        "expected_status",
+    ),
+    [
+        (
+            "SUCCESS",
+            "success",
+        ),
+        (
+            "FAILURE",
+            "failure",
+        ),
+        (
+            "ERROR",
+            "failure",
+        ),
+        (
+            "PENDING",
+            "pending",
+        ),
+        (
+            "EXPECTED",
+            "pending",
+        ),
+    ],
+)
+def test_ci_rollup_state_mapping(
+    discord_modules,
+    rollup_state,
+    expected_status,
+):
+    github = discord_modules.github
+
+    pr = pull_request(
+        ci_state=rollup_state,
+    )
+
+    (
+        ci_status,
+        ci_url,
+    ) = github._get_ci_details(pr)
+
+    assert ci_status == expected_status
+
+    assert ci_url == f"{PR_URL}/checks"
+
+
+def test_ci_details_prefers_actions_run_url(
+    discord_modules,
+):
+    github = discord_modules.github
+
+    pr = pull_request(
+        ci_state="SUCCESS",
+        ci_url=CI_URL,
+    )
+
+    (
+        ci_status,
+        ci_url,
+    ) = github._get_ci_details(pr)
+
+    assert ci_status == "success"
+    assert ci_url == CI_URL
+
+
+def test_ci_details_without_rollup(
+    discord_modules,
+):
+    github = discord_modules.github
+
+    pr = pull_request()
+
+    (
+        ci_status,
+        ci_url,
+    ) = github._get_ci_details(pr)
+
+    assert ci_status is None
+    assert ci_url is None
+
+
+def test_pull_request_info_includes_ci(
+    discord_modules,
+    monkeypatch,
+):
+    github = discord_modules.github
+
+    graphql = Mock(
+        return_value=pull_request_page(
+            [
+                pull_request(
+                    "Closes #44",
+                    ci_state="SUCCESS",
+                    ci_url=CI_URL,
+                )
+            ]
+        )
+    )
+
+    monkeypatch.setattr(
+        github,
+        "_graphql",
+        graphql,
+    )
+
+    result = github._get_pull_request_info()
+
+    assert 44 in result
+
+    info = result[44]
+
+    assert info.url == PR_URL
+    assert info.ci_status == "success"
+    assert info.ci_url == CI_URL
+
+
+@pytest.mark.parametrize(
     "lookup",
     [
         "single",
@@ -319,7 +490,7 @@ def test_public_context_includes_optional_pr(
         "fields": {
             "nodes": [
                 {
-                    "id": "test-status-field",
+                    "id": ("test-status-field"),
                     "name": "Status",
                     "options": [],
                 }
@@ -346,7 +517,7 @@ def test_public_context_includes_optional_pr(
 
     issue = {
         "number": 44,
-        "title": "[OC62] Tarefa de teste",
+        "title": ("[OC62] Tarefa de teste"),
         "url": ("https://github.com/example/logistics/issues/44"),
         "state": "OPEN",
         "body": "",
@@ -377,6 +548,8 @@ def test_public_context_includes_optional_pr(
         }
     }
 
+    pull_requests = [pull_request("Closes #44\nCloses #45")] if has_pr else []
+
     responses = {
         github.PROJECT_ISSUE_QUERY: {
             **metadata,
@@ -384,7 +557,7 @@ def test_public_context_includes_optional_pr(
                 "issue": issue,
             },
         },
-        github.PROJECT_METADATA_QUERY: metadata,
+        github.PROJECT_METADATA_QUERY: (metadata),
         github.PROJECT_ITEMS_QUERY: {
             "node": {
                 "items": {
@@ -395,7 +568,7 @@ def test_public_context_includes_optional_pr(
                         },
                         {
                             **item,
-                            "id": "test-item-45",
+                            "id": ("test-item-45"),
                             "content": {
                                 **issue,
                                 "number": 45,
@@ -405,11 +578,7 @@ def test_public_context_includes_optional_pr(
                 }
             }
         },
-        github.PULL_REQUESTS_QUERY: (
-            pull_request_page(
-                [pull_request("Closes #44\nCloses #45")] if has_pr else []
-            )
-        ),
+        github.PULL_REQUESTS_QUERY: (pull_request_page(pull_requests)),
     }
 
     def graphql(
@@ -440,6 +609,10 @@ def test_public_context_includes_optional_pr(
 
     assert all(context.pr_url == (PR_URL if has_pr else None) for context in contexts)
 
+    assert all(context.ci_status is None for context in contexts)
+
+    assert all(context.ci_url is None for context in contexts)
+
 
 @pytest.mark.parametrize(
     "pr_url",
@@ -452,16 +625,22 @@ def test_card_data_and_embed_preserve_optional_pr(
     discord_modules,
     pr_url,
 ):
+    ci_status = "success" if pr_url else None
+
+    ci_url = CI_URL if pr_url else None
+
     context = issue_context(
         discord_modules,
         pr_url=pr_url,
+        ci_status=ci_status,
+        ci_url=ci_url,
     )
 
     data = discord_modules.bot.context_to_card_data(context)
 
     embed = discord_modules.cards.build_task_embed(data)
 
-    fields = [field for field in embed.fields if field.name == "🔎 Pull Request"]
+    pr_fields = [field for field in embed.fields if (field.name == "🔎 Pull Request")]
 
     assert isinstance(
         data,
@@ -469,14 +648,108 @@ def test_card_data_and_embed_preserve_optional_pr(
     )
 
     assert data.pr_url == pr_url
+    assert data.ci_status == ci_status
+    assert data.ci_url == ci_url
 
     if pr_url:
-        assert len(fields) == 1
+        assert len(pr_fields) == 1
 
-        assert fields[0].value == f"[Abrir PR]({pr_url})"
+        assert pr_fields[0].value == f"[Abrir PR]({pr_url})"
 
     else:
-        assert fields == []
+        assert pr_fields == []
+
+
+@pytest.mark.parametrize(
+    (
+        "pr_url",
+        "ci_status",
+        "expected",
+    ),
+    [
+        (
+            None,
+            None,
+            "⚪ Aguardando PR",
+        ),
+        (
+            PR_URL,
+            None,
+            "🟡 Aguardando CI",
+        ),
+        (
+            PR_URL,
+            "pending",
+            "🟡 Em execução",
+        ),
+        (
+            PR_URL,
+            "success",
+            "🟢 Aprovado",
+        ),
+        (
+            PR_URL,
+            "failure",
+            "🔴 Falhou",
+        ),
+    ],
+)
+def test_card_ci_visuals(
+    discord_modules,
+    pr_url,
+    ci_status,
+    expected,
+):
+    cards = discord_modules.cards
+
+    data = cards.TaskCardData(
+        issue_number=44,
+        issue_title=("[OC62] Tarefa de teste"),
+        issue_url=("https://github.com/example/logistics/issues/44"),
+        status="Em revisão",
+        responsible=("Pessoa de teste"),
+        version="v1.1.0",
+        branch="feature/test",
+        pr_url=pr_url,
+        ci_status=ci_status,
+        ci_url=(CI_URL if ci_status else None),
+    )
+
+    embed = cards.build_task_embed(data)
+
+    ci_field = next(field for field in embed.fields if field.name == "🧪 CI")
+
+    assert ci_field.value == expected
+
+
+def test_task_card_view_adds_pr_and_ci_buttons(
+    discord_modules,
+):
+    bot = discord_modules.bot
+
+    context = issue_context(
+        discord_modules,
+        status="Em revisão",
+        pr_url=PR_URL,
+        ci_status="success",
+        ci_url=CI_URL,
+    )
+
+    view = bot.TaskCardView(context)
+
+    buttons = {item.label: item for item in view.children}
+
+    assert "Ver Issue" in buttons
+
+    assert "Ver PR" in buttons
+
+    assert "Ver CI" in buttons
+
+    assert buttons["Ver Issue"].url == context.issue_url
+
+    assert buttons["Ver PR"].url == PR_URL
+
+    assert buttons["Ver CI"].url == CI_URL
 
 
 def test_dashboard_data_counts_statuses(
@@ -491,11 +764,11 @@ def test_dashboard_data_counts_statuses(
         ),
         issue_context(
             discord_modules,
-            status="Pronto para iniciar",
+            status=("Pronto para iniciar"),
         ),
         issue_context(
             discord_modules,
-            status="Em desenvolvimento",
+            status=("Em desenvolvimento"),
         ),
         issue_context(
             discord_modules,
@@ -540,7 +813,7 @@ def test_dashboard_embed_calculates_progress(
     assert "**30% concluído**" in embed.description
 
     assert any(
-        field.name == "✅ Concluídas" and field.value == "3" for field in embed.fields
+        (field.name == "✅ Concluídas" and field.value == "3") for field in embed.fields
     )
 
 
@@ -576,7 +849,9 @@ def test_new_pr_edits_existing_review_card_without_sending_message(
     monkeypatch.setattr(
         bot,
         "list_project_issues",
-        lambda: [updated],
+        lambda: [
+            updated,
+        ],
     )
 
     async def synchronize():
@@ -584,6 +859,7 @@ def test_new_pr_edits_existing_review_card_without_sending_message(
 
         try:
             client.cards[44] = message
+
             client.initialized = True
 
             monkeypatch.setattr(
@@ -604,7 +880,9 @@ def test_new_pr_edits_existing_review_card_without_sending_message(
 
             embed = message.edit.call_args.kwargs["embed"]
 
-            assert any(field.value == f"[Abrir PR]({PR_URL})" for field in embed.fields)
+            assert any(
+                (field.value == f"[Abrir PR]({PR_URL})") for field in embed.fields
+            )
 
             assert client.cards[44] is message
 
@@ -615,7 +893,9 @@ def test_new_pr_edits_existing_review_card_without_sending_message(
             await client.sync_cards()
 
             message.edit.assert_awaited_once()
+
             message.delete.assert_not_awaited()
+
             channel.send.assert_not_awaited()
 
         finally:
@@ -651,7 +931,9 @@ def test_completed_issue_removes_existing_card(
     monkeypatch.setattr(
         bot,
         "list_project_issues",
-        lambda: [completed],
+        lambda: [
+            completed,
+        ],
     )
 
     async def synchronize():
@@ -659,6 +941,7 @@ def test_completed_issue_removes_existing_card(
 
         try:
             client.cards[44] = message
+
             client.initialized = True
 
             monkeypatch.setattr(
@@ -676,6 +959,7 @@ def test_completed_issue_removes_existing_card(
             await client.sync_cards()
 
             message.delete.assert_awaited_once()
+
             message.edit.assert_not_awaited()
 
             assert 44 not in client.cards
@@ -717,7 +1001,9 @@ def test_initial_snapshot_does_not_send_release_dm(
     ready = issue_context(
         discord_modules,
         status="Pronto para iniciar",
-        assignees=["RennaN-C"],
+        assignees=[
+            "RennaN-C",
+        ],
     )
 
     async def synchronize():
@@ -739,7 +1025,7 @@ def test_initial_snapshot_does_not_send_release_dm(
             assert client.status_snapshot_initialized is True
 
             assert client.previous_statuses == {
-                44: "Pronto para iniciar",
+                44: ("Pronto para iniciar"),
             }
 
         finally:
@@ -757,13 +1043,17 @@ def test_backlog_to_ready_sends_one_release_dm(
     backlog = issue_context(
         discord_modules,
         status="Backlog",
-        assignees=["RennaN-C"],
+        assignees=[
+            "RennaN-C",
+        ],
     )
 
     ready = issue_context(
         discord_modules,
         status="Pronto para iniciar",
-        assignees=["RennaN-C"],
+        assignees=[
+            "RennaN-C",
+        ],
     )
 
     async def synchronize():
@@ -791,7 +1081,7 @@ def test_backlog_to_ready_sends_one_release_dm(
             send_dm.assert_awaited_once()
 
             assert client.previous_statuses == {
-                44: "Pronto para iniciar",
+                44: ("Pronto para iniciar"),
             }
 
         finally:
@@ -809,13 +1099,17 @@ def test_non_backlog_transition_does_not_send_release_dm(
     development = issue_context(
         discord_modules,
         status="Em desenvolvimento",
-        assignees=["RennaN-C"],
+        assignees=[
+            "RennaN-C",
+        ],
     )
 
     ready = issue_context(
         discord_modules,
         status="Pronto para iniciar",
-        assignees=["RennaN-C"],
+        assignees=[
+            "RennaN-C",
+        ],
     )
 
     async def synchronize():
@@ -892,18 +1186,19 @@ def test_release_dm_goes_to_mapped_responsible_users(
             await client.send_released_task_dm(context)
 
             renan.send.assert_awaited_once()
+
             marcelo.send.assert_awaited_once()
 
             fetch_user.assert_not_awaited()
 
             renan_embed = renan.send.call_args.kwargs["embed"]
 
-            assert renan_embed.title == "🔓 OC LIBERADA • OC62"
+            assert renan_embed.title == ("🔓 OC LIBERADA • OC62")
 
             assert "Tarefa de teste" in renan_embed.description
 
             assert any(
-                field.name == "📌 Status" and field.value == "Pronto para iniciar"
+                (field.name == "📌 Status" and field.value == "Pronto para iniciar")
                 for field in renan_embed.fields
             )
 
@@ -922,7 +1217,9 @@ def test_blocked_dm_does_not_break_notification(
     context = issue_context(
         discord_modules,
         status="Pronto para iniciar",
-        assignees=["RennaN-C"],
+        assignees=[
+            "RennaN-C",
+        ],
     )
 
     forbidden = discord.Forbidden(
@@ -930,7 +1227,7 @@ def test_blocked_dm_does_not_break_notification(
             status=403,
             reason="Forbidden",
         ),
-        "Cannot send messages to this user",
+        ("Cannot send messages to this user"),
     )
 
     blocked_user = SimpleNamespace(

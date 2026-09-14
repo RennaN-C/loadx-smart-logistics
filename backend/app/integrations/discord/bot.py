@@ -99,6 +99,8 @@ def context_to_card_data(
         version=context.version,
         branch=context.branch,
         pr_url=context.pr_url,
+        ci_status=context.ci_status,
+        ci_url=context.ci_url,
     )
 
 
@@ -138,10 +140,11 @@ def build_released_task_dm_embed(
 
     else:
         oc_code = f"ISSUE #{context.issue_number}"
+
         task_title = title
 
     embed = discord.Embed(
-        title=f"🔓 OC LIBERADA • {oc_code}",
+        title=(f"🔓 OC LIBERADA • {oc_code}"),
         description=(
             f"### {task_title}\n\n"
             "Todas as dependências foram concluídas "
@@ -294,6 +297,26 @@ class TaskCardView(View):
             )
         )
 
+        if context.pr_url:
+            self.add_item(
+                Button(
+                    label="Ver PR",
+                    emoji="🔎",
+                    style=discord.ButtonStyle.link,
+                    url=context.pr_url,
+                )
+            )
+
+        if context.ci_url:
+            self.add_item(
+                Button(
+                    label="Ver CI",
+                    emoji="🧪",
+                    style=discord.ButtonStyle.link,
+                    url=context.ci_url,
+                )
+            )
+
 
 class LoadXBot(discord.Client):
     def __init__(self) -> None:
@@ -308,6 +331,7 @@ class LoadXBot(discord.Client):
         ] = {}
 
         self.initialized = False
+
         self.sync_lock = asyncio.Lock()
 
         self.dashboard_message: discord.Message | None = None
@@ -319,7 +343,9 @@ class LoadXBot(discord.Client):
 
         self.status_snapshot_initialized = False
 
-    async def setup_hook(self) -> None:
+    async def setup_hook(
+        self,
+    ) -> None:
         try:
             contexts = await asyncio.to_thread(list_project_issues)
 
@@ -337,7 +363,9 @@ class LoadXBot(discord.Client):
 
         self.sync_loop.start()
 
-    async def on_ready(self) -> None:
+    async def on_ready(
+        self,
+    ) -> None:
         print(f"Bot conectado: {self.user}")
 
     async def get_tasks_channel(
