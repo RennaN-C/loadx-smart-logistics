@@ -6,8 +6,10 @@ from discord.ext import tasks
 from discord.ui import Button, View
 
 from app.integrations.discord.cards import (
+    CompletedTaskCardData,
     ProjectDashboardData,
     TaskCardData,
+    build_completed_task_embed,
     build_project_dashboard_embed,
     build_task_embed,
 )
@@ -101,6 +103,24 @@ def context_to_card_data(
         pr_url=context.pr_url,
         ci_status=context.ci_status,
         ci_url=context.ci_url,
+    )
+
+
+def context_to_completed_card_data(
+    context: IssueProjectContext,
+) -> CompletedTaskCardData:
+    return CompletedTaskCardData(
+        issue_number=context.issue_number,
+        issue_title=context.issue_title,
+        issue_url=context.issue_url,
+        responsible=context.responsible,
+        version=context.version,
+        branch=context.branch,
+        pr_number=context.pr_number,
+        pr_url=context.pr_url,
+        ci_status=context.ci_status,
+        ci_url=context.ci_url,
+        completed_at=(context.pr_merged_at or context.issue_closed_at),
     )
 
 
@@ -318,6 +338,24 @@ class TaskCardView(View):
             )
 
 
+class ProjectDashboardView(View):
+    def __init__(self) -> None:
+        super().__init__(timeout=None)
+
+        self.add_item(
+            Button(
+                label="Ver concluídas",
+                emoji="✅",
+                style=discord.ButtonStyle.link,
+                url=(
+                    "https://discord.com/channels/"
+                    f"{settings.discord_guild_id}/"
+                    f"{settings.discord_completed_channel_id}"
+                ),
+            )
+        )
+
+
 class LoadXBot(discord.Client):
     def __init__(self) -> None:
         intents = discord.Intents.none()
@@ -330,7 +368,13 @@ class LoadXBot(discord.Client):
             discord.Message,
         ] = {}
 
+        self.completed_cards: dict[
+            int,
+            discord.Message,
+        ] = {}
+
         self.initialized = False
+        self.completed_initialized = False
 
         self.sync_lock = asyncio.Lock()
 
@@ -381,6 +425,24 @@ class LoadXBot(discord.Client):
             discord.TextChannel,
         ):
             raise TypeError("O canal configurado não é um canal de texto.")
+
+        return channel
+
+    async def get_completed_channel(
+        self,
+    ) -> discord.TextChannel:
+        channel = self.get_channel(settings.discord_completed_channel_id)
+
+        if channel is None:
+            channel = await self.fetch_channel(settings.discord_completed_channel_id)
+
+        if not isinstance(
+            channel,
+            discord.TextChannel,
+        ):
+            raise TypeError(
+                "O canal de concluídas configurado não é um canal de texto."
+            )
 
         return channel
 
@@ -436,6 +498,7 @@ class LoadXBot(discord.Client):
             try:
                 await self.dashboard_message.edit(
                     embed=embed,
+                    view=ProjectDashboardView(),
                 )
 
                 print("Dashboard atualizado.")
@@ -447,6 +510,7 @@ class LoadXBot(discord.Client):
 
         self.dashboard_message = await channel.send(
             embed=embed,
+            view=ProjectDashboardView(),
         )
 
         print("Dashboard criado.")
@@ -472,6 +536,28 @@ class LoadXBot(discord.Client):
             self.cards[issue_number] = message
 
         print(f"Cards existentes encontrados: {len(self.cards)}")
+
+    async def discover_completed_cards(
+        self,
+        channel: discord.TextChannel,
+    ) -> None:
+        if self.user is None:
+            return
+
+        self.completed_cards.clear()
+
+        async for message in channel.history(limit=200):
+            if message.author.id != self.user.id:
+                continue
+
+            issue_number = issue_number_from_message(message)
+
+            if issue_number is None:
+                continue
+
+            self.completed_cards[issue_number] = message
+
+        print(f"Cards concluídos existentes encontrados: {len(self.completed_cards)}")
 
     async def create_card(
         self,
@@ -511,6 +597,43 @@ class LoadXBot(discord.Client):
         print(
             f"Card atualizado: Issue #{context.issue_number} → {context.current_status}"
         )
+
+    async def create_completed_card(
+        self,
+        channel: discord.TextChannel,
+        context: IssueProjectContext,
+    ) -> None:
+        message = await channel.send(
+            embed=build_completed_task_embed(context_to_completed_card_data(context)),
+            view=TaskCardView(context),
+        )
+
+        self.completed_cards[context.issue_number] = message
+
+        print(f"Card concluído criado: Issue #{context.issue_number}")
+
+    async def update_completed_card(
+        self,
+        context: IssueProjectContext,
+        message: discord.Message,
+    ) -> None:
+        new_embed = build_completed_task_embed(context_to_completed_card_data(context))
+
+        current_embed = message.embeds[0] if message.embeds else None
+
+        needs_update = (
+            current_embed is None or current_embed.to_dict() != new_embed.to_dict()
+        )
+
+        if not needs_update:
+            return
+
+        await message.edit(
+            embed=new_embed,
+            view=TaskCardView(context),
+        )
+
+        print(f"Card concluído atualizado: Issue #{context.issue_number}")
 
     async def send_released_task_dm(
         self,
@@ -593,11 +716,15 @@ class LoadXBot(discord.Client):
     ) -> None:
         async with self.sync_lock:
             channel = await self.get_tasks_channel()
+            completed_channel = await self.get_completed_channel()
 
             if not self.initialized:
                 await self.discover_existing_cards(channel)
-
                 self.initialized = True
+
+            if not self.completed_initialized:
+                await self.discover_completed_cards(completed_channel)
+                self.completed_initialized = True
 
             contexts = await asyncio.to_thread(list_project_issues)
 
@@ -618,6 +745,24 @@ class LoadXBot(discord.Client):
                 status = context.current_status
 
                 existing = self.cards.get(issue_number)
+                completed_existing = self.completed_cards.get(issue_number)
+
+                if status != "Concluído" and completed_existing:
+                    try:
+                        await completed_existing.delete()
+                    except discord.NotFound:
+                        pass
+
+                    self.completed_cards.pop(
+                        issue_number,
+                        None,
+                    )
+
+                    print(
+                        "Card removido do histórico "
+                        "porque a OC deixou de estar concluída: "
+                        f"Issue #{issue_number}"
+                    )
 
                 if status == "Backlog":
                     if existing:
@@ -641,10 +786,35 @@ class LoadXBot(discord.Client):
                     continue
 
                 if status == "Concluído":
+                    completed_existing = self.completed_cards.get(issue_number)
+
+                    if completed_existing:
+                        try:
+                            await self.update_completed_card(
+                                context,
+                                completed_existing,
+                            )
+                        except discord.NotFound:
+                            self.completed_cards.pop(
+                                issue_number,
+                                None,
+                            )
+
+                            await self.create_completed_card(
+                                completed_channel,
+                                context,
+                            )
+                    else:
+                        await self.create_completed_card(
+                            completed_channel,
+                            context,
+                        )
+
+                    # O card ativo só é removido depois que
+                    # o histórico foi persistido no Discord.
                     if existing:
                         try:
                             await existing.delete()
-
                         except discord.NotFound:
                             pass
 
@@ -653,7 +823,9 @@ class LoadXBot(discord.Client):
                             None,
                         )
 
-                        print(f"Card removido por conclusão: Issue #{issue_number}")
+                        print(
+                            f"Card ativo removido por conclusão: Issue #{issue_number}"
+                        )
 
                     continue
 

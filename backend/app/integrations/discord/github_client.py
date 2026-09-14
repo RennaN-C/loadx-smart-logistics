@@ -18,6 +18,8 @@ PR_ISSUE_PATTERN = re.compile(
 @dataclass
 class PullRequestInfo:
     url: str
+    number: int | None = None
+    merged_at: str | None = None
     ci_status: str | None = None
     ci_url: str | None = None
 
@@ -44,6 +46,9 @@ class IssueProjectContext:
     status_options: dict[str, str]
 
     pr_url: str | None = None
+    pr_number: int | None = None
+    pr_merged_at: str | None = None
+    issue_closed_at: str | None = None
     ci_status: str | None = None
     ci_url: str | None = None
 
@@ -112,6 +117,7 @@ query(
       state
       url
       body
+      closedAt
 
       milestone {
         title
@@ -222,6 +228,7 @@ query($projectId: ID!) {
               state
               url
               body
+              closedAt
 
               milestone {
                 title
@@ -277,9 +284,11 @@ query(
       }
     ) {
       nodes {
+        number
         url
         body
         updatedAt
+        mergedAt
         baseRefName
 
         commits(last: 1) {
@@ -562,6 +571,8 @@ def _get_pull_request_info() -> dict[
                 ):
                     result[issue_number] = PullRequestInfo(
                         url=pull_request["url"],
+                        number=pull_request.get("number"),
+                        merged_at=pull_request.get("mergedAt"),
                         ci_status=ci_status,
                         ci_url=ci_url,
                     )
@@ -704,6 +715,9 @@ def get_issue_context(
         current_status=current_status,
         status_options=status_options,
         pr_url=(pr_info.url if pr_info else None),
+        pr_number=(pr_info.number if pr_info else None),
+        pr_merged_at=(pr_info.merged_at if pr_info else None),
+        issue_closed_at=issue.get("closedAt"),
         ci_status=(pr_info.ci_status if pr_info else None),
         ci_url=(pr_info.ci_url if pr_info else None),
     )
@@ -836,6 +850,9 @@ def list_project_issues(
                 current_status=(current_status),
                 status_options=(status_options.copy()),
                 pr_url=(pr_info.url if pr_info else None),
+                pr_number=(pr_info.number if pr_info else None),
+                pr_merged_at=(pr_info.merged_at if pr_info else None),
+                issue_closed_at=issue.get("closedAt"),
                 ci_status=(pr_info.ci_status if pr_info else None),
                 ci_url=(pr_info.ci_url if pr_info else None),
             )

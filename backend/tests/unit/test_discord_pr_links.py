@@ -23,7 +23,10 @@ def discord_modules():
         github_project_title="Test Project",
         github_status_field="Status",
         github_target_milestone="v1.1.0",
+        discord_tasks_channel_id=998,
+        discord_completed_channel_id=997,
         discord_status_channel_id=999,
+        discord_guild_id=996,
         discord_owner_user_id=1,
         discord_rennan_user_id=2,
         discord_joao_user_id=3,
@@ -91,15 +94,19 @@ def pull_request(
     *,
     base="desenvolvimento",
     url=PR_URL,
+    number=63,
     updated_at="2026-09-13T12:00:00Z",
+    merged_at=None,
     ci_state=None,
     ci_url=None,
 ):
     result = {
+        "number": number,
         "body": body,
         "baseRefName": base,
         "url": url,
         "updatedAt": updated_at,
+        "mergedAt": merged_at,
     }
 
     if ci_state is None:
@@ -160,6 +167,9 @@ def issue_context(
     discord_modules,
     *,
     pr_url=None,
+    pr_number=None,
+    pr_merged_at=None,
+    issue_closed_at=None,
     ci_status=None,
     ci_url=None,
     status="Em revisão",
@@ -186,6 +196,9 @@ def issue_context(
         current_status=status,
         status_options={},
         pr_url=pr_url,
+        pr_number=pr_number,
+        pr_merged_at=pr_merged_at,
+        issue_closed_at=issue_closed_at,
         ci_status=ci_status,
         ci_url=ci_url,
     )
@@ -868,6 +881,18 @@ def test_new_pr_edits_existing_review_card_without_sending_message(
                 AsyncMock(return_value=channel),
             )
 
+            completed_channel = SimpleNamespace(
+                send=AsyncMock(),
+            )
+
+            monkeypatch.setattr(
+                client,
+                "get_completed_channel",
+                AsyncMock(return_value=completed_channel),
+            )
+
+            client.completed_initialized = True
+
             monkeypatch.setattr(
                 client,
                 "sync_dashboard",
@@ -904,7 +929,7 @@ def test_new_pr_edits_existing_review_card_without_sending_message(
     asyncio.run(synchronize())
 
 
-def test_completed_issue_removes_existing_card(
+def test_completed_issue_is_archived_before_active_card_is_removed(
     discord_modules,
     monkeypatch,
 ):
@@ -914,9 +939,13 @@ def test_completed_issue_removes_existing_card(
         discord_modules,
         status="Concluído",
         pr_url=PR_URL,
+        pr_number=63,
+        pr_merged_at="2026-09-14T19:50:00Z",
+        ci_status="success",
+        ci_url=CI_URL,
     )
 
-    message = SimpleNamespace(
+    active_message = SimpleNamespace(
         embeds=[
             discord_modules.cards.build_task_embed(bot.context_to_card_data(completed))
         ],
@@ -924,30 +953,44 @@ def test_completed_issue_removes_existing_card(
         delete=AsyncMock(),
     )
 
-    channel = SimpleNamespace(
+    tasks_channel = SimpleNamespace(
         send=AsyncMock(),
+    )
+
+    completed_message = SimpleNamespace(
+        embeds=[],
+        edit=AsyncMock(),
+        delete=AsyncMock(),
+    )
+
+    completed_channel = SimpleNamespace(
+        send=AsyncMock(return_value=completed_message),
     )
 
     monkeypatch.setattr(
         bot,
         "list_project_issues",
-        lambda: [
-            completed,
-        ],
+        lambda: [completed],
     )
 
     async def synchronize():
         client = bot.LoadXBot()
 
         try:
-            client.cards[44] = message
-
+            client.cards[44] = active_message
             client.initialized = True
+            client.completed_initialized = True
 
             monkeypatch.setattr(
                 client,
                 "get_tasks_channel",
-                AsyncMock(return_value=channel),
+                AsyncMock(return_value=tasks_channel),
+            )
+
+            monkeypatch.setattr(
+                client,
+                "get_completed_channel",
+                AsyncMock(return_value=completed_channel),
             )
 
             monkeypatch.setattr(
@@ -958,18 +1001,141 @@ def test_completed_issue_removes_existing_card(
 
             await client.sync_cards()
 
-            message.delete.assert_awaited_once()
-
-            message.edit.assert_not_awaited()
+            completed_channel.send.assert_awaited_once()
+            active_message.delete.assert_awaited_once()
 
             assert 44 not in client.cards
+            assert client.completed_cards[44] is completed_message
 
-            channel.send.assert_not_awaited()
+            embed = completed_channel.send.call_args.kwargs["embed"]
+
+            assert embed.title == ("✅ OC62 • CONCLUÍDA")
+
+            assert any(field.name == "📅 Concluída em" for field in embed.fields)
 
         finally:
             await client.close()
 
     asyncio.run(synchronize())
+
+
+def test_completed_card_can_be_rebuilt_without_active_card(
+    discord_modules,
+    monkeypatch,
+):
+    bot = discord_modules.bot
+
+    completed = issue_context(
+        discord_modules,
+        status="Concluído",
+        pr_url=PR_URL,
+        pr_number=63,
+        issue_closed_at="2026-09-14T20:00:00Z",
+        ci_status="success",
+        ci_url=CI_URL,
+    )
+
+    tasks_channel = SimpleNamespace(
+        send=AsyncMock(),
+    )
+
+    completed_message = SimpleNamespace(
+        embeds=[],
+        edit=AsyncMock(),
+        delete=AsyncMock(),
+    )
+
+    completed_channel = SimpleNamespace(
+        send=AsyncMock(return_value=completed_message),
+    )
+
+    monkeypatch.setattr(
+        bot,
+        "list_project_issues",
+        lambda: [completed],
+    )
+
+    async def synchronize():
+        client = bot.LoadXBot()
+
+        try:
+            client.initialized = True
+            client.completed_initialized = True
+
+            monkeypatch.setattr(
+                client,
+                "get_tasks_channel",
+                AsyncMock(return_value=tasks_channel),
+            )
+
+            monkeypatch.setattr(
+                client,
+                "get_completed_channel",
+                AsyncMock(return_value=completed_channel),
+            )
+
+            monkeypatch.setattr(
+                client,
+                "sync_dashboard",
+                AsyncMock(),
+            )
+
+            await client.sync_cards()
+
+            completed_channel.send.assert_awaited_once()
+            tasks_channel.send.assert_not_awaited()
+
+            assert 44 in client.completed_cards
+
+        finally:
+            await client.close()
+
+    asyncio.run(synchronize())
+
+
+def test_completed_card_preserves_pr_merge_metadata(
+    discord_modules,
+):
+    bot = discord_modules.bot
+    cards = discord_modules.cards
+
+    context = issue_context(
+        discord_modules,
+        status="Concluído",
+        pr_url=PR_URL,
+        pr_number=75,
+        pr_merged_at="2026-09-14T19:50:00Z",
+        issue_closed_at="2026-09-14T19:51:00Z",
+        ci_status="success",
+        ci_url=CI_URL,
+    )
+
+    data = bot.context_to_completed_card_data(context)
+    embed = cards.build_completed_task_embed(data)
+
+    assert data.completed_at == ("2026-09-14T19:50:00Z")
+
+    assert any(
+        (field.name == "🔀 Pull Request" and "#75" in field.value)
+        for field in embed.fields
+    )
+
+    assert any(
+        (field.name == "🧪 CI" and field.value == "🟢 Aprovado")
+        for field in embed.fields
+    )
+
+
+def test_dashboard_history_button_points_to_completed_channel(
+    discord_modules,
+):
+    bot = discord_modules.bot
+
+    view = bot.ProjectDashboardView()
+
+    button = next(item for item in view.children if item.label == "Ver concluídas")
+
+    assert button.url == ("https://discord.com/channels/996/997")
 
 
 def test_responsible_discord_ids_ignore_unknown_users(
