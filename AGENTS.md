@@ -116,6 +116,35 @@ Não inclui paletes, GPS real, câmera, OpenCV, MDF-e, roteirização externa, p
 - Regras críticas do otimizador.
 - Integração real com provedor externo paga ou com credenciais.
 
+## Contrato obrigatório de Pull Request
+
+`CONFIRMADO`: todo Pull Request destinado a `desenvolvimento` deve estar
+vinculado a exatamente uma Issue do mesmo repositório usando `Closes #NN`,
+`Fixes #NN` ou `Resolves #NN`.
+
+Para uma ocorrência `OCXX`:
+
+- o título do PR começa com `[OCXX]`;
+- o corpo contém `Identificador: OCXX`;
+- o identificador precisa corresponder ao prefixo da Issue;
+- a branch do PR deve ser exatamente a definida em `## Branch sugerida`;
+- a Issue precisa estar aberta, atribuída ou possuir `## Responsável`;
+- a Issue precisa pertencer ao Project `LoadX — Desenvolvimento`;
+- a Issue precisa estar no milestone da versão que o bot acompanha.
+
+Para trabalho que não pertence a uma OC:
+
+- ainda é obrigatório vincular exatamente uma Issue;
+- usar `Identificador: N/A`.
+
+Nunca remova, contorne ou neutralize
+`.github/workflows/validar-contrato-pr.yml`.
+Se a validação falhar, corrija Issue, branch, título ou corpo do PR em vez de
+tentar burlar o check.
+
+Ao usar `gh pr create`, Codex, Claude ou qualquer outra automação, preserve
+integralmente o contrato definido em `.github/pull_request_template.md`.
+
 ## Ao terminar uma tarefa
 
 Informe:

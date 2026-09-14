@@ -95,6 +95,8 @@ def pull_request(
     base="desenvolvimento",
     url=PR_URL,
     number=63,
+    title="[OC62] Tarefa de teste",
+    head_ref="feature/test",
     updated_at="2026-09-13T12:00:00Z",
     merged_at=None,
     ci_state=None,
@@ -102,8 +104,10 @@ def pull_request(
 ):
     result = {
         "number": number,
+        "title": title,
         "body": body,
         "baseRefName": base,
+        "headRefName": head_ref,
         "url": url,
         "updatedAt": updated_at,
         "mergedAt": merged_at,
@@ -267,7 +271,7 @@ def test_mapping_uses_body_and_ignores_other_bases(
     graphql = Mock(
         return_value=pull_request_page(
             [
-                pull_request("Closes #44\nCloses #45"),
+                pull_request("Closes #44"),
                 pull_request(
                     "Fixes #44\nResolves #46",
                     base="main",
@@ -286,7 +290,6 @@ def test_mapping_uses_body_and_ignores_other_bases(
 
     assert github._get_pull_request_urls() == {
         44: PR_URL,
-        45: PR_URL,
     }
 
     graphql.assert_called_once_with(
@@ -326,7 +329,7 @@ def test_latest_updated_pr_wins_across_pages(
             pull_request_page(
                 [
                     pull_request(
-                        "Fixes #44\nResolves #45",
+                        "Fixes #44",
                         url=latest_url,
                     ),
                     pull_request(
@@ -345,7 +348,6 @@ def test_latest_updated_pr_wins_across_pages(
 
     assert github._get_pull_request_urls() == {
         44: latest_url,
-        45: latest_url,
     }
 
     assert [call.args[1]["cursor"] for call in graphql.call_args_list] == [
@@ -533,7 +535,7 @@ def test_public_context_includes_optional_pr(
         "title": ("[OC62] Tarefa de teste"),
         "url": ("https://github.com/example/logistics/issues/44"),
         "state": "OPEN",
-        "body": "",
+        "body": ("## Branch sugerida\n`feature/test`\n"),
         "milestone": {
             "title": "v1.1.0",
         },
@@ -561,7 +563,7 @@ def test_public_context_includes_optional_pr(
         }
     }
 
-    pull_requests = [pull_request("Closes #44\nCloses #45")] if has_pr else []
+    pull_requests = [pull_request("Closes #44")] if has_pr else []
 
     responses = {
         github.PROJECT_ISSUE_QUERY: {
@@ -585,6 +587,8 @@ def test_public_context_includes_optional_pr(
                             "content": {
                                 **issue,
                                 "number": 45,
+                                "title": ("[OC63] Outra tarefa de teste"),
+                                "body": ("## Branch sugerida\n`feature/test-45`\n"),
                             },
                         },
                     ]
@@ -620,7 +624,14 @@ def test_public_context_includes_optional_pr(
         [44] if lookup == "single" else [44, 45]
     )
 
-    assert all(context.pr_url == (PR_URL if has_pr else None) for context in contexts)
+    expected_pr_urls = {
+        44: PR_URL if has_pr else None,
+        45: None,
+    }
+
+    assert all(
+        context.pr_url == expected_pr_urls[context.issue_number] for context in contexts
+    )
 
     assert all(context.ci_status is None for context in contexts)
 
@@ -1428,3 +1439,81 @@ def test_blocked_dm_does_not_break_notification(
             await client.close()
 
     asyncio.run(synchronize())
+
+
+def test_html_comment_closing_reference_is_ignored(
+    discord_modules,
+):
+    body = "<!-- Closes #999 -->\nCloses #44"
+
+    assert discord_modules.github._extract_closing_issue_numbers(body) == {44}
+
+
+def test_pr_matches_issue_only_with_same_oc_and_branch(
+    discord_modules,
+):
+    github = discord_modules.github
+
+    valid = github.PullRequestInfo(
+        url=PR_URL,
+        number=63,
+        title="[OC62] Tarefa de teste",
+        head_ref="feature/test",
+    )
+
+    wrong_oc = github.PullRequestInfo(
+        url=PR_URL,
+        number=63,
+        title="[OC63] Outra tarefa",
+        head_ref="feature/test",
+    )
+
+    wrong_branch = github.PullRequestInfo(
+        url=PR_URL,
+        number=63,
+        title="[OC62] Tarefa de teste",
+        head_ref="outra/branch",
+    )
+
+    assert github._pull_request_matches_issue(
+        valid,
+        issue_title="[OC62] Tarefa de teste",
+        branch="feature/test",
+    )
+
+    assert not github._pull_request_matches_issue(
+        wrong_oc,
+        issue_title="[OC62] Tarefa de teste",
+        branch="feature/test",
+    )
+
+    assert not github._pull_request_matches_issue(
+        wrong_branch,
+        issue_title="[OC62] Tarefa de teste",
+        branch="feature/test",
+    )
+
+
+def test_pull_request_with_multiple_issues_is_ignored(
+    discord_modules,
+    monkeypatch,
+):
+    github = discord_modules.github
+
+    graphql = Mock(
+        return_value=pull_request_page(
+            [
+                pull_request(
+                    "Closes #44\nCloses #45",
+                )
+            ]
+        )
+    )
+
+    monkeypatch.setattr(
+        github,
+        "_graphql",
+        graphql,
+    )
+
+    assert github._get_pull_request_info() == {}

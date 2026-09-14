@@ -43,6 +43,15 @@ Alterações de trabalho entram por Pull Request para `desenvolvimento`.
 Na v1.1.0, a promoção da versão segue por `release/v1.1.0` até `main`.
 Exigir pelo menos uma revisão de outro integrante.
 
+`CONFIRMADO`: PRs destinados a `desenvolvimento` possuem contrato validado
+automaticamente pela CI. Todo PR deve fechar exatamente uma Issue com
+`Closes #NN`, `Fixes #NN` ou `Resolves #NN`.
+
+Para OCs, a CI também exige que título do PR, `Identificador: OCXX`, branch
+sugerida, milestone e vínculo com o Project sejam coerentes com a Issue.
+PRs que não pertencem a uma OC usam `Identificador: N/A`, mas continuam
+obrigados a possuir uma Issue vinculada.
+
 Checklist mínimo:
 
 - Está dentro do escopo aprovado do MVP ou da versão pós-MVP correspondente.
