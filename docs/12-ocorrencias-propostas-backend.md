@@ -10,7 +10,7 @@ histórico do projeto, incluindo a OC61 registrada na
 [planejamento oficial da v1.1.0](planejamento/v1.1.0/00-visao-geral.md), todas
 com status inicial **PENDENTE**, sem reutilizar números anteriores.
 
-`RECOMENDAÇÃO`: este documento reúne ocorrências prontas para serem copiadas para o GitHub Projects após revisão da equipe.
+`CONFIRMADO`: este documento é mantido somente para rastreabilidade histórica. Planejamento ativo deve usar as Issues aprovadas e os arquivos de `docs/planejamento/`.
 
 `CONFIRMADO`: os identificadores `OC49` a `OC60` nasceram como sugestões. O
 estado individual abaixo registra quais ocorrências foram aprovadas, integradas

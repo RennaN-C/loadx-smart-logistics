@@ -1,6 +1,11 @@
 # ADR-004: autenticação, autorização e bootstrap administrativo
 
-Status: aceita
+Status: aceita, com autenticação Bearer substituída pela ADR-020
+
+`CONFIRMADO`: a ADR-020 substitui somente as decisões desta ADR relacionadas a
+JWT/Bearer, transporte da credencial e duração do token. A fronteira pública,
+o RBAC, o bootstrap administrativo, a remoção de `/auth/register` e a proteção
+do último `ADMIN` permanecem vigentes.
 
 ## Contexto
 

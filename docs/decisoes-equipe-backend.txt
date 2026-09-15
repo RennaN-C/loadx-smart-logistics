@@ -1,9 +1,15 @@
 LOADX - DECISÕES NECESSÁRIAS DA EQUIPE PARA O BACKEND
 ======================================================
 
-Objetivo
---------
-Este arquivo é uma pauta de decisão. Ele não substitui docs/11-riscos-pendencias.md nem uma ADR.
+Estado do documento
+-------------------
+CONFIRMADO: este arquivo é um registro histórico das decisões DXX usadas durante a consolidação do backend e da v1.0.0. Não deve ser tratado como pauta ativa nem como fonte de verdade para trabalho novo.
+
+Decisões vigentes devem estar refletidas nos documentos oficiais de docs/, em ADRs e nas ocorrências aprovadas. Este arquivo é preservado para rastreabilidade histórica.
+
+Objetivo histórico
+------------------
+Este arquivo foi utilizado como pauta de decisão. Ele não substitui docs/11-riscos-pendencias.md nem uma ADR.
 
 CONFIRMADO: uma escolha só passa a valer depois de registrada no documento oficial correspondente, revisada pela equipe e vinculada a uma ocorrência.
 

@@ -19,10 +19,9 @@ Alterações nesta documentação devem ser rastreáveis por ocorrência, PR ou 
 - `10-roadmap-inicial.md`: histórico da construção do MVP e da seleção da v1.1.0.
 - `planejamento/roadmap-versoes.md`: roadmap canônico das releases posteriores à v1.1.0, política SemVer, responsáveis e gates de planejamento.
 - `11-riscos-pendencias.md`: decisões necessárias, riscos, dúvidas e pendências.
-- `12-ocorrencias-propostas-backend.md`: ocorrências de correção e melhoria preparadas para aprovação da equipe.
-- `decisoes-equipe-backend.txt`: pauta preenchível para decisões que bloqueiam ocorrências do backend.
+- `12-ocorrencias-propostas-backend.md`: registro histórico das propostas e entregas OC49–OC60; não representa planejamento ativo.
+- `decisoes-equipe-backend.txt`: registro histórico das decisões DXX usadas na consolidação do backend; decisões atuais devem estar nos documentos oficiais e ADRs.
 - `decisions/`: registros de decisões arquiteturais.
-- `diagrams/`: diagramas Mermaid, UML e banco.
 - `prompts/`: modelos de prompt para IA.
 - [planejamento/v1.1.0](planejamento/v1.1.0/00-visao-geral.md): divisão oficial
   OC62–OC78 entre Rennan, João, Marlon e Marcelo, dependências e fluxo da release.

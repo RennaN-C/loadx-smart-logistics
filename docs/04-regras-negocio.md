@@ -52,7 +52,7 @@ v1.0.0, conforme ajuste documental autorizado pela equipe. Não existe vínculo
 de atribuição de carregamento/checklist a conferente, nem
 classificação/resolução de ocorrências. As evoluções de acesso de ocorrências e
 relatórios constam no
-[roadmap pós-v1.0.0](10-roadmap-inicial.md#evolução-do-acesso-a-carregamento-ocorrências-e-relatórios).
+[roadmap canônico](planejamento/roadmap-versoes.md).
 
 `RISCO IDENTIFICADO`: a referência de histórico geral permanece na matriz,
 mas não existe consulta pública de histórico geral, conforme `docs/05`.
