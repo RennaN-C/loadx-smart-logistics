@@ -54,9 +54,9 @@ mesmo plano está `FINISHED`; ausência ou incompletude retorna
 `TRIP_LOADING_NOT_FINISHED`. O fluxo positivo está coberto por
 `backend/tests/e2e/test_complete_flow.py`.
 
-`RISCO IDENTIFICADO`: `components/tripsErrorMessages.ts` ainda afirma que o
-carregamento não existe ao traduzir esse erro. O texto está desatualizado e foi
-registrado para correção própria, preservando o comportamento nesta preparação.
+`CONFIRMADO`: `components/tripsErrorMessages.ts` orienta o usuário a finalizar
+a sessão de carregamento antes de iniciar a viagem quando o backend retorna
+`TRIP_LOADING_NOT_FINISHED`.
 
 `CONFIRMADO`: `PATCH /deliveries/{id}/status` retorna somente `DeliveryRead`.
 `changeDeliveryStatus` interpreta essa resposta como `DeliveryDto`, mapeia a
