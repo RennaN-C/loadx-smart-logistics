@@ -272,9 +272,8 @@ teste. Resultados desta execução, sem substituir registros históricos:
   ao ler `deliveries.map`. A atualização podia ser persistida pelo backend e a
   interface exibir erro sem atualizar a viagem. O adapter e a cobertura desse
   contrato foram corrigidos na etapa seguinte autorizada para a release.
-- `RISCO IDENTIFICADO`: `tripsErrorMessages.ts` ainda informa que carregamento
-  não existe. O backend já o implementa; corrigir esse texto de interface em
-  tarefa própria. Os READMEs foram corrigidos nesta preparação.
+- `CONFIRMADO`: `tripsErrorMessages.ts` foi alinhado ao fluxo real de
+  carregamento e orienta finalizar a sessão antes de iniciar a viagem.
 - `CONFIRMADO`: a equipe autorizou alinhar documentalmente o RBAC de
   carregamento, ocorrências e relatórios ao comportamento atual da v1.0.0.
   A matriz e as regras em `docs/04` refletem essa decisão, sem mudar permissões

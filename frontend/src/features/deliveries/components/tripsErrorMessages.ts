@@ -35,12 +35,9 @@ export function mapTripErrorToMessage(error: ApiError): string {
   }
 
   if (error.code === "TRIP_LOADING_NOT_FINISHED") {
-    // O módulo `loading` do backend ainda é um stub: hoje NENHUMA viagem consegue
-    // iniciar. Sem essa explicação, o usuário fica tentando descobrir o que fazer.
     return (
-      "A viagem só inicia depois que o carregamento for finalizado, e a confirmação de " +
-      "carregamento ainda não existe no sistema. Nenhuma viagem consegue sair da situação " +
-      "Agendada até essa etapa ser liberada."
+      "Finalize o carregamento deste plano antes de iniciar a viagem. " +
+      "Quando a sessão de carregamento estiver concluída, tente novamente."
     );
   }
 
