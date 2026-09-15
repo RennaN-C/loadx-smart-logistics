@@ -6,14 +6,15 @@ O **LoadX** é um projeto acadêmico desenvolvido por uma equipe de quatro integ
 
 ## Versão atual
 
-`CONFIRMADO`: **LoadX v1.0.0 — MVP**, em preparação para a primeira release
-oficial. É a primeira versão funcional integrada do sistema, com planejamento
-tridimensional de cargas, operação logística, frontend, backend, banco de dados,
-testes e infraestrutura. As entregas estão no [Changelog](CHANGELOG.md).
+`CONFIRMADO`: **LoadX v1.0.0 — MVP** é a versão estável publicada oficialmente.
+
+`CONFIRMADO`: **LoadX v1.1.0 — Maturidade operacional** está em desenvolvimento na branch `desenvolvimento`. O planejamento da versão está em [docs/planejamento/v1.1.0](docs/planejamento/v1.1.0/00-visao-geral.md) e as próximas releases estão no [roadmap canônico](docs/planejamento/roadmap-versoes.md).
+
+As entregas publicadas e em desenvolvimento são registradas no [Changelog](CHANGELOG.md).
 
 `CONFIRMADO`: WhatsApp usa provider mock e simulador controlado; a explicação de
 planos usa `AIProvider` com provider fake e fallback determinístico. Integrações
-reais e outras evoluções estão no [roadmap pós-v1.0.0](docs/10-roadmap-inicial.md#roadmap-pós-v100).
+reais e outras evoluções futuras estão no [roadmap canônico de versões](docs/planejamento/roadmap-versoes.md).
 
 ## Sobre o projeto
 
@@ -176,7 +177,6 @@ loadx-smart-logistics/
 │
 ├── docs/
 │   ├── decisions/
-│   ├── diagrams/
 │   └── prompts/
 │
 ├── infra/
@@ -400,8 +400,6 @@ DATABASE_URL=postgresql+psycopg://loadx:loadx_local@db:5432/loadx
 SECRET_KEY=troque-esta-chave-no-env-local
 LOADX_SECRETS_DIR=
 PASSWORD_BLOCKLIST_PATH=
-WHATSAPP_TOKEN=
-OPENAI_API_KEY=
 ```
 
 Nunca envie o arquivo `.env` para o GitHub.

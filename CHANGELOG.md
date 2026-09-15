@@ -1,10 +1,25 @@
 # Changelog
 
-## [1.0.0] - 2026-09
+## [Unreleased] — v1.1.0
 
-`CONFIRMADO`: primeira versão funcional integrada do MVP LoadX, em preparação
-para revisão e publicação. Esta seção descreve as entregas presentes no código;
-a preparação não cria tag nem GitHub Release.
+`CONFIRMADO`: a v1.1.0 — Maturidade operacional está em desenvolvimento.
+
+### Entregas incorporadas
+
+- integração backend com ViaCEP;
+- validação formal de CPF, CNPJ, CNH e telefone;
+- prevenção de conflito operacional de caminhões;
+- prevenção de conflito operacional de motoristas;
+- RBAC granular para carregamento e conferência;
+- roadmap canônico de versões e política SemVer.
+
+O escopo completo da versão está em
+[docs/planejamento/v1.1.0/00-visao-geral.md](docs/planejamento/v1.1.0/00-visao-geral.md).
+
+## [1.0.0] - 2026-09-09
+
+`CONFIRMADO`: primeira versão funcional integrada do MVP LoadX, publicada
+oficialmente em 2026-09-09 com a tag e GitHub Release `v1.0.0`.
 
 ### Acesso e cadastros
 
@@ -63,7 +78,7 @@ a preparação não cria tag nem GitHub Release.
 ### Limites e evoluções
 
 `PENDENTE DE DEFINIÇÃO`: WhatsApp real, Grok/xAI, automações por IA externa,
-distribuição entre caminhões, ViaCEP e demais evoluções permanecem no
-[roadmap pós-v1.0.0](docs/10-roadmap-inicial.md#roadmap-pós-v100).
-Recuperação de senha, MFA, validações cadastrais formais, storage real e
-observabilidade operacional continuam em [riscos e pendências](docs/11-riscos-pendencias.md).
+distribuição entre caminhões e demais evoluções futuras permanecem no
+[roadmap canônico de versões](docs/planejamento/roadmap-versoes.md).
+Recuperação de senha, MFA, storage real e observabilidade operacional continuam
+em [riscos e pendências](docs/11-riscos-pendencias.md).
