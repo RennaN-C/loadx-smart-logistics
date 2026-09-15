@@ -1517,3 +1517,92 @@ def test_pull_request_with_multiple_issues_is_ignored(
     )
 
     assert github._get_pull_request_info() == {}
+
+
+def test_initial_snapshot_recovers_release_dm_when_card_is_missing(
+    discord_modules,
+    monkeypatch,
+):
+    bot = discord_modules.bot
+
+    ready = issue_context(
+        discord_modules,
+        status="Pronto para iniciar",
+        assignees=[
+            "RennaN-C",
+        ],
+    )
+
+    async def synchronize():
+        client = bot.LoadXBot()
+
+        try:
+            send_dm = AsyncMock()
+
+            monkeypatch.setattr(
+                client,
+                "send_released_task_dm",
+                send_dm,
+            )
+
+            await client.notify_released_tasks(
+                [ready],
+                known_card_issue_numbers=set(),
+            )
+
+            send_dm.assert_awaited_once_with(ready)
+
+            await client.notify_released_tasks(
+                [ready],
+                known_card_issue_numbers=set(),
+            )
+
+            send_dm.assert_awaited_once()
+
+            assert client.status_snapshot_initialized is True
+
+        finally:
+            await client.close()
+
+    asyncio.run(synchronize())
+
+
+def test_initial_snapshot_does_not_repeat_dm_when_card_already_exists(
+    discord_modules,
+    monkeypatch,
+):
+    bot = discord_modules.bot
+
+    ready = issue_context(
+        discord_modules,
+        status="Pronto para iniciar",
+        assignees=[
+            "RennaN-C",
+        ],
+    )
+
+    async def synchronize():
+        client = bot.LoadXBot()
+
+        try:
+            send_dm = AsyncMock()
+
+            monkeypatch.setattr(
+                client,
+                "send_released_task_dm",
+                send_dm,
+            )
+
+            await client.notify_released_tasks(
+                [ready],
+                known_card_issue_numbers={44},
+            )
+
+            send_dm.assert_not_awaited()
+
+            assert client.status_snapshot_initialized is True
+
+        finally:
+            await client.close()
+
+    asyncio.run(synchronize())
