@@ -16,11 +16,20 @@ def test_complete_v1_flow(client: TestClient, session_factory) -> None:
             role="LOGISTICS_MANAGER",
             active=True,
         )
-        db.add(manager)
+        checker = User(
+            name="Conferente E2E",
+            email=f"checker-e2e-{uuid.uuid4().hex}@example.test",
+            password_hash="hash-ficticio",
+            role="CHECKER",
+            active=True,
+        )
+        db.add_all((manager, checker))
         db.commit()
         manager_id = manager.id
+        checker_id = checker.id
 
     manager_headers = issue_session_headers(session_factory, manager_id)
+    checker_headers = issue_session_headers(session_factory, checker_id)
 
     customer_response = client.post(
         "/api/v1/customers",
@@ -147,7 +156,7 @@ def test_complete_v1_flow(client: TestClient, session_factory) -> None:
     started_loading = client.patch(
         f"/api/v1/loading-sessions/{loading['id']}/status",
         json={"status": "IN_PROGRESS"},
-        headers=manager_headers,
+        headers=checker_headers,
     )
     assert started_loading.status_code == 200
 
@@ -155,14 +164,14 @@ def test_complete_v1_flow(client: TestClient, session_factory) -> None:
         checked_item = client.patch(
             f"/api/v1/loading-sessions/{loading['id']}/items/{item['id']}",
             json={"status": "CHECKED"},
-            headers=manager_headers,
+            headers=checker_headers,
         )
         assert checked_item.status_code == 200
 
     finished_loading = client.patch(
         f"/api/v1/loading-sessions/{loading['id']}/status",
         json={"status": "FINISHED"},
-        headers=manager_headers,
+        headers=checker_headers,
     )
     assert finished_loading.status_code == 200
 

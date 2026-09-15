@@ -14,6 +14,26 @@ de `reference_service.py` libera `Trip SCHEDULED -> IN_ROUTE` somente quando a
 sessão `FINISHED` pertence ao mesmo `load_plan_id`; sessão ausente, incompleta
 ou de outro plano falha fechada.
 
+## Autorização — OC66
+
+| Operação | `ADMIN` | `LOGISTICS_MANAGER` | `CHECKER` | `DRIVER` |
+|---|---:|---:|---:|---:|
+| Consultar sessão | Sim | Sim | Sim | Não |
+| Criar sessão | Não | Sim | Não | Não |
+| Iniciar conferência | Não | Não | Sim | Não |
+| Conferir item | Não | Não | Sim | Não |
+| Finalizar carregamento | Não | Não | Sim | Não |
+
+`CONFIRMADO`: a autorização de perfil ocorre antes da consulta ao objeto, para
+que acesso negado retorne `403 AUTH_FORBIDDEN` sem revelar a existência da
+sessão ou do item. Acesso anônimo retorna `401 AUTH_INVALID_TOKEN`.
+
+`CONFIRMADO`: não há autorização por objeto porque `loading_sessions` e
+`loading_session_items` não possuem vínculo com um conferente. Para OC75 e
+OC76, QR Code ou código de barras identifica o item, mas não autentica nem
+autoriza o usuário; a confirmação deve reutilizar a permissão exclusiva de
+`CHECKER` e as regras atuais do checklist.
+
 ## Estrutura
 
 - `models.py`: entidades SQLAlchemy do módulo.

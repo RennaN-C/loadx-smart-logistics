@@ -39,19 +39,20 @@ Legenda:
 | Produtos | R | G | R | S futuro |
 | Pedidos | R | G | R | S futuro |
 | Planos de carga | R e explicar | G, calcular, comparar, aprovar e explicar | S e explicar plano aprovado | - |
-| Carregamento | R | Criar, consultar e operar carregamento/checklist | Criar, consultar e operar carregamento/checklist | - |
+| Carregamento | R | Criar e consultar | Consultar, iniciar, conferir itens e finalizar | - |
 | Viagens | R | G e atribuir | - | S em transições permitidas |
 | Entregas | R | G e tratar exceções | - | S em transições permitidas |
 | Ocorrências | R | Criar e consultar | - | Criar e consultar somente nas próprias viagens/entregas |
 | Histórico geral | R | R | - | - |
 | Relatórios | R e gerar | R e gerar | - | - |
 
-`CONFIRMADO`: as linhas de carregamento, ocorrências e relatórios refletem o
-comportamento atual da v1.0.0, conforme ajuste documental autorizado pela equipe.
-Não existe vínculo de atribuição de carregamento/checklist a conferente, nem
-classificação/resolução de ocorrências. As evoluções de acesso desses três
-recursos constam no [roadmap pós-v1.0.0](10-roadmap-inicial.md#evolução-do-acesso-a-carregamento-ocorrências-e-relatórios).
-Este ajuste não altera permissões implementadas nem o restante da matriz.
+`CONFIRMADO`: a linha de carregamento incorpora a matriz granular da OC66.
+As linhas de ocorrências e relatórios continuam refletindo o comportamento da
+v1.0.0, conforme ajuste documental autorizado pela equipe. Não existe vínculo
+de atribuição de carregamento/checklist a conferente, nem
+classificação/resolução de ocorrências. As evoluções de acesso de ocorrências e
+relatórios constam no
+[roadmap pós-v1.0.0](10-roadmap-inicial.md#evolução-do-acesso-a-carregamento-ocorrências-e-relatórios).
 
 `RISCO IDENTIFICADO`: a referência de histórico geral permanece na matriz,
 mas não existe consulta pública de histórico geral, conforme `docs/05`.
@@ -469,10 +470,17 @@ Desenvolvedor 4.
   `finished_at` em UTC.
 - `CONFIRMADO`: somente a sessão `FINISHED` do mesmo plano libera o início da
   viagem; sessão ausente, incompleta ou pertencente a outro plano não libera.
-- `CONFIRMADO`: `CHECKER` e `LOGISTICS_MANAGER` criam, consultam e operam
-  carregamento/checklist; `ADMIN` apenas consulta; `DRIVER` não tem acesso na
-  v1.0.0. Não existe atribuição a conferente nem autorização por objeto para
-  `CHECKER`; essas evoluções e a possível consulta pelo `DRIVER` são futuras.
+- `CONFIRMADO` (OC66): `LOGISTICS_MANAGER` cria a sessão; `CHECKER` inicia a
+  sessão, confere os itens e finaliza o carregamento; `ADMIN`, `CHECKER` e
+  `LOGISTICS_MANAGER` consultam; `DRIVER` não acessa o módulo.
+- `CONFIRMADO` (OC66): a matriz aplica menor privilégio e separa a preparação
+  logística da execução da conferência. Alterar um item para `CHECKED`, inclusive
+  por mecanismo futuro de QR Code ou código de barras, continua sendo operação
+  de conferência exclusiva de `CHECKER`.
+- `CONFIRMADO` (OC66): não há autorização por objeto no carregamento porque o
+  modelo atual não atribui sessão ou item a um conferente. OC75 e OC76 não podem
+  inferir propriedade por usuário nem criar vínculo novo sem decisão e contrato
+  próprios.
 
 ## Viagem e entrega
 
