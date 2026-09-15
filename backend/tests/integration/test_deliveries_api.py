@@ -467,7 +467,7 @@ def test_finished_loading_releases_only_matching_trip(
     loading_response = client.post(
         "/api/v1/loading-sessions",
         json={"load_plan_id": str(scenario.load_plan_id)},
-        headers=scenario.checker_headers,
+        headers=scenario.manager_headers,
     )
     assert loading_response.status_code == 201
     loading = loading_response.json()

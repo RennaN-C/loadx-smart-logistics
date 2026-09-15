@@ -708,8 +708,28 @@ plano `APPROVED`. A sessão inicia `PENDING`; o status aceita somente
 `IN_PROGRESS` e depois `FINISHED`. Cada item recebe `CHECKED` pelo endpoint de
 item, e a finalização falha enquanto algum item estiver pendente.
 
-`CONFIRMADO`: `CHECKER` e `LOGISTICS_MANAGER` criam e alteram; `ADMIN`,
-`CHECKER` e `LOGISTICS_MANAGER` consultam. Erros específicos:
+`CONFIRMADO` (OC66): a autorização é definida por operação:
+
+| Operação | Endpoint | `ADMIN` | `LOGISTICS_MANAGER` | `CHECKER` | `DRIVER` |
+|---|---|---:|---:|---:|---:|
+| Leitura | `GET /loading-sessions/{id}` | Sim | Sim | Sim | Não |
+| Criação | `POST /loading-sessions` | Não | Sim | Não | Não |
+| Início da conferência | `PATCH /loading-sessions/{id}/status` com `IN_PROGRESS` | Não | Não | Sim | Não |
+| Conferência de item | `PATCH /loading-sessions/{id}/items/{item_id}` com `CHECKED` | Não | Não | Sim | Não |
+| Finalização | `PATCH /loading-sessions/{id}/status` com `FINISHED` | Não | Não | Sim | Não |
+
+`CONFIRMADO` (OC66): perfis negados recebem `403 AUTH_FORBIDDEN` antes de
+qualquer consulta à sessão ou ao item; autenticação ausente ou inválida continua
+recebendo `401 AUTH_INVALID_TOKEN`. Portanto, uma negativa de RBAC não revela se
+os UUIDs solicitados existem.
+
+`CONFIRMADO` (OC66): não existe autorização por objeto neste módulo. O modelo
+atual não possui atribuição de sessão ou item a um `CHECKER`; criar esse vínculo
+fica fora da OC66. Para OC75 e OC76, leitura de código deve apenas identificar um
+item e reutilizar a operação de conferência protegida para `CHECKER`; código de
+QR/barras não autentica, não autoriza e não amplia os perfis desta matriz.
+
+Erros específicos:
 `LOADING_PLAN_NOT_APPROVED`, `LOADING_SESSION_NOT_FOUND`,
 `LOADING_ITEM_NOT_FOUND`, `LOADING_ITEM_SESSION_MISMATCH`,
 `LOADING_CHECKLIST_INCOMPLETE`, `LOADING_STATUS_TRANSITION_NOT_ALLOWED` e

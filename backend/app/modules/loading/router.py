@@ -29,7 +29,8 @@ from app.modules.users.models import User
 
 router = APIRouter(prefix="/loading-sessions", tags=["loading"])
 LOADING_SESSION_NOT_FOUND_MESSAGE = "Sessão de carregamento não encontrada."
-Operator = Annotated[User, Depends(require_roles("CHECKER", "LOGISTICS_MANAGER"))]
+Creator = Annotated[User, Depends(require_roles("LOGISTICS_MANAGER"))]
+Checker = Annotated[User, Depends(require_roles("CHECKER"))]
 Reader = Annotated[
     User, Depends(require_roles("ADMIN", "CHECKER", "LOGISTICS_MANAGER"))
 ]
@@ -47,7 +48,7 @@ def get_loading_service(db: Annotated[Session, Depends(get_db)]) -> LoadingServi
 )
 def create_session(
     data: LoadingSessionCreate,
-    _user: Operator,
+    _user: Creator,
     service: Annotated[LoadingService, Depends(get_loading_service)],
 ) -> LoadingSession | JSONResponse:
     try:
@@ -91,7 +92,7 @@ def get_session(
 def change_status(
     session_id: uuid.UUID,
     data: LoadingSessionStatusChange,
-    _user: Operator,
+    _user: Checker,
     service: Annotated[LoadingService, Depends(get_loading_service)],
 ) -> LoadingSession | JSONResponse:
     try:
@@ -121,7 +122,7 @@ def change_item_status(
     session_id: uuid.UUID,
     item_id: uuid.UUID,
     data: LoadingItemStatusChange,
-    _user: Operator,
+    _user: Checker,
     service: Annotated[LoadingService, Depends(get_loading_service)],
 ) -> LoadingSession | JSONResponse:
     try:
