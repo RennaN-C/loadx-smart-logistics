@@ -11,7 +11,7 @@ ficarão nas Issues do GitHub correspondentes a cada ocorrência.
 ## OC76 — Backend da conferência por QR Code/código de barras
 
 - **Objetivo resumido:** Dar suporte à identificação e conferência de volumes por código no backend.
-- **Dependências — RECOMENDAÇÃO:** OC66 (Renan); alinhar contrato com Marlon para OC75.
+- **Dependências — RECOMENDAÇÃO:** OC66 (Rennan); alinhar contrato com Marlon para OC75.
 - **Status inicial:** PENDENTE.
 - **Branch sugerida — RECOMENDAÇÃO:** `marcelo/oc76-conferencia-qrcode`.
 
@@ -25,6 +25,6 @@ ficarão nas Issues do GitHub correspondentes a cada ocorrência.
 ## OC78 — Estrutura operacional para comprovante de entrega
 
 - **Objetivo resumido:** Preparar a base operacional para comprovantes de entrega, com limites definidos na Issue.
-- **Dependências — RECOMENDAÇÃO:** Nenhuma OC anterior da v1.1.0; alinhar com Renan o ciclo de entregas existente.
+- **Dependências — RECOMENDAÇÃO:** Nenhuma OC anterior da v1.1.0; alinhar com Rennan o ciclo de entregas existente.
 - **Status inicial:** PENDENTE.
 - **Branch sugerida — RECOMENDAÇÃO:** `marcelo/oc78-estrutura-comprovante-entrega`.

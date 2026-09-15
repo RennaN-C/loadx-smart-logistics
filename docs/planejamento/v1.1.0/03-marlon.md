@@ -11,21 +11,21 @@ ficarão nas Issues do GitHub correspondentes a cada ocorrência.
 ## OC70 — ViaCEP no cadastro de clientes
 
 - **Objetivo resumido:** Facilitar o preenchimento do endereço do cliente a partir do CEP, com possibilidade de ajuste manual.
-- **Dependências — RECOMENDAÇÃO:** OC62 (Renan).
+- **Dependências — RECOMENDAÇÃO:** OC62 (Rennan).
 - **Status inicial:** PENDENTE.
 - **Branch sugerida — RECOMENDAÇÃO:** `marlon/oc70-viacep-clientes`.
 
 ## OC71 — Validações e feedback dos documentos
 
 - **Objetivo resumido:** Orientar o usuário sobre documentos e telefones inválidos em alinhamento com o backend.
-- **Dependências — RECOMENDAÇÃO:** OC63 (Renan).
+- **Dependências — RECOMENDAÇÃO:** OC63 (Rennan).
 - **Status inicial:** PENDENTE.
 - **Branch sugerida — RECOMENDAÇÃO:** `marlon/oc71-feedback-documentos`.
 
 ## OC72 — Interface de disponibilidade de caminhões e motoristas
 
 - **Objetivo resumido:** Exibir a disponibilidade de caminhões e motoristas para apoiar a seleção operacional.
-- **Dependências — RECOMENDAÇÃO:** OC64 e OC65 (Renan) e OC67 (João); alinhar o contrato de consulta de motoristas entre os três.
+- **Dependências — RECOMENDAÇÃO:** OC64 e OC65 (Rennan) e OC67 (João); alinhar o contrato de consulta de motoristas entre os três.
 - **Status inicial:** PENDENTE.
 - **Branch sugerida — RECOMENDAÇÃO:** `marlon/oc72-disponibilidade-caminhoes-motoristas`.
 
@@ -46,6 +46,6 @@ ficarão nas Issues do GitHub correspondentes a cada ocorrência.
 ## OC75 — Conferência por QR Code/código de barras
 
 - **Objetivo resumido:** Permitir a conferência de volumes por código na interface de carregamento.
-- **Dependências — RECOMENDAÇÃO:** OC66 (Renan) e OC76 (Marcelo).
+- **Dependências — RECOMENDAÇÃO:** OC66 (Rennan) e OC76 (Marcelo).
 - **Status inicial:** PENDENTE.
 - **Branch sugerida — RECOMENDAÇÃO:** `marlon/oc75-conferencia-qrcode`.

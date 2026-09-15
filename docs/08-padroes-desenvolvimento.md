@@ -17,7 +17,7 @@ Branches:
 [planejamento oficial](planejamento/v1.1.0/00-visao-geral.md#fluxo-git).
 Documentação é versionada normalmente pelo mesmo fluxo.
 `RECOMENDAÇÃO`: para as novas OCs, usar `<desenvolvedor>/ocNN-descricao`, em
-minúsculas e sem acentos, como `renan/oc62-viacep-backend`,
+minúsculas e sem acentos, como `rennan/oc62-viacep-backend`,
 `joao/oc67-disponibilidade-frota`, `marlon/oc70-viacep-clientes` e
 `marcelo/oc76-conferencia-qrcode`.
 `CONFIRMADO`: OC01–OC61 são histórico; OC62 inicia as novas ocorrências
