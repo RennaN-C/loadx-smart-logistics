@@ -686,12 +686,22 @@ class LoadXBot(discord.Client):
     async def notify_released_tasks(
         self,
         contexts: list[IssueProjectContext],
+        *,
+        known_card_issue_numbers: set[int] | None = None,
     ) -> None:
         current_statuses = {
             context.issue_number: context.current_status for context in contexts
         }
 
         if not self.status_snapshot_initialized:
+            if known_card_issue_numbers is not None:
+                for context in contexts:
+                    if (
+                        context.current_status == "Pronto para iniciar"
+                        and context.issue_number not in known_card_issue_numbers
+                    ):
+                        await self.send_released_task_dm(context)
+
             self.previous_statuses = current_statuses
 
             self.status_snapshot_initialized = True
@@ -725,6 +735,8 @@ class LoadXBot(discord.Client):
             if not self.completed_initialized:
                 await self.discover_completed_cards(completed_channel)
                 self.completed_initialized = True
+
+            known_card_issue_numbers = set(self.cards)
 
             contexts = await asyncio.to_thread(list_project_issues)
 
@@ -856,7 +868,10 @@ class LoadXBot(discord.Client):
                         context,
                     )
 
-            await self.notify_released_tasks(contexts)
+            await self.notify_released_tasks(
+                contexts,
+                known_card_issue_numbers=known_card_issue_numbers,
+            )
 
             print("Sincronização concluída.")
 
