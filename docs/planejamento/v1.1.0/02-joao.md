@@ -11,7 +11,7 @@ ficarão nas Issues do GitHub correspondentes a cada ocorrência.
 ## OC67 — Serviço de disponibilidade da frota
 
 - **Objetivo resumido:** Consolidar a consulta de disponibilidade da frota com base nas regras de conflito.
-- **Dependências — RECOMENDAÇÃO:** OC64 e OC65 (Renan).
+- **Dependências — RECOMENDAÇÃO:** OC64 e OC65 (Rennan).
 - **Status inicial:** PENDENTE.
 - **Branch sugerida — RECOMENDAÇÃO:** `joao/oc67-disponibilidade-frota`.
 

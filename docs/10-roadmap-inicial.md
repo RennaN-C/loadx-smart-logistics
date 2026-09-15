@@ -136,6 +136,8 @@ Entregável integrado:
 
 ## Roadmap pós-v1.0.0
 
+`CONFIRMADO`: este arquivo preserva o histórico do MVP e da seleção da v1.1.0. Para planejamento de releases posteriores à v1.1.0, a fonte canônica é o [roadmap de versões](planejamento/roadmap-versoes.md).
+
 `CONFIRMADO`: os itens desta seção foram registrados na preparação da release
 por solicitação da equipe. A seleção abaixo oficializa o planejamento da
 v1.1.0; nenhuma funcionalidade foi implementada nesta tarefa documental.
@@ -154,10 +156,10 @@ estão no [planejamento oficial](planejamento/v1.1.0/00-visao-geral.md).
 
 | Funcionalidade planejada | OCs da v1.1.0 | Responsáveis |
 |---|---|---|
-| ViaCEP no backend e cadastro de clientes | OC62, OC70 | Renan, Marlon |
-| Validação de CPF, CNPJ, CNH e telefone e feedback | OC63, OC71 | Renan, Marlon |
-| Conflitos de caminhões e motoristas | OC64, OC65 | Renan |
-| RBAC granular de carregamento e conferência | OC66 | Renan |
+| ViaCEP no backend e cadastro de clientes | OC62, OC70 | Rennan, Marlon |
+| Validação de CPF, CNPJ, CNH e telefone e feedback | OC63, OC71 | Rennan, Marlon |
+| Conflitos de caminhões e motoristas | OC64, OC65 | Rennan |
+| RBAC granular de carregamento e conferência | OC66 | Rennan |
 | Serviço e interface de disponibilidade | OC67, OC72 | João, Marlon |
 | API de status dos caminhões e painel da frota | OC68, OC73 | João, Marlon |
 | API de indicadores e dashboard operacional | OC69, OC74 | João, Marlon |
@@ -245,7 +247,7 @@ histórico antes de alterar as cardinalidades atuais. Não implementar agora.
 
 ### Disponibilidade de caminhões
 
-`CONFIRMADO`: **PLANEJADA para v1.1.0** em OC64 (Renan), OC67 (João) e OC72
+`CONFIRMADO`: **PLANEJADA para v1.1.0** em OC64 (Rennan), OC67 (João) e OC72
 (Marlon). Os critérios operacionais abaixo ainda precisam ser detalhados.
 
 `CONFIRMADO`: `Truck.active` controla habilitação cadastral; o planejamento
@@ -262,7 +264,7 @@ uso, planejado, carregando, em rota ou disponível; avaliar manutenção.
 
 ### Disponibilidade de motoristas
 
-`CONFIRMADO`: **PLANEJADA para v1.1.0** em OC65 (Renan) e OC72 (Marlon), com
+`CONFIRMADO`: **PLANEJADA para v1.1.0** em OC65 (Rennan) e OC72 (Marlon), com
 alinhamento de consulta junto a João na OC67.
 
 `CONFIRMADO`: a criação de viagem exige motorista ativo e bloqueia seu registro
@@ -318,7 +320,7 @@ data/hora, eventual localização e storage real de evidências.
 ### QR Code / código de barras
 
 `CONFIRMADO`: **PLANEJADO para v1.1.0** em OC75 (Marlon, interface) e OC76
-(Marcelo, backend), em alinhamento com OC66 (Renan, RBAC).
+(Marcelo, backend), em alinhamento com OC66 (Rennan, RBAC).
 
 `PENDENTE DE DEFINIÇÃO`: conferir volumes durante o carregamento por leitura de
 código vinculado à identidade do volume, preservando o checklist e suas regras.
@@ -350,7 +352,7 @@ rejeitados e motivos de rejeição, com período e contratos de agregação defi
 
 ### Integração com ViaCEP
 
-`CONFIRMADO`: **PLANEJADA para v1.1.0** em OC62 (Renan, integração no backend)
+`CONFIRMADO`: **PLANEJADA para v1.1.0** em OC62 (Rennan, integração no backend)
 e OC70 (Marlon, cadastro de clientes).
 
 `PENDENTE DE DEFINIÇÃO`: detalhar nas Issues a consulta ao ViaCEP para facilitar
@@ -376,7 +378,7 @@ ou integração foi implementada nesta organização documental.
 
 ### Validação formal de documentos e telefone
 
-`CONFIRMADO`: **PLANEJADA para v1.1.0** em OC63 (Renan, CPF, CNPJ, CNH e
+`CONFIRMADO`: **PLANEJADA para v1.1.0** em OC63 (Rennan, CPF, CNPJ, CNH e
 telefone no backend) e OC71 (Marlon, validações e feedback na interface).
 `PENDENTE DE DEFINIÇÃO`: detalhar regras, formatos aceitos e mensagens nas
 Issues, preservando a coerência entre backend e frontend.
@@ -392,7 +394,7 @@ Issue. Este planejamento não escolhe fornecedor nem altera infraestrutura.
 
 `CONFIRMADO`: o RBAC da v1.0.0 está descrito em `docs/04-regras-negocio.md`.
 O **RBAC granular de carregamento e conferência está PLANEJADO para v1.1.0**
-na OC66 (Renan). A matriz detalhada deve ser aprovada na Issue; este registro
+na OC66 (Rennan). A matriz detalhada deve ser aprovada na Issue; este registro
 não concede novas permissões. Ampliações de ocorrências e relatórios abaixo
 permanecem futuras, fora da seleção desta versão:
 

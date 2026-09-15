@@ -16,7 +16,8 @@ Alterações nesta documentação devem ser rastreáveis por ocorrência, PR ou 
 - `07-divisao-equipe.md`: histórico/MVP de `OC01` a `OC48` e acesso à divisão pós-v1.0.0.
 - `08-padroes-desenvolvimento.md`: Git, PR, nomenclatura, camadas, banco, testes, logs e segurança.
 - `09-guia-para-ia.md`: como orientar agentes de programação.
-- `10-roadmap-inicial.md`: sequência original de sprints e roadmap pós-v1.0.0.
+- `10-roadmap-inicial.md`: histórico da construção do MVP e da seleção da v1.1.0.
+- `planejamento/roadmap-versoes.md`: roadmap canônico das releases posteriores à v1.1.0, política SemVer, responsáveis e gates de planejamento.
 - `11-riscos-pendencias.md`: decisões necessárias, riscos, dúvidas e pendências.
 - `12-ocorrencias-propostas-backend.md`: ocorrências de correção e melhoria preparadas para aprovação da equipe.
 - `decisoes-equipe-backend.txt`: pauta preenchível para decisões que bloqueiam ocorrências do backend.
@@ -24,7 +25,7 @@ Alterações nesta documentação devem ser rastreáveis por ocorrência, PR ou 
 - `diagrams/`: diagramas Mermaid, UML e banco.
 - `prompts/`: modelos de prompt para IA.
 - [planejamento/v1.1.0](planejamento/v1.1.0/00-visao-geral.md): divisão oficial
-  OC62–OC78 entre Renan, João, Marlon e Marcelo, dependências e fluxo da release.
+  OC62–OC78 entre Rennan, João, Marlon e Marcelo, dependências e fluxo da release.
   OC01–OC61 são histórico; OC62 é a primeira ocorrência nova pós-v1.0.0.
 
 `CONFIRMADO`: as entregas da v1.0.0 estão no [Changelog](../CHANGELOG.md).

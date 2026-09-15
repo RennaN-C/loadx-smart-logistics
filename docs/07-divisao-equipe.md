@@ -220,7 +220,7 @@ dependências, ordem recomendada e fluxo Git
 
 | Desenvolvedor | Responsável | Ocorrências | Planejamento |
 |---|---|---|---|
-| DEV 1 | Renan | OC62–OC66 | [Renan](planejamento/v1.1.0/01-renan.md) |
+| DEV 1 | Rennan | OC62–OC66 | [Rennan](planejamento/v1.1.0/01-renan.md) |
 | DEV 2 | João | OC67–OC69 | [João](planejamento/v1.1.0/02-joao.md) |
 | DEV 3 | Marlon | OC70–OC75 | [Marlon](planejamento/v1.1.0/03-marlon.md) |
 | DEV 4 | Marcelo | OC76–OC78 | [Marcelo](planejamento/v1.1.0/04-marcelo.md) |
