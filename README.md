@@ -51,6 +51,7 @@ Desenvolver um sistema inteligente capaz de planejar automaticamente a disposiç
 10. `docs/08-padroes-desenvolvimento.md`
 11. `docs/09-guia-para-ia.md`
 12. `docs/11-riscos-pendencias.md`
+13. `docs/13-guia-execucao-ambientes.md`
 
 `CONFIRMADO`: o MVP funcional permite:
 
@@ -343,6 +344,11 @@ Responsável por:
 * preparação da demonstração.
 
 ## Configuração do ambiente
+
+A referência canônica para configuração, execução, testes, CI e produção está em
+[docs/13-guia-execucao-ambientes.md](docs/13-guia-execucao-ambientes.md).
+
+A seção abaixo mantém apenas o resumo operacional mais usado no dia a dia.
 
 ### Requisitos
 
