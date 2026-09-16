@@ -15,14 +15,38 @@ origem HTTPS. Não contém domínio, credencial nem dado real.
 
 ## Entradas obrigatórias
 
+Aplicação e infraestrutura:
+
 - `LOADX_DOMAIN`: domínio sem protocolo, como `loadx.example.com`.
 - `LOADX_APP_DATABASE_URL`: URL do papel restrito da aplicação.
 - `LOADX_MIGRATION_DATABASE_URL`: URL do papel autorizado a executar Alembic.
 - `LOADX_SECRET_KEY`: segredo aleatório exclusivo com pelo menos 32 caracteres.
 
+Discord bot:
+
+- `DISCORD_TASKS_CHANNEL_ID`;
+- `DISCORD_STATUS_CHANNEL_ID`;
+- `DISCORD_GUILD_ID`;
+- `DISCORD_OWNER_USER_ID`;
+- `DISCORD_RENNAN_USER_ID`;
+- `DISCORD_JOAO_USER_ID`;
+- `DISCORD_MARLON_USER_ID`;
+- `DISCORD_MARCELO_USER_ID`;
+- `DISCORD_BOT_TOKEN`;
+- `GITHUB_TOKEN`.
+
+Os IDs acima não devem ser substituídos por valores reais na documentação.
+
+`DISCORD_BOT_TOKEN` e `GITHUB_TOKEN` entram no container do bot como secrets do
+Compose. As URLs de banco e `LOADX_SECRET_KEY` também são tratadas como secrets
+pela referência de produção.
+
 `LOADX_PASSWORD_BLOCKLIST_FILE` pode apontar para uma lista UTF-8 aprovada. O
 arquivo de exemplo existe apenas para validar a configuração e não substitui a
 curadoria operacional. `BACKEND_WORKERS` usa `2` por padrão.
+
+A lista completa e o fluxo entre ambientes estão em
+`docs/13-guia-execucao-ambientes.md`.
 
 ## Validação e inicialização
 

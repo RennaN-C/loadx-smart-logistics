@@ -20,6 +20,7 @@ Alterações nesta documentação devem ser rastreáveis por ocorrência, PR ou 
 - `planejamento/roadmap-versoes.md`: roadmap canônico das releases posteriores à v1.1.0, política SemVer, responsáveis e gates de planejamento.
 - `11-riscos-pendencias.md`: decisões necessárias, riscos, dúvidas e pendências.
 - `12-ocorrencias-propostas-backend.md`: registro histórico das propostas e entregas OC49–OC60; não representa planejamento ativo.
+- `13-guia-execucao-ambientes.md`: referência central para configuração, execução, testes, CI e produção de referência.
 - `decisoes-equipe-backend.txt`: registro histórico das decisões DXX usadas na consolidação do backend; decisões atuais devem estar nos documentos oficiais e ADRs.
 - `decisions/`: registros de decisões arquiteturais.
 - `prompts/`: modelos de prompt para IA.
