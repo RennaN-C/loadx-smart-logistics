@@ -1,5 +1,8 @@
 # Padrões de desenvolvimento
 
+Para iniciar uma contribuição, use `CONTRIBUTING.md` como porta de entrada.
+Este documento permanece como fonte dos padrões técnicos do projeto.
+
 ## Git
 
 Branches:

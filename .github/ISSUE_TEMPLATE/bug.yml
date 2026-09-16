@@ -1,0 +1,37 @@
+name: Relatar bug
+description: Registrar um comportamento incorreto ou regressão do LoadX
+title: "[BUG] "
+body:
+  - type: textarea
+    id: problema
+    attributes:
+      label: Problema
+      description: Descreva de forma objetiva o comportamento incorreto.
+    validations:
+      required: true
+  - type: textarea
+    id: reproducao
+    attributes:
+      label: Como reproduzir
+      description: Informe os passos mínimos para reproduzir o problema.
+    validations:
+      required: true
+  - type: textarea
+    id: esperado
+    attributes:
+      label: Comportamento esperado
+      description: Descreva o que deveria acontecer.
+    validations:
+      required: true
+  - type: textarea
+    id: contexto
+    attributes:
+      label: Contexto adicional
+      description: Informe módulo, ambiente ou logs sanitizados quando útil.
+  - type: checkboxes
+    id: seguranca
+    attributes:
+      label: Segurança dos dados
+      options:
+        - label: Confirmei que não incluí segredos, credenciais ou dados pessoais reais.
+          required: true

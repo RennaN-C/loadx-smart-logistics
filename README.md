@@ -40,15 +40,17 @@ Com base nesses dados, o LoadX utiliza algoritmos de otimização tridimensional
 Desenvolver um sistema inteligente capaz de planejar automaticamente a disposição de volumes em caminhões, melhorar o aproveitamento do espaço disponível e acompanhar o processo logístico desde o carregamento até a conclusão das entregas.
 
 1. `AGENTS.md`
-2. `docs/00-visao-produto.md`
-3. `docs/01-escopo-mvp.md`
-4. `docs/02-arquitetura.md`
-5. `docs/03-modelo-dados.md`
-6. `docs/04-regras-negocio.md`
-7. `docs/05-contratos-api.md`
-8. `docs/08-padroes-desenvolvimento.md`
-9. `docs/09-guia-para-ia.md`
-10. `docs/11-riscos-pendencias.md`
+2. `CONTRIBUTING.md`
+3. `SECURITY.md`
+4. `docs/00-visao-produto.md`
+5. `docs/01-escopo-mvp.md`
+6. `docs/02-arquitetura.md`
+7. `docs/03-modelo-dados.md`
+8. `docs/04-regras-negocio.md`
+9. `docs/05-contratos-api.md`
+10. `docs/08-padroes-desenvolvimento.md`
+11. `docs/09-guia-para-ia.md`
+12. `docs/11-riscos-pendencias.md`
 
 `CONFIRMADO`: o MVP funcional permite:
 
@@ -96,7 +98,6 @@ Desenvolver um sistema inteligente capaz de planejar automaticamente a disposiç
 * Axios
 * Three.js
 * React Three Fiber
-* Zod
 
 ### Banco de dados
 
@@ -182,8 +183,11 @@ loadx-smart-logistics/
 ├── infra/
 ├── .github/
 ├── AGENTS.md
+├── CONTRIBUTING.md
+├── SECURITY.md
 ├── CLAUDE.md
 ├── compose.yaml
+├── .editorconfig
 ├── .env.example
 ├── .gitignore
 └── README.md
@@ -507,6 +511,17 @@ isolado `migrate`.
 ```bash
 docker compose exec backend alembic revision --autogenerate -m "cria tabela de produtos"
 ```
+
+## Contribuição e segurança
+
+Antes de contribuir, leia [CONTRIBUTING.md](CONTRIBUTING.md).
+
+Contribuições humanas e assistidas por IA seguem o mesmo contrato de Issue,
+branch, testes, Pull Request e CI. Agentes de IA também devem seguir
+[AGENTS.md](AGENTS.md).
+
+Vulnerabilidades e informações sensíveis não devem ser publicadas em Issues.
+Consulte [SECURITY.md](SECURITY.md) para o procedimento de reporte responsável.
 
 ## Organização das branches
 
