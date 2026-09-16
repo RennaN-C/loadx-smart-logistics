@@ -1,0 +1,46 @@
+name: Manutenção técnica
+description: Registrar manutenção, documentação, infraestrutura ou governança fora de OC
+title: "[MAINT] "
+body:
+  - type: textarea
+    id: objetivo
+    attributes:
+      label: Objetivo
+      description: Descreva o resultado técnico esperado.
+    validations:
+      required: true
+  - type: textarea
+    id: contexto
+    attributes:
+      label: Contexto
+      description: Explique por que a manutenção é necessária.
+    validations:
+      required: true
+  - type: textarea
+    id: escopo
+    attributes:
+      label: Escopo
+      description: Liste o que será alterado.
+    validations:
+      required: true
+  - type: textarea
+    id: fora_escopo
+    attributes:
+      label: Fora de escopo
+      description: Registre explicitamente o que não será alterado.
+  - type: textarea
+    id: criterios
+    attributes:
+      label: Critérios de aceite
+      description: Liste condições objetivas para considerar a manutenção concluída.
+    validations:
+      required: true
+  - type: checkboxes
+    id: confirmacoes
+    attributes:
+      label: Confirmações
+      options:
+        - label: Esta tarefa não cria uma nova OC nem reutiliza identificadores existentes.
+          required: true
+        - label: A alteração não contém segredos ou dados pessoais reais.
+          required: true

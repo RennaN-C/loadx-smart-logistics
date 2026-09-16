@@ -2,6 +2,9 @@
 
 Siga integralmente `AGENTS.md`.
 
+Para fluxo de contribuição, branch, commit, Pull Request e validações, consulte
+também `CONTRIBUTING.md`.
+
 Prioridades:
 
 - respeitar o escopo em `docs/01-escopo-mvp.md`;

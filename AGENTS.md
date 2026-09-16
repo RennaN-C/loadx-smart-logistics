@@ -2,6 +2,10 @@
 
 Este arquivo é a fonte principal de contexto para qualquer IA que ajude a programar o LoadX.
 
+`CONTRIBUTING.md` é a porta de entrada para o fluxo de contribuição humano ou
+assistido por IA. Este `AGENTS.md` continua sendo a fonte obrigatória de contexto
+e restrições para agentes de IA.
+
 ## Antes de qualquer alteração
 
 1. Leia o `README.md` da raiz.

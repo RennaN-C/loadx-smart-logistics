@@ -4,6 +4,9 @@
 
 Permitir que ChatGPT, Codex, Copilot, Claude ou outra IA compreenda o LoadX sem recriar a arquitetura a cada conversa.
 
+Para fluxo de contribuição, branch, commit e Pull Request, consulte também
+`CONTRIBUTING.md`.
+
 `CONFIRMADO`: este guia complementa `AGENTS.md`; não substitui os documentos numerados nem ADRs.
 
 ## Arquivos que a IA deve consultar
