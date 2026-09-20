@@ -1,14 +1,15 @@
 from collections.abc import Callable
 
 import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
+
 from app.modules.trucks.models import Truck
 from app.modules.trucks.schemas import TruckCreate
 from app.modules.trucks.service import TruckService
 from app.modules.users.models import User
 from app.modules.users.schemas import UserCreate
 from app.modules.users.service import UserService
-from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
 from tests.integration.auth_helpers import issue_session_headers
 
 SessionFactory = Callable[[], Session]

@@ -1,8 +1,9 @@
 from typing import Any
 
+from fastapi.testclient import TestClient
+
 from app.core.config import Settings
 from app.main import create_app
-from fastapi.testclient import TestClient
 
 EXPECTED_ERROR_STATUSES = {
     ("/health", "get"): {"500"},

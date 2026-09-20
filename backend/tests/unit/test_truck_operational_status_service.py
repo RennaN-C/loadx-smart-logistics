@@ -3,11 +3,12 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
+from sqlalchemy.orm import Session
+
 from app.core.pagination import PageResult, PaginationParams
 from app.modules.fleet.service import FleetAvailabilityService, TruckAvailability
 from app.modules.trucks.operational_status_service import TruckOperationalStatusService
 from app.modules.trucks.service import TruckService
-from sqlalchemy.orm import Session
 
 
 @pytest.mark.parametrize(
