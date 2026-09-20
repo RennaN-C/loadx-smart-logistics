@@ -1,9 +1,8 @@
 from typing import Any
 
-from fastapi.testclient import TestClient
-
 from app.core.config import Settings
 from app.main import create_app
+from fastapi.testclient import TestClient
 
 EXPECTED_ERROR_STATUSES = {
     ("/health", "get"): {"500"},
@@ -90,6 +89,7 @@ EXPECTED_ERROR_STATUSES = {
         "500",
     },
     ("/api/v1/trucks", "get"): {"401", "403", "422", "500"},
+    ("/api/v1/trucks/operational-status", "get"): {"401", "403", "422", "500"},
     ("/api/v1/trucks", "post"): {"401", "403", "409", "422", "500"},
     ("/api/v1/trucks/{truck_id}", "get"): {
         "401",
@@ -420,3 +420,31 @@ def test_openapi_cep_lookup_exposes_existing_address_schema_with_text_limits() -
             if variant["type"] == "string"
         )
         assert text_schema["maxLength"] == 255
+
+
+def test_openapi_documents_truck_operational_status_contract() -> None:
+    schema = get_openapi_schema()
+
+    operation = schema["paths"]["/api/v1/trucks/operational-status"]["get"]
+    response_schema = operation["responses"]["200"]["content"]["application/json"][
+        "schema"
+    ]
+
+    page_component_name = response_schema["$ref"].split("/")[-1]
+    page_schema = schema["components"]["schemas"][page_component_name]
+
+    item_schema = page_schema["properties"]["items"]["items"]
+    assert item_schema == {"$ref": "#/components/schemas/TruckOperationalStatusRead"}
+
+    status_schema = schema["components"]["schemas"]["TruckOperationalStatusRead"]
+    expected_fields = {
+        "id",
+        "plate",
+        "model",
+        "active",
+        "has_operation_conflict",
+        "available",
+    }
+
+    assert set(status_schema["properties"]) == expected_fields
+    assert set(status_schema["required"]) == expected_fields

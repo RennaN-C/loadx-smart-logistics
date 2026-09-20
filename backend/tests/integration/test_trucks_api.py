@@ -1,15 +1,14 @@
 from collections.abc import Callable
 
 import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
-
 from app.modules.trucks.models import Truck
 from app.modules.trucks.schemas import TruckCreate
 from app.modules.trucks.service import TruckService
 from app.modules.users.models import User
 from app.modules.users.schemas import UserCreate
 from app.modules.users.service import UserService
+from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
 from tests.integration.auth_helpers import issue_session_headers
 
 SessionFactory = Callable[[], Session]
@@ -390,3 +389,168 @@ def test_truck_routes_reject_inactive_manager(
 
     assert response.status_code == 403
     assert response.json()["code"] == "AUTH_USER_INACTIVE"
+
+
+def create_truck_with_active_state(
+    session_factory: SessionFactory,
+    *,
+    plate: str,
+    active: bool,
+) -> Truck:
+    db = session_factory()
+    try:
+        payload = make_truck_payload(plate)
+        payload["active"] = active
+        return TruckService(db).create_truck(TruckCreate.model_validate(payload))
+    finally:
+        db.close()
+
+
+def test_operational_status_returns_available_truck(
+    client: TestClient,
+    session_factory: SessionFactory,
+    manager_headers: dict[str, str],
+) -> None:
+    truck = create_truck_with_active_state(
+        session_factory,
+        plate="OPS1A23",
+        active=True,
+    )
+
+    response = client.get(
+        "/api/v1/trucks/operational-status",
+        headers=manager_headers,
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["total"] == 1
+    assert body["total_pages"] == 1
+
+    item = body["items"][0]
+    assert item == {
+        "id": str(truck.id),
+        "plate": "OPS1A23",
+        "model": "Bau medio",
+        "active": True,
+        "has_operation_conflict": False,
+        "available": True,
+    }
+
+
+def test_operational_status_returns_inactive_truck_as_unavailable(
+    client: TestClient,
+    session_factory: SessionFactory,
+    manager_headers: dict[str, str],
+) -> None:
+    truck = create_truck_with_active_state(
+        session_factory,
+        plate="OPS2B34",
+        active=False,
+    )
+
+    response = client.get(
+        "/api/v1/trucks/operational-status",
+        headers=manager_headers,
+    )
+
+    assert response.status_code == 200
+    item = response.json()["items"][0]
+
+    assert item["id"] == str(truck.id)
+    assert item["active"] is False
+    assert item["has_operation_conflict"] is False
+    assert item["available"] is False
+
+
+def test_operational_status_returns_empty_paginated_response(
+    client: TestClient,
+    manager_headers: dict[str, str],
+) -> None:
+    response = client.get(
+        "/api/v1/trucks/operational-status",
+        headers=manager_headers,
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "items": [],
+        "page": 1,
+        "page_size": 20,
+        "total": 0,
+        "total_pages": 0,
+    }
+
+
+@pytest.mark.parametrize("role", ["ADMIN", "CHECKER", "LOGISTICS_MANAGER"])
+def test_operational_status_allows_truck_reader_roles(
+    client: TestClient,
+    session_factory: SessionFactory,
+    role: str,
+) -> None:
+    user = create_user_in_db(
+        session_factory,
+        f"operational-{role.lower()}@example.test",
+        role,
+    )
+
+    response = client.get(
+        "/api/v1/trucks/operational-status",
+        headers=authorization_headers(session_factory, user),
+    )
+
+    assert response.status_code == 200
+
+
+def test_operational_status_rejects_driver(
+    client: TestClient,
+    session_factory: SessionFactory,
+) -> None:
+    user = create_user_in_db(
+        session_factory,
+        "operational-driver@example.test",
+        "DRIVER",
+    )
+
+    response = client.get(
+        "/api/v1/trucks/operational-status",
+        headers=authorization_headers(session_factory, user),
+    )
+
+    assert response.status_code == 403
+    assert response.json()["code"] == "AUTH_FORBIDDEN"
+
+
+def test_operational_status_requires_authentication(
+    client: TestClient,
+) -> None:
+    response = client.get("/api/v1/trucks/operational-status")
+
+    assert response.status_code == 401
+    assert response.json()["code"] == "AUTH_INVALID_TOKEN"
+
+
+def test_operational_status_preserves_pagination(
+    client: TestClient,
+    session_factory: SessionFactory,
+    manager_headers: dict[str, str],
+) -> None:
+    for plate in ("PAG1A11", "PAG2B22", "PAG3C33"):
+        create_truck_with_active_state(
+            session_factory,
+            plate=plate,
+            active=True,
+        )
+
+    response = client.get(
+        "/api/v1/trucks/operational-status?page=2&page_size=2&sort_order=asc",
+        headers=manager_headers,
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["page"] == 2
+    assert body["page_size"] == 2
+    assert body["total"] == 3
+    assert body["total_pages"] == 2
+    assert len(body["items"]) == 1
