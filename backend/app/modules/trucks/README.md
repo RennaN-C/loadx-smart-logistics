@@ -59,3 +59,44 @@ A regra considera carregamento e viagem:
 `Truck.active` continua sendo uma regra independente. A OC67 deve combinar o
 estado cadastral do caminhão com esta consulta, sem acessar diretamente as
 tabelas de carregamento ou viagens e sem duplicar a regra.
+
+## OC68 — status operacional dos caminhões
+
+`GET /api/v1/trucks/operational-status` expõe uma listagem paginada da situação
+operacional atual dos caminhões.
+
+O endpoint usa a mesma paginação de `GET /api/v1/trucks` e pode ser consultado
+por:
+
+- `ADMIN`;
+- `CHECKER`;
+- `LOGISTICS_MANAGER`.
+
+`DRIVER` não possui acesso.
+
+Cada item contém:
+
+- `id`;
+- `plate`;
+- `model`;
+- `active`;
+- `has_operation_conflict`;
+- `available`.
+
+`active`, `has_operation_conflict` e `available` são obtidos por meio da
+fronteira `FleetAvailabilityService` criada na OC67. O router e o serviço da
+OC68 não reproduzem as regras de conflito da OC64.
+
+A disponibilidade continua sendo calculada em tempo de leitura e não é
+persistida no banco.
+
+Respostas de erro seguem o contrato padrão da API:
+
+- `401`: sessão ausente ou inválida;
+- `403`: usuário sem permissão ou inativo;
+- `422`: parâmetros de paginação inválidos.
+
+A resposta vazia continua usando o envelope paginado, com `items = []`,
+`total = 0` e `total_pages = 0`.
+
+Este contrato é a fronteira de leitura destinada ao painel da OC73.
