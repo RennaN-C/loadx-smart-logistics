@@ -48,7 +48,7 @@ Crie somente os arquivos necessários para a ocorrência atual.
 
 - `PENDENTE DE DEFINIÇÃO`: validação formal da categoria de CNH.
 
-## OC65 — contrato interno para OC67/OC72
+## OC65 — contrato interno consumido pela OC67
 
 `CONFIRMADO`: `DriverService.has_operation_conflict(driver_id,
 exclude_trip_id=None)` consulta somente conflito, sem bloquear ou escrever.
@@ -62,6 +62,12 @@ carregamento isolados não reservam motorista. A exclusão serve apenas à próp
 viagem em alteração; criação não exclui nenhuma viagem.
 
 `CONFIRMADO`: ausência de conflito não verifica existência, `active` ou acesso
-do usuário. A OC67 deve combinar cadastro ativo com esta consulta; a OC72 deve
-consumir o contrato HTTP de disponibilidade a definir, sem reproduzir a regra.
-`PENDENTE DE DEFINIÇÃO`: endpoint de disponibilidade pertence à OC67/OC72.
+do usuário. A OC67 combina cadastro ativo com esta consulta e expõe a fronteira
+interna `FleetAvailabilityService`, sem persistir disponibilidade.
+
+`CONFIRMADO` (OC68): a disponibilidade operacional de caminhões já possui
+contrato HTTP em `GET /api/v1/trucks/operational-status`.
+
+`PENDENTE DE DEFINIÇÃO`: o contrato HTTP de disponibilidade de motoristas que a
+OC72 precisará consumir. A OC72 não deve reproduzir a regra de conflito da OC65
+nem inferir disponibilidade diretamente das tabelas de viagens.
