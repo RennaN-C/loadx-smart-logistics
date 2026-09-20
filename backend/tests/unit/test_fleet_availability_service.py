@@ -7,7 +7,12 @@ from sqlalchemy.orm import Session
 
 from app.modules.drivers.service import DriverNotFoundError, DriverService
 from app.modules.fleet.service import FleetAvailabilityService
+from app.modules.load_planning.models import LoadPlan
 from app.modules.trucks.service import TruckNotFoundError, TruckService
+from tests.unit.test_delivery_service import (
+    SQLITE_TABLES,  # noqa: F401
+    create_trip,
+)
 
 
 def make_service(
@@ -172,3 +177,46 @@ def test_driver_not_found_error_is_preserved() -> None:
         service.get_driver_availability(driver_id)
 
     driver_service.has_operation_conflict.assert_not_called()
+
+
+def test_real_services_release_fleet_after_trip_finishes(
+    db_session: Session,
+) -> None:
+    trip_service, manager, driver, trip, _ = create_trip(
+        db_session,
+        loading_finished=True,
+    )
+    plan = db_session.get(LoadPlan, trip.load_plan_id)
+    assert plan is not None
+
+    service = FleetAvailabilityService(db_session)
+
+    reserved = service.get_operation_availability(plan.truck_id, driver.id)
+
+    assert reserved.truck.has_operation_conflict is True
+    assert reserved.driver.has_operation_conflict is True
+    assert reserved.truck.available is False
+    assert reserved.driver.available is False
+    assert reserved.available is False
+
+    trip_service.change_trip_status(trip.id, "IN_ROUTE", current_user=manager)
+    for delivery in trip.deliveries:
+        trip_service.change_delivery_status(
+            delivery.id,
+            "IN_DELIVERY",
+            current_user=manager,
+        )
+        trip_service.change_delivery_status(
+            delivery.id,
+            "DELIVERED",
+            current_user=manager,
+        )
+    trip_service.change_trip_status(trip.id, "FINISHED", current_user=manager)
+
+    released = service.get_operation_availability(plan.truck_id, driver.id)
+
+    assert released.truck.has_operation_conflict is False
+    assert released.driver.has_operation_conflict is False
+    assert released.truck.available is True
+    assert released.driver.available is True
+    assert released.available is True
