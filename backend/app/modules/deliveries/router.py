@@ -13,6 +13,8 @@ from app.modules.auth.dependencies import require_roles
 from app.modules.deliveries.models import Delivery, Trip
 from app.modules.deliveries.schemas import (
     DeliveryRead,
+    DeliveryReceiptCreate,
+    DeliveryReceiptRead,
     DeliveryStatusChange,
     TripCreate,
     TripListRead,
@@ -21,6 +23,8 @@ from app.modules.deliveries.schemas import (
 )
 from app.modules.deliveries.service import (
     DeliveryNotFoundError,
+    DeliveryReceiptHistoryInvalidError,
+    DeliveryReceiptNotAvailableError,
     DeliveryStatusTransitionNotAllowedError,
     DeliveryTripNotInRouteError,
     TripAccessForbiddenError,
@@ -55,6 +59,8 @@ TripOperator = Annotated[
 ]
 TRIP_SERVICE_ERRORS = (
     DeliveryNotFoundError,
+    DeliveryReceiptHistoryInvalidError,
+    DeliveryReceiptNotAvailableError,
     DeliveryStatusTransitionNotAllowedError,
     DeliveryTripNotInRouteError,
     TripAccessForbiddenError,
@@ -192,7 +198,52 @@ def change_delivery_status(
         return _trip_error_response(exc)
 
 
+@router.post(
+    "/deliveries/{delivery_id}/receipt",
+    response_model=DeliveryReceiptRead,
+    responses=openapi_error_responses(401, 403, 404, 409, 422),
+)
+def register_delivery_receipt(
+    delivery_id: uuid.UUID,
+    data: DeliveryReceiptCreate,
+    current_user: TripOperator,
+    service: Annotated[TripService, Depends(get_trip_service)],
+) -> DeliveryReceiptRead | JSONResponse:
+    try:
+        return service.register_delivery_receipt(delivery_id, current_user=current_user)
+    except TRIP_SERVICE_ERRORS as exc:
+        return _trip_error_response(exc)
+
+
+@router.get(
+    "/deliveries/{delivery_id}/receipt",
+    response_model=DeliveryReceiptRead,
+    responses=openapi_error_responses(401, 403, 404, 409, 422),
+)
+def get_delivery_receipt(
+    delivery_id: uuid.UUID,
+    current_user: TripReader,
+    service: Annotated[TripService, Depends(get_trip_service)],
+) -> DeliveryReceiptRead | JSONResponse:
+    try:
+        return service.get_delivery_receipt(delivery_id, current_user=current_user)
+    except TRIP_SERVICE_ERRORS as exc:
+        return _trip_error_response(exc)
+
+
 def _trip_error_response(exc: Exception) -> JSONResponse:
+    if isinstance(exc, DeliveryReceiptNotAvailableError):
+        return error_response(
+            status.HTTP_409_CONFLICT,
+            "DELIVERY_RECEIPT_NOT_AVAILABLE",
+            "O comprovante exige uma entrega concluída.",
+        )
+    if isinstance(exc, DeliveryReceiptHistoryInvalidError):
+        return error_response(
+            status.HTTP_409_CONFLICT,
+            "DELIVERY_RECEIPT_HISTORY_INVALID",
+            "A entrega não possui um histórico de conclusão único com responsável.",
+        )
     if isinstance(exc, DriverOperationConflictError):
         return error_response(
             status.HTTP_409_CONFLICT,
