@@ -87,15 +87,15 @@ def seed_operational_plan(
 ) -> tuple[User, Driver, LoadPlan, list[Order]]:
     driver = Driver(
         name="Motorista Ficticio",
-        document=f"DOC-{uuid.uuid4()}",
+        document=f"DOC-{uuid.uuid4().hex[:28]}",
         phone="5500000000000",
-        license_number=f"CNH-{uuid.uuid4()}",
+        license_number=f"CNH-{uuid.uuid4().hex[:28]}",
         license_category="D",
         active=driver_active,
     )
     customer = Customer(
         name="Cliente Ficticio",
-        document=f"CNPJ-{uuid.uuid4()}",
+        document=f"CNPJ-{uuid.uuid4().hex[:27]}",
         address="Rua Exemplo, 100",
         city="Sao Paulo",
         state="SP",
