@@ -66,8 +66,8 @@ Histórico ausente, duplicado ou sem responsável falha fechado com
 `DELIVERY_RECEIPT_HISTORY_INVALID`; consulta antes de concluir usa
 `DELIVERY_RECEIPT_NOT_AVAILABLE`. Não há backfill ou responsável fictício.
 
-`PENDENTE DE DEFINIÇÃO`: alinhamento/revisão de Rennan antes da integração,
-conforme [ADR-024 proposta](../../../../docs/decisions/ADR-024-comprovante-operacional-entrega.md).
+`CONFIRMADO`: a arquitetura foi aprovada na revisão do PR #98 e está registrada
+na [ADR-024 aceita](../../../../docs/decisions/ADR-024-comprovante-operacional-entrega.md).
 Recebedor, correções, foto, assinatura, geolocalização, upload/storage e retenção
 externa ficam fora desta versão. Não há campos ou referências mock de evidência.
 
