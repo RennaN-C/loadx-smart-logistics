@@ -18,6 +18,16 @@ class TruckOperationalStatus:
     available: bool
 
 
+@dataclass(frozen=True, slots=True)
+class TruckOperationalSummary:
+    total: int
+    active: int
+    inactive: int
+    available: int
+    unavailable: int
+    with_operation_conflict: int
+
+
 class TruckOperationalStatusService:
     """Expõe a visão operacional dos caminhões consumindo a fronteira da OC67."""
 
@@ -52,6 +62,28 @@ class TruckOperationalStatusService:
             page_size=trucks.page_size,
             total=trucks.total,
             total_pages=trucks.total_pages,
+        )
+
+    def get_summary(self) -> TruckOperationalSummary:
+        trucks = self.truck_service.list_all_trucks()
+
+        statuses = tuple(
+            self._build_status(truck.id, truck.plate, truck.model) for truck in trucks
+        )
+
+        total = len(statuses)
+        active = sum(status.active for status in statuses)
+        available = sum(status.available for status in statuses)
+
+        return TruckOperationalSummary(
+            total=total,
+            active=active,
+            inactive=total - active,
+            available=available,
+            unavailable=total - available,
+            with_operation_conflict=sum(
+                status.has_operation_conflict for status in statuses
+            ),
         )
 
     def _build_status(

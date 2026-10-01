@@ -57,6 +57,26 @@ class TripRepository:
         )
         return PageResult.create(items, pagination, total)
 
+    def count_trips_by_status(self) -> dict[str, int]:
+        statement = (
+            select(Trip.status, func.count(Trip.id))
+            .group_by(Trip.status)
+            .order_by(Trip.status.asc())
+        )
+        return {
+            status: int(total) for status, total in self.db.execute(statement).all()
+        }
+
+    def count_deliveries_by_status(self) -> dict[str, int]:
+        statement = (
+            select(Delivery.status, func.count(Delivery.id))
+            .group_by(Delivery.status)
+            .order_by(Delivery.status.asc())
+        )
+        return {
+            status: int(total) for status, total in self.db.execute(statement).all()
+        }
+
     def list_driver_trips(
         self,
         driver_id: uuid.UUID,
