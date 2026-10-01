@@ -863,9 +863,9 @@ uma implementação própria da regra.
 
 ### Comprovante operacional — OC78
 
-`RECOMENDAÇÃO` implementada na branch da OC78, sujeita à revisão com Rennan
-antes da integração: contrato aditivo conforme a
-[ADR-024 proposta](decisions/ADR-024-comprovante-operacional-entrega.md).
+`CONFIRMADO` pela ADR-024 e pela revisão do PR #98: contrato aditivo do
+comprovante operacional conforme a
+[ADR-024 aceita](decisions/ADR-024-comprovante-operacional-entrega.md).
 Os contratos anteriores de `TripRead`, `DeliveryRead` e status permanecem iguais.
 
 - `POST /deliveries/{id}/receipt`: registra a conclusão pelo ciclo existente e
