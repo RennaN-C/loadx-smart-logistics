@@ -505,6 +505,25 @@ Desenvolvedor 4.
   ação compartilham um único commit ou rollback.
 - Ocorrência não apaga o status anterior, apenas adiciona contexto.
 
+### Comprovante operacional — OC78
+
+`RECOMENDAÇÃO` implementada na branch: registrar comprovante significa reutilizar
+a conclusão `IN_DELIVERY -> DELIVERED` durante `IN_ROUTE`, com pedido e histórico
+no mesmo commit. Repetição retorna a conclusão original, sem alterar horário,
+responsável ou histórico, inclusive após a viagem terminar. Consulta não altera
+dados e também contempla conclusões pelo fluxo anterior.
+
+`CONFIRMADO`: a autorização segue viagens/entregas: gestor opera e consulta,
+administrador consulta e motorista vinculado/ativo acessa somente sua viagem.
+Conferente não acessa. Dados de entrega, viagem, pedido, motorista e usuário
+responsável são obtidos do servidor. Estado não concluído e histórico de
+conclusão ausente, duplicado ou sem responsável não geram comprovante.
+
+`PENDENTE DE DEFINIÇÃO`: revisão com Rennan do contrato aditivo da
+[ADR-024 proposta](decisions/ADR-024-comprovante-operacional-entrega.md), antes
+da integração. Não entram evidências, recebedor, foto, assinatura, localização,
+armazenamento externo ou novos estados.
+
 ## Histórico de status
 
 - Histórico deve registrar a entidade alterada, status anterior, novo status, usuário responsável quando houver e data/hora.

@@ -861,6 +861,64 @@ Erros específicos:
 ao carregamento. O erro retorna `truck_id` em `details`. Nenhum endpoint mantém
 uma implementação própria da regra.
 
+### Comprovante operacional — OC78
+
+`RECOMENDAÇÃO` implementada na branch da OC78, sujeita à revisão com Rennan
+antes da integração: contrato aditivo conforme a
+[ADR-024 proposta](decisions/ADR-024-comprovante-operacional-entrega.md).
+Os contratos anteriores de `TripRead`, `DeliveryRead` e status permanecem iguais.
+
+- `POST /deliveries/{id}/receipt`: registra a conclusão pelo ciclo existente e
+  retorna o comprovante. Corpo obrigatório `{}`, sem campos adicionais.
+- `GET /deliveries/{id}/receipt`: consulta o comprovante da entrega concluída,
+  inclusive pelo fluxo de status anterior. Não registra nova conclusão.
+
+Ambas retornam `200` com `DeliveryReceiptRead`:
+
+```json
+{
+  "id": "uuid-do-historico-da-conclusao",
+  "delivery_id": "uuid-da-entrega",
+  "trip_id": "uuid-da-viagem",
+  "order_id": "uuid-do-pedido",
+  "driver_id": "uuid-do-motorista-da-viagem",
+  "delivered_at": "2026-09-30T20:00:00Z",
+  "recorded_at": "2026-09-30T20:00:00Z",
+  "recorded_by": "uuid-do-usuario-que-concluiu"
+}
+```
+
+O servidor obtém todos os campos de registros persistidos; o cliente não pode
+informar entrega/viagem/pedido alternativos, responsável, horário, recebedor,
+foto, assinatura ou localização. `id` identifica o histórico, não um arquivo.
+`recorded_at` e `delivered_at` são horários distintos, normalizados para UTC.
+Não há referência de evidências, sequer URL mock ou alegação de upload.
+
+`POST` exige `LOGISTICS_MANAGER` ou `DRIVER` vinculado/ativo na própria viagem;
+`GET` admite também `ADMIN`. `CHECKER` é negado. Sessão em cookie é obrigatória;
+`POST` exige Origin aprovada e CSRF. Autorização por objeto ocorre antes de
+verificar estado/histórico. A primeira conclusão exige `IN_DELIVERY` e viagem
+`IN_ROUTE`, move somente seu pedido para `DELIVERED` e compartilha commit com
+os históricos. Repetição autorizada retorna o mesmo `id`, horários e responsável,
+sem novo histórico, inclusive após `FINISHED`.
+
+| Status | Código | Condição |
+| --- | --- | --- |
+| `401` | `AUTH_INVALID_TOKEN` | Sessão ausente/inválida. |
+| `403` | `AUTH_FORBIDDEN` | Perfil ou viagem sem autorização. |
+| `403` | `AUTH_ORIGIN_FORBIDDEN` / `AUTH_CSRF_INVALID` | Proteções atuais de escrita. |
+| `404` | `DELIVERY_NOT_FOUND` / `TRIP_NOT_FOUND` | Vínculo operacional inexistente. |
+| `409` | `DELIVERY_STATUS_TRANSITION_NOT_ALLOWED` | Registro exige transição atual permitida. |
+| `409` | `DELIVERY_TRIP_NOT_IN_ROUTE` | Primeira conclusão fora de viagem em rota. |
+| `409` | `TRIP_ORDER_NOT_ELIGIBLE` | Pedido fora de `IN_TRANSIT` na conclusão. |
+| `409` | `DELIVERY_RECEIPT_NOT_AVAILABLE` | Consulta de entrega ainda não concluída. |
+| `409` | `DELIVERY_RECEIPT_HISTORY_INVALID` | Conclusão sem histórico único e responsável. |
+| `422` | `VALIDATION_ERROR` | UUID inválido, corpo ausente ou campos adicionais. |
+
+`PENDENTE DE DEFINIÇÃO`: evidências reais, recebedor, correções e retenção exigem
+novo contrato aprovado; a base não cria campos reservados que indiquem recursos
+inexistentes. Não se adiciona requisito de comprovante para finalizar a viagem.
+
 ## Histórico de status
 
 `CONFIRMADO`: criação e mudanças efetivas de pedidos, planos, viagens e entregas
