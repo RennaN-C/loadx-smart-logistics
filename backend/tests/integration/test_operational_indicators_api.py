@@ -105,6 +105,7 @@ def test_operational_indicators_aggregates_real_domain_states(
                 .order_by(Delivery.sequence.asc())
             )
         )
+        assert in_route_deliveries
         in_route_deliveries[0].status = "IN_DELIVERY"
 
         finished_trip = db.get(Trip, uuid.UUID(trips[2]["id"]))

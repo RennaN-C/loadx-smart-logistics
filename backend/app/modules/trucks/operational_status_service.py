@@ -72,8 +72,8 @@ class TruckOperationalStatusService:
         )
 
         total = len(statuses)
-        active = sum(status.active for status in statuses)
-        available = sum(status.available for status in statuses)
+        active = sum(1 for status in statuses if status.active)
+        available = sum(1 for status in statuses if status.available)
 
         return TruckOperationalSummary(
             total=total,
@@ -82,7 +82,7 @@ class TruckOperationalStatusService:
             available=available,
             unavailable=total - available,
             with_operation_conflict=sum(
-                status.has_operation_conflict for status in statuses
+                1 for status in statuses if status.has_operation_conflict
             ),
         )
 
