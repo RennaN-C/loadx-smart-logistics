@@ -102,9 +102,14 @@ export function TruckShellMesh({ shell, hideCab = false }: TruckShellMeshProps) 
       {shell.doorFrame.map((box, index) => (
         <Panel key={`door-${index}`} box={box} color="#5f666f" roughness={0.5} metalness={0.5} />
       ))}
-      {shell.fenders.map((box, index) => (
-        <Panel key={`fender-${index}`} box={box} color="#3c4046" roughness={0.75} metalness={0.2} />
-      ))}
+      {/* Para-lama em z negativo fica sob a cabine, e o modelo importado já
+          traz o próprio arco de roda ali. O critério é a posição e não a ordem
+          do array: quem manda à frente da parede de carga é a cabine. */}
+      {shell.fenders
+        .filter((box) => !hideCab || box.position[2] >= 0)
+        .map((box, index) => (
+          <Panel key={`fender-${index}`} box={box} color="#3c4046" roughness={0.75} metalness={0.2} />
+        ))}
       {shell.sideSkirts.map((box, index) => (
         <Panel key={`skirt-${index}`} box={box} color="#d5d2ca" roughness={0.55} metalness={0.1} />
       ))}

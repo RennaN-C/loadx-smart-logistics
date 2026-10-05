@@ -47,22 +47,23 @@ export function cabPlacement(truck: TruckSnapshot): CabPlacement {
   const width = truck.widthCm * SCENE_SCALE;
   const height = truck.heightCm * SCENE_SCALE;
 
-  // A cabine acompanha a largura do caminhão; altura segue junto para o rosto
-  // do veículo não distorcer, que é o ângulo de onde mais se olha.
-  let uniform = width / MODEL_BODY_WIDTH;
+  // A largura NUNCA cede: a cabine é tão larga quanto o veículo, e qualquer
+  // desvio disso lê como caminhão de pescoço fino — foi o que apareceu quando
+  // a primeira versão encolhia os três eixos juntos para caber num baú baixo.
+  const horizontal = width / MODEL_BODY_WIDTH;
 
-  // Num baú baixo a cabine natural passaria do teto da carga e o caminhão
-  // ficaria com cara de cavalo sem carreta. Aqui ela encolhe até caber.
+  // A altura, sim, cede. Num baú baixo a cabine natural passaria do teto da
+  // carga; comprimida, ela lê como cabine de teto baixo, que é um caminhão que
+  // existe. Em medidas usuais (baú de 2,0 m a 2,6 m) a diferença fica em torno
+  // de 14% e não se percebe.
   const boxTop = DECK_HEIGHT + height;
-  if (CAB_BASE + MODEL_HEIGHT * uniform > boxTop) {
-    uniform = (boxTop - CAB_BASE) / MODEL_HEIGHT;
-  }
+  const vertical = Math.min(horizontal, (boxTop - CAB_BASE) / MODEL_HEIGHT);
 
   return {
-    // Só o comprimento é esticado à parte, para a cabine ocupar exatamente o
-    // vão que o chassi e o para-choque já reservavam. São 6% num caminhão de
+    // O comprimento é esticado à parte para a cabine ocupar exatamente o vão
+    // que o chassi e o para-choque já reservavam. São 6% num caminhão de
     // 2,4 m — o bastante para não sobrar fresta, pouco para se notar.
-    scale: [uniform, uniform, CAB_LENGTH / MODEL_LENGTH],
+    scale: [horizontal, vertical, CAB_LENGTH / MODEL_LENGTH],
     position: [width / 2, CAB_BASE, 0],
     rotationY: Math.PI,
   };

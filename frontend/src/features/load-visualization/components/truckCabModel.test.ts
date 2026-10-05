@@ -32,7 +32,7 @@ describe("cabPlacement", () => {
     expect(estreito.scale[0]).toBeCloseTo(2 / 3.25, 5);
   });
 
-  it("escala altura junto com largura: o rosto do caminhão não distorce", () => {
+  it("escala altura junto com largura quando a cabine cabe", () => {
     const { scale } = cabPlacement(truck());
 
     expect(scale[1]).toBeCloseTo(scale[0], 10);
@@ -44,17 +44,22 @@ describe("cabPlacement", () => {
     expect(MODEL_LENGTH * scale[2]).toBeCloseTo(CAB_LENGTH, 10);
   });
 
-  it("encolhe a cabine quando ela passaria do teto de um baú baixo", () => {
+  it("baixa a cabine quando ela passaria do teto de um baú baixo", () => {
     // Baú de 1,40 m: a cabine natural (2,4/3,25 × 4,391 = 3,24 m) ficaria mais
     // alta que a carga e o caminhão pareceria cavalo sem carreta.
-    const baixo = truck({ heightCm: 140 });
-    const { scale, position } = cabPlacement(baixo);
+    const { scale, position } = cabPlacement(truck({ heightCm: 140 }));
 
     const topoDaCabine = position[1] + MODEL_HEIGHT * scale[1];
-    const topoDoBau = DECK_HEIGHT + 1.4;
+    expect(topoDaCabine).toBeCloseTo(DECK_HEIGHT + 1.4, 10);
+  });
 
-    expect(topoDaCabine).toBeCloseTo(topoDoBau, 10);
-    expect(scale[1]).toBeLessThan(2.4 / 3.25);
+  it("ao baixar, a LARGURA não cede: cabine estreita lê como pescoço fino", () => {
+    // A primeira versão encolhia os três eixos juntos e a cabine ficava mais
+    // estreita que o caminhão, com as rodas sobrando para fora dela.
+    const { scale } = cabPlacement(truck({ heightCm: 140 }));
+
+    expect(scale[0]).toBeCloseTo(2.4 / 3.25, 10);
+    expect(scale[1]).toBeLessThan(scale[0]);
   });
 
   it("não encolhe quando a cabine já cabe: um baú alto não mexe na escala", () => {
