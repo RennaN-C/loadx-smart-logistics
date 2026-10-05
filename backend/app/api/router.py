@@ -9,6 +9,9 @@ from app.modules.load_planning.router import router as load_planning_router
 from app.modules.loading.router import router as loading_router
 from app.modules.messages.router import router as messages_router
 from app.modules.occurrences.router import router as occurrences_router
+from app.modules.operational_indicators.router import (
+    router as operational_indicators_router,
+)
 from app.modules.orders.router import router as orders_router
 from app.modules.products.router import router as products_router
 from app.modules.reports.router import router as reports_router
@@ -24,6 +27,7 @@ api_router.include_router(load_planning_router)
 api_router.include_router(loading_router)
 api_router.include_router(messages_router)
 api_router.include_router(occurrences_router)
+api_router.include_router(operational_indicators_router)
 api_router.include_router(orders_router)
 api_router.include_router(products_router)
 api_router.include_router(reports_router)

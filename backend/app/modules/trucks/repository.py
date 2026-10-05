@@ -30,6 +30,10 @@ class TruckRepository:
             total,
         )
 
+    def list_all(self) -> Sequence[Truck]:
+        statement = select(Truck).order_by(Truck.id.asc())
+        return self.db.scalars(statement).all()
+
     def get(self, truck_id: uuid.UUID) -> Truck | None:
         return self.db.get(Truck, truck_id)
 
