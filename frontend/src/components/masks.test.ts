@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { maskDocument, maskPhone, onlyDigits } from "./masks";
+import { maskCep, maskDocument, maskPhone, onlyDigits } from "./masks";
 
 describe("maskDocument", () => {
   it("formata o CPF do roteiro exatamente como pedido", () => {
@@ -73,5 +73,26 @@ describe("onlyDigits", () => {
   it("devolve o que viaja para a API: dígitos, sem pontuação", () => {
     expect(onlyDigits("123.456.789-01")).toBe("12345678901");
     expect(onlyDigits("(42) 99999-8888")).toBe("42999998888");
+  });
+});
+
+describe("maskCep", () => {
+  it("formata enquanto se digita", () => {
+    expect(maskCep("0")).toBe("0");
+    expect(maskCep("01234")).toBe("01234");
+    expect(maskCep("012345")).toBe("01234-5");
+    expect(maskCep("01234567")).toBe("01234-567");
+  });
+
+  it("preserva zero à esquerda, que é CEP de verdade", () => {
+    expect(maskCep("01001000")).toBe("01001-000");
+  });
+
+  it("descarta o que passa de 8 dígitos", () => {
+    expect(maskCep("012345678999")).toBe("01234-567");
+  });
+
+  it("aceita entrada já pontuada", () => {
+    expect(maskCep("01234-567")).toBe("01234-567");
   });
 });
