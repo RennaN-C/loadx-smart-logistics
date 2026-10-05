@@ -1,6 +1,7 @@
 # Feature: trucks
 
-Listagem e cadastro de caminhões (OC26). Consome `GET/POST/PATCH /trucks`.
+Listagem e cadastro de caminhões (OC26) e o painel de situação da frota (OC73).
+Consome `GET/POST/PATCH /trucks` e `GET /trucks/operational-status`.
 
 ## O que existe hoje
 
@@ -19,12 +20,41 @@ Listagem e cadastro de caminhões (OC26). Consome `GET/POST/PATCH /trucks`.
   Ficam em `public/` (e não em `src/assets/`) de propósito: assim uma imagem ausente não quebra o build.
   Devem ser PNG com fundo transparente e recortadas na silhueta do caminhão — o CSS as encaixa com
   `object-fit: contain` e `object-position: bottom`, para as duas vistas ficarem apoiadas no mesmo chão.
+- `pages/FleetStatusPage.tsx` (+ `.css`): painel de situação da frota em `/fleet` (OC73).
+- `components/fleetStatusLabels.ts`: como a situação do caminhão vira rótulo e tom.
 - `components/trucksErrorMessages.ts`: tradução dos códigos de erro do backend.
 - `api/trucksApi.ts`: mapeamento snake_case ↔ camelCase.
-- `hooks/useTrucks.ts`: carga paginada da lista, navegação e `refetch`.
+A carga paginada vem de `hooks/useResourceList` (compartilhado). O `useTrucks` desta feature
+deixou de existir quando o hook virou genérico, na OC28.
 
 `CONFIRMADO`: `max_weight_kg` é consumido e enviado como `number`, sem união com
 `string` ou coerção no adapter, conforme D06 e ADR-016.
+
+## Painel de situação da frota (OC73)
+
+`CONFIRMADO`: `GET /trucks/operational-status` devolve, por caminhão, `active`,
+`has_operation_conflict` e `available`. O `available` chega **calculado** —
+`fleet/service.py` o compõe a partir das regras de conflito da OC64, que
+pertencem ao módulo de caminhões.
+
+**A tela não refaz essa conta.** `active` e `has_operation_conflict` servem só
+para EXPLICAR por que um caminhão não está disponível. Repetir a fórmula aqui
+criaria uma segunda fonte de verdade, e no dia em que a regra mudar no backend a
+frota pareceria uma coisa neste painel e outra no planejamento. Há teste que
+passa uma combinação impossível pela regra de hoje (conflito **e** disponível) e
+exige que a tela obedeça.
+
+Os dois motivos podem valer ao mesmo tempo — caminhão inativo que ainda está
+numa operação —, e nesse caso os dois aparecem. Quando o backend recusa sem
+apontar motivo que esta tela conheça, ela diz "Indisponível" e para: inventar
+causa seria pior que não explicar.
+
+Os contadores valem para a **página carregada**, e a frase na tela diz isso. D12
+mantém filtro e agregação server-side fora do contrato, e "3 de 6 disponíveis"
+sem a ressalva passaria por total da frota.
+
+O item fica em **Operação** no menu, não em Cadastros: a situação muda sozinha
+durante o dia, o caminhão em si não.
 
 ## Permissões
 
