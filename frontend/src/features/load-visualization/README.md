@@ -108,6 +108,42 @@ da legenda — o agrupamento por entrega continua legível sem falsear o produto
 
 O controle **"Realista"** desliga tudo isso e devolve as cores chapadas, para comparar.
 
+## O cenário: céu, chão e enquadramento
+
+`CONFIRMADO`: o `Canvas` não tinha fundo próprio e deixava passar a cor da
+página. No tema escuro a cena virava um preto chapado com o caminhão parecendo
+recortado e colado. `Backdrop.tsx` desenha um gradiente vertical em canvas —
+zero byte de asset, mesma conta que desenhou as caixas em `cargoTexture.ts` —,
+um plano de chão e névoa na cor do horizonte.
+
+A névoa não é enfeite: sem ela a grade termina num corte reto no meio do nada.
+E o plano de chão é enorme de propósito, senão a BORDA dele aparece contra o
+céu como uma diagonal no alto do quadro.
+
+`CONFIRMADO`: a grade é centrada no VEÍCULO, não na origem. A origem é a parede
+frontal da carga: o baú cresce para z positivo e a cabine ocupa z negativo, de
+modo que uma grade centrada em zero nascia torta por um valor que mudava com o
+comprimento do baú. As células têm 1 metro — grade decorativa só enche o fundo,
+com passo conhecido ela diz tamanho.
+
+### Enquadramento
+
+`CONFIRMADO`: a distância da câmera não é mais um múltiplo fixo do tamanho do
+caminhão. `fitDistance` projeta os oito cantos da caixa do veículo nos eixos da
+TELA e pede a distância em que todos cabem, levando em conta a proporção real
+do canvas (`SceneCamera` lê essa proporção de dentro do `Canvas`, único lugar
+que a conhece).
+
+A conta é feita canto a canto porque a sobra do quadro cresce com a
+PROFUNDIDADE: um canto mais perto da câmera tem menos espaço. Medir tudo no
+plano do alvo é a aproximação ortográfica, e ela deixava o canto da frente da
+vista isométrica escapar do quadro — defeito pego por teste, não a olho.
+
+As vistas de fora miram o centro do VEÍCULO. Mirar a carga deixava o caminhão
+encostado numa borda, porque a cabine ocupa 2,3 m antes de z = 0. A traseira é
+a exceção: ela mira a carga e mede o recuo pela BOCA do baú, que é a face mais
+próxima.
+
 ## O que é desenhado em código, e o que vem de modelo
 
 A divisão é uma só, e vale a pena entender o critério: **vem de modelo o que já era constante; vem

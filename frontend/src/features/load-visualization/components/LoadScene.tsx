@@ -4,12 +4,14 @@ import { BackSide, BoxGeometry, type Group } from "three";
 
 import type { PlacedItem, TruckSnapshot } from "../../load-planning/types";
 import { cargoTextures, kraftVariant } from "./cargoTexture";
-import { CameraControls } from "./CameraControls";
 import { viewCamera, type ViewPreset } from "./cameraViews";
 import { deliveryColor, itemBox, truckBox } from "./sceneGeometry";
 import { classifyProduct } from "./productKind";
 import { TruckCabMesh } from "./TruckCabMesh";
 import { cabFrontWheels } from "./truckCabModel";
+import { Backdrop } from "./Backdrop";
+import { SceneCamera } from "./SceneCamera";
+import { vehicleBounds } from "./sceneBackdrop";
 import { TruckShellMesh } from "./TruckShellMesh";
 import { useTruckCabModel } from "../hooks/useTruckCabModel";
 import { truckShell } from "./truckShell";
@@ -199,6 +201,7 @@ export function LoadScene({
   // intactas dentro do grupo — nenhuma conversão a mais, nenhuma chance de
   // divergir do que o backend calculou.
   const deck = showTruck ? shell.deckHeight : 0;
+  const bounds = vehicleBounds(truck, showTruck);
   const camera = viewCamera(truck, view, deck);
 
   // A sombra precisa enquadrar o baú inteiro, senão só parte da carga projeta.
@@ -225,6 +228,8 @@ export function LoadScene({
       shadows={realistic}
       onPointerMissed={() => onSelect(null)}
     >
+      <Backdrop bounds={bounds} realistic={realistic} />
+
       {realistic ? (
         <>
           {/* Céu por cima, chão quente por baixo: dá volume às caixas sem
@@ -298,8 +303,7 @@ export function LoadScene({
         ))}
       </group>
 
-      <gridHelper args={[Math.max(box.size[0], box.size[2]) * 2.4, 14, "#a09b8f", "#d9d5c7"]} />
-      <CameraControls target={camera.target} position={camera.position} />
+      <SceneCamera truck={truck} view={view} deck={deck} />
     </Canvas>
   );
 }
