@@ -23,6 +23,13 @@ interface NavGroup {
 const OPERATION_READERS: readonly Role[] = ["ADMIN", "CHECKER", "LOGISTICS_MANAGER"];
 /** Clientes e motoristas são dados pessoais: CHECKER não lê (ver docs/04). */
 const PERSONAL_DATA_READERS: readonly Role[] = ["ADMIN", "LOGISTICS_MANAGER"];
+/**
+ * Visão consolidada da operação inteira (OC69). Mesmo conjunto de perfis que
+ * `PERSONAL_DATA_READERS`, mas por OUTRO motivo — aqui não é dado pessoal, é
+ * alcance: conferente e motorista enxergam a própria tarefa, não a operação
+ * toda. Constante separada para que mexer numa não mexa na outra sem querer.
+ */
+const OPERATION_OVERVIEW_READERS: readonly Role[] = ["ADMIN", "LOGISTICS_MANAGER"];
 
 const ALL_ROLES: readonly Role[] = ["ADMIN", "CHECKER", "LOGISTICS_MANAGER", "DRIVER"];
 
@@ -64,6 +71,14 @@ const NAV_GROUPS: readonly NavGroup[] = [
       { to: "/orders", label: "Pedidos", icon: "orders", roles: OPERATION_READERS },
       { to: "/planning", label: "Planejamento", icon: "planning", roles: OPERATION_READERS },
       { to: "/reports", label: "Indicadores", icon: "chart", roles: OPERATION_READERS },
+      // Mais restrito que Indicadores: `GET /operational-indicators` responde
+      // só a ADMIN e LOGISTICS_MANAGER.
+      {
+        to: "/operations",
+        label: "Painel operacional",
+        icon: "report",
+        roles: OPERATION_OVERVIEW_READERS,
+      },
     ],
   },
 ];

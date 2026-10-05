@@ -74,6 +74,28 @@ describe("AppLayout", () => {
     expect(screen.getByText("Operação")).toBeInTheDocument();
   });
 
+  it("o painel operacional não aparece para o conferente", () => {
+    // Não é dado pessoal: é ALCANCE. `GET /operational-indicators` responde só a
+    // ADMIN e LOGISTICS_MANAGER — conferente enxerga a própria tarefa, não a
+    // operação toda.
+    signedInAs("CHECKER");
+    renderLayout();
+
+    expect(screen.queryByRole("link", { name: "Painel operacional" })).not.toBeInTheDocument();
+    // mas os Indicadores de pedidos continuam, que ele lê
+    expect(screen.getByRole("link", { name: "Indicadores" })).toBeInTheDocument();
+  });
+
+  it("o gestor chega ao painel operacional", () => {
+    signedInAs("LOGISTICS_MANAGER");
+    renderLayout();
+
+    expect(screen.getByRole("link", { name: "Painel operacional" })).toHaveAttribute(
+      "href",
+      "/operations",
+    );
+  });
+
   it("esconde dados pessoais do conferente sem derrubar o grupo inteiro", () => {
     signedInAs("CHECKER");
     renderLayout();
