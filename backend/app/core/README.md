@@ -38,3 +38,10 @@ determinístico; não altera o plano persistido.
 `CONFIRMADO`: todas as respostas desabilitam cache, framing, MIME sniffing,
 referrer e permissões de câmera, geolocalização e microfone. Em `production`, o
 backend também emite HSTS; o terminador TLS precisa preservar esse header.
+
+## Observabilidade — OC77
+
+`CONFIRMADO`: `observability.py` registra eventos operacionais JSON, correlação
+por UUID, templates de rota e duração/status sem payload de requisição ou
+exceção. Configuração, eventos, diagnóstico e limites estão em
+`infra/production/README.md`; ADR-025 permanece proposta para revisão.
