@@ -60,13 +60,36 @@ function Tyre({ wheel }: { wheel: Wheel }) {
  *
  * As cores continuam neutras de propósito: quem tem que puxar o olho é a carga.
  */
-export function TruckShellMesh({ shell }: { shell: TruckShell }) {
+interface TruckShellMeshProps {
+  readonly shell: TruckShell;
+  /**
+   * Some com a cabine desenhada em código, junto do para-brisa, dos
+   * retrovisores e do para-choque: o modelo importado traz os quatro, e
+   * deixá-los acesos daria cabine dentro de cabine e para-choque dobrado.
+   *
+   * O resto do caminhão continua desenhado aqui, porque o resto É derivado das
+   * medidas cadastradas.
+   */
+  readonly hideCab?: boolean;
+}
+
+export function TruckShellMesh({ shell, hideCab = false }: TruckShellMeshProps) {
   return (
     <group>
       <Panel box={shell.chassis} color="#33373d" roughness={0.8} metalness={0.3} />
-      <Panel box={shell.cab} color="#eceae4" roughness={0.35} metalness={0.15} />
-      <Panel box={shell.windshield} color="#1d2733" opacity={0.62} roughness={0.08} metalness={0.2} />
-      <Panel box={shell.bumper} color="#4e535a" roughness={0.6} metalness={0.35} />
+      {hideCab ? null : (
+        <>
+          <Panel box={shell.cab} color="#eceae4" roughness={0.35} metalness={0.15} />
+          <Panel
+            box={shell.windshield}
+            color="#1d2733"
+            opacity={0.62}
+            roughness={0.08}
+            metalness={0.2}
+          />
+          <Panel box={shell.bumper} color="#4e535a" roughness={0.6} metalness={0.35} />
+        </>
+      )}
       <Panel box={shell.fuelTank} color="#aeb4bc" roughness={0.28} metalness={0.85} />
       <Panel box={shell.rearGuard} color="#4e535a" roughness={0.6} metalness={0.35} />
 
@@ -85,9 +108,11 @@ export function TruckShellMesh({ shell }: { shell: TruckShell }) {
       {shell.sideSkirts.map((box, index) => (
         <Panel key={`skirt-${index}`} box={box} color="#d5d2ca" roughness={0.55} metalness={0.1} />
       ))}
-      {shell.mirrors.map((box, index) => (
-        <Panel key={`mirror-${index}`} box={box} color="#2f343a" roughness={0.3} metalness={0.4} />
-      ))}
+      {hideCab
+        ? null
+        : shell.mirrors.map((box, index) => (
+            <Panel key={`mirror-${index}`} box={box} color="#2f343a" roughness={0.3} metalness={0.4} />
+          ))}
 
       {shell.wheels.map((wheel) => (
         <Tyre key={`${wheel.position[0]}-${wheel.position[2]}`} wheel={wheel} />
