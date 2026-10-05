@@ -882,12 +882,21 @@ input[type="checkbox"]:disabled {
 }
 
 /* A cor sozinha não serve a quem não distingue vermelho: o texto abaixo do
-   campo é o que de fato informa, e a borda só reforça onde olhar. */
-.entity-form [aria-invalid="true"] {
+   campo é o que de fato informa, e a borda só reforça onde olhar.
+
+   O seletor repete o elemento (`input`, `select`, `textarea`) porque a regra
+   base acima usa `.entity-form input[type="text"]`, que tem especificidade
+   maior que `.entity-form [aria-invalid="true"]` — sem o elemento aqui, o
+   `border` da regra base vencia e a borda nunca ficava vermelha. */
+.entity-form input[aria-invalid="true"],
+.entity-form select[aria-invalid="true"],
+.entity-form textarea[aria-invalid="true"] {
   border-color: var(--danger);
 }
 
-.entity-form [aria-invalid="true"]:focus-visible {
+.entity-form input[aria-invalid="true"]:focus-visible,
+.entity-form select[aria-invalid="true"]:focus-visible,
+.entity-form textarea[aria-invalid="true"]:focus-visible {
   border-color: var(--danger);
   box-shadow: 0 0 0 3px var(--danger-line);
 }
