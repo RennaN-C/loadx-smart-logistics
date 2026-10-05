@@ -2,13 +2,10 @@ import { useState, type FormEvent } from "react";
 
 import { AlertBanner } from "../../../components/AlertBanner";
 import { FormField } from "../../../components/FormField";
-import {
-  isCompleteDocument,
-  isCompletePhone,
-  maskDocument,
-  maskPhone,
-  onlyDigits,
-} from "../../../components/masks";
+import { fieldErrorProps } from "../../../components/fieldErrorProps";
+import { validateCnh, validateDriverDocument, validatePhone } from "../../../components/documentRules";
+import { maskDocument, maskPhone, onlyDigits } from "../../../components/masks";
+import { useFieldErrors } from "../../../hooks/useFieldErrors";
 import { ApiError } from "../../../types/api";
 import { createDriver, updateDriver } from "../api/driversApi";
 import type { Driver } from "../types";
@@ -16,6 +13,24 @@ import { mapDriverErrorToMessage } from "./driversErrorMessages";
 
 /** Categorias que dirigem caminhão; A é moto e B é carro de passeio. */
 const LICENSE_CATEGORIES = ["C", "D", "E", "AC", "AD", "AE"];
+
+/** A CNH não tem máscara oficial: são 11 dígitos, e é só isso que o backend aceita. */
+const CNH_LENGTH = 11;
+
+const NAME = "driver-name";
+const DOCUMENT = "driver-document";
+const PHONE = "driver-phone";
+const LICENSE = "driver-license";
+const CATEGORY = "driver-category";
+
+/** Campo do payload → controle da tela, para o 422 pousar no lugar certo. */
+const API_FIELD_TO_CONTROL: Readonly<Record<string, string>> = {
+  name: NAME,
+  document: DOCUMENT,
+  phone: PHONE,
+  license_number: LICENSE,
+  license_category: CATEGORY,
+};
 
 interface DriverFormProps {
   /** Ausente = criação. Presente = edição do motorista informado. */
@@ -30,25 +45,46 @@ export function DriverForm({ driver, onSaved, onCancel }: DriverFormProps) {
   // Mascarado ao entrar: o banco guarda dígitos, a tela mostra formatado.
   const [document, setDocument] = useState(maskDocument(driver?.document ?? ""));
   const [phone, setPhone] = useState(maskPhone(driver?.phone ?? ""));
-  const [licenseNumber, setLicenseNumber] = useState(driver?.licenseNumber ?? "");
+  const [licenseNumber, setLicenseNumber] = useState(onlyDigits(driver?.licenseNumber ?? ""));
   const [licenseCategory, setLicenseCategory] = useState(driver?.licenseCategory ?? "");
   const [active, setActive] = useState(driver?.active ?? true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const { errors, formRef, validateAll, revalidate, applyApiError, clearAll } =
+    useFieldErrors(API_FIELD_TO_CONTROL);
+
+  function handleDocumentChange(value: string) {
+    const masked = maskDocument(value);
+    setDocument(masked);
+    revalidate(DOCUMENT, () => validateDriverDocument(masked));
+  }
+
+  function handlePhoneChange(value: string) {
+    const masked = maskPhone(value);
+    setPhone(masked);
+    revalidate(PHONE, () => validatePhone(masked, { required: true }));
+  }
+
+  function handleLicenseChange(value: string) {
+    // O campo só aceita dígito porque o backend só aceita dígito: o padrão da
+    // OC63 para CNH é `[0-9]{11}`, sem máscara nenhuma. Antes daqui, quem
+    // digitasse "012.345.678-90" levava 422 sem entender por quê.
+    const digits = onlyDigits(value).slice(0, CNH_LENGTH);
+    setLicenseNumber(digits);
+    revalidate(LICENSE, () => validateCnh(digits));
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setErrorMessage(null);
 
-    // Motorista é sempre pessoa física, então aqui o documento é CPF.
-    if (!isCompleteDocument(document)) {
-      setErrorMessage("Documento incompleto. Informe um CPF com 11 dígitos.");
-      return;
-    }
-    if (!isCompletePhone(phone)) {
-      setErrorMessage("Telefone incompleto. Informe DDD e número, com 10 ou 11 dígitos.");
-      return;
-    }
+    const podeEnviar = validateAll({
+      // Motorista é sempre pessoa física, então aqui o documento é CPF.
+      [DOCUMENT]: () => validateDriverDocument(document),
+      [PHONE]: () => validatePhone(phone, { required: true }),
+      [LICENSE]: () => validateCnh(licenseNumber),
+    });
+    if (!podeEnviar) return;
 
     setIsSubmitting(true);
 
@@ -58,7 +94,7 @@ export function DriverForm({ driver, onSaved, onCancel }: DriverFormProps) {
       // string no backend, e misturar formatos deixaria duplicata passar.
       document: onlyDigits(document),
       phone: onlyDigits(phone),
-      licenseNumber: licenseNumber.trim(),
+      licenseNumber: onlyDigits(licenseNumber),
       licenseCategory: licenseCategory === "" ? null : licenseCategory,
     };
 
@@ -71,81 +107,107 @@ export function DriverForm({ driver, onSaved, onCancel }: DriverFormProps) {
       onSaved();
     } catch (error) {
       const apiError =
-        error instanceof ApiError ? error : new ApiError("UNKNOWN_ERROR", "Ocorreu um erro inesperado.");
-      setErrorMessage(mapDriverErrorToMessage(apiError));
+        error instanceof ApiError
+          ? error
+          : new ApiError("UNKNOWN_ERROR", "Ocorreu um erro inesperado.");
+      // Quando o 422 encontra os campos, a faixa do topo só repetiria a notícia.
+      if (!applyApiError(apiError)) {
+        clearAll();
+        setErrorMessage(mapDriverErrorToMessage(apiError));
+      }
       setIsSubmitting(false);
     }
   }
 
   return (
-    <form className="entity-form" onSubmit={handleSubmit}>
+    <form className="entity-form" ref={formRef} onSubmit={handleSubmit}>
       {errorMessage ? <AlertBanner>{errorMessage}</AlertBanner> : null}
 
       <fieldset disabled={isSubmitting} className="entity-form-fieldset">
         <div className="entity-form-row">
-          <FormField id="driver-name" label="NOME">
+          <FormField id={NAME} label="NOME" error={errors[NAME]}>
             <input
-              id="driver-name"
+              id={NAME}
               name="name"
               required
               maxLength={160}
               placeholder="Carlos Pereira"
               value={name}
               onChange={(event) => setName(event.target.value)}
+              {...fieldErrorProps(NAME, errors[NAME])}
             />
           </FormField>
           <FormField
-            id="driver-document" label="DOCUMENTO"
-            tooltip="CPF do motorista. Digite só os números: a formatação é aplicada sozinha." narrow>
+            id={DOCUMENT}
+            label="DOCUMENTO"
+            tooltip="CPF do motorista. Digite só os números: a formatação é aplicada sozinha."
+            error={errors[DOCUMENT]}
+            narrow
+          >
             <input
-              id="driver-document"
+              id={DOCUMENT}
               name="document"
               required
               inputMode="numeric"
               maxLength={14}
               placeholder="CPF"
               value={document}
-              onChange={(event) => setDocument(maskDocument(event.target.value))}
+              onChange={(event) => handleDocumentChange(event.target.value)}
+              {...fieldErrorProps(DOCUMENT, errors[DOCUMENT])}
             />
           </FormField>
         </div>
 
         <div className="entity-form-row">
           <FormField
-            id="driver-phone" label="TELEFONE"
-            tooltip="Com DDD. Aceita fixo, com 10 dígitos, e celular, com 11.">
+            id={PHONE}
+            label="TELEFONE"
+            tooltip="Com DDD. Aceita fixo, com 10 dígitos, e celular, com 11."
+            error={errors[PHONE]}
+          >
             <input
-              id="driver-phone"
+              id={PHONE}
               name="phone"
               required
               inputMode="tel"
               maxLength={15}
               placeholder="(11) 90000-0000"
               value={phone}
-              onChange={(event) => setPhone(maskPhone(event.target.value))}
+              onChange={(event) => handlePhoneChange(event.target.value)}
+              {...fieldErrorProps(PHONE, errors[PHONE])}
             />
           </FormField>
           <FormField
-            id="driver-license" label="NÚMERO DA CNH"
-            tooltip="Número de registro impresso na carteira, com 11 dígitos. Não é o CPF.">
+            id={LICENSE}
+            label="NÚMERO DA CNH"
+            tooltip="Número de registro impresso na carteira, com 11 dígitos. Não é o CPF."
+            error={errors[LICENSE]}
+          >
             <input
-              id="driver-license"
+              id={LICENSE}
               name="licenseNumber"
               required
-              maxLength={32}
+              inputMode="numeric"
+              maxLength={CNH_LENGTH}
               placeholder="01234567890"
               value={licenseNumber}
-              onChange={(event) => setLicenseNumber(event.target.value)}
+              onChange={(event) => handleLicenseChange(event.target.value)}
+              {...fieldErrorProps(LICENSE, errors[LICENSE])}
             />
           </FormField>
           <FormField
-            id="driver-category" label="CATEGORIA (OPCIONAL)"
-            tooltip="Categoria da CNH: C, D ou E habilitam carga. Deixe em branco se não souber." narrow>
+            id={CATEGORY}
+            label="CATEGORIA (OPCIONAL)"
+            tooltip="Categoria da CNH: C, D ou E habilitam carga. Deixe em branco se não souber."
+            error={errors[CATEGORY]}
+            narrow
+          >
             <select
-              id="driver-category"
+              id={CATEGORY}
               name="licenseCategory"
               value={licenseCategory}
               onChange={(event) => setLicenseCategory(event.target.value)}
+              {...fieldErrorProps(CATEGORY, errors[CATEGORY])}
             >
               <option value="">Não informada</option>
               {LICENSE_CATEGORIES.map((category) => (
