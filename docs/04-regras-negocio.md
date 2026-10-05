@@ -627,3 +627,11 @@ domínio. Operação rejeitada e repetição idempotente não geram notificaçã
 - `CONFIRMADO`: relatório não recalcula nem altera plano de carga.
 
 `PENDENTE DE DEFINIÇÃO`: layout final do PDF e campos obrigatórios para assinatura/conferência.
+
+## Conferência por código — OC76
+
+`CONFIRMADO`: cada código identifica o UUID de um item de checklist, sem
+ambiguidade entre volumes do mesmo produto. Somente `CHECKER` confirma em sessão
+`IN_PROGRESS`. Item de outra sessão, inexistente ou já conferido é rejeitado sem
+alteração; uma leitura não finaliza a sessão nem modifica o plano. O contrato
+está em `docs/05-contratos-api.md`; a matriz OC66 permanece vigente.
