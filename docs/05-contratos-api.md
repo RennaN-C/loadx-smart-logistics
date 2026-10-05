@@ -740,6 +740,36 @@ TRUCK_OPERATION_CONFLICT` quando o caminhão do plano já estiver reservado por
 outra operação ativa. `details` identifica `truck_id`. A validação ocorre no
 backend e é protegida pelo bloqueio transacional do caminhão.
 
+### Conferência por código — OC76
+
+`CONFIRMADO`: `POST /loading-sessions/{session_id}/scan` recebe
+`{"code":"loadx:loading-item:<UUID canônico minúsculo do item do checklist>"}`.
+O prefixo é literal, sem espaços; o código possui 55 caracteres. `items[].code`
+nas respostas de criação, leitura e atualização fornece o mesmo identificador
+para OC75, sem consulta direta ao banco. A identidade é `loading_session_items.id`,
+não código do produto nem índice de volume. Não há etiqueta física ou imagem.
+
+`CONFIRMADO`: somente `CHECKER` pode conferir por código, com sessão autenticada,
+origem permitida e token CSRF, como na OC66. Código não é credencial. O endpoint
+retorna `200 LoadingSessionRead`, com apenas o item identificado em `CHECKED`.
+Sessão deve estar `IN_PROGRESS`; o bloqueio transacional de sessão/item é o mesmo
+da conferência manual. Finalização continua exigindo todos os itens conferidos.
+
+| Situação | HTTP / código |
+|---|---|
+| Formato inválido ou campo extra | `422 VALIDATION_ERROR` |
+| Sessão inexistente | `404 LOADING_SESSION_NOT_FOUND` |
+| Item inexistente | `404 LOADING_ITEM_NOT_FOUND` |
+| Item pertence a outra sessão | `409 LOADING_ITEM_SESSION_MISMATCH` |
+| Item já conferido, inclusive por operação manual | `409 LOADING_ITEM_ALREADY_CHECKED` |
+| Sessão `PENDING` ou `FINISHED` | `409 LOADING_STATUS_TRANSITION_NOT_ALLOWED` |
+| Sem autenticação / perfil negado | `401 AUTH_INVALID_TOKEN` / `403 AUTH_FORBIDDEN` |
+
+`CONFIRMADO`: erros não alteram o checklist. Leitura repetida não confirma outro
+volume; a conferência manual mantém sua idempotência anterior. Duas leituras do
+mesmo item são serializadas pelo bloqueio da sessão: uma confirma e a outra
+recebe conflito. UUIDs de sessão/item são imutáveis; não há migration.
+
 ## Viagens e entregas
 
 `CONFIRMADO` (OC65): `POST /trips` e a transição efetiva para `IN_ROUTE` em

@@ -1,10 +1,31 @@
 import uuid
 from datetime import UTC, datetime
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator
 
 LOADING_SESSION_STATUS_VALUES = ("PENDING", "IN_PROGRESS", "FINISHED")
 LOADING_ITEM_STATUS_VALUES = ("PENDING", "CHECKED")
+LOADING_CODE_PREFIX = "loadx:loading-item:"
+
+
+class LoadingItemScan(BaseModel):
+    code: str = Field(min_length=55, max_length=55)
+
+    model_config = ConfigDict(extra="forbid")
+
+    @field_validator("code")
+    @classmethod
+    def validate_code(cls, value: str) -> str:
+        if not value.startswith(LOADING_CODE_PREFIX):
+            raise ValueError("unsupported loading code format")
+        item_id = uuid.UUID(value[len(LOADING_CODE_PREFIX) :])
+        if value != f"{LOADING_CODE_PREFIX}{item_id}":
+            raise ValueError("loading code must contain a canonical UUID")
+        return value
+
+    @property
+    def item_id(self) -> uuid.UUID:
+        return uuid.UUID(self.code[len(LOADING_CODE_PREFIX) :])
 
 
 class LoadingSessionCreate(BaseModel):
@@ -47,6 +68,11 @@ class LoadingSessionItemRead(BaseModel):
     status: str
 
     model_config = ConfigDict(from_attributes=True)
+
+    @computed_field
+    @property
+    def code(self) -> str:
+        return f"{LOADING_CODE_PREFIX}{self.id}"
 
 
 class LoadingSessionRead(BaseModel):

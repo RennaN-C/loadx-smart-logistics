@@ -262,6 +262,14 @@ EXPECTED_ERROR_STATUSES = {
         "422",
         "500",
     },
+    ("/api/v1/loading-sessions/{session_id}/scan", "post"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
     ("/api/v1/loading-sessions/{session_id}/items/{item_id}", "patch"): {
         "401",
         "403",
@@ -311,6 +319,22 @@ PUBLIC_OPERATIONS = frozenset(
 )
 PROTECTED_OPERATIONS = frozenset(EXPECTED_ERROR_STATUSES).difference(PUBLIC_OPERATIONS)
 HTTP_METHODS = frozenset({"get", "post", "patch", "put", "delete"})
+
+
+def test_openapi_documents_loading_scan_contract() -> None:
+    schema = get_openapi_schema()
+    operation = schema["paths"]["/api/v1/loading-sessions/{session_id}/scan"]["post"]
+    assert operation["requestBody"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/LoadingItemScan"
+    }
+    assert operation["responses"]["200"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/LoadingSessionRead"
+    }
+    components = schema["components"]["schemas"]
+    assert components["LoadingItemScan"]["additionalProperties"] is False
+    code_schema = components["LoadingItemScan"]["properties"]["code"]
+    assert code_schema["minLength"] == code_schema["maxLength"] == 55
+    assert components["LoadingSessionItemRead"]["properties"]["code"]["readOnly"]
 
 
 def get_openapi_schema() -> dict[str, Any]:
