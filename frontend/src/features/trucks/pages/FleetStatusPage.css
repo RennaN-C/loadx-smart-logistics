@@ -1,0 +1,63 @@
+/* A casca da tela (.entity-*) vem de app/styles.css. Aqui só o cartão compacto
+   do painel de frota, que não é o card de cadastro: aquele traz a ilustração
+   com cotas, e `GET /trucks/operational-status` nem devolve as dimensões. */
+
+.fleet-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  /* `auto-fill` com mínimo estreito: a frota é lida de relance, e cartão largo
+     obrigaria a varrer a tela na horizontal para contar os disponíveis. Os
+     230px saíram de medir, não de chutar — abaixo disso "Indisponível" não cabe
+     na mesma linha da placa e os cartões sem disponibilidade ficam mais altos
+     que os outros, justamente os que deveriam sumir no fundo. */
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 12px;
+}
+
+.fleet-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Indisponível recua para o fundo da página em vez de ganhar cor própria: quem
+   abre este painel está procurando o que PODE usar, e dois blocos coloridos
+   competindo fariam a varredura ficar mais lenta, não mais rápida. */
+.fleet-card-off {
+  background: var(--paper);
+}
+
+.fleet-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.fleet-card-plate {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  letter-spacing: 0.06em;
+  margin: 0;
+}
+
+.fleet-card-model {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin: 0;
+}
+
+.fleet-card-reason {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin: 0;
+  padding-top: 6px;
+  border-top: 1px solid var(--line);
+}

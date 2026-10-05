@@ -25,7 +25,8 @@ export type IconName =
   | "calendar"
   | "priority"
   | "chart"
-  | "report";
+  | "report"
+  | "gauge";
 
 const PATHS: Record<IconName, ReactNode> = {
   home: (
@@ -115,6 +116,15 @@ const PATHS: Record<IconName, ReactNode> = {
     <>
       <path d="M5.6 21V3.6" />
       <path d="M5.6 4.4h12l-2.6 4.1 2.6 4.1h-12z" />
+    </>
+  ),
+  // Ponteiro de mostrador: situação AGORA. O caminhão já nomeia o cadastro, e
+  // dois ícones iguais na barra lateral fariam os dois itens parecerem o mesmo.
+  gauge: (
+    <>
+      <path d="M3.6 17.4a9 9 0 1 1 16.8 0" />
+      <path d="M12 17.4 16.2 10.8" />
+      <circle cx="12" cy="17.4" r="1.6" />
     </>
   ),
 };
