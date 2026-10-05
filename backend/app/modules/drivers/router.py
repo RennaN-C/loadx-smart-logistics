@@ -10,7 +10,9 @@ from app.core.responses import error_response, openapi_error_responses
 from app.database.session import get_db
 from app.modules.auth.dependencies import require_roles
 from app.modules.drivers.models import Driver
-from app.modules.drivers.operational_status_service import DriverOperationalStatusService
+from app.modules.drivers.operational_status_service import (
+    DriverOperationalStatusService,
+)
 from app.modules.drivers.schemas import (
     DriverCreate,
     DriverListRead,
