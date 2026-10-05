@@ -23,6 +23,17 @@ O `message` de dentro do detalhe vem em inglês, do Pydantic. Por isso a traduç
 caminho sem ele, senão cada posição da lista exigiria uma entrada própria no mapa. Campo sem rótulo
 cai no nome cru, que ainda é melhor que nada.
 
+`validationFieldMessages` dá o mesmo 422 separado POR CAMPO, para o texto ficar
+embaixo do input (OC71). A diferença de `validationMessage` é o rótulo: embaixo
+do campo ele já está no `label` ao lado, e repeti-lo daria "Documento documento
+é inválido".
+
+`CONFIRMADO`: o Pydantic prefixa com `Value error, ` a mensagem vinda de um
+validador nosso, e `type` é `value_error` só nesse caso — restrição nativa usa
+outro tipo e responde em inglês. É daí que sai a decisão entre mostrar o texto
+do backend e traduzir pelo tipo. O prefixo era mostrado ao usuário até a OC71:
+a faixa dizia "Documento é inválido (Value error, Informe um CPF válido.)".
+
 `apiErrorMessages.ts` é o último degrau, comum a todas as telas: primeiro o 422 detalhado, depois os
 códigos que não pertencem a domínio nenhum (rede, sessão, permissão, excesso de requisições), por
 último o texto que o backend mandou. Cada feature continua dona dos códigos dela — quem sabe

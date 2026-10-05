@@ -1,11 +1,28 @@
 import uuid
 from collections.abc import Sequence
+from dataclasses import dataclass
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.modules.deliveries.models import Delivery, Trip
 from app.modules.deliveries.repository import TripRepository
+
+
+@dataclass(frozen=True, slots=True)
+class TripStatusCounts:
+    total: int
+    scheduled: int
+    in_route: int
+    finished: int
+
+
+@dataclass(frozen=True, slots=True)
+class DeliveryStatusCounts:
+    total: int
+    pending: int
+    in_delivery: int
+    delivered: int
 
 
 class DeliveryReferenceService:
@@ -16,6 +33,24 @@ class DeliveryReferenceService:
 
     def get_delivery(self, delivery_id: uuid.UUID) -> Delivery | None:
         return self.db.get(Delivery, delivery_id)
+
+    def get_trip_status_counts(self) -> TripStatusCounts:
+        counts = TripRepository(self.db).count_trips_by_status()
+        return TripStatusCounts(
+            total=sum(counts.values()),
+            scheduled=counts.get("SCHEDULED", 0),
+            in_route=counts.get("IN_ROUTE", 0),
+            finished=counts.get("FINISHED", 0),
+        )
+
+    def get_delivery_status_counts(self) -> DeliveryStatusCounts:
+        counts = TripRepository(self.db).count_deliveries_by_status()
+        return DeliveryStatusCounts(
+            total=sum(counts.values()),
+            pending=counts.get("PENDING", 0),
+            in_delivery=counts.get("IN_DELIVERY", 0),
+            delivered=counts.get("DELIVERED", 0),
+        )
 
     def get_active_trip_for_driver(self, driver_id: uuid.UUID) -> Trip | None:
         trips = self.list_active_trips_for_driver(driver_id)

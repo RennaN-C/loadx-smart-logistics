@@ -31,3 +31,23 @@ export interface CustomerInput {
 }
 
 export type CustomerUpdateInput = Partial<CustomerInput>;
+
+/**
+ * Endereço devolvido pela consulta de CEP (OC62).
+ *
+ * `CONFIRMADO`: a resposta de `GET /customers/cep/{cep}` é o próprio
+ * `ViaCEPAddress`, SEM envelope. Um CEP municipal pode não ter rua, bairro ou
+ * complemento — por isso os três são anuláveis. Cidade e UF são obrigatórios.
+ *
+ * Não existe campo `cep` em `Customer`: isto não é persistido, é só auxílio de
+ * preenchimento.
+ */
+export interface CepAddress {
+  /** Oito dígitos, sem hífen, igual ao que foi consultado. */
+  cep: string;
+  street: string | null;
+  neighborhood: string | null;
+  complement: string | null;
+  city: string;
+  state: string;
+}

@@ -872,6 +872,62 @@ input[type="checkbox"]:disabled {
   margin: 0;
 }
 
+/* Mesma métrica da dica: o texto de erro ocupa a linha que a dica ocuparia, e
+   o campo não pula quando um vira o outro. */
+.entity-form-error {
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--danger);
+  margin: 0;
+}
+
+/* A cor sozinha não serve a quem não distingue vermelho: o texto abaixo do
+   campo é o que de fato informa, e a borda só reforça onde olhar.
+
+   O seletor repete o elemento (`input`, `select`, `textarea`) porque a regra
+   base acima usa `.entity-form input[type="text"]`, que tem especificidade
+   maior que `.entity-form [aria-invalid="true"]` — sem o elemento aqui, o
+   `border` da regra base vencia e a borda nunca ficava vermelha. */
+.entity-form input[aria-invalid="true"],
+.entity-form select[aria-invalid="true"],
+.entity-form textarea[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+
+.entity-form input[aria-invalid="true"]:focus-visible,
+.entity-form select[aria-invalid="true"]:focus-visible,
+.entity-form textarea[aria-invalid="true"]:focus-visible {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 3px var(--danger-line);
+}
+
+/* O campo do CEP divide a largura com o botão de buscar, então os 180px de
+   `.entity-form-field-narrow` não servem: o input ficava com uns 95px e
+   truncava "01234-567" no último dígito. */
+.entity-form-field:has(.cep-lookup) {
+  flex: 0 1 260px;
+}
+
+.cep-lookup {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* `min-width` em `ch` porque o botão muda de largura ao virar "Buscando…": sem
+   um piso, o input encolhia até sobrar um dígito à vista. O `min-width: 0` que
+   normalmente se usa aqui serve para deixar encolher — é o contrário do que
+   este campo precisa. */
+.cep-lookup input {
+  flex: 1;
+  min-width: 10ch;
+}
+
+.cep-lookup .btn-secondary {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
 .entity-form-derived {
   display: flex;
   justify-content: flex-end;

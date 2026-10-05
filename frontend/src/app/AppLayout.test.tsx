@@ -74,15 +74,36 @@ describe("AppLayout", () => {
     expect(screen.getByText("Operação")).toBeInTheDocument();
   });
 
+  it("põe a Frota na Operação, e não nos Cadastros", () => {
+    // Situação da frota muda sozinha durante o dia: é acompanhamento, não
+    // cadastro. O caminhão em si continua em Cadastros.
+    signedInAs("ADMIN");
+    renderLayout();
+
+    const grupos = within(menu()).getAllByRole("list");
+    expect(within(grupos[2]).getByRole("link", { name: "Frota" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Frota" })).toHaveAttribute("href", "/fleet");
+  });
+
+  it("o conferente vê a situação da frota, que ele também lê no backend", () => {
+    signedInAs("CHECKER");
+    renderLayout();
+
+    expect(screen.getByRole("link", { name: "Frota" })).toBeInTheDocument();
+  });
+
+  it("o motorista não vê a frota: o backend responderia 403", () => {
+    signedInAs("DRIVER");
+    renderLayout();
+
+    expect(screen.queryByRole("link", { name: "Frota" })).not.toBeInTheDocument();
+  });
+
   it("o painel operacional não aparece para o conferente", () => {
-    // Não é dado pessoal: é ALCANCE. `GET /operational-indicators` responde só a
-    // ADMIN e LOGISTICS_MANAGER — conferente enxerga a própria tarefa, não a
-    // operação toda.
     signedInAs("CHECKER");
     renderLayout();
 
     expect(screen.queryByRole("link", { name: "Painel operacional" })).not.toBeInTheDocument();
-    // mas os Indicadores de pedidos continuam, que ele lê
     expect(screen.getByRole("link", { name: "Indicadores" })).toBeInTheDocument();
   });
 

@@ -11,6 +11,7 @@ import { OperationsDashboardPage } from "../features/operations/pages/Operations
 import { OrderListPage } from "../features/orders/pages/OrderListPage";
 import { ProductListPage } from "../features/products/pages/ProductListPage";
 import { ReportsPage } from "../features/reports/pages/ReportsPage";
+import { FleetStatusPage } from "../features/trucks/pages/FleetStatusPage";
 import { TruckListPage } from "../features/trucks/pages/TruckListPage";
 import { AppLayout } from "./AppLayout";
 
@@ -24,6 +25,7 @@ export function App() {
             <Route element={<AppLayout />}>
               <Route index element={<DashboardPage />} />
               <Route path="trucks" element={<TruckListPage />} />
+              <Route path="fleet" element={<FleetStatusPage />} />
               <Route path="products" element={<ProductListPage />} />
               <Route path="contacts" element={<ContactsPage />} />
               <Route path="orders" element={<OrderListPage />} />
