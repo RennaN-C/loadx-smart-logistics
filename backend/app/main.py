@@ -1,4 +1,5 @@
 import logging
+from contextlib import asynccontextmanager
 from typing import Annotated, Literal
 
 from fastapi import Depends, FastAPI, Request
@@ -9,10 +10,14 @@ from app.api.router import api_router
 from app.core.config import Settings, settings
 from app.core.exceptions import ApiError, register_exception_handlers
 from app.core.http_security import OriginValidationMiddleware, SecurityHeadersMiddleware
+from app.core.observability import (
+    OperationalContextMiddleware,
+    OperationalEvent,
+    configure_observability,
+    emit_operational_event,
+)
 from app.core.responses import openapi_error_responses
 from app.database.readiness import DatabaseReadinessChecker, ReadinessCheckError
-
-logger = logging.getLogger(__name__)
 
 
 class ReadinessResponse(BaseModel):
@@ -27,6 +32,16 @@ def get_readiness_checker(request: Request) -> DatabaseReadinessChecker:
 
 def create_app(app_settings: Settings | None = None) -> FastAPI:
     current_settings = app_settings or settings
+    configure_observability(current_settings.operational_log_level)
+
+    @asynccontextmanager
+    async def lifespan(_application: FastAPI):
+        emit_operational_event(OperationalEvent.APP_STARTED)
+        try:
+            yield
+        finally:
+            emit_operational_event(OperationalEvent.APP_STOPPED)
+
     expose_api_docs = current_settings.app_env == "local"
     application = FastAPI(
         title="LoadX API",
@@ -34,6 +49,7 @@ def create_app(app_settings: Settings | None = None) -> FastAPI:
         docs_url="/docs" if expose_api_docs else None,
         redoc_url="/redoc" if expose_api_docs else None,
         openapi_url="/openapi.json" if expose_api_docs else None,
+        lifespan=lifespan,
     )
     register_exception_handlers(application)
     application.state.readiness_checker = DatabaseReadinessChecker(
@@ -58,6 +74,10 @@ def create_app(app_settings: Settings | None = None) -> FastAPI:
     )
 
     application.include_router(api_router, prefix="/api/v1")
+    application.add_middleware(
+        OperationalContextMiddleware,
+        log_requests=current_settings.operational_request_logs,
+    )
 
     @application.get(
         "/health",
@@ -82,7 +102,12 @@ def create_app(app_settings: Settings | None = None) -> FastAPI:
         try:
             checker.check()
         except ReadinessCheckError as error:
-            logger.warning("Readiness check failed: reason=%s", error.reason.value)
+            emit_operational_event(
+                OperationalEvent.READINESS_FAILED,
+                level=logging.WARNING,
+                alert=True,
+                reason=error.reason.value,
+            )
             raise ApiError(
                 status_code=503,
                 code="SERVICE_NOT_READY",

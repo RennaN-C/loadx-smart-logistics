@@ -5,9 +5,8 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
+from app.core.observability import OperationalEvent, emit_operational_event, safe_route
 from app.core.responses import error_response
-
-logger = logging.getLogger(__name__)
 
 
 class ApiError(Exception):
@@ -75,14 +74,19 @@ def register_exception_handlers(app: FastAPI) -> None:
         request: Request,
         error: Exception,
     ) -> JSONResponse:
-        logger.error(
-            "Unhandled application error: method=%s path=%s exception_type=%s",
-            request.method,
-            request.url.path,
-            type(error).__name__,
+        request_id = getattr(request.state, "request_id", None)
+        emit_operational_event(
+            OperationalEvent.HTTP_REQUEST_FAILED,
+            level=logging.ERROR,
+            alert=True,
+            request_id=request_id,
+            route=safe_route(request.scope),
+            exception_type=type(error).__name__,
+            status_code=500,
         )
         return error_response(
             status_code=500,
             code="INTERNAL_SERVER_ERROR",
             message="Ocorreu um erro interno inesperado.",
+            headers={"X-Request-ID": request_id} if request_id else None,
         )
