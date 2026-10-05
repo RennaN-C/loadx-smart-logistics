@@ -29,6 +29,15 @@ e deixa o efeito carregar — não existem duas fontes de verdade para o mesmo p
   oferecer o que voltaria erro. Aprovar move os pedidos para `PLANNED`.
 - **Plano com volume recusado não pode ser aprovado** (`LOAD_PLAN_HAS_REJECTIONS`). O botão fica
   desabilitado e a tela explica os caminhos: tirar um pedido, usar caminhão maior ou revisar o produto.
+- **Caminhão em operação aparece marcado, mas continua selecionável** (OC72). A diferença não é
+  estética: `create_load_plan` recusa caminhão INATIVO e só isso — conflito de operação não impede o
+  plano. Travar a opção aqui seria o frontend inventando regra que o backend não tem. O aviso vem de
+  `GET /trucks/operational-status`, e o conflito **não é calculado nesta tela**.
+
+  Por isso são duas consultas: `GET /trucks` traz as medidas internas, que é o que ajuda a escolher o
+  baú, e `operational-status` traz a disponibilidade da OC67 sem medida nenhuma. Caminhão cuja
+  situação não chegou aparece sem aviso — esconder a opção tiraria do usuário um caminhão que a API
+  aceitaria.
 - Os 7 motivos de recusa viram texto que diz o que fazer, não o código cru — é por ele que o usuário
   decide o próximo passo.
 

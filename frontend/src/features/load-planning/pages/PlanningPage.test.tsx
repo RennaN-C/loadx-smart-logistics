@@ -7,7 +7,7 @@ import { ApiError } from "../../../types/api";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { listCustomers } from "../../customers/api/customersApi";
 import { listOrders } from "../../orders/api/ordersApi";
-import { listTrucks } from "../../trucks/api/trucksApi";
+import { listTruckOperationalStatus, listTrucks } from "../../trucks/api/trucksApi";
 import { approveLoadPlan, createLoadPlan, getLoadPlan, recalculateLoadPlan } from "../api/loadPlansApi";
 import type { LoadPlan, LoadPlanItem } from "../types";
 import { PlanningPage } from "./PlanningPage";
@@ -146,6 +146,28 @@ describe("PlanningPage", () => {
         },
       ]),
     );
+    // Situação operacional (OC67/OC72): contrato separado de `GET /trucks`, que
+    // não traz disponibilidade. Por padrão os dois caminhões estão livres.
+    vi.mocked(listTruckOperationalStatus).mockResolvedValue(
+      makePage([
+        {
+          id: "t1",
+          plate: "ABC1D23",
+          model: "Baú médio",
+          active: true,
+          hasOperationConflict: false,
+          available: true,
+        },
+        {
+          id: "t2",
+          plate: "OLD0X00",
+          model: "Baú inativo",
+          active: false,
+          hasOperationConflict: false,
+          available: false,
+        },
+      ]),
+    );
     vi.mocked(listOrders).mockResolvedValue(
       makePage([
         {
@@ -192,6 +214,78 @@ describe("PlanningPage", () => {
 
     expect(screen.getByText("Distribuidora Aurora")).toBeInTheDocument();
     expect(screen.getAllByRole("checkbox")).toHaveLength(1); // só o READY
+  });
+
+  it("avisa qual caminhão já está em operação (OC72)", async () => {
+    vi.mocked(listTruckOperationalStatus).mockResolvedValue(
+      makePage([
+        {
+          id: "t1",
+          plate: "ABC1D23",
+          model: "Baú médio",
+          active: true,
+          hasOperationConflict: true,
+          available: false,
+        },
+      ]),
+    );
+
+    renderAt("/planning");
+    await screen.findByLabelText("CAMINHÃO");
+
+    const opcao = [...screen.getByLabelText("CAMINHÃO").querySelectorAll("option")].find(
+      (o) => o.value === "t1",
+    );
+    expect(opcao?.textContent).toContain("em operação");
+  });
+
+  it("não bloqueia o caminhão em operação, porque o backend o aceita", async () => {
+    // `create_load_plan` recusa caminhão INATIVO e só. Conflito de operação não
+    // impede o plano — travar a opção aqui seria o frontend inventando regra.
+    vi.mocked(listTruckOperationalStatus).mockResolvedValue(
+      makePage([
+        {
+          id: "t1",
+          plate: "ABC1D23",
+          model: "Baú médio",
+          active: true,
+          hasOperationConflict: true,
+          available: false,
+        },
+      ]),
+    );
+
+    renderAt("/planning");
+    await screen.findByLabelText("CAMINHÃO");
+
+    const opcao = [...screen.getByLabelText("CAMINHÃO").querySelectorAll("option")].find(
+      (o) => o.value === "t1",
+    );
+    expect(opcao).not.toBeDisabled();
+  });
+
+  it("caminhão livre aparece sem aviso nenhum", async () => {
+    renderAt("/planning");
+    await screen.findByLabelText("CAMINHÃO");
+
+    const opcao = [...screen.getByLabelText("CAMINHÃO").querySelectorAll("option")].find(
+      (o) => o.value === "t1",
+    );
+    expect(opcao?.textContent).not.toContain("em operação");
+  });
+
+  it("caminhão sem situação conhecida continua selecionável, sem aviso", async () => {
+    // A consulta de situação pode falhar ou não trazer todos. Esconder a opção
+    // tiraria do usuário um caminhão que o backend aceitaria.
+    vi.mocked(listTruckOperationalStatus).mockResolvedValue(makePage([]));
+
+    renderAt("/planning");
+    await screen.findByLabelText("CAMINHÃO");
+
+    const opcoes = [...screen.getByLabelText("CAMINHÃO").querySelectorAll("option")];
+    const t1 = opcoes.find((o) => o.value === "t1");
+    expect(t1).toBeDefined();
+    expect(t1?.textContent).not.toContain("em operação");
   });
 
   it("só habilita o cálculo com caminhão e ao menos um pedido", async () => {
