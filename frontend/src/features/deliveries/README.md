@@ -46,6 +46,28 @@ filtro aqui seria duplicar no cliente uma regra de acesso que já é aplicada on
 painel dele abria com contadores que respondiam 403. Agora a tela inicial do motorista lista as
 viagens dele, com carregando, vazio, erro e link para cada uma.
 
+## Disponibilidade do motorista (OC72) — BLOQUEADO
+
+`CreateTripAction` oferece apenas motoristas `active`. A OC72 pede que a seleção
+também mostre quem já está comprometido com outra operação, como o planejamento
+passou a fazer com os caminhões.
+
+`RISCO IDENTIFICADO`: **não há endpoint HTTP que devolva isso.** A OC67 existe
+e sabe responder — `FleetAvailabilityService.get_driver_availability` está
+pronto em `app/modules/fleet/service.py` —, mas o README daquele módulo diz, com
+todas as letras, que a OC67 "não possui endpoint próprio". Os caminhões chegaram
+à tela porque a OC68 criou `GET /trucks/operational-status`; os motoristas não
+têm equivalente.
+
+`DECISÃO NECESSÁRIA`: para fechar esta metade, o backend precisa expor a
+disponibilidade do motorista — por exemplo `GET /drivers/operational-status`,
+espelhando o contrato da OC68, ou um campo em `DriverListRead`.
+
+O que **não** serve: deduzir o conflito no frontend cruzando viagens em
+andamento. Seria recalcular a regra de disponibilidade no cliente, que a própria
+OC72 põe fora de escopo, e criaria uma segunda fonte de verdade divergindo da
+que o planejamento usa.
+
 ## Carregamento e início da viagem
 
 `CONFIRMADO`: o backend possui carregamento persistido, checklist e finalização.
