@@ -25,6 +25,21 @@ telefone, endereço e observações não saem na listagem** — dado pessoal só
 - editar exige `GET /customers/{id}` antes de abrir o formulário, senão o PATCH iria sem os campos que
   o usuário não viu. O botão vira "Abrindo…" enquanto isso.
 
+## Documento e telefone (OC71)
+
+O formulário confere CPF, CNPJ e telefone com a MESMA regra da OC63, de
+`components/documentRules.ts`, e põe a mensagem embaixo do campo. Antes ele só
+contava dígitos: um CPF com verificador errado passava pela tela e voltava como
+422, numa faixa que não dizia qual campo consertar.
+
+A validação só começa no primeiro envio e depois dele o campo se corrige a cada
+tecla — acusar "CPF inválido" no terceiro dígito atrapalha quem ainda digita.
+
+O 422 do backend pousa no campo que ele mesmo apontou, por `details[].field`.
+Quando nenhum campo da tela corresponde, a faixa do topo assume.
+
+Telefone é opcional aqui, diferente do motorista: vazio vira `null`.
+
 ## Import cruzado com `drivers`
 
 `ContactsPage` importa `DriverPanel` de `features/drivers`. É **composição de tela**, não regra
