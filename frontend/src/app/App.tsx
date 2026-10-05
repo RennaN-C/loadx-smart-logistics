@@ -7,6 +7,7 @@ import { ContactsPage } from "../features/customers/pages/ContactsPage";
 import { DashboardPage } from "../features/dashboard/pages/DashboardPage";
 import { TripPage } from "../features/deliveries/pages/TripPage";
 import { PlanningPage } from "../features/load-planning/pages/PlanningPage";
+import { OperationsDashboardPage } from "../features/operations/pages/OperationsDashboardPage";
 import { OrderListPage } from "../features/orders/pages/OrderListPage";
 import { ProductListPage } from "../features/products/pages/ProductListPage";
 import { ReportsPage } from "../features/reports/pages/ReportsPage";
@@ -29,6 +30,7 @@ export function App() {
               <Route path="contacts" element={<ContactsPage />} />
               <Route path="orders" element={<OrderListPage />} />
               <Route path="reports" element={<ReportsPage />} />
+              <Route path="operations" element={<OperationsDashboardPage />} />
               <Route path="planning" element={<PlanningPage />} />
               <Route path="planning/:planId" element={<PlanningPage />} />
               <Route path="trips/:tripId" element={<TripPage />} />

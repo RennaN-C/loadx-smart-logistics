@@ -29,11 +29,26 @@ export function isApiErrorResponse(value: unknown): value is ApiErrorResponse {
 export class ApiError extends Error {
   readonly code: string;
   readonly details: readonly unknown[];
+  /**
+   * Status HTTP, quando houve resposta. Ausente em falha de rede.
+   *
+   * O `code` sozinho não basta quando o backend responde FORA do envelope do
+   * projeto — um 404 do próprio FastAPI, por exemplo, chega como
+   * `UNKNOWN_ERROR` e fica indistinguível de um 500. Guardar o status deixa a
+   * feature explicar o caso sem ter que adivinhar.
+   */
+  readonly status?: number;
 
-  constructor(code: string, message: string, details: readonly unknown[] = []) {
+  constructor(
+    code: string,
+    message: string,
+    details: readonly unknown[] = [],
+    status?: number,
+  ) {
     super(message);
     this.name = "ApiError";
     this.code = code;
     this.details = details;
+    this.status = status;
   }
 }

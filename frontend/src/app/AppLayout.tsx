@@ -23,6 +23,8 @@ interface NavGroup {
 const OPERATION_READERS: readonly Role[] = ["ADMIN", "CHECKER", "LOGISTICS_MANAGER"];
 /** Clientes e motoristas são dados pessoais: CHECKER não lê (ver docs/04). */
 const PERSONAL_DATA_READERS: readonly Role[] = ["ADMIN", "LOGISTICS_MANAGER"];
+/** Visão consolidada da operação inteira; o backend restringe a ADMIN e LOGISTICS_MANAGER. */
+const OPERATION_OVERVIEW_READERS: readonly Role[] = ["ADMIN", "LOGISTICS_MANAGER"];
 
 const ALL_ROLES: readonly Role[] = ["ADMIN", "CHECKER", "LOGISTICS_MANAGER", "DRIVER"];
 
@@ -65,6 +67,12 @@ const NAV_GROUPS: readonly NavGroup[] = [
       { to: "/fleet", label: "Frota", icon: "gauge", roles: OPERATION_READERS },
       { to: "/planning", label: "Planejamento", icon: "planning", roles: OPERATION_READERS },
       { to: "/reports", label: "Indicadores", icon: "chart", roles: OPERATION_READERS },
+      {
+        to: "/operations",
+        label: "Painel operacional",
+        icon: "report",
+        roles: OPERATION_OVERVIEW_READERS,
+      },
     ],
   },
 ];
