@@ -7,6 +7,7 @@ import { ContactsPage } from "../features/customers/pages/ContactsPage";
 import { DashboardPage } from "../features/dashboard/pages/DashboardPage";
 import { TripPage } from "../features/deliveries/pages/TripPage";
 import { PlanningPage } from "../features/load-planning/pages/PlanningPage";
+import { LoadingPage } from "../features/loading-operation/pages/LoadingPage";
 import { OperationsDashboardPage } from "../features/operations/pages/OperationsDashboardPage";
 import { OrderListPage } from "../features/orders/pages/OrderListPage";
 import { ProductListPage } from "../features/products/pages/ProductListPage";
@@ -34,6 +35,7 @@ export function App() {
               <Route path="planning" element={<PlanningPage />} />
               <Route path="planning/:planId" element={<PlanningPage />} />
               <Route path="trips/:tripId" element={<TripPage />} />
+              <Route path="loading/:sessionId" element={<LoadingPage />} />
               <Route
                 path="*"
                 element={

@@ -1,0 +1,145 @@
+.loading-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+
+.loading-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 20px;
+  margin: 0;
+  flex: 1;
+  min-width: 200px;
+}
+
+.loading-metrics dt {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+
+.loading-metrics dd {
+  font-family: var(--font-mono);
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin: 5px 0 0;
+}
+
+.loading-pending-warn {
+  color: var(--danger);
+}
+
+/* ---- leitura de código ---- */
+
+.scan-field {
+  margin-top: 24px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--card);
+}
+
+.scan-field-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.scan-field-row input {
+  flex: 1;
+  /* Monoespaçada porque o conteúdo é um identificador: assim um caractere
+     trocado na digitação manual salta aos olhos. */
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+}
+
+.scan-field-row button {
+  white-space: nowrap;
+}
+
+/**
+ * Reserva a altura mesmo vazio: sem isso a tabela inteira pula para cima e
+ * para baixo a cada leitura, e quem está conferindo perde a linha que olhava.
+ */
+.scan-result {
+  min-height: 1.35rem;
+  margin: 10px 0 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--good);
+}
+
+.scan-result-bad {
+  color: var(--danger);
+}
+
+/* ---- checklist ---- */
+
+.loading-checklist {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.87rem;
+  margin-top: 20px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--card);
+}
+
+.loading-checklist th {
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  font-weight: 600;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.loading-checklist td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+
+.loading-checklist tr:last-child td {
+  border-bottom: none;
+}
+
+.loading-cell-seq {
+  font-family: var(--font-mono);
+  color: var(--muted);
+  width: 1%;
+  white-space: nowrap;
+}
+
+.loading-product {
+  display: block;
+  font-weight: 600;
+}
+
+.loading-code {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+/* Conferido some discretamente: o que o olho precisa achar é o que FALTA. */
+.loading-row-checked .loading-product,
+.loading-row-checked .loading-cell-seq {
+  opacity: 0.55;
+}
+
+@media (max-width: 600px) {
+  .scan-field-row {
+    flex-direction: column;
+  }
+}
