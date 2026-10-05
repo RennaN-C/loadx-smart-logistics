@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from sqlalchemy.orm import Session
 
 from app.core.pagination import PageResult, PaginationParams
+from app.modules.drivers.models import Driver
 from app.modules.drivers.service import DriverService
 from app.modules.fleet.service import FleetAvailabilityService
 
@@ -51,14 +52,13 @@ class DriverOperationalStatusService:
             total_pages=drivers.total_pages,
         )
 
-    def _build_status(self, driver: object) -> DriverOperationalStatus:
-        driver_id = getattr(driver, "id")
-        availability = self.fleet_service.get_driver_availability(driver_id)
+    def _build_status(self, driver: Driver) -> DriverOperationalStatus:
+        availability = self.fleet_service.get_driver_availability(driver.id)
 
         return DriverOperationalStatus(
-            id=driver_id,
-            name=getattr(driver, "name"),
-            license_category=getattr(driver, "license_category"),
+            id=driver.id,
+            name=driver.name,
+            license_category=driver.license_category,
             active=availability.active,
             has_operation_conflict=availability.has_operation_conflict,
             available=availability.available,
