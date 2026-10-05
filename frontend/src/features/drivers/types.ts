@@ -29,3 +29,12 @@ export interface DriverInput {
 }
 
 export type DriverUpdateInput = Partial<DriverInput> & { active?: boolean };
+
+export interface DriverOperationalStatus {
+  id: string;
+  name: string;
+  licenseCategory: string | null;
+  active: boolean;
+  hasOperationConflict: boolean;
+  available: boolean;
+}
