@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { ApiError } from "../types/api";
-import { validationMessage } from "./validationErrors";
+import { validationFieldMessages, validationMessage } from "./validationErrors";
 
 const LABELS = {
   delivery_address: "Endereço de entrega",
@@ -125,5 +125,64 @@ describe("validationMessage", () => {
     const error = new ApiError("VALIDATION_ERROR", "inválido", ["texto solto", null, 42]);
 
     expect(validationMessage(error, LABELS)).toBeNull();
+  });
+});
+
+describe("prefixo do Pydantic", () => {
+  it("não chega ao usuário na faixa de erro", () => {
+    // Antes da OC71 a tela mostrava, literalmente:
+    // "Documento é inválido (Value error, Informe um CPF válido.)"
+    const error = new ApiError("VALIDATION_ERROR", "inválido", [
+      { field: "document", message: "Value error, Informe um CPF válido.", type: "value_error" },
+    ]);
+
+    const texto = validationMessage(error, { document: "Documento" });
+
+    expect(texto).not.toContain("Value error");
+    expect(texto).toContain("Informe um CPF válido");
+  });
+});
+
+describe("validationFieldMessages", () => {
+  it("usa como veio a mensagem que o validador da OC63 escreveu", () => {
+    const error = new ApiError("VALIDATION_ERROR", "inválido", [
+      { field: "phone", message: "Value error, O DDD não pode começar com zero.", type: "value_error" },
+    ]);
+
+    expect(validationFieldMessages(error)).toEqual({
+      phone: "O DDD não pode começar com zero.",
+    });
+  });
+
+  it("não joga em português capenga a mensagem em inglês do Pydantic", () => {
+    // `string_too_long` é restrição nativa e responde em inglês.
+    const error = new ApiError("VALIDATION_ERROR", "inválido", [
+      { field: "name", message: "String should have at most 160 characters", type: "string_too_long" },
+    ]);
+
+    expect(validationFieldMessages(error).name).toBe("Passa de 160 caractere(s).");
+  });
+
+  it("fica com o primeiro erro de cada campo", () => {
+    const error = new ApiError("VALIDATION_ERROR", "inválido", [
+      { field: "phone", message: "Value error, Primeiro.", type: "value_error" },
+      { field: "phone", message: "Value error, Segundo.", type: "value_error" },
+    ]);
+
+    expect(validationFieldMessages(error).phone).toBe("Primeiro.");
+  });
+
+  it("ignora o que não é erro de validação, para a faixa geral assumir", () => {
+    expect(validationFieldMessages(new ApiError("AUTH_FORBIDDEN", "Acesso negado."))).toEqual({});
+  });
+
+  it("aguenta detalhe fora do formato e campo sem nome", () => {
+    const error = new ApiError("VALIDATION_ERROR", "inválido", [
+      null,
+      "texto solto",
+      { field: "", message: "x", type: "value_error" },
+    ]);
+
+    expect(validationFieldMessages(error)).toEqual({});
   });
 });
