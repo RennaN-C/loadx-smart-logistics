@@ -74,6 +74,31 @@ describe("AppLayout", () => {
     expect(screen.getByText("Operação")).toBeInTheDocument();
   });
 
+  it("põe a Frota na Operação, e não nos Cadastros", () => {
+    // Situação da frota muda sozinha durante o dia: é acompanhamento, não
+    // cadastro. O caminhão em si continua em Cadastros.
+    signedInAs("ADMIN");
+    renderLayout();
+
+    const grupos = within(menu()).getAllByRole("list");
+    expect(within(grupos[2]).getByRole("link", { name: "Frota" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Frota" })).toHaveAttribute("href", "/fleet");
+  });
+
+  it("o conferente vê a situação da frota, que ele também lê no backend", () => {
+    signedInAs("CHECKER");
+    renderLayout();
+
+    expect(screen.getByRole("link", { name: "Frota" })).toBeInTheDocument();
+  });
+
+  it("o motorista não vê a frota: o backend responderia 403", () => {
+    signedInAs("DRIVER");
+    renderLayout();
+
+    expect(screen.queryByRole("link", { name: "Frota" })).not.toBeInTheDocument();
+  });
+
   it("esconde dados pessoais do conferente sem derrubar o grupo inteiro", () => {
     signedInAs("CHECKER");
     renderLayout();
