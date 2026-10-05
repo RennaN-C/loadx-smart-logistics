@@ -6,7 +6,9 @@ import pytest
 from sqlalchemy.orm import Session
 
 from app.core.pagination import PageResult, PaginationParams
-from app.modules.drivers.operational_status_service import DriverOperationalStatusService
+from app.modules.drivers.operational_status_service import (
+    DriverOperationalStatusService,
+)
 from app.modules.drivers.service import DriverService
 from app.modules.fleet.service import DriverAvailability, FleetAvailabilityService
 
