@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core.observability import OperationalEvent, emit_operational_event
 from app.core.pagination import PageResult, PaginationParams
 from app.database.integrity import get_integrity_constraint_name
 from app.modules.deliveries.models import (
@@ -26,8 +27,6 @@ from app.modules.status_history.schemas import StatusHistoryCreate
 from app.modules.status_history.service import StatusHistoryService
 from app.modules.trucks.service import TruckService
 from app.modules.users.models import User
-
-logger = logging.getLogger(__name__)
 
 TRIP_STATUS_TRANSITIONS = {
     "SCHEDULED": frozenset({"IN_ROUTE"}),
@@ -549,10 +548,13 @@ class TripService:
                 recipient_phone=driver.phone,
                 trip_id=trip.id,
             )
-        except Exception:
-            logger.warning(
-                "Trip started notification could not be prepared",
-                exc_info=True,
+        except Exception as error:  # noqa: BLE001 - notification failure must not undo operation
+            emit_operational_event(
+                OperationalEvent.NOTIFICATION_FAILED,
+                level=logging.WARNING,
+                alert=True,
+                reason="TRIP_PREPARATION_FAILED",
+                exception_type=type(error).__name__,
             )
 
     def _raise_integrity_error(self, exc: IntegrityError) -> None:
