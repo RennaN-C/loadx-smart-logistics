@@ -6,7 +6,6 @@ import { fieldErrorProps } from "../../../components/fieldErrorProps";
 import { validateCustomerDocument, validatePhone } from "../../../components/documentRules";
 import { maskDocument, maskPhone, onlyDigits } from "../../../components/masks";
 import { useFieldErrors } from "../../../hooks/useFieldErrors";
-import { ApiError } from "../../../types/api";
 import { createCustomer, updateCustomer } from "../api/customersApi";
 import type { Customer } from "../types";
 import { mapCustomerErrorToMessage } from "./customersErrorMessages";
@@ -54,7 +53,7 @@ export function CustomerForm({ customer, onSaved, onCancel }: CustomerFormProps)
   const [notes, setNotes] = useState(customer?.notes ?? "");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const { errors, formRef, validateAll, revalidate, applyApiError, clearAll } =
+  const { errors, formRef, validateAll, revalidate, submissionErrorMessage } =
     useFieldErrors(API_FIELD_TO_CONTROL);
 
   function handleDocumentChange(value: string) {
@@ -105,15 +104,7 @@ export function CustomerForm({ customer, onSaved, onCancel }: CustomerFormProps)
       }
       onSaved();
     } catch (error) {
-      const apiError =
-        error instanceof ApiError
-          ? error
-          : new ApiError("UNKNOWN_ERROR", "Ocorreu um erro inesperado.");
-      // Quando o 422 encontra os campos, a faixa do topo só repetiria a notícia.
-      if (!applyApiError(apiError)) {
-        clearAll();
-        setErrorMessage(mapCustomerErrorToMessage(apiError));
-      }
+      setErrorMessage(submissionErrorMessage(error, mapCustomerErrorToMessage));
       setIsSubmitting(false);
     }
   }
