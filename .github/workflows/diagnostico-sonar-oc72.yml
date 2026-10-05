@@ -37,20 +37,20 @@ jobs:
               data = json.load(response)
 
           for component in data.get("components", []):
-              measures = {
-                  measure["metric"]: measure.get("value")
-                  for measure in component.get("measures", [])
-              }
+              measures = {}
+              for measure in component.get("measures", []):
+                  raw = measure.get("value")
+                  if raw is None and measure.get("period"):
+                      raw = measure["period"].get("value")
+                  measures[measure["metric"]] = raw
+
               density = float(measures.get("new_duplicated_lines_density") or 0)
               duplicated = float(measures.get("new_duplicated_lines") or 0)
               blocks = float(measures.get("new_duplicated_blocks") or 0)
               if density > 0 or duplicated > 0 or blocks > 0:
                   print(
                       json.dumps(
-                          {
-                              "path": component.get("path"),
-                              "measures": measures,
-                          },
+                          {"path": component.get("path"), "measures": measures},
                           ensure_ascii=False,
                       )
                   )
