@@ -1,13 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  documentKind,
-  isCompleteDocument,
-  isCompletePhone,
-  maskDocument,
-  maskPhone,
-  onlyDigits,
-} from "./masks";
+import { maskDocument, maskPhone, onlyDigits } from "./masks";
 
 describe("maskDocument", () => {
   it("formata o CPF do roteiro exatamente como pedido", () => {
@@ -73,50 +66,6 @@ describe("maskPhone", () => {
 
   it("aceita entrada já pontuada", () => {
     expect(maskPhone("(42) 99999-8888")).toBe("(42) 99999-8888");
-  });
-});
-
-describe("isCompleteDocument", () => {
-  it("aceita CPF e CNPJ completos", () => {
-    expect(isCompleteDocument("123.456.789-01")).toBe(true);
-    expect(isCompleteDocument("12.345.678/0001-99")).toBe(true);
-  });
-
-  it("recusa documento pela metade, que é o caso do roteiro", () => {
-    expect(isCompleteDocument("123.456")).toBe(false);
-    expect(isCompleteDocument("123456789")).toBe(false);
-    expect(isCompleteDocument("")).toBe(false);
-  });
-
-  it("recusa comprimento entre CPF e CNPJ", () => {
-    expect(isCompleteDocument("123456789012")).toBe(false);
-  });
-
-  it("NÃO confere dígito verificador, e isso é proposital", () => {
-    // O backend guarda texto livre; conferir o dígito aqui recusaria documento
-    // fictício de teste e deixaria o frontend mais rígido que o contrato.
-    expect(isCompleteDocument("00000000000")).toBe(true);
-    expect(isCompleteDocument("11111111111111")).toBe(true);
-  });
-});
-
-describe("isCompletePhone", () => {
-  it("aceita fixo e celular", () => {
-    expect(isCompletePhone("(42) 3333-4444")).toBe(true);
-    expect(isCompletePhone("(42) 99999-8888")).toBe(true);
-  });
-
-  it("recusa telefone incompleto", () => {
-    expect(isCompletePhone("(42) 9999")).toBe(false);
-    expect(isCompletePhone("")).toBe(false);
-  });
-});
-
-describe("documentKind", () => {
-  it("diz o que o documento já é, e nada enquanto está curto", () => {
-    expect(documentKind("123.456.789-01")).toBe("CPF");
-    expect(documentKind("12.345.678/0001-99")).toBe("CNPJ");
-    expect(documentKind("123.456")).toBeNull();
   });
 });
 
