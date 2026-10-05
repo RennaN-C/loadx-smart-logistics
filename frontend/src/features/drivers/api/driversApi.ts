@@ -1,7 +1,7 @@
 import { api } from "../../../services/api";
 import { mapPageFromDto, toPageQuery, type ListParams, type PageDto } from "../../../services/pagination";
 import type { Page } from "../../../types/api";
-import type { Driver, DriverInput, DriverListItem, DriverUpdateInput } from "../types";
+import type { Driver, DriverInput, DriverListItem, DriverOperationalStatus, DriverUpdateInput } from "../types";
 
 /** Resumo da listagem: sem dado pessoal (ver DriverListRead no backend). */
 interface DriverListDto {
@@ -18,6 +18,15 @@ interface DriverDto extends DriverListDto {
   license_number: string;
 }
 
+interface DriverOperationalStatusDto {
+  id: string;
+  name: string;
+  license_category: string | null;
+  active: boolean;
+  has_operation_conflict: boolean;
+  available: boolean;
+}
+
 export function mapDriverListItemFromDto(dto: DriverListDto): DriverListItem {
   return {
     id: dto.id,
@@ -25,6 +34,19 @@ export function mapDriverListItemFromDto(dto: DriverListDto): DriverListItem {
     licenseCategory: dto.license_category,
     active: dto.active,
     createdAt: dto.created_at,
+  };
+}
+
+export function mapDriverOperationalStatusFromDto(
+  dto: DriverOperationalStatusDto,
+): DriverOperationalStatus {
+  return {
+    id: dto.id,
+    name: dto.name,
+    licenseCategory: dto.license_category,
+    active: dto.active,
+    hasOperationConflict: dto.has_operation_conflict,
+    available: dto.available,
   };
 }
 
@@ -54,6 +76,17 @@ export async function listDrivers(params: ListParams = {}): Promise<Page<DriverL
   const { data } = await api.get<PageDto<DriverListDto>>("/drivers", { params: toPageQuery(params) });
 
   return mapPageFromDto(data, mapDriverListItemFromDto);
+}
+
+export async function listDriverOperationalStatus(
+  params: ListParams = {},
+): Promise<Page<DriverOperationalStatus>> {
+  const { data } = await api.get<PageDto<DriverOperationalStatusDto>>(
+    "/drivers/operational-status",
+    { params: toPageQuery(params) },
+  );
+
+  return mapPageFromDto(data, mapDriverOperationalStatusFromDto);
 }
 
 /** Necessário para editar: a listagem não traz os campos pessoais. */
