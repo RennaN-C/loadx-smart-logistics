@@ -15,7 +15,9 @@ Componentes usados por apenas uma feature permanecem dentro dela.
 - `Icon.tsx`: conjunto de ícones e a marca da LoadX, desenhados aqui.
 - `Avatar.tsx` + `initials.ts`: âncora visual com as iniciais de uma pessoa ou empresa.
 - `Tooltip.tsx`: dica de contexto sob demanda, no `i` ao lado do rótulo.
-- `masks.ts`: máscaras de CPF, CNPJ e telefone. **Funções puras, testadas.**
+- `masks.ts`: máscaras de CPF, CNPJ, telefone e CEP. **Funções puras, testadas.**
+- `documentRules.ts`: validade de CPF, CNPJ, CNH e telefone, espelhando a OC63. **Funções puras, testadas.**
+- `fieldErrorProps.ts`: o `aria-invalid` + `aria-describedby` que liga o erro ao controle.
 
 ## Máscaras: por que dígitos viajam e pontuação fica na tela
 
@@ -23,14 +25,46 @@ A formatação é PROGRESSIVA — "1234" vira "123.4" — porque máscara que s�
 no fim faz o campo dar um pulo visual ao completar, e quem digita perde a
 referência.
 
-O que vai para a API são os DÍGITOS, sem pontuação. O backend guarda `document`
-como texto livre de até 32 caracteres e compara unicidade como string
-(`customers/schemas.py`): gravar ora com máscara ora sem deixaria o mesmo CPF
-entrar duas vezes.
+O que vai para a API são os DÍGITOS, sem pontuação. A unicidade do documento é
+comparada como string no backend: gravar ora com máscara ora sem deixaria o
+mesmo CPF entrar duas vezes.
 
-A validação confere só o TAMANHO, sem dígito verificador. Conferir o dígito
-recusaria documento fictício de teste e deixaria o frontend mais rígido que o
-contrato — passaria a rejeitar cadastro que a API aceitaria.
+`CONFIRMADO` (OC71): máscara é só aparência. A validade mora em
+`documentRules.ts`.
+
+## Validação: por que a regra é copiada, e não parecida
+
+`documentRules.ts` repete a regra de `app/shared/validators.py` — dígito
+verificador de CPF, CNPJ e CNH, recusa de sequência repetida, DDD e o 9 do
+celular. A autoridade continua sendo o backend; isto existe para o erro aparecer
+ANTES do envio.
+
+Copiar em vez de inventar algo parecido é o ponto. Uma regra própria faria o
+frontend rejeitar cadastro que a API aceitaria, ou prometer que passa e tomar
+422 na cara do usuário. Os testes usam os vetores de
+`backend/tests/unit/test_registration_validators.py`, que é o que prova que os
+dois lados concordam — as implementações foram cruzadas em 28.000 casos
+gerados, sem divergência.
+
+Uma armadilha vale registro: o dígito da CNH desconta 2 antes de tirar o resto,
+e em JavaScript `-2 % 11` é -2 enquanto no Python é 9. Sem resto positivo, os
+dois lados divergiriam em entradas específicas.
+
+A CNH não tem máscara: o padrão da OC63 é `[0-9]{11}`, então o campo só filtra
+dígito.
+
+## Erro de campo
+
+`FormField` aceita `error` e desenha o texto embaixo do controle; quem usa
+espalha `fieldErrorProps(id, error)` no input, que é o que liga os dois para o
+leitor de tela.
+
+O texto do campo não é `role="alert"`: num envio com três campos errados, três
+alertas disputariam o leitor de tela. O resumo em `AlertBanner` anuncia, cada
+campo é lido ao receber foco, e o foco vai para o primeiro campo errado.
+
+A borda vermelha reforça onde olhar, mas quem informa é o texto — cor sozinha
+não serve a quem não distingue vermelho.
 
 ## Tooltip: por que não é o `title` nativo
 

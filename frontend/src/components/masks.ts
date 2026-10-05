@@ -6,11 +6,16 @@
  * máscara que só aparece no fim faz o campo dar um pulo visual ao completar, e
  * quem está digitando perde a referência de onde estava.
  *
- * `CONFIRMADO`: o backend guarda `document` e `phone` como texto livre de até
- * 32 caracteres, sem validar formato (`customers/schemas.py`). Por isso o que
- * viaja para a API são os DÍGITOS, sem pontuação: a unicidade do documento é
- * comparada como string, e gravar ora com máscara ora sem deixaria dois
- * cadastros do mesmo CPF passarem como distintos.
+ * Aqui mora só a APARÊNCIA. A regra de validade é da OC63 e vive em
+ * `documentRules.ts`, espelhando `app/shared/validators.py`.
+ *
+ * `CONFIRMADO`: o que viaja para a API são os DÍGITOS, sem pontuação. A
+ * unicidade do documento é comparada como string no backend, e gravar ora com
+ * máscara ora sem deixaria dois cadastros do mesmo CPF passarem como distintos.
+ *
+ * A CNH não aparece aqui de propósito: o padrão da OC63 para ela é
+ * `[0-9]{11}`, sem máscara, então o campo só filtra dígito e não há o que
+ * formatar.
  */
 
 export function onlyDigits(value: string): string {
@@ -55,27 +60,11 @@ export function maskPhone(value: string): string {
 }
 
 /**
- * Só o TAMANHO, de propósito: sem dígito verificador.
- *
- * Conferir o dígito recusaria documentos fictícios de teste e de demonstração,
- * e o backend também não confere — o frontend não pode ser mais rígido que o
- * contrato, senão passa a rejeitar cadastro que a API aceitaria.
+ * CEP. O backend aceita oito dígitos com ou sem hífen (`ViaCEPProvider`), então
+ * a pontuação aqui é só conforto de leitura — o que viaja são os dígitos.
  */
-export function isCompleteDocument(value: string): boolean {
-  const length = onlyDigits(value).length;
-  return length === CPF_LENGTH || length === CNPJ_LENGTH;
-}
+export function maskCep(value: string): string {
+  const digits = onlyDigits(value).slice(0, 8);
 
-/** Aceita fixo (10) e celular (11). */
-export function isCompletePhone(value: string): boolean {
-  const length = onlyDigits(value).length;
-  return length === 10 || length === 11;
-}
-
-/** Qual documento o que foi digitado já parece ser; `null` enquanto é curto. */
-export function documentKind(value: string): "CPF" | "CNPJ" | null {
-  const length = onlyDigits(value).length;
-  if (length === CPF_LENGTH) return "CPF";
-  if (length === CNPJ_LENGTH) return "CNPJ";
-  return null;
+  return digits.replace(/^(\d{5})(\d)/, "$1-$2");
 }

@@ -1,23 +1,46 @@
 import { useState, type FormEvent } from "react";
 
 import { AlertBanner } from "../../../components/AlertBanner";
+import { EntityNameField } from "../../../components/EntityNameField";
 import { FormField } from "../../../components/FormField";
-import {
-  isCompleteDocument,
-  isCompletePhone,
-  maskDocument,
-  maskPhone,
-  onlyDigits,
-} from "../../../components/masks";
-import { ApiError } from "../../../types/api";
+import { fieldErrorProps } from "../../../components/fieldErrorProps";
+import { validateCustomerDocument, validatePhone } from "../../../components/documentRules";
+import { maskDocument, maskPhone, onlyDigits } from "../../../components/masks";
+import { useFieldErrors } from "../../../hooks/useFieldErrors";
 import { createCustomer, updateCustomer } from "../api/customersApi";
-import type { Customer } from "../types";
+import type { CepAddress, Customer } from "../types";
+import { CepLookupField } from "./CepLookupField";
 import { mapCustomerErrorToMessage } from "./customersErrorMessages";
 
 function orNull(value: string): string | null {
   const trimmed = value.trim();
   return trimmed === "" ? null : trimmed;
 }
+
+const NAME = "customer-name";
+const DOCUMENT = "customer-document";
+const PHONE = "customer-phone";
+const ADDRESS = "customer-address";
+const CITY = "customer-city";
+const STATE = "customer-state";
+const NOTES = "customer-notes";
+
+const CUSTOMER_NAME_FIELD = {
+  id: NAME,
+  label: "NOME OU RAZÃO SOCIAL",
+  placeholder: "Distribuidora Aurora",
+} as const;
+
+/** Campo do payload → controle da tela, para o 422 pousar no lugar certo. */
+const API_FIELD_TO_CONTROL: Readonly<Record<string, string>> = {
+  name: NAME,
+  document: DOCUMENT,
+  phone: PHONE,
+  address: ADDRESS,
+  city: CITY,
+  state: STATE,
+  notes: NOTES,
+};
 
 interface CustomerFormProps {
   /** Ausente = criação. Presente = edição do cliente informado. */
@@ -38,23 +61,48 @@ export function CustomerForm({ customer, onSaved, onCancel }: CustomerFormProps)
   const [notes, setNotes] = useState(customer?.notes ?? "");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const { errors, formRef, validateAll, revalidate, submissionErrorMessage } =
+    useFieldErrors(API_FIELD_TO_CONTROL);
+
+  function handleDocumentChange(value: string) {
+    const masked = maskDocument(value);
+    setDocument(masked);
+    revalidate(DOCUMENT, () => validateCustomerDocument(masked));
+  }
+
+  /**
+   * Preenchimento vindo do CEP (OC70). Os campos continuam editáveis: número e
+   * complemento são justamente o que a consulta não tem como saber.
+   */
+  function handleCepFound(found: CepAddress) {
+    setCity(found.city);
+    setState(found.state);
+
+    // Não sobrescreve quando a rua já está lá: quem digitou "Rua X, 120" e só
+    // depois preencheu o CEP perderia o número.
+    if (found.street !== null && !address.trim().startsWith(found.street)) {
+      setAddress(found.street);
+    }
+  }
+
+  function handlePhoneChange(value: string) {
+    const masked = maskPhone(value);
+    setPhone(masked);
+    revalidate(PHONE, () => validatePhone(masked, { required: false }));
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setErrorMessage(null);
 
-    // Barra antes de sair da tela: o backend aceita texto livre em `document`,
-    // então um CPF pela metade seria GRAVADO sem reclamação nenhuma.
-    if (!isCompleteDocument(document)) {
-      setErrorMessage(
-        "Documento incompleto. Informe um CPF com 11 dígitos ou um CNPJ com 14.",
-      );
-      return;
-    }
-    if (phone.trim() !== "" && !isCompletePhone(phone)) {
-      setErrorMessage("Telefone incompleto. Informe DDD e número, com 10 ou 11 dígitos.");
-      return;
-    }
+    // Barra antes de sair da tela, com a MESMA regra da OC63. O backend recusaria
+    // de qualquer jeito; a diferença é a pessoa descobrir agora, no campo, em vez
+    // de depois do envio numa faixa que não diz qual campo errou.
+    const podeEnviar = validateAll({
+      [DOCUMENT]: () => validateCustomerDocument(document),
+      [PHONE]: () => validatePhone(phone, { required: false }),
+    });
+    if (!podeEnviar) return;
 
     setIsSubmitting(true);
 
@@ -79,94 +127,76 @@ export function CustomerForm({ customer, onSaved, onCancel }: CustomerFormProps)
       }
       onSaved();
     } catch (error) {
-      const apiError =
-        error instanceof ApiError ? error : new ApiError("UNKNOWN_ERROR", "Ocorreu um erro inesperado.");
-      setErrorMessage(mapCustomerErrorToMessage(apiError));
+      setErrorMessage(submissionErrorMessage(error, mapCustomerErrorToMessage));
       setIsSubmitting(false);
     }
   }
 
   return (
-    <form className="entity-form" onSubmit={handleSubmit}>
+    <form className="entity-form" ref={formRef} onSubmit={handleSubmit}>
       {errorMessage ? <AlertBanner>{errorMessage}</AlertBanner> : null}
 
       <fieldset disabled={isSubmitting} className="entity-form-fieldset">
         <div className="entity-form-row">
-          <FormField id="customer-name" label="NOME OU RAZÃO SOCIAL">
-            <input
-              id="customer-name"
-              name="name"
-              required
-              maxLength={160}
-              placeholder="Distribuidora Aurora"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-            />
-          </FormField>
+          <EntityNameField
+            config={CUSTOMER_NAME_FIELD}
+            value={name}
+            onChange={setName}
+            error={errors[NAME]}
+          />
           <FormField
-            id="customer-document"
+            id={DOCUMENT}
             label="DOCUMENTO"
             tooltip="CPF ou CNPJ do cliente. Digite só os números: a formatação é aplicada sozinha, e o sistema guarda apenas os dígitos."
+            error={errors[DOCUMENT]}
             narrow
           >
             <input
-              id="customer-document"
+              id={DOCUMENT}
               name="document"
               required
               inputMode="numeric"
               maxLength={18}
               placeholder="CPF ou CNPJ"
               value={document}
-              onChange={(event) => setDocument(maskDocument(event.target.value))}
+              onChange={(event) => handleDocumentChange(event.target.value)}
+              {...fieldErrorProps(DOCUMENT, errors[DOCUMENT])}
             />
           </FormField>
         </div>
 
         <div className="entity-form-row">
-          <FormField id="customer-address" label="ENDEREÇO">
+          <CepLookupField onFound={handleCepFound} />
+          <FormField id={ADDRESS} label="ENDEREÇO" error={errors[ADDRESS]}>
             <input
-              id="customer-address"
+              id={ADDRESS}
               name="address"
               required
               maxLength={255}
               placeholder="Rua das Palmeiras, 120"
               value={address}
               onChange={(event) => setAddress(event.target.value)}
-            />
-          </FormField>
-          <FormField
-            id="customer-phone"
-            label="TELEFONE (OPCIONAL)"
-            tooltip="Com DDD. Aceita fixo, com 10 dígitos, e celular, com 11."
-            narrow
-          >
-            <input
-              id="customer-phone"
-              name="phone"
-              inputMode="tel"
-              maxLength={15}
-              placeholder="(11) 90000-0000"
-              value={phone}
-              onChange={(event) => setPhone(maskPhone(event.target.value))}
+              {...fieldErrorProps(ADDRESS, errors[ADDRESS])}
             />
           </FormField>
         </div>
 
         <div className="entity-form-row">
-          <FormField id="customer-city" label="CIDADE">
+          <FormField id={CITY} label="CIDADE" error={errors[CITY]}>
             <input
-              id="customer-city"
+              id={CITY}
               name="city"
               required
               maxLength={120}
               placeholder="Campinas"
               value={city}
               onChange={(event) => setCity(event.target.value)}
+              {...fieldErrorProps(CITY, errors[CITY])}
             />
           </FormField>
-          <FormField id="customer-state" label="UF" narrow>
+          <FormField id={STATE} label="UF" error={errors[STATE]} narrow>
             <input
-              id="customer-state"
+              id={STATE}
               name="state"
               required
               minLength={2}
@@ -174,18 +204,38 @@ export function CustomerForm({ customer, onSaved, onCancel }: CustomerFormProps)
               placeholder="SP"
               value={state}
               onChange={(event) => setState(event.target.value.toUpperCase())}
+              {...fieldErrorProps(STATE, errors[STATE])}
+            />
+          </FormField>
+          <FormField
+            id={PHONE}
+            label="TELEFONE (OPCIONAL)"
+            tooltip="Com DDD. Aceita fixo, com 10 dígitos, e celular, com 11."
+            error={errors[PHONE]}
+            narrow
+          >
+            <input
+              id={PHONE}
+              name="phone"
+              inputMode="tel"
+              maxLength={15}
+              placeholder="(11) 90000-0000"
+              value={phone}
+              onChange={(event) => handlePhoneChange(event.target.value)}
+              {...fieldErrorProps(PHONE, errors[PHONE])}
             />
           </FormField>
         </div>
 
-        <FormField id="customer-notes" label="OBSERVAÇÕES (OPCIONAL)">
+        <FormField id={NOTES} label="OBSERVAÇÕES (OPCIONAL)" error={errors[NOTES]}>
           <textarea
-            id="customer-notes"
+            id={NOTES}
             name="notes"
             rows={2}
             placeholder="Recebe carga só até as 16h"
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
+            {...fieldErrorProps(NOTES, errors[NOTES])}
           />
         </FormField>
       </fieldset>
