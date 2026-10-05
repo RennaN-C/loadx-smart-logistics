@@ -10,6 +10,7 @@ from app.database.session import get_db
 from app.modules.auth.dependencies import require_roles
 from app.modules.loading.models import LoadingSession
 from app.modules.loading.schemas import (
+    LoadingItemScan,
     LoadingItemStatusChange,
     LoadingSessionCreate,
     LoadingSessionRead,
@@ -17,6 +18,7 @@ from app.modules.loading.schemas import (
 )
 from app.modules.loading.service import (
     LoadingChecklistIncompleteError,
+    LoadingItemAlreadyCheckedError,
     LoadingItemNotFoundError,
     LoadingItemSessionMismatchError,
     LoadingPlanNotApprovedError,
@@ -38,6 +40,41 @@ Reader = Annotated[
 
 def get_loading_service(db: Annotated[Session, Depends(get_db)]) -> LoadingService:
     return LoadingService(db)
+
+
+@router.post(
+    "/{session_id}/scan",
+    response_model=LoadingSessionRead,
+    responses=openapi_error_responses(401, 403, 404, 409, 422),
+)
+def scan_item(
+    session_id: uuid.UUID,
+    data: LoadingItemScan,
+    _user: Checker,
+    service: Annotated[LoadingService, Depends(get_loading_service)],
+) -> LoadingSession | JSONResponse:
+    try:
+        return service.scan_item(session_id, data.item_id)
+    except LoadingSessionNotFoundError:
+        return error_response(
+            404, "LOADING_SESSION_NOT_FOUND", LOADING_SESSION_NOT_FOUND_MESSAGE
+        )
+    except LoadingItemNotFoundError:
+        return error_response(
+            404, "LOADING_ITEM_NOT_FOUND", "Item de carregamento não encontrado."
+        )
+    except LoadingItemSessionMismatchError:
+        return error_response(
+            409, "LOADING_ITEM_SESSION_MISMATCH", "Item não pertence à sessão."
+        )
+    except LoadingItemAlreadyCheckedError:
+        return error_response(409, "LOADING_ITEM_ALREADY_CHECKED", "Item já conferido.")
+    except LoadingStatusTransitionError:
+        return error_response(
+            409,
+            "LOADING_STATUS_TRANSITION_NOT_ALLOWED",
+            "Transição de carregamento não permitida.",
+        )
 
 
 @router.post(

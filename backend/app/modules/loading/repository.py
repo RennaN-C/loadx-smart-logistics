@@ -24,6 +24,7 @@ class LoadingRepository:
             .where(LoadingSession.id == session_id)
             .options(selectinload(LoadingSession.items))
             .with_for_update()
+            .execution_options(populate_existing=True)
         )
         return self.db.scalar(statement)
 
@@ -40,6 +41,7 @@ class LoadingRepository:
             select(LoadingSessionItem)
             .where(LoadingSessionItem.id == item_id)
             .with_for_update()
+            .execution_options(populate_existing=True)
         )
         return self.db.scalar(statement)
 
