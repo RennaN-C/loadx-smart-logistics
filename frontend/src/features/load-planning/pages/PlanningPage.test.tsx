@@ -216,7 +216,9 @@ describe("PlanningPage", () => {
     expect(screen.getAllByRole("checkbox")).toHaveLength(1); // só o READY
   });
 
-  it("avisa qual caminhão já está em operação (OC72)", async () => {
+  it("avisa sem bloquear o caminhão em operação, conforme o backend", async () => {
+    // `create_load_plan` recusa caminhão INATIVO e só. O conflito vem da OC67,
+    // aparece para orientar o usuário, mas não cria uma trava que a API não tem.
     vi.mocked(listTruckOperationalStatus).mockResolvedValue(
       makePage([
         {
@@ -237,30 +239,6 @@ describe("PlanningPage", () => {
       (o) => o.value === "t1",
     );
     expect(opcao?.textContent).toContain("em operação");
-  });
-
-  it("não bloqueia o caminhão em operação, porque o backend o aceita", async () => {
-    // `create_load_plan` recusa caminhão INATIVO e só. Conflito de operação não
-    // impede o plano — travar a opção aqui seria o frontend inventando regra.
-    vi.mocked(listTruckOperationalStatus).mockResolvedValue(
-      makePage([
-        {
-          id: "t1",
-          plate: "ABC1D23",
-          model: "Baú médio",
-          active: true,
-          hasOperationConflict: true,
-          available: false,
-        },
-      ]),
-    );
-
-    renderAt("/planning");
-    await screen.findByLabelText("CAMINHÃO");
-
-    const opcao = [...screen.getByLabelText("CAMINHÃO").querySelectorAll("option")].find(
-      (o) => o.value === "t1",
-    );
     expect(opcao).not.toBeDisabled();
   });
 
