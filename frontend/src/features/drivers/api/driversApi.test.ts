@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { mapDriverFromDto } from "./driversApi";
+import { mapDriverFromDto, mapDriverOperationalStatusFromDto } from "./driversApi";
 
 describe("mapDriverFromDto", () => {
   it("converte snake_case do backend para camelCase", () => {
@@ -40,5 +40,27 @@ describe("mapDriverFromDto", () => {
     });
 
     expect(result.licenseCategory).toBeNull();
+  });
+});
+
+describe("mapDriverOperationalStatusFromDto", () => {
+  it("converte o contrato operacional sem recalcular disponibilidade", () => {
+    expect(
+      mapDriverOperationalStatusFromDto({
+        id: "d1",
+        name: "Carlos Pereira",
+        license_category: "D",
+        active: true,
+        has_operation_conflict: true,
+        available: false,
+      }),
+    ).toEqual({
+      id: "d1",
+      name: "Carlos Pereira",
+      licenseCategory: "D",
+      active: true,
+      hasOperationConflict: true,
+      available: false,
+    });
   });
 });
