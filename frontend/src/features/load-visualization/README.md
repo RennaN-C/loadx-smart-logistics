@@ -11,6 +11,8 @@ Consome `GET /load-plans/{id}/visualization`.
 - `components/CameraControls.tsx`: integra diretamente o `OrbitControls` oficial
   do Three.js ao ciclo de renderização do React Three Fiber.
 - `components/sceneGeometry.ts`: conversão de coordenadas e cores. **Funções puras, testadas.**
+- `components/truckCabModel.ts` (+ `TruckCabMesh.tsx`, `hooks/useTruckCabModel.ts`): a cabine
+  importada, única geometria da cena que vem de arte pronta.
 - `components/truckShell.ts` (+ `TruckShellMesh.tsx`): o exterior do caminhão — cabine, chassi,
   para-choque e rodas. **Funções puras, testadas.**
 - `components/productKind.ts`: classifica o produto pelo nome. **Função pura, testada.**
@@ -106,19 +108,49 @@ da legenda — o agrupamento por entrega continua legível sem falsear o produto
 
 O controle **"Realista"** desliga tudo isso e devolve as cores chapadas, para comparar.
 
-## Por que o caminhão é desenhado em código, e não importado
+## O que é desenhado em código, e o que vem de modelo
 
-A opção óbvia seria baixar um `.glb` de caminhão pronto. Foi medido e descartado: um modelo tem
-proporção **fixa**. O caminhão de referência avaliado tinha razão comprimento/largura de 0,62 e
-comprimento/altura de 1,08 — um baú real fica em 2,50 e 2,31. Esticá-lo até as medidas cadastradas
-deformaria a cabine e as rodas junto, e a tela inteira existe para transmitir precisão dimensional:
-um caminhão de 9 m e um de 4 m precisam parecer diferentes.
+A divisão é uma só, e vale a pena entender o critério: **vem de modelo o que já era constante; vem
+do cadastro tudo que informa espaço de carga.**
+
+Baixar um `.glb` de caminhão inteiro foi medido e descartado. Um modelo tem proporção **fixa**: o
+caminhão de referência avaliado tinha razão comprimento/largura de 0,62 e comprimento/altura de
+1,08 — um baú real fica em 2,50 e 2,31. Esticá-lo até as medidas cadastradas deformaria a cabine e
+as rodas junto, e a tela inteira existe para transmitir precisão dimensional: um caminhão de 9 m e
+um de 4 m precisam parecer diferentes.
+
+### A cabine é a exceção, e por um motivo preciso
+
+`CONFIRMADO`: a cabine vem de um GLB (`public/models/truck-cab-daf.glb`). Ela pôde vir porque **já
+era constante** — `CAB_LENGTH` e `CAB_TOP` nunca saíram da API. A cabine não diz nada ao usuário
+sobre quanto cabe no caminhão, então trocar a caixa branca por um modelo não mexe em nada
+dimensional.
+
+O **baú** do mesmo pacote foi descartado justamente por não ter essa propriedade: vindo de arte, um
+baú de 6 m e uma carreta de 12 m apareceriam iguais na tela.
+
+`truckCabModel.ts` guarda a conta de posicionamento, e ela é pura — é o que dá para testar, já que
+jsdom não tem WebGL. A largura sai do **corpo** da cabine (3,25 no arquivo), não do total (3,681),
+porque o excedente são os braços dos retrovisores; escalar pelo total deixaria a cabine mais
+estreita que o próprio caminhão. A altura acompanha a largura, e só cede quando a cabine passaria do
+teto de um baú baixo — aí ela comprime, nunca estreita. Cabine comprimida lê como teto baixo, que é
+um caminhão que existe; cabine estreita não lê como nada.
+
+Falha no carregamento não vira erro de tela: o caminhão aparece com a cabine antiga, desenhada em
+código, e a carga — que é o assunto da tela — continua correta. Não há aviso nem botão de nova
+tentativa porque não há nada que o usuário possa fazer.
+
+Custo medido: 759 KB gzip de modelo, carregado sob demanda e uma vez por sessão, mais 12,1 KiB gzip
+de `GLTFLoader` no chunk (que foi de 215,6 para 228,4, com orçamento de 250).
 
 Então `truckShell.ts` deriva o exterior das medidas do cadastro. Comprimento, largura e altura do baú
 mandam em tudo que se apoia neles. São constantes apenas as medidas de chassi que a API não fornece e
-que não afetam a carga: altura do piso (1,15 m), raio de roda (0,50 m), comprimento e teto da cabine.
-Um baú de 9 m ganha eixo tandem; um de 4 m não. A cabine tem teto travado em 2,55 m, então um baú
-alto sobe sem esticar a cabine junto.
+que não afetam a carga: altura do piso (1,15 m), raio de roda (0,50 m) e o vão reservado à cabine.
+Um baú de 9 m ganha eixo tandem; um de 4 m não.
+
+Quando o modelo da cabine está em uso, `TruckShellMesh` apaga o que ele substitui: cabine,
+para-brisa, retrovisores, para-choque e os para-lamas em z negativo. O critério dos para-lamas é a
+**posição**, não a ordem do array — à frente da parede de carga quem manda é a cabine.
 
 Isso **não** viola a regra de `docs/11`: nenhuma dessas medidas entra em cálculo de encaixe. Elas
 posicionam desenho. As coordenadas dos volumes continuam intocadas — a carga inteira é levantada por
