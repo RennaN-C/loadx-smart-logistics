@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 
 import { AlertBanner } from "../../../components/AlertBanner";
+import { EntityNameField } from "../../../components/EntityNameField";
 import { FormField } from "../../../components/FormField";
 import { fieldErrorProps } from "../../../components/fieldErrorProps";
 import { validateCustomerDocument, validatePhone } from "../../../components/documentRules";
@@ -22,6 +23,12 @@ const ADDRESS = "customer-address";
 const CITY = "customer-city";
 const STATE = "customer-state";
 const NOTES = "customer-notes";
+
+const CUSTOMER_NAME_FIELD = {
+  id: NAME,
+  label: "NOME OU RAZÃO SOCIAL",
+  placeholder: "Distribuidora Aurora",
+} as const;
 
 /** Campo do payload → controle da tela, para o 422 pousar no lugar certo. */
 const API_FIELD_TO_CONTROL: Readonly<Record<string, string>> = {
@@ -115,18 +122,12 @@ export function CustomerForm({ customer, onSaved, onCancel }: CustomerFormProps)
 
       <fieldset disabled={isSubmitting} className="entity-form-fieldset">
         <div className="entity-form-row">
-          <FormField id={NAME} label="NOME OU RAZÃO SOCIAL" error={errors[NAME]}>
-            <input
-              id={NAME}
-              name="name"
-              required
-              maxLength={160}
-              placeholder="Distribuidora Aurora"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              {...fieldErrorProps(NAME, errors[NAME])}
-            />
-          </FormField>
+          <EntityNameField
+            config={CUSTOMER_NAME_FIELD}
+            value={name}
+            onChange={setName}
+            error={errors[NAME]}
+          />
           <FormField
             id={DOCUMENT}
             label="DOCUMENTO"

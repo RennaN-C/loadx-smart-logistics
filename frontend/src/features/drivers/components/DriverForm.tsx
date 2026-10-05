@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 
 import { AlertBanner } from "../../../components/AlertBanner";
+import { EntityNameField } from "../../../components/EntityNameField";
 import { FormField } from "../../../components/FormField";
 import { fieldErrorProps } from "../../../components/fieldErrorProps";
 import { validateCnh, validateDriverDocument, validatePhone } from "../../../components/documentRules";
@@ -21,6 +22,12 @@ const DOCUMENT = "driver-document";
 const PHONE = "driver-phone";
 const LICENSE = "driver-license";
 const CATEGORY = "driver-category";
+
+const DRIVER_NAME_FIELD = {
+  id: NAME,
+  label: "NOME",
+  placeholder: "Carlos Pereira",
+} as const;
 
 /** Campo do payload → controle da tela, para o 422 pousar no lugar certo. */
 const API_FIELD_TO_CONTROL: Readonly<Record<string, string>> = {
@@ -116,18 +123,12 @@ export function DriverForm({ driver, onSaved, onCancel }: DriverFormProps) {
 
       <fieldset disabled={isSubmitting} className="entity-form-fieldset">
         <div className="entity-form-row">
-          <FormField id={NAME} label="NOME" error={errors[NAME]}>
-            <input
-              id={NAME}
-              name="name"
-              required
-              maxLength={160}
-              placeholder="Carlos Pereira"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              {...fieldErrorProps(NAME, errors[NAME])}
-            />
-          </FormField>
+          <EntityNameField
+            config={DRIVER_NAME_FIELD}
+            value={name}
+            onChange={setName}
+            error={errors[NAME]}
+          />
           <FormField
             id={DOCUMENT}
             label="DOCUMENTO"
