@@ -30,3 +30,4 @@ Registros aceitos relevantes:
 - `ADR-022`: ciclo mínimo de viagens e entregas, integração atômica com pedidos
   e histórico, gate de carregamento e vínculo 1:1 entre usuário e motorista.
 - `ADR-023`: conflito e reserva operacional de caminhões entre carregamento e viagens.
+- `ADR-024`: comprovante operacional como projeção auditável da conclusão da entrega.

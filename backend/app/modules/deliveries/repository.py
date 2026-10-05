@@ -93,7 +93,12 @@ class TripRepository:
         return self.db.scalars(statement.order_by(Trip.id).limit(2)).all()
 
     def get_for_update(self, trip_id: uuid.UUID) -> Trip | None:
-        statement = select(Trip).where(Trip.id == trip_id).with_for_update()
+        statement = (
+            select(Trip)
+            .where(Trip.id == trip_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
         return self.db.scalar(statement)
 
     def list_deliveries_for_update(self, trip_id: uuid.UUID) -> Sequence[Delivery]:
@@ -109,7 +114,12 @@ class TripRepository:
         return self.db.get(Delivery, delivery_id)
 
     def get_delivery_for_update(self, delivery_id: uuid.UUID) -> Delivery | None:
-        statement = select(Delivery).where(Delivery.id == delivery_id).with_for_update()
+        statement = (
+            select(Delivery)
+            .where(Delivery.id == delivery_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
         return self.db.scalar(statement)
 
     def get_by_load_plan_id(self, load_plan_id: uuid.UUID) -> Trip | None:

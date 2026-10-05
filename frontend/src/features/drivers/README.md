@@ -26,6 +26,17 @@ status; a busca cobre só o nome; e editar exige `GET /drivers/{id}` antes de ab
 caracteres, mas só faz sentido oferecer as categorias que dirigem caminhão (C, D, E, AC, AD, AE) —
 A é moto e B é carro de passeio. Continua opcional: "Não informada" envia `null`.
 
+**CNH é campo só de dígitos.** O padrão da OC63 é `[0-9]{11}`, sem máscara
+nenhuma — quem digitasse "012.345.678-90" levava 422 sem nada na tela sugerir
+que pontuação era proibida. O campo filtra dígito e para em 11.
+
+**O documento do motorista é CPF, não CPF ou CNPJ.** Motorista é pessoa física,
+e o schema do backend usa `CPF`, enquanto o do cliente usa `CustomerDocument`.
+
+**Telefone é obrigatório**, diferente do cliente. O vazio quem barra é o
+`required` nativo; a regra da OC63 pega o que está completo e inválido, como DDD
+zerado.
+
 **`active` só aparece na edição**, igual a caminhões: a criação não expõe o campo, mesmo o schema
 aceitando, porque o backend já assume `true`.
 

@@ -40,6 +40,43 @@ Viagem, entregas, estados e histórico. Roteirização externa não entra no MVP
   as vinculadas ao próprio `users.driver_id` e falha fechado sem vínculo ou com
   motorista inativo.
 
+## OC78 — comprovante operacional
+
+`CONFIRMADO`: a implementação da branch reutiliza `Delivery.delivered_at` e
+o único histórico da conclusão `IN_DELIVERY -> DELIVERED`. Não há tabela ou
+migration nova. Dados mínimos: `id` do histórico, `delivery_id`, `trip_id`,
+`order_id`, `driver_id`, `delivered_at`, `recorded_at` e `recorded_by`.
+
+- `POST /api/v1/deliveries/{id}/receipt`, corpo `{}` obrigatório: reutiliza a
+  conclusão existente e devolve `200 DeliveryReceiptRead`.
+- `GET /api/v1/deliveries/{id}/receipt`: consulta o comprovante, inclusive quando
+  a entrega foi concluída pelo endpoint de status anterior.
+
+`CONFIRMADO`: a conclusão continua restrita a `IN_DELIVERY` durante `IN_ROUTE`.
+Repetição autorizada mantém o mesmo histórico, horário e responsável, inclusive
+após viagem `FINISHED`. O schema rejeita campos extras; os vínculos, horários e
+usuário são obtidos do servidor. Gestor opera/consulta; administrador consulta;
+motorista ativo/vinculado acessa somente a própria viagem; conferente é negado.
+Sessão, Origin e CSRF mantêm as proteções existentes.
+
+`CONFIRMADO`: entrega, pedido e históricos compartilham commit/rollback. A
+projeção é montada antes do commit; dados sob bloqueio são atualizados para
+serializar tentativas concorrentes, inclusive com entidades já no identity map.
+Histórico ausente, duplicado ou sem responsável falha fechado com
+`DELIVERY_RECEIPT_HISTORY_INVALID`; consulta antes de concluir usa
+`DELIVERY_RECEIPT_NOT_AVAILABLE`. Não há backfill ou responsável fictício.
+
+`CONFIRMADO`: a arquitetura foi aprovada na revisão do PR #98 e está registrada
+na [ADR-024 aceita](../../../../docs/decisions/ADR-024-comprovante-operacional-entrega.md).
+Recebedor, correções, foto, assinatura, geolocalização, upload/storage e retenção
+externa ficam fora desta versão. Não há campos ou referências mock de evidência.
+
+Testes específicos (em `backend`, integração com `TEST_DATABASE_URL` exclusivo):
+
+```powershell
+python -m pytest -q tests/unit/test_delivery_service.py tests/integration/test_delivery_receipts_api.py tests/integration/test_delivery_receipt_concurrency.py tests/integration/test_deliveries_api.py tests/e2e/test_complete_flow.py
+```
+
 ## Pendências
 
 - `PENDENTE DE DEFINIÇÃO`: estados de exceção, cancelamento e reentrega exigem

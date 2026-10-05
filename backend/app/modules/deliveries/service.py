@@ -15,7 +15,7 @@ from app.modules.deliveries.models import (
     Trip,
 )
 from app.modules.deliveries.repository import TripListItem, TripRepository
-from app.modules.deliveries.schemas import TripCreate
+from app.modules.deliveries.schemas import DeliveryReceiptRead, TripCreate
 from app.modules.drivers.service import DriverNotFoundError, DriverService
 from app.modules.load_planning.reference_service import LoadPlanReferenceService
 from app.modules.loading.reference_service import LoadingReferenceService
@@ -106,6 +106,14 @@ class TripDeliveriesNotFinishedError(Exception):
 
 
 class DeliveryTripNotInRouteError(Exception):
+    pass
+
+
+class DeliveryReceiptNotAvailableError(Exception):
+    pass
+
+
+class DeliveryReceiptHistoryInvalidError(Exception):
     pass
 
 
@@ -281,53 +289,118 @@ class TripService:
         *,
         current_user: User,
     ) -> Delivery:
-        normalized_status = requested_status.strip().upper()
         try:
-            snapshot = self.repository.get_delivery(delivery_id)
-            if snapshot is None:
-                raise DeliveryNotFoundError
-            trip = self.repository.get_for_update(snapshot.trip_id)
-            if trip is None:
-                raise TripNotFoundError
-            self.repository.list_deliveries_for_update(trip.id)
-            delivery = self.repository.get_delivery_for_update(delivery_id)
-            if delivery is None:
-                raise DeliveryNotFoundError
-            self._ensure_can_operate(current_user, trip)
-
-            current_status = delivery.status
-            if normalized_status == current_status:
-                self.db.commit()
-                return self._get_persisted_delivery(delivery.id)
-            if (
-                normalized_status not in DELIVERY_STATUS_VALUES
-                or normalized_status
-                not in DELIVERY_STATUS_TRANSITIONS.get(current_status, frozenset())
-            ):
-                raise DeliveryStatusTransitionNotAllowedError(
-                    current_status,
-                    normalized_status,
-                )
-            if trip.status != "IN_ROUTE":
-                raise DeliveryTripNotInRouteError
-
-            delivery.status = normalized_status
-            if normalized_status == "DELIVERED":
-                delivery.delivered_at = datetime.now(UTC)
-                self._stage_order_delivered(delivery, current_user.id)
-            self.repository.update_delivery(delivery)
-            self._stage_status_change(
-                entity_type="DELIVERY",
-                entity_id=delivery.id,
-                old_status=current_status,
-                new_status=normalized_status,
-                changed_by=current_user.id,
+            delivery = self._stage_delivery_status(
+                delivery_id, requested_status, current_user=current_user
             )
             self.db.commit()
             return self._get_persisted_delivery(delivery.id)
         except Exception:
             self.db.rollback()
             raise
+
+    def register_delivery_receipt(
+        self, delivery_id: uuid.UUID, *, current_user: User
+    ) -> DeliveryReceiptRead:
+        """Reuse the completion transaction and project its history before commit."""
+        try:
+            delivery = self._stage_delivery_status(
+                delivery_id, "DELIVERED", current_user=current_user
+            )
+            trip = self.repository.get(delivery.trip_id)
+            if trip is None:
+                raise TripNotFoundError
+            receipt = self._build_delivery_receipt(delivery, trip)
+            self.db.commit()
+            return receipt
+        except Exception:
+            self.db.rollback()
+            raise
+
+    def get_delivery_receipt(
+        self, delivery_id: uuid.UUID, *, current_user: User
+    ) -> DeliveryReceiptRead:
+        delivery = self.repository.get_delivery(delivery_id)
+        if delivery is None:
+            raise DeliveryNotFoundError
+        trip = self.get_trip(delivery.trip_id, current_user=current_user)
+        return self._build_delivery_receipt(delivery, trip)
+
+    def _build_delivery_receipt(
+        self, delivery: Delivery, trip: Trip
+    ) -> DeliveryReceiptRead:
+        if delivery.status != "DELIVERED" or delivery.delivered_at is None:
+            raise DeliveryReceiptNotAvailableError
+        completions = [
+            row
+            for row in self.status_history_service.list_status_history(
+                "DELIVERY", delivery.id
+            )
+            if row.old_status == "IN_DELIVERY" and row.new_status == "DELIVERED"
+        ]
+        if len(completions) != 1 or completions[0].changed_by is None:
+            raise DeliveryReceiptHistoryInvalidError
+        completion = completions[0]
+        return DeliveryReceiptRead(
+            id=completion.id,
+            delivery_id=delivery.id,
+            trip_id=delivery.trip_id,
+            order_id=delivery.order_id,
+            driver_id=trip.driver_id,
+            delivered_at=delivery.delivered_at,
+            recorded_at=completion.created_at,
+            recorded_by=completion.changed_by,
+        )
+
+    def _stage_delivery_status(
+        self,
+        delivery_id: uuid.UUID,
+        requested_status: str,
+        *,
+        current_user: User,
+    ) -> Delivery:
+        """Stage the existing transition under the trip/deliveries lock order."""
+        normalized_status = requested_status.strip().upper()
+        snapshot = self.repository.get_delivery(delivery_id)
+        if snapshot is None:
+            raise DeliveryNotFoundError
+        trip = self.repository.get_for_update(snapshot.trip_id)
+        if trip is None:
+            raise TripNotFoundError
+        self.repository.list_deliveries_for_update(trip.id)
+        delivery = self.repository.get_delivery_for_update(delivery_id)
+        if delivery is None:
+            raise DeliveryNotFoundError
+        self._ensure_can_operate(current_user, trip)
+
+        current_status = delivery.status
+        if normalized_status == current_status:
+            return delivery
+        if (
+            normalized_status not in DELIVERY_STATUS_VALUES
+            or normalized_status
+            not in DELIVERY_STATUS_TRANSITIONS.get(current_status, frozenset())
+        ):
+            raise DeliveryStatusTransitionNotAllowedError(
+                current_status,
+                normalized_status,
+            )
+        if trip.status != "IN_ROUTE":
+            raise DeliveryTripNotInRouteError
+
+        delivery.status = normalized_status
+        if normalized_status == "DELIVERED":
+            delivery.delivered_at = datetime.now(UTC)
+            self._stage_order_delivered(delivery, current_user.id)
+        self.repository.update_delivery(delivery)
+        self._stage_status_change(
+            entity_type="DELIVERY",
+            entity_id=delivery.id,
+            old_status=current_status,
+            new_status=normalized_status,
+            changed_by=current_user.id,
+        )
+        return delivery
 
     def _stage_trip_start(
         self,

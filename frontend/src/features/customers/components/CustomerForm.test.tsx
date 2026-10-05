@@ -2,17 +2,40 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ApiError } from "../../../types/api";
-import { createCustomer } from "../api/customersApi";
-import type { Customer } from "../types";
+import { createCustomer, lookupAddressByCep } from "../api/customersApi";
+import type { CepAddress, Customer } from "../types";
 import { CustomerForm } from "./CustomerForm";
 import { mapCustomerErrorToMessage } from "./customersErrorMessages";
 
 vi.mock("../api/customersApi");
 
+/**
+ * Documentos fictícios COM dígito verificador válido, tirados de
+ * `backend/tests/unit/test_registration_validators.py`.
+ *
+ * Antes da OC71 qualquer sequência de 14 dígitos servia aqui, porque a tela só
+ * contava dígitos. Agora ela confere o verificador igual ao backend, então um
+ * valor inventado faria o teste falhar — e falharia com razão, porque a API
+ * também o recusaria.
+ */
+const CNPJ_VALIDO = "00.000.000/0001-91";
+const CNPJ_VALIDO_DIGITOS = "00000000000191";
+const CNPJ_OUTRO = "00.000.000/0002-72";
+
+/** Endereço fictício devolvido pela OC62. */
+const ENDERECO: CepAddress = {
+  cep: "01234567",
+  street: "Rua Fictícia",
+  neighborhood: "Bairro Fictício",
+  complement: null,
+  city: "Cidade Fictícia",
+  state: "SP",
+};
+
 const CUSTOMER: Customer = {
   id: "c1",
   name: "Distribuidora Aurora",
-  document: "12.345.678/0001-90",
+  document: CNPJ_OUTRO,
   phone: null,
   address: "Rua das Palmeiras, 120",
   city: "Campinas",
@@ -21,12 +44,18 @@ const CUSTOMER: Customer = {
   createdAt: "2026-08-01T12:00:00Z",
 };
 
-function fillRequiredFields() {
-  fireEvent.change(screen.getByLabelText("NOME OU RAZÃO SOCIAL"), { target: { value: "Mercado Central" } });
-  fireEvent.change(screen.getByLabelText("DOCUMENTO"), { target: { value: "99.888.777/0001-66" } });
+function fillRequiredFields(document = CNPJ_VALIDO) {
+  fireEvent.change(screen.getByLabelText("NOME OU RAZÃO SOCIAL"), {
+    target: { value: "Mercado Central" },
+  });
+  fireEvent.change(screen.getByLabelText("DOCUMENTO"), { target: { value: document } });
   fireEvent.change(screen.getByLabelText("ENDEREÇO"), { target: { value: "Av. Brasil, 500" } });
   fireEvent.change(screen.getByLabelText("CIDADE"), { target: { value: "Sorocaba" } });
   fireEvent.change(screen.getByLabelText("UF"), { target: { value: "sp" } });
+}
+
+function enviar() {
+  fireEvent.click(screen.getByRole("button", { name: "Cadastrar cliente" }));
 }
 
 describe("mapCustomerErrorToMessage", () => {
@@ -46,6 +75,7 @@ describe("mapCustomerErrorToMessage", () => {
 describe("CustomerForm", () => {
   beforeEach(() => {
     vi.mocked(createCustomer).mockReset();
+    vi.mocked(lookupAddressByCep).mockReset();
   });
 
   it("normaliza a UF em maiúsculas e envia telefone e observações nulos quando vazios", async () => {
@@ -54,14 +84,14 @@ describe("CustomerForm", () => {
 
     render(<CustomerForm onSaved={onSaved} onCancel={vi.fn()} />);
     fillRequiredFields();
-    fireEvent.click(screen.getByRole("button", { name: "Cadastrar cliente" }));
+    enviar();
 
     await waitFor(() => expect(onSaved).toHaveBeenCalledOnce());
     expect(createCustomer).toHaveBeenCalledWith({
       name: "Mercado Central",
       // Só os dígitos: com pontuação, o mesmo CNPJ entraria duas vezes,
       // porque a unicidade no backend compara a string crua.
-      document: "99888777000166",
+      document: CNPJ_VALIDO_DIGITOS,
       phone: null,
       address: "Av. Brasil, 500",
       city: "Sorocaba",
@@ -89,22 +119,159 @@ describe("CustomerForm", () => {
     expect(campo).toHaveValue("(42) 99999-8888");
   });
 
-  it("barra documento incompleto ANTES de chamar a API", async () => {
-    // O backend aceita texto livre em `document`: sem esta barreira, um CPF
-    // pela metade seria gravado sem reclamação nenhuma.
+  it("a máscara é só aparência: o que viaja são os dígitos", async () => {
+    vi.mocked(createCustomer).mockResolvedValue(CUSTOMER);
+
     render(<CustomerForm onSaved={vi.fn()} onCancel={vi.fn()} />);
-    fireEvent.change(screen.getByLabelText("NOME OU RAZÃO SOCIAL"), {
-      target: { value: "Mercado" },
+    fillRequiredFields();
+    fireEvent.change(screen.getByLabelText("TELEFONE (OPCIONAL)"), {
+      target: { value: "11900000000" },
     });
-    fireEvent.change(screen.getByLabelText("DOCUMENTO"), { target: { value: "123456" } });
-    fireEvent.change(screen.getByLabelText("ENDEREÇO"), { target: { value: "Rua A" } });
-    fireEvent.change(screen.getByLabelText("CIDADE"), { target: { value: "Sorocaba" } });
-    fireEvent.change(screen.getByLabelText("UF"), { target: { value: "SP" } });
+    enviar();
 
-    fireEvent.click(screen.getByRole("button", { name: "Cadastrar cliente" }));
+    await waitFor(() => expect(createCustomer).toHaveBeenCalledOnce());
+    expect(vi.mocked(createCustomer).mock.calls[0][0]).toMatchObject({
+      document: CNPJ_VALIDO_DIGITOS,
+      phone: "11900000000",
+    });
+  });
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(/Documento incompleto/);
+  it("barra documento incompleto ANTES de chamar a API, no próprio campo", async () => {
+    render(<CustomerForm onSaved={vi.fn()} onCancel={vi.fn()} />);
+    fillRequiredFields("123456");
+    enviar();
+
+    const campo = screen.getByLabelText("DOCUMENTO");
+    await waitFor(() => expect(campo).toHaveAccessibleDescription(/Documento incompleto/));
+    expect(campo).toHaveAttribute("aria-invalid", "true");
     expect(createCustomer).not.toHaveBeenCalled();
+  });
+
+  it("recusa dígito verificador errado, igual a OC63 faria", async () => {
+    // 14 dígitos, formato perfeito, verificador inválido: era exatamente o caso
+    // que passava pela tela e tomava 422 do backend.
+    render(<CustomerForm onSaved={vi.fn()} onCancel={vi.fn()} />);
+    fillRequiredFields("00.000.000/0001-90");
+    enviar();
+
+    const campo = screen.getByLabelText("DOCUMENTO");
+    await waitFor(() => expect(campo).toHaveAccessibleDescription("Informe um CNPJ válido."));
+    expect(createCustomer).not.toHaveBeenCalled();
+  });
+
+  it("recusa telefone com DDD zerado dizendo o que está errado", async () => {
+    render(<CustomerForm onSaved={vi.fn()} onCancel={vi.fn()} />);
+    fillRequiredFields();
+    fireEvent.change(screen.getByLabelText("TELEFONE (OPCIONAL)"), {
+      target: { value: "0130000000" },
+    });
+    enviar();
+
+    await waitFor(() =>
+      expect(screen.getByLabelText("TELEFONE (OPCIONAL)")).toHaveAccessibleDescription(
+        "O DDD não pode começar com zero.",
+      ),
+    );
+    expect(createCustomer).not.toHaveBeenCalled();
+  });
+
+  it("leva o foco para o primeiro campo errado, em vez de só pintar a tela", async () => {
+    render(<CustomerForm onSaved={vi.fn()} onCancel={vi.fn()} />);
+    fillRequiredFields("123456");
+    enviar();
+
+    await waitFor(() => expect(screen.getByLabelText("DOCUMENTO")).toHaveFocus());
+  });
+
+  it("depois do primeiro envio o campo se corrige enquanto se digita", async () => {
+    render(<CustomerForm onSaved={vi.fn()} onCancel={vi.fn()} />);
+    fillRequiredFields("123456");
+    enviar();
+
+    const campo = screen.getByLabelText("DOCUMENTO");
+    await waitFor(() => expect(campo).toHaveAttribute("aria-invalid", "true"));
+
+    fireEvent.change(campo, { target: { value: CNPJ_VALIDO } });
+    await waitFor(() => expect(campo).not.toHaveAttribute("aria-invalid"));
+  });
+
+  it("não acusa erro antes do primeiro envio, com a pessoa ainda digitando", () => {
+    render(<CustomerForm onSaved={vi.fn()} onCancel={vi.fn()} />);
+    const campo = screen.getByLabelText("DOCUMENTO");
+
+    fireEvent.change(campo, { target: { value: "123" } });
+
+    expect(campo).not.toHaveAttribute("aria-invalid");
+  });
+
+  it("o CEP preenche endereço, cidade e UF (OC70)", async () => {
+    vi.mocked(lookupAddressByCep).mockResolvedValue(ENDERECO);
+
+    render(<CustomerForm onSaved={vi.fn()} onCancel={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText("CEP (OPCIONAL)"), { target: { value: "01234567" } });
+
+    await waitFor(() => expect(screen.getByLabelText("ENDEREÇO")).toHaveValue("Rua Fictícia"));
+    expect(screen.getByLabelText("CIDADE")).toHaveValue("Cidade Fictícia");
+    expect(screen.getByLabelText("UF")).toHaveValue("SP");
+  });
+
+  it("o que o CEP preencheu continua editável: número e complemento são da pessoa", async () => {
+    vi.mocked(lookupAddressByCep).mockResolvedValue(ENDERECO);
+
+    render(<CustomerForm onSaved={vi.fn()} onCancel={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText("CEP (OPCIONAL)"), { target: { value: "01234567" } });
+    await waitFor(() => expect(screen.getByLabelText("ENDEREÇO")).toHaveValue("Rua Fictícia"));
+
+    fireEvent.change(screen.getByLabelText("ENDEREÇO"), {
+      target: { value: "Rua Fictícia, 120 — sala 2" },
+    });
+
+    expect(screen.getByLabelText("ENDEREÇO")).toHaveValue("Rua Fictícia, 120 — sala 2");
+  });
+
+  it("não apaga o número quando o CEP é preenchido depois do endereço", async () => {
+    vi.mocked(lookupAddressByCep).mockResolvedValue(ENDERECO);
+
+    render(<CustomerForm onSaved={vi.fn()} onCancel={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText("ENDEREÇO"), {
+      target: { value: "Rua Fictícia, 120" },
+    });
+    fireEvent.change(screen.getByLabelText("CEP (OPCIONAL)"), { target: { value: "01234567" } });
+
+    await waitFor(() => expect(screen.getByLabelText("CIDADE")).toHaveValue("Cidade Fictícia"));
+    expect(screen.getByLabelText("ENDEREÇO")).toHaveValue("Rua Fictícia, 120");
+  });
+
+  it("falha na consulta de CEP não impede o cadastro manual", async () => {
+    // A consulta é auxílio de preenchimento. Se ela cair, o cadastro continua.
+    vi.mocked(lookupAddressByCep).mockRejectedValue(new ApiError("VIACEP_UNAVAILABLE", "fora"));
+    vi.mocked(createCustomer).mockResolvedValue(CUSTOMER);
+
+    render(<CustomerForm onSaved={vi.fn()} onCancel={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText("CEP (OPCIONAL)"), { target: { value: "01234567" } });
+    await waitFor(() =>
+      expect(screen.getByLabelText("CEP (OPCIONAL)")).toHaveAttribute("aria-invalid", "true"),
+    );
+
+    fillRequiredFields();
+    enviar();
+
+    await waitFor(() => expect(createCustomer).toHaveBeenCalledOnce());
+  });
+
+  it("o CEP não é salvo: não existe essa coluna em Customer", async () => {
+    vi.mocked(lookupAddressByCep).mockResolvedValue(ENDERECO);
+    vi.mocked(createCustomer).mockResolvedValue(CUSTOMER);
+
+    render(<CustomerForm onSaved={vi.fn()} onCancel={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText("CEP (OPCIONAL)"), { target: { value: "01234567" } });
+    await waitFor(() => expect(screen.getByLabelText("CIDADE")).toHaveValue("Cidade Fictícia"));
+
+    fillRequiredFields();
+    enviar();
+
+    await waitFor(() => expect(createCustomer).toHaveBeenCalledOnce());
+    expect(vi.mocked(createCustomer).mock.calls[0][0]).not.toHaveProperty("cep");
   });
 
   it("explica o formato do documento numa dica, sem ocupar espaço fixo", () => {
@@ -128,10 +295,48 @@ describe("CustomerForm", () => {
 
     render(<CustomerForm onSaved={vi.fn()} onCancel={vi.fn()} />);
     fillRequiredFields();
-    fireEvent.click(screen.getByRole("button", { name: "Cadastrar cliente" }));
+    enviar();
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Já existe um cliente cadastrado com este documento.",
     );
+  });
+
+  it("pousa o 422 do backend no campo que ele apontou", async () => {
+    // Nenhuma regra nova do lado da tela: o backend pode recusar por motivo que
+    // o frontend não conhece, e mesmo aí a pessoa precisa saber QUAL campo.
+    vi.mocked(createCustomer).mockRejectedValue(
+      new ApiError("VALIDATION_ERROR", "Os dados informados são inválidos.", [
+        { field: "address", message: "Value error, Endereço inválido.", type: "value_error" },
+      ]),
+    );
+
+    render(<CustomerForm onSaved={vi.fn()} onCancel={vi.fn()} />);
+    fillRequiredFields();
+    enviar();
+
+    const campo = await screen.findByLabelText("ENDEREÇO");
+    await waitFor(() => expect(campo).toHaveAccessibleDescription("Endereço inválido."));
+    // a faixa do topo ficaria repetindo o que o campo já diz
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("volta para a faixa geral quando o 422 não aponta campo conhecido", async () => {
+    // Campo que a tela não tem não some: a faixa do topo assume e ainda NOMEIA
+    // o campo, em vez de devolver "dados inválidos" e deixar a pessoa caçando.
+    vi.mocked(createCustomer).mockRejectedValue(
+      new ApiError("VALIDATION_ERROR", "Os dados informados são inválidos.", [
+        { field: "campo_desconhecido", message: "Value error, Está errado.", type: "value_error" },
+      ]),
+    );
+
+    render(<CustomerForm onSaved={vi.fn()} onCancel={vi.fn()} />);
+    fillRequiredFields();
+    enviar();
+
+    const faixa = await screen.findByRole("alert");
+    expect(faixa).toHaveTextContent("campo_desconhecido");
+    // o prefixo que o Pydantic acrescenta não chega ao usuário
+    expect(faixa).not.toHaveTextContent("Value error");
   });
 });
