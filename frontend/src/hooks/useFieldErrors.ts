@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { validationFieldMessages } from "../services/validationErrors";
-import type { ApiError } from "../types/api";
+import { ApiError } from "../types/api";
 
 /** Função que confere UM campo e devolve a mensagem, ou `null` se está certo. */
 export type FieldCheck = () => string | null;
@@ -91,9 +91,36 @@ export function useFieldErrors(apiFieldToControlId: Readonly<Record<string, stri
     [apply, apiFieldToControlId],
   );
 
+  /**
+   * Converte uma falha de submissão na mensagem geral da tela.
+   *
+   * Quando o backend devolve erros de campo, eles já são distribuídos por
+   * `applyApiError` e a faixa do topo fica vazia. Para qualquer outro erro, a
+   * feature continua escolhendo a mensagem de domínio através de `fallback`.
+   */
+  const submissionErrorMessage = useCallback(
+    (error: unknown, fallback: (apiError: ApiError) => string): string | null => {
+      const apiError =
+        error instanceof ApiError
+          ? error
+          : new ApiError("UNKNOWN_ERROR", "Ocorreu um erro inesperado.");
+
+      return applyApiError(apiError) ? null : fallback(apiError);
+    },
+    [applyApiError],
+  );
+
   const clearAll = useCallback(() => {
     setErrors({});
   }, []);
 
-  return { errors, formRef, validateAll, revalidate, applyApiError, clearAll };
+  return {
+    errors,
+    formRef,
+    validateAll,
+    revalidate,
+    applyApiError,
+    submissionErrorMessage,
+    clearAll,
+  };
 }

@@ -62,6 +62,7 @@ const NAV_GROUPS: readonly NavGroup[] = [
     title: "Operação",
     items: [
       { to: "/orders", label: "Pedidos", icon: "orders", roles: OPERATION_READERS },
+      { to: "/fleet", label: "Frota", icon: "gauge", roles: OPERATION_READERS },
       { to: "/planning", label: "Planejamento", icon: "planning", roles: OPERATION_READERS },
       { to: "/reports", label: "Indicadores", icon: "chart", roles: OPERATION_READERS },
     ],

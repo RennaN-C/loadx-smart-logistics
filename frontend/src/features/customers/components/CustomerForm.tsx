@@ -1,12 +1,12 @@
 import { useState, type FormEvent } from "react";
 
 import { AlertBanner } from "../../../components/AlertBanner";
+import { EntityNameField } from "../../../components/EntityNameField";
 import { FormField } from "../../../components/FormField";
 import { fieldErrorProps } from "../../../components/fieldErrorProps";
 import { validateCustomerDocument, validatePhone } from "../../../components/documentRules";
 import { maskDocument, maskPhone, onlyDigits } from "../../../components/masks";
 import { useFieldErrors } from "../../../hooks/useFieldErrors";
-import { ApiError } from "../../../types/api";
 import { createCustomer, updateCustomer } from "../api/customersApi";
 import type { CepAddress, Customer } from "../types";
 import { CepLookupField } from "./CepLookupField";
@@ -24,6 +24,12 @@ const ADDRESS = "customer-address";
 const CITY = "customer-city";
 const STATE = "customer-state";
 const NOTES = "customer-notes";
+
+const CUSTOMER_NAME_FIELD = {
+  id: NAME,
+  label: "NOME OU RAZÃO SOCIAL",
+  placeholder: "Distribuidora Aurora",
+} as const;
 
 /** Campo do payload → controle da tela, para o 422 pousar no lugar certo. */
 const API_FIELD_TO_CONTROL: Readonly<Record<string, string>> = {
@@ -55,7 +61,7 @@ export function CustomerForm({ customer, onSaved, onCancel }: CustomerFormProps)
   const [notes, setNotes] = useState(customer?.notes ?? "");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const { errors, formRef, validateAll, revalidate, applyApiError, clearAll } =
+  const { errors, formRef, validateAll, revalidate, submissionErrorMessage } =
     useFieldErrors(API_FIELD_TO_CONTROL);
 
   function handleDocumentChange(value: string) {
@@ -121,15 +127,7 @@ export function CustomerForm({ customer, onSaved, onCancel }: CustomerFormProps)
       }
       onSaved();
     } catch (error) {
-      const apiError =
-        error instanceof ApiError
-          ? error
-          : new ApiError("UNKNOWN_ERROR", "Ocorreu um erro inesperado.");
-      // Quando o 422 encontra os campos, a faixa do topo só repetiria a notícia.
-      if (!applyApiError(apiError)) {
-        clearAll();
-        setErrorMessage(mapCustomerErrorToMessage(apiError));
-      }
+      setErrorMessage(submissionErrorMessage(error, mapCustomerErrorToMessage));
       setIsSubmitting(false);
     }
   }
@@ -140,18 +138,12 @@ export function CustomerForm({ customer, onSaved, onCancel }: CustomerFormProps)
 
       <fieldset disabled={isSubmitting} className="entity-form-fieldset">
         <div className="entity-form-row">
-          <FormField id={NAME} label="NOME OU RAZÃO SOCIAL" error={errors[NAME]}>
-            <input
-              id={NAME}
-              name="name"
-              required
-              maxLength={160}
-              placeholder="Distribuidora Aurora"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              {...fieldErrorProps(NAME, errors[NAME])}
-            />
-          </FormField>
+          <EntityNameField
+            config={CUSTOMER_NAME_FIELD}
+            value={name}
+            onChange={setName}
+            error={errors[NAME]}
+          />
           <FormField
             id={DOCUMENT}
             label="DOCUMENTO"
