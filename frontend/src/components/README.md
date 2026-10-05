@@ -15,7 +15,7 @@ Componentes usados por apenas uma feature permanecem dentro dela.
 - `Icon.tsx`: conjunto de ícones e a marca da LoadX, desenhados aqui.
 - `Avatar.tsx` + `initials.ts`: âncora visual com as iniciais de uma pessoa ou empresa.
 - `Tooltip.tsx`: dica de contexto sob demanda, no `i` ao lado do rótulo.
-- `masks.ts`: máscaras de CPF, CNPJ e telefone. **Funções puras, testadas.**
+- `masks.ts`: máscaras de CPF, CNPJ, telefone e CEP. **Funções puras, testadas.**
 - `documentRules.ts`: validade de CPF, CNPJ, CNH e telefone, espelhando a OC63. **Funções puras, testadas.**
 - `fieldErrorProps.ts`: o `aria-invalid` + `aria-describedby` que liga o erro ao controle.
 

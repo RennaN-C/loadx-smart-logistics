@@ -2,8 +2,8 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ApiError } from "../../../types/api";
-import { createCustomer } from "../api/customersApi";
-import type { Customer } from "../types";
+import { createCustomer, lookupAddressByCep } from "../api/customersApi";
+import type { CepAddress, Customer } from "../types";
 import { CustomerForm } from "./CustomerForm";
 import { mapCustomerErrorToMessage } from "./customersErrorMessages";
 
@@ -21,6 +21,16 @@ vi.mock("../api/customersApi");
 const CNPJ_VALIDO = "00.000.000/0001-91";
 const CNPJ_VALIDO_DIGITOS = "00000000000191";
 const CNPJ_OUTRO = "00.000.000/0002-72";
+
+/** Endereço fictício devolvido pela OC62. */
+const ENDERECO: CepAddress = {
+  cep: "01234567",
+  street: "Rua Fictícia",
+  neighborhood: "Bairro Fictício",
+  complement: null,
+  city: "Cidade Fictícia",
+  state: "SP",
+};
 
 const CUSTOMER: Customer = {
   id: "c1",
@@ -65,6 +75,7 @@ describe("mapCustomerErrorToMessage", () => {
 describe("CustomerForm", () => {
   beforeEach(() => {
     vi.mocked(createCustomer).mockReset();
+    vi.mocked(lookupAddressByCep).mockReset();
   });
 
   it("normaliza a UF em maiúsculas e envia telefone e observações nulos quando vazios", async () => {
@@ -191,6 +202,76 @@ describe("CustomerForm", () => {
     fireEvent.change(campo, { target: { value: "123" } });
 
     expect(campo).not.toHaveAttribute("aria-invalid");
+  });
+
+  it("o CEP preenche endereço, cidade e UF (OC70)", async () => {
+    vi.mocked(lookupAddressByCep).mockResolvedValue(ENDERECO);
+
+    render(<CustomerForm onSaved={vi.fn()} onCancel={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText("CEP (OPCIONAL)"), { target: { value: "01234567" } });
+
+    await waitFor(() => expect(screen.getByLabelText("ENDEREÇO")).toHaveValue("Rua Fictícia"));
+    expect(screen.getByLabelText("CIDADE")).toHaveValue("Cidade Fictícia");
+    expect(screen.getByLabelText("UF")).toHaveValue("SP");
+  });
+
+  it("o que o CEP preencheu continua editável: número e complemento são da pessoa", async () => {
+    vi.mocked(lookupAddressByCep).mockResolvedValue(ENDERECO);
+
+    render(<CustomerForm onSaved={vi.fn()} onCancel={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText("CEP (OPCIONAL)"), { target: { value: "01234567" } });
+    await waitFor(() => expect(screen.getByLabelText("ENDEREÇO")).toHaveValue("Rua Fictícia"));
+
+    fireEvent.change(screen.getByLabelText("ENDEREÇO"), {
+      target: { value: "Rua Fictícia, 120 — sala 2" },
+    });
+
+    expect(screen.getByLabelText("ENDEREÇO")).toHaveValue("Rua Fictícia, 120 — sala 2");
+  });
+
+  it("não apaga o número quando o CEP é preenchido depois do endereço", async () => {
+    vi.mocked(lookupAddressByCep).mockResolvedValue(ENDERECO);
+
+    render(<CustomerForm onSaved={vi.fn()} onCancel={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText("ENDEREÇO"), {
+      target: { value: "Rua Fictícia, 120" },
+    });
+    fireEvent.change(screen.getByLabelText("CEP (OPCIONAL)"), { target: { value: "01234567" } });
+
+    await waitFor(() => expect(screen.getByLabelText("CIDADE")).toHaveValue("Cidade Fictícia"));
+    expect(screen.getByLabelText("ENDEREÇO")).toHaveValue("Rua Fictícia, 120");
+  });
+
+  it("falha na consulta de CEP não impede o cadastro manual", async () => {
+    // A consulta é auxílio de preenchimento. Se ela cair, o cadastro continua.
+    vi.mocked(lookupAddressByCep).mockRejectedValue(new ApiError("VIACEP_UNAVAILABLE", "fora"));
+    vi.mocked(createCustomer).mockResolvedValue(CUSTOMER);
+
+    render(<CustomerForm onSaved={vi.fn()} onCancel={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText("CEP (OPCIONAL)"), { target: { value: "01234567" } });
+    await waitFor(() =>
+      expect(screen.getByLabelText("CEP (OPCIONAL)")).toHaveAttribute("aria-invalid", "true"),
+    );
+
+    fillRequiredFields();
+    enviar();
+
+    await waitFor(() => expect(createCustomer).toHaveBeenCalledOnce());
+  });
+
+  it("o CEP não é salvo: não existe essa coluna em Customer", async () => {
+    vi.mocked(lookupAddressByCep).mockResolvedValue(ENDERECO);
+    vi.mocked(createCustomer).mockResolvedValue(CUSTOMER);
+
+    render(<CustomerForm onSaved={vi.fn()} onCancel={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText("CEP (OPCIONAL)"), { target: { value: "01234567" } });
+    await waitFor(() => expect(screen.getByLabelText("CIDADE")).toHaveValue("Cidade Fictícia"));
+
+    fillRequiredFields();
+    enviar();
+
+    await waitFor(() => expect(createCustomer).toHaveBeenCalledOnce());
+    expect(vi.mocked(createCustomer).mock.calls[0][0]).not.toHaveProperty("cep");
   });
 
   it("explica o formato do documento numa dica, sem ocupar espaço fixo", () => {

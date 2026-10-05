@@ -58,3 +58,13 @@ export function maskPhone(value: string): string {
 
   return digits.replace(/^(\d{2})(\d{5})(\d)/, "($1) $2-$3");
 }
+
+/**
+ * CEP. O backend aceita oito dígitos com ou sem hífen (`ViaCEPProvider`), então
+ * a pontuação aqui é só conforto de leitura — o que viaja são os dígitos.
+ */
+export function maskCep(value: string): string {
+  const digits = onlyDigits(value).slice(0, 8);
+
+  return digits.replace(/^(\d{5})(\d)/, "$1-$2");
+}

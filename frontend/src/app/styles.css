@@ -901,6 +901,33 @@ input[type="checkbox"]:disabled {
   box-shadow: 0 0 0 3px var(--danger-line);
 }
 
+/* O campo do CEP divide a largura com o botão de buscar, então os 180px de
+   `.entity-form-field-narrow` não servem: o input ficava com uns 95px e
+   truncava "01234-567" no último dígito. */
+.entity-form-field:has(.cep-lookup) {
+  flex: 0 1 260px;
+}
+
+.cep-lookup {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* `min-width` em `ch` porque o botão muda de largura ao virar "Buscando…": sem
+   um piso, o input encolhia até sobrar um dígito à vista. O `min-width: 0` que
+   normalmente se usa aqui serve para deixar encolher — é o contrário do que
+   este campo precisa. */
+.cep-lookup input {
+  flex: 1;
+  min-width: 10ch;
+}
+
+.cep-lookup .btn-secondary {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
 .entity-form-derived {
   display: flex;
   justify-content: flex-end;
