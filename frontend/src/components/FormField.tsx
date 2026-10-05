@@ -18,26 +18,13 @@ interface FormFieldProps {
    * Problema deste campo. Substitui a dica enquanto existe: as duas juntas
    * empilham dois textos pequenos embaixo do campo e a pessoa lê o errado.
    *
-   * Quem passa `error` também precisa espalhar `fieldErrorProps(id, error)` no
-   * controle — é isso que liga o texto ao campo para o leitor de tela.
+   * Quem passa `error` também precisa espalhar `fieldErrorProps(id, error)`
+   * (em `fieldErrorProps.ts`) no controle — é isso que liga o texto ao campo
+   * para o leitor de tela.
    */
   readonly error?: string | null;
   readonly narrow?: boolean;
   readonly children: ReactNode;
-}
-
-/**
- * Props que o CONTROLE precisa receber para o erro do `FormField` ser anunciado.
- *
- * Fica separado em vez de o `FormField` injetar sozinho porque injetar exigiria
- * `cloneElement` no children — que funciona, mas falha em silêncio no dia em que
- * alguém envolver o input num fragmento. Aqui o TypeScript cobra no lugar certo.
- */
-export function fieldErrorProps(
-  id: string,
-  error: string | null | undefined,
-): { "aria-invalid"?: true; "aria-describedby"?: string } {
-  return error ? { "aria-invalid": true, "aria-describedby": `${id}-error` } : {};
 }
 
 export function FormField({ id, label, hint, tooltip, error, narrow, children }: FormFieldProps) {
