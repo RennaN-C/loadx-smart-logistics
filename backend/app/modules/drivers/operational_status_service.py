@@ -13,7 +13,7 @@ from app.modules.fleet.service import FleetAvailabilityService
 class DriverOperationalStatus:
     id: uuid.UUID
     name: str
-    license_category: str | null
+    license_category: str | None
     active: bool
     has_operation_conflict: bool
     available: bool
