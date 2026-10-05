@@ -1,0 +1,54 @@
+name: Diagnóstico Sonar OC69
+
+on:
+  push:
+    branches:
+      - joao/oc69-indicadores-operacionais
+
+permissions:
+  contents: read
+
+jobs:
+  sonar-issues:
+    name: Ler issues do Sonar
+    runs-on: ubuntu-latest
+    steps:
+      - name: Consultar issues abertas da PR 97
+        run: |
+          python - <<'PY'
+          import json
+          import urllib.parse
+          import urllib.request
+
+          params = urllib.parse.urlencode(
+              {
+                  "componentKeys": "RennaN-C_loadx-smart-logistics",
+                  "pullRequest": "97",
+                  "issueStatuses": "OPEN,CONFIRMED",
+                  "sinceLeakPeriod": "true",
+                  "ps": "100",
+              }
+          )
+          url = f"https://sonarcloud.io/api/issues/search?{params}"
+          with urllib.request.urlopen(url, timeout=30) as response:
+              data = json.load(response)
+
+          print("TOTAL", data.get("total"))
+          for issue in data.get("issues", []):
+              print(
+                  json.dumps(
+                      {
+                          "key": issue.get("key"),
+                          "rule": issue.get("rule"),
+                          "severity": issue.get("severity"),
+                          "type": issue.get("type"),
+                          "component": issue.get("component"),
+                          "line": issue.get("line"),
+                          "message": issue.get("message"),
+                          "textRange": issue.get("textRange"),
+                          "flows": issue.get("flows"),
+                      },
+                      ensure_ascii=False,
+                  )
+              )
+          PY
