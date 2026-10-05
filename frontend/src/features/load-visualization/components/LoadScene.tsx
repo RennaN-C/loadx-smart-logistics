@@ -9,6 +9,7 @@ import { viewCamera, type ViewPreset } from "./cameraViews";
 import { deliveryColor, itemBox, truckBox } from "./sceneGeometry";
 import { classifyProduct } from "./productKind";
 import { TruckCabMesh } from "./TruckCabMesh";
+import { cabFrontWheels } from "./truckCabModel";
 import { TruckShellMesh } from "./TruckShellMesh";
 import { useTruckCabModel } from "../hooks/useTruckCabModel";
 import { truckShell } from "./truckShell";
@@ -254,7 +255,13 @@ export function LoadScene({
         </>
       )}
 
-      {showTruck ? <TruckShellMesh shell={shell} hideCab={cabModel !== null} /> : null}
+      {showTruck ? (
+        <TruckShellMesh
+          shell={shell}
+          hideCab={cabModel !== null}
+          cabWheels={cabModel ? cabFrontWheels(truck) : []}
+        />
+      ) : null}
       {showTruck && cabModel ? <TruckCabMesh model={cabModel} truck={truck} /> : null}
 
       <group position={[0, deck, 0]}>

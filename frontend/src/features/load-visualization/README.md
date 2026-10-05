@@ -130,11 +130,23 @@ O **baú** do mesmo pacote foi descartado justamente por não ter essa proprieda
 baú de 6 m e uma carreta de 12 m apareceriam iguais na tela.
 
 `truckCabModel.ts` guarda a conta de posicionamento, e ela é pura — é o que dá para testar, já que
-jsdom não tem WebGL. A largura sai do **corpo** da cabine (3,25 no arquivo), não do total (3,681),
-porque o excedente são os braços dos retrovisores; escalar pelo total deixaria a cabine mais
-estreita que o próprio caminhão. A altura acompanha a largura, e só cede quando a cabine passaria do
-teto de um baú baixo — aí ela comprime, nunca estreita. Cabine comprimida lê como teto baixo, que é
-um caminhão que existe; cabine estreita não lê como nada.
+jsdom não tem WebGL.
+
+`CONFIRMADO`: a escala é **fixa**, `CAB_LENGTH / 2,945 = 0,781`, igual para todo caminhão. A cabine
+não se estica conforme o baú, e isso é o comportamento certo por dois motivos. Num caminhão real a
+cabine tem medida própria: quem varia é a carroceria. E esticá-la deformava um modelo de proporção
+correta, além de desalinhar o eixo dianteiro do arco de roda que o próprio modelo desenha — foi o
+defeito que apareceu na tela. A escala escolhida faz a cabine ocupar exatamente o vão reservado e
+dá 2,54 m de largura por 3,43 m de altura, medidas de cabine de verdade.
+
+O **eixo dianteiro** também vem do modelo (`cabFrontWheels`), e não de `truckShell`: lá ele era posto
+em fração de `CAB_LENGTH`, com a bitola colada nas faces do baú, o que fazia a roda nascer atrás do
+arco e, em baú largo, do lado de fora da cabine. Os eixos **traseiros** continuam em `truckShell`,
+porque esses sim acompanham o comprimento do baú — um baú de 9 m ganha tandem, um de 4 m não.
+
+O solo, para a roda encostar, é a base do PNEU e não o plano de cenário que veio no arquivo: no
+modelo original o pneu para pouco acima desse plano, e usá-lo deixava a roda flutuando um
+centímetro.
 
 Falha no carregamento não vira erro de tela: o caminhão aparece com a cabine antiga, desenhada em
 código, e a carga — que é o assunto da tela — continua correta. Não há aviso nem botão de nova

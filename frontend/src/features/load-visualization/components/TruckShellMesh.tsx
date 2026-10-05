@@ -71,9 +71,18 @@ interface TruckShellMeshProps {
    * medidas cadastradas.
    */
   readonly hideCab?: boolean;
+  /**
+   * Eixo dianteiro vindo do modelo da cabine, alinhado ao arco de roda que ele
+   * desenha. Vazio quando a cabine é a desenhada em código.
+   */
+  readonly cabWheels?: readonly Wheel[];
 }
 
-export function TruckShellMesh({ shell, hideCab = false }: TruckShellMeshProps) {
+export function TruckShellMesh({
+  shell,
+  hideCab = false,
+  cabWheels = [],
+}: TruckShellMeshProps) {
   return (
     <group>
       <Panel box={shell.chassis} color="#33373d" roughness={0.8} metalness={0.3} />
@@ -119,7 +128,9 @@ export function TruckShellMesh({ shell, hideCab = false }: TruckShellMeshProps) 
             <Panel key={`mirror-${index}`} box={box} color="#2f343a" roughness={0.3} metalness={0.4} />
           ))}
 
-      {shell.wheels.map((wheel) => (
+      {/* Mesmo critério dos para-lamas: à frente da parede de carga quem manda
+          é a cabine, e o eixo dianteiro dela vem alinhado ao próprio modelo. */}
+      {[...shell.wheels.filter((w) => !hideCab || w.position[2] >= 0), ...cabWheels].map((wheel) => (
         <Tyre key={`${wheel.position[0]}-${wheel.position[2]}`} wheel={wheel} />
       ))}
     </group>
