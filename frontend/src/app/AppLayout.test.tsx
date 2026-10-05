@@ -99,6 +99,24 @@ describe("AppLayout", () => {
     expect(screen.queryByRole("link", { name: "Frota" })).not.toBeInTheDocument();
   });
 
+  it("o painel operacional não aparece para o conferente", () => {
+    signedInAs("CHECKER");
+    renderLayout();
+
+    expect(screen.queryByRole("link", { name: "Painel operacional" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Indicadores" })).toBeInTheDocument();
+  });
+
+  it("o gestor chega ao painel operacional", () => {
+    signedInAs("LOGISTICS_MANAGER");
+    renderLayout();
+
+    expect(screen.getByRole("link", { name: "Painel operacional" })).toHaveAttribute(
+      "href",
+      "/operations",
+    );
+  });
+
   it("esconde dados pessoais do conferente sem derrubar o grupo inteiro", () => {
     signedInAs("CHECKER");
     renderLayout();

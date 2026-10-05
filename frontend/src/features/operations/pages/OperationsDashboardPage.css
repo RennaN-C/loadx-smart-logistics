@@ -1,0 +1,79 @@
+/* A casca da tela (.entity-*) vem de app/styles.css. As medidas repetem as de
+   `.report-kpi` e `.kpi` de propósito: as telas de número do LoadX são a mesma
+   família e não devem parecer produtos diferentes.
+
+   As classes são próprias em vez de reaproveitadas de `ReportsPage.css` porque
+   aquele arquivo pertence a outra feature: depender dele faria esta tela quebrar
+   no dia em que a de pedidos mudasse de layout. */
+
+.ops-block {
+  margin-top: 28px;
+}
+
+.ops-block-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.ops-block-head h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+/* O período. Discreto, mas sempre presente: número sem recorte de tempo não
+   quer dizer nada, e "2 em rota" de hoje é diferente de "2 em rota" de sempre. */
+.ops-block-head p {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin: 0;
+}
+
+.ops-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 14px;
+}
+
+.ops-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+
+.ops-kpi-label {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+}
+
+.ops-kpi-value {
+  font-family: var(--font-mono);
+  font-size: 1.9rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* o número que exige ação não pode ter o mesmo peso visual dos outros */
+.ops-kpi-alert .ops-kpi-value {
+  color: var(--danger);
+}
+
+.ops-kpi-note {
+  font-size: 0.78rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
