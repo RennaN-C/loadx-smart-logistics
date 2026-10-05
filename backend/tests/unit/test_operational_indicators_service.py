@@ -180,4 +180,7 @@ def test_get_indicators_is_deterministic_for_same_sources() -> None:
         occurrences=0,
     )
 
-    assert service.get_indicators() == service.get_indicators()
+    first_result = service.get_indicators()
+    second_result = service.get_indicators()
+
+    assert first_result == second_result
