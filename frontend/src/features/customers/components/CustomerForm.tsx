@@ -8,7 +8,8 @@ import { maskDocument, maskPhone, onlyDigits } from "../../../components/masks";
 import { useFieldErrors } from "../../../hooks/useFieldErrors";
 import { ApiError } from "../../../types/api";
 import { createCustomer, updateCustomer } from "../api/customersApi";
-import type { Customer } from "../types";
+import type { CepAddress, Customer } from "../types";
+import { CepLookupField } from "./CepLookupField";
 import { mapCustomerErrorToMessage } from "./customersErrorMessages";
 
 function orNull(value: string): string | null {
@@ -61,6 +62,21 @@ export function CustomerForm({ customer, onSaved, onCancel }: CustomerFormProps)
     const masked = maskDocument(value);
     setDocument(masked);
     revalidate(DOCUMENT, () => validateCustomerDocument(masked));
+  }
+
+  /**
+   * Preenchimento vindo do CEP (OC70). Os campos continuam editáveis: número e
+   * complemento são justamente o que a consulta não tem como saber.
+   */
+  function handleCepFound(found: CepAddress) {
+    setCity(found.city);
+    setState(found.state);
+
+    // Não sobrescreve quando a rua já está lá: quem digitou "Rua X, 120" e só
+    // depois preencheu o CEP perderia o número.
+    if (found.street !== null && !address.trim().startsWith(found.street)) {
+      setAddress(found.street);
+    }
   }
 
   function handlePhoneChange(value: string) {
@@ -158,6 +174,7 @@ export function CustomerForm({ customer, onSaved, onCancel }: CustomerFormProps)
         </div>
 
         <div className="entity-form-row">
+          <CepLookupField onFound={handleCepFound} />
           <FormField id={ADDRESS} label="ENDEREÇO" error={errors[ADDRESS]}>
             <input
               id={ADDRESS}
@@ -168,24 +185,6 @@ export function CustomerForm({ customer, onSaved, onCancel }: CustomerFormProps)
               value={address}
               onChange={(event) => setAddress(event.target.value)}
               {...fieldErrorProps(ADDRESS, errors[ADDRESS])}
-            />
-          </FormField>
-          <FormField
-            id={PHONE}
-            label="TELEFONE (OPCIONAL)"
-            tooltip="Com DDD. Aceita fixo, com 10 dígitos, e celular, com 11."
-            error={errors[PHONE]}
-            narrow
-          >
-            <input
-              id={PHONE}
-              name="phone"
-              inputMode="tel"
-              maxLength={15}
-              placeholder="(11) 90000-0000"
-              value={phone}
-              onChange={(event) => handlePhoneChange(event.target.value)}
-              {...fieldErrorProps(PHONE, errors[PHONE])}
             />
           </FormField>
         </div>
@@ -214,6 +213,24 @@ export function CustomerForm({ customer, onSaved, onCancel }: CustomerFormProps)
               value={state}
               onChange={(event) => setState(event.target.value.toUpperCase())}
               {...fieldErrorProps(STATE, errors[STATE])}
+            />
+          </FormField>
+          <FormField
+            id={PHONE}
+            label="TELEFONE (OPCIONAL)"
+            tooltip="Com DDD. Aceita fixo, com 10 dígitos, e celular, com 11."
+            error={errors[PHONE]}
+            narrow
+          >
+            <input
+              id={PHONE}
+              name="phone"
+              inputMode="tel"
+              maxLength={15}
+              placeholder="(11) 90000-0000"
+              value={phone}
+              onChange={(event) => handlePhoneChange(event.target.value)}
+              {...fieldErrorProps(PHONE, errors[PHONE])}
             />
           </FormField>
         </div>
