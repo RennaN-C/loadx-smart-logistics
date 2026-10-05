@@ -167,6 +167,31 @@ describe("OperationsDashboardPage", () => {
     expect(await screen.findByRole("heading", { name: "Frota" })).toBeInTheDocument();
   });
 
+  it("404 diz que a API não está publicada, em vez de 'erro inesperado'", async () => {
+    // O 404 do FastAPI não usa o envelope do projeto, então chega como
+    // UNKNOWN_ERROR: sem olhar o status, a tela mandaria procurar defeito no
+    // lugar errado. Foi o que aconteceu no ambiente local antes da OC69 subir.
+    vi.mocked(getOperationalIndicators).mockRejectedValue(
+      new ApiError("UNKNOWN_ERROR", "Ocorreu um erro inesperado.", [], 404),
+    );
+
+    render(<OperationsDashboardPage />);
+
+    const aviso = await screen.findByRole("alert");
+    expect(aviso).toHaveTextContent(/ainda não publica a API de indicadores/i);
+    expect(aviso).not.toHaveTextContent(/inesperado/i);
+  });
+
+  it("um 500 continua caindo no erro genérico: a causa não é conhecida", async () => {
+    vi.mocked(getOperationalIndicators).mockRejectedValue(
+      new ApiError("UNKNOWN_ERROR", "Ocorreu um erro inesperado.", [], 500),
+    );
+
+    render(<OperationsDashboardPage />);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/inesperado/i);
+  });
+
   it("explica o 403 em vez de mostrar painel vazio", async () => {
     vi.mocked(getOperationalIndicators).mockRejectedValue(
       new ApiError("AUTH_FORBIDDEN", "Acesso negado."),

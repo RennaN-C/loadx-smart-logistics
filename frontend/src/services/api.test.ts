@@ -43,6 +43,30 @@ describe("toApiError", () => {
   it("retorna UNKNOWN_ERROR para qualquer outro tipo de erro", () => {
     expect(toApiError(new Error("algo inesperado")).code).toBe("UNKNOWN_ERROR");
   });
+
+  it("guarda o status mesmo quando o corpo NÃO está no formato da API", () => {
+    // Um 404 do próprio FastAPI responde {"detail": "Not Found"}, fora do
+    // envelope. Sem o status, a feature não teria como distinguir rota ausente
+    // de erro interno — os dois chegariam como UNKNOWN_ERROR.
+    const error = fakeAxiosError({ response: { status: 404, data: { detail: "Not Found" } } });
+
+    const result = toApiError(error);
+
+    expect(result.code).toBe("UNKNOWN_ERROR");
+    expect(result.status).toBe(404);
+  });
+
+  it("guarda o status também quando o corpo está no formato da API", () => {
+    const error = fakeAxiosError({
+      response: { status: 403, data: { code: "AUTH_FORBIDDEN", message: "Negado.", details: [] } },
+    });
+
+    expect(toApiError(error).status).toBe(403);
+  });
+
+  it("falha de rede fica sem status: não houve resposta para ter um", () => {
+    expect(toApiError(fakeAxiosError({})).status).toBeUndefined();
+  });
 });
 
 describe("notifyIfSessionInvalidated", () => {

@@ -26,12 +26,19 @@ export function toApiError(error: unknown): ApiError {
   if (axios.isAxiosError(error)) {
     if (isApiErrorResponse(error.response?.data)) {
       const { code, message, details } = error.response.data;
-      return new ApiError(code, message, details);
+      return new ApiError(code, message, details, error.response.status);
     }
 
     if (!error.response) {
       return new ApiError("NETWORK_ERROR", "Não foi possível conectar ao servidor.");
     }
+
+    return new ApiError(
+      "UNKNOWN_ERROR",
+      "Ocorreu um erro inesperado.",
+      [],
+      error.response.status,
+    );
   }
 
   return new ApiError("UNKNOWN_ERROR", "Ocorreu um erro inesperado.");

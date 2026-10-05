@@ -2,10 +2,10 @@ import { useCallback, useEffect, useState } from "react";
 
 import { AlertBanner } from "../../../components/AlertBanner";
 import { Icon, type IconName } from "../../../components/Icon";
-import { fallbackErrorMessage } from "../../../services/apiErrorMessages";
 import { ApiError } from "../../../types/api";
 import { getOperationalIndicators } from "../api/operationalIndicatorsApi";
 import type { OperationalIndicators } from "../types";
+import { mapOperationalIndicatorsError } from "./operationsErrorMessages";
 import "./OperationsDashboardPage.css";
 
 /**
@@ -127,7 +127,7 @@ export function OperationsDashboardPage() {
         error instanceof ApiError
           ? error
           : new ApiError("UNKNOWN_ERROR", "Ocorreu um erro inesperado.");
-      setErrorMessage(fallbackErrorMessage(apiError));
+      setErrorMessage(mapOperationalIndicatorsError(apiError));
       setStatus("error");
     }
   }, []);
