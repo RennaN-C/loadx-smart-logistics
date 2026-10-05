@@ -6,7 +6,6 @@ import { fieldErrorProps } from "../../../components/fieldErrorProps";
 import { validateCnh, validateDriverDocument, validatePhone } from "../../../components/documentRules";
 import { maskDocument, maskPhone, onlyDigits } from "../../../components/masks";
 import { useFieldErrors } from "../../../hooks/useFieldErrors";
-import { ApiError } from "../../../types/api";
 import { createDriver, updateDriver } from "../api/driversApi";
 import type { Driver } from "../types";
 import { mapDriverErrorToMessage } from "./driversErrorMessages";
@@ -50,7 +49,7 @@ export function DriverForm({ driver, onSaved, onCancel }: DriverFormProps) {
   const [active, setActive] = useState(driver?.active ?? true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const { errors, formRef, validateAll, revalidate, applyApiError, clearAll } =
+  const { errors, formRef, validateAll, revalidate, submissionErrorMessage } =
     useFieldErrors(API_FIELD_TO_CONTROL);
 
   function handleDocumentChange(value: string) {
@@ -106,15 +105,7 @@ export function DriverForm({ driver, onSaved, onCancel }: DriverFormProps) {
       }
       onSaved();
     } catch (error) {
-      const apiError =
-        error instanceof ApiError
-          ? error
-          : new ApiError("UNKNOWN_ERROR", "Ocorreu um erro inesperado.");
-      // Quando o 422 encontra os campos, a faixa do topo só repetiria a notícia.
-      if (!applyApiError(apiError)) {
-        clearAll();
-        setErrorMessage(mapDriverErrorToMessage(apiError));
-      }
+      setErrorMessage(submissionErrorMessage(error, mapDriverErrorToMessage));
       setIsSubmitting(false);
     }
   }
