@@ -56,6 +56,7 @@ EXPECTED_ERROR_STATUSES = {
         "500",
     },
     ("/api/v1/drivers", "get"): {"401", "403", "422", "500"},
+    ("/api/v1/drivers/operational-status", "get"): {"401", "403", "422", "500"},
     ("/api/v1/drivers", "post"): {"401", "403", "409", "422", "500"},
     ("/api/v1/drivers/{driver_id}", "get"): {
         "401",
@@ -463,5 +464,32 @@ def test_openapi_documents_truck_operational_status_contract() -> None:
         "available",
     }
 
+    assert set(status_schema["properties"]) == expected_fields
+    assert set(status_schema["required"]) == expected_fields
+
+
+def test_openapi_documents_driver_operational_status_contract() -> None:
+    schema = get_openapi_schema()
+
+    operation = schema["paths"]["/api/v1/drivers/operational-status"]["get"]
+    response_schema = operation["responses"]["200"]["content"]["application/json"][
+        "schema"
+    ]
+
+    page_component_name = response_schema["$ref"].split("/")[-1]
+    page_schema = schema["components"]["schemas"][page_component_name]
+    item_schema = page_schema["properties"]["items"]["items"]
+
+    assert item_schema == {"$ref": "#/components/schemas/DriverOperationalStatusRead"}
+
+    status_schema = schema["components"]["schemas"]["DriverOperationalStatusRead"]
+    expected_fields = {
+        "id",
+        "name",
+        "license_category",
+        "active",
+        "has_operation_conflict",
+        "available",
+    }
     assert set(status_schema["properties"]) == expected_fields
     assert set(status_schema["required"]) == expected_fields
