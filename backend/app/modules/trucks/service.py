@@ -33,6 +33,9 @@ class TruckService:
     def list_trucks(self, pagination: PaginationParams) -> PageResult[Truck]:
         return self.repository.list(pagination)
 
+    def list_all_trucks(self) -> Sequence[Truck]:
+        return self.repository.list_all()
+
     def get_truck(self, truck_id: uuid.UUID) -> Truck:
         truck = self.repository.get(truck_id)
         if truck is None:

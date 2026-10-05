@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.modules.occurrences.models import Occurrence
@@ -9,6 +9,9 @@ from app.modules.occurrences.models import Occurrence
 class OccurrenceRepository:
     def __init__(self, db: Session) -> None:
         self.db = db
+
+    def count_all(self) -> int:
+        return self.db.scalar(select(func.count()).select_from(Occurrence)) or 0
 
     def add(self, occurrence: Occurrence) -> Occurrence:
         self.db.add(occurrence)
