@@ -46,27 +46,18 @@ filtro aqui seria duplicar no cliente uma regra de acesso que já é aplicada on
 painel dele abria com contadores que respondiam 403. Agora a tela inicial do motorista lista as
 viagens dele, com carregando, vazio, erro e link para cada uma.
 
-## Disponibilidade do motorista (OC72) — BLOQUEADO
+## Disponibilidade do motorista (OC72)
 
-`CreateTripAction` oferece apenas motoristas `active`. A OC72 pede que a seleção
-também mostre quem já está comprometido com outra operação, como o planejamento
-passou a fazer com os caminhões.
+`CreateTripAction` continua oferecendo somente motoristas ativos e agora
+consulta `GET /drivers/operational-status` para saber a situação operacional.
+O frontend não cruza viagens nem recalcula conflito: usa diretamente
+`available` e `has_operation_conflict` produzidos pela OC67.
 
-`RISCO IDENTIFICADO`: **não há endpoint HTTP que devolva isso.** A OC67 existe
-e sabe responder — `FleetAvailabilityService.get_driver_availability` está
-pronto em `app/modules/fleet/service.py` —, mas o README daquele módulo diz, com
-todas as letras, que a OC67 "não possui endpoint próprio". Os caminhões chegaram
-à tela porque a OC68 criou `GET /trucks/operational-status`; os motoristas não
-têm equivalente.
-
-`DECISÃO NECESSÁRIA`: para fechar esta metade, o backend precisa expor a
-disponibilidade do motorista — por exemplo `GET /drivers/operational-status`,
-espelhando o contrato da OC68, ou um campo em `DriverListRead`.
-
-O que **não** serve: deduzir o conflito no frontend cruzando viagens em
-andamento. Seria recalcular a regra de disponibilidade no cliente, que a própria
-OC72 põe fora de escopo, e criaria uma segunda fonte de verdade divergindo da
-que o planejamento usa.
+Motorista com conflito aparece como **em operação** e fica desabilitado, porque
+`create_trip` já chama `DriverService.ensure_no_operation_conflict` e rejeita
+essa escolha no backend. Se a consulta de disponibilidade falhar, a tela avisa
+que não conseguiu confirmar o estado e deixa a validação final para o servidor,
+que continua sendo a fonte de verdade.
 
 ## Carregamento e início da viagem
 
