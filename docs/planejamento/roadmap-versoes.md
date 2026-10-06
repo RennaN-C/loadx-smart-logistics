@@ -229,6 +229,7 @@ Ao encerrar a v1.2.0, o LoadX deverá:
 - distribuir a carga entre dois ou mais caminhões quando necessário e possível;
 - preservar rastreabilidade de cada volume durante carregamento, viagem e entrega;
 - manter os fluxos atuais de um único veículo compatíveis.
+
 ---
 
 # v1.3.0 — Rastreamento e acompanhamento em tempo real
@@ -294,6 +295,7 @@ versão foi antecipado para a **v1.2.0** e formalizado nas OC87–OC90.
 `PENDENTE DE DEFINIÇÃO`: a v1.5.0 permanece sem escopo funcional reservado.
 Nenhuma OC está pré-alocada para esta versão. O tema será definido quando o ciclo
 for planejado, usando a próxima numeração realmente disponível.
+
 ---
 
 # v1.6.0 — Inteligência artificial avançada

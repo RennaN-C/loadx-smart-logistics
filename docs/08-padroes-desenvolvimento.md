@@ -28,15 +28,18 @@ minúsculas e sem acentos, como `rennan/oc79-seguranca-comandos-externos`,
 
 Commits:
 
-`CONFIRMADO`: todos os commits futuros seguem Conventional Commits, com
-descrições em português, conforme orientação da preparação da v1.0.0.
+`CONFIRMADO`: todos os commits futuros seguem a estrutura de Conventional Commits,
+mas com o tipo e a descrição em português.
 
-- `feat: ...`.
-- `fix: ...`.
-- `test: ...`.
-- `docs: ...`.
-- `refactor: ...`.
-- `chore: ...`.
+- `funcionalidade: ...`.
+- `correcao: ...`.
+- `teste: ...`.
+- `documentacao: ...`.
+- `refatoracao: ...`.
+- `manutencao: ...`.
+
+`RECOMENDAÇÃO`: termos técnicos sem tradução adequada podem permanecer no corpo
+da mensagem, mas o título do commit e o nome da branch devem priorizar português.
 
 `RECOMENDAÇÃO`: incluir a ocorrência no corpo do commit ou no título do PR, por exemplo `OC15`.
 
