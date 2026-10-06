@@ -232,8 +232,9 @@ Planejamento detalhado:
 - OC103 depende das notificações operacionais reais da OC84;
 - OC106 depende da central operacional da OC93;
 - OC107 reutiliza a busca server-side definida na OC95;
-- OC108 e OC109 dependem das integrações reais de OC82–OC84;
-- OC111 agrega auditoria, central operacional e exceções, portanto depende de OC97, OC93 e OC94;
+- OC108 depende da base de integração da OC82 e incorpora os demais estados quando disponíveis;
+- OC109 depende da notificação real da OC84 e permanece compatível com OC82/OC83;
+- OC111 agrega auditoria e central operacional, dependendo de OC97 e OC93; as exceções chegam por OC93/OC94;
 - OC112 depende da gestão de usuários da OC86;
 - OC97, OC99, OC100, OC101, OC102, OC104 e OC105 podem evoluir sem bloqueador funcional novo.
 

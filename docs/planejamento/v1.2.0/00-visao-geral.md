@@ -47,10 +47,10 @@ backend, banco, frontend, testes e documentação necessários em cada ocorrênc
 | OC105 | #152 | Rennan | Cadastros / arquivamento | Nenhuma OC bloqueadora |
 | OC106 | #153 | Rennan | Operação / agenda | OC93 |
 | OC107 | #154 | Rennan | Busca global | OC95 |
-| OC108 | #155 | Rennan | Administração / integrações | OC82, OC83 e OC84 |
-| OC109 | #156 | Rennan | Integrações / confiabilidade | OC82, OC83 e OC84 |
+| OC108 | #155 | Rennan | Administração / integrações | OC82 |
+| OC109 | #156 | Rennan | Integrações / confiabilidade | OC84 |
 | OC110 | #157 | Rennan | Arquivos / anexos | OC80 |
-| OC111 | #158 | Rennan | Operação / linha do tempo | OC97, OC93 e OC94 |
+| OC111 | #158 | Rennan | Operação / linha do tempo | OC97 e OC93 |
 | OC112 | #159 | Rennan | Segurança / permissões | OC86 |
 
 ## Frentes da versão
@@ -96,9 +96,9 @@ backend, banco, frontend, testes e documentação necessários em cada ocorrênc
 4. após OC84, executar OC103;
 5. após OC93, executar OC106;
 6. após OC95, executar OC107;
-7. após OC82–OC84, executar OC108 e OC109;
+7. após OC82, executar OC108; após OC84, executar OC109;
 8. após OC80, executar OC110;
-9. após OC97, OC93 e OC94, executar OC111;
+9. após OC97 e OC93, executar OC111;
 10. após OC86, executar OC112;
 11. concluir integração, regressão e documentação antes de preparar `versao/v1.2.0`.
 
