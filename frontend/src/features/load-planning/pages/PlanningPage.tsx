@@ -48,7 +48,7 @@ export function PlanningPage() {
   const [tab, setTab] = useState<PlanTab>("summary");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const canManage = user?.role === "LOGISTICS_MANAGER";
+  const canManage = user?.role === "ADMIN" || user?.role === "LOGISTICS_MANAGER";
 
   const toMessage = (error: unknown) =>
     mapLoadPlanErrorToMessage(
