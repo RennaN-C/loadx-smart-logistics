@@ -118,7 +118,7 @@ describe("TruckListPage", () => {
     await screen.findByText("ABC1D23");
 
     expect(screen.getByRole("button", { name: "Novo caminhão" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Editar" })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Editar" })).toHaveLength(TRUCKS.length);
   });
 
   it("abre o formulário de cadastro para o gestor de logística", async () => {
