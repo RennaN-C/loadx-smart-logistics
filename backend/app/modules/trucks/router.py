@@ -31,7 +31,7 @@ TruckReader = Annotated[
 ]
 TruckManager = Annotated[
     User,
-    Depends(require_roles("LOGISTICS_MANAGER")),
+    Depends(require_roles("ADMIN", "LOGISTICS_MANAGER")),
 ]
 
 
