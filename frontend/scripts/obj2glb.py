@@ -12,6 +12,7 @@ import io
 import json
 import struct
 import sys
+from pathlib import Path
 
 # Materiais pintados por NOME, porque o MTL do modelo veio com os 14 materiais
 # no mesmo cinza 0.64 e sem nenhum map_Kd. Os nomes (em indonesio) dizem o que
@@ -33,6 +34,27 @@ PALETA = {
     "lantai":              ((0.35, 0.35, 0.36, 1.0), 0.00, 0.80),
 }
 PADRAO = ((0.70, 0.71, 0.72, 1.0), 0.20, 0.50)
+
+# O conversor é ferramenta de desenvolvimento. Entrada e saída precisam ficar
+# no diretório em que ele foi chamado: aceitar caminhos arbitrários pela CLI
+# permitiria ler ou sobrescrever arquivos fora do workspace.
+WORKSPACE = Path.cwd().resolve()
+
+
+def caminho_local(valor, *, precisa_existir):
+    caminho = (WORKSPACE / valor).resolve()
+
+    try:
+        caminho.relative_to(WORKSPACE)
+    except ValueError as exc:
+        raise ValueError(
+            f"caminho fora do diretório de trabalho: {valor}"
+        ) from exc
+
+    if precisa_existir and not caminho.is_file():
+        raise FileNotFoundError(f"arquivo de entrada não encontrado: {valor}")
+
+    return caminho
 
 
 def ler_obj(caminho, excluir):
@@ -75,7 +97,7 @@ def ler_obj(caminho, excluir):
     return pos, nor, uvs, grupos
 
 
-def indexar(grupos, pos, nor, uvs, desloc):
+def indexar(grupos, pos, nor, desloc):
     """Um buffer por material, deduplicando o trio (posicao, uv, normal)."""
     saida = []
     dx, dy, dz = desloc
@@ -179,7 +201,13 @@ def escrever_glb(primitivas, destino):
 
 
 if __name__ == "__main__":
-    entrada, saida = sys.argv[1], sys.argv[2]
+    if len(sys.argv) < 3:
+        raise SystemExit(
+            "uso: python obj2glb.py <entrada.obj> <saida.glb> [objetos a excluir...]"
+        )
+
+    entrada = caminho_local(sys.argv[1], precisa_existir=True)
+    saida = caminho_local(sys.argv[2], precisa_existir=False)
     excluir = set(sys.argv[3:])
 
     pos, nor, uvs, grupos = ler_obj(entrada, excluir)
@@ -192,7 +220,7 @@ if __name__ == "__main__":
     zs = [pos[i][2] for i in usados]
     desloc = (-(min(xs) + max(xs)) / 2, -min(ys), -min(zs))
 
-    prims = indexar(grupos, pos, nor, uvs, desloc)
+    prims = indexar(grupos, pos, nor, desloc)
     total, n_mat, n_tri = escrever_glb(prims, saida)
 
     print(f"saida ......: {saida}")
