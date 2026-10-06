@@ -35,7 +35,7 @@ DriverReader = Annotated[
 ]
 DriverManager = Annotated[
     User,
-    Depends(require_roles("LOGISTICS_MANAGER")),
+    Depends(require_roles("ADMIN", "LOGISTICS_MANAGER")),
 ]
 
 
