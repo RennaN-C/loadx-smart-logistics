@@ -68,6 +68,14 @@ backend, banco, frontend, testes e documentação necessários em cada ocorrênc
 - OC109: fila/outbox, retentativas e reprocessamento.
 - OC110: anexos e documentos operacionais.
 
+`CONFIRMADO`: a implementação da OC79 na Issue #122 fornece apenas a fronteira
+interna de segurança/idempotência. Contrato de consumo em
+[external_commands](../../../backend/app/modules/external_commands/README.md);
+decisão proposta na [ADR-026](../../decisions/ADR-026-seguranca-comandos-externos.md).
+OC82/OC83 precisam fornecer autenticidade e vínculo de ator confiáveis; OC84
+envia depois do commit. Não há fornecedor, webhook, mídia, outbox ou UI na OC79.
+`PENDENTE DE DEFINIÇÃO`: aprovação do PR/ADR; este registro não conclui a Issue.
+
 ### Planejamento e operação
 - OC87–OC90: multi-caminhão de ponta a ponta.
 - OC93–OC94: central operacional e exceções/reentrega/cancelamento.
