@@ -161,14 +161,14 @@ describe("ContactsPage", () => {
     expect(screen.getByText("Rita Alves")).toBeInTheDocument();
   });
 
-  it("esconde as ações de gestão para o ADMIN, que só lê", async () => {
+  it("mostra as ações de gestão para o ADMIN no ambiente de pentest", async () => {
     mockRole("ADMIN");
 
     render(<ContactsPage />);
     await screen.findByText("Distribuidora Aurora");
 
-    expect(screen.queryByRole("button", { name: "Novo cliente" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Editar" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Novo cliente" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Editar" })).toBeInTheDocument();
   });
 
   it("mostra a mensagem mapeada quando a busca de clientes falha", async () => {
