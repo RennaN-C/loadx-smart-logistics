@@ -32,11 +32,11 @@ def upgrade() -> None:
         ),
         sa.CheckConstraint(
             "event_type IN ('USER_CREATED', 'USER_UPDATED')",
-            name="ck_audit_events__event_type_allowed",
+            name="event_type_allowed",
         ),
         sa.CheckConstraint(
             "entity_type IN ('USER')",
-            name="ck_audit_events__entity_type_allowed",
+            name="entity_type_allowed",
         ),
         sa.ForeignKeyConstraint(
             ["actor_id"],
