@@ -24,9 +24,11 @@ Alterações nesta documentação devem ser rastreáveis por ocorrência, PR ou 
 - `decisoes-equipe-backend.txt`: registro histórico das decisões DXX usadas na consolidação do backend; decisões atuais devem estar nos documentos oficiais e ADRs.
 - `decisions/`: registros de decisões arquiteturais.
 - `prompts/`: modelos de prompt para IA.
-- [planejamento/v1.1.0](planejamento/v1.1.0/00-visao-geral.md): divisão oficial
-  OC62–OC78 entre Rennan, João, Marlon e Marcelo, dependências e fluxo da release.
-  OC01–OC61 são histórico; OC62 é a primeira ocorrência nova pós-v1.0.0.
+- [planejamento/v1.1.0](planejamento/v1.1.0/00-visao-geral.md): histórico oficial
+  da v1.1.0, com OC62–OC78.
+- [planejamento/v1.2.0](planejamento/v1.2.0/00-visao-geral.md): planejamento atual
+  da v1.2.0, com OC79–OC90, Issues #122–#133, dependências e sequência recomendada.
+  OC01–OC78 permanecem como histórico e não são renumeradas.
 
 `CONFIRMADO`: as entregas da v1.0.0 estão no [Changelog](../CHANGELOG.md).
 

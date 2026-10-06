@@ -6,9 +6,9 @@ O **LoadX** é um projeto acadêmico desenvolvido por uma equipe de quatro integ
 
 ## Versão atual
 
-`CONFIRMADO`: **LoadX v1.0.0 — MVP** é a versão estável publicada oficialmente.
+`CONFIRMADO`: **LoadX v1.1.0 — Maturidade operacional** é a versão estável publicada em 2026-10-06.
 
-`CONFIRMADO`: **LoadX v1.1.0 — Maturidade operacional** está em desenvolvimento na branch `desenvolvimento`. O planejamento da versão está em [docs/planejamento/v1.1.0](docs/planejamento/v1.1.0/00-visao-geral.md) e as próximas releases estão no [roadmap canônico](docs/planejamento/roadmap-versoes.md).
+`CONFIRMADO`: **LoadX v1.2.0 — Administração, comunicação real e operação multi-caminhão** é o ciclo atual de desenvolvimento na branch `desenvolvimento`. O planejamento oficial está em [docs/planejamento/v1.2.0](docs/planejamento/v1.2.0/00-visao-geral.md) e as próximas releases estão no [roadmap canônico](docs/planejamento/roadmap-versoes.md).
 
 As entregas publicadas e em desenvolvimento são registradas no [Changelog](CHANGELOG.md).
 

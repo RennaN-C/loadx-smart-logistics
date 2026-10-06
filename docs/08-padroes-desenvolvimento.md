@@ -10,21 +10,21 @@ Branches:
 - `main`: versão estável.
 - `desenvolvimento`: integração.
 - `Branch pessoal`: trabalho do desenvolvedor, integrado por PR em `desenvolvimento`.
-- `release/v1.1.0`: preparação e validação da versão integrada antes de `main`.
-- `feature/OCXX-descricao`: uma ocorrência de funcionalidade.
-- `fix/OCXX-descricao`: correção vinculada a ocorrência ou bug.
-- `docs/OCXX-descricao`: documentação vinculada a ocorrência.
+- `versao/v1.2.0`: preparação e validação da versão integrada antes de `main`.
+- `<desenvolvedor>/ocNN-descricao`: uma ocorrência da versão, sempre em minúsculas e sem acentos.
+- `correcao/descricao`: correção sem OC quando houver Issue própria aprovada.
+- `documentacao/descricao`: documentação sem OC quando houver Issue própria aprovada.
+- `manutencao/descricao`: manutenção técnica sem OC quando houver Issue própria aprovada.
 
-`CONFIRMADO`: na v1.1.0, seguir
-`branch do dev -> desenvolvimento -> release/v1.1.0 -> main`, conforme o
-[planejamento oficial](planejamento/v1.1.0/00-visao-geral.md#fluxo-git).
+`CONFIRMADO`: na v1.2.0, seguir
+`branch da ocorrência -> desenvolvimento -> versao/v1.2.0 -> main`, conforme o
+[planejamento oficial](planejamento/v1.2.0/00-visao-geral.md#fluxo-git).
 Documentação é versionada normalmente pelo mesmo fluxo.
 `RECOMENDAÇÃO`: para as novas OCs, usar `<desenvolvedor>/ocNN-descricao`, em
-minúsculas e sem acentos, como `rennan/oc62-viacep-backend`,
-`joao/oc67-disponibilidade-frota`, `marlon/oc70-viacep-clientes` e
-`marcelo/oc76-conferencia-qrcode`.
-`CONFIRMADO`: OC01–OC61 são histórico; OC62 inicia as novas ocorrências
-pós-v1.0.0, e a v1.1.0 usa OC62–OC78 sem reutilização de números.
+minúsculas e sem acentos, como `rennan/oc79-seguranca-comandos-externos`,
+`joao/oc88-otimizacao-multi-caminhao`, `marlon/oc85-configuracoes-admin` e
+`marcelo/oc84-notificacoes-operacionais-reais`.
+`CONFIRMADO`: OC01–OC78 são histórico; a v1.2.0 usa OC79–OC90 sem reutilização de números.
 
 Commits:
 
@@ -43,7 +43,7 @@ descrições em português, conforme orientação da preparação da v1.0.0.
 ## Pull Request
 
 Alterações de trabalho entram por Pull Request para `desenvolvimento`.
-Na v1.1.0, a promoção da versão segue por `release/v1.1.0` até `main`.
+Na v1.2.0, a promoção da versão segue por `versao/v1.2.0` até `main`.
 Exigir pelo menos uma revisão de outro integrante.
 
 `CONFIRMADO`: PRs destinados a `desenvolvimento` possuem contrato validado
