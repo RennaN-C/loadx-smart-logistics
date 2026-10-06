@@ -1,5 +1,28 @@
 # Modelo de dados inicial
 
+## OC79 — registro de comandos externos
+
+`RECOMENDAÇÃO`: estrutura proposta pela Issue #122 e ADR-026, sujeita à revisão.
+`external_commands` pertence ao módulo `external_commands`; não guarda payload,
+assinatura, subject, telefone ou chave secreta.
+
+| Campo | Tipo | Regra |
+|---|---|---|
+| id | UUID | PK, receipt gerado pelo servidor |
+| integration_id | varchar(64) | identidade configurada no servidor |
+| event_hash | varchar(64) | SHA-256 do event_id |
+| fingerprint | varchar(64) | SHA-256 dos bytes assinados |
+| user_id | UUID | FK users, ator resolvido pelo servidor |
+| command | varchar(32) | START_TRIP / START_DELIVERY / FINISH_DELIVERY |
+| expires_at | timestamptz | limite exclusivo de validade |
+| completed_at | timestamptz, nullable | preenchido antes do commit externo |
+
+`RECOMENDAÇÃO`: UNIQUE `(integration_id, event_hash)` serializa duplicatas.
+Hashes têm CHECK de formato hexadecimal de 64 caracteres; command tem CHECK
+fechado. Linha sem completed_at existe somente dentro da transação: falha remove
+também efeitos de domínio. Não há limpeza automática. Migration `20261006_0012`
+sucede `20260830_0011`, mantendo um único head.
+
 ## Estado atual
 
 `CONFIRMADO`: o repositório possui models SQLAlchemy e migrations para `users`,
