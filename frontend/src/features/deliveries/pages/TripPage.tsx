@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { AlertBanner } from "../../../components/AlertBanner";
 import { StatusPill } from "../../../components/StatusPill";
 import { useAuth } from "../../auth/hooks/useAuth";
+import { AuditTrail } from "../../audit/components/AuditTrail";
 import { downloadTripReport } from "../../reports/api/reportsApi";
 import { ReportDownloadButton } from "../../reports/components/ReportDownloadButton";
 import { canReadReports } from "../../reports/permissions";
@@ -128,6 +129,10 @@ export function TripPage() {
               void run(() => changeDeliveryStatus(delivery.id, next))
             }
           />
+
+          {user?.role === "ADMIN" || user?.role === "LOGISTICS_MANAGER" ? (
+            <AuditTrail entityType="TRIP" entityId={trip.id} title="Histórico da viagem" />
+          ) : null}
         </>
       ) : null}
     </div>

@@ -5,6 +5,7 @@ import { AlertBanner } from "../../../components/AlertBanner";
 import { Tabs, type TabItem } from "../../../components/Tabs";
 import { ApiError } from "../../../types/api";
 import { useAuth } from "../../auth/hooks/useAuth";
+import { AuditTrail } from "../../audit/components/AuditTrail";
 import { downloadLoadingReport } from "../../reports/api/reportsApi";
 import { ReportDownloadButton } from "../../reports/components/ReportDownloadButton";
 import { canReadReports } from "../../reports/permissions";
@@ -172,6 +173,10 @@ export function PlanningPage() {
               </Suspense>
             )}
           </div>
+
+          {user?.role === "ADMIN" || user?.role === "LOGISTICS_MANAGER" ? (
+            <AuditTrail entityType="LOAD_PLAN" entityId={plan.id} title="Histórico do plano" />
+          ) : null}
         </>
       ) : null}
     </div>

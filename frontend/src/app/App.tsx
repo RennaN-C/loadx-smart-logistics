@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "../features/auth/components/AuthProvider";
 import { RequireAuth } from "../features/auth/components/RequireAuth";
 import { LoginPage } from "../features/auth/pages/LoginPage";
+import { AuditPage } from "../features/audit/pages/AuditPage";
 import { ContactsPage } from "../features/customers/pages/ContactsPage";
 import { DashboardPage } from "../features/dashboard/pages/DashboardPage";
 import { TripPage } from "../features/deliveries/pages/TripPage";
@@ -32,6 +33,7 @@ export function App() {
               <Route path="orders" element={<OrderListPage />} />
               <Route path="reports" element={<ReportsPage />} />
               <Route path="operations" element={<OperationsDashboardPage />} />
+              <Route path="audit" element={<AuditPage />} />
               <Route path="planning" element={<PlanningPage />} />
               <Route path="planning/:planId" element={<PlanningPage />} />
               <Route path="trips/:tripId" element={<TripPage />} />
