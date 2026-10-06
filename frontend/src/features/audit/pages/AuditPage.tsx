@@ -1,4 +1,4 @@
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 
 import { AlertBanner } from "../../../components/AlertBanner";
 import { Pagination } from "../../../components/Pagination";

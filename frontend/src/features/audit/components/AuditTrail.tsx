@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 
-import { ApiError } from "../../../types/api";
 import { listAuditEntries } from "../api/auditApi";
 import { AUDIT_EVENT_LABELS, describeAuditEntry } from "./auditLabels";
 import type { AuditEntityType, AuditEntry } from "../types";
@@ -35,11 +34,10 @@ export function AuditTrail({
         setEntries(result.items);
         setState("success");
       })
-      .catch((error: unknown) => {
+      .catch(() => {
         if (!active) return;
         // O componente contextual é complementar. A página principal continua
         // utilizável se a auditoria estiver temporariamente indisponível.
-        void (error instanceof ApiError ? error : null);
         setEntries([]);
         setState("error");
       });

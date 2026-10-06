@@ -107,7 +107,7 @@ describe("AppLayout", () => {
     expect(screen.getByRole("link", { name: "Indicadores" })).toBeInTheDocument();
   });
 
-  it("o gestor chega ao painel operacional", () => {
+  it("o gestor chega ao painel operacional e à auditoria", () => {
     signedInAs("LOGISTICS_MANAGER");
     renderLayout();
 
@@ -115,6 +115,21 @@ describe("AppLayout", () => {
       "href",
       "/operations",
     );
+    expect(screen.getByRole("link", { name: "Auditoria" })).toHaveAttribute(
+      "href",
+      "/audit",
+    );
+  });
+
+  it("esconde a auditoria de conferente e motorista", () => {
+    signedInAs("CHECKER");
+    const rendered = renderLayout();
+    expect(screen.queryByRole("link", { name: "Auditoria" })).not.toBeInTheDocument();
+
+    rendered.unmount();
+    signedInAs("DRIVER");
+    renderLayout();
+    expect(screen.queryByRole("link", { name: "Auditoria" })).not.toBeInTheDocument();
   });
 
   it("esconde dados pessoais do conferente sem derrubar o grupo inteiro", () => {
