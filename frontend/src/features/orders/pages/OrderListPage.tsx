@@ -42,7 +42,7 @@ export function OrderListPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [isCreating, setIsCreating] = useState(false);
 
-  const canManage = user?.role === "LOGISTICS_MANAGER";
+  const canManage = user?.role === "ADMIN" || user?.role === "LOGISTICS_MANAGER";
   const isFormOpen = isCreating || edit.target !== null;
 
   const customerNames = useMemo(
