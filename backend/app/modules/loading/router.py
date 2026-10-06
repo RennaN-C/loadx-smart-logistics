@@ -10,6 +10,7 @@ from app.database.session import get_db
 from app.modules.auth.dependencies import require_roles
 from app.modules.loading.models import LoadingSession
 from app.modules.loading.schemas import (
+    LoadingItemScan,
     LoadingItemStatusChange,
     LoadingSessionCreate,
     LoadingSessionRead,
@@ -17,6 +18,7 @@ from app.modules.loading.schemas import (
 )
 from app.modules.loading.service import (
     LoadingChecklistIncompleteError,
+    LoadingItemAlreadyCheckedError,
     LoadingItemNotFoundError,
     LoadingItemSessionMismatchError,
     LoadingPlanNotApprovedError,
@@ -24,11 +26,13 @@ from app.modules.loading.service import (
     LoadingSessionNotFoundError,
     LoadingStatusTransitionError,
 )
+from app.modules.trucks.service import TruckOperationConflictError
 from app.modules.users.models import User
 
 router = APIRouter(prefix="/loading-sessions", tags=["loading"])
 LOADING_SESSION_NOT_FOUND_MESSAGE = "Sessão de carregamento não encontrada."
-Operator = Annotated[User, Depends(require_roles("CHECKER", "LOGISTICS_MANAGER"))]
+Creator = Annotated[User, Depends(require_roles("LOGISTICS_MANAGER"))]
+Checker = Annotated[User, Depends(require_roles("CHECKER"))]
 Reader = Annotated[
     User, Depends(require_roles("ADMIN", "CHECKER", "LOGISTICS_MANAGER"))
 ]
@@ -39,6 +43,41 @@ def get_loading_service(db: Annotated[Session, Depends(get_db)]) -> LoadingServi
 
 
 @router.post(
+    "/{session_id}/scan",
+    response_model=LoadingSessionRead,
+    responses=openapi_error_responses(401, 403, 404, 409, 422),
+)
+def scan_item(
+    session_id: uuid.UUID,
+    data: LoadingItemScan,
+    _user: Checker,
+    service: Annotated[LoadingService, Depends(get_loading_service)],
+) -> LoadingSession | JSONResponse:
+    try:
+        return service.scan_item(session_id, data.item_id)
+    except LoadingSessionNotFoundError:
+        return error_response(
+            404, "LOADING_SESSION_NOT_FOUND", LOADING_SESSION_NOT_FOUND_MESSAGE
+        )
+    except LoadingItemNotFoundError:
+        return error_response(
+            404, "LOADING_ITEM_NOT_FOUND", "Item de carregamento não encontrado."
+        )
+    except LoadingItemSessionMismatchError:
+        return error_response(
+            409, "LOADING_ITEM_SESSION_MISMATCH", "Item não pertence à sessão."
+        )
+    except LoadingItemAlreadyCheckedError:
+        return error_response(409, "LOADING_ITEM_ALREADY_CHECKED", "Item já conferido.")
+    except LoadingStatusTransitionError:
+        return error_response(
+            409,
+            "LOADING_STATUS_TRANSITION_NOT_ALLOWED",
+            "Transição de carregamento não permitida.",
+        )
+
+
+@router.post(
     "",
     response_model=LoadingSessionRead,
     status_code=status.HTTP_201_CREATED,
@@ -46,7 +85,7 @@ def get_loading_service(db: Annotated[Session, Depends(get_db)]) -> LoadingServi
 )
 def create_session(
     data: LoadingSessionCreate,
-    _user: Operator,
+    _user: Creator,
     service: Annotated[LoadingService, Depends(get_loading_service)],
 ) -> LoadingSession | JSONResponse:
     try:
@@ -54,6 +93,13 @@ def create_session(
     except LoadingPlanNotApprovedError:
         return error_response(
             409, "LOADING_PLAN_NOT_APPROVED", "O carregamento exige plano aprovado."
+        )
+    except TruckOperationConflictError as exc:
+        return error_response(
+            409,
+            "TRUCK_OPERATION_CONFLICT",
+            "O caminhão já está reservado por outra operação ativa.",
+            [{"field": "truck_id", "value": str(exc.truck_id)}],
         )
 
 
@@ -83,7 +129,7 @@ def get_session(
 def change_status(
     session_id: uuid.UUID,
     data: LoadingSessionStatusChange,
-    _user: Operator,
+    _user: Checker,
     service: Annotated[LoadingService, Depends(get_loading_service)],
 ) -> LoadingSession | JSONResponse:
     try:
@@ -113,7 +159,7 @@ def change_item_status(
     session_id: uuid.UUID,
     item_id: uuid.UUID,
     data: LoadingItemStatusChange,
-    _user: Operator,
+    _user: Checker,
     service: Annotated[LoadingService, Depends(get_loading_service)],
 ) -> LoadingSession | JSONResponse:
     try:

@@ -60,13 +60,13 @@ def manager_headers(session_factory: SessionFactory) -> dict[str, str]:
 
 
 def make_driver_payload(
-    document: str = "00000000000",
-    license_number: str = "CNH0001",
+    document: str = "12345678909",
+    license_number: str = "12345678900",
 ) -> dict[str, object]:
     return {
         "name": "Motorista Demonstracao",
         "document": document,
-        "phone": "5500000000000",
+        "phone": "11900000000",
         "license_number": license_number,
         "license_category": "d",
     }
@@ -95,9 +95,9 @@ def request_driver_route(
 
     payload = None
     if method == "POST":
-        payload = make_driver_payload("00000000001", "CNH0002")
+        payload = make_driver_payload("98765432100", "98765432109")
     elif method == "PATCH":
-        payload = {"phone": "5511999999999"}
+        payload = {"phone": "11999999999"}
 
     request_options: dict[str, object] = {}
     if payload is not None:
@@ -120,7 +120,7 @@ def test_create_driver_returns_created_resource(
     assert response.status_code == 201
     body = response.json()
     assert body["id"]
-    assert body["document"] == "00000000000"
+    assert body["document"] == "12345678909"
     assert body["license_category"] == "D"
     assert body["active"] is True
 
@@ -170,7 +170,7 @@ def test_get_driver_by_id_returns_created_item(
     )
 
     assert response.status_code == 200
-    assert response.json()["document"] == "00000000000"
+    assert response.json()["document"] == "12345678909"
 
 
 def test_patch_driver_updates_only_sent_fields(
@@ -186,14 +186,14 @@ def test_patch_driver_updates_only_sent_fields(
 
     response = client.patch(
         f"/api/v1/drivers/{driver_id}",
-        json={"phone": "5511999999999", "license_category": "e", "active": False},
+        json={"phone": "11999999999", "license_category": "e", "active": False},
         headers=manager_headers,
     )
 
     assert response.status_code == 200
     body = response.json()
-    assert body["document"] == "00000000000"
-    assert body["phone"] == "5511999999999"
+    assert body["document"] == "12345678909"
+    assert body["phone"] == "11999999999"
     assert body["license_category"] == "E"
     assert body["active"] is False
 
@@ -240,7 +240,7 @@ def test_patch_driver_accepts_null_nullable_field(
 
     assert response.status_code == 200
     assert response.json()["license_category"] is None
-    assert response.json()["document"] == "00000000000"
+    assert response.json()["document"] == "12345678909"
 
 
 def test_create_driver_returns_standard_error_for_duplicate_document(
@@ -249,13 +249,13 @@ def test_create_driver_returns_standard_error_for_duplicate_document(
 ) -> None:
     client.post(
         "/api/v1/drivers",
-        json=make_driver_payload(document="00000000000", license_number="CNH0001"),
+        json=make_driver_payload(document="12345678909", license_number="12345678900"),
         headers=manager_headers,
     )
 
     response = client.post(
         "/api/v1/drivers",
-        json=make_driver_payload(document="00000000000", license_number="CNH0002"),
+        json=make_driver_payload(document="12345678909", license_number="98765432109"),
         headers=manager_headers,
     )
 
@@ -273,13 +273,13 @@ def test_create_driver_returns_standard_error_for_duplicate_license_number(
 ) -> None:
     client.post(
         "/api/v1/drivers",
-        json=make_driver_payload(document="00000000000", license_number="CNH0001"),
+        json=make_driver_payload(document="12345678909", license_number="12345678900"),
         headers=manager_headers,
     )
 
     response = client.post(
         "/api/v1/drivers",
-        json=make_driver_payload(document="00000000001", license_number="CNH0001"),
+        json=make_driver_payload(document="98765432100", license_number="12345678900"),
         headers=manager_headers,
     )
 

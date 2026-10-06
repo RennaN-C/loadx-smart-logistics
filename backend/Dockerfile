@@ -2,10 +2,14 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
+RUN apt-get update \
+    && apt-get upgrade -y \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY requirements.lock.txt .
 
-RUN python -m pip install --no-cache-dir --upgrade "pip==26.1.2" \
-    && python -m pip install --no-cache-dir --require-hashes -r requirements.lock.txt \
+RUN python -m pip install --no-cache-dir --only-binary=:all: --upgrade "pip==26.1.2" \
+    && python -m pip install --no-cache-dir --only-binary=:all: --require-hashes -r requirements.lock.txt \
     && rm -rf \
         /usr/local/lib/python3.12/site-packages/pip \
         /usr/local/lib/python3.12/site-packages/pip-*.dist-info \
@@ -25,4 +29,4 @@ USER 10001:10001
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--no-access-log"]

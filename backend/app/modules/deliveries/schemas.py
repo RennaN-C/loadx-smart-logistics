@@ -67,6 +67,32 @@ class DeliveryRead(BaseModel):
         return normalize_utc(value)
 
 
+class DeliveryReceiptCreate(BaseModel):
+    """Confirm the existing delivery completion; accept no client-supplied facts."""
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class DeliveryReceiptRead(BaseModel):
+    """Operational projection of a delivery and its durable completion history."""
+
+    id: uuid.UUID
+    delivery_id: uuid.UUID
+    trip_id: uuid.UUID
+    order_id: uuid.UUID
+    driver_id: uuid.UUID
+    delivered_at: datetime
+    recorded_at: datetime
+    recorded_by: uuid.UUID
+
+    @field_validator("delivered_at", "recorded_at")
+    @classmethod
+    def normalize_datetimes(cls, value: datetime) -> datetime:
+        return (
+            value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)
+        )
+
+
 class TripListRead(BaseModel):
     id: uuid.UUID
     load_plan_id: uuid.UUID

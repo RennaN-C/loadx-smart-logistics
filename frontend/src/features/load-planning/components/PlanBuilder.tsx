@@ -5,7 +5,7 @@ import { FormField } from "../../../components/FormField";
 import { useResourceList } from "../../../hooks/useResourceList";
 import { listCustomers } from "../../customers/api/customersApi";
 import { listOrders } from "../../orders/api/ordersApi";
-import { listTrucks } from "../../trucks/api/trucksApi";
+import { listTruckOperationalStatus, listTrucks } from "../../trucks/api/trucksApi";
 import { ApiError } from "../../../types/api";
 import { createLoadPlan } from "../api/loadPlansApi";
 import type { LoadPlan } from "../types";
@@ -17,6 +17,10 @@ interface PlanBuilderProps {
 
 export function PlanBuilder({ onCalculated }: PlanBuilderProps) {
   const { items: trucks, status: trucksStatus } = useResourceList(listTrucks);
+  // Duas consultas porque os dois contratos são diferentes: `GET /trucks` traz as
+  // medidas internas, que são o que ajuda a escolher o baú; `operational-status`
+  // traz a disponibilidade da OC67, e não traz medida nenhuma.
+  const { items: situacoes } = useResourceList(listTruckOperationalStatus);
   const { items: orders, status: ordersStatus } = useResourceList(listOrders);
   const { items: customers } = useResourceList(listCustomers);
 
@@ -27,6 +31,17 @@ export function PlanBuilder({ onCalculated }: PlanBuilderProps) {
 
   // Só caminhão ativo carrega, e só pedido READY entra em plano (regra do backend).
   const activeTrucks = useMemo(() => trucks.filter((truck) => truck.active), [trucks]);
+  /**
+   * Quais caminhões já estão comprometidos, segundo a OC67.
+   *
+   * O conflito NÃO é calculado aqui: vem pronto de `operational-status`. Caminhão
+   * cuja situação ainda não chegou fica de fora do mapa e aparece sem aviso —
+   * deixar de oferecê-lo seria esconder opção que o backend aceita.
+   */
+  const emOperacao = useMemo(
+    () => new Set(situacoes.filter((item) => item.hasOperationConflict).map((item) => item.id)),
+    [situacoes],
+  );
   const readyOrders = useMemo(() => orders.filter((order) => order.status === "READY"), [orders]);
   const customerNames = useMemo(
     () => new Map(customers.map((customer) => [customer.id, customer.name])),
@@ -74,7 +89,7 @@ export function PlanBuilder({ onCalculated }: PlanBuilderProps) {
             <FormField
               id="plan-truck"
               label="CAMINHÃO"
-              hint="Só caminhões ativos aparecem aqui."
+              hint="Só caminhões ativos aparecem aqui. Os marcados como em operação já estão comprometidos com outra operação — ainda dá para planejar, mas vale conferir antes."
             >
               <select id="plan-truck" value={truckId} onChange={(event) => setTruckId(event.target.value)}>
                 <option value="">Selecione o caminhão</option>
@@ -82,6 +97,7 @@ export function PlanBuilder({ onCalculated }: PlanBuilderProps) {
                   <option key={truck.id} value={truck.id}>
                     {truck.plate} — {truck.model} ({truck.internalLengthCm}×{truck.internalWidthCm}×
                     {truck.internalHeightCm} cm)
+                    {emOperacao.has(truck.id) ? " — em operação" : ""}
                   </option>
                 ))}
               </select>

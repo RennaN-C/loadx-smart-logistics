@@ -12,6 +12,10 @@ from app.modules.deliveries.models import Delivery, Trip
 from app.modules.deliveries.repository import TripRepository
 from app.modules.deliveries.schemas import TripCreate
 from app.modules.deliveries.service import (
+    DeliveryNotFoundError,
+    DeliveryReceiptHistoryInvalidError,
+    DeliveryReceiptNotAvailableError,
+    DeliveryStatusTransitionNotAllowedError,
     DeliveryTripNotInRouteError,
     TripAccessForbiddenError,
     TripDeliveriesNotFinishedError,
@@ -22,10 +26,12 @@ from app.modules.deliveries.service import (
 )
 from app.modules.drivers.models import Driver
 from app.modules.load_planning.models import LoadPlan, LoadPlanItem, LoadPlanOrder
+from app.modules.loading.models import LoadingSession
 from app.modules.orders.models import Order, OrderItem
 from app.modules.products.models import Product
 from app.modules.status_history.models import StatusHistory
 from app.modules.trucks.models import Truck
+from app.modules.trucks.service import TruckOperationConflictError
 from app.modules.users.models import User
 
 SQLITE_TABLES = (
@@ -40,6 +46,7 @@ SQLITE_TABLES = (
     LoadPlan.__table__,
     LoadPlanOrder.__table__,
     LoadPlanItem.__table__,
+    LoadingSession.__table__,
     Trip.__table__,
     Delivery.__table__,
 )
@@ -80,15 +87,15 @@ def seed_operational_plan(
 ) -> tuple[User, Driver, LoadPlan, list[Order]]:
     driver = Driver(
         name="Motorista Ficticio",
-        document=f"DOC-{uuid.uuid4()}",
+        document=f"DOC-{uuid.uuid4().hex[:28]}",
         phone="5500000000000",
-        license_number=f"CNH-{uuid.uuid4()}",
+        license_number=f"CNH-{uuid.uuid4().hex[:28]}",
         license_category="D",
         active=driver_active,
     )
     customer = Customer(
         name="Cliente Ficticio",
-        document=f"CNPJ-{uuid.uuid4()}",
+        document=f"CNPJ-{uuid.uuid4().hex[:27]}",
         address="Rua Exemplo, 100",
         city="Sao Paulo",
         state="SP",
@@ -343,6 +350,180 @@ def test_complete_operational_flow_updates_orders_timestamps_and_history(
     assert len(db_session.scalars(select(StatusHistory)).all()) == 13
 
 
+def prepare_receipt_delivery(db: Session):
+    service, manager, driver, trip, orders = create_trip(db, loading_finished=True)
+    service.change_trip_status(trip.id, "IN_ROUTE", current_user=manager)
+    delivery = trip.deliveries[0]
+    service.change_delivery_status(delivery.id, "IN_DELIVERY", current_user=manager)
+    return service, manager, driver, trip, delivery, orders
+
+
+def test_receipt_registers_atomic_completion_and_original_responsible(
+    db_session: Session,
+) -> None:
+    service, manager, driver, trip, delivery, orders = prepare_receipt_delivery(
+        db_session
+    )
+    own_user = create_user(db_session, role="DRIVER", driver_id=driver.id)
+    db_session.commit()
+    history_count = len(db_session.scalars(select(StatusHistory)).all())
+
+    receipt = service.register_delivery_receipt(delivery.id, current_user=own_user)
+    repeated = service.register_delivery_receipt(delivery.id, current_user=manager)
+    queried = service.get_delivery_receipt(delivery.id, current_user=manager)
+
+    assert repeated == queried == receipt
+    assert receipt.delivery_id == delivery.id
+    assert receipt.trip_id == trip.id
+    assert receipt.order_id == delivery.order_id
+    assert receipt.driver_id == driver.id
+    assert receipt.recorded_by == own_user.id
+    assert receipt.delivered_at.tzinfo == UTC
+    assert receipt.recorded_at.tzinfo == UTC
+    history = db_session.get(StatusHistory, receipt.id)
+    assert history.entity_type == "DELIVERY"
+    assert history.entity_id == delivery.id
+    assert history.changed_by == own_user.id
+    assert db_session.get(Order, delivery.order_id).status == "DELIVERED"
+    assert db_session.get(Order, orders[0].id).status == "IN_TRANSIT"
+    assert len(db_session.scalars(select(StatusHistory)).all()) == history_count + 2
+
+
+def test_receipt_available_for_existing_status_flow_and_after_trip_finishes(
+    db_session: Session,
+) -> None:
+    service, manager, _driver, trip, first_delivery, _orders = prepare_receipt_delivery(
+        db_session
+    )
+    service.change_delivery_status(first_delivery.id, "DELIVERED", current_user=manager)
+    receipt = service.get_delivery_receipt(first_delivery.id, current_user=manager)
+    for delivery in trip.deliveries[1:]:
+        service.change_delivery_status(delivery.id, "IN_DELIVERY", current_user=manager)
+        service.register_delivery_receipt(delivery.id, current_user=manager)
+    service.change_trip_status(trip.id, "FINISHED", current_user=manager)
+    assert (
+        service.register_delivery_receipt(first_delivery.id, current_user=manager)
+        == receipt
+    )
+
+
+def test_receipt_rejects_missing_delivery_and_skipped_state(
+    db_session: Session,
+) -> None:
+    service, manager, _driver, trip, _orders = create_trip(db_session)
+    with pytest.raises(DeliveryNotFoundError):
+        service.register_delivery_receipt(uuid.uuid4(), current_user=manager)
+    with pytest.raises(DeliveryNotFoundError):
+        service.get_delivery_receipt(uuid.uuid4(), current_user=manager)
+    with pytest.raises(DeliveryStatusTransitionNotAllowedError):
+        service.register_delivery_receipt(trip.deliveries[0].id, current_user=manager)
+    with pytest.raises(DeliveryReceiptNotAvailableError):
+        service.get_delivery_receipt(trip.deliveries[0].id, current_user=manager)
+
+
+def test_receipt_rejects_first_completion_outside_route(db_session: Session) -> None:
+    service, manager, _driver, trip, delivery, _orders = prepare_receipt_delivery(
+        db_session
+    )
+    trip.status = "SCHEDULED"
+    trip.started_at = None
+    db_session.commit()
+    with pytest.raises(DeliveryTripNotInRouteError):
+        service.register_delivery_receipt(delivery.id, current_user=manager)
+    assert db_session.get(Delivery, delivery.id).status == "IN_DELIVERY"
+
+
+def test_receipt_denies_unlinked_inactive_and_wrong_role_before_history(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    service, _manager, driver, _trip, delivery, _orders = prepare_receipt_delivery(
+        db_session
+    )
+    admin = create_user(db_session, role="ADMIN")
+    checker = create_user(db_session, role="CHECKER")
+    unlinked = create_user(db_session, role="DRIVER")
+    linked = create_user(db_session, role="DRIVER", driver_id=driver.id)
+    driver.active = False
+    db_session.commit()
+
+    def forbidden_history(*_args, **_kwargs):
+        raise AssertionError("history must not be read before authorization")
+
+    monkeypatch.setattr(
+        service.status_history_service, "list_status_history", forbidden_history
+    )
+    for user in (admin, checker, unlinked, linked):
+        with pytest.raises(TripAccessForbiddenError):
+            service.register_delivery_receipt(delivery.id, current_user=user)
+    for user in (checker, unlinked, linked):
+        with pytest.raises(TripAccessForbiddenError):
+            service.get_delivery_receipt(delivery.id, current_user=user)
+
+
+@pytest.mark.parametrize("invalid_history", ("missing", "unattributed", "duplicate"))
+def test_receipt_fails_closed_for_incomplete_legacy_history(
+    db_session: Session, invalid_history: str
+) -> None:
+    service, manager, _driver, _trip, delivery, _orders = prepare_receipt_delivery(
+        db_session
+    )
+    receipt = service.register_delivery_receipt(delivery.id, current_user=manager)
+    history = db_session.get(StatusHistory, receipt.id)
+    if invalid_history == "missing":
+        db_session.delete(history)
+    elif invalid_history == "unattributed":
+        history.changed_by = None
+    else:
+        db_session.add(
+            StatusHistory(
+                entity_type="DELIVERY",
+                entity_id=delivery.id,
+                old_status="IN_DELIVERY",
+                new_status="DELIVERED",
+                changed_by=manager.id,
+            )
+        )
+    db_session.commit()
+    for operation in (service.get_delivery_receipt, service.register_delivery_receipt):
+        with pytest.raises(DeliveryReceiptHistoryInvalidError):
+            operation(delivery.id, current_user=manager)
+    assert db_session.get(Delivery, delivery.id).delivered_at is not None
+
+
+@pytest.mark.parametrize("failure_at", ("history", "projection"))
+def test_receipt_failure_rolls_back_delivery_order_and_history(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch, failure_at: str
+) -> None:
+    service, manager, _driver, _trip, delivery, _orders = prepare_receipt_delivery(
+        db_session
+    )
+    history_count = len(db_session.scalars(select(StatusHistory)).all())
+
+    def fail(*_args, **_kwargs):
+        raise RuntimeError("falha ficticia no comprovante")
+
+    if failure_at == "projection":
+        monkeypatch.setattr(service, "_build_delivery_receipt", fail)
+    else:
+        original_stage = service.status_history_service.stage_status_change
+
+        def fail_delivery_history(data):
+            if data.entity_type == "DELIVERY":
+                fail()
+            return original_stage(data)
+
+        monkeypatch.setattr(
+            service.status_history_service, "stage_status_change", fail_delivery_history
+        )
+    with pytest.raises(RuntimeError, match="falha ficticia"):
+        service.register_delivery_receipt(delivery.id, current_user=manager)
+    db_session.expire_all()
+    assert db_session.get(Delivery, delivery.id).status == "IN_DELIVERY"
+    assert db_session.get(Delivery, delivery.id).delivered_at is None
+    assert db_session.get(Order, delivery.order_id).status == "IN_TRANSIT"
+    assert len(db_session.scalars(select(StatusHistory)).all()) == history_count
+
+
 def test_linked_active_driver_can_access_only_own_trip(db_session: Session) -> None:
     service, _manager, driver, trip, _orders = create_trip(db_session)
     own_user = create_user(db_session, role="DRIVER", driver_id=driver.id)
@@ -394,3 +575,36 @@ def test_history_failure_rolls_back_trip_and_orders(
     db_session.expire_all()
     assert db_session.get(Trip, trip.id).status == "SCHEDULED"
     assert {db_session.get(Order, order.id).status for order in orders} == {"PLANNED"}
+
+
+def test_create_trip_rejects_truck_reserved_by_other_plan(
+    db_session: Session,
+) -> None:
+    first_manager, first_driver, first_plan, _ = seed_operational_plan(db_session)
+    second_manager, second_driver, second_plan, _ = seed_operational_plan(db_session)
+
+    second_plan.truck_id = first_plan.truck_id
+    db_session.commit()
+
+    service = TripService(db_session)
+
+    first_trip = service.create_trip(
+        TripCreate(
+            load_plan_id=first_plan.id,
+            driver_id=first_driver.id,
+        ),
+        changed_by=first_manager.id,
+    )
+
+    assert first_trip.status == "SCHEDULED"
+
+    with pytest.raises(TruckOperationConflictError) as exc_info:
+        service.create_trip(
+            TripCreate(
+                load_plan_id=second_plan.id,
+                driver_id=second_driver.id,
+            ),
+            changed_by=second_manager.id,
+        )
+
+    assert exc_info.value.truck_id == first_plan.truck_id

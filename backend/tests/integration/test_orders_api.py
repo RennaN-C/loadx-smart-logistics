@@ -68,14 +68,17 @@ def manager_headers(session_factory: SessionFactory) -> dict[str, str]:
     return authorization_headers(session_factory, manager)
 
 
-def create_customer(session_factory: SessionFactory) -> str:
+def create_customer(
+    session_factory: SessionFactory,
+    document: str = "00000000000191",
+) -> str:
     db = session_factory()
     try:
         customer = CustomerService(db).create_customer(
             CustomerCreate(
                 name="Cliente Demonstracao",
-                document=uuid.uuid4().hex,
-                phone="5500000000000",
+                document=document,
+                phone="11900000000",
                 address="Rua Exemplo, 100",
                 city="Sao Paulo",
                 state="SP",
@@ -178,7 +181,10 @@ def request_order_route(
 
     payload = None
     if method == "POST":
-        customer_id = create_customer(session_factory)
+        customer_id = create_customer(
+            session_factory,
+            document="00000000000272",
+        )
         product_id = create_product(session_factory, "CX-B")
         payload = make_order_payload(customer_id, product_id)
     elif method == "PATCH":

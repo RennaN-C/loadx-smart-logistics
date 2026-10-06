@@ -119,7 +119,6 @@ Responsabilidades por pasta:
 - `compose.yaml`: sobe PostgreSQL, aplica migrations em serviço one-shot e então
   inicia backend e frontend para desenvolvimento local.
 - `infra/database`: instruções complementares de banco e seeds.
-- `infra/scripts`: scripts auxiliares idempotentes quando possível.
 - `infra/ci`: documentação do pipeline implementado em `.github/workflows/ci.yml`.
 - `.env.example`: contrato de variáveis esperadas, sem segredos reais.
 

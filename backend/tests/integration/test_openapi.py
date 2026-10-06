@@ -30,6 +30,16 @@ EXPECTED_ERROR_STATUSES = {
     },
     ("/api/v1/customers", "get"): {"401", "403", "422", "500"},
     ("/api/v1/customers", "post"): {"401", "403", "409", "422", "500"},
+    ("/api/v1/customers/cep/{cep}", "get"): {
+        "401",
+        "403",
+        "404",
+        "422",
+        "500",
+        "502",
+        "503",
+        "504",
+    },
     ("/api/v1/customers/{customer_id}", "get"): {
         "401",
         "403",
@@ -46,6 +56,7 @@ EXPECTED_ERROR_STATUSES = {
         "500",
     },
     ("/api/v1/drivers", "get"): {"401", "403", "422", "500"},
+    ("/api/v1/drivers/operational-status", "get"): {"401", "403", "422", "500"},
     ("/api/v1/drivers", "post"): {"401", "403", "409", "422", "500"},
     ("/api/v1/drivers/{driver_id}", "get"): {
         "401",
@@ -80,6 +91,7 @@ EXPECTED_ERROR_STATUSES = {
         "500",
     },
     ("/api/v1/trucks", "get"): {"401", "403", "422", "500"},
+    ("/api/v1/trucks/operational-status", "get"): {"401", "403", "422", "500"},
     ("/api/v1/trucks", "post"): {"401", "403", "409", "422", "500"},
     ("/api/v1/trucks/{truck_id}", "get"): {
         "401",
@@ -212,6 +224,22 @@ EXPECTED_ERROR_STATUSES = {
         "422",
         "500",
     },
+    ("/api/v1/deliveries/{delivery_id}/receipt", "post"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
+    ("/api/v1/deliveries/{delivery_id}/receipt", "get"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
     ("/api/v1/loading-sessions", "post"): {
         "401",
         "403",
@@ -227,6 +255,14 @@ EXPECTED_ERROR_STATUSES = {
         "500",
     },
     ("/api/v1/loading-sessions/{session_id}/status", "patch"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
+    ("/api/v1/loading-sessions/{session_id}/scan", "post"): {
         "401",
         "403",
         "404",
@@ -272,6 +308,7 @@ EXPECTED_ERROR_STATUSES = {
         "422",
         "500",
     },
+    ("/api/v1/operational-indicators", "get"): {"401", "403", "500"},
 }
 PUBLIC_OPERATIONS = frozenset(
     {
@@ -282,6 +319,22 @@ PUBLIC_OPERATIONS = frozenset(
 )
 PROTECTED_OPERATIONS = frozenset(EXPECTED_ERROR_STATUSES).difference(PUBLIC_OPERATIONS)
 HTTP_METHODS = frozenset({"get", "post", "patch", "put", "delete"})
+
+
+def test_openapi_documents_loading_scan_contract() -> None:
+    schema = get_openapi_schema()
+    operation = schema["paths"]["/api/v1/loading-sessions/{session_id}/scan"]["post"]
+    assert operation["requestBody"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/LoadingItemScan"
+    }
+    assert operation["responses"]["200"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/LoadingSessionRead"
+    }
+    components = schema["components"]["schemas"]
+    assert components["LoadingItemScan"]["additionalProperties"] is False
+    code_schema = components["LoadingItemScan"]["properties"]["code"]
+    assert code_schema["minLength"] == code_schema["maxLength"] == 55
+    assert components["LoadingSessionItemRead"]["properties"]["code"]["readOnly"]
 
 
 def get_openapi_schema() -> dict[str, Any]:
@@ -384,3 +437,134 @@ def test_openapi_does_not_expose_public_registration() -> None:
     schema = get_openapi_schema()
 
     assert "/api/v1/auth/register" not in schema["paths"]
+
+
+def test_openapi_cep_lookup_exposes_existing_address_schema_with_text_limits() -> None:
+    schema = get_openapi_schema()
+    response_schema = schema["paths"]["/api/v1/customers/cep/{cep}"]["get"][
+        "responses"
+    ]["200"]["content"]["application/json"]["schema"]
+
+    assert response_schema == {"$ref": "#/components/schemas/ViaCEPAddress"}
+    properties = schema["components"]["schemas"]["ViaCEPAddress"]["properties"]
+    assert set(properties) == {
+        "cep",
+        "street",
+        "neighborhood",
+        "complement",
+        "city",
+        "state",
+    }
+    assert properties["city"]["maxLength"] == 120
+    for field in ("street", "neighborhood", "complement"):
+        text_schema = next(
+            variant
+            for variant in properties[field]["anyOf"]
+            if variant["type"] == "string"
+        )
+        assert text_schema["maxLength"] == 255
+
+
+def test_openapi_documents_truck_operational_status_contract() -> None:
+    schema = get_openapi_schema()
+
+    operation = schema["paths"]["/api/v1/trucks/operational-status"]["get"]
+    response_schema = operation["responses"]["200"]["content"]["application/json"][
+        "schema"
+    ]
+
+    page_component_name = response_schema["$ref"].split("/")[-1]
+    page_schema = schema["components"]["schemas"][page_component_name]
+
+    item_schema = page_schema["properties"]["items"]["items"]
+    assert item_schema == {"$ref": "#/components/schemas/TruckOperationalStatusRead"}
+
+    status_schema = schema["components"]["schemas"]["TruckOperationalStatusRead"]
+    expected_fields = {
+        "id",
+        "plate",
+        "model",
+        "active",
+        "has_operation_conflict",
+        "available",
+    }
+
+    assert set(status_schema["properties"]) == expected_fields
+    assert set(status_schema["required"]) == expected_fields
+
+
+def test_openapi_documents_operational_indicators_contract() -> None:
+    schema = get_openapi_schema()
+
+    response_schema = schema["paths"]["/api/v1/operational-indicators"]["get"][
+        "responses"
+    ]["200"]["content"]["application/json"]["schema"]
+
+    assert response_schema == {"$ref": "#/components/schemas/OperationalIndicatorsRead"}
+
+    components = schema["components"]["schemas"]
+
+    assert set(components["OperationalIndicatorsRead"]["properties"]) == {
+        "fleet",
+        "trips",
+        "deliveries",
+        "occurrences",
+    }
+
+    assert set(components["FleetIndicatorsRead"]["properties"]) == {
+        "period",
+        "total",
+        "active",
+        "inactive",
+        "available",
+        "unavailable",
+        "with_operation_conflict",
+    }
+
+    assert set(components["TripIndicatorsRead"]["properties"]) == {
+        "period",
+        "total",
+        "scheduled",
+        "in_route",
+        "finished",
+    }
+
+    assert set(components["DeliveryIndicatorsRead"]["properties"]) == {
+        "period",
+        "total",
+        "pending",
+        "in_delivery",
+        "delivered",
+    }
+
+    assert set(components["OccurrenceIndicatorsRead"]["properties"]) == {
+        "period",
+        "total",
+    }
+
+
+def test_openapi_documents_driver_operational_status_contract() -> None:
+    schema = get_openapi_schema()
+
+    operation = schema["paths"]["/api/v1/drivers/operational-status"]["get"]
+    response_schema = operation["responses"]["200"]["content"]["application/json"][
+        "schema"
+    ]
+
+    page_component_name = response_schema["$ref"].split("/")[-1]
+    page_schema = schema["components"]["schemas"][page_component_name]
+    item_schema = page_schema["properties"]["items"]["items"]
+
+    assert item_schema == {"$ref": "#/components/schemas/DriverOperationalStatusRead"}
+
+    status_schema = schema["components"]["schemas"]["DriverOperationalStatusRead"]
+    expected_fields = {
+        "id",
+        "name",
+        "license_category",
+        "active",
+        "has_operation_conflict",
+        "available",
+    }
+    assert set(status_schema["properties"]) == expected_fields
+    assert set(status_schema["required"]) == expected_fields

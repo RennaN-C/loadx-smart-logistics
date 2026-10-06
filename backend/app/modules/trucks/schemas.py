@@ -69,3 +69,14 @@ class TruckRead(TruckBase):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True, str_strip_whitespace=True)
+
+
+class TruckOperationalStatusRead(BaseModel):
+    id: uuid.UUID
+    plate: str
+    model: str
+    active: bool
+    has_operation_conflict: bool
+    available: bool
+
+    model_config = ConfigDict(from_attributes=True, str_strip_whitespace=True)

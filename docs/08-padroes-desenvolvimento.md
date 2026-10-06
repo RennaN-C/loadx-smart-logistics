@@ -1,15 +1,30 @@
 # Padrões de desenvolvimento
 
+Para iniciar uma contribuição, use `CONTRIBUTING.md` como porta de entrada.
+Este documento permanece como fonte dos padrões técnicos do projeto.
+
 ## Git
 
 Branches:
 
 - `main`: versão estável.
 - `desenvolvimento`: integração.
-- `Branch Pessoal`: Cada desenvolvedor terá sua branch pessoal depois sera feito merge com a branch "desenvolvimento" e a cada módulo completo será feito merge com a "main"
+- `Branch pessoal`: trabalho do desenvolvedor, integrado por PR em `desenvolvimento`.
+- `release/v1.1.0`: preparação e validação da versão integrada antes de `main`.
 - `feature/OCXX-descricao`: uma ocorrência de funcionalidade.
 - `fix/OCXX-descricao`: correção vinculada a ocorrência ou bug.
 - `docs/OCXX-descricao`: documentação vinculada a ocorrência.
+
+`CONFIRMADO`: na v1.1.0, seguir
+`branch do dev -> desenvolvimento -> release/v1.1.0 -> main`, conforme o
+[planejamento oficial](planejamento/v1.1.0/00-visao-geral.md#fluxo-git).
+Documentação é versionada normalmente pelo mesmo fluxo.
+`RECOMENDAÇÃO`: para as novas OCs, usar `<desenvolvedor>/ocNN-descricao`, em
+minúsculas e sem acentos, como `rennan/oc62-viacep-backend`,
+`joao/oc67-disponibilidade-frota`, `marlon/oc70-viacep-clientes` e
+`marcelo/oc76-conferencia-qrcode`.
+`CONFIRMADO`: OC01–OC61 são histórico; OC62 inicia as novas ocorrências
+pós-v1.0.0, e a v1.1.0 usa OC62–OC78 sem reutilização de números.
 
 Commits:
 
@@ -27,11 +42,22 @@ descrições em português, conforme orientação da preparação da v1.0.0.
 
 ## Pull Request
 
-Toda alteração entra por Pull Request para `desenvolvimento`. Exigir pelo menos uma revisão.
+Alterações de trabalho entram por Pull Request para `desenvolvimento`.
+Na v1.1.0, a promoção da versão segue por `release/v1.1.0` até `main`.
+Exigir pelo menos uma revisão de outro integrante.
+
+`CONFIRMADO`: PRs destinados a `desenvolvimento` possuem contrato validado
+automaticamente pela CI. Todo PR deve fechar exatamente uma Issue com
+`Closes #NN`, `Fixes #NN` ou `Resolves #NN`.
+
+Para OCs, a CI também exige que título do PR, `Identificador: OCXX`, branch
+sugerida, milestone e vínculo com o Project sejam coerentes com a Issue.
+PRs que não pertencem a uma OC usam `Identificador: N/A`, mas continuam
+obrigados a possuir uma Issue vinculada.
 
 Checklist mínimo:
 
-- Está dentro do escopo do MVP.
+- Está dentro do escopo aprovado do MVP ou da versão pós-MVP correspondente.
 - Tem ocorrência aprovada.
 - Não contém segredos ou dados reais.
 - Testes foram criados ou atualizados.

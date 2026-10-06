@@ -1,10 +1,13 @@
 from collections.abc import Callable
 from dataclasses import dataclass
 
+import httpx2
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
+from app.integrations.viacep import FakeViaCEPProvider
+from app.modules.customers.router import get_viacep_provider
 from app.modules.customers.schemas import CustomerCreate
 from app.modules.customers.service import CustomerService
 from app.modules.drivers.schemas import DriverCreate
@@ -64,6 +67,9 @@ AUTHORIZATION_CASES = (
         MANAGER_ONLY,
         201,
         "customer_create",
+    ),
+    AuthorizationCase(
+        "customers_cep", "GET", "/api/v1/customers/cep/01234567", MANAGER_ONLY, 200
     ),
     AuthorizationCase(
         "customers_get",
@@ -225,7 +231,7 @@ def seed_resources(session_factory: SessionFactory) -> dict[str, str]:
             CustomerCreate(
                 name="Cliente de Auditoria",
                 document="00000000000191",
-                phone="5500000000000",
+                phone="11900000000",
                 address="Rua Exemplo, 100",
                 city="Sao Paulo",
                 state="SP",
@@ -234,9 +240,9 @@ def seed_resources(session_factory: SessionFactory) -> dict[str, str]:
         driver = DriverService(db).create_driver(
             DriverCreate(
                 name="Motorista de Auditoria",
-                document="00000000000",
-                phone="5500000000000",
-                license_number="CNH0001",
+                document="12345678909",
+                phone="11900000000",
+                license_number="12345678900",
                 license_category="D",
             )
         )
@@ -301,7 +307,7 @@ def get_payload(payload_name: str | None, resource_ids: dict[str, str]):
         "customer_create": {
             "name": "Novo Cliente",
             "document": "00000000000272",
-            "phone": "5511000000000",
+            "phone": "11900000000",
             "address": "Rua Exemplo, 200",
             "city": "Campinas",
             "state": "SP",
@@ -309,12 +315,12 @@ def get_payload(payload_name: str | None, resource_ids: dict[str, str]):
         "customer_update": {"city": "Campinas"},
         "driver_create": {
             "name": "Novo Motorista",
-            "document": "00000000001",
-            "phone": "5511000000000",
-            "license_number": "CNH0002",
+            "document": "98765432100",
+            "phone": "11900000000",
+            "license_number": "98765432109",
             "license_category": "E",
         },
-        "driver_update": {"phone": "5511999999999"},
+        "driver_update": {"phone": "11999999999"},
         "truck_create": {
             "plate": "DEF4G56",
             "model": "Bau pequeno",
@@ -360,9 +366,21 @@ def get_payload(payload_name: str | None, resource_ids: dict[str, str]):
 def test_complete_authorization_matrix(
     client: TestClient,
     session_factory: SessionFactory,
+    monkeypatch: pytest.MonkeyPatch,
     case: AuthorizationCase,
     role: str,
 ) -> None:
+    if case.name == "customers_cep":
+
+        def forbidden_request(*args: object, **kwargs: object) -> None:
+            raise AssertionError("OC62 authorization tests must not access the network")
+
+        monkeypatch.setattr(httpx2.HTTPTransport, "handle_request", forbidden_request)
+        fake = FakeViaCEPProvider()
+        monkeypatch.setitem(
+            client.app.dependency_overrides, get_viacep_provider, lambda: fake
+        )
+
     resource_ids = seed_resources(session_factory)
     current_user = create_user(
         session_factory,

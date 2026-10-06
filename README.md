@@ -6,14 +6,15 @@ O **LoadX** é um projeto acadêmico desenvolvido por uma equipe de quatro integ
 
 ## Versão atual
 
-`CONFIRMADO`: **LoadX v1.0.0 — MVP**, em preparação para a primeira release
-oficial. É a primeira versão funcional integrada do sistema, com planejamento
-tridimensional de cargas, operação logística, frontend, backend, banco de dados,
-testes e infraestrutura. As entregas estão no [Changelog](CHANGELOG.md).
+`CONFIRMADO`: **LoadX v1.0.0 — MVP** é a versão estável publicada oficialmente.
+
+`CONFIRMADO`: **LoadX v1.1.0 — Maturidade operacional** está em desenvolvimento na branch `desenvolvimento`. O planejamento da versão está em [docs/planejamento/v1.1.0](docs/planejamento/v1.1.0/00-visao-geral.md) e as próximas releases estão no [roadmap canônico](docs/planejamento/roadmap-versoes.md).
+
+As entregas publicadas e em desenvolvimento são registradas no [Changelog](CHANGELOG.md).
 
 `CONFIRMADO`: WhatsApp usa provider mock e simulador controlado; a explicação de
 planos usa `AIProvider` com provider fake e fallback determinístico. Integrações
-reais e outras evoluções estão no [roadmap pós-v1.0.0](docs/10-roadmap-inicial.md#roadmap-pós-v100).
+reais e outras evoluções futuras estão no [roadmap canônico de versões](docs/planejamento/roadmap-versoes.md).
 
 ## Sobre o projeto
 
@@ -39,15 +40,18 @@ Com base nesses dados, o LoadX utiliza algoritmos de otimização tridimensional
 Desenvolver um sistema inteligente capaz de planejar automaticamente a disposição de volumes em caminhões, melhorar o aproveitamento do espaço disponível e acompanhar o processo logístico desde o carregamento até a conclusão das entregas.
 
 1. `AGENTS.md`
-2. `docs/00-visao-produto.md`
-3. `docs/01-escopo-mvp.md`
-4. `docs/02-arquitetura.md`
-5. `docs/03-modelo-dados.md`
-6. `docs/04-regras-negocio.md`
-7. `docs/05-contratos-api.md`
-8. `docs/08-padroes-desenvolvimento.md`
-9. `docs/09-guia-para-ia.md`
-10. `docs/11-riscos-pendencias.md`
+2. `CONTRIBUTING.md`
+3. `SECURITY.md`
+4. `docs/00-visao-produto.md`
+5. `docs/01-escopo-mvp.md`
+6. `docs/02-arquitetura.md`
+7. `docs/03-modelo-dados.md`
+8. `docs/04-regras-negocio.md`
+9. `docs/05-contratos-api.md`
+10. `docs/08-padroes-desenvolvimento.md`
+11. `docs/09-guia-para-ia.md`
+12. `docs/11-riscos-pendencias.md`
+13. `docs/13-guia-execucao-ambientes.md`
 
 `CONFIRMADO`: o MVP funcional permite:
 
@@ -95,7 +99,6 @@ Desenvolver um sistema inteligente capaz de planejar automaticamente a disposiç
 * Axios
 * Three.js
 * React Three Fiber
-* Zod
 
 ### Banco de dados
 
@@ -176,14 +179,16 @@ loadx-smart-logistics/
 │
 ├── docs/
 │   ├── decisions/
-│   ├── diagrams/
 │   └── prompts/
 │
 ├── infra/
 ├── .github/
 ├── AGENTS.md
+├── CONTRIBUTING.md
+├── SECURITY.md
 ├── CLAUDE.md
 ├── compose.yaml
+├── .editorconfig
 ├── .env.example
 ├── .gitignore
 └── README.md
@@ -340,6 +345,11 @@ Responsável por:
 
 ## Configuração do ambiente
 
+A referência canônica para configuração, execução, testes, CI e produção está em
+[docs/13-guia-execucao-ambientes.md](docs/13-guia-execucao-ambientes.md).
+
+A seção abaixo mantém apenas o resumo operacional mais usado no dia a dia.
+
 ### Requisitos
 
 Antes de iniciar, instale:
@@ -400,8 +410,6 @@ DATABASE_URL=postgresql+psycopg://loadx:loadx_local@db:5432/loadx
 SECRET_KEY=troque-esta-chave-no-env-local
 LOADX_SECRETS_DIR=
 PASSWORD_BLOCKLIST_PATH=
-WHATSAPP_TOKEN=
-OPENAI_API_KEY=
 ```
 
 Nunca envie o arquivo `.env` para o GitHub.
@@ -509,6 +517,17 @@ isolado `migrate`.
 ```bash
 docker compose exec backend alembic revision --autogenerate -m "cria tabela de produtos"
 ```
+
+## Contribuição e segurança
+
+Antes de contribuir, leia [CONTRIBUTING.md](CONTRIBUTING.md).
+
+Contribuições humanas e assistidas por IA seguem o mesmo contrato de Issue,
+branch, testes, Pull Request e CI. Agentes de IA também devem seguir
+[AGENTS.md](AGENTS.md).
+
+Vulnerabilidades e informações sensíveis não devem ser publicadas em Issues.
+Consulte [SECURITY.md](SECURITY.md) para o procedimento de reporte responsável.
 
 ## Organização das branches
 

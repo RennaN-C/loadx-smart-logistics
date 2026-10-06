@@ -14,6 +14,7 @@ Consequências
 
 Registros aceitos relevantes:
 
+- `ADR-004`: fronteira pública, RBAC e bootstrap administrativo; as decisões de JWT/Bearer foram substituídas pela `ADR-020`.
 - `ADR-005` a `ADR-012`: regras incrementais das OC12 a OC19.
 - `ADR-013`: engine integrada e sequência de carregamento da OC20.
 - `ADR-014`: persistência e ciclo de vida dos planos da OC20.
@@ -28,3 +29,9 @@ Registros aceitos relevantes:
   montados e papéis PostgreSQL separados.
 - `ADR-022`: ciclo mínimo de viagens e entregas, integração atômica com pedidos
   e histórico, gate de carregamento e vínculo 1:1 entre usuário e motorista.
+- `ADR-023`: conflito e reserva operacional de caminhões entre carregamento e viagens.
+- `ADR-024`: comprovante operacional como projeção auditável da conclusão da entrega.
+
+Proposta para revisão:
+
+- `ADR-025`: sinais operacionais e diagnóstico seguro, sem fornecedor obrigatório (OC77).

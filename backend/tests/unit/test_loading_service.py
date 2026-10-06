@@ -6,6 +6,8 @@ import pytest
 from sqlalchemy.orm import Session
 
 from app.modules.customers.models import Customer
+from app.modules.deliveries.models import Trip
+from app.modules.drivers.models import Driver
 from app.modules.load_planning.models import LoadPlan, LoadPlanItem, LoadPlanOrder
 from app.modules.loading.models import LoadingSession, LoadingSessionItem
 from app.modules.loading.reference_service import LoadingReferenceService
@@ -18,10 +20,12 @@ from app.modules.loading.service import (
 from app.modules.orders.models import Order, OrderItem
 from app.modules.products.models import Product
 from app.modules.trucks.models import Truck
+from app.modules.trucks.service import TruckOperationConflictError
 
 SQLITE_TABLES = (
     Customer.__table__,
     Truck.__table__,
+    Driver.__table__,
     Product.__table__,
     Order.__table__,
     OrderItem.__table__,
@@ -30,6 +34,7 @@ SQLITE_TABLES = (
     LoadPlanItem.__table__,
     LoadingSession.__table__,
     LoadingSessionItem.__table__,
+    Trip.__table__,
 )
 
 
@@ -167,3 +172,23 @@ def test_complete_loading_flow_releases_only_its_plan(db_session: Session) -> No
     assert all(item.status == "CHECKED" for item in loading.items)
     assert reference.is_load_plan_finished(plan.id)
     assert not reference.is_load_plan_finished(other_plan.id)
+
+
+def test_create_loading_rejects_truck_reserved_by_other_plan(
+    db_session: Session,
+) -> None:
+    first_plan = seed_plan(db_session)
+    second_plan = seed_plan(db_session)
+
+    second_plan.truck_id = first_plan.truck_id
+    db_session.commit()
+
+    service = LoadingService(db_session)
+
+    first_loading = service.create_session(first_plan.id)
+    assert first_loading.status == "PENDING"
+
+    with pytest.raises(TruckOperationConflictError) as exc_info:
+        service.create_session(second_plan.id)
+
+    assert exc_info.value.truck_id == first_plan.truck_id

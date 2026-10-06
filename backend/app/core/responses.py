@@ -18,7 +18,9 @@ _ERROR_RESPONSE_DESCRIPTIONS = {
     422: "Dados de entrada inválidos.",
     429: "Muitas requisições.",
     500: "Erro interno inesperado.",
+    502: "Resposta inválida do serviço externo.",
     503: "Serviço temporariamente indisponível.",
+    504: "Tempo limite do serviço externo excedido.",
 }
 
 

@@ -60,13 +60,45 @@ function Tyre({ wheel }: { wheel: Wheel }) {
  *
  * As cores continuam neutras de propósito: quem tem que puxar o olho é a carga.
  */
-export function TruckShellMesh({ shell }: { shell: TruckShell }) {
+interface TruckShellMeshProps {
+  readonly shell: TruckShell;
+  /**
+   * Some com a cabine desenhada em código, junto do para-brisa, dos
+   * retrovisores e do para-choque: o modelo importado traz os quatro, e
+   * deixá-los acesos daria cabine dentro de cabine e para-choque dobrado.
+   *
+   * O resto do caminhão continua desenhado aqui, porque o resto É derivado das
+   * medidas cadastradas.
+   */
+  readonly hideCab?: boolean;
+  /**
+   * Eixo dianteiro vindo do modelo da cabine, alinhado ao arco de roda que ele
+   * desenha. Vazio quando a cabine é a desenhada em código.
+   */
+  readonly cabWheels?: readonly Wheel[];
+}
+
+export function TruckShellMesh({
+  shell,
+  hideCab = false,
+  cabWheels = [],
+}: TruckShellMeshProps) {
   return (
     <group>
       <Panel box={shell.chassis} color="#33373d" roughness={0.8} metalness={0.3} />
-      <Panel box={shell.cab} color="#eceae4" roughness={0.35} metalness={0.15} />
-      <Panel box={shell.windshield} color="#1d2733" opacity={0.62} roughness={0.08} metalness={0.2} />
-      <Panel box={shell.bumper} color="#4e535a" roughness={0.6} metalness={0.35} />
+      {hideCab ? null : (
+        <>
+          <Panel box={shell.cab} color="#eceae4" roughness={0.35} metalness={0.15} />
+          <Panel
+            box={shell.windshield}
+            color="#1d2733"
+            opacity={0.62}
+            roughness={0.08}
+            metalness={0.2}
+          />
+          <Panel box={shell.bumper} color="#4e535a" roughness={0.6} metalness={0.35} />
+        </>
+      )}
       <Panel box={shell.fuelTank} color="#aeb4bc" roughness={0.28} metalness={0.85} />
       <Panel box={shell.rearGuard} color="#4e535a" roughness={0.6} metalness={0.35} />
 
@@ -79,17 +111,26 @@ export function TruckShellMesh({ shell }: { shell: TruckShell }) {
       {shell.doorFrame.map((box, index) => (
         <Panel key={`door-${index}`} box={box} color="#5f666f" roughness={0.5} metalness={0.5} />
       ))}
-      {shell.fenders.map((box, index) => (
-        <Panel key={`fender-${index}`} box={box} color="#3c4046" roughness={0.75} metalness={0.2} />
-      ))}
+      {/* Para-lama em z negativo fica sob a cabine, e o modelo importado já
+          traz o próprio arco de roda ali. O critério é a posição e não a ordem
+          do array: quem manda à frente da parede de carga é a cabine. */}
+      {shell.fenders
+        .filter((box) => !hideCab || box.position[2] >= 0)
+        .map((box, index) => (
+          <Panel key={`fender-${index}`} box={box} color="#3c4046" roughness={0.75} metalness={0.2} />
+        ))}
       {shell.sideSkirts.map((box, index) => (
         <Panel key={`skirt-${index}`} box={box} color="#d5d2ca" roughness={0.55} metalness={0.1} />
       ))}
-      {shell.mirrors.map((box, index) => (
-        <Panel key={`mirror-${index}`} box={box} color="#2f343a" roughness={0.3} metalness={0.4} />
-      ))}
+      {hideCab
+        ? null
+        : shell.mirrors.map((box, index) => (
+            <Panel key={`mirror-${index}`} box={box} color="#2f343a" roughness={0.3} metalness={0.4} />
+          ))}
 
-      {shell.wheels.map((wheel) => (
+      {/* Mesmo critério dos para-lamas: à frente da parede de carga quem manda
+          é a cabine, e o eixo dianteiro dela vem alinhado ao próprio modelo. */}
+      {[...shell.wheels.filter((w) => !hideCab || w.position[2] >= 0), ...cabWheels].map((wheel) => (
         <Tyre key={`${wheel.position[0]}-${wheel.position[2]}`} wheel={wheel} />
       ))}
     </group>

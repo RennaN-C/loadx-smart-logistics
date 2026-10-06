@@ -8,6 +8,17 @@ from sqlalchemy.orm import Session
 from app.core.pagination import PageResponse, Pagination, to_page_response
 from app.core.responses import error_response, openapi_error_responses
 from app.database.session import get_db
+from app.integrations.viacep import (
+    HTTPViaCEPProvider,
+    ViaCEPAddress,
+    ViaCEPInvalidCEPError,
+    ViaCEPInvalidResponseError,
+    ViaCEPNotFoundError,
+    ViaCEPProvider,
+    ViaCEPTimeoutError,
+    ViaCEPUnavailableError,
+    normalize_cep,
+)
 from app.modules.auth.dependencies import require_roles
 from app.modules.customers.models import Customer
 from app.modules.customers.schemas import (
@@ -36,6 +47,43 @@ CustomerManager = Annotated[
 
 def get_customer_service(db: Annotated[Session, Depends(get_db)]) -> CustomerService:
     return CustomerService(db)
+
+
+def get_viacep_provider() -> ViaCEPProvider:
+    return HTTPViaCEPProvider()
+
+
+@router.get(
+    "/cep/{cep}",
+    response_model=ViaCEPAddress,
+    responses=openapi_error_responses(401, 403, 404, 422, 502, 503, 504),
+)
+def lookup_customer_address(
+    cep: str,
+    _current_user: CustomerManager,
+    provider: Annotated[ViaCEPProvider, Depends(get_viacep_provider)],
+) -> ViaCEPAddress | JSONResponse:
+    try:
+        return provider.lookup_address(normalize_cep(cep), timeout_seconds=5.0)
+    except ViaCEPInvalidCEPError as error:
+        return error_response(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            error.code,
+            error.message,
+            [{"field": "cep"}],
+        )
+    except ViaCEPNotFoundError as error:
+        return error_response(status.HTTP_404_NOT_FOUND, error.code, error.message)
+    except ViaCEPUnavailableError as error:
+        return error_response(
+            status.HTTP_503_SERVICE_UNAVAILABLE, error.code, error.message
+        )
+    except ViaCEPTimeoutError as error:
+        return error_response(
+            status.HTTP_504_GATEWAY_TIMEOUT, error.code, error.message
+        )
+    except ViaCEPInvalidResponseError as error:
+        return error_response(status.HTTP_502_BAD_GATEWAY, error.code, error.message)
 
 
 @router.get(

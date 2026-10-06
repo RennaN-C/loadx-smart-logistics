@@ -1,5 +1,6 @@
 import { StatusPill } from "../../../components/StatusPill";
 import { CreateTripAction } from "../../deliveries/components/CreateTripAction";
+import { StartLoadingAction } from "../../loading-operation/components/StartLoadingAction";
 import type { LoadPlan } from "../types";
 import { PLAN_STATUS_LABELS, planStatusTone } from "./loadPlanLabels";
 
@@ -64,7 +65,11 @@ export function PlanSummary({ plan, canManage, isWorking, onApprove, onRecalcula
 
       {canManage && plan.status === "APPROVED" ? (
         <div className="entity-form-actions">
-          {/* plano aprovado e a unica porta de entrada para a viagem (OC34) */}
+          {/* O plano aprovado e a unica porta de entrada para as duas etapas
+              seguintes: conferir o carregamento (OC32/OC75) e criar a viagem
+              (OC34). A viagem so sai depois do carregamento concluido, e o
+              backend confere esse vinculo. */}
+          <StartLoadingAction loadPlanId={plan.id} />
           <CreateTripAction loadPlanId={plan.id} />
         </div>
       ) : null}

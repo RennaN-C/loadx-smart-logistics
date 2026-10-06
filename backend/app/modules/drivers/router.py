@@ -10,9 +10,13 @@ from app.core.responses import error_response, openapi_error_responses
 from app.database.session import get_db
 from app.modules.auth.dependencies import require_roles
 from app.modules.drivers.models import Driver
+from app.modules.drivers.operational_status_service import (
+    DriverOperationalStatusService,
+)
 from app.modules.drivers.schemas import (
     DriverCreate,
     DriverListRead,
+    DriverOperationalStatusRead,
     DriverRead,
     DriverUpdate,
 )
@@ -39,6 +43,12 @@ def get_driver_service(db: Annotated[Session, Depends(get_db)]) -> DriverService
     return DriverService(db)
 
 
+def get_driver_operational_status_service(
+    db: Annotated[Session, Depends(get_db)],
+) -> DriverOperationalStatusService:
+    return DriverOperationalStatusService(db)
+
+
 @router.get(
     "",
     response_model=PageResponse[DriverListRead],
@@ -53,6 +63,26 @@ def list_drivers(
     return to_page_response(
         result,
         (DriverListRead.model_validate(driver) for driver in result.items),
+    )
+
+
+@router.get(
+    "/operational-status",
+    response_model=PageResponse[DriverOperationalStatusRead],
+    responses=openapi_error_responses(401, 403, 422),
+)
+def list_driver_operational_status(
+    pagination: Pagination,
+    _current_user: DriverReader,
+    service: Annotated[
+        DriverOperationalStatusService,
+        Depends(get_driver_operational_status_service),
+    ],
+) -> PageResponse[DriverOperationalStatusRead]:
+    result = service.list_statuses(pagination)
+    return to_page_response(
+        result,
+        (DriverOperationalStatusRead.model_validate(item) for item in result.items),
     )
 
 

@@ -9,7 +9,7 @@ def finish_loading(client: TestClient, scenario) -> None:
     created = client.post(
         "/api/v1/loading-sessions",
         json={"load_plan_id": str(scenario.load_plan_id)},
-        headers=scenario.checker_headers,
+        headers=scenario.manager_headers,
     )
     loading = created.json()
     client.patch(

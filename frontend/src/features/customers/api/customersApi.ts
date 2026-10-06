@@ -1,7 +1,14 @@
+import { onlyDigits } from "../../../components/masks";
 import { api } from "../../../services/api";
 import { mapPageFromDto, toPageQuery, type ListParams, type PageDto } from "../../../services/pagination";
 import type { Page } from "../../../types/api";
-import type { Customer, CustomerInput, CustomerListItem, CustomerUpdateInput } from "../types";
+import type {
+  CepAddress,
+  Customer,
+  CustomerInput,
+  CustomerListItem,
+  CustomerUpdateInput,
+} from "../types";
 
 /** Resumo da listagem: sem dado pessoal (ver CustomerListRead no backend). */
 interface CustomerListDto {
@@ -78,4 +85,40 @@ export async function updateCustomer(id: string, input: CustomerUpdateInput): Pr
   const { data } = await api.patch<CustomerDto>(`/customers/${id}`, mapCustomerToDto(input));
 
   return mapCustomerFromDto(data);
+}
+
+interface CepAddressDto {
+  cep: string;
+  street: string | null;
+  neighborhood: string | null;
+  complement: string | null;
+  city: string;
+  state: string;
+}
+
+/**
+ * Consulta de endereço por CEP (OC70), passando pelo BACKEND.
+ *
+ * `CONFIRMADO`: o ViaCEP nunca é chamado direto do navegador. Quem fala com ele
+ * é `app/integrations/viacep`, que normaliza o CEP, aplica timeout de 5s por
+ * fase e traduz as falhas para códigos estáveis. Chamar o serviço externo daqui
+ * furaria essa fronteira e exporia a aplicação ao formato cru dele.
+ *
+ * A rota exige `LOGISTICS_MANAGER` — o mesmo perfil que já é o único a abrir
+ * este formulário, então não há caminho em que o botão apareça e responda 403.
+ *
+ * O caminho leva só dígitos: o backend aceita com hífen, mas mandar o que está
+ * na tela faria a URL variar conforme a pontuação digitada.
+ */
+export async function lookupAddressByCep(cep: string): Promise<CepAddress> {
+  const { data } = await api.get<CepAddressDto>(`/customers/cep/${onlyDigits(cep)}`);
+
+  return {
+    cep: data.cep,
+    street: data.street,
+    neighborhood: data.neighborhood,
+    complement: data.complement,
+    city: data.city,
+    state: data.state,
+  };
 }

@@ -1,3 +1,3 @@
 # Contexto do LoadX
 
-Use `AGENTS.md` como instrução principal. Leia também `docs/09-guia-para-ia.md` antes de gerar ou alterar código.
+`CONFIRMADO`: siga [AGENTS.md](AGENTS.md), a fonte principal de instruções para IA do LoadX.

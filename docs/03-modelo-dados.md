@@ -436,6 +436,15 @@ gera no máximo uma entrega no MVP. `sequence` é 1-based, positiva, contígua e
 UUID do pedido como desempate. Todos os itens de um pedido devem informar a
 mesma sequência. `delivered_at` existe se e somente se o status é `DELIVERED`.
 
+### Projeção do comprovante operacional — OC78
+
+`CONFIRMADO` pela ADR-024: reutilizar `deliveries`, `trips` e o histórico da
+conclusão como base do comprovante operacional. Não há tabela, coluna, índice ou
+constraint nova. O `id` do comprovante é o UUID do único histórico `DELIVERY`,
+`IN_DELIVERY -> DELIVERED`, da entrega consultada, com `changed_by` obrigatório
+para essa projeção. Vínculos vêm da entrega/viagem; horários e responsável vêm
+dos registros persistidos. O modelo físico aprovado permanece inalterado.
+
 ### `occurrences`
 
 Ocorrências registradas durante carregamento, viagem ou entrega.

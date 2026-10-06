@@ -63,7 +63,7 @@ def make_customer_payload(document: str = "00000000000191") -> dict[str, object]
     return {
         "name": "Cliente Demonstracao",
         "document": document,
-        "phone": "5500000000000",
+        "phone": "11900000000",
         "address": "Rua Exemplo, 100",
         "city": "Sao Paulo",
         "state": "sp",

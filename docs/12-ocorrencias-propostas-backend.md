@@ -2,7 +2,15 @@
 
 ## Estado deste documento
 
-`RECOMENDAÇÃO`: este documento reúne ocorrências prontas para serem copiadas para o GitHub Projects após revisão da equipe.
+`CONFIRMADO`: este documento preserva as propostas e entregas históricas
+OC49–OC60, com sua numeração e situação originais. OC01–OC61 pertencem ao
+histórico do projeto, incluindo a OC61 registrada na
+[ADR-021](decisions/ADR-021-runtime-producao-tls-proxy-e-segredos.md).
+**OC62 é a primeira ocorrência nova pós-v1.0.0**. As novas OC62–OC78 estão no
+[planejamento oficial da v1.1.0](planejamento/v1.1.0/00-visao-geral.md), todas
+com status inicial **PENDENTE**, sem reutilizar números anteriores.
+
+`CONFIRMADO`: este documento é mantido somente para rastreabilidade histórica. Planejamento ativo deve usar as Issues aprovadas e os arquivos de `docs/planejamento/`.
 
 `CONFIRMADO`: os identificadores `OC49` a `OC60` nasceram como sugestões. O
 estado individual abaixo registra quais ocorrências foram aprovadas, integradas

@@ -33,24 +33,26 @@ Legenda:
 |---|---|---|---|---|
 | Usuários | G | Próprio em `/auth/me` | Próprio em `/auth/me` | Próprio em `/auth/me` |
 | Clientes | R | G | - | - |
+| Consulta auxiliar de CEP (OC62) | - | Consultar | - | - |
 | Motoristas | R | G | - | - |
 | Caminhões | R | G | R | S futuro |
 | Produtos | R | G | R | S futuro |
 | Pedidos | R | G | R | S futuro |
 | Planos de carga | R e explicar | G, calcular, comparar, aprovar e explicar | S e explicar plano aprovado | - |
-| Carregamento | R | Criar, consultar e operar carregamento/checklist | Criar, consultar e operar carregamento/checklist | - |
+| Carregamento | R | Criar e consultar | Consultar, iniciar, conferir itens e finalizar | - |
 | Viagens | R | G e atribuir | - | S em transições permitidas |
 | Entregas | R | G e tratar exceções | - | S em transições permitidas |
 | Ocorrências | R | Criar e consultar | - | Criar e consultar somente nas próprias viagens/entregas |
 | Histórico geral | R | R | - | - |
 | Relatórios | R e gerar | R e gerar | - | - |
 
-`CONFIRMADO`: as linhas de carregamento, ocorrências e relatórios refletem o
-comportamento atual da v1.0.0, conforme ajuste documental autorizado pela equipe.
-Não existe vínculo de atribuição de carregamento/checklist a conferente, nem
-classificação/resolução de ocorrências. As evoluções de acesso desses três
-recursos constam no [roadmap pós-v1.0.0](10-roadmap-inicial.md#evolução-do-acesso-a-carregamento-ocorrências-e-relatórios).
-Este ajuste não altera permissões implementadas nem o restante da matriz.
+`CONFIRMADO`: a linha de carregamento incorpora a matriz granular da OC66.
+As linhas de ocorrências e relatórios continuam refletindo o comportamento da
+v1.0.0, conforme ajuste documental autorizado pela equipe. Não existe vínculo
+de atribuição de carregamento/checklist a conferente, nem
+classificação/resolução de ocorrências. As evoluções de acesso de ocorrências e
+relatórios constam no
+[roadmap canônico](planejamento/roadmap-versoes.md).
 
 `RISCO IDENTIFICADO`: a referência de histórico geral permanece na matriz,
 mas não existe consulta pública de histórico geral, conforme `docs/05`.
@@ -115,6 +117,27 @@ tratados em ocorrências próprias.
 - Caminhão inativo não pode receber novo plano.
 - Caminhão usado em plano aprovado não deve ser removido fisicamente.
 
+`CONFIRMADO` (OC64): o conflito operacional de caminhões é definido pelos
+artefatos de carregamento e viagem, sem criar novos estados.
+
+- `CALCULATED`, `REJECTED` e `APPROVED`, isoladamente, não reservam o caminhão.
+- Uma sessão de carregamento pertencente a um plano reserva o caminhão enquanto
+  a operação ainda não possuir viagem `FINISHED`.
+- `PENDING` e `IN_PROGRESS` representam reserva operacional.
+- `FINISHED` no carregamento não libera sozinho o caminhão; se a viagem ainda
+  não existir, a reserva continua.
+- Viagens `SCHEDULED` e `IN_ROUTE` mantêm a reserva.
+- A viagem `FINISHED` libera o caminhão.
+- Artefatos do mesmo `load_plan_id` pertencem à mesma operação e não conflitam
+  entre si.
+- O conflito existe somente contra outro `load_plan_id` que use o mesmo
+  caminhão.
+- A verificação transacional bloqueia a linha de `Truck` antes da consulta de
+  conflito, serializando tentativas concorrentes de reserva.
+- O erro público é `TRUCK_OPERATION_CONFLICT`.
+- Estado `active` e conflito operacional são conceitos independentes. A consulta
+  de disponibilidade da OC67 deve considerar ambos, sem duplicar esta regra.
+
 `RECOMENDAÇÃO`: usar `active = false` para indisponibilidade operacional em vez de exclusão física.
 
 ## Motorista
@@ -127,7 +150,37 @@ tratados em ocorrências próprias.
 - Alterar ou remover o vínculo revoga todas as sessões do usuário na mesma
   transação.
 
-`PENDENTE DE DEFINIÇÃO`: validação formal de CPF, telefone e categoria de CNH.
+`CONFIRMADO` (OC63): documento do motorista é CPF válido; CNH tem 11 dígitos
+com os dois verificadores válidos. Sequências repetidas são rejeitadas.
+Telefone é obrigatório e segue o formato nacional descrito abaixo.
+
+`PENDENTE DE DEFINIÇÃO`: validação formal da categoria de CNH.
+
+### Conflito operacional — OC65
+
+`CONFIRMADO`: a alocação em `Trip.driver_id` reserva o motorista desde a
+criação em `SCHEDULED` e durante `IN_ROUTE`. Outra viagem nesses estados
+impede nova alocação, mesmo em caminhão diferente. `FINISHED` libera a reserva;
+concluir carregamento ou entregas isoladamente não libera o motorista.
+Planos e carregamentos sem viagem não possuem vínculo com motorista e não o
+reservam. Não há comparação de horários futuros nem novos estados.
+
+`CONFIRMADO`: `DriverService` centraliza consulta e validação, consumindo a
+interface pública de viagens. A validação bloqueia a linha do motorista até
+commit/rollback da operação, impedindo duas reservas concorrentes. Criação e
+início da viagem validam conflito; o início exclui a própria viagem, protegendo
+também contra alocações conflitantes anteriores à OC65. Finalização e repetições
+idempotentes continuam permitidas para não impedir a liberação.
+
+`CONFIRMADO`: `active` e autorização continuam independentes da reserva.
+Motorista inativo não recebe nova viagem; usuário sem `users.driver_id` não
+opera viagens. Criar viagem não exige conta vinculada ao motorista. Alterar
+cadastro ou vínculo de usuário não libera nem transfere `Trip.driver_id`.
+
+`RISCO IDENTIFICADO`: conflitos já persistidos não são corrigidos automaticamente.
+Duas viagens antigas `SCHEDULED` do mesmo motorista terão início bloqueado;
+a regularização depende de definição da equipe, pois cancelamento e troca de
+motorista não possuem contrato neste fluxo.
 
 ## Cliente
 
@@ -135,7 +188,19 @@ tratados em ocorrências próprias.
 - Documento do cliente deve ser armazenado como texto.
 - Dados pessoais reais não podem ser usados em seeds ou testes.
 
-`PENDENTE DE DEFINIÇÃO`: regra final de unicidade para CPF/CNPJ em clientes.
+`CONFIRMADO` (OC63): documento do cliente aceita CPF ou CNPJ numérico válidos,
+com dois verificadores e sem sequências repetidas. A unicidade existente é
+verificada sobre o documento normalizado recebido. Telefone continua opcional.
+
+`CONFIRMADO`: clientes e motoristas compartilham `app/shared/validators.py`.
+CPF/CNPJ aceitam dígitos ASCII ou a máscara padrão; CNH aceita 11 dígitos.
+Telefone aceita 10 dígitos (fixo) ou 11 (celular), com DDD não iniciado em 0
+e celular iniciado em 9 após o DDD. DDD pode vir entre parênteses, seguido
+de espaço opcional; hífen antes dos quatro últimos dígitos é opcional.
+Não são aceitos código internacional, ramal ou letras. Espaços nas
+extremidades são removidos; persistência de campos novos/alterados usa dígitos.
+As regras são aplicadas em create/update, antes da persistência. Não há
+consulta cadastral externa nem saneamento automático de registros legados.
 
 ## Produto
 
@@ -405,10 +470,17 @@ Desenvolvedor 4.
   `finished_at` em UTC.
 - `CONFIRMADO`: somente a sessão `FINISHED` do mesmo plano libera o início da
   viagem; sessão ausente, incompleta ou pertencente a outro plano não libera.
-- `CONFIRMADO`: `CHECKER` e `LOGISTICS_MANAGER` criam, consultam e operam
-  carregamento/checklist; `ADMIN` apenas consulta; `DRIVER` não tem acesso na
-  v1.0.0. Não existe atribuição a conferente nem autorização por objeto para
-  `CHECKER`; essas evoluções e a possível consulta pelo `DRIVER` são futuras.
+- `CONFIRMADO` (OC66): `LOGISTICS_MANAGER` cria a sessão; `CHECKER` inicia a
+  sessão, confere os itens e finaliza o carregamento; `ADMIN`, `CHECKER` e
+  `LOGISTICS_MANAGER` consultam; `DRIVER` não acessa o módulo.
+- `CONFIRMADO` (OC66): a matriz aplica menor privilégio e separa a preparação
+  logística da execução da conferência. Alterar um item para `CHECKED`, inclusive
+  por mecanismo futuro de QR Code ou código de barras, continua sendo operação
+  de conferência exclusiva de `CHECKER`.
+- `CONFIRMADO` (OC66): não há autorização por objeto no carregamento porque o
+  modelo atual não atribui sessão ou item a um conferente. OC75 e OC76 não podem
+  inferir propriedade por usuário nem criar vínculo novo sem decisão e contrato
+  próprios.
 
 ## Viagem e entrega
 
@@ -432,6 +504,25 @@ Desenvolvedor 4.
 - `CONFIRMADO`: viagem, entrega, pedidos e todos os registros de histórico da
   ação compartilham um único commit ou rollback.
 - Ocorrência não apaga o status anterior, apenas adiciona contexto.
+
+### Comprovante operacional — OC78
+
+`CONFIRMADO` pela ADR-024: registrar comprovante significa reutilizar a conclusão
+`IN_DELIVERY -> DELIVERED` durante `IN_ROUTE`, com pedido e histórico no mesmo
+commit. Repetição retorna a conclusão original, sem alterar horário, responsável
+ou histórico, inclusive após a viagem terminar. Consulta não altera dados e
+também contempla conclusões pelo fluxo anterior.
+
+`CONFIRMADO`: a autorização segue viagens/entregas: gestor opera e consulta,
+administrador consulta e motorista vinculado/ativo acessa somente sua viagem.
+Conferente não acessa. Dados de entrega, viagem, pedido, motorista e usuário
+responsável são obtidos do servidor. Estado não concluído e histórico de
+conclusão ausente, duplicado ou sem responsável não geram comprovante.
+
+`CONFIRMADO`: o contrato aditivo foi aprovado na revisão do PR #98 e está
+registrado na [ADR-024 aceita](decisions/ADR-024-comprovante-operacional-entrega.md).
+Evidências, recebedor, foto, assinatura, localização, armazenamento externo e
+novos estados continuam fora da versão atual e exigem decisão futura própria.
 
 ## Histórico de status
 
@@ -536,3 +627,11 @@ domínio. Operação rejeitada e repetição idempotente não geram notificaçã
 - `CONFIRMADO`: relatório não recalcula nem altera plano de carga.
 
 `PENDENTE DE DEFINIÇÃO`: layout final do PDF e campos obrigatórios para assinatura/conferência.
+
+## Conferência por código — OC76
+
+`CONFIRMADO`: cada código identifica o UUID de um item de checklist, sem
+ambiguidade entre volumes do mesmo produto. Somente `CHECKER` confirma em sessão
+`IN_PROGRESS`. Item de outra sessão, inexistente ou já conferido é rejeitado sem
+alteração; uma leitura não finaliza a sessão nem modifica o plano. O contrato
+está em `docs/05-contratos-api.md`; a matriz OC66 permanece vigente.

@@ -10,7 +10,13 @@ from app.core.responses import error_response, openapi_error_responses
 from app.database.session import get_db
 from app.modules.auth.dependencies import require_roles
 from app.modules.trucks.models import Truck
-from app.modules.trucks.schemas import TruckCreate, TruckRead, TruckUpdate
+from app.modules.trucks.operational_status_service import TruckOperationalStatusService
+from app.modules.trucks.schemas import (
+    TruckCreate,
+    TruckOperationalStatusRead,
+    TruckRead,
+    TruckUpdate,
+)
 from app.modules.trucks.service import (
     TruckNotFoundError,
     TruckPlateAlreadyExistsError,
@@ -33,6 +39,12 @@ def get_truck_service(db: Annotated[Session, Depends(get_db)]) -> TruckService:
     return TruckService(db)
 
 
+def get_truck_operational_status_service(
+    db: Annotated[Session, Depends(get_db)],
+) -> TruckOperationalStatusService:
+    return TruckOperationalStatusService(db)
+
+
 @router.get(
     "",
     response_model=PageResponse[TruckRead],
@@ -47,6 +59,26 @@ def list_trucks(
     return to_page_response(
         result,
         (TruckRead.model_validate(truck) for truck in result.items),
+    )
+
+
+@router.get(
+    "/operational-status",
+    response_model=PageResponse[TruckOperationalStatusRead],
+    responses=openapi_error_responses(401, 403, 422),
+)
+def list_truck_operational_status(
+    pagination: Pagination,
+    _current_user: TruckReader,
+    service: Annotated[
+        TruckOperationalStatusService,
+        Depends(get_truck_operational_status_service),
+    ],
+) -> PageResponse[TruckOperationalStatusRead]:
+    result = service.list_statuses(pagination)
+    return to_page_response(
+        result,
+        (TruckOperationalStatusRead.model_validate(item) for item in result.items),
     )
 
 

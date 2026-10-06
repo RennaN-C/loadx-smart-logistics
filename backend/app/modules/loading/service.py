@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.modules.load_planning.reference_service import LoadPlanReferenceService
 from app.modules.loading.models import LoadingSession, LoadingSessionItem
 from app.modules.loading.repository import LoadingRepository
+from app.modules.trucks.service import TruckService
 
 
 class LoadingSessionNotFoundError(Exception):
@@ -24,6 +25,10 @@ class LoadingItemSessionMismatchError(Exception):
     pass
 
 
+class LoadingItemAlreadyCheckedError(Exception):
+    pass
+
+
 class LoadingStatusTransitionError(Exception):
     pass
 
@@ -37,6 +42,7 @@ class LoadingService:
         self.db = db
         self.repository = LoadingRepository(db)
         self.load_plan_reference_service = LoadPlanReferenceService(db)
+        self.truck_service = TruckService(db)
 
     def create_session(self, load_plan_id: uuid.UUID) -> LoadingSession:
         existing = self.repository.get_by_load_plan_id(load_plan_id)
@@ -46,6 +52,7 @@ class LoadingService:
         items = self.load_plan_reference_service.get_loading_items(load_plan_id)
         if plan is None or plan.status != "APPROVED" or not items:
             raise LoadingPlanNotApprovedError
+
         session = LoadingSession(
             load_plan_id=load_plan_id,
             status="PENDING",
@@ -55,6 +62,16 @@ class LoadingService:
             ],
         )
         try:
+            self.truck_service.ensure_no_operation_conflict(
+                plan.truck_id,
+                exclude_load_plan_id=plan.id,
+            )
+
+            concurrent_existing = self.repository.get_by_load_plan_id(load_plan_id)
+            if concurrent_existing is not None:
+                self.db.commit()
+                return concurrent_existing
+
             self.repository.add(session)
             self.db.commit()
             return self._get_session(session.id)
@@ -85,7 +102,12 @@ class LoadingService:
         return self._get_session(session.id)
 
     def change_item_status(
-        self, session_id: uuid.UUID, item_id: uuid.UUID, status: str
+        self,
+        session_id: uuid.UUID,
+        item_id: uuid.UUID,
+        status: str,
+        *,
+        reject_checked: bool = False,
     ) -> LoadingSession:
         session = self.repository.get_for_update(session_id)
         if session is None:
@@ -97,12 +119,19 @@ class LoadingService:
             raise LoadingItemNotFoundError
         if item.loading_session_id != session.id:
             raise LoadingItemSessionMismatchError
+        if reject_checked and item.status == "CHECKED":
+            raise LoadingItemAlreadyCheckedError
         if item.status != status:
             if item.status != "PENDING" or status != "CHECKED":
                 raise LoadingStatusTransitionError
             item.status = status
             self.db.commit()
         return self._get_session(session.id)
+
+    def scan_item(self, session_id: uuid.UUID, item_id: uuid.UUID) -> LoadingSession:
+        return self.change_item_status(
+            session_id, item_id, "CHECKED", reject_checked=True
+        )
 
     def _get_session(self, session_id: uuid.UUID) -> LoadingSession:
         session = self.repository.get(session_id)

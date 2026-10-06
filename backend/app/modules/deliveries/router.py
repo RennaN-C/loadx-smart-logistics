@@ -13,6 +13,8 @@ from app.modules.auth.dependencies import require_roles
 from app.modules.deliveries.models import Delivery, Trip
 from app.modules.deliveries.schemas import (
     DeliveryRead,
+    DeliveryReceiptCreate,
+    DeliveryReceiptRead,
     DeliveryStatusChange,
     TripCreate,
     TripListRead,
@@ -21,6 +23,8 @@ from app.modules.deliveries.schemas import (
 )
 from app.modules.deliveries.service import (
     DeliveryNotFoundError,
+    DeliveryReceiptHistoryInvalidError,
+    DeliveryReceiptNotAvailableError,
     DeliveryStatusTransitionNotAllowedError,
     DeliveryTripNotInRouteError,
     TripAccessForbiddenError,
@@ -38,7 +42,9 @@ from app.modules.deliveries.service import (
     TripService,
     TripStatusTransitionNotAllowedError,
 )
+from app.modules.drivers.service import DriverOperationConflictError
 from app.modules.notifications.service import OperationalNotificationService
+from app.modules.trucks.service import TruckOperationConflictError
 from app.modules.users.models import User
 
 router = APIRouter(tags=["trips"])
@@ -53,6 +59,8 @@ TripOperator = Annotated[
 ]
 TRIP_SERVICE_ERRORS = (
     DeliveryNotFoundError,
+    DeliveryReceiptHistoryInvalidError,
+    DeliveryReceiptNotAvailableError,
     DeliveryStatusTransitionNotAllowedError,
     DeliveryTripNotInRouteError,
     TripAccessForbiddenError,
@@ -68,6 +76,8 @@ TRIP_SERVICE_ERRORS = (
     TripOrderAlreadyAssignedError,
     TripOrderNotEligibleError,
     TripStatusTransitionNotAllowedError,
+    TruckOperationConflictError,
+    DriverOperationConflictError,
 )
 
 
@@ -188,7 +198,66 @@ def change_delivery_status(
         return _trip_error_response(exc)
 
 
+@router.post(
+    "/deliveries/{delivery_id}/receipt",
+    response_model=DeliveryReceiptRead,
+    responses=openapi_error_responses(401, 403, 404, 409, 422),
+)
+def register_delivery_receipt(
+    delivery_id: uuid.UUID,
+    data: DeliveryReceiptCreate,
+    current_user: TripOperator,
+    service: Annotated[TripService, Depends(get_trip_service)],
+) -> DeliveryReceiptRead | JSONResponse:
+    try:
+        return service.register_delivery_receipt(delivery_id, current_user=current_user)
+    except TRIP_SERVICE_ERRORS as exc:
+        return _trip_error_response(exc)
+
+
+@router.get(
+    "/deliveries/{delivery_id}/receipt",
+    response_model=DeliveryReceiptRead,
+    responses=openapi_error_responses(401, 403, 404, 409, 422),
+)
+def get_delivery_receipt(
+    delivery_id: uuid.UUID,
+    current_user: TripReader,
+    service: Annotated[TripService, Depends(get_trip_service)],
+) -> DeliveryReceiptRead | JSONResponse:
+    try:
+        return service.get_delivery_receipt(delivery_id, current_user=current_user)
+    except TRIP_SERVICE_ERRORS as exc:
+        return _trip_error_response(exc)
+
+
 def _trip_error_response(exc: Exception) -> JSONResponse:
+    if isinstance(exc, DeliveryReceiptNotAvailableError):
+        return error_response(
+            status.HTTP_409_CONFLICT,
+            "DELIVERY_RECEIPT_NOT_AVAILABLE",
+            "O comprovante exige uma entrega concluída.",
+        )
+    if isinstance(exc, DeliveryReceiptHistoryInvalidError):
+        return error_response(
+            status.HTTP_409_CONFLICT,
+            "DELIVERY_RECEIPT_HISTORY_INVALID",
+            "A entrega não possui um histórico de conclusão único com responsável.",
+        )
+    if isinstance(exc, DriverOperationConflictError):
+        return error_response(
+            status.HTTP_409_CONFLICT,
+            "DRIVER_OPERATION_CONFLICT",
+            "Motorista reservado por outra viagem ativa.",
+            [{"field": "driver_id", "value": str(exc.driver_id)}],
+        )
+    if isinstance(exc, TruckOperationConflictError):
+        return error_response(
+            status.HTTP_409_CONFLICT,
+            "TRUCK_OPERATION_CONFLICT",
+            "O caminhão já está reservado por outra operação ativa.",
+            [{"field": "truck_id", "value": str(exc.truck_id)}],
+        )
     if isinstance(exc, TripAccessForbiddenError):
         return error_response(
             status.HTTP_403_FORBIDDEN,

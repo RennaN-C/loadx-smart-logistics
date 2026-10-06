@@ -2,6 +2,10 @@
 
 Este arquivo é a fonte principal de contexto para qualquer IA que ajude a programar o LoadX.
 
+`CONTRIBUTING.md` é a porta de entrada para o fluxo de contribuição humano ou
+assistido por IA. Este `AGENTS.md` continua sendo a fonte obrigatória de contexto
+e restrições para agentes de IA.
+
 ## Antes de qualquer alteração
 
 1. Leia o `README.md` da raiz.
@@ -11,6 +15,16 @@ Este arquivo é a fonte principal de contexto para qualquer IA que ajude a progr
 5. Leia o `README.md` da pasta que será alterada.
 6. Verifique ADRs relacionadas em `docs/decisions/`.
 7. Verifique se a alteração pertence a uma ocorrência aprovada.
+
+`CONFIRMADO`: para trabalho pós-v1.0.0, consulte a divisão da versão em
+[docs/07-divisao-equipe.md](docs/07-divisao-equipe.md). O planejamento aprovado
+da v1.1.0 fica em [docs/planejamento/v1.1.0/00-visao-geral.md](docs/planejamento/v1.1.0/00-visao-geral.md).
+OC01–OC61 são histórico e não devem ser renumeradas nem ter seus números
+reutilizados. OC62 é a primeira ocorrência nova pós-v1.0.0; a v1.1.0 usa
+OC62–OC78. O planejamento não substitui os critérios de aceite das Issues nem
+aprova automaticamente novos contratos ou regras.
+
+`CONFIRMADO`: para planejamento de releases posteriores à v1.1.0, consulte [docs/planejamento/roadmap-versoes.md](docs/planejamento/roadmap-versoes.md). O roadmap define direção de produto, SemVer e gates, mas não substitui Issues, critérios de aceite ou ADRs. A v1.2.0 reserva OC79–OC84; identificadores posteriores somente são definidos no planejamento da respectiva release.
 
 ## Marcadores obrigatórios de incerteza
 
@@ -107,6 +121,35 @@ Não inclui paletes, GPS real, câmera, OpenCV, MDF-e, roteirização externa, p
 - Modelo de dados aprovado.
 - Regras críticas do otimizador.
 - Integração real com provedor externo paga ou com credenciais.
+
+## Contrato obrigatório de Pull Request
+
+`CONFIRMADO`: todo Pull Request destinado a `desenvolvimento` deve estar
+vinculado a exatamente uma Issue do mesmo repositório usando `Closes #NN`,
+`Fixes #NN` ou `Resolves #NN`.
+
+Para uma ocorrência `OCXX`:
+
+- o título do PR começa com `[OCXX]`;
+- o corpo contém `Identificador: OCXX`;
+- o identificador precisa corresponder ao prefixo da Issue;
+- a branch do PR deve ser exatamente a definida em `## Branch sugerida`;
+- a Issue precisa estar aberta, atribuída ou possuir `## Responsável`;
+- a Issue precisa pertencer ao Project `LoadX — Desenvolvimento`;
+- a Issue precisa estar no milestone da versão que o bot acompanha.
+
+Para trabalho que não pertence a uma OC:
+
+- ainda é obrigatório vincular exatamente uma Issue;
+- usar `Identificador: N/A`.
+
+Nunca remova, contorne ou neutralize
+`.github/workflows/validar-contrato-pr.yml`.
+Se a validação falhar, corrija Issue, branch, título ou corpo do PR em vez de
+tentar burlar o check.
+
+Ao usar `gh pr create`, Codex, Claude ou qualquer outra automação, preserve
+integralmente o contrato definido em `.github/pull_request_template.md`.
 
 ## Ao terminar uma tarefa
 

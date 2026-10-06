@@ -3,6 +3,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.shared.validators import CustomerDocument, PhoneNumber
+
 
 class CustomerBase(BaseModel):
     name: str = Field(min_length=1, max_length=160)
@@ -22,13 +24,14 @@ class CustomerBase(BaseModel):
 
 
 class CustomerCreate(CustomerBase):
-    pass
+    document: CustomerDocument = Field(min_length=1, max_length=32)
+    phone: PhoneNumber | None = Field(default=None, max_length=32)
 
 
 class CustomerUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=160)
-    document: str | None = Field(default=None, min_length=1, max_length=32)
-    phone: str | None = Field(default=None, max_length=32)
+    document: CustomerDocument | None = Field(default=None, min_length=1, max_length=32)
+    phone: PhoneNumber | None = Field(default=None, max_length=32)
     address: str | None = Field(default=None, min_length=1, max_length=255)
     city: str | None = Field(default=None, min_length=1, max_length=120)
     state: str | None = Field(default=None, min_length=2, max_length=2)

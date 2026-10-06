@@ -263,6 +263,45 @@ Campos de `GET /customers`: `id`, `name`, `city`, `state` e `created_at`.
 Documento, telefone, endereço e observações aparecem somente no detalhe e nas
 respostas de escrita já protegidas pelo RBAC.
 
+`CONFIRMADO` (OC63): `POST`/`PATCH` validam `document` como CPF de 11 dígitos ou
+CNPJ numérico de 14 dígitos, aceitando as máscaras `XXX.XXX.XXX-XX` e
+`XX.XXX.XXX/XXXX-XX`. Ambos verificadores devem ser válidos; letras, máscaras
+incorretas e sequências repetidas são rejeitadas. `phone` continua opcional.
+Campos novos/alterados são persistidos e retornados sem máscara.
+
+### Consulta auxiliar de CEP — OC62
+
+`CONFIRMADO`: `GET /api/v1/customers/cep/{cep}` exige sessão e acesso exclusivo
+de `LOGISTICS_MANAGER`. `ADMIN`, `CHECKER` e `DRIVER` não podem consultá-la.
+A rota recebe somente CEP, normaliza oito dígitos com hífen opcional antes da
+consulta e aplica timeout HTTP de 5 segundos por fase. O cadastro manual é
+independente.
+
+`CONFIRMADO`: resposta `200` usa `ViaCEPAddress`, com `cep`, `street`,
+`neighborhood`, `complement`, `city` e `state`, sem envelope. CEP retorna oito
+dígitos; rua, bairro e complemento são opcionais (`null`) e aceitam até 255
+caracteres cada; cidade é obrigatória, de 1 a 120 caracteres; UF é uma sigla
+brasileira válida de duas letras maiúsculas. Dados externos acima dos limites
+são rejeitados. O endereço composto continua sujeito ao limite de Customer.
+
+`CONFIRMADO`: os erros usam `ErrorResponse` (`code`, `message`, `details`):
+
+| Status | Código | Condição |
+| --- | --- | --- |
+| `401` | `AUTH_INVALID_TOKEN` | Sessão ausente ou inválida. |
+| `403` | `AUTH_FORBIDDEN` | Perfil sem acesso à consulta. |
+| `422` | `VIACEP_INVALID_CEP` | Formato inválido; nenhuma consulta externa. |
+| `404` | `VIACEP_NOT_FOUND` | CEP inexistente. |
+| `503` | `VIACEP_UNAVAILABLE` | Serviço indisponível. |
+| `504` | `VIACEP_TIMEOUT` | Timeout do serviço externo. |
+| `502` | `VIACEP_INVALID_RESPONSE` | Resposta inválida, incompleta ou acima dos limites. |
+
+`CONFIRMADO`: `VIACEP_INVALID_CEP` identifica `cep` em `details`; as falhas do
+provider retornam `details: []` e mensagens normalizadas, sem detalhes internos.
+Contrato, exemplo de sucesso e injeção de fake estão em
+[ViaCEP — contrato público para a OC70](../backend/app/integrations/viacep/README.md).
+O frontend deve consultar o backend, nunca o ViaCEP diretamente.
+
 ## Motoristas
 
 - `GET /drivers`.
@@ -279,6 +318,23 @@ Regras de autorização:
 Campos de `GET /drivers`: `id`, `name`, `license_category`, `active` e
 `created_at`. Documento, telefone e número da CNH aparecem somente no detalhe e
 nas respostas de escrita já protegidas pelo RBAC.
+
+`CONFIRMADO` (OC63): `POST`/`PATCH` validam `document` como CPF e
+`license_number` como CNH de 11 dígitos, incluindo ambos os verificadores e
+rejeição de sequências repetidas. CPF aceita máscara padrão; CNH, somente
+dígitos. `phone` é obrigatório. Campos novos/alterados retornam sem máscara.
+
+`CONFIRMADO`: nos dois cadastros, telefone aceita 10 ou 11 dígitos nacionais,
+DDD não iniciado em 0 e celular iniciado em 9 após o DDD. Aceita DDD com ou
+sem parênteses, espaço após DDD e hífen antes dos quatro últimos dígitos,
+ambos opcionais. Código internacional e ramal não são aceitos. Entrada é
+string; os formatos aceitam espaços nas extremidades e somente dígitos ASCII.
+
+`CONFIRMADO`: PATCH mantém campos omitidos. `null` é aceito apenas no telefone
+do cliente, entre os campos da OC63; string vazia não limpa o telefone.
+Valor inválido retorna `422 VALIDATION_ERROR`, com o campo em `details`,
+preservando o envelope atual. Leituras de registros legados não são revalidadas
+nem corrigidas automaticamente nesta ocorrência.
 
 ## Pedidos
 
@@ -652,13 +708,77 @@ plano `APPROVED`. A sessão inicia `PENDING`; o status aceita somente
 `IN_PROGRESS` e depois `FINISHED`. Cada item recebe `CHECKED` pelo endpoint de
 item, e a finalização falha enquanto algum item estiver pendente.
 
-`CONFIRMADO`: `CHECKER` e `LOGISTICS_MANAGER` criam e alteram; `ADMIN`,
-`CHECKER` e `LOGISTICS_MANAGER` consultam. Erros específicos:
+`CONFIRMADO` (OC66): a autorização é definida por operação:
+
+| Operação | Endpoint | `ADMIN` | `LOGISTICS_MANAGER` | `CHECKER` | `DRIVER` |
+|---|---|---:|---:|---:|---:|
+| Leitura | `GET /loading-sessions/{id}` | Sim | Sim | Sim | Não |
+| Criação | `POST /loading-sessions` | Não | Sim | Não | Não |
+| Início da conferência | `PATCH /loading-sessions/{id}/status` com `IN_PROGRESS` | Não | Não | Sim | Não |
+| Conferência de item | `PATCH /loading-sessions/{id}/items/{item_id}` com `CHECKED` | Não | Não | Sim | Não |
+| Finalização | `PATCH /loading-sessions/{id}/status` com `FINISHED` | Não | Não | Sim | Não |
+
+`CONFIRMADO` (OC66): perfis negados recebem `403 AUTH_FORBIDDEN` antes de
+qualquer consulta à sessão ou ao item; autenticação ausente ou inválida continua
+recebendo `401 AUTH_INVALID_TOKEN`. Portanto, uma negativa de RBAC não revela se
+os UUIDs solicitados existem.
+
+`CONFIRMADO` (OC66): não existe autorização por objeto neste módulo. O modelo
+atual não possui atribuição de sessão ou item a um `CHECKER`; criar esse vínculo
+fica fora da OC66. Para OC75 e OC76, leitura de código deve apenas identificar um
+item e reutilizar a operação de conferência protegida para `CHECKER`; código de
+QR/barras não autentica, não autoriza e não amplia os perfis desta matriz.
+
+Erros específicos:
 `LOADING_PLAN_NOT_APPROVED`, `LOADING_SESSION_NOT_FOUND`,
 `LOADING_ITEM_NOT_FOUND`, `LOADING_ITEM_SESSION_MISMATCH`,
-`LOADING_CHECKLIST_INCOMPLETE` e `LOADING_STATUS_TRANSITION_NOT_ALLOWED`.
+`LOADING_CHECKLIST_INCOMPLETE`, `LOADING_STATUS_TRANSITION_NOT_ALLOWED` e
+`TRUCK_OPERATION_CONFLICT`.
+
+`CONFIRMADO` (OC64): `POST /loading-sessions` retorna `409
+TRUCK_OPERATION_CONFLICT` quando o caminhão do plano já estiver reservado por
+outra operação ativa. `details` identifica `truck_id`. A validação ocorre no
+backend e é protegida pelo bloqueio transacional do caminhão.
+
+### Conferência por código — OC76
+
+`CONFIRMADO`: `POST /loading-sessions/{session_id}/scan` recebe
+`{"code":"loadx:loading-item:<UUID canônico minúsculo do item do checklist>"}`.
+O prefixo é literal, sem espaços; o código possui 55 caracteres. `items[].code`
+nas respostas de criação, leitura e atualização fornece o mesmo identificador
+para OC75, sem consulta direta ao banco. A identidade é `loading_session_items.id`,
+não código do produto nem índice de volume. Não há etiqueta física ou imagem.
+
+`CONFIRMADO`: somente `CHECKER` pode conferir por código, com sessão autenticada,
+origem permitida e token CSRF, como na OC66. Código não é credencial. O endpoint
+retorna `200 LoadingSessionRead`, com apenas o item identificado em `CHECKED`.
+Sessão deve estar `IN_PROGRESS`; o bloqueio transacional de sessão/item é o mesmo
+da conferência manual. Finalização continua exigindo todos os itens conferidos.
+
+| Situação | HTTP / código |
+|---|---|
+| Formato inválido ou campo extra | `422 VALIDATION_ERROR` |
+| Sessão inexistente | `404 LOADING_SESSION_NOT_FOUND` |
+| Item inexistente | `404 LOADING_ITEM_NOT_FOUND` |
+| Item pertence a outra sessão | `409 LOADING_ITEM_SESSION_MISMATCH` |
+| Item já conferido, inclusive por operação manual | `409 LOADING_ITEM_ALREADY_CHECKED` |
+| Sessão `PENDING` ou `FINISHED` | `409 LOADING_STATUS_TRANSITION_NOT_ALLOWED` |
+| Sem autenticação / perfil negado | `401 AUTH_INVALID_TOKEN` / `403 AUTH_FORBIDDEN` |
+
+`CONFIRMADO`: erros não alteram o checklist. Leitura repetida não confirma outro
+volume; a conferência manual mantém sua idempotência anterior. Duas leituras do
+mesmo item são serializadas pelo bloqueio da sessão: uma confirma e a outra
+recebe conflito. UUIDs de sessão/item são imutáveis; não há migration.
 
 ## Viagens e entregas
+
+`CONFIRMADO` (OC65): `POST /trips` e a transição efetiva para `IN_ROUTE` em
+`PATCH /trips/{id}/status` retornam HTTP `409` com código estável
+`DRIVER_OPERATION_CONFLICT` quando outra viagem `SCHEDULED` ou `IN_ROUTE`
+reserva o motorista. `details` contém
+`[{"field": "driver_id", "value": "uuid-do-motorista"}]`.
+Nenhuma alteração parcial de viagem, entregas, pedidos ou histórico é salva.
+
 
 - `GET /trips`.
 - `POST /trips`.
@@ -763,7 +883,71 @@ Erros específicos:
 - `TRIP_LOADING_NOT_FINISHED` e `TRIP_DELIVERIES_NOT_FINISHED`;
 - `DELIVERY_TRIP_NOT_IN_ROUTE`;
 - `TRIP_STATUS_TRANSITION_NOT_ALLOWED` e
-  `DELIVERY_STATUS_TRANSITION_NOT_ALLOWED`.
+  `DELIVERY_STATUS_TRANSITION_NOT_ALLOWED`;
+- `TRUCK_OPERATION_CONFLICT`: conflito `409` quando o caminhão do plano já
+  pertence a outra operação ativa.
+
+`CONFIRMADO` (OC64): `POST /trips` reutiliza a mesma regra de conflito aplicada
+ao carregamento. O erro retorna `truck_id` em `details`. Nenhum endpoint mantém
+uma implementação própria da regra.
+
+### Comprovante operacional — OC78
+
+`CONFIRMADO` pela ADR-024 e pela revisão do PR #98: contrato aditivo do
+comprovante operacional conforme a
+[ADR-024 aceita](decisions/ADR-024-comprovante-operacional-entrega.md).
+Os contratos anteriores de `TripRead`, `DeliveryRead` e status permanecem iguais.
+
+- `POST /deliveries/{id}/receipt`: registra a conclusão pelo ciclo existente e
+  retorna o comprovante. Corpo obrigatório `{}`, sem campos adicionais.
+- `GET /deliveries/{id}/receipt`: consulta o comprovante da entrega concluída,
+  inclusive pelo fluxo de status anterior. Não registra nova conclusão.
+
+Ambas retornam `200` com `DeliveryReceiptRead`:
+
+```json
+{
+  "id": "uuid-do-historico-da-conclusao",
+  "delivery_id": "uuid-da-entrega",
+  "trip_id": "uuid-da-viagem",
+  "order_id": "uuid-do-pedido",
+  "driver_id": "uuid-do-motorista-da-viagem",
+  "delivered_at": "2026-09-30T20:00:00Z",
+  "recorded_at": "2026-09-30T20:00:00Z",
+  "recorded_by": "uuid-do-usuario-que-concluiu"
+}
+```
+
+O servidor obtém todos os campos de registros persistidos; o cliente não pode
+informar entrega/viagem/pedido alternativos, responsável, horário, recebedor,
+foto, assinatura ou localização. `id` identifica o histórico, não um arquivo.
+`recorded_at` e `delivered_at` são horários distintos, normalizados para UTC.
+Não há referência de evidências, sequer URL mock ou alegação de upload.
+
+`POST` exige `LOGISTICS_MANAGER` ou `DRIVER` vinculado/ativo na própria viagem;
+`GET` admite também `ADMIN`. `CHECKER` é negado. Sessão em cookie é obrigatória;
+`POST` exige Origin aprovada e CSRF. Autorização por objeto ocorre antes de
+verificar estado/histórico. A primeira conclusão exige `IN_DELIVERY` e viagem
+`IN_ROUTE`, move somente seu pedido para `DELIVERED` e compartilha commit com
+os históricos. Repetição autorizada retorna o mesmo `id`, horários e responsável,
+sem novo histórico, inclusive após `FINISHED`.
+
+| Status | Código | Condição |
+| --- | --- | --- |
+| `401` | `AUTH_INVALID_TOKEN` | Sessão ausente/inválida. |
+| `403` | `AUTH_FORBIDDEN` | Perfil ou viagem sem autorização. |
+| `403` | `AUTH_ORIGIN_FORBIDDEN` / `AUTH_CSRF_INVALID` | Proteções atuais de escrita. |
+| `404` | `DELIVERY_NOT_FOUND` / `TRIP_NOT_FOUND` | Vínculo operacional inexistente. |
+| `409` | `DELIVERY_STATUS_TRANSITION_NOT_ALLOWED` | Registro exige transição atual permitida. |
+| `409` | `DELIVERY_TRIP_NOT_IN_ROUTE` | Primeira conclusão fora de viagem em rota. |
+| `409` | `TRIP_ORDER_NOT_ELIGIBLE` | Pedido fora de `IN_TRANSIT` na conclusão. |
+| `409` | `DELIVERY_RECEIPT_NOT_AVAILABLE` | Consulta de entrega ainda não concluída. |
+| `409` | `DELIVERY_RECEIPT_HISTORY_INVALID` | Conclusão sem histórico único e responsável. |
+| `422` | `VALIDATION_ERROR` | UUID inválido, corpo ausente ou campos adicionais. |
+
+`PENDENTE DE DEFINIÇÃO`: evidências reais, recebedor, correções e retenção exigem
+novo contrato aprovado; a base não cria campos reservados que indiquem recursos
+inexistentes. Não se adiciona requisito de comprovante para finalizar a viagem.
 
 ## Histórico de status
 

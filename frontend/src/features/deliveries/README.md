@@ -46,6 +46,19 @@ filtro aqui seria duplicar no cliente uma regra de acesso que já é aplicada on
 painel dele abria com contadores que respondiam 403. Agora a tela inicial do motorista lista as
 viagens dele, com carregando, vazio, erro e link para cada uma.
 
+## Disponibilidade do motorista (OC72)
+
+`CreateTripAction` continua oferecendo somente motoristas ativos e agora
+consulta `GET /drivers/operational-status` para saber a situação operacional.
+O frontend não cruza viagens nem recalcula conflito: usa diretamente
+`available` e `has_operation_conflict` produzidos pela OC67.
+
+Motorista com conflito aparece como **em operação** e fica desabilitado, porque
+`create_trip` já chama `DriverService.ensure_no_operation_conflict` e rejeita
+essa escolha no backend. Se a consulta de disponibilidade falhar, a tela avisa
+que não conseguiu confirmar o estado e deixa a validação final para o servidor,
+que continua sendo a fonte de verdade.
+
 ## Carregamento e início da viagem
 
 `CONFIRMADO`: o backend possui carregamento persistido, checklist e finalização.
@@ -54,9 +67,9 @@ mesmo plano está `FINISHED`; ausência ou incompletude retorna
 `TRIP_LOADING_NOT_FINISHED`. O fluxo positivo está coberto por
 `backend/tests/e2e/test_complete_flow.py`.
 
-`RISCO IDENTIFICADO`: `components/tripsErrorMessages.ts` ainda afirma que o
-carregamento não existe ao traduzir esse erro. O texto está desatualizado e foi
-registrado para correção própria, preservando o comportamento nesta preparação.
+`CONFIRMADO`: `components/tripsErrorMessages.ts` orienta o usuário a finalizar
+a sessão de carregamento antes de iniciar a viagem quando o backend retorna
+`TRIP_LOADING_NOT_FINISHED`.
 
 `CONFIRMADO`: `PATCH /deliveries/{id}/status` retorna somente `DeliveryRead`.
 `changeDeliveryStatus` interpreta essa resposta como `DeliveryDto`, mapeia a

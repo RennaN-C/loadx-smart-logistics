@@ -117,7 +117,6 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 - `PENDENTE DE DEFINIÇÃO`: escolher e configurar os provedores reais de cofre,
   PostgreSQL e alertas. O repositório já aceita segredos por arquivo, separa as
   URLs de migration/aplicação e fornece o SQL de menor privilégio.
-- `PENDENTE DE DEFINIÇÃO`: validação formal de CPF, CNPJ, telefone e CNH.
 - `PENDENTE DE DEFINIÇÃO`: política de armazenamento, expiração e proteção de fotos de ocorrência.
 - `PENDENTE DE DEFINIÇÃO`: SLA rígido de tempo do otimizador; o limite funcional
   aprovado é 200 volumes por cálculo síncrono.
@@ -273,17 +272,16 @@ teste. Resultados desta execução, sem substituir registros históricos:
   ao ler `deliveries.map`. A atualização podia ser persistida pelo backend e a
   interface exibir erro sem atualizar a viagem. O adapter e a cobertura desse
   contrato foram corrigidos na etapa seguinte autorizada para a release.
-- `RISCO IDENTIFICADO`: `tripsErrorMessages.ts` ainda informa que carregamento
-  não existe. O backend já o implementa; corrigir esse texto de interface em
-  tarefa própria. Os READMEs foram corrigidos nesta preparação.
+- `CONFIRMADO`: `tripsErrorMessages.ts` foi alinhado ao fluxo real de
+  carregamento e orienta finalizar a sessão antes de iniciar a viagem.
 - `CONFIRMADO`: a equipe autorizou alinhar documentalmente o RBAC de
   carregamento, ocorrências e relatórios ao comportamento atual da v1.0.0.
   A matriz e as regras em `docs/04` refletem essa decisão, sem mudar permissões
   implementadas ou o restante do RBAC. A ausência de consulta pública de
   histórico geral permanece registrada em `docs/04`.
-- `RISCO IDENTIFICADO`: caminhão/motorista ativo não significa disponível para
-  uma nova viagem. Não há prevenção de conflitos entre viagens distintas,
-  conforme auditoria de models, services e repositories registrada no roadmap.
+- `CONFIRMADO` (OC64/OC65): disponibilidade operacional não depende apenas de
+  `active`. O backend impede conflitos de caminhões e motoristas conforme as
+  regras de reserva documentadas em `docs/04-regras-negocio.md`.
 - `CONFIRMADO`: OC21 e OC22 existem no backend, mas a tela de planejamento ainda
   não consome comparação nem explicação; não foi adicionada integração de UI.
 - `RISCO IDENTIFICADO`: Pytest emite aviso de depreciação de `crypt` pelo
@@ -296,11 +294,12 @@ documental dos três recursos de RBAC foi conciliada por decisão da equipe.
 Os checks aprovados não equivalem a uma
 homologação completa em navegador nem à validação do ambiente real de produção.
 
-`PENDENTE DE DEFINIÇÃO`: WhatsApp real, Grok/xAI, conversas e automações por IA
-externa, distribuição entre caminhões e ViaCEP constam somente como evoluções
-no [roadmap pós-v1.0.0](10-roadmap-inicial.md#roadmap-pós-v100). Recuperação de
-senha, MFA, validações formais de CPF/CNPJ/CNH/telefone, storage de fotos e
-observabilidade continuam pendentes; a release não os declara concluídos.
+`PENDENTE DE DEFINIÇÃO`: WhatsApp real, integrações externas de IA e
+distribuição entre múltiplos caminhões permanecem como evoluções futuras no
+[roadmap canônico](planejamento/roadmap-versoes.md). Recuperação de senha, MFA,
+storage real de fotos e observabilidade operacional continuam pendentes.
+ViaCEP e validações formais de CPF/CNPJ/CNH/telefone já foram incorporados na
+v1.1.0.
 
 ### Correções autorizadas dos bloqueadores
 
@@ -378,7 +377,7 @@ relatórios; `CHECKER` e `DRIVER` não têm acesso.
 por objeto para `CHECKER`, possível consulta de carregamento pelo `DRIVER`,
 ocorrência vinculada ao carregamento/durante conferência com acesso do `CHECKER`,
 relatório de carregamento para `CHECKER` e relatório da própria viagem para
-`DRIVER` permanecem no roadmap pós-v1.0.0.
+`DRIVER` permanecem no [roadmap canônico](planejamento/roadmap-versoes.md).
 
 `RECOMENDAÇÃO`: **READY para v1.0.0**, considerando as verificações anteriores,
 as correções dos dois bloqueadores técnicos e a decisão documental de RBAC.

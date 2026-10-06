@@ -7,9 +7,12 @@ import { ContactsPage } from "../features/customers/pages/ContactsPage";
 import { DashboardPage } from "../features/dashboard/pages/DashboardPage";
 import { TripPage } from "../features/deliveries/pages/TripPage";
 import { PlanningPage } from "../features/load-planning/pages/PlanningPage";
+import { LoadingPage } from "../features/loading-operation/pages/LoadingPage";
+import { OperationsDashboardPage } from "../features/operations/pages/OperationsDashboardPage";
 import { OrderListPage } from "../features/orders/pages/OrderListPage";
 import { ProductListPage } from "../features/products/pages/ProductListPage";
 import { ReportsPage } from "../features/reports/pages/ReportsPage";
+import { FleetStatusPage } from "../features/trucks/pages/FleetStatusPage";
 import { TruckListPage } from "../features/trucks/pages/TruckListPage";
 import { AppLayout } from "./AppLayout";
 
@@ -23,13 +26,16 @@ export function App() {
             <Route element={<AppLayout />}>
               <Route index element={<DashboardPage />} />
               <Route path="trucks" element={<TruckListPage />} />
+              <Route path="fleet" element={<FleetStatusPage />} />
               <Route path="products" element={<ProductListPage />} />
               <Route path="contacts" element={<ContactsPage />} />
               <Route path="orders" element={<OrderListPage />} />
               <Route path="reports" element={<ReportsPage />} />
+              <Route path="operations" element={<OperationsDashboardPage />} />
               <Route path="planning" element={<PlanningPage />} />
               <Route path="planning/:planId" element={<PlanningPage />} />
               <Route path="trips/:tripId" element={<TripPage />} />
+              <Route path="loading/:sessionId" element={<LoadingPage />} />
               <Route
                 path="*"
                 element={

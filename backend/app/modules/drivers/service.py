@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.core.pagination import PageResult, PaginationParams
 from app.database.integrity import get_integrity_constraint_name
+from app.modules.deliveries.reference_service import DeliveryReferenceService
 from app.modules.drivers.models import Driver
 from app.modules.drivers.repository import DriverRepository
 from app.modules.drivers.schemas import DriverCreate, DriverUpdate
@@ -21,6 +22,12 @@ class DriverDocumentAlreadyExistsError(Exception):
 
 class DriverLicenseNumberAlreadyExistsError(Exception):
     pass
+
+
+class DriverOperationConflictError(Exception):
+    def __init__(self, driver_id: uuid.UUID) -> None:
+        self.driver_id = driver_id
+        super().__init__("driver is reserved by another active trip")
 
 
 class DriverService:
@@ -41,6 +48,30 @@ class DriverService:
         driver = self.repository.get_for_update(driver_id)
         if driver is None:
             raise DriverNotFoundError
+        return driver
+
+    def has_operation_conflict(
+        self,
+        driver_id: uuid.UUID,
+        *,
+        exclude_trip_id: uuid.UUID | None = None,
+    ) -> bool:
+        return bool(
+            DeliveryReferenceService(self.db).list_active_trips_for_driver(
+                driver_id,
+                exclude_trip_id=exclude_trip_id,
+            )
+        )
+
+    def ensure_no_operation_conflict(
+        self,
+        driver_id: uuid.UUID,
+        *,
+        exclude_trip_id: uuid.UUID | None = None,
+    ) -> Driver:
+        driver = self.get_driver_for_update(driver_id)
+        if self.has_operation_conflict(driver_id, exclude_trip_id=exclude_trip_id):
+            raise DriverOperationConflictError(driver_id)
         return driver
 
     def create_driver(self, data: DriverCreate) -> Driver:
