@@ -17,7 +17,17 @@ multi-caminhão é o ciclo atual.
 - central de carregamentos, viagens e entregas;
 - exceções operacionais, reentrega e cancelamento;
 - busca e filtros avançados no servidor;
-- relatórios gerenciais e exportações.
+- relatórios gerenciais e exportações;
+- histórico e auditoria consultáveis;
+- recuperação de senha e MFA;
+- múltiplos endereços por cliente;
+- manutenção e documentos de frota e motoristas;
+- central de notificações interna;
+- importação em massa e arquivamento de cadastros;
+- agenda operacional e busca global;
+- painel de integrações, fila de eventos e reprocessamento;
+- anexos operacionais e linha do tempo unificada;
+- perfis e permissões administrativas flexíveis.
 
 O escopo oficial está em
 [docs/planejamento/v1.2.0/00-visao-geral.md](docs/planejamento/v1.2.0/00-visao-geral.md).
