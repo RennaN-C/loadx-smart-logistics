@@ -31,7 +31,7 @@ def test_alembic_has_current_revision_head() -> None:
     config = Config(str(BACKEND_ROOT / "alembic.ini"))
     script = ScriptDirectory.from_config(config)
 
-    assert script.get_current_head() == "20260830_0011"
+    assert script.get_current_head() == "20261006_0012"
 
 
 def test_initial_migration_renders_expected_check_constraint_names() -> None:
@@ -54,6 +54,13 @@ def test_initial_migration_renders_expected_check_constraint_names() -> None:
     assert "CREATE TABLE status_history" in result.stdout
     assert "CONSTRAINT fk_status_history__users" in result.stdout
     assert "CREATE INDEX ix_status_history__entity" in result.stdout
+    assert "CREATE TABLE audit_events" in result.stdout
+    assert "CONSTRAINT fk_audit_events__users" in result.stdout
+    assert "CONSTRAINT ck_audit_events__event_type_allowed" in result.stdout
+    assert "CONSTRAINT ck_audit_events__entity_type_allowed" in result.stdout
+    assert "CREATE INDEX ix_audit_events__entity" in result.stdout
+    assert "CREATE INDEX ix_audit_events__actor_id" in result.stdout
+    assert "CREATE INDEX ix_audit_events__created_at" in result.stdout
     assert "CREATE TABLE load_plans" in result.stdout
     assert "CREATE TABLE load_plan_orders" in result.stdout
     assert "CREATE TABLE load_plan_items" in result.stdout

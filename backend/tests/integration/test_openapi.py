@@ -11,6 +11,7 @@ EXPECTED_ERROR_STATUSES = {
     ("/api/v1/auth/login", "post"): {"401", "403", "422", "429", "500"},
     ("/api/v1/auth/me", "get"): {"401", "403", "422", "500"},
     ("/api/v1/auth/logout", "post"): {"401", "403", "422", "500"},
+    ("/api/v1/audit", "get"): {"401", "403", "422", "500"},
     ("/api/v1/users", "get"): {"401", "403", "422", "500"},
     ("/api/v1/users", "post"): {"401", "403", "409", "422", "500"},
     ("/api/v1/users/{user_id}", "get"): {
