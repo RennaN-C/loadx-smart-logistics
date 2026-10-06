@@ -30,7 +30,7 @@ class DiscordBotSettings(BaseSettings):
     github_repository: str = "loadx-smart-logistics"
     github_project_title: str = "LoadX — Desenvolvimento"
     github_status_field: str = "Status"
-    github_target_milestone: str = "v1.1.0"
+    github_target_milestone: str = "v1.2.0"
 
     model_config = SettingsConfigDict(
         env_file=(

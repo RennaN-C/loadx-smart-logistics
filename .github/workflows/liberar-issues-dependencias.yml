@@ -34,26 +34,24 @@ jobs:
       STATUS_FIELD: Status
       BACKLOG_STATUS: Backlog
       READY_STATUS: Pronto para iniciar
-      TARGET_MILESTONE: v1.1.0
+      TARGET_MILESTONE: v1.2.0
       API_VERSION: 2026-03-10
 
     steps:
-      - name: Sincronizar dependências nativas da v1.1.0
+      - name: Sincronizar dependências nativas da v1.2.0
         shell: bash
         run: |
           set -euo pipefail
 
           RULES=(
-            "49:46 47"
-            "50:49"
-            "51:49 50"
-            "52:44"
-            "53:45"
-            "54:46 47 49"
-            "55:50"
-            "56:51"
-            "57:48 58"
-            "58:48"
+            "124:123"
+            "125:122"
+            "126:122 123 125"
+            "127:122 125"
+            "129:128"
+            "131:130"
+            "132:130 131"
+            "133:130 131"
           )
 
           for RULE in "${RULES[@]}"; do

@@ -87,7 +87,7 @@ jobs:
           PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
           REPOSITORY: ${{ github.repository }}
           PROJECT_TITLE: LoadX — Desenvolvimento
-          TARGET_MILESTONE: v1.1.0
+          TARGET_MILESTONE: v1.2.0
           ALLOW_CLOSED_ISSUE: "${{ github.event.action == 'closed' && github.event.pull_request.merged == true }}"
         run: python .github/scripts/validate_pr_contract.py
 

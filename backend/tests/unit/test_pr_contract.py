@@ -36,7 +36,7 @@ def oc_issue() -> dict:
             "`rennan/oc64-conflito-caminhoes`\n"
         ),
         "milestone": {
-            "title": "v1.1.0",
+            "title": "v1.2.0",
         },
         "assignees": [],
     }
@@ -61,7 +61,7 @@ def validate(
             projects if projects is not None else {"LoadX — Desenvolvimento"}
         ),
         project_title=("LoadX — Desenvolvimento"),
-        target_milestone="v1.1.0",
+        target_milestone="v1.2.0",
         allow_closed_issue=(allow_closed_issue),
     )
 
@@ -125,7 +125,7 @@ def test_wrong_milestone_fails() -> None:
     issue = oc_issue()
 
     issue["milestone"] = {
-        "title": "v1.2.0",
+        "title": "v1.1.0",
     }
 
     with pytest.raises(
