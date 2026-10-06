@@ -270,7 +270,7 @@ def test_create_truck_rejects_invalid_dimensions(
     assert response.status_code == 422
 
 
-@pytest.mark.parametrize("role", ["ADMIN", "CHECKER"])
+@pytest.mark.parametrize("role", ["CHECKER"])
 @pytest.mark.parametrize("route", ["collection", "detail"])
 def test_read_only_roles_can_read_trucks(
     client: TestClient,

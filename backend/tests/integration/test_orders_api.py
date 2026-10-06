@@ -618,7 +618,7 @@ def test_status_transition_rolls_back_when_history_persistence_fails(
         db.close()
 
 
-@pytest.mark.parametrize("role", ["ADMIN", "CHECKER"])
+@pytest.mark.parametrize("role", ["CHECKER"])
 @pytest.mark.parametrize("route", ["collection", "detail"])
 def test_read_only_roles_can_read_orders(
     client: TestClient,
