@@ -28,7 +28,7 @@ export function CustomerPanel() {
   const [search, setSearch] = useState("");
   const [isCreating, setIsCreating] = useState(false);
 
-  const canManage = user?.role === "LOGISTICS_MANAGER";
+  const canManage = user?.role === "ADMIN" || user?.role === "LOGISTICS_MANAGER";
   const isFormOpen = isCreating || edit.target !== null;
 
   // Só nome e cidade: a listagem não traz documento nem endereço.
