@@ -1232,7 +1232,7 @@ def test_compare_trucks_is_admin_or_manager_only(
     assert unauthenticated.status_code == 401
     assert unauthenticated.json()["code"] == "AUTH_INVALID_TOKEN"
 
-    for role in ("ADMIN", "CHECKER", "DRIVER"):
+    for role in ("CHECKER", "DRIVER"):
         user = create_authenticated_user(session_factory, role)
         response = client.post(
             "/api/v1/load-plans/compare-trucks",
@@ -1241,6 +1241,14 @@ def test_compare_trucks_is_admin_or_manager_only(
         )
         assert response.status_code == 403
         assert response.json()["code"] == "AUTH_FORBIDDEN"
+
+    admin = create_authenticated_user(session_factory, "ADMIN")
+    admin_response = client.post(
+        "/api/v1/load-plans/compare-trucks",
+        json=payload,
+        headers=admin.headers,
+    )
+    assert admin_response.status_code == 200
 
     successful = client.post(
         "/api/v1/load-plans/compare-trucks",
