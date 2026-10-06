@@ -61,6 +61,13 @@ class UserService:
             raise UserNotFoundError
         return user
 
+    def get_user_for_authorization(self, user_id: uuid.UUID) -> User:
+        """Resolve current security state under a transaction-owned shared lock."""
+        user = self.repository.get_for_authorization(user_id)
+        if user is None:
+            raise UserNotFoundError
+        return user
+
     def get_user_by_email(self, email: str) -> User | None:
         return self.repository.get_by_email(email)
 
