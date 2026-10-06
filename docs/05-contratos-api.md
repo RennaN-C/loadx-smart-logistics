@@ -1034,6 +1034,37 @@ rejeitada e repetição idempotente não disparam mensagem. Comandos recebidos p
 simulador mantêm sua confirmação explícita e não recebem um segundo aviso
 automático para o mesmo fato.
 
+## Auditoria — OC97
+
+### GET `/audit`
+
+Consulta somente leitura permitida a `ADMIN` e `LOGISTICS_MANAGER`.
+`CHECKER` e `DRIVER` recebem `403 AUTH_FORBIDDEN`.
+
+A resposta usa o envelope paginado padrão e agrega:
+
+- mudanças de `status_history` como `event_type = STATUS_CHANGED`;
+- ações administrativas selecionadas de `audit_events`, inicialmente
+  `USER_CREATED` e `USER_UPDATED`.
+
+Filtros opcionais, sempre aplicados no servidor antes da paginação:
+
+- `entity_type`: `ORDER`, `LOAD_PLAN`, `TRIP`, `DELIVERY` ou `USER`;
+- `entity_id`: UUID do registro;
+- `actor_id`: UUID do usuário responsável;
+- `event_type`: `STATUS_CHANGED`, `USER_CREATED` ou `USER_UPDATED`;
+- `start_at` e `end_at`: período com timezone;
+- `page`, `page_size` e `sort_order`: paginação padrão.
+
+Cada item retorna `actor_id` e `actor_name` quando houver usuário responsável,
+`old_status/new_status` para mudança operacional e `changed_fields` para ação
+administrativa.
+
+`CONFIRMADO`: `changed_fields` contém somente nomes de campos. Valores de nome,
+e-mail, senha, token, sessão ou payload sensível não são persistidos nem retornados.
+
+`CONFIRMADO`: não existem endpoints POST, PUT, PATCH ou DELETE de auditoria.
+
 ## Relatórios
 
 - `GET /reports/load-plans/{id}`.
