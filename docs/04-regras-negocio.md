@@ -54,8 +54,10 @@ classificação/resolução de ocorrências. As evoluções de acesso de ocorrê
 relatórios constam no
 [roadmap canônico](planejamento/roadmap-versoes.md).
 
-`RISCO IDENTIFICADO`: a referência de histórico geral permanece na matriz,
-mas não existe consulta pública de histórico geral, conforme `docs/05`.
+`CONFIRMADO` pela OC97: a referência de histórico geral da matriz é atendida por
+`GET /api/v1/audit`, somente leitura para `ADMIN` e `LOGISTICS_MANAGER`. Os
+filtros são aplicados no backend antes da paginação e a consulta não oferece
+mutação ou exclusão de registros.
 
 Regras complementares:
 

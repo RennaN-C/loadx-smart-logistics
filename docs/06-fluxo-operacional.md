@@ -174,6 +174,23 @@ de envio é best-effort e não reverte a operação já confirmada.
 `CONFIRMADO`: o fluxo não envia nem armazena binário e não acessa serviço
 externo de upload ou mídia.
 
+## Fluxo de auditoria
+
+1. Uma operação de pedido, plano, viagem ou entrega registra sua mudança em
+   `status_history` na mesma transação do agregado.
+2. Criação ou alteração administrativa de usuário registra `audit_events` no
+   mesmo commit da operação administrativa.
+3. `ADMIN` ou `LOGISTICS_MANAGER` consulta `GET /audit`.
+4. O backend aplica filtros de entidade, registro, ator, evento e período antes
+   da paginação.
+5. A resposta unifica os eventos em ordem cronológica determinística.
+6. O frontend exibe responsável, horário e alteração sem reproduzir valores
+   sensíveis.
+7. Não existe ação de edição ou exclusão de auditoria.
+
+`CONFIRMADO` pela OC97: detalhes de plano e viagem exibem um histórico
+contextual para os perfis que possuem acesso ao histórico geral.
+
 ## Fluxo de relatório
 
 1. Usuário solicita relatório de plano ou viagem.

@@ -10,6 +10,8 @@ from app.core.security_events import SecurityEvent, emit_security_event
 from app.database.integrity import get_integrity_constraint_name
 from app.modules.auth.sessions import AuthSessionService
 from app.modules.drivers.service import DriverNotFoundError, DriverService
+from app.modules.status_history.schemas import AuditEventCreate
+from app.modules.status_history.service import AuditService
 from app.modules.users.models import User
 from app.modules.users.repository import UserRepository
 from app.modules.users.schemas import UserCreate, UserUpdate
@@ -45,6 +47,7 @@ class UserService:
         self.repository = UserRepository(db)
         self.auth_sessions = AuthSessionService(db)
         self.driver_service = DriverService(db)
+        self.audit_service = AuditService(db)
 
     def list_users(self, pagination: PaginationParams) -> PageResult[User]:
         return self.repository.list(pagination)
@@ -72,16 +75,48 @@ class UserService:
         user.password_hash = password_hash
         return self._persist(lambda: self.repository.update(user))
 
-    def create_user(self, data: UserCreate) -> User:
+    def create_user(
+        self,
+        data: UserCreate,
+        *,
+        actor_id: uuid.UUID | None = None,
+    ) -> User:
         if self.repository.get_by_email(data.email) is not None:
             raise UserEmailAlreadyExistsError
         self._ensure_driver_link_is_valid(data.role, data.driver_id)
 
         user_data = data.model_dump(exclude={"password"})
         user = User(**user_data, password_hash=hash_password(data.password))
-        return self._persist(lambda: self.repository.add(user))
 
-    def update_user(self, user_id: uuid.UUID, data: UserUpdate) -> User:
+        def persist_user_with_audit() -> User:
+            created_user = self.repository.add(user)
+            if actor_id is not None:
+                self.audit_service.stage_administrative_event(
+                    AuditEventCreate(
+                        event_type="USER_CREATED",
+                        entity_type="USER",
+                        entity_id=created_user.id,
+                        actor_id=actor_id,
+                        changed_fields=[
+                            "active",
+                            "driver_id",
+                            "email",
+                            "name",
+                            "role",
+                        ],
+                    )
+                )
+            return created_user
+
+        return self._persist(persist_user_with_audit)
+
+    def update_user(
+        self,
+        user_id: uuid.UUID,
+        data: UserUpdate,
+        *,
+        actor_id: uuid.UUID | None = None,
+    ) -> User:
         user = self.get_user(user_id)
         update_data = data.model_dump(exclude_unset=True)
 
@@ -102,7 +137,16 @@ class UserService:
         )
 
         password = update_data.pop("password", None)
+        changed_fields = [
+            field_name
+            for field_name, value in update_data.items()
+            if getattr(user, field_name) != value
+        ]
         password_changed = password is not None
+        if password_changed:
+            changed_fields.append("password")
+        changed_fields.sort()
+
         if password is not None:
             user.password_hash = hash_password(password)
 
@@ -115,7 +159,7 @@ class UserService:
         for field_name, value in update_data.items():
             setattr(user, field_name, value)
 
-        def persist_user_and_revoke_sessions() -> User:
+        def persist_user_revoke_sessions_and_audit() -> User:
             updated_user = self.repository.update(user)
             if (
                 password_changed
@@ -124,9 +168,19 @@ class UserService:
                 or driver_link_changed
             ):
                 self.auth_sessions.stage_revoke_all_for_user(user.id)
+            if actor_id is not None and changed_fields:
+                self.audit_service.stage_administrative_event(
+                    AuditEventCreate(
+                        event_type="USER_UPDATED",
+                        entity_type="USER",
+                        entity_id=user.id,
+                        actor_id=actor_id,
+                        changed_fields=changed_fields,
+                    )
+                )
             return updated_user
 
-        updated_user = self._persist(persist_user_and_revoke_sessions)
+        updated_user = self._persist(persist_user_revoke_sessions_and_audit)
         if password_changed or role_changed or user_deactivated or driver_link_changed:
             emit_security_event(
                 SecurityEvent.USER_SECURITY_STATE_CHANGED,

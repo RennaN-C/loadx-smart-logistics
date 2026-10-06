@@ -102,10 +102,10 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 
 ## Pendências técnicas
 
-- `PENDENTE DE DEFINIÇÃO`: o contrato e os filtros da consulta protegida de
-  histórico serão fechados pela **OC97 (#144)**. D10 já definiu as entidades
-  `ORDER`, `LOAD_PLAN`, `TRIP` e `DELIVERY`, mas a consulta pública protegida ainda
-  não existe na versão estável.
+- `CONFIRMADO` pela **OC97 (#144)**: a consulta protegida de histórico usa
+  `GET /api/v1/audit`, agrega `status_history` e eventos administrativos
+  selecionados, aplica filtros antes da paginação e permanece somente leitura
+  para `ADMIN` e `LOGISTICS_MANAGER`.
 - `PENDENTE DE DEFINIÇÃO`: coletor, retenção, destino e SLA dos logs e alertas;
   o backend já emite eventos JSON no logger `loadx.security` e marca casos que
   exigem alerta com `alert=true`.

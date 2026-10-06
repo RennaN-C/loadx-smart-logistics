@@ -1,0 +1,9 @@
+# Auditoria
+
+Feature da OC97 para consulta somente leitura do histórico operacional e dos
+eventos administrativos selecionados.
+
+- `api/auditApi.ts`: consulta paginada e filtros server-side.
+- `pages/AuditPage.tsx`: visão geral para ADMIN e LOGISTICS_MANAGER.
+- `components/AuditTrail.tsx`: histórico contextual reutilizável em detalhes.
+- nenhum componente desta feature altera ou exclui eventos de auditoria.

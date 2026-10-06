@@ -27,7 +27,7 @@ sucede `20260830_0011`, mantendo um único head.
 
 `CONFIRMADO`: o repositório possui models SQLAlchemy e migrations para `users`,
 `auth_sessions`, `auth_login_throttles`, `customers`, `drivers`, `trucks`,
-`products`, `orders`, `order_items`, `status_history`, `load_plans`,
+`products`, `orders`, `order_items`, `status_history`, `audit_events`, `load_plans`,
 `load_plan_orders`, `load_plan_items`, `trips` e `deliveries`. As tabelas de
 autenticação foram aprovadas por D18 e `ADR-020`; viagens e entregas seguem
 D07 a D10, D21 e `ADR-022`.
@@ -514,6 +514,35 @@ Histórico auditável de mudanças de status.
 `LOAD_PLAN`, `TRIP` e `DELIVERY`. A OC09 não expõe consulta pública desse
 histórico.
 
+### `audit_events` — OC97
+
+Auditoria administrativa somente leitura, complementar a `status_history`.
+
+- `id`: UUID, PK.
+- `event_type`: catálogo fechado do tipo de evento administrativo.
+- `entity_type`: catálogo fechado da entidade auditada.
+- `entity_id`: UUID do registro afetado.
+- `actor_id`: UUID, FK obrigatória para `users.id`.
+- `changed_fields`: nomes dos campos alterados, em ordem determinística e sem valores.
+- `created_at`: timestamptz UTC, obrigatório.
+
+Índices e constraints:
+
+- `fk_audit_events__users`.
+- `ix_audit_events__entity`.
+- `ix_audit_events__actor_id`.
+- `ix_audit_events__created_at`.
+- `ck_audit_events__event_type_allowed`.
+- `ck_audit_events__entity_type_allowed`.
+
+`CONFIRMADO` pela OC97: a primeira entrega registra somente `USER_CREATED` e
+`USER_UPDATED`, ambos com `entity_type = USER`. A tabela não persiste valores de
+senha, token, sessão, e-mail, nome ou payload completo; `changed_fields` contém
+apenas nomes de campos para informar o que foi alterado sem replicar dado sensível.
+
+`CONFIRMADO`: o histórico operacional existente continua em `status_history`.
+A consulta da OC97 agrega as duas fontes sem modificar nem apagar registros.
+
 ## Relacionamentos principais
 
 - `customers` 1:N `orders`.
@@ -532,6 +561,7 @@ histórico.
 - `trips` 1:N `occurrences`.
 - `deliveries` 1:N `occurrences`.
 - `users` 1:N `status_history` por `changed_by`.
+- `users` 1:N `audit_events` por `actor_id`.
 
 ## Volumes
 
@@ -555,6 +585,8 @@ deterministicamente a partir de `order_items.quantity`, usam identidade
 `CONFIRMADO`: a migration `20260730_0002` cria `orders` e `order_items` para a ocorrência `OC08`.
 
 `CONFIRMADO`: a migration `20260730_0003` cria `status_history` para a ocorrência `OC10`.
+
+`CONFIRMADO`: a migration `20261006_0013` cria `audit_events` para a OC97 e sucede a `20261006_0012` da OC79.
 
 `CONFIRMADO`: a migration `20260804_0004` cria `load_plans`,
 `load_plan_orders` e `load_plan_items` para a integração da `OC20`.

@@ -73,6 +73,12 @@ const NAV_GROUPS: readonly NavGroup[] = [
         icon: "report",
         roles: OPERATION_OVERVIEW_READERS,
       },
+      {
+        to: "/audit",
+        label: "Auditoria",
+        icon: "report",
+        roles: OPERATION_OVERVIEW_READERS,
+      },
     ],
   },
 ];

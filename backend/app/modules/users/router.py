@@ -54,11 +54,11 @@ def list_users(
 )
 def create_user(
     data: UserCreate,
-    _current_admin: AdminUser,
+    current_admin: AdminUser,
     service: Annotated[UserService, Depends(get_user_service)],
 ) -> User | JSONResponse:
     try:
-        return service.create_user(data)
+        return service.create_user(data, actor_id=current_admin.id)
     except UserEmailAlreadyExistsError:
         return error_response(
             status.HTTP_409_CONFLICT,
@@ -118,11 +118,11 @@ def get_user(
 def update_user(
     user_id: uuid.UUID,
     data: UserUpdate,
-    _current_admin: AdminUser,
+    current_admin: AdminUser,
     service: Annotated[UserService, Depends(get_user_service)],
 ) -> User | JSONResponse:
     try:
-        return service.update_user(user_id, data)
+        return service.update_user(user_id, data, actor_id=current_admin.id)
     except UserNotFoundError:
         return error_response(
             status.HTTP_404_NOT_FOUND,

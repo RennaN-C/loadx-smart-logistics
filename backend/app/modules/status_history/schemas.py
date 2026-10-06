@@ -4,6 +4,8 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 STATUS_HISTORY_ENTITY_TYPES = frozenset({"ORDER", "LOAD_PLAN", "TRIP", "DELIVERY"})
+AUDIT_ENTITY_TYPES = frozenset({*STATUS_HISTORY_ENTITY_TYPES, "USER"})
+AUDIT_EVENT_TYPES = frozenset({"STATUS_CHANGED", "USER_CREATED", "USER_UPDATED"})
 
 
 def normalize_upper(value: str | None) -> str | None:
@@ -44,3 +46,57 @@ class StatusHistoryRead(StatusHistoryBase):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True, str_strip_whitespace=True)
+
+
+class AuditEventCreate(BaseModel):
+    event_type: str = Field(min_length=1, max_length=64)
+    entity_type: str = Field(min_length=1, max_length=64)
+    entity_id: uuid.UUID
+    actor_id: uuid.UUID
+    changed_fields: list[str] = Field(default_factory=list, max_length=32)
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    @field_validator("event_type", "entity_type")
+    @classmethod
+    def normalize_catalog_value(cls, value: str) -> str:
+        return value.upper()
+
+    @field_validator("event_type")
+    @classmethod
+    def validate_event_type(cls, value: str) -> str:
+        if value not in {"USER_CREATED", "USER_UPDATED"}:
+            raise ValueError("unsupported administrative audit event")
+        return value
+
+    @field_validator("entity_type")
+    @classmethod
+    def validate_entity_type(cls, value: str) -> str:
+        if value != "USER":
+            raise ValueError("administrative audit entity_type must be USER")
+        return value
+
+    @field_validator("changed_fields")
+    @classmethod
+    def normalize_changed_fields(cls, value: list[str]) -> list[str]:
+        normalized = sorted({field.strip() for field in value if field.strip()})
+        if any("," in field for field in normalized):
+            raise ValueError("changed field names must not contain commas")
+        if any(len(field) > 64 for field in normalized):
+            raise ValueError("changed field names must contain at most 64 characters")
+        return normalized
+
+
+class AuditEntryRead(BaseModel):
+    id: uuid.UUID
+    event_type: str
+    entity_type: str
+    entity_id: uuid.UUID
+    actor_id: uuid.UUID | None
+    actor_name: str | None
+    old_status: str | None
+    new_status: str | None
+    changed_fields: list[str]
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)

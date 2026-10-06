@@ -21,6 +21,9 @@ vi.mock("../../trucks/api/trucksApi");
 vi.mock("../../orders/api/ordersApi");
 vi.mock("../../customers/api/customersApi");
 vi.mock("../../auth/hooks/useAuth");
+vi.mock("../../audit/components/AuditTrail", () => ({
+  AuditTrail: () => <div data-testid="audit-trail">histórico contextual</div>,
+}));
 
 const PLACED: LoadPlanItem = {
   id: "li1",
@@ -303,6 +306,7 @@ describe("PlanningPage", () => {
 
     await waitFor(() => expect(getLoadPlan).toHaveBeenCalledWith("lp1"));
     expect(await screen.findByText("Calculado")).toBeInTheDocument();
+    expect(screen.getByTestId("audit-trail")).toBeInTheDocument();
   });
 
   it("lista a sequência de carregamento e traduz a rotação", async () => {
@@ -367,6 +371,7 @@ describe("PlanningPage", () => {
 
     expect(screen.queryByRole("button", { name: "Aprovar plano" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Recalcular" })).not.toBeInTheDocument();
+    expect(screen.queryByTestId("audit-trail")).not.toBeInTheDocument();
   });
 
   it("traduz o erro de plano com recusa vindo do backend", async () => {

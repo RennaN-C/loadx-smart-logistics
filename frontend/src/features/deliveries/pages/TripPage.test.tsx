@@ -11,6 +11,9 @@ import { TripPage } from "./TripPage";
 
 vi.mock("../api/tripsApi");
 vi.mock("../../auth/hooks/useAuth");
+vi.mock("../../audit/components/AuditTrail", () => ({
+  AuditTrail: () => <div data-testid="audit-trail">histórico contextual</div>,
+}));
 
 function makeTrip(overrides: Partial<Trip> = {}): Trip {
   return {
@@ -66,6 +69,7 @@ describe("TripPage", () => {
 
     await waitFor(() => expect(getTrip).toHaveBeenCalledWith("tp1"));
     expect(await screen.findByText("Agendada")).toBeInTheDocument();
+    expect(screen.getByTestId("audit-trail")).toBeInTheDocument();
   });
 
   it("ordena as paradas pela sequência da rota, não pela ordem da API", async () => {
@@ -151,6 +155,7 @@ describe("TripPage", () => {
     await screen.findByText("Em rota");
 
     expect(screen.getAllByRole("button", { name: "Iniciar entrega" })[0]).toBeEnabled();
+    expect(screen.queryByTestId("audit-trail")).not.toBeInTheDocument();
   });
 
   it("ADMIN acompanha mas não opera", async () => {
