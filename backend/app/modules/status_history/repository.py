@@ -124,17 +124,23 @@ class StatusHistoryRepository:
                 .join(User, User.id == AuditEvent.actor_id)
             )
             if event_type is not None:
-                audit_statement = audit_statement.where(AuditEvent.event_type == event_type)
+                audit_statement = audit_statement.where(
+                    AuditEvent.event_type == event_type
+                )
             if entity_type is not None:
                 audit_statement = audit_statement.where(
                     AuditEvent.entity_type == entity_type
                 )
             if entity_id is not None:
-                audit_statement = audit_statement.where(AuditEvent.entity_id == entity_id)
+                audit_statement = audit_statement.where(
+                    AuditEvent.entity_id == entity_id
+                )
             if actor_id is not None:
                 audit_statement = audit_statement.where(AuditEvent.actor_id == actor_id)
             if start_at is not None:
-                audit_statement = audit_statement.where(AuditEvent.created_at >= start_at)
+                audit_statement = audit_statement.where(
+                    AuditEvent.created_at >= start_at
+                )
             if end_at is not None:
                 audit_statement = audit_statement.where(AuditEvent.created_at <= end_at)
             statements.append(audit_statement)
@@ -167,9 +173,7 @@ class StatusHistoryRepository:
                 old_status=row["old_status"],
                 new_status=row["new_status"],
                 changed_fields=tuple(
-                    field
-                    for field in (row["changed_fields"] or "").split(",")
-                    if field
+                    field for field in (row["changed_fields"] or "").split(",") if field
                 ),
                 created_at=row["created_at"],
             )

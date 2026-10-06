@@ -51,7 +51,6 @@ def test_status_history_entity_type_uses_closed_catalog() -> None:
     assert "ck_status_history__entity_type_allowed" in actual_names
 
 
-
 def test_audit_event_model_is_registered_in_metadata() -> None:
     assert AuditEvent.__table__ is Base.metadata.tables["audit_events"]
 
