@@ -65,6 +65,10 @@ def create_app(app_settings: Settings | None = None) -> FastAPI:
         enable_hsts=current_settings.app_env == "production",
     )
     application.add_middleware(
+        OperationalContextMiddleware,
+        log_requests=current_settings.operational_request_logs,
+    )
+    application.add_middleware(
         CORSMiddleware,
         allow_origins=current_settings.backend_cors_origins,
         allow_credentials=True,
@@ -74,10 +78,6 @@ def create_app(app_settings: Settings | None = None) -> FastAPI:
     )
 
     application.include_router(api_router, prefix="/api/v1")
-    application.add_middleware(
-        OperationalContextMiddleware,
-        log_requests=current_settings.operational_request_logs,
-    )
 
     @application.get(
         "/health",
