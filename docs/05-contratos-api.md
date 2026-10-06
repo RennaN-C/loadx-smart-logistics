@@ -1106,4 +1106,12 @@ após autenticação válida.
 
 `CONFIRMADO`: a autorização por perfil segue `ADR-004`; acesso não listado é negado.
 
-`PENDENTE DE DEFINIÇÃO`: autenticação própria e validação de assinatura do webhook de WhatsApp devem ser aprovadas antes de uma integração externa real.
+`CONFIRMADO`: a OC79 implementa uma fronteira interna de autenticidade,
+autorização e idempotência, sem adicionar endpoint HTTP ou mudar o simulador.
+Contrato, catálogo fechado, erros e consumo pelas OCs seguintes estão em
+[external_commands/README](../backend/app/modules/external_commands/README.md)
+e na proposta [ADR-026](decisions/ADR-026-seguranca-comandos-externos.md).
+
+`PENDENTE DE DEFINIÇÃO`: assinatura e composição específicas de fornecedor,
+webhook HTTP e bindings reais serão definidos em OC82/OC83 antes de habilitar
+integração externa. Sessão/Origin/CSRF e RBAC das rotas atuais permanecem vigentes.

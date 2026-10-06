@@ -44,7 +44,7 @@ antes/depois do commit interno desfaz tudo. Não há IO externo nessa transaçã
 
 `RECOMENDAÇÃO`: códigos estáveis distinguem autenticidade, payload, validade,
 autorização, conflito, estado e falha interna. Logs reutilizam eventos de segurança
-com correlation_id gerado pelo servidor, receipt_id e código; não registram
+com correlation_id gerado pelo servidor, command_id do receipt e código; não registram
 assinatura, subject, event_id, payload, chave, telefone ou traceback. Receipt
 contém somente id e indicação de duplicata; registro contém hashes e metadados.
 
