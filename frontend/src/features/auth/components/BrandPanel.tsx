@@ -70,7 +70,7 @@ export function BrandPanel() {
         </svg>
       </div>
 
-      <p className="login-brand-foot">LOADX · AMBIENTE LOCAL · V0.1</p>
+      <p className="login-brand-foot">LOADX · V1.1.0</p>
     </aside>
   );
 }
