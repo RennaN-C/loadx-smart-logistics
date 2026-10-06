@@ -27,7 +27,7 @@ Alterações nesta documentação devem ser rastreáveis por ocorrência, PR ou 
 - [planejamento/v1.1.0](planejamento/v1.1.0/00-visao-geral.md): histórico oficial
   da v1.1.0, com OC62–OC78.
 - [planejamento/v1.2.0](planejamento/v1.2.0/00-visao-geral.md): planejamento atual
-  da v1.2.0, com OC79–OC96, Issues #122–#133 e #136–#141, dependências e sequência recomendada.
+  da v1.2.0, com OC79–OC112, Issues #122–#133, #136–#141 e #144–#159, dependências e sequência recomendada.
   OC01–OC78 permanecem como histórico e não são renumeradas.
 
 `CONFIRMADO`: as entregas da v1.0.0 estão no [Changelog](../CHANGELOG.md).

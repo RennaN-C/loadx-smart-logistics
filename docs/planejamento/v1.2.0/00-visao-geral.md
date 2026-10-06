@@ -2,131 +2,137 @@
 
 ## Objetivo
 
-`CONFIRMADO`: a v1.2.0 é o ciclo pós-v1.1.0 voltado a fechar lacunas de
-administração, transformar comunicação/evidências simuladas em integrações reais,
-permitir operação com múltiplos caminhões e completar fluxos básicos esperados
-de um produto operacional.
+`CONFIRMADO`: a v1.2.0 consolida o LoadX como produto operacional monoempresa
+antes da evolução multiempresa da v1.3.0. A versão fecha lacunas de administração,
+segurança, comunicação, frota, operação, cadastros, auditoria, pesquisa e relatórios.
 
-`CONFIRMADO`: a versão usa **OC79–OC96**, formalizadas nas Issues **#122–#133**
-e **#136–#141**. A descrição detalhada, critérios de aceite e branches sugeridas
-permanecem nas Issues; este arquivo consolida escopo, responsáveis, dependências e fluxo.
+`CONFIRMADO`: a versão usa **OC79–OC112**, formalizadas nas Issues **#122–#133**,
+**#136–#141** e **#144–#159**.
 
-`CONFIRMADO`: multiempresa/multitenancy **não faz parte da v1.2.0**. A OC91
-cadastra os dados gerais da empresa atual. A plataforma multiempresa está somente
-no roadmap da v1.3.0 e ainda não possui OCs ou Issues funcionais.
+`CONFIRMADO`: OC97–OC112 são executadas integralmente por **Rennan**, incluindo
+backend, banco, frontend, testes e documentação necessários em cada ocorrência.
+
+`CONFIRMADO`: multiempresa/multitenancy **não faz parte da v1.2.0**.
 
 ## Divisão oficial
 
 | OC | Issue | Responsável | Área | Dependência principal |
 |---|---:|---|---|---|
-| OC79 | #122 | Rennan | Segurança / integrações | Nenhuma OC anterior da v1.2.0 |
-| OC80 | #123 | Rennan | Entregas / evidências | Alinhar idempotência com OC79 |
+| OC79 | #122 | Rennan | Segurança / integrações | Nenhuma OC anterior |
+| OC80 | #123 | Rennan | Entregas / evidências | Alinhar com OC79 |
 | OC81 | #124 | Marlon | Frontend / comprovante | OC80 |
 | OC82 | #125 | Marcelo | Integração / WhatsApp | OC79 |
 | OC83 | #126 | Marcelo | Integração / webhook e mídia | OC79, OC80 e OC82 |
 | OC84 | #127 | Marcelo | Integração / notificações | OC79 e OC82 |
-| OC85 | #128 | Marlon | Frontend / configurações | Nenhuma OC anterior da v1.2.0 |
+| OC85 | #128 | Marlon | Frontend / configurações | Nenhuma OC anterior |
 | OC86 | #129 | Marlon | Frontend / usuários | OC85 |
-| OC87 | #130 | Rennan | Domínio / multi-caminhão | Nenhuma OC anterior; exige ADR |
+| OC87 | #130 | Rennan | Domínio / multi-caminhão | Exige ADR |
 | OC88 | #131 | João | Algoritmo / multi-caminhão | OC87 |
 | OC89 | #132 | Marlon | Frontend / multi-caminhão | OC87 e OC88 |
-| OC90 | #133 | Marcelo | Operação / auditoria | OC87 e OC88 |
+| OC90 | #133 | Marcelo | Operação / auditoria multi-caminhão | OC87 e OC88 |
 | OC91 | #136 | Rennan | Configurações / empresa atual | OC85 |
 | OC92 | #137 | Rennan | Conta / segurança | OC85 |
-| OC93 | #138 | Marlon | Frontend / central operacional | OC90 e OC94 |
-| OC94 | #139 | Marcelo | Operação / exceções | OC87 e OC84 |
-| OC95 | #140 | João | Consultas / filtros | Nenhuma OC bloqueadora |
+| OC93 | #138 | Marlon | Central operacional | OC90 e OC94 |
+| OC94 | #139 | Marcelo | Exceções operacionais | OC87 e OC84 |
+| OC95 | #140 | João | Busca por módulo | Nenhuma OC bloqueadora |
 | OC96 | #141 | Marcelo | Relatórios / exportações | OC90 e OC94 |
+| OC97 | #144 | Rennan | Auditoria / histórico | Nenhuma OC bloqueadora |
+| OC98 | #145 | Rennan | Segurança de conta / MFA | OC92 |
+| OC99 | #146 | Rennan | Clientes / endereços | Nenhuma OC bloqueadora |
+| OC100 | #147 | Rennan | Frota / manutenção | Nenhuma OC bloqueadora |
+| OC101 | #148 | Rennan | Frota / documentos | Nenhuma OC bloqueadora |
+| OC102 | #149 | Rennan | Motoristas / documentos | Nenhuma OC bloqueadora |
+| OC103 | #150 | Rennan | Notificações internas | OC84 |
+| OC104 | #151 | Rennan | Cadastros / importação | Nenhuma OC bloqueadora |
+| OC105 | #152 | Rennan | Cadastros / arquivamento | Nenhuma OC bloqueadora |
+| OC106 | #153 | Rennan | Operação / agenda | OC93 |
+| OC107 | #154 | Rennan | Busca global | OC95 |
+| OC108 | #155 | Rennan | Administração / integrações | OC82, OC83 e OC84 |
+| OC109 | #156 | Rennan | Integrações / confiabilidade | OC82, OC83 e OC84 |
+| OC110 | #157 | Rennan | Arquivos / anexos | OC80 |
+| OC111 | #158 | Rennan | Operação / linha do tempo | OC97, OC93 e OC94 |
+| OC112 | #159 | Rennan | Segurança / permissões | OC86 |
 
 ## Frentes da versão
 
-### Administração e conta
+### Administração, conta e segurança
+- OC85–OC86: Configurações e gestão de usuários.
+- OC91–OC92: dados da empresa atual, perfil, senha e sessões.
+- OC97–OC98: auditoria, recuperação de acesso e MFA.
+- OC112: perfis e permissões administrativas flexíveis.
 
-- OC85 cria a área de Configurações restrita ao ADMIN.
-- OC86 expõe no frontend a gestão de usuários já protegida pelo backend.
-- OC91 adiciona os dados gerais da empresa atual sem implementar multiempresa.
-- OC92 cria Meu perfil, alteração de senha e gestão de sessões do próprio usuário.
+### Comunicação, evidências e confiabilidade
+- OC79–OC84: segurança externa, evidências, WhatsApp, webhook e notificações reais.
+- OC103: central de notificações dentro do sistema.
+- OC108: painel administrativo de saúde das integrações.
+- OC109: fila/outbox, retentativas e reprocessamento.
+- OC110: anexos e documentos operacionais.
 
-### Comunicação e comprovante
+### Planejamento e operação
+- OC87–OC90: multi-caminhão de ponta a ponta.
+- OC93–OC94: central operacional e exceções/reentrega/cancelamento.
+- OC106: agenda operacional.
+- OC111: linha do tempo unificada.
 
-- OC79 estabelece autenticação, autorização e idempotência de comandos externos.
-- OC80 define evidências e comprovante.
-- OC81 entrega a experiência operacional.
-- OC82–OC84 implementam WhatsApp real, webhook, mídia e notificações.
+### Frota, motoristas e cadastros
+- OC99: múltiplos endereços por cliente.
+- OC100: manutenção e disponibilidade programada.
+- OC101–OC102: documentos e vencimentos de caminhões e motoristas.
+- OC104: importação em massa.
+- OC105: arquivamento e reativação.
 
-### Planejamento multi-caminhão
-
-- OC87 define cardinalidades, estados e rastreabilidade.
-- OC88 distribui volumes de forma determinística entre veículos.
-- OC89 torna o resultado utilizável e visualizável no frontend.
-- OC90 fecha carregamento, viagens, entregas, relatórios, auditoria e E2E.
-
-`CONFIRMADO`: o sistema deve continuar preferindo **um único caminhão** quando
-ele comportar integralmente a carga. Múltiplos veículos entram quando necessário
-e permitido pelas regras da frota.
-
-### Acabamento operacional e gerencial
-
-- OC93 cria a central de carregamentos, viagens e entregas.
-- OC94 completa o caminho de exceção com falha, ausência, reentrega e cancelamento.
-- OC95 leva busca e filtros para o servidor antes da paginação.
-- OC96 cria relatórios gerenciais e exportações coerentes com os dados do backend.
+### Pesquisa e gestão
+- OC95: busca e filtros server-side nos módulos.
+- OC107: busca global.
+- OC96: relatórios gerenciais e exportações.
 
 ## Ordem recomendada de execução
 
 `RECOMENDAÇÃO`:
 
-1. iniciar em paralelo OC79, OC80, OC85, OC87 e OC95;
-2. após OC85, liberar OC86, OC91 e OC92;
-3. após OC79, liberar OC82; depois liberar OC83/OC84 conforme suas dependências;
-4. após OC87, executar OC88 e depois integrar OC89/OC90;
-5. após OC87 e OC84, executar OC94;
-6. após OC90 e OC94, executar OC93 e OC96;
-7. integrar OC81 após OC80 e os contratos externos necessários;
-8. validar a suíte completa em `desenvolvimento`, preparar `versao/v1.2.0` e
-   promover para `main` somente após todos os gates.
+1. manter em paralelo as OCs já liberadas da v1.2.0;
+2. Rennan pode iniciar OC97, OC99, OC100, OC101, OC102, OC104 e OC105 imediatamente;
+3. após OC92, executar OC98;
+4. após OC84, executar OC103;
+5. após OC93, executar OC106;
+6. após OC95, executar OC107;
+7. após OC82–OC84, executar OC108 e OC109;
+8. após OC80, executar OC110;
+9. após OC97, OC93 e OC94, executar OC111;
+10. após OC86, executar OC112;
+11. concluir integração, regressão e documentação antes de preparar `versao/v1.2.0`.
 
 ## Decisões obrigatórias
 
-`DECISÃO NECESSÁRIA`: antes de armazenamento real de evidências, definir
-retenção, armazenamento, acesso, proteção e remoção.
-
-`DECISÃO NECESSÁRIA`: antes de alteração estrutural do multi-caminhão, a OC87
-deve registrar ADR cobrindo cardinalidades, rastreabilidade, aprovação parcial,
-divisão/recomposição, cancelamento/recálculo e compatibilidade.
-
-`DECISÃO NECESSÁRIA`: a OC94 deve registrar estados e transições permitidos para
-ausência, recusa, falha, reentrega e cancelamento.
+- OC87: ADR do modelo multi-caminhão.
+- OC94: estados e transições de exceção.
+- OC98: ADR de MFA, recuperação e contingência.
+- OC109: estratégia de fila/outbox e política de retentativas.
+- OC110: storage, tipos MIME, limites e retenção de anexos.
+- OC112: catálogo de permissões e permissões não delegáveis.
 
 ## Regras permanentes
 
-- backend continua sendo a autoridade de autenticação e autorização;
-- integrações externas permanecem atrás de adaptadores;
-- mensagens externas nunca escrevem diretamente no banco;
-- o frontend não calcula distribuição multi-caminhão;
-- busca/filtro de grandes coleções deve ocorrer no servidor antes da paginação;
-- indicadores e relatórios gerenciais não inventam métricas no frontend;
-- nenhum volume pode desaparecer ou ser carregado/entregue duas vezes;
-- o fluxo de um único caminhão precisa continuar compatível.
+- backend continua sendo a fonte de verdade da autorização;
+- integração externa nunca escreve diretamente nas tabelas de domínio;
+- histórico e auditoria são somente leitura para usuários finais;
+- registros com histórico não são apagados fisicamente por padrão;
+- arquivos e credenciais permanecem atrás de contratos seguros;
+- busca, filtros e agregações relevantes são feitos no servidor;
+- nenhum recurso futuro da v1.3.0 pode ser antecipado silenciosamente para a v1.2.0.
 
 ## Fluxo Git
-
-`CONFIRMADO`: o fluxo da v1.2.0 é:
 
 ```text
 branch da ocorrência -> desenvolvimento -> versao/v1.2.0 -> main
 ```
 
-`CONFIRMADO`: branches, commits e descrições operacionais deste ciclo devem ser
-escritos em português, preservando apenas termos técnicos e identificadores que
-não possuam tradução adequada.
+`CONFIRMADO`: branches e commits priorizam português.
 
-## Gates antes de iniciar
+## Gates
 
 - [x] milestone `v1.2.0` criado;
-- [x] Issues #122–#133 e #136–#141 vinculadas ao milestone;
-- [ ] Issues #122–#133 e #136–#141 adicionadas ao Project `LoadX — Desenvolvimento`;
-- [x] dependências definidas no planejamento e automação;
-- [ ] status iniciais definidos no Project;
-- [x] validação automática de PR apontando para v1.2.0;
-- [x] bot/automação apontando para v1.2.0.
+- [x] Issues #122–#133, #136–#141 e #144–#159 vinculadas ao milestone;
+- [ ] todas as Issues funcionais adicionadas ao Project `LoadX — Desenvolvimento`;
+- [x] dependências registradas no planejamento e automação;
+- [x] validação automática de PR e bot apontando para v1.2.0.

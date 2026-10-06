@@ -73,14 +73,15 @@ Uma coincidência entre os dois números não significa que a Issue e a OC sejam
 `CONFIRMADO`: OC01–OC78 fazem parte do histórico e da v1.1.0 e seus números não
 podem ser reutilizados.
 
-`CONFIRMADO`: a v1.2.0 usa a faixa **OC79–OC96**, formalizada nas Issues
-#122–#133 e #136–#141. O escopo reúne comunicação real, administração do sistema,
-operação multi-caminhão e acabamento operacional/gerencial do produto.
+`CONFIRMADO`: a v1.2.0 usa a faixa **OC79–OC112**, formalizada nas Issues
+#122–#133, #136–#141 e #144–#159. O escopo reúne comunicação real, administração,
+operação multi-caminhão, gestão operacional, segurança, frota, cadastros,
+auditoria, confiabilidade de integrações e experiência de uso.
 
 Esses números somente representam trabalho executável enquanto as respectivas
 Issues permanecerem aprovadas, atribuídas e vinculadas ao planejamento da versão.
 
-`CONFIRMADO`: números posteriores à OC96 não ficam reservados antecipadamente.
+`CONFIRMADO`: números posteriores à OC112 não ficam reservados antecipadamente.
 A numeração da v1.3.0 em diante será definida no momento do planejamento de cada
 release, usando a próxima OC realmente disponível.
 
@@ -163,47 +164,56 @@ Planejamento detalhado:
 
 ---
 
-# v1.2.0 — Administração, comunicação real e operação multi-caminhão
+# v1.2.0 — Consolidação do produto e operação avançada
 
 ## Objetivo
 
-`CONFIRMADO`: a v1.2.0 amplia o LoadX em quatro frentes complementares:
+`CONFIRMADO`: a v1.2.0 concentra a maior etapa de consolidação funcional do LoadX
+antes da evolução multiempresa. O objetivo é fechar lacunas de administração,
+segurança, operação, frota, cadastros, auditoria, integrações e experiência de uso,
+sem retirar a autoridade das regras de domínio do backend.
 
-1. **administração do produto**, com Configurações, gestão de usuários, dados gerais da empresa e conta do usuário;
-2. **comunicação e evidências reais**, com segurança, WhatsApp, webhook, mídia e notificações;
-3. **planejamento multi-caminhão**, permitindo distribuir uma necessidade logística entre vários veículos sem perder rastreabilidade;
-4. **acabamento operacional e gerencial**, com central de operações, exceções/reentrega, busca real no servidor e relatórios exportáveis.
-
-A versão mantém compatibilidade com os fluxos atuais de um único caminhão e não
-autoriza nenhuma integração externa a contornar autenticação, autorização ou
-regras de domínio.
-
-`CONFIRMADO`: a v1.2.0 continua **monoempresa**. A OC91 representa os dados da
-empresa que opera a instalação atual, sem implementar multitenancy. A evolução
-para várias empresas isoladas pertence ao roadmap da v1.3.0.
+`CONFIRMADO`: a v1.2.0 continua **monoempresa**. A evolução para várias empresas
+isoladas pertence somente ao roadmap da v1.3.0.
 
 ## Planejamento aprovado
 
 | OC | Issue | Responsável | Entrega planejada |
 |---|---:|---|---|
-| **OC79** | #122 | **Rennan** | Segurança, autorização e idempotência de comandos externos |
-| **OC80** | #123 | **Rennan** | Contrato de evidências e comprovante de entrega |
-| **OC81** | #124 | Marlon | Interface de comprovante e comunicação operacional |
-| **OC82** | #125 | Marcelo | Adaptador real para WhatsApp Business |
-| **OC83** | #126 | Marcelo | Webhook, recebimento de mensagens e mídia |
-| **OC84** | #127 | Marcelo | Notificações operacionais reais |
-| **OC85** | #128 | Marlon | Área de configurações administrativas |
-| **OC86** | #129 | Marlon | Gestão de usuários pelo administrador |
-| **OC87** | #130 | **Rennan** | Modelo e regras para planejamento multi-caminhão |
-| **OC88** | #131 | João | Otimização automática com múltiplos caminhões |
-| **OC89** | #132 | Marlon | Planejamento multi-caminhão no frontend |
-| **OC90** | #133 | Marcelo | Fluxo operacional e auditoria do multi-caminhão |
-| **OC91** | #136 | **Rennan** | Configurações gerais da empresa |
-| **OC92** | #137 | **Rennan** | Meu perfil, alteração de senha e sessões |
-| **OC93** | #138 | Marlon | Central de carregamentos, viagens e entregas |
-| **OC94** | #139 | Marcelo | Exceções operacionais, reentrega e cancelamento |
-| **OC95** | #140 | João | Busca e filtros avançados no servidor |
-| **OC96** | #141 | Marcelo | Relatórios gerenciais e exportações |
+| OC79 | #122 | Rennan | Segurança, autorização e idempotência de comandos externos |
+| OC80 | #123 | Rennan | Contrato de evidências e comprovante de entrega |
+| OC81 | #124 | Marlon | Interface de comprovante e comunicação operacional |
+| OC82 | #125 | Marcelo | Adaptador real para WhatsApp Business |
+| OC83 | #126 | Marcelo | Webhook, recebimento de mensagens e mídia |
+| OC84 | #127 | Marcelo | Notificações operacionais reais |
+| OC85 | #128 | Marlon | Área de configurações administrativas |
+| OC86 | #129 | Marlon | Gestão de usuários pelo administrador |
+| OC87 | #130 | Rennan | Modelo e regras para planejamento multi-caminhão |
+| OC88 | #131 | João | Otimização automática com múltiplos caminhões |
+| OC89 | #132 | Marlon | Planejamento multi-caminhão no frontend |
+| OC90 | #133 | Marcelo | Fluxo operacional e auditoria do multi-caminhão |
+| OC91 | #136 | Rennan | Configurações gerais da empresa atual |
+| OC92 | #137 | Rennan | Meu perfil, alteração de senha e sessões |
+| OC93 | #138 | Marlon | Central de carregamentos, viagens e entregas |
+| OC94 | #139 | Marcelo | Exceções operacionais, reentrega e cancelamento |
+| OC95 | #140 | João | Busca e filtros avançados no servidor |
+| OC96 | #141 | Marcelo | Relatórios gerenciais e exportações |
+| OC97 | #144 | Rennan | Histórico e auditoria do sistema |
+| OC98 | #145 | Rennan | Recuperação de senha e autenticação multifator |
+| OC99 | #146 | Rennan | Múltiplos endereços por cliente |
+| OC100 | #147 | Rennan | Manutenção e disponibilidade programada da frota |
+| OC101 | #148 | Rennan | Documentos e vencimentos dos caminhões |
+| OC102 | #149 | Rennan | Documentos e vencimentos dos motoristas |
+| OC103 | #150 | Rennan | Central de notificações no sistema |
+| OC104 | #151 | Rennan | Importação em massa de cadastros |
+| OC105 | #152 | Rennan | Arquivamento e reativação de cadastros |
+| OC106 | #153 | Rennan | Agenda operacional de carregamentos, viagens e entregas |
+| OC107 | #154 | Rennan | Busca global do sistema |
+| OC108 | #155 | Rennan | Painel de integrações e saúde operacional |
+| OC109 | #156 | Rennan | Fila de eventos, retentativas e reprocessamento |
+| OC110 | #157 | Rennan | Anexos e documentos operacionais |
+| OC111 | #158 | Rennan | Linha do tempo unificada da operação |
+| OC112 | #159 | Rennan | Perfis e permissões administrativas flexíveis |
 
 Planejamento detalhado:
 
@@ -214,44 +224,33 @@ Planejamento detalhado:
 `CONFIRMADO`:
 
 - OC79 fornece a base de segurança e idempotência para OC82, OC83 e OC84;
-- OC80 define o contrato de evidências consumido por OC81 e OC83;
+- OC80 define o contrato de evidências consumido por OC81, OC83 e OC110;
 - OC85 fornece a área de navegação para OC86, OC91 e OC92;
 - OC87 define o modelo e as regras transacionais que bloqueiam OC88, OC89 e OC90;
-- OC88 implementa a distribuição determinística entre veículos e bloqueia a integração final de OC89 e OC90;
-- OC94 depende das regras multi-caminhão da OC87 e das notificações da OC84;
-- OC93 depende do fluxo operacional multi-caminhão da OC90 e dos estados de exceção da OC94;
-- OC96 depende do fluxo final da OC90 e dos estados de exceção da OC94;
-- OC95 não possui bloqueador funcional obrigatório e pode evoluir em paralelo.
-
-`DECISÃO NECESSÁRIA`: definir política de retenção, armazenamento, acesso,
-proteção e remoção das evidências antes de ativar armazenamento real.
-
-`DECISÃO NECESSÁRIA`: a OC87 deve registrar ADR específica antes de alterar
-cardinalidades entre pedido, plano, volume, caminhão, viagem e entrega.
-
-`DECISÃO NECESSÁRIA`: a OC94 deve formalizar a máquina de estados de ausência,
-recusa, falha, reentrega e cancelamento antes de alterar transições operacionais.
-
-`CONFIRMADO`: mensagens externas não escrevem diretamente no banco. Qualquer
-ação operacional passa pelos services e regras de domínio existentes.
+- OC94 depende de OC87 e OC84; OC93 e OC96 dependem da consolidação de OC90/OC94;
+- OC98 depende da base de conta e sessões da OC92;
+- OC103 depende das notificações operacionais reais da OC84;
+- OC106 depende da central operacional da OC93;
+- OC107 reutiliza a busca server-side definida na OC95;
+- OC108 e OC109 dependem das integrações reais de OC82–OC84;
+- OC111 agrega auditoria, central operacional e exceções, portanto depende de OC97, OC93 e OC94;
+- OC112 depende da gestão de usuários da OC86;
+- OC97, OC99, OC100, OC101, OC102, OC104 e OC105 podem evoluir sem bloqueador funcional novo.
 
 ## Resultado esperado
 
 Ao encerrar a v1.2.0, o LoadX deverá:
 
-- permitir que o ADMIN gerencie usuários por uma interface própria;
-- possuir uma área de Configurações extensível e dados gerais da empresa atual;
-- permitir que cada usuário gerencie seu perfil, senha e sessões dentro das regras aprovadas;
-- enviar e receber comunicação real de forma auditável e idempotente;
-- registrar e consultar evidências de entrega conforme política aprovada;
-- usar um único caminhão quando ele for suficiente;
-- distribuir a carga entre dois ou mais caminhões quando necessário e possível;
-- preservar rastreabilidade de cada volume durante carregamento, viagem e entrega;
-- expor carregamentos, viagens e entregas como módulos operacionais localizáveis;
-- tratar falha, ausência, reentrega e cancelamento de forma auditável;
-- realizar buscas e filtros no servidor, antes da paginação;
-- fornecer relatórios gerenciais e exportações com números calculados no backend;
-- manter os fluxos atuais de um único veículo compatíveis.
+- possuir administração interna, configurações, gestão de usuários, perfil e segurança de conta;
+- suportar comunicação real, evidências, anexos e integrações resilientes;
+- operar carga em um ou vários caminhões preservando rastreabilidade;
+- oferecer central operacional, agenda, exceções, reentrega e cancelamento;
+- possuir manutenção, documentos e vencimentos de frota e motoristas;
+- permitir múltiplos endereços por cliente e importação/arquivamento de cadastros;
+- oferecer busca por módulo e busca global no servidor;
+- apresentar auditoria, linha do tempo, notificações internas e relatórios gerenciais;
+- expor saúde das integrações ao ADMIN sem revelar segredos;
+- permitir perfis administrativos flexíveis sem retirar a autorização do backend.
 
 ---
 # v1.3.0 — Plataforma multiempresa
@@ -520,13 +519,13 @@ Uma versão somente deve ser considerada pronta para promoção quando:
 # Ciclo atual — v1.2.0
 
 `CONFIRMADO`: a v1.1.0 foi publicada. O próximo ciclo funcional é a v1.2.0,
-com OC79–OC96 e Issues #122–#133 e #136–#141.
+com OC79–OC112 e Issues #122–#133, #136–#141 e #144–#159.
 
 Antes da implementação:
 
 1. criar/confirmar o milestone `v1.2.0`;
-2. vincular #122–#133 e #136–#141 ao milestone;
-3. adicionar #122–#133 e #136–#141 ao Project `LoadX — Desenvolvimento`;
+2. vincular #122–#133, #136–#141 e #144–#159 ao milestone;
+3. adicionar #122–#133, #136–#141 e #144–#159 ao Project `LoadX — Desenvolvimento`;
 4. configurar os status iniciais conforme as dependências;
 5. liberar somente as OCs sem bloqueadores;
 6. iniciar cada ocorrência em branch própria a partir de `desenvolvimento`;

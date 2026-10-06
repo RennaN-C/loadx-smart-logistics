@@ -102,22 +102,26 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 
 ## Pendências técnicas
 
-- `PENDENTE DE DEFINIÇÃO`: contrato e filtros de uma eventual consulta protegida
-  de histórico; D10 fechou as entidades em `ORDER`, `LOAD_PLAN`, `TRIP` e
-  `DELIVERY`, mas não aprovou endpoint na OC09.
+- `PENDENTE DE DEFINIÇÃO`: o contrato e os filtros da consulta protegida de
+  histórico serão fechados pela **OC97 (#144)**. D10 já definiu as entidades
+  `ORDER`, `LOAD_PLAN`, `TRIP` e `DELIVERY`, mas a consulta pública protegida ainda
+  não existe na versão estável.
 - `PENDENTE DE DEFINIÇÃO`: coletor, retenção, destino e SLA dos logs e alertas;
   o backend já emite eventos JSON no logger `loadx.security` e marca casos que
   exigem alerta com `alert=true`.
 - `PENDENTE DE DEFINIÇÃO`: recuperação de senha e MFA para `ADMIN` e
-  `LOGISTICS_MANAGER` precisam de contrato de cadastro, recuperação, códigos de
-  contingência, dispositivo perdido e bootstrap sem bloqueio administrativo.
+  `LOGISTICS_MANAGER` pertencem à **OC98 (#145)**, que deverá definir cadastro,
+  recuperação, códigos de contingência, dispositivo perdido e bootstrap sem
+  bloqueio administrativo.
 - `PENDENTE DE DEFINIÇÃO`: qualquer CDN, balanceador ou proxy adicional à frente
   do Caddy exige nova definição da cadeia confiável. A referência atual aceita
   `X-Forwarded-*` no Uvicorn somente do IP privado fixo do Caddy.
 - `PENDENTE DE DEFINIÇÃO`: escolher e configurar os provedores reais de cofre,
   PostgreSQL e alertas. O repositório já aceita segredos por arquivo, separa as
   URLs de migration/aplicação e fornece o SQL de menor privilégio.
-- `PENDENTE DE DEFINIÇÃO`: política de armazenamento, expiração e proteção de fotos de ocorrência.
+- `PENDENTE DE DEFINIÇÃO`: política de armazenamento, expiração e proteção de
+  fotos/evidências será coordenada pela OC80 e reutilizada pela **OC110 (#157)**
+  para anexos operacionais.
 - `PENDENTE DE DEFINIÇÃO`: SLA rígido de tempo do otimizador; o limite funcional
   aprovado é 200 volumes por cálculo síncrono.
 - `RISCO IDENTIFICADO`: perfil exploratório local com volumes integralmente
