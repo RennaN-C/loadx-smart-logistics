@@ -27,6 +27,8 @@ class Settings(BaseSettings):
     ai_provider: str = "mock"
     ai_explanation_timeout_seconds: float = Field(default=5.0, gt=0)
     whatsapp_provider: str = "mock"
+    operational_log_level: Literal["INFO", "WARNING", "ERROR"] = "INFO"
+    operational_request_logs: bool = True
 
     model_config = SettingsConfigDict(
         env_file=".env",

@@ -1,3 +1,4 @@
+import json
 import logging
 
 from fastapi import FastAPI
@@ -26,7 +27,7 @@ def test_unexpected_error_returns_safe_standard_response(
     test_app = build_test_app()
     with (
         TestClient(test_app, raise_server_exceptions=False) as client,
-        caplog.at_level(logging.ERROR, logger="app.core.exceptions"),
+        caplog.at_level(logging.ERROR, logger="loadx.operations"),
     ):
         response = client.get("/unexpected?token=should-not-leak")
 
@@ -41,9 +42,11 @@ def test_unexpected_error_returns_safe_standard_response(
 
     assert len(caplog.records) == 1
     log_message = caplog.records[0].getMessage()
-    assert "method=GET" in log_message
-    assert "path=/unexpected" in log_message
-    assert "exception_type=RuntimeError" in log_message
+    payload = json.loads(log_message)
+    assert payload["event"] == "HTTP_REQUEST_FAILED"
+    assert payload["route"] == "/unexpected"
+    assert payload["exception_type"] == "RuntimeError"
+    assert payload["alert"] is True
     assert SENSITIVE_ERROR_MESSAGE not in log_message
     assert "token=should-not-leak" not in log_message
     assert caplog.records[0].exc_info is None

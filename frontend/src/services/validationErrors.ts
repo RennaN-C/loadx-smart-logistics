@@ -30,6 +30,26 @@ function isValidationDetail(value: unknown): value is ValidationDetail {
   return typeof candidate.field === "string" && typeof candidate.type === "string";
 }
 
+/**
+ * O Pydantic prefixa com isto a mensagem de um validador NOSSO. Sem tirar, a
+ * tela mostrava "Documento é inválido (Value error, Informe um CPF válido.)".
+ */
+const PYDANTIC_PREFIX = /^Value error, /;
+
+/**
+ * Mensagem escrita pelos validadores da OC63, já em português.
+ *
+ * `value_error` é o tipo só quando a exceção veio de um validador nosso;
+ * restrição nativa do Pydantic usa outro tipo e responde em INGLÊS. Por isso a
+ * decisão sai do `type`, que é estável, e não de adivinhar pelo texto.
+ */
+function ownMessage(detail: ValidationDetail): string | null {
+  if (detail.type !== "value_error" || typeof detail.message !== "string") return null;
+
+  const cleaned = detail.message.replace(PYDANTIC_PREFIX, "").trim();
+  return cleaned === "" ? null : cleaned;
+}
+
 /** Pydantic só publica o limite dentro da mensagem em inglês. */
 function boundOf(message: string): string | null {
   const match = /(-?\d+(?:[.,]\d+)?)/.exec(message);
@@ -79,9 +99,11 @@ function describeProblem(detail: ValidationDetail): string {
       return "não é aceito nesta operação";
     case "enum":
       return "tem um valor que não é aceito";
-    default:
-      // value_error e afins: o backend costuma explicar em português aqui
-      return detail.message ? `é inválido (${detail.message})` : "é inválido";
+    default: {
+      // value_error e afins: o backend explica em português aqui
+      const own = ownMessage(detail);
+      return own === null ? "é inválido" : `é inválido (${own.replace(/\.$/, "")})`;
+    }
   }
 }
 
@@ -128,4 +150,37 @@ export function validationMessage(error: ApiError, labels: FieldLabels = {}): st
   return rest > 0
     ? `Corrija ${unique.length} campos: ${listed}; e mais ${rest}.`
     : `Corrija ${unique.length} campos: ${listed}.`;
+}
+
+/**
+ * Uma frase por campo, para ficar EMBAIXO do input.
+ *
+ * Diferente de `validationMessage`, que monta um resumo para a faixa do topo:
+ * aqui o rótulo já está no `label` ao lado, então repeti-lo ("Documento
+ * documento é inválido") só atrapalharia. Quando o validador da OC63 escreveu a
+ * mensagem, ela é usada como veio; nos demais tipos a frase genérica vira
+ * sentença.
+ *
+ * Primeiro erro de cada campo vence: o Pydantic pode reportar mais de um para o
+ * mesmo campo, e dois textos embaixo de um input só confundem.
+ */
+export function validationFieldMessages(error: ApiError): Readonly<Record<string, string>> {
+  if (error.code !== "VALIDATION_ERROR") return {};
+
+  const byField: Record<string, string> = {};
+
+  for (const detail of error.details.filter(isValidationDetail)) {
+    if (detail.field === "" || byField[detail.field] !== undefined) continue;
+
+    const own = ownMessage(detail);
+    if (own !== null) {
+      byField[detail.field] = own;
+      continue;
+    }
+
+    const fragment = describeProblem(detail);
+    byField[detail.field] = `${fragment.charAt(0).toUpperCase()}${fragment.slice(1)}.`;
+  }
+
+  return byField;
 }

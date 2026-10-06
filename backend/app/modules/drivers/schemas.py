@@ -69,6 +69,17 @@ class DriverRead(DriverBase):
     model_config = ConfigDict(from_attributes=True, str_strip_whitespace=True)
 
 
+class DriverOperationalStatusRead(BaseModel):
+    id: uuid.UUID
+    name: str
+    license_category: str | None
+    active: bool
+    has_operation_conflict: bool
+    available: bool
+
+    model_config = ConfigDict(from_attributes=True, str_strip_whitespace=True)
+
+
 class DriverListRead(BaseModel):
     id: uuid.UUID
     name: str

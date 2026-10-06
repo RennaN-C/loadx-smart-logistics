@@ -44,3 +44,11 @@ autoriza o usuário; a confirmação deve reutilizar a permissão exclusiva de
 - `domain/`: objetos e regras puras, quando necessário.
 
 Crie somente os arquivos necessários para a ocorrência atual.
+
+## Conferência por código — OC76
+
+`CONFIRMADO`: `items[].code` expõe `loadx:loading-item:<id>` e
+`POST /api/v1/loading-sessions/{id}/scan` confere o item somente para `CHECKER`.
+Formato, erros e integração OC75 estão em `docs/05-contratos-api.md`.
+A operação reutiliza `change_item_status`, incluindo bloqueios de sessão/item,
+com rejeição explícita de duplicatas. Código é identidade, não autorização.

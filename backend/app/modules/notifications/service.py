@@ -1,9 +1,8 @@
 import logging
 import uuid
 
+from app.core.observability import OperationalEvent, emit_operational_event
 from app.integrations.whatsapp import OutgoingWhatsAppMessage, WhatsAppProvider
-
-logger = logging.getLogger(__name__)
 
 
 class OperationalNotificationService:
@@ -46,10 +45,13 @@ class OperationalNotificationService:
                     content=content,
                 )
             )
-        except Exception:
-            logger.warning(
-                "Operational notification delivery failed",
-                exc_info=True,
+        except Exception as error:  # noqa: BLE001 - notification failure must not undo operation
+            emit_operational_event(
+                OperationalEvent.NOTIFICATION_FAILED,
+                level=logging.WARNING,
+                alert=True,
+                reason="DELIVERY_FAILED",
+                exception_type=type(error).__name__,
             )
             return False
         return True

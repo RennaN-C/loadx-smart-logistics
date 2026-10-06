@@ -18,6 +18,9 @@ Crie somente os arquivos necessários para a ocorrência atual.
 
 - `GET /api/v1/drivers`: lista paginada com `id`, `name`, `license_category`,
   `active` e `created_at`; omite documento, telefone e número da CNH.
+- `GET /api/v1/drivers/operational-status`: situação operacional paginada para
+  seleção de viagens; expõe `active`, `has_operation_conflict` e `available`
+  calculados pela OC67.
 - `POST /api/v1/drivers`: cria motorista.
 - `GET /api/v1/drivers/{id}`: consulta motorista por ID.
 - `PATCH /api/v1/drivers/{id}`: atualiza campos enviados.
@@ -68,6 +71,7 @@ interna `FleetAvailabilityService`, sem persistir disponibilidade.
 `CONFIRMADO` (OC68): a disponibilidade operacional de caminhões já possui
 contrato HTTP em `GET /api/v1/trucks/operational-status`.
 
-`PENDENTE DE DEFINIÇÃO`: o contrato HTTP de disponibilidade de motoristas que a
-OC72 precisará consumir. A OC72 não deve reproduzir a regra de conflito da OC65
-nem inferir disponibilidade diretamente das tabelas de viagens.
+`CONFIRMADO` (OC72): `GET /api/v1/drivers/operational-status` espelha a
+fronteira já usada pelos caminhões. O endpoint lista os motoristas e consulta
+`FleetAvailabilityService.get_driver_availability`; não reproduz a regra de
+conflito da OC65 e não persiste disponibilidade.

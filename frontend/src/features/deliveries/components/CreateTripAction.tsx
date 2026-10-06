@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { AlertBanner } from "../../../components/AlertBanner";
@@ -6,7 +6,7 @@ import { FormField } from "../../../components/FormField";
 import { Modal } from "../../../components/Modal";
 import { useResourceList } from "../../../hooks/useResourceList";
 import { ApiError } from "../../../types/api";
-import { listDrivers } from "../../drivers/api/driversApi";
+import { listDriverOperationalStatus, listDrivers } from "../../drivers/api/driversApi";
 import { createTrip } from "../api/tripsApi";
 import { mapTripErrorToMessage } from "./tripsErrorMessages";
 
@@ -22,12 +22,21 @@ interface CreateTripActionProps {
 export function CreateTripAction({ loadPlanId }: CreateTripActionProps) {
   const navigate = useNavigate();
   const { items: drivers } = useResourceList(listDrivers);
+  const { items: driverStatuses, status: driverStatusesStatus } = useResourceList(
+    listDriverOperationalStatus,
+  );
   const [isOpen, setIsOpen] = useState(false);
   const [driverId, setDriverId] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const activeDrivers = drivers.filter((driver) => driver.active);
+  const statusByDriver = useMemo(
+    () => new Map(driverStatuses.map((status) => [status.id, status])),
+    [driverStatuses],
+  );
+  const selectedDriverUnavailable =
+    driverId !== "" && statusByDriver.get(driverId)?.available === false;
 
   async function handleCreate() {
     setErrorMessage(null);
@@ -62,16 +71,33 @@ export function CreateTripAction({ loadPlanId }: CreateTripActionProps) {
             <FormField
               id="trip-driver"
               label="MOTORISTA"
-              hint="Só motoristas ativos podem assumir uma viagem."
+              hint={
+                driverStatusesStatus === "loading"
+                  ? "Consultando a disponibilidade dos motoristas…"
+                  : driverStatusesStatus === "error"
+                    ? "Não foi possível confirmar a disponibilidade agora. O servidor fará a validação ao criar a viagem."
+                    : "Motoristas em outra operação aparecem bloqueados conforme a disponibilidade informada pelo backend."
+              }
             >
               <select id="trip-driver" value={driverId} onChange={(e) => setDriverId(e.target.value)}>
                 <option value="">Selecione o motorista</option>
-                {activeDrivers.map((driver) => (
-                  <option key={driver.id} value={driver.id}>
-                    {driver.name}
-                    {driver.licenseCategory ? ` — CNH ${driver.licenseCategory}` : ""}
-                  </option>
-                ))}
+                {activeDrivers.map((driver) => {
+                  const operationalStatus = statusByDriver.get(driver.id);
+                  const unavailable = operationalStatus?.available === false;
+                  const suffix = operationalStatus?.hasOperationConflict
+                    ? " — em operação"
+                    : unavailable
+                      ? " — indisponível"
+                      : "";
+
+                  return (
+                    <option key={driver.id} value={driver.id} disabled={unavailable}>
+                      {driver.name}
+                      {driver.licenseCategory ? ` — CNH ${driver.licenseCategory}` : ""}
+                      {suffix}
+                    </option>
+                  );
+                })}
               </select>
             </FormField>
 
@@ -91,7 +117,7 @@ export function CreateTripAction({ loadPlanId }: CreateTripActionProps) {
               <button
                 type="button"
                 className="btn-primary"
-                disabled={driverId === "" || isSubmitting}
+                disabled={driverId === "" || selectedDriverUnavailable || isSubmitting}
                 onClick={() => void handleCreate()}
               >
                 {isSubmitting ? (

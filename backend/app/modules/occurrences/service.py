@@ -3,6 +3,7 @@ import uuid
 
 from sqlalchemy.orm import Session
 
+from app.core.observability import OperationalEvent, emit_operational_event
 from app.modules.deliveries.models import Trip
 from app.modules.deliveries.reference_service import DeliveryReferenceService
 from app.modules.deliveries.service import (
@@ -16,8 +17,6 @@ from app.modules.occurrences.models import Occurrence
 from app.modules.occurrences.repository import OccurrenceRepository
 from app.modules.occurrences.schemas import OccurrenceCreate
 from app.modules.users.models import User
-
-logger = logging.getLogger(__name__)
 
 
 class OccurrenceTripNotFoundError(Exception):
@@ -106,8 +105,11 @@ class OccurrenceService:
                 trip_id=trip.id,
                 occurrence_type=occurrence.type,
             )
-        except Exception:
-            logger.warning(
-                "Occurrence notification could not be prepared",
-                exc_info=True,
+        except Exception as error:  # noqa: BLE001 - notification failure must not undo operation
+            emit_operational_event(
+                OperationalEvent.NOTIFICATION_FAILED,
+                level=logging.WARNING,
+                alert=True,
+                reason="OCCURRENCE_PREPARATION_FAILED",
+                exception_type=type(error).__name__,
             )
