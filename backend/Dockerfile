@@ -8,8 +8,8 @@ RUN apt-get update \
 
 COPY requirements.lock.txt .
 
-RUN python -m pip install --no-cache-dir --upgrade "pip==26.1.2" \
-    && python -m pip install --no-cache-dir --require-hashes -r requirements.lock.txt \
+RUN python -m pip install --no-cache-dir --only-binary=:all: --upgrade "pip==26.1.2" \
+    && python -m pip install --no-cache-dir --only-binary=:all: --require-hashes -r requirements.lock.txt \
     && rm -rf \
         /usr/local/lib/python3.12/site-packages/pip \
         /usr/local/lib/python3.12/site-packages/pip-*.dist-info \

@@ -313,7 +313,7 @@ def test_create_product_rejects_invalid_weight(
     assert response.status_code == 422
 
 
-@pytest.mark.parametrize("role", ["ADMIN", "CHECKER"])
+@pytest.mark.parametrize("role", ["CHECKER"])
 @pytest.mark.parametrize("route", ["collection", "detail"])
 def test_read_only_roles_can_read_products(
     client: TestClient,
@@ -339,7 +339,7 @@ def test_read_only_roles_can_read_products(
     assert response.status_code == 200
 
 
-@pytest.mark.parametrize("role", ["ADMIN", "CHECKER"])
+@pytest.mark.parametrize("role", ["CHECKER"])
 @pytest.mark.parametrize("method", ["POST", "PATCH"])
 def test_read_only_roles_cannot_manage_products(
     client: TestClient,
