@@ -1,5 +1,9 @@
 # Usuários
 
+`CONFIRMADO`: `get_user_for_authorization` é a leitura pública sob lock SHARE
+usada pela OC79; atualiza entidades já carregadas e mantém papel/atividade/vínculo
+estáveis até terminar a transação externa. Não recebe role/permissões do cliente.
+
 Cadastro e manutenção de usuários internos e seus papéis.
 
 ## Estrutura
