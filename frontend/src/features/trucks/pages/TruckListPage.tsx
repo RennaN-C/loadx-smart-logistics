@@ -38,7 +38,7 @@ export function TruckListPage() {
   const [editingTruck, setEditingTruck] = useState<Truck | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
-  const canManage = user?.role === "LOGISTICS_MANAGER";
+  const canManage = user?.role === "ADMIN" || user?.role === "LOGISTICS_MANAGER";
   const isFormOpen = isCreating || editingTruck !== null;
 
   // D12 não permite busca ou filtros server-side: ambos operam somente na página atual.
