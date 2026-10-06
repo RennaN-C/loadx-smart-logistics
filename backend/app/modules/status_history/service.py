@@ -8,7 +8,10 @@ from sqlalchemy.orm import Session
 from app.core.pagination import PageResult, PaginationParams
 from app.database.integrity import get_integrity_constraint_name
 from app.modules.status_history.models import AuditEvent, StatusHistory
-from app.modules.status_history.repository import AuditEntryRecord, StatusHistoryRepository
+from app.modules.status_history.repository import (
+    AuditEntryRecord,
+    StatusHistoryRepository,
+)
 from app.modules.status_history.schemas import AuditEventCreate, StatusHistoryCreate
 from app.modules.users.repository import UserRepository
 

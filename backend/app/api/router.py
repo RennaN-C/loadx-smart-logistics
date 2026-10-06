@@ -2,7 +2,6 @@ from fastapi import APIRouter
 
 from app.core.responses import openapi_error_responses
 from app.modules.auth.router import router as auth_router
-from app.modules.status_history.router import router as audit_router
 from app.modules.customers.router import router as customers_router
 from app.modules.deliveries.router import router as deliveries_router
 from app.modules.drivers.router import router as drivers_router
@@ -16,6 +15,7 @@ from app.modules.operational_indicators.router import (
 from app.modules.orders.router import router as orders_router
 from app.modules.products.router import router as products_router
 from app.modules.reports.router import router as reports_router
+from app.modules.status_history.router import router as audit_router
 from app.modules.trucks.router import router as trucks_router
 from app.modules.users.router import router as users_router
 
