@@ -4,11 +4,16 @@ import { BackSide, BoxGeometry, type Group } from "three";
 
 import type { PlacedItem, TruckSnapshot } from "../../load-planning/types";
 import { cargoTextures, kraftVariant } from "./cargoTexture";
-import { CameraControls } from "./CameraControls";
 import { viewCamera, type ViewPreset } from "./cameraViews";
 import { deliveryColor, itemBox, truckBox } from "./sceneGeometry";
 import { classifyProduct } from "./productKind";
+import { TruckCabMesh } from "./TruckCabMesh";
+import { cabFrontWheels } from "./truckCabModel";
+import { Backdrop } from "./Backdrop";
+import { SceneCamera } from "./SceneCamera";
+import { vehicleBounds } from "./sceneBackdrop";
 import { TruckShellMesh } from "./TruckShellMesh";
+import { useTruckCabModel } from "../hooks/useTruckCabModel";
 import { truckShell } from "./truckShell";
 
 /** Quanto o desenho do baú afunda para não coincidir com a base dos volumes. */
@@ -189,10 +194,14 @@ export function LoadScene({
 }: LoadSceneProps) {
   const box = truckBox(truck);
   const shell = truckShell(truck);
+  // Cabine importada. Chega depois do primeiro quadro; até lá, e se falhar,
+  // vale a cabine desenhada em código.
+  const cabModel = useTruckCabModel();
   // A carga sobe junto com o piso do baú. As coordenadas dos volumes seguem
   // intactas dentro do grupo — nenhuma conversão a mais, nenhuma chance de
   // divergir do que o backend calculou.
   const deck = showTruck ? shell.deckHeight : 0;
+  const bounds = vehicleBounds(truck, showTruck);
   const camera = viewCamera(truck, view, deck);
 
   // A sombra precisa enquadrar o baú inteiro, senão só parte da carga projeta.
@@ -219,6 +228,8 @@ export function LoadScene({
       shadows={realistic}
       onPointerMissed={() => onSelect(null)}
     >
+      <Backdrop bounds={bounds} realistic={realistic} />
+
       {realistic ? (
         <>
           {/* Céu por cima, chão quente por baixo: dá volume às caixas sem
@@ -249,7 +260,14 @@ export function LoadScene({
         </>
       )}
 
-      {showTruck ? <TruckShellMesh shell={shell} /> : null}
+      {showTruck ? (
+        <TruckShellMesh
+          shell={shell}
+          hideCab={cabModel !== null}
+          cabWheels={cabModel ? cabFrontWheels(truck) : []}
+        />
+      ) : null}
+      {showTruck && cabModel ? <TruckCabMesh model={cabModel} truck={truck} /> : null}
 
       <group position={[0, deck, 0]}>
         {/* Baú: caixa vista por dentro, para não tapar a carga.
@@ -285,8 +303,7 @@ export function LoadScene({
         ))}
       </group>
 
-      <gridHelper args={[Math.max(box.size[0], box.size[2]) * 2.4, 14, "#a09b8f", "#d9d5c7"]} />
-      <CameraControls target={camera.target} position={camera.position} />
+      <SceneCamera truck={truck} view={view} deck={deck} />
     </Canvas>
   );
 }
