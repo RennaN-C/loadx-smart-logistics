@@ -39,7 +39,7 @@ export function ProductListPage() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
-  const canManage = user?.role === "LOGISTICS_MANAGER";
+  const canManage = user?.role === "ADMIN" || user?.role === "LOGISTICS_MANAGER";
   const isFormOpen = isCreating || editingProduct !== null;
 
   // D12 mantém filtro server-side fora do contrato: busca e filtro agem só na página atual.
