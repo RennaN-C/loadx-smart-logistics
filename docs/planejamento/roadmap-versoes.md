@@ -73,13 +73,14 @@ Uma coincidência entre os dois números não significa que a Issue e a OC sejam
 `CONFIRMADO`: OC01–OC78 fazem parte do histórico e da v1.1.0 e seus números não
 podem ser reutilizados.
 
-`RECOMENDAÇÃO`: a próxima versão, v1.2.0, reserva a faixa OC79–OC84 para seu
-planejamento inicial.
+`CONFIRMADO`: a v1.2.0 usa a faixa **OC79–OC90**, formalizada nas Issues
+#122–#133. O escopo reúne comunicação real, administração do sistema e operação
+multi-caminhão.
 
-Esses números somente se tornam ocorrências executáveis quando as respectivas
-Issues forem criadas e aprovadas.
+Esses números somente representam trabalho executável enquanto as respectivas
+Issues permanecerem aprovadas, atribuídas e vinculadas ao planejamento da versão.
 
-`CONFIRMADO`: números posteriores à OC84 não ficam reservados antecipadamente.
+`CONFIRMADO`: números posteriores à OC90 não ficam reservados antecipadamente.
 A numeração da v1.3.0 em diante será definida no momento do planejamento de cada
 release, usando a próxima OC realmente disponível.
 
@@ -134,7 +135,7 @@ As entregas oficiais permanecem registradas no `CHANGELOG.md`.
 
 # v1.1.0 — Maturidade operacional
 
-`CONFIRMADO`: versão atualmente em desenvolvimento.
+`CONFIRMADO`: versão publicada em 2026-10-06.
 
 Objetivo:
 
@@ -162,37 +163,72 @@ Planejamento detalhado:
 
 ---
 
-# v1.2.0 — Comunicação real e comprovante de entrega
+# v1.2.0 — Administração, comunicação real e operação multi-caminhão
 
 ## Objetivo
 
-Transformar fluxos simulados de comunicação e evidência em operações externas
-reais, auditáveis, idempotentes e protegidas.
+`CONFIRMADO`: a v1.2.0 amplia o LoadX em três frentes complementares:
 
-## Planejamento inicial
+1. **administração do produto**, com área de Configurações e gestão de usuários;
+2. **comunicação e evidências reais**, com segurança, WhatsApp, webhook, mídia e notificações;
+3. **planejamento multi-caminhão**, permitindo distribuir uma necessidade logística entre vários veículos sem perder rastreabilidade.
 
-| OC | Responsável | Entrega planejada |
-|---|---|---|
-| **OC79** | **Rennan** | Segurança, autenticação, autorização e idempotência de comandos externos |
-| **OC80** | **Rennan** | Contrato de evidências e comprovante de entrega |
-| **OC81** | Marlon | Interface de comprovante e comunicação operacional |
-| **OC82** | Marcelo | Adapter real para WhatsApp Business |
-| **OC83** | Marcelo | Webhook, recebimento de mensagens e mídia |
-| **OC84** | Marcelo | Notificações operacionais reais |
+A versão mantém compatibilidade com os fluxos atuais de um único caminhão e não
+autoriza nenhuma integração externa a contornar autenticação, autorização ou
+regras de domínio.
 
-`PENDENTE DE DEFINIÇÃO`: dependências exatas entre OC79–OC84 serão definidas nas
-Issues da versão.
+## Planejamento aprovado
+
+| OC | Issue | Responsável | Entrega planejada |
+|---|---:|---|---|
+| **OC79** | #122 | **Rennan** | Segurança, autenticação, autorização e idempotência de comandos externos |
+| **OC80** | #123 | **Rennan** | Contrato de evidências e comprovante de entrega |
+| **OC81** | #124 | Marlon | Interface de comprovante e comunicação operacional |
+| **OC82** | #125 | Marcelo | Adaptador real para WhatsApp Business |
+| **OC83** | #126 | Marcelo | Webhook, recebimento de mensagens e mídia |
+| **OC84** | #127 | Marcelo | Notificações operacionais reais |
+| **OC85** | #128 | Marlon | Área de configurações administrativas |
+| **OC86** | #129 | Marlon | Gestão de usuários pelo administrador |
+| **OC87** | #130 | **Rennan** | Modelo e regras para planejamento multi-caminhão |
+| **OC88** | #131 | João | Otimização automática com múltiplos caminhões |
+| **OC89** | #132 | Marlon | Planejamento multi-caminhão no frontend |
+| **OC90** | #133 | Marcelo | Fluxo operacional e auditoria do multi-caminhão |
+
+Planejamento detalhado:
+
+`docs/planejamento/v1.2.0/00-visao-geral.md`
+
+## Dependências principais
+
+`CONFIRMADO`:
+
+- OC79 fornece a base de segurança e idempotência para OC82, OC83 e OC84;
+- OC80 define o contrato de evidências consumido por OC81 e OC83;
+- OC85 fornece a área de navegação para OC86;
+- OC87 define o modelo e as regras transacionais que bloqueiam OC88, OC89 e OC90;
+- OC88 implementa a distribuição determinística entre veículos e bloqueia a integração final de OC89 e OC90.
 
 `DECISÃO NECESSÁRIA`: definir política de retenção, armazenamento, acesso,
-proteção e remoção das evidências de entrega antes de implementar storage real.
+proteção e remoção das evidências antes de ativar armazenamento real.
+
+`DECISÃO NECESSÁRIA`: a OC87 deve registrar ADR específica antes de alterar
+cardinalidades entre pedido, plano, volume, caminhão, viagem e entrega.
 
 `CONFIRMADO`: mensagens externas não escrevem diretamente no banco. Qualquer
 ação operacional passa pelos services e regras de domínio existentes.
 
 ## Resultado esperado
 
-O sistema poderá enviar e receber comunicações reais e registrar evidências de
-entrega sem contornar autenticação, autorização ou regras de negócio.
+Ao encerrar a v1.2.0, o LoadX deverá:
+
+- permitir que o ADMIN gerencie usuários por uma interface própria;
+- possuir uma área de Configurações extensível;
+- enviar e receber comunicação real de forma auditável e idempotente;
+- registrar e consultar evidências de entrega conforme política aprovada;
+- usar um único caminhão quando ele for suficiente;
+- distribuir a carga entre dois ou mais caminhões quando necessário e possível;
+- preservar rastreabilidade de cada volume durante carregamento, viagem e entrega;
+- manter os fluxos atuais de um único veículo compatíveis.
 
 ---
 
@@ -251,38 +287,14 @@ problemas diferentes e não devem ser misturados.
 
 ---
 
-# v1.5.0 — Otimização global da frota e múltiplos caminhões
+# v1.5.0 — Escopo a redefinir
 
-`RECOMENDAÇÃO`: permitir que uma mesma necessidade logística seja distribuída
-entre mais de um veículo.
+`CONFIRMADO`: o planejamento multi-caminhão anteriormente previsto para esta
+versão foi antecipado para a **v1.2.0** e formalizado nas OC87–OC90.
 
-| OC | Responsável principal | Capacidade planejada |
-|---|---|---|
-| A definir | **Rennan** | Modelo de dados, cardinalidades e regras transacionais multi-veículo |
-| A definir | João | Distribuição de volumes e otimização global da frota |
-| A definir | Marlon | Planejamento multi-veículo no frontend |
-| A definir | Marcelo | Auditoria, relatórios e testes E2E do fluxo |
-
-Objetivos de otimização candidatos, nesta ordem:
-
-1. completar integralmente a carga;
-2. minimizar a quantidade de veículos;
-3. respeitar conflitos e disponibilidade;
-4. considerar eficiência de ocupação e capacidade.
-
-`DECISÃO NECESSÁRIA`: nenhuma implementação multi-veículo deve começar antes de
-uma ADR específica definir:
-
-- cardinalidade entre pedido, plano, viagem e entrega;
-- rastreabilidade por volume;
-- aprovação de planos parciais;
-- divisão e recomposição de entregas;
-- histórico;
-- estratégia de migration;
-- compatibilidade dos contratos existentes.
-
-`RISCO IDENTIFICADO`: esta versão altera premissas centrais do modelo atual e
-tem potencial de quebrar contratos se for implementada sem essa definição.
+`PENDENTE DE DEFINIÇÃO`: a v1.5.0 permanece sem escopo funcional reservado.
+Nenhuma OC está pré-alocada para esta versão. O tema será definido quando o ciclo
+for planejado, usando a próxima numeração realmente disponível.
 
 ---
 
@@ -451,21 +463,17 @@ Uma versão somente deve ser considerada pronta para promoção quando:
 
 ---
 
-# Próximo ciclo
+# Ciclo atual — v1.2.0
 
-Enquanto a v1.1.0 estiver aberta:
+`CONFIRMADO`: a v1.1.0 foi publicada. O próximo ciclo funcional é a v1.2.0,
+com OC79–OC90 e Issues #122–#133.
 
-- finalizar as OCs restantes;
-- validar integração da versão;
-- evitar incluir funcionalidades da v1.2.0 em PRs da v1.1.0;
-- registrar novas descobertas neste roadmap ou em documentação específica.
+Antes da implementação:
 
-Após a conclusão da v1.1.0:
-
-1. confirmar o fechamento da release;
-2. abrir o milestone v1.2.0;
-3. criar as Issues OC79–OC84;
-4. detalhar critérios de aceite;
-5. definir dependências;
-6. adicionar as OCs ao Project;
-7. liberar as primeiras OCs sem bloqueadores.
+1. criar/confirmar o milestone `v1.2.0`;
+2. vincular #122–#133 ao milestone;
+3. adicionar #122–#133 ao Project `LoadX — Desenvolvimento`;
+4. configurar os status iniciais conforme as dependências;
+5. liberar somente as OCs sem bloqueadores;
+6. iniciar cada ocorrência em branch própria a partir de `desenvolvimento`;
+7. integrar por PR e validar CI, segurança, contratos e documentação.

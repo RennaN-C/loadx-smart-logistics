@@ -298,7 +298,7 @@ def main() -> int:
 
     target_milestone = os.environ.get(
         "TARGET_MILESTONE",
-        "v1.1.0",
+        "v1.2.0",
     )
 
     allow_closed_issue = (

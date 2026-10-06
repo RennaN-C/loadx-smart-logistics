@@ -1,8 +1,26 @@
 # Changelog
 
-## [Unreleased] — v1.1.0
+## [Unreleased] — v1.2.0
 
-`CONFIRMADO`: a v1.1.0 — Maturidade operacional está em desenvolvimento.
+`CONFIRMADO`: a v1.2.0 — Administração, comunicação real e operação
+multi-caminhão é o ciclo atual.
+
+### Planejamento aprovado
+
+- comunicação externa segura e idempotente;
+- evidências e comprovante de entrega;
+- WhatsApp Business, webhook, mídia e notificações reais;
+- área de Configurações;
+- gestão de usuários pelo ADMIN;
+- modelo, algoritmo, interface e fluxo operacional multi-caminhão.
+
+O escopo oficial está em
+[docs/planejamento/v1.2.0/00-visao-geral.md](docs/planejamento/v1.2.0/00-visao-geral.md).
+
+## [1.1.0] - 2026-10-06
+
+`CONFIRMADO`: a v1.1.0 — Maturidade operacional foi publicada oficialmente em
+2026-10-06.
 
 ### Entregas incorporadas
 
