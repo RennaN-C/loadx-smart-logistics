@@ -73,14 +73,14 @@ Uma coincidência entre os dois números não significa que a Issue e a OC sejam
 `CONFIRMADO`: OC01–OC78 fazem parte do histórico e da v1.1.0 e seus números não
 podem ser reutilizados.
 
-`CONFIRMADO`: a v1.2.0 usa a faixa **OC79–OC90**, formalizada nas Issues
-#122–#133. O escopo reúne comunicação real, administração do sistema e operação
-multi-caminhão.
+`CONFIRMADO`: a v1.2.0 usa a faixa **OC79–OC96**, formalizada nas Issues
+#122–#133 e #136–#141. O escopo reúne comunicação real, administração do sistema,
+operação multi-caminhão e acabamento operacional/gerencial do produto.
 
 Esses números somente representam trabalho executável enquanto as respectivas
 Issues permanecerem aprovadas, atribuídas e vinculadas ao planejamento da versão.
 
-`CONFIRMADO`: números posteriores à OC90 não ficam reservados antecipadamente.
+`CONFIRMADO`: números posteriores à OC96 não ficam reservados antecipadamente.
 A numeração da v1.3.0 em diante será definida no momento do planejamento de cada
 release, usando a próxima OC realmente disponível.
 
@@ -167,21 +167,26 @@ Planejamento detalhado:
 
 ## Objetivo
 
-`CONFIRMADO`: a v1.2.0 amplia o LoadX em três frentes complementares:
+`CONFIRMADO`: a v1.2.0 amplia o LoadX em quatro frentes complementares:
 
-1. **administração do produto**, com área de Configurações e gestão de usuários;
+1. **administração do produto**, com Configurações, gestão de usuários, dados gerais da empresa e conta do usuário;
 2. **comunicação e evidências reais**, com segurança, WhatsApp, webhook, mídia e notificações;
-3. **planejamento multi-caminhão**, permitindo distribuir uma necessidade logística entre vários veículos sem perder rastreabilidade.
+3. **planejamento multi-caminhão**, permitindo distribuir uma necessidade logística entre vários veículos sem perder rastreabilidade;
+4. **acabamento operacional e gerencial**, com central de operações, exceções/reentrega, busca real no servidor e relatórios exportáveis.
 
 A versão mantém compatibilidade com os fluxos atuais de um único caminhão e não
 autoriza nenhuma integração externa a contornar autenticação, autorização ou
 regras de domínio.
 
+`CONFIRMADO`: a v1.2.0 continua **monoempresa**. A OC91 representa os dados da
+empresa que opera a instalação atual, sem implementar multitenancy. A evolução
+para várias empresas isoladas pertence ao roadmap da v1.3.0.
+
 ## Planejamento aprovado
 
 | OC | Issue | Responsável | Entrega planejada |
 |---|---:|---|---|
-| **OC79** | #122 | **Rennan** | Segurança, autenticação, autorização e idempotência de comandos externos |
+| **OC79** | #122 | **Rennan** | Segurança, autorização e idempotência de comandos externos |
 | **OC80** | #123 | **Rennan** | Contrato de evidências e comprovante de entrega |
 | **OC81** | #124 | Marlon | Interface de comprovante e comunicação operacional |
 | **OC82** | #125 | Marcelo | Adaptador real para WhatsApp Business |
@@ -193,6 +198,12 @@ regras de domínio.
 | **OC88** | #131 | João | Otimização automática com múltiplos caminhões |
 | **OC89** | #132 | Marlon | Planejamento multi-caminhão no frontend |
 | **OC90** | #133 | Marcelo | Fluxo operacional e auditoria do multi-caminhão |
+| **OC91** | #136 | **Rennan** | Configurações gerais da empresa |
+| **OC92** | #137 | **Rennan** | Meu perfil, alteração de senha e sessões |
+| **OC93** | #138 | Marlon | Central de carregamentos, viagens e entregas |
+| **OC94** | #139 | Marcelo | Exceções operacionais, reentrega e cancelamento |
+| **OC95** | #140 | João | Busca e filtros avançados no servidor |
+| **OC96** | #141 | Marcelo | Relatórios gerenciais e exportações |
 
 Planejamento detalhado:
 
@@ -204,15 +215,22 @@ Planejamento detalhado:
 
 - OC79 fornece a base de segurança e idempotência para OC82, OC83 e OC84;
 - OC80 define o contrato de evidências consumido por OC81 e OC83;
-- OC85 fornece a área de navegação para OC86;
+- OC85 fornece a área de navegação para OC86, OC91 e OC92;
 - OC87 define o modelo e as regras transacionais que bloqueiam OC88, OC89 e OC90;
-- OC88 implementa a distribuição determinística entre veículos e bloqueia a integração final de OC89 e OC90.
+- OC88 implementa a distribuição determinística entre veículos e bloqueia a integração final de OC89 e OC90;
+- OC94 depende das regras multi-caminhão da OC87 e das notificações da OC84;
+- OC93 depende do fluxo operacional multi-caminhão da OC90 e dos estados de exceção da OC94;
+- OC96 depende do fluxo final da OC90 e dos estados de exceção da OC94;
+- OC95 não possui bloqueador funcional obrigatório e pode evoluir em paralelo.
 
 `DECISÃO NECESSÁRIA`: definir política de retenção, armazenamento, acesso,
 proteção e remoção das evidências antes de ativar armazenamento real.
 
 `DECISÃO NECESSÁRIA`: a OC87 deve registrar ADR específica antes de alterar
 cardinalidades entre pedido, plano, volume, caminhão, viagem e entrega.
+
+`DECISÃO NECESSÁRIA`: a OC94 deve formalizar a máquina de estados de ausência,
+recusa, falha, reentrega e cancelamento antes de alterar transições operacionais.
 
 `CONFIRMADO`: mensagens externas não escrevem diretamente no banco. Qualquer
 ação operacional passa pelos services e regras de domínio existentes.
@@ -222,17 +240,65 @@ ação operacional passa pelos services e regras de domínio existentes.
 Ao encerrar a v1.2.0, o LoadX deverá:
 
 - permitir que o ADMIN gerencie usuários por uma interface própria;
-- possuir uma área de Configurações extensível;
+- possuir uma área de Configurações extensível e dados gerais da empresa atual;
+- permitir que cada usuário gerencie seu perfil, senha e sessões dentro das regras aprovadas;
 - enviar e receber comunicação real de forma auditável e idempotente;
 - registrar e consultar evidências de entrega conforme política aprovada;
 - usar um único caminhão quando ele for suficiente;
 - distribuir a carga entre dois ou mais caminhões quando necessário e possível;
 - preservar rastreabilidade de cada volume durante carregamento, viagem e entrega;
+- expor carregamentos, viagens e entregas como módulos operacionais localizáveis;
+- tratar falha, ausência, reentrega e cancelamento de forma auditável;
+- realizar buscas e filtros no servidor, antes da paginação;
+- fornecer relatórios gerenciais e exportações com números calculados no backend;
 - manter os fluxos atuais de um único veículo compatíveis.
 
 ---
+# v1.3.0 — Plataforma multiempresa
 
-# v1.3.0 — Rastreamento e acompanhamento em tempo real
+`RECOMENDAÇÃO`: transformar o LoadX monoempresa em uma plataforma capaz de atender
+várias empresas no mesmo produto com isolamento obrigatório de dados e administração.
+
+`CONFIRMADO`: esta seção é **roadmap**, não planejamento executável. Nenhuma OC ou
+Issue funcional da v1.3.0 foi criada ou reservada.
+
+## Direção arquitetural
+
+- entidade de empresa/tenant como fronteira de isolamento;
+- associação explícita de usuários à empresa ou empresas autorizadas;
+- escopo de empresa em clientes, motoristas, caminhões, produtos, pedidos, planos, carregamentos, viagens, entregas, ocorrências, relatórios, evidências e configurações;
+- consultas e comandos sempre resolvidos no contexto da empresa autenticada;
+- chaves e unicidades que não permitam colisão indevida entre empresas;
+- testes negativos obrigatórios impedindo acesso cruzado entre tenants;
+- separação entre **ADMIN da empresa** e um futuro **SUPERADMIN da plataforma**;
+- configurações, integrações e identidade visual por empresa quando aprovadas;
+- migration/backfill dos dados monoempresa existentes para a empresa inicial.
+
+## Distribuição candidata
+
+| OC | Responsável principal | Capacidade planejada |
+|---|---|---|
+| A definir | **Rennan** | Modelo de tenant, migrations, autorização e isolamento de dados |
+| A definir | João | Revisão de consultas, índices e desempenho com escopo por empresa |
+| A definir | Marlon | Seleção/contexto de empresa e administração visual |
+| A definir | Marcelo | Integrações, auditoria e observabilidade isoladas por empresa |
+
+`DECISÃO NECESSÁRIA`: antes da implementação, definir se um usuário poderá
+pertencer a uma ou várias empresas e como será feita a troca de contexto.
+
+`DECISÃO NECESSÁRIA`: definir o papel do SUPERADMIN, criação/ativação de empresas,
+limites de suporte e quais ações ficam disponíveis fora do contexto de uma empresa.
+
+`RECOMENDAÇÃO`: iniciar com banco PostgreSQL compartilhado e coluna de tenant nas
+entidades de negócio, mantendo a arquitetura preparada para estratégias de
+isolamento mais fortes no futuro caso requisitos comerciais ou regulatórios exijam.
+
+`PENDENTE DE DEFINIÇÃO`: licenciamento, planos, cobrança, limites por empresa,
+customização de domínio e eventual segregação física de banco.
+
+---
+
+# v1.4.0 — Rastreamento e acompanhamento em tempo real
 
 `RECOMENDAÇÃO`: evolução destinada à localização de viagens, ETA e
 acompanhamento operacional.
@@ -242,11 +308,11 @@ acompanhamento operacional.
 | A definir | **Rennan** | Modelo de localização, histórico e API de posição |
 | A definir | João | ETA, risco de atraso e previsão operacional |
 | A definir | Marlon | Mapa operacional e acompanhamento para cliente |
-| A definir | Marcelo | Ingestão de localização, adapter externo e notificações |
+| A definir | Marcelo | Ingestão de localização, adaptador externo e notificações |
 
 `DECISÃO NECESSÁRIA`: antes da implementação, definir a fonte da localização.
 As opções podem incluir dispositivo móvel, plataforma de telemetria, equipamento
-GPS ou provider externo.
+GPS ou provedor externo.
 
 O domínio de localização não deve depender diretamente de um fornecedor
 específico.
@@ -256,7 +322,7 @@ precisão necessária, geofencing, privacidade e tratamento de perda de sinal.
 
 ---
 
-# v1.4.0 — Roteirização e custos logísticos
+# v1.5.0 — Roteirização e custos logísticos
 
 `RECOMENDAÇÃO`: evolução destinada ao planejamento geográfico e econômico das
 viagens.
@@ -266,7 +332,7 @@ viagens.
 | A definir | **Rennan** | Contratos de rota, trechos, custos e persistência |
 | A definir | João | Algoritmo de roteirização e modelo de custos |
 | A definir | Marlon | Planejador visual e dashboard de eficiência |
-| A definir | Marcelo | Adapter geográfico externo, alertas e relatórios |
+| A definir | Marcelo | Adaptador geográfico externo, alertas e relatórios |
 
 Objetivos possíveis:
 
@@ -279,25 +345,13 @@ Objetivos possíveis:
 - quantidade de veículos;
 - custo estimado da operação.
 
-`DECISÃO NECESSÁRIA`: definir se o núcleo utilizará cálculo próprio, provider
+`DECISÃO NECESSÁRIA`: definir se o núcleo utilizará cálculo próprio, provedor
 geográfico externo ou composição dos dois.
 
 `CONFIRMADO`: sequência de carregamento e sequência geográfica de entregas são
 problemas diferentes e não devem ser misturados.
 
 ---
-
-# v1.5.0 — Escopo a redefinir
-
-`CONFIRMADO`: o planejamento multi-caminhão anteriormente previsto para esta
-versão foi antecipado para a **v1.2.0** e formalizado nas OC87–OC90.
-
-`PENDENTE DE DEFINIÇÃO`: a v1.5.0 permanece sem escopo funcional reservado.
-Nenhuma OC está pré-alocada para esta versão. O tema será definido quando o ciclo
-for planejado, usando a próxima numeração realmente disponível.
-
----
-
 # v1.6.0 — Inteligência artificial avançada
 
 `RECOMENDAÇÃO`: ampliar o uso de IA para interpretação, explicação, previsão e
@@ -466,13 +520,13 @@ Uma versão somente deve ser considerada pronta para promoção quando:
 # Ciclo atual — v1.2.0
 
 `CONFIRMADO`: a v1.1.0 foi publicada. O próximo ciclo funcional é a v1.2.0,
-com OC79–OC90 e Issues #122–#133.
+com OC79–OC96 e Issues #122–#133 e #136–#141.
 
 Antes da implementação:
 
 1. criar/confirmar o milestone `v1.2.0`;
-2. vincular #122–#133 ao milestone;
-3. adicionar #122–#133 ao Project `LoadX — Desenvolvimento`;
+2. vincular #122–#133 e #136–#141 ao milestone;
+3. adicionar #122–#133 e #136–#141 ao Project `LoadX — Desenvolvimento`;
 4. configurar os status iniciais conforme as dependências;
 5. liberar somente as OCs sem bloqueadores;
 6. iniciar cada ocorrência em branch própria a partir de `desenvolvimento`;

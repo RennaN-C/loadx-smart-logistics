@@ -12,7 +12,12 @@ multi-caminhão é o ciclo atual.
 - WhatsApp Business, webhook, mídia e notificações reais;
 - área de Configurações;
 - gestão de usuários pelo ADMIN;
-- modelo, algoritmo, interface e fluxo operacional multi-caminhão.
+- modelo, algoritmo, interface e fluxo operacional multi-caminhão;
+- configurações gerais da empresa atual e Meu perfil;
+- central de carregamentos, viagens e entregas;
+- exceções operacionais, reentrega e cancelamento;
+- busca e filtros avançados no servidor;
+- relatórios gerenciais e exportações.
 
 O escopo oficial está em
 [docs/planejamento/v1.2.0/00-visao-geral.md](docs/planejamento/v1.2.0/00-visao-geral.md).

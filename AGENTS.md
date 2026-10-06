@@ -24,7 +24,7 @@ reutilizados. OC62 é a primeira ocorrência nova pós-v1.0.0; a v1.1.0 usa
 OC62–OC78. O planejamento não substitui os critérios de aceite das Issues nem
 aprova automaticamente novos contratos ou regras.
 
-`CONFIRMADO`: para planejamento de releases posteriores à v1.1.0, consulte [docs/planejamento/roadmap-versoes.md](docs/planejamento/roadmap-versoes.md). O roadmap define direção de produto, SemVer e gates, mas não substitui Issues, critérios de aceite ou ADRs. A v1.2.0 usa **OC79–OC90**, detalhadas em [docs/planejamento/v1.2.0/00-visao-geral.md](docs/planejamento/v1.2.0/00-visao-geral.md); identificadores posteriores somente são definidos no planejamento da respectiva release.
+`CONFIRMADO`: para planejamento de releases posteriores à v1.1.0, consulte [docs/planejamento/roadmap-versoes.md](docs/planejamento/roadmap-versoes.md). O roadmap define direção de produto, SemVer e gates, mas não substitui Issues, critérios de aceite ou ADRs. A v1.2.0 usa **OC79–OC96**, detalhadas em [docs/planejamento/v1.2.0/00-visao-geral.md](docs/planejamento/v1.2.0/00-visao-geral.md). A v1.3.0 está registrada apenas como direção multiempresa no roadmap e ainda não possui OCs ou Issues funcionais; identificadores posteriores à OC96 somente são definidos no planejamento da respectiva release.
 
 ## Marcadores obrigatórios de incerteza
 
