@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from sqlalchemy.orm import Session
 
 from app.modules.load_planning.distribution_repository import LoadDistributionRepository
+from app.modules.load_planning.optimizer.contracts import VolumeIdentity
 from app.modules.load_planning.repository import LoadPlanRepository
 
 
@@ -23,6 +24,16 @@ class LoadingPlanItemReference:
     loading_sequence: int
 
 
+@dataclass(frozen=True, slots=True)
+class DistributionPartReference:
+    distribution_id: uuid.UUID
+    part_id: uuid.UUID
+    current_load_plan_id: uuid.UUID
+    distribution_status: str
+    part_status: str
+    volumes: tuple[VolumeIdentity, ...]
+
+
 class LoadPlanReferenceService:
     """Public cross-module queries owned by load planning."""
 
@@ -38,6 +49,30 @@ class LoadPlanReferenceService:
 
     def has_active_distribution_orders(self, order_ids: Sequence[uuid.UUID]) -> bool:
         return self.distributions.has_active_orders(order_ids)
+
+    def get_distribution_part_for_plan(
+        self, load_plan_id: uuid.UUID
+    ) -> DistributionPartReference | None:
+        """Trace a plan version to its stable part without exposing internal tables."""
+        part = self.distributions.plan_part(load_plan_id)
+        if part is None:
+            return None
+        distribution = self.distributions.get(part.distribution_id)
+        return DistributionPartReference(
+            distribution_id=distribution.id,
+            part_id=part.id,
+            current_load_plan_id=part.load_plan_id,
+            distribution_status=distribution.status,
+            part_status=part.status,
+            volumes=tuple(
+                VolumeIdentity(v.order_item_id, v.volume_index)
+                for v in sorted(
+                    distribution.volumes,
+                    key=lambda v: (v.order_item_id.int, v.volume_index),
+                )
+                if v.part_id == part.id
+            ),
+        )
 
     def get_operational_plan(
         self,
