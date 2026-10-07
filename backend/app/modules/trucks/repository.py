@@ -47,7 +47,12 @@ class TruckRepository:
         return self.db.scalars(statement).all()
 
     def get_for_update(self, truck_id: uuid.UUID) -> Truck | None:
-        statement = select(Truck).where(Truck.id == truck_id).with_for_update()
+        statement = (
+            select(Truck)
+            .where(Truck.id == truck_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
         return self.db.scalar(statement)
 
     def has_operation_conflict(

@@ -47,7 +47,9 @@ class OrderRepository:
             select(Order).where(Order.id.in_(unique_ids)).order_by(Order.id.asc())
         )
         if for_update:
-            statement = statement.with_for_update()
+            statement = statement.with_for_update().execution_options(
+                populate_existing=True
+            )
         else:
             statement = statement.options(selectinload(Order.items))
         orders = self.db.scalars(statement).all()
@@ -57,6 +59,7 @@ class OrderRepository:
                 .where(OrderItem.order_id.in_(unique_ids))
                 .order_by(OrderItem.id.asc())
                 .with_for_update()
+                .execution_options(populate_existing=True)
             )
             self.db.scalars(item_lock).all()
             for order in orders:

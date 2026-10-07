@@ -50,7 +50,12 @@ class LoadingService:
             return existing
         plan = self.load_plan_reference_service.get_operational_plan(load_plan_id)
         items = self.load_plan_reference_service.get_loading_items(load_plan_id)
-        if plan is None or plan.status != "APPROVED" or not items:
+        if (
+            plan is None
+            or plan.status != "APPROVED"
+            or not plan.operational_ready
+            or not items
+        ):
             raise LoadingPlanNotApprovedError
 
         session = LoadingSession(
