@@ -56,6 +56,21 @@ def test_limits_and_truncated_image_are_rejected():
             validate_evidence_content(base64.b64encode(source).decode())
 
 
+def test_pixel_and_animation_limits_are_enforced():
+    oversized = BytesIO()
+    Image.new("RGB", (5000, 5000)).save(oversized, format="PNG")
+    animation = BytesIO()
+    Image.new("RGB", (4, 4), "red").save(
+        animation,
+        format="PNG",
+        save_all=True,
+        append_images=[Image.new("RGB", (4, 4), "blue")],
+    )
+    for source in (oversized.getvalue(), animation.getvalue()):
+        with pytest.raises(EvidenceContentInvalidError):
+            validate_evidence_content(base64.b64encode(source).decode())
+
+
 @pytest.mark.parametrize("local", (False, True))
 def test_adapters_share_immutable_opaque_key_contract(tmp_path, local):
     storage = (
