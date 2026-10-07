@@ -53,14 +53,18 @@ def test_uvicorn_failure_logs_omit_secrets_and_correlate(tmp_path):
             stderr=output,
         )
         try:
-            for attempt in range(50):
+            startup_deadline = time.monotonic() + 20
+            while True:
                 try:
                     with urllib.request.urlopen(
                         f"http://127.0.0.1:{port}/health", timeout=1
                     ):
                         break
                 except OSError:
-                    if attempt == 49 or process.poll() is not None:
+                    if (
+                        time.monotonic() >= startup_deadline
+                        or process.poll() is not None
+                    ):
                         raise
                     time.sleep(0.1)
             request = urllib.request.Request(

@@ -8,6 +8,12 @@ from sqlalchemy.orm import Session
 from app.modules.customers.models import Customer
 from app.modules.deliveries.models import Trip
 from app.modules.drivers.models import Driver
+from app.modules.load_planning.distribution_models import (
+    LoadDistribution,
+    LoadDistributionOrder,
+    LoadDistributionPart,
+    LoadDistributionVolume,
+)
 from app.modules.load_planning.models import LoadPlan, LoadPlanItem, LoadPlanOrder
 from app.modules.loading.models import LoadingSession, LoadingSessionItem
 from app.modules.loading.reference_service import LoadingReferenceService
@@ -32,6 +38,10 @@ SQLITE_TABLES = (
     LoadPlan.__table__,
     LoadPlanOrder.__table__,
     LoadPlanItem.__table__,
+    LoadDistribution.__table__,
+    LoadDistributionOrder.__table__,
+    LoadDistributionPart.__table__,
+    LoadDistributionVolume.__table__,
     LoadingSession.__table__,
     LoadingSessionItem.__table__,
     Trip.__table__,
