@@ -107,3 +107,9 @@ provider injetável -> validação da saída -> `AI` ou `FALLBACK`. Em nenhum po
 a IA recalcula, aprova ou altera o plano.
 
 Estado da OC22: concluída.
+
+## OC87 — base multi-caminhão
+
+`CONFIRMADO`: [contrato de distribuição](distributions.md), necessidade completa,
+aprovação por partes, claims de identidade e API para OC88/OC89/OC90.
+O caminho de um caminhão e a engine física permanecem compatíveis.

@@ -9,7 +9,10 @@ O Alembic versiona toda alteração estrutural do PostgreSQL.
 - `migrations/script.py.mako`: template das revisions.
 - `migrations/versions`: migrations versionadas.
 
-`CONFIRMADO`: o head atual é `20260830_0011`. A revisão adiciona
+`CONFIRMADO`: o head atual é `20261007_0015` (OC87), após evidências OC80
+`20261007_0014`. A OC87 cria necessidade/partes/claims e triggers de integridade
+diferidas; downgrade remove esses registros/triggers e tipos de histórico próprios.
+A revisão `20260830_0011` adiciona
 `trips.created_at` para ordenação determinística e sucede as migrations de
 ocorrências e carregamento. `20260809_0007` vincula usuários a motoristas;
 `20260809_0008` fecha o catálogo auditável e cria `trips` e `deliveries`. As
