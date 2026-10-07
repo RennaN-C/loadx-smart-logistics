@@ -449,6 +449,8 @@ class LoadDistributionService:
             distribution = self._get(identifier, lock=True)
             self._mutable(distribution)
             part = self._part(distribution, part_id)
+            if part.status != "CANCELED":
+                raise DistributionError("DISTRIBUTION_PART_REPROCESS_REQUIRES_CANCELED")
             if part.load_plan_id != data.expected_load_plan_id:
                 raise DistributionError("DISTRIBUTION_VERSION_CONFLICT")
             old_plan = self.planning.get_load_plan(part.load_plan_id)
