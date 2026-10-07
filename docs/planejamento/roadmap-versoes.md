@@ -169,12 +169,17 @@ Planejamento detalhado:
 ## Objetivo
 
 `CONFIRMADO`: a v1.2.0 concentra a maior etapa de consolidação funcional do LoadX
-antes da evolução multiempresa. O objetivo é fechar lacunas de administração,
-segurança, operação, frota, cadastros, auditoria, integrações e experiência de uso,
-sem retirar a autoridade das regras de domínio do backend.
+antes da futura camada de multi-tenancy logístico e integração com CoreFlow. O objetivo
+é fechar lacunas de administração, segurança, operação, frota, cadastros, auditoria,
+integrações e experiência de uso, sem retirar a autoridade das regras de domínio do backend.
 
-`CONFIRMADO`: a v1.2.0 continua **monoempresa**. A evolução para várias empresas
-isoladas pertence somente ao roadmap da v1.3.0.
+`CONFIRMADO`: a v1.2.0 continua **monoempresa e standalone**. Ela não implementa
+CoreFlow, SSO, entitlement externo ou tenant_id no domínio.
+
+`DECISÃO ARQUITETURAL`: as OCs administrativas da v1.2.0 devem continuar úteis no
+modo standalone, mas não podem tornar o LoadX proprietário permanente de identidade
+global, organização, licenciamento ou SUPERADMIN de plataforma. As Issues #128, #129,
+#136, #137, #145 e #159 registram essa fronteira de compatibilidade.
 
 ## Planejamento aprovado
 
@@ -254,48 +259,131 @@ Ao encerrar a v1.2.0, o LoadX deverá:
 - permitir perfis administrativos flexíveis sem retirar a autorização do backend.
 
 ---
-# v1.3.0 — Plataforma multiempresa
+# v1.3.0 — Multi-tenancy logístico e integração com CoreFlow
 
-`RECOMENDAÇÃO`: transformar o LoadX monoempresa em uma plataforma capaz de atender
-várias empresas no mesmo produto com isolamento obrigatório de dados e administração.
+`RECOMENDAÇÃO`: evoluir o LoadX de produto monoempresa para **módulo logístico
+multi-tenant**, capaz de operar integrado ao CoreFlow sem duplicar o control plane
+da plataforma.
 
-`CONFIRMADO`: esta seção é **roadmap**, não planejamento executável. Nenhuma OC ou
+`CONFIRMADO`: esta seção é **roadmap, não planejamento executável**. Nenhuma OC ou
 Issue funcional da v1.3.0 foi criada ou reservada.
+
+## Ownership no alvo integrado
+
+### CoreFlow — control plane
+
+O CoreFlow deverá ser a fonte de verdade para:
+
+- organização/tenant e estado da empresa;
+- identidade global do usuário;
+- acesso do usuário à organização;
+- licenciamento e entitlement de acesso ao módulo LoadX;
+- administração de plataforma;
+- futuro Membership quando necessário.
+
+### LoadX — domínio logístico
+
+O LoadX continuará sendo a fonte de verdade para:
+
+- clientes e dados logísticos necessários ao módulo;
+- pedidos e volumes;
+- caminhões, motoristas e frota;
+- planejamento, packing e otimização;
+- carregamentos, viagens e entregas;
+- ocorrências, evidências e anexos;
+- permissões logísticas internas;
+- integrações e configurações específicas da operação logística.
+
+`CONFIRMADO`: CoreFlow e LoadX permanecem aplicações e bancos independentes.
+Integração ocorre por API/contrato seguro e, quando aplicável, eventos. Nenhum
+serviço acessa diretamente as tabelas do outro.
 
 ## Direção arquitetural
 
-- entidade de empresa/tenant como fronteira de isolamento;
-- associação explícita de usuários à empresa ou empresas autorizadas;
-- escopo de empresa em clientes, motoristas, caminhões, produtos, pedidos, planos, carregamentos, viagens, entregas, ocorrências, relatórios, evidências e configurações;
-- consultas e comandos sempre resolvidos no contexto da empresa autenticada;
-- chaves e unicidades que não permitam colisão indevida entre empresas;
-- testes negativos obrigatórios impedindo acesso cruzado entre tenants;
-- separação entre **ADMIN da empresa** e um futuro **SUPERADMIN da plataforma**;
-- configurações, integrações e identidade visual por empresa quando aprovadas;
-- migration/backfill dos dados monoempresa existentes para a empresa inicial.
+- adicionar um identificador estável de tenant/organização às entidades de domínio do LoadX;
+- fazer backfill dos dados monoempresa atuais para um tenant inicial;
+- aplicar escopo de tenant em clientes, motoristas, caminhões, produtos, pedidos,
+  planos, carregamentos, viagens, entregas, ocorrências, relatórios, evidências,
+  anexos, notificações, auditoria e configurações logísticas;
+- revisar unicidades atuais para que valores como documento, placa e identificadores
+  de negócio tenham escopo correto por tenant quando a regra permitir;
+- resolver tenant sempre a partir de contexto autenticado/confiável, nunca de
+  parâmetro livre enviado pelo cliente;
+- criar testes negativos obrigatórios provando que Tenant A não lê, altera ou
+  relaciona dados do Tenant B;
+- definir um vínculo estável entre o tenant do CoreFlow e o tenant local do LoadX,
+  preferencialmente preservando o mesmo UUID quando o contrato aprovado permitir;
+- definir contrato de lançamento/SSO em que o CoreFlow autoriza o acesso ao módulo e
+  o LoadX cria/valida sua própria sessão; secrets de sessão não são compartilhados;
+- separar entitlement de plataforma de permissões logísticas do LoadX;
+- manter compatibilidade standalone somente enquanto for necessária e explicitamente
+  suportada, sem espalhar condicionais pelos domínios;
+- manter integrações externas atrás de ports/adapters e preparar outbox/idempotência
+  para comunicação confiável com a plataforma.
+
+## O que não pertence ao LoadX v1.3
+
+Não criar no LoadX um segundo control plane para:
+
+- SUPERADMIN de plataforma;
+- catálogo global de organizações;
+- planos comerciais;
+- billing SaaS;
+- Module Registry;
+- licenciamento global;
+- entitlement de módulos;
+- credencial global duplicada quando o CoreFlow for a fonte de identidade.
+
+Essas capacidades pertencem ao CoreFlow no modo integrado.
+
+## Compatibilidade de usuários e permissões
+
+Os perfis atuais do LoadX continuam representando responsabilidades logísticas.
+No alvo integrado:
+
+```text
+CoreFlow
+  entitlement: loadx.access
+        ↓
+LoadX
+  permissões logísticas efetivas
+```
+
+Não assumir conversão direta entre `admin/manager/staff` do CoreFlow e
+`ADMIN/LOGISTICS_MANAGER/CHECKER/DRIVER` do LoadX. O contrato de integração deverá
+definir vínculo explícito de usuário e permissões do módulo.
 
 ## Distribuição candidata
 
 | OC | Responsável principal | Capacidade planejada |
 |---|---|---|
-| A definir | **Rennan** | Modelo de tenant, migrations, autorização e isolamento de dados |
-| A definir | João | Revisão de consultas, índices e desempenho com escopo por empresa |
-| A definir | Marlon | Seleção/contexto de empresa e administração visual |
-| A definir | Marcelo | Integrações, auditoria e observabilidade isoladas por empresa |
+| A definir | **Rennan** | ADR conjunta CoreFlow↔LoadX, tenant_id, migrations, autorização e isolamento |
+| A definir | João | Revisão de queries, índices, unicidades e desempenho tenant-scoped |
+| A definir | Marlon | Contexto visual da organização e experiência de entrada no módulo |
+| A definir | Marcelo | SSO/module launch, eventos, integrações e observabilidade entre sistemas |
 
-`DECISÃO NECESSÁRIA`: antes da implementação, definir se um usuário poderá
-pertencer a uma ou várias empresas e como será feita a troca de contexto.
+## Pré-requisitos antes de abrir Issues da v1.3
 
-`DECISÃO NECESSÁRIA`: definir o papel do SUPERADMIN, criação/ativação de empresas,
-limites de suporte e quais ações ficam disponíveis fora do contexto de uma empresa.
+- definir no CoreFlow o contrato mínimo de módulo externo e entitlement do LoadX;
+- definir ownership de identidade, organização e permissões;
+- definir contrato de tenant e identificadores compartilhados;
+- definir estratégia de SSO/module launch sem compartilhar segredo de sessão;
+- definir modo de compatibilidade standalone durante a transição;
+- aprovar ADR conjunta nos dois repositórios;
+- inventariar todas as tabelas/queries do LoadX que precisarão de escopo tenant;
+- definir migration/backfill e rollback antes de tocar o schema.
 
-`RECOMENDAÇÃO`: iniciar com banco PostgreSQL compartilhado e coluna de tenant nas
-entidades de negócio, mantendo a arquitetura preparada para estratégias de
-isolamento mais fortes no futuro caso requisitos comerciais ou regulatórios exijam.
+`DECISÃO NECESSÁRIA`: Membership multi-organização do CoreFlow não precisa bloquear
+o primeiro piloto se o contrato atual User→Tenant for suficiente. Porém, nenhum
+contrato do LoadX deve impedir a adoção posterior de Membership.
 
-`PENDENTE DE DEFINIÇÃO`: licenciamento, planos, cobrança, limites por empresa,
-customização de domínio e eventual segregação física de banco.
+`RECOMENDAÇÃO`: manter bancos PostgreSQL separados. O LoadX pode usar banco
+compartilhado entre seus próprios tenants com coluna tenant_id, enquanto CoreFlow
+mantém seu banco independente.
 
+`PENDENTE DE DEFINIÇÃO`: contrato exato de SSO/module launch, service-to-service
+authentication, sincronização/vínculo de usuários, estratégia de eventos, lifecycle
+de tenant desativado e eventual mapeamento entre Person do CoreFlow e Customer do LoadX.
 ---
 
 # v1.4.0 — Rastreamento e acompanhamento em tempo real
@@ -514,6 +602,8 @@ Uma versão somente deve ser considerada pronta para promoção quando:
 10. Planejamento futuro não é autorização automática de implementação.
 11. Numeração de OC não é reutilizada.
 12. O SemVer da release é decidido pelo tipo real da mudança.
+13. No modo integrado futuro, identidade, organização e licenciamento de plataforma pertencem ao CoreFlow; o LoadX preserva ownership do domínio logístico.
+14. CoreFlow e LoadX não compartilham tabelas nem secrets de sessão; integração ocorre por contratos explícitos.
 
 ---
 
