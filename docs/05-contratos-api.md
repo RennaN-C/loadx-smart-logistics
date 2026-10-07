@@ -1,5 +1,17 @@
 # Contratos iniciais da API
 
+## Evidências de entrega — OC80
+
+`CONFIRMADO`: contrato aditivo `/api/v1/deliveries/{delivery_id}/evidences`:
+POST event_id/kind/content_base64; GET metadata paginada; GET `/{evidence_id}`;
+GET `/{evidence_id}/content` privado; POST `/{evidence_id}/revoke` com `{}`.
+Somente DELIVERED com comprovante válido recebe PHOTO/SIGNATURE PNG/JPEG.
+Schema OC78 e sessão/Origin/CSRF/RBAC são preservados. Contratos para OC81/OC83,
+limites, códigos e idempotência no
+[contrato de evidências](../backend/app/modules/deliveries/evidences.md).
+`PENDENTE DE DEFINIÇÃO`: ativação de produção após política de storage/retenção
+aprovada; ver [ADR-027 proposta](decisions/ADR-027-evidencias-de-entrega.md).
+
 Este documento é o contrato combinado entre backend, frontend, algoritmo e integrações. Alterações devem ser discutidas, versionadas e refletidas em testes.
 
 ## Convenções

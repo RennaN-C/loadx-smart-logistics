@@ -14,6 +14,8 @@ valor de assinatura digital avançada), PNG/JPEG verificados pelo Pillow já usa
 no backend. Máximo 5 MiB decodificados e 20 milhões de pixels, uma imagem estática.
 Não aceitar URL, caminho, nome de arquivo, MIME, usuário ou papel do cliente.
 O contrato JSON recebe kind, event_id UUID e content_base64; entrega vem do path.
+Reencodar a imagem remove metadados e bytes adicionais; checksum e tamanho
+publicados descrevem os bytes normalizados. A identidade usa os bytes recebidos.
 
 `RECOMENDAÇÃO`: anexar somente a entrega DELIVERED com comprovante OC78 válido,
 inclusive após FINISHED. Nunca concluir a entrega automaticamente. Delivery e
@@ -38,6 +40,8 @@ service; nenhum webhook, catálogo novo ou bypass de sessão é criado na OC80.
 `RECOMENDAÇÃO`: storage.write só ocorre depois de autorização/validação e flush
 do registro. Falha antes do commit desfaz metadata e remove o objeto recém-criado;
 compensação falha é logada sem segredo e deixa objeto inacessível sem referência.
+Se a conexão falhar após COMMIT, remover bytes somente após confirmar que o
+registro não existe; resultado incerto preserva o objeto para reconciliação.
 Não se promete transação distribuída. Service precisa de Session dedicada que
 possua o commit real; não pode usar commit de savepoint como confirmação de IO.
 Futura coordenação externa/outbox deve preservar essa fronteira.
