@@ -30,7 +30,25 @@ INTEGRITY_TABLES = (
 INTEGRITY_SQL = r"""CREATE FUNCTION validate_load_distributions() RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE d record; part_count integer; approved_count integer; canceled_count integer;
 BEGIN
-  FOR d IN SELECT id, status FROM load_distributions LOOP
+  FOR d IN SELECT ld.id, ld.status FROM load_distributions ld WHERE
+    ld.id IN ((to_jsonb(NEW)->>'distribution_id')::uuid, (to_jsonb(OLD)->>'distribution_id')::uuid)
+    OR (TG_TABLE_NAME='load_distributions' AND
+      ld.id IN ((to_jsonb(NEW)->>'id')::uuid, (to_jsonb(OLD)->>'id')::uuid))
+    OR (TG_TABLE_NAME IN ('orders','order_items') AND EXISTS (
+      SELECT 1 FROM load_distribution_orders ldo WHERE ldo.distribution_id=ld.id AND
+        ldo.order_id IN (
+          (CASE WHEN TG_TABLE_NAME='orders' THEN to_jsonb(NEW)->>'id' ELSE to_jsonb(NEW)->>'order_id' END)::uuid,
+          (CASE WHEN TG_TABLE_NAME='orders' THEN to_jsonb(OLD)->>'id' ELSE to_jsonb(OLD)->>'order_id' END)::uuid
+        )
+    ))
+    OR (TG_TABLE_NAME IN ('load_plans','load_plan_items','load_plan_orders') AND EXISTS (
+      SELECT 1 FROM load_distribution_parts p WHERE p.distribution_id=ld.id AND
+        p.load_plan_id IN (
+          (CASE WHEN TG_TABLE_NAME='load_plans' THEN to_jsonb(NEW)->>'id' ELSE to_jsonb(NEW)->>'load_plan_id' END)::uuid,
+          (CASE WHEN TG_TABLE_NAME='load_plans' THEN to_jsonb(OLD)->>'id' ELSE to_jsonb(OLD)->>'load_plan_id' END)::uuid
+        )
+    ))
+  LOOP
     SELECT count(*), count(*) FILTER (WHERE status='APPROVED'),
       count(*) FILTER (WHERE status='CANCELED')
     INTO part_count, approved_count, canceled_count
