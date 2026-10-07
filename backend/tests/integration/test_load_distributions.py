@@ -360,6 +360,8 @@ def test_history_failure_rolls_back_distribution_and_approval(
 ):
     s = distribution_scenario
     result = s.create()
+    part = result["parts"][0]
+    canceled = s.post(f"/{result['id']}/parts/{part['id']}/cancel").json()
     original = StatusHistoryService.stage_status_change
 
     def failing(self, data):
@@ -584,6 +586,26 @@ def test_concurrent_part_approvals_have_single_total_transition(distribution_sce
         assert len(changes) == 1
 
 
+def test_reprocess_requires_canceled_part(distribution_scenario):
+    s = distribution_scenario
+    result = s.create()
+    part = result["parts"][0]
+    prefix = f"/{result['id']}/parts/{part['id']}"
+    data = {
+        "truck_id": part["load_plan"]["truck_id"],
+        "expected_load_plan_id": part["load_plan"]["id"],
+    }
+
+    pending = s.post(prefix + "/reprocess", data)
+    assert pending.status_code == 409
+    assert pending.json()["code"] == "DISTRIBUTION_PART_REPROCESS_REQUIRES_CANCELED"
+
+    assert s.post(prefix + "/approve").status_code == 200
+    approved = s.post(prefix + "/reprocess", data)
+    assert approved.status_code == 409
+    assert approved.json()["code"] == "DISTRIBUTION_PART_REPROCESS_REQUIRES_CANCELED"
+
+
 def test_reprocess_failure_preserves_plan_chain_and_other_parts(
     distribution_scenario, monkeypatch
 ):
@@ -597,7 +619,6 @@ def test_reprocess_failure_preserves_plan_chain_and_other_parts(
         return original(self, data)
 
     monkeypatch.setattr(StatusHistoryService, "stage_status_change", failing)
-    part = result["parts"][0]
     data = {
         "truck_id": part["load_plan"]["truck_id"],
         "expected_load_plan_id": part["load_plan"]["id"],
@@ -609,7 +630,7 @@ def test_reprocess_failure_preserves_plan_chain_and_other_parts(
         s.client.get(
             f"/api/v1/load-distributions/{result['id']}", headers=s.user.headers
         ).json()
-        == result
+        == canceled
     )
     with s.factory() as db:
         assert (
