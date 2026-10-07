@@ -7,3 +7,6 @@ eventos administrativos selecionados.
 - `pages/AuditPage.tsx`: visão geral para ADMIN e LOGISTICS_MANAGER.
 - `components/AuditTrail.tsx`: histórico contextual reutilizável em detalhes.
 - nenhum componente desta feature altera ou exclui eventos de auditoria.
+
+`CONFIRMADO`: o catálogo também identifica LOAD_DISTRIBUTION e
+LOAD_DISTRIBUTION_PART da OC87, preservando a consulta existente.
