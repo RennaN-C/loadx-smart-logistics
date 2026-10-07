@@ -3,8 +3,9 @@
 ## Objetivo
 
 `CONFIRMADO`: a v1.2.0 consolida o LoadX como produto operacional monoempresa
-antes da evolução multiempresa da v1.3.0. A versão fecha lacunas de administração,
-segurança, comunicação, frota, operação, cadastros, auditoria, pesquisa e relatórios.
+e standalone antes da futura camada de multi-tenancy logístico e integração com
+CoreFlow planejada para a v1.3.0. A versão fecha lacunas de administração, segurança,
+comunicação, frota, operação, cadastros, auditoria, pesquisa e relatórios.
 
 `CONFIRMADO`: a versão usa **OC79–OC112**, formalizadas nas Issues **#122–#133**,
 **#136–#141** e **#144–#159**.
@@ -13,6 +14,26 @@ segurança, comunicação, frota, operação, cadastros, auditoria, pesquisa e r
 backend, banco, frontend, testes e documentação necessários em cada ocorrência.
 
 `CONFIRMADO`: multiempresa/multitenancy **não faz parte da v1.2.0**.
+
+## Compatibilidade com a futura integração CoreFlow
+
+A v1.2.0 deve continuar plenamente utilizável sem CoreFlow. Entretanto, as áreas
+administrativas não podem criar dependências que obriguem o LoadX a manter um
+segundo control plane quando a integração futura acontecer.
+
+Fronteira definida para o alvo integrado:
+
+- **CoreFlow:** organização/tenant, identidade global, acesso à organização,
+  licenciamento e entitlement do módulo;
+- **LoadX:** domínio logístico, configurações operacionais, permissões logísticas,
+  pedidos, frota, planejamento, viagens, entregas, evidências e integrações próprias.
+
+As Issues #128, #129, #136, #137, #145 e #159 foram alinhadas para preservar o
+modo standalone atual e, ao mesmo tempo, impedir acoplamento permanente de
+identidade/empresa/licença ao domínio logístico.
+
+`CONFIRMADO`: esta seção não autoriza SSO, tenant_id, CoreFlow ou qualquer mudança
+de schema da v1.3.0 dentro da v1.2.0.
 
 ## Divisão oficial
 
@@ -56,10 +77,10 @@ backend, banco, frontend, testes e documentação necessários em cada ocorrênc
 ## Frentes da versão
 
 ### Administração, conta e segurança
-- OC85–OC86: Configurações e gestão de usuários.
-- OC91–OC92: dados da empresa atual, perfil, senha e sessões.
-- OC97–OC98: auditoria, recuperação de acesso e MFA.
-- OC112: perfis e permissões administrativas flexíveis.
+- OC85–OC86: Configurações e gestão de usuários do modo standalone, isoladas do domínio logístico.
+- OC91–OC92: dados institucionais, perfil, senha e sessões do modo standalone, sem criar uma segunda fronteira de tenant.
+- OC97–OC98: auditoria e segurança de conta; recuperação/MFA devem permanecer delegáveis a identidade externa no futuro.
+- OC112: perfis e permissões **logísticas**, separando entitlement de plataforma de autorização interna do módulo.
 
 ### Comunicação, evidências e confiabilidade
 - OC79–OC84: segurança externa, evidências, WhatsApp, webhook e notificações reais.
@@ -114,10 +135,10 @@ envia depois do commit. Não há fornecedor, webhook, mídia, outbox ou UI na OC
 
 - OC87: ADR do modelo multi-caminhão.
 - OC94: estados e transições de exceção.
-- OC98: ADR de MFA, recuperação e contingência.
+- OC98: ADR de MFA, recuperação e contingência, incluindo ownership standalone versus futuro identity provider/CoreFlow.
 - OC109: estratégia de fila/outbox e política de retentativas.
 - OC110: storage, tipos MIME, limites e retenção de anexos.
-- OC112: catálogo de permissões e permissões não delegáveis.
+- OC112: catálogo de permissões logísticas, permissões não delegáveis e fronteira com entitlement de plataforma.
 
 ## Regras permanentes
 
@@ -127,7 +148,10 @@ envia depois do commit. Não há fornecedor, webhook, mídia, outbox ou UI na OC
 - registros com histórico não são apagados fisicamente por padrão;
 - arquivos e credenciais permanecem atrás de contratos seguros;
 - busca, filtros e agregações relevantes são feitos no servidor;
-- nenhum recurso futuro da v1.3.0 pode ser antecipado silenciosamente para a v1.2.0.
+- nenhum recurso futuro da v1.3.0 pode ser antecipado silenciosamente para a v1.2.0;
+- identidade, empresa e licenciamento standalone permanecem concentrados em módulos administrativos/auth, sem acoplamento aos domínios logísticos;
+- nenhum código da v1.2.0 pode depender de banco, secret ou sessão do CoreFlow;
+- integrações futuras com CoreFlow deverão usar API/contratos explícitos e bancos separados.
 
 ## Fluxo Git
 
