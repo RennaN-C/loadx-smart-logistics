@@ -360,17 +360,12 @@ class TripService:
     ) -> Delivery:
         """Stage the existing transition under the trip/deliveries lock order."""
         normalized_status = requested_status.strip().upper()
-        snapshot = self.repository.get_delivery(delivery_id)
-        if snapshot is None:
-            raise DeliveryNotFoundError
-        trip = self.repository.get_for_update(snapshot.trip_id)
+        delivery = self.get_delivery_for_access(
+            delivery_id, current_user=current_user, operate=True
+        )
+        trip = self.repository.get(delivery.trip_id)
         if trip is None:
             raise TripNotFoundError
-        self.repository.list_deliveries_for_update(trip.id)
-        delivery = self.repository.get_delivery_for_update(delivery_id)
-        if delivery is None:
-            raise DeliveryNotFoundError
-        self._ensure_can_operate(current_user, trip)
 
         current_status = delivery.status
         if normalized_status == current_status:
@@ -381,8 +376,7 @@ class TripService:
             not in DELIVERY_STATUS_TRANSITIONS.get(current_status, frozenset())
         ):
             raise DeliveryStatusTransitionNotAllowedError(
-                current_status,
-                normalized_status,
+                current_status, normalized_status
             )
         if trip.status != "IN_ROUTE":
             raise DeliveryTripNotInRouteError
@@ -399,6 +393,26 @@ class TripService:
             new_status=normalized_status,
             changed_by=current_user.id,
         )
+        return delivery
+
+    def get_delivery_for_access(
+        self, delivery_id: uuid.UUID, *, current_user: User, operate: bool = False
+    ) -> Delivery:
+        """Public locking/authorization boundary for state and evidence access."""
+        snapshot = self.repository.get_delivery(delivery_id)
+        if snapshot is None:
+            raise DeliveryNotFoundError
+        trip = self.repository.get_for_update(snapshot.trip_id)
+        if trip is None:
+            raise TripNotFoundError
+        self.repository.list_deliveries_for_update(trip.id)
+        delivery = self.repository.get_delivery_for_update(delivery_id)
+        if delivery is None:
+            raise DeliveryNotFoundError
+        if operate:
+            self._ensure_can_operate(current_user, trip)
+        else:
+            self._ensure_can_read(current_user, trip)
         return delivery
 
     def _stage_trip_start(
