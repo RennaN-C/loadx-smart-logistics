@@ -99,7 +99,7 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
         head_revision = connection.exec_driver_sql(
             "SELECT version_num FROM alembic_version"
         ).scalar_one()
-        assert head_revision == "20261007_0014"
+        assert head_revision == "20261007_0015"
 
     _run_alembic(test_url, "downgrade", "-1")
     with engine.connect() as connection:
@@ -123,7 +123,7 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
             )
             """
         ).scalar_one()
-        assert downgraded_revision == "20261006_0013"
+        assert downgraded_revision == "20261007_0014"
         assert loading_sessions_exists == "loading_sessions"
         assert loading_items_exists == "loading_session_items"
         assert trip_created_at_exists is True
@@ -141,9 +141,16 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
         )
         assert (
             connection.exec_driver_sql(
-                "SELECT to_regclass('public.delivery_evidences')"
+                "SELECT to_regclass('public.load_distributions')"
             ).scalar_one()
             is None
+        )
+
+        assert (
+            connection.exec_driver_sql(
+                "SELECT to_regclass('public.delivery_evidences')"
+            ).scalar_one()
+            == "delivery_evidences"
         )
 
     _run_alembic(test_url, "upgrade", "head")
