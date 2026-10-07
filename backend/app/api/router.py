@@ -3,6 +3,7 @@ from fastapi import APIRouter
 from app.core.responses import openapi_error_responses
 from app.modules.auth.router import router as auth_router
 from app.modules.customers.router import router as customers_router
+from app.modules.deliveries.evidence_router import router as evidence_router
 from app.modules.deliveries.router import router as deliveries_router
 from app.modules.drivers.router import router as drivers_router
 from app.modules.load_planning.router import router as load_planning_router
@@ -24,6 +25,7 @@ api_router.include_router(auth_router)
 api_router.include_router(audit_router)
 api_router.include_router(customers_router)
 api_router.include_router(deliveries_router)
+api_router.include_router(evidence_router)
 api_router.include_router(drivers_router)
 api_router.include_router(load_planning_router)
 api_router.include_router(loading_router)

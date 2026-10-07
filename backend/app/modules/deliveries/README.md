@@ -1,5 +1,10 @@
 # Viagens e entregas
 
+`CONFIRMADO`: OC80 acrescenta evidências ao comprovante sem alterar seu schema
+ou a conclusão. Contrato API/storage, idempotência, estados e retenção/remoção
+estão em [evidences.md](evidences.md). Storage local é opt-in; produção aguarda
+política aprovada pela equipe.
+
 Viagem, entregas, estados e histórico. Roteirização externa não entra no MVP.
 
 ## Estrutura implementada

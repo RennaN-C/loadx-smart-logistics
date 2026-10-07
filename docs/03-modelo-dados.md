@@ -1,5 +1,31 @@
 # Modelo de dados inicial
 
+## OC80 — evidências de entrega
+
+`RECOMENDAÇÃO`: ADR-027 propõe delivery_evidences no módulo deliveries, sem mudar
+Delivery/receipt OC78. Migration 20261007_0014 sucede 20261006_0013.
+
+| Campo | Tipo | Regra |
+|---|---|---|
+| id | UUID | PK e chave opaca de storage, gerada pelo servidor |
+| delivery_id | UUID | FK deliveries RESTRICT |
+| receipt_id | UUID | FK status_history RESTRICT; conclusão validada pelo service |
+| recorded_by | UUID | FK users RESTRICT, ator do servidor |
+| event_id | UUID | identidade idempotente, UNIQUE com recorded_by |
+| kind | varchar(16) | PHOTO / SIGNATURE |
+| media_type | varchar(32) | image/png / image/jpeg detectado nos bytes |
+| size_bytes | integer | 1–5242880 |
+| sha256 | varchar(64) | checksum do binário |
+| fingerprint | varchar(64) | hash de entrega/tipo/bytes para conflito |
+| status | varchar(16) | ACTIVE / REVOKED |
+| recorded_at | timestamptz | servidor |
+| revoked_at | timestamptz nullable | presente somente REVOKED |
+| revoked_by | UUID nullable | FK users RESTRICT; presente somente REVOKED |
+
+`RECOMENDAÇÃO`: índice (delivery_id, recorded_at, id) para consulta paginada;
+CHECKs de tipo/formato/tamanho e consistência de revogação. Metadados não guardam
+payload, caminho, URL, segredo ou nome de recebedor. Retenção/remoção na ADR-027.
+
 ## OC79 — registro de comandos externos
 
 `RECOMENDAÇÃO`: estrutura proposta pela Issue #122 e ADR-026, sujeita à revisão.

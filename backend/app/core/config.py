@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     whatsapp_provider: str = "mock"
     operational_log_level: Literal["INFO", "WARNING", "ERROR"] = "INFO"
     operational_request_logs: bool = True
+    evidence_storage_dir: Path | None = None
 
     model_config = SettingsConfigDict(
         env_file=".env",

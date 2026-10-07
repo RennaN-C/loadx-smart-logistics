@@ -9,4 +9,5 @@ argon2-cffi>=23,<26
 passlib>=1.7,<2.0
 httpx2>=2.7,<3.0
 reportlab>=4.2,<5.0
+pillow>=12.3,<13.0
 discord.py>=2.7,<3.0
