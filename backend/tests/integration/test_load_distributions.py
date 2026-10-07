@@ -360,8 +360,6 @@ def test_history_failure_rolls_back_distribution_and_approval(
 ):
     s = distribution_scenario
     result = s.create()
-    part = result["parts"][0]
-    canceled = s.post(f"/{result['id']}/parts/{part['id']}/cancel").json()
     original = StatusHistoryService.stage_status_change
 
     def failing(self, data):
@@ -611,6 +609,8 @@ def test_reprocess_failure_preserves_plan_chain_and_other_parts(
 ):
     s = distribution_scenario
     result = s.create()
+    part = result["parts"][0]
+    canceled = s.post(f"/{result['id']}/parts/{part['id']}/cancel").json()
     original = StatusHistoryService.stage_status_change
 
     def failing(self, data):
