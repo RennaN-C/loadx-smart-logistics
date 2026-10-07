@@ -1,4 +1,4 @@
-export const AUDIT_ENTITY_TYPES = ["ORDER", "LOAD_PLAN", "TRIP", "DELIVERY", "USER"] as const;
+export const AUDIT_ENTITY_TYPES = ["ORDER", "LOAD_PLAN", "TRIP", "DELIVERY", "USER", "LOAD_DISTRIBUTION", "LOAD_DISTRIBUTION_PART"] as const;
 export type AuditEntityType = (typeof AUDIT_ENTITY_TYPES)[number];
 
 export const AUDIT_EVENT_TYPES = ["STATUS_CHANGED", "USER_CREATED", "USER_UPDATED"] as const;

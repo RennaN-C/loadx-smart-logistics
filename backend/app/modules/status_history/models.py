@@ -11,7 +11,7 @@ class StatusHistory(Base):
     __tablename__ = "status_history"
     __table_args__ = (
         CheckConstraint(
-            "entity_type IN ('ORDER', 'LOAD_PLAN', 'TRIP', 'DELIVERY')",
+            "entity_type IN ('ORDER', 'LOAD_PLAN', 'TRIP', 'DELIVERY', 'LOAD_DISTRIBUTION', 'LOAD_DISTRIBUTION_PART')",
             name="entity_type_allowed",
         ),
         Index("ix_status_history__entity", "entity_type", "entity_id"),

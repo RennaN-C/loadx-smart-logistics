@@ -36,6 +36,16 @@ describe("AuditPage", () => {
     expect(screen.getByText(/06\/10\/2026/)).toBeInTheDocument();
   });
 
+  it.each([
+    ["LOAD_DISTRIBUTION", "Distribuição de carga"],
+    ["LOAD_DISTRIBUTION_PART", "Parte da distribuição"],
+  ] as const)("identifica histórico da OC87 para %s", async (entityType, label) => {
+    vi.mocked(listAuditEntries).mockResolvedValue(makePage([{ ...ENTRY, entityType }]));
+    render(<AuditPage />);
+    await screen.findByText("Ana Souza");
+    expect(within(screen.getByRole("table")).getByText(label)).toBeInTheDocument();
+  });
+
   it("aplica filtros por entidade e evento no servidor", async () => {
     render(<AuditPage />);
     await screen.findByText("Ana Souza");

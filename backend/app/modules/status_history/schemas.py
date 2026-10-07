@@ -3,7 +3,16 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-STATUS_HISTORY_ENTITY_TYPES = frozenset({"ORDER", "LOAD_PLAN", "TRIP", "DELIVERY"})
+STATUS_HISTORY_ENTITY_TYPES = frozenset(
+    {
+        "ORDER",
+        "LOAD_PLAN",
+        "TRIP",
+        "DELIVERY",
+        "LOAD_DISTRIBUTION",
+        "LOAD_DISTRIBUTION_PART",
+    }
+)
 AUDIT_ENTITY_TYPES = frozenset({*STATUS_HISTORY_ENTITY_TYPES, "USER"})
 AUDIT_EVENT_TYPES = frozenset({"STATUS_CHANGED", "USER_CREATED", "USER_UPDATED"})
 

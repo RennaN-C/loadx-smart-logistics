@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 
 from sqlalchemy.orm import Session
 
+from app.modules.load_planning.distribution_repository import LoadDistributionRepository
 from app.modules.load_planning.models import (
     LoadPlan,
     LoadPlanItem,
@@ -29,6 +30,7 @@ from app.modules.load_planning.optimizer.engine import (
     LoadPlanVolumeLimitExceededError,
     RejectedVolume,
     calculate_load_plan,
+    calculate_volume_load_plan,
 )
 from app.modules.load_planning.optimizer.loading_sequence import SequencedPlacement
 from app.modules.load_planning.repository import LoadPlanRepository
@@ -222,6 +224,8 @@ class LoadPlanningService:
         changed_by: uuid.UUID,
     ) -> LoadPlan:
         try:
+            if LoadDistributionRepository(self.db).plan_part(load_plan_id) is not None:
+                raise LoadPlanSourceChangedError
             source = self.repository.get_for_update(load_plan_id)
             if source is None:
                 raise LoadPlanNotFoundError
@@ -244,6 +248,8 @@ class LoadPlanningService:
         changed_by: uuid.UUID,
     ) -> LoadPlan:
         try:
+            if LoadDistributionRepository(self.db).plan_part(load_plan_id) is not None:
+                raise LoadPlanSourceChangedError
             load_plan = self.repository.get_for_update(load_plan_id)
             if load_plan is None:
                 raise LoadPlanNotFoundError
@@ -268,6 +274,8 @@ class LoadPlanningService:
             if ineligible:
                 raise LoadPlanOrdersNotEligibleError(ineligible)
 
+            if LoadDistributionRepository(self.db).has_active_orders(order_ids):
+                raise LoadPlanSourceChangedError
             previous_statuses = {order.id: order.status for order in orders}
             self.order_service.stage_orders_as_planned(orders)
             load_plan.status = "APPROVED"
@@ -476,6 +484,57 @@ class LoadPlanningService:
             rotation_allowed=product.rotation_allowed,
             product_name=product.name,
         )
+
+    def stage_plan_for_volumes(
+        self,
+        *,
+        truck: Truck,
+        orders: Sequence[Order],
+        products_by_id: dict[uuid.UUID, Product],
+        source_items: dict[uuid.UUID, OrderItem],
+        volumes: Sequence[IndividualVolume],
+        changed_by: uuid.UUID,
+        recalculated_from_id: uuid.UUID | None = None,
+    ) -> tuple[LoadPlan, LoadPlanResult]:
+        """Stage an explicitly selected subset for the owning distribution commit."""
+        if (
+            truck.internal_width_cm
+            * truck.internal_height_cm
+            * truck.internal_length_cm
+            > MAX_PERSISTED_VOLUME_CM3
+        ):
+            raise InvalidLoadPlanInputError(
+                "truck_id", "internal volume exceeds persisted BIGINT range"
+            )
+        result = calculate_volume_load_plan(
+            TruckCapacityInput(
+                internal_width_cm=truck.internal_width_cm,
+                internal_height_cm=truck.internal_height_cm,
+                internal_length_cm=truck.internal_length_cm,
+                max_weight_kg=truck.max_weight_kg,
+            ),
+            volumes,
+        )
+        plan = self._build_load_plan(
+            truck=truck,
+            orders=orders,
+            products_by_id=products_by_id,
+            source_items=source_items,
+            result=result,
+            recalculated_from_id=recalculated_from_id,
+        )
+        # A caller must reject a non-fitting proposal before any partial plan is staged.
+        if result.rejected_volumes:
+            return plan, result
+        self.repository.add(plan)
+        self._stage_status_change(
+            entity_type="LOAD_PLAN",
+            entity_id=plan.id,
+            old_status=None,
+            new_status=plan.status,
+            changed_by=changed_by,
+        )
+        return plan, result
 
     def _build_load_plan(
         self,

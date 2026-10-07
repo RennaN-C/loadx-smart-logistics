@@ -77,6 +77,12 @@ envia depois do commit. Não há fornecedor, webhook, mídia, outbox ou UI na OC
 `PENDENTE DE DEFINIÇÃO`: aprovação do PR/ADR; este registro não conclui a Issue.
 
 ### Planejamento e operação
+
+`CONFIRMADO`: a base OC87 e os ports para OC88/OC89/OC90 estão no
+[contrato multi-caminhão](../../../backend/app/modules/load_planning/distributions.md).
+`RECOMENDAÇÃO`: [ADR-028](../../decisions/ADR-028-planejamento-multi-caminhao.md)
+define cobertura, aprovação, cancelamento e integridade; revisão humana pendente.
+
 - OC87–OC90: multi-caminhão de ponta a ponta.
 - OC93–OC94: central operacional e exceções/reentrega/cancelamento.
 - OC106: agenda operacional.

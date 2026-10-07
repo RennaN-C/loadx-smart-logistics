@@ -23,6 +23,9 @@ def import_models() -> None:
     from app.modules.external_commands import (
         models as external_commands_models,  # noqa: F401
     )
+    from app.modules.load_planning import (
+        distribution_models as load_distribution_models,  # noqa: F401
+    )
     from app.modules.load_planning import models as load_planning_models  # noqa: F401
     from app.modules.loading import models as loading_models  # noqa: F401
     from app.modules.occurrences import models as occurrences_models  # noqa: F401

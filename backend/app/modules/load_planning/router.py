@@ -398,6 +398,12 @@ def recalculate_load_plan(
         return map_load_plan_read(load_plan)
     except LoadPlanNotFoundError:
         return _not_found_response()
+    except LoadPlanSourceChangedError:
+        return error_response(
+            409,
+            "LOAD_PLAN_SOURCE_CHANGED",
+            "Use o contrato da distribuição para reprocessar esta parte.",
+        )
     except (
         InvalidLoadPlanInputError,
         LoadPlanOrdersNotEligibleError,

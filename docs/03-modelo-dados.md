@@ -1,5 +1,31 @@
 # Modelo de dados inicial
 
+## OC87 — necessidade multi-caminhão
+
+`RECOMENDAÇÃO`: ADR-028 propõe quatro tabelas no módulo load_planning. Migration
+20261007_0015 sucede 20261007_0014; planos/itens legados não são reescritos.
+
+- `load_distributions`: id UUID, status fechado, created_by FK users RESTRICT,
+  created_at UTC. Necessidade completa; nenhuma seleção automática de frota.
+- `load_distribution_orders`: PK (distribution_id,order_id), FKs RESTRICT,
+  active boolean; índice único parcial order_id WHERE active para ownership.
+- `load_distribution_parts`: id UUID estável, distribution_id FK RESTRICT,
+  load_plan_id FK RESTRICT único, status PENDING/APPROVED/CANCELED. UNIQUE
+  (id,distribution_id) para FK composta dos volumes. Recálculo troca somente a
+  referência ao plano, preservando sua cadeia recalculated_from_id.
+- `load_distribution_volumes`: PK (distribution_id,order_item_id,volume_index),
+  order_id/product_id com FK composta para proveniência em order_items,
+  snapshot_quantity positivo, volume_index 1..snapshot_quantity, part_id com
+  FK composta para a mesma distribuição, active boolean. FK composta para
+  load_distribution_orders. Índice único parcial (order_item_id,volume_index)
+  WHERE active impede duas necessidades reivindicarem a mesma unidade.
+
+`RECOMENDAÇÃO`: triggers diferidas verificam a necessidade exata, proveniência,
+quantidades, volumes de cada plano e estados no COMMIT. Caminhões das partes
+são distintos, derivados dos planos. Histórico amplia catálogo com
+LOAD_DISTRIBUTION/LOAD_DISTRIBUTION_PART; nenhuma nova máquina de estados ORDER.
+Retenção histórica e cancelamento/reprocessamento estão na ADR-028.
+
 ## OC80 — evidências de entrega
 
 `RECOMENDAÇÃO`: ADR-027 propõe delivery_evidences no módulo deliveries, sem mudar

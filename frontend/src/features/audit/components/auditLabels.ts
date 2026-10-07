@@ -3,6 +3,8 @@ import type { AuditEntityType, AuditEventType } from "../types";
 export const AUDIT_ENTITY_LABELS: Record<AuditEntityType, string> = {
   ORDER: "Pedido",
   LOAD_PLAN: "Plano de carga",
+  LOAD_DISTRIBUTION: "Distribuição de carga",
+  LOAD_DISTRIBUTION_PART: "Parte da distribuição",
   TRIP: "Viagem",
   DELIVERY: "Entrega",
   USER: "Usuário",

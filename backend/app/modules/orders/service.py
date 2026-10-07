@@ -189,6 +189,12 @@ class OrderService:
                     normalized_status,
                 )
 
+            if self.load_plan_reference_service.has_active_distribution_orders(
+                (order.id,)
+            ):
+                raise OrderStatusTransitionNotAllowedError(
+                    current_status, normalized_status
+                )
             order.status = normalized_status
             self.repository.update(order)
             self._stage_status_change(

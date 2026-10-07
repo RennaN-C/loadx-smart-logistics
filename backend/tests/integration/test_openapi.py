@@ -356,6 +356,26 @@ EXPECTED_ERROR_STATUSES = {
     },
     ("/api/v1/operational-indicators", "get"): {"401", "403", "500"},
 }
+for distribution_path, methods in {
+    "/api/v1/load-distributions": ("post",),
+    "/api/v1/load-distributions/preflight": ("post",),
+    "/api/v1/load-distributions/{distribution_id}": ("get",),
+    "/api/v1/load-distributions/{distribution_id}/approve": ("post",),
+    "/api/v1/load-distributions/{distribution_id}/cancel": ("post",),
+    "/api/v1/load-distributions/{distribution_id}/parts/{part_id}/approve": ("post",),
+    "/api/v1/load-distributions/{distribution_id}/parts/{part_id}/cancel": ("post",),
+    "/api/v1/load-distributions/{distribution_id}/parts/{part_id}/reprocess": ("post",),
+}.items():
+    for distribution_method in methods:
+        EXPECTED_ERROR_STATUSES[(distribution_path, distribution_method)] = {
+            "401",
+            "403",
+            "404",
+            "409",
+            "422",
+            "500",
+        }
+
 PUBLIC_OPERATIONS = frozenset(
     {
         ("/health", "get"),

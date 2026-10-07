@@ -173,7 +173,7 @@ class TripService:
             )
             if load_plan is None:
                 raise TripLoadPlanNotFoundError
-            if load_plan.status != "APPROVED":
+            if load_plan.status != "APPROVED" or not load_plan.operational_ready:
                 raise TripLoadPlanNotApprovedError
             if self.repository.get_by_load_plan_id(load_plan.id) is not None:
                 raise TripLoadPlanAlreadyAssignedError

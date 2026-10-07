@@ -1,5 +1,14 @@
 # Contratos iniciais da API
 
+## OC87 — planejamento multi-caminhão
+
+`CONFIRMADO`: `/api/v1/load-distributions` é aditivo; contrato completo, RBAC,
+necessidade, partição, estados, aprovação e reprocessamento estão em
+[load_planning/distributions](../backend/app/modules/load_planning/distributions.md).
+`RECOMENDAÇÃO`: decisões na [ADR-028](decisions/ADR-028-planejamento-multi-caminhao.md).
+Planos legados e suas visualizações preservam schemas e endpoints. A liberação
+operacional de múltiplas partes depende da OC90; uma só parte usa o fluxo atual.
+
 ## Evidências de entrega — OC80
 
 `CONFIRMADO`: contrato aditivo `/api/v1/deliveries/{delivery_id}/evidences`:
