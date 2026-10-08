@@ -385,6 +385,7 @@ class LoadPlanningService:
                     key=lambda value: value.int,
                 )
             )
+            self.order_service.ensure_operational_sources(orders)
             products = tuple(
                 self.product_service.get_products(
                     product_ids,
@@ -400,7 +401,6 @@ class LoadPlanningService:
             if missing_product_ids:
                 raise LoadPlanProductsNotFoundError(missing_product_ids)
 
-            self.order_service.ensure_operational_sources(orders)
             optimizer_items = tuple(
                 self._map_optimizer_item(item, products_by_id[item.product_id])
                 for item in order_items

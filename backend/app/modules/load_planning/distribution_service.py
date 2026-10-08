@@ -83,12 +83,12 @@ class LoadDistributionService:
         product_ids = sorted(
             {i.product_id for i in items.values()}, key=lambda x: x.int
         )
+        self.orders.ensure_operational_sources(orders, for_update=lock)
         products = {
             p.id: p for p in self.products.get_products(product_ids, for_update=lock)
         }
         if set(product_ids) != set(products):
             raise LoadPlanProductsNotFoundError(set(product_ids) - set(products))
-        self.orders.ensure_operational_sources(orders, for_update=lock)
         inputs = tuple(
             self.planning._map_optimizer_item(i, products[i.product_id])
             for i in items.values()
