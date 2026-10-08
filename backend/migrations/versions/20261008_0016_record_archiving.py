@@ -38,11 +38,31 @@ def upgrade() -> None:
     )
 
 
+# Never silently erase lifecycle audit evidence or re-activate archived
+# customers/products through a lossy schema rollback.
+DOWNGRADE_GUARD_SQL = sa.text(
+    """
+    DO $
+    BEGIN
+      IF EXISTS (SELECT 1 FROM customers WHERE active = false)
+         OR EXISTS (SELECT 1 FROM products WHERE active = false)
+         OR EXISTS (
+           SELECT 1 FROM audit_events
+           WHERE event_type IN ('RECORD_ARCHIVED', 'RECORD_REACTIVATED')
+              OR entity_type IN ('CUSTOMER', 'PRODUCT', 'TRUCK', 'DRIVER')
+         ) THEN
+        RAISE EXCEPTION
+          'OC105 downgrade blocked: archived records or lifecycle audit events must be preserved'
+          USING ERRCODE = 'P0001';
+      END IF;
+    END $;
+    """
+)
+
+
 def downgrade() -> None:
-    # Restore the previous audit catalog without removing operational history.
-    op.execute(
-        "DELETE FROM audit_events WHERE event_type IN ('RECORD_ARCHIVED', 'RECORD_REACTIVATED') OR entity_type IN ('CUSTOMER', 'PRODUCT', 'TRUCK', 'DRIVER')"
-    )
+    # Fail closed rather than silently discard business state/audit evidence.
+    op.execute(DOWNGRADE_GUARD_SQL)
     _audit_constraints("'USER_CREATED', 'USER_UPDATED'", "'USER'")
     for table in ("products", "customers"):
         op.drop_column(table, "active")
