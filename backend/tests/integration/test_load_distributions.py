@@ -543,24 +543,18 @@ def test_roles_cannot_create_or_approve_distribution(distribution_scenario, role
 
 def test_admin_can_create_and_approve_distribution(distribution_scenario):
     s = distribution_scenario
-    admin = create_authenticated_user(s.factory, "ADMIN")
+    with s.factory() as db:
+        db.get(User, s.user.id).role = "ADMIN"
+        db.commit()
     try:
-        response = s.client.post(
-            "/api/v1/load-distributions", json=s.payload(), headers=admin.headers
-        )
+        response = s.post(data=s.payload())
         assert response.status_code == 201, response.text
-        distribution_id = response.json()["id"]
-        approved = s.client.post(
-            f"/api/v1/load-distributions/{distribution_id}/approve",
-            json={},
-            headers=admin.headers,
-        )
+        approved = s.post(f"/{response.json()['id']}/approve")
         assert approved.status_code == 200, approved.text
         assert approved.json()["status"] == "APPROVED"
     finally:
         with s.factory() as db:
-            db.execute(delete(AuthSession).where(AuthSession.user_id == admin.id))
-            db.execute(delete(User).where(User.id == admin.id))
+            db.get(User, s.user.id).role = "LOGISTICS_MANAGER"
             db.commit()
 
 
