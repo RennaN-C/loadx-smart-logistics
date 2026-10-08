@@ -71,6 +71,42 @@ def test_lifecycle_preserves_identity_and_records_atomic_idempotent_audit(
         )
 
 
+@pytest.mark.parametrize("reactivate", [False, True])
+def test_downgrade_guard_preserves_archiving_and_audit(
+    client: TestClient, session_factory: SessionFactory, manager, reactivate
+) -> None:
+    from importlib import import_module
+
+    from sqlalchemy.exc import DBAPIError
+
+    migration = import_module("migrations.versions.20261008_0016_record_archiving")
+    created = client.post(
+        "/api/v1/customers", headers=manager.headers, json=make_customer_payload()
+    )
+    assert created.status_code == 201
+    customer_id = uuid.UUID(created.json()["id"])
+    path = f"/api/v1/customers/{customer_id}"
+    assert client.patch(path, headers=manager.headers, json={"active": False}).status_code == 200
+    if reactivate:
+        assert client.patch(path, headers=manager.headers, json={"active": True}).status_code == 200
+
+    with session_factory() as db:
+        events_before = db.scalars(
+            select(AuditEvent).where(AuditEvent.entity_id == customer_id)
+        ).all()
+        assert len(events_before) == (2 if reactivate else 1)
+        with pytest.raises(DBAPIError, match="OC105 downgrade blocked"):
+            db.execute(migration.DOWNGRADE_GUARD_SQL)
+        db.rollback()
+        assert db.get(Customer, customer_id).active is reactivate
+        events_after = db.scalars(
+            select(AuditEvent).where(AuditEvent.entity_id == customer_id)
+        ).all()
+        assert [event.event_type for event in events_after] == [
+            event.event_type for event in events_before
+        ]
+
+
 @pytest.mark.parametrize("resource,payload", REGISTRIES)
 def test_archive_filters_are_applied_before_pagination(
     client: TestClient, manager, resource, payload
