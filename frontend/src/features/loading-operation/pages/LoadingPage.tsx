@@ -4,6 +4,7 @@ import { AlertBanner } from "../../../components/AlertBanner";
 import { StatusPill } from "../../../components/StatusPill";
 import { ApiError } from "../../../types/api";
 import { useAuth } from "../../auth/hooks/useAuth";
+import { canCheckLoading } from "../../auth/permissions";
 import { changeLoadingStatus, checkLoadingItem, scanLoadingItem } from "../api/loadingApi";
 import { LoadingChecklist } from "../components/LoadingChecklist";
 import { mapLoadingErrorToMessage } from "../components/loadingErrorMessages";
@@ -32,8 +33,8 @@ function statusTone(status: LoadingSessionStatus) {
 /**
  * Conferência do carregamento (OC32) com leitura de código (OC75).
  *
- * `CONFIRMADO` (OC66): somente `CHECKER` inicia, confere e finaliza. `ADMIN` e
- * `LOGISTICS_MANAGER` leem o checklist e não recebem ação nenhuma — esconder o
+ * `CONFIRMADO` (v1.2): `ADMIN` ou `CHECKER` inicia, confere e finaliza.
+ * `LOGISTICS_MANAGER` apenas consulta o checklist; esconder o
  * botão não substitui o backend, que continua respondendo 403, só evita
  * oferecer um caminho que terminaria em recusa.
  *
@@ -50,7 +51,7 @@ export function LoadingPage() {
   const { session, rows, pendingCount, isLoading, isWorking, errorMessage, run, reload } =
     useLoadingSession(sessionId);
 
-  const isChecker = user?.role === "CHECKER";
+  const isChecker = canCheckLoading(user?.role);
   const inProgress = session?.status === "IN_PROGRESS";
   const nextStatus = session ? LOADING_TRANSITIONS[session.status] : undefined;
   const canFinish = session?.status !== "IN_PROGRESS" || pendingCount === 0;
