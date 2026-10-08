@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 
 import { StatusPill } from "../../../components/StatusPill";
 import { useAuth } from "../../auth/hooks/useAuth";
+import { canManageLogistics } from "../../auth/permissions";
 import type { ListParams } from "../../../services/pagination";
 import { useResourceList } from "../../../hooks/useResourceList";
 import { listCustomers } from "../../customers/api/customersApi";
@@ -36,7 +37,7 @@ export function DashboardPage() {
 
   const customerNames = new Map(customers.map((customer) => [customer.id, customer.name]));
   const readsPersonalData = user?.role === "ADMIN" || user?.role === "LOGISTICS_MANAGER";
-  const canPlan = user?.role === "LOGISTICS_MANAGER";
+  const canPlan = canManageLogistics(user?.role);
 
   /**
    * O motorista não lê caminhões, produtos, pedidos nem clientes: TODOS os
