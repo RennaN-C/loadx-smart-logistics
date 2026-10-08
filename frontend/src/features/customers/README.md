@@ -102,3 +102,12 @@ Criar e editar continua exclusivo do `LOGISTICS_MANAGER`.
 ## Fora de escopo
 
 Busca e filtro server-side (D12): a busca atua só na página carregada. Exclusão não existe rota.
+
+## OC105 — ciclo de vida
+
+`CONFIRMADO`: a tela inicia em somente ativos, permite consultar arquivados ou
+ambos pelo filtro `archive_status` no servidor, reiniciando na página 1. A busca
+textual e as restrições continuam locais à página. Cards mostram Ativo/Arquivado.
+LOGISTICS_MANAGER vê ações Arquivar/Reativar, que usam o PATCH existente, exibem
+loading/erro e atualizam a listagem somente após sucesso. Os demais perfis
+preservam as permissões de leitura e não recebem botões de gestão.

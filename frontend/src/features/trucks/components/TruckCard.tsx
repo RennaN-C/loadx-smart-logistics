@@ -1,3 +1,4 @@
+import { RecordLifecycleAction } from "../../../components/RecordLifecycleAction";
 import { StatusPill } from "../../../components/StatusPill";
 import type { Truck } from "../types";
 import { TruckSchematic } from "./TruckSchematic";
@@ -7,10 +8,11 @@ const weightFormatter = new Intl.NumberFormat("pt-BR");
 interface TruckCardProps {
   readonly truck: Truck;
   readonly canManage: boolean;
+  readonly onChanged: () => Promise<void>;
   readonly onEdit: (truck: Truck) => void;
 }
 
-export function TruckCard({ truck, canManage, onEdit }: TruckCardProps) {
+export function TruckCard({ truck, canManage, onEdit, onChanged }: TruckCardProps) {
   return (
     <article className="truck-card">
       <div className="truck-card-figure">
@@ -31,7 +33,7 @@ export function TruckCard({ truck, canManage, onEdit }: TruckCardProps) {
             <p className="truck-card-plate">{truck.plate}</p>
             <p className="truck-card-model">{truck.model}</p>
           </div>
-          <StatusPill tone={truck.active ? "good" : "neutral"}>{truck.active ? "Ativo" : "Inativo"}</StatusPill>
+          <StatusPill tone={truck.active ? "good" : "neutral"}>{truck.active ? "Ativo" : "Arquivado"}</StatusPill>
         </div>
 
         <dl className="truck-card-specs">
@@ -54,9 +56,12 @@ export function TruckCard({ truck, canManage, onEdit }: TruckCardProps) {
             Peso máx. <strong>{weightFormatter.format(truck.maxWeightKg)} kg</strong>
           </span>
           {canManage ? (
-            <button type="button" className="btn-link" onClick={() => onEdit(truck)}>
+            <>
+          <RecordLifecycleAction resource="trucks" id={truck.id} active={truck.active} onChanged={onChanged} />
+          <button type="button" className="btn-link" onClick={() => onEdit(truck)}>
               Editar
             </button>
+          </>
           ) : null}
         </div>
       </div>

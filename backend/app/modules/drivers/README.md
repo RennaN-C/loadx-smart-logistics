@@ -41,7 +41,7 @@ Crie somente os arquivos necessários para a ocorrência atual.
 - `CONFIRMADO`: PATCH preserva campos omitidos, mas rejeita `null` em
   documento, CNH e telefone. Falhas usam o erro Pydantic padrão, HTTP `422`.
 - `license_category` é opcional e normalizada para maiúsculas quando informada.
-- `active = false` representa motorista indisponível para viagens futuras.
+- `active = false` representa motorista arquivado para viagens futuras.
 - O módulo de viagens bloqueia o motorista durante a criação e rejeita motorista
   inativo.
 - O vínculo de identidade fica em `users.driver_id`, não em `drivers`.
@@ -75,3 +75,16 @@ contrato HTTP em `GET /api/v1/trucks/operational-status`.
 fronteira já usada pelos caminhões. O endpoint lista os motoristas e consulta
 `FleetAvailabilityService.get_driver_availability`; não reproduz a regra de
 conflito da OC65 e não persiste disponibilidade.
+
+## OC105 — arquivamento lógico
+
+`CONFIRMADO`: `active=false` significa arquivado, sem DELETE e sem remoção de
+referências históricas. PATCH com `active=true` reativa, validando o cadastro
+completo e mantendo as unicidades globais. Só LOGISTICS_MANAGER escreve.
+Alterações de estado registram ator, entidade e campo `active` na auditoria,
+na mesma transação; repetições não criam eventos duplicados.
+
+`CONFIRMADO`: a coleção usa `archive_status=active|archived|all`, default
+`active`, filtrado no PostgreSQL antes da paginação. Consulta por ID não esconde
+arquivados. Os contratos de disponibilidade mantêm a visão de cadastro e
+conflito separados; operações existentes preservam histórico e RBAC.

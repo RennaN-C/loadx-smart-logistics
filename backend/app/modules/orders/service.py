@@ -19,6 +19,7 @@ from app.modules.orders.schemas import (
 from app.modules.products.service import ProductNotFoundError, ProductService
 from app.modules.status_history.schemas import StatusHistoryCreate
 from app.modules.status_history.service import StatusHistoryService
+from app.shared.record_lifecycle import ensure_record_active
 
 MANUAL_ORDER_STATUS_TRANSITIONS = {
     "DRAFT": frozenset({"READY", "CANCELED"}),
@@ -84,6 +85,22 @@ class OrderService:
         for_update: bool = False,
     ) -> Sequence[Order]:
         return self.repository.get_many(order_ids, for_update=for_update)
+
+    def ensure_operational_sources(
+        self, orders: Sequence[Order], *, for_update: bool = True
+    ) -> None:
+        for customer_id in sorted({o.customer_id for o in orders}, key=lambda x: x.int):
+            ensure_record_active(
+                self.customer_service.get_customer(customer_id, for_update=for_update),
+                "CUSTOMER",
+            )
+        product_ids = sorted(
+            {i.product_id for o in orders for i in o.items}, key=lambda x: x.int
+        )
+        for product in self.product_service.get_products(
+            product_ids, for_update=for_update
+        ):
+            ensure_record_active(product, "PRODUCT")
 
     def create_order(self, data: OrderCreate, *, changed_by: uuid.UUID) -> Order:
         self._ensure_customer_exists(data.customer_id)
@@ -172,6 +189,8 @@ class OrderService:
                 raise OrderNotFoundError
 
             current_status = order.status
+            if normalized_status == "READY" and current_status != "READY":
+                self.ensure_operational_sources([order])
             if normalized_status == current_status:
                 self.db.commit()
                 return self.get_order(order_id)
@@ -258,19 +277,25 @@ class OrderService:
 
     def _ensure_customer_exists(self, customer_id: uuid.UUID) -> None:
         try:
-            self.customer_service.get_customer(customer_id)
+            ensure_record_active(
+                self.customer_service.get_customer(customer_id, for_update=True),
+                "CUSTOMER",
+            )
         except CustomerNotFoundError as exc:
             raise OrderCustomerNotFoundError from exc
 
     def _ensure_products_exist(self, items: Sequence[OrderItemCreate]) -> None:
         missing_product_ids: list[uuid.UUID] = []
         seen_product_ids: set[uuid.UUID] = set()
-        for item in items:
+        for item in sorted(items, key=lambda item: item.product_id.int):
             if item.product_id in seen_product_ids:
                 continue
             seen_product_ids.add(item.product_id)
             try:
-                self.product_service.get_product(item.product_id)
+                ensure_record_active(
+                    self.product_service.get_product(item.product_id, for_update=True),
+                    "PRODUCT",
+                )
             except ProductNotFoundError:
                 missing_product_ids.append(item.product_id)
 

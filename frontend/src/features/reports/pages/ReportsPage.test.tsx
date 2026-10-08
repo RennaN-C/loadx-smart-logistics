@@ -30,8 +30,8 @@ function order(overrides: Partial<OrderListItem> = {}): OrderListItem {
 }
 
 const CUSTOMERS = [
-  { id: "c1", name: "Distribuidora Aurora", city: "Campinas", state: "SP", createdAt: VENCIDO },
-  { id: "c2", name: "Cliente viagem", city: "Sorocaba", state: "SP", createdAt: VENCIDO },
+  { id: "c1", name: "Distribuidora Aurora", active: true, city: "Campinas", state: "SP", createdAt: VENCIDO },
+  { id: "c2", name: "Cliente viagem", active: true, city: "Sorocaba", state: "SP", createdAt: VENCIDO },
 ];
 
 function arrange(orders: OrderListItem[], { customersFail = false } = {}) {

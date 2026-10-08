@@ -198,6 +198,7 @@ describe("PlanningPage", () => {
         {
           id: "c1",
           name: "Distribuidora Aurora",
+          active: true,
           city: "Campinas",
           state: "SP",
           createdAt: "2026-08-01T00:00:00Z",

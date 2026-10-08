@@ -9,6 +9,7 @@ from app.database.integrity import get_integrity_constraint_name
 from app.modules.trucks.models import Truck
 from app.modules.trucks.repository import TruckRepository
 from app.modules.trucks.schemas import TruckCreate, TruckUpdate
+from app.shared.record_lifecycle import stage_lifecycle_event, validate_reactivation
 
 
 class TruckNotFoundError(Exception):
@@ -30,8 +31,10 @@ class TruckService:
         self.db = db
         self.repository = TruckRepository(db)
 
-    def list_trucks(self, pagination: PaginationParams) -> PageResult[Truck]:
-        return self.repository.list(pagination)
+    def list_trucks(
+        self, pagination: PaginationParams, *, active: bool | None = None
+    ) -> PageResult[Truck]:
+        return self.repository.list(pagination, active=active)
 
     def list_all_trucks(self) -> Sequence[Truck]:
         return self.repository.list_all()
@@ -84,8 +87,17 @@ class TruckService:
         truck = Truck(**data.model_dump())
         return self._persist(lambda: self.repository.add(truck))
 
-    def update_truck(self, truck_id: uuid.UUID, data: TruckUpdate) -> Truck:
-        truck = self.get_truck(truck_id)
+    def update_truck(
+        self,
+        truck_id: uuid.UUID,
+        data: TruckUpdate,
+        *,
+        changed_by: uuid.UUID | None = None,
+    ) -> Truck:
+        truck = self.repository.get_for_update(truck_id)
+        if truck is None:
+            raise TruckNotFoundError
+        old_active = truck.active
         update_data = data.model_dump(exclude_unset=True)
 
         new_plate = update_data.get("plate")
@@ -97,7 +109,21 @@ class TruckService:
         for field_name, value in update_data.items():
             setattr(truck, field_name, value)
 
-        return self._persist(lambda: self.repository.update(truck))
+        def stage_update() -> Truck:
+            if not old_active and truck.active:
+                validate_reactivation(TruckCreate, truck)
+            self.repository.update(truck)
+            stage_lifecycle_event(
+                self.db,
+                entity_type="TRUCK",
+                entity_id=truck.id,
+                old_active=old_active,
+                new_active=truck.active,
+                changed_by=changed_by,
+            )
+            return truck
+
+        return self._persist(stage_update)
 
     def _persist(self, operation: Callable[[], Truck]) -> Truck:
         try:
@@ -108,5 +134,8 @@ class TruckService:
             self.db.rollback()
             if get_integrity_constraint_name(exc) == "uq_trucks__plate":
                 raise TruckPlateAlreadyExistsError from exc
+            raise
+        except Exception:
+            self.db.rollback()
             raise
         return truck

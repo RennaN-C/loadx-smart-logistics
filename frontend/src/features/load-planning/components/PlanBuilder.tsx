@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 
 import { AlertBanner } from "../../../components/AlertBanner";
 import { FormField } from "../../../components/FormField";
+import type { ListParams } from "../../../services/pagination";
 import { useResourceList } from "../../../hooks/useResourceList";
 import { listCustomers } from "../../customers/api/customersApi";
 import { listOrders } from "../../orders/api/ordersApi";
@@ -15,6 +16,8 @@ interface PlanBuilderProps {
   readonly onCalculated: (plan: LoadPlan) => void;
 }
 
+const listHistoricalCustomers = (params: ListParams) => listCustomers({ ...params, archiveStatus: "all" });
+
 export function PlanBuilder({ onCalculated }: PlanBuilderProps) {
   const { items: trucks, status: trucksStatus } = useResourceList(listTrucks);
   // Duas consultas porque os dois contratos são diferentes: `GET /trucks` traz as
@@ -22,7 +25,7 @@ export function PlanBuilder({ onCalculated }: PlanBuilderProps) {
   // traz a disponibilidade da OC67, e não traz medida nenhuma.
   const { items: situacoes } = useResourceList(listTruckOperationalStatus);
   const { items: orders, status: ordersStatus } = useResourceList(listOrders);
-  const { items: customers } = useResourceList(listCustomers);
+  const { items: customers } = useResourceList(listHistoricalCustomers);
 
   const [truckId, setTruckId] = useState("");
   const [selectedOrders, setSelectedOrders] = useState<string[]>([]);

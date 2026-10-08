@@ -9,6 +9,7 @@ from app.database.integrity import get_integrity_constraint_name
 from app.modules.customers.models import Customer
 from app.modules.customers.repository import CustomerRepository
 from app.modules.customers.schemas import CustomerCreate, CustomerUpdate
+from app.shared.record_lifecycle import stage_lifecycle_event, validate_reactivation
 
 
 class CustomerNotFoundError(Exception):
@@ -24,11 +25,19 @@ class CustomerService:
         self.db = db
         self.repository = CustomerRepository(db)
 
-    def list_customers(self, pagination: PaginationParams) -> PageResult[Customer]:
-        return self.repository.list(pagination)
+    def list_customers(
+        self, pagination: PaginationParams, *, active: bool | None = None
+    ) -> PageResult[Customer]:
+        return self.repository.list(pagination, active=active)
 
-    def get_customer(self, customer_id: uuid.UUID) -> Customer:
-        customer = self.repository.get(customer_id)
+    def get_customer(
+        self, customer_id: uuid.UUID, *, for_update: bool = False
+    ) -> Customer:
+        customer = (
+            self.repository.get_for_update(customer_id)
+            if for_update
+            else self.repository.get(customer_id)
+        )
         if customer is None:
             raise CustomerNotFoundError
         return customer
@@ -40,8 +49,17 @@ class CustomerService:
         customer = Customer(**data.model_dump())
         return self._persist(lambda: self.repository.add(customer))
 
-    def update_customer(self, customer_id: uuid.UUID, data: CustomerUpdate) -> Customer:
-        customer = self.get_customer(customer_id)
+    def update_customer(
+        self,
+        customer_id: uuid.UUID,
+        data: CustomerUpdate,
+        *,
+        changed_by: uuid.UUID | None = None,
+    ) -> Customer:
+        customer = self.repository.get_for_update(customer_id)
+        if customer is None:
+            raise CustomerNotFoundError
+        old_active = customer.active
         update_data = data.model_dump(exclude_unset=True)
 
         new_document = update_data.get("document")
@@ -53,7 +71,21 @@ class CustomerService:
         for field_name, value in update_data.items():
             setattr(customer, field_name, value)
 
-        return self._persist(lambda: self.repository.update(customer))
+        def stage_update() -> Customer:
+            if not old_active and customer.active:
+                validate_reactivation(CustomerCreate, customer)
+            self.repository.update(customer)
+            stage_lifecycle_event(
+                self.db,
+                entity_type="CUSTOMER",
+                entity_id=customer.id,
+                old_active=old_active,
+                new_active=customer.active,
+                changed_by=changed_by,
+            )
+            return customer
+
+        return self._persist(stage_update)
 
     def _persist(self, operation: Callable[[], Customer]) -> Customer:
         try:
@@ -64,5 +96,8 @@ class CustomerService:
             self.db.rollback()
             if get_integrity_constraint_name(exc) == "uq_customers__document":
                 raise CustomerDocumentAlreadyExistsError from exc
+            raise
+        except Exception:
+            self.db.rollback()
             raise
         return customer

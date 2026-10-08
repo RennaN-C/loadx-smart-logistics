@@ -16,6 +16,7 @@ vi.mock("../../auth/hooks/useAuth");
 const CUSTOMER_ITEM = {
   id: "c1",
   name: "Distribuidora Aurora",
+  active: true,
   city: "Campinas",
   state: "SP",
   createdAt: "2026-08-01T12:00:00Z",
@@ -153,10 +154,13 @@ describe("ContactsPage", () => {
     fireEvent.click(screen.getByRole("tab", { name: "Motoristas" }));
     await screen.findByText("Carlos Pereira");
 
-    fireEvent.change(screen.getByLabelText("Filtrar motoristas por status"), {
-      target: { value: "inactive" },
+    vi.mocked(listDrivers).mockResolvedValue(makePage([{ ...DRIVER_ITEM, id: "d2", name: "Rita Alves", active: false }]));
+    fireEvent.change(screen.getByLabelText("Filtrar cadastros por arquivamento"), {
+      target: { value: "archived" },
     });
 
+    await waitFor(() => expect(listDrivers).toHaveBeenLastCalledWith({ page: 1, pageSize: 20, archiveStatus: "archived" }));
+    await screen.findByText("Rita Alves");
     expect(screen.queryByText("Carlos Pereira")).not.toBeInTheDocument();
     expect(screen.getByText("Rita Alves")).toBeInTheDocument();
   });

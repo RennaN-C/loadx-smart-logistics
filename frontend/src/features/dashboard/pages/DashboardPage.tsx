@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 
 import { StatusPill } from "../../../components/StatusPill";
 import { useAuth } from "../../auth/hooks/useAuth";
+import type { ListParams } from "../../../services/pagination";
 import { useResourceList } from "../../../hooks/useResourceList";
 import { listCustomers } from "../../customers/api/customersApi";
 import { STATUS_LABELS, priorityLabel, statusTone } from "../../orders/components/orderLabels";
@@ -26,10 +27,12 @@ function Counter({ label, value, to }: CounterProps) {
   );
 }
 
+const listHistoricalCustomers = (params: ListParams) => listCustomers({ ...params, archiveStatus: "all" });
+
 export function DashboardPage() {
   const { user } = useAuth();
   const { status, totals, recentOrders, unavailable } = useDashboardTotals(user?.role);
-  const { items: customers } = useResourceList(listCustomers);
+  const { items: customers } = useResourceList(listHistoricalCustomers);
 
   const customerNames = new Map(customers.map((customer) => [customer.id, customer.name]));
   const readsPersonalData = user?.role === "ADMIN" || user?.role === "LOGISTICS_MANAGER";

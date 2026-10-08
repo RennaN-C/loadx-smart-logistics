@@ -223,7 +223,7 @@ export function DriverForm({ driver, onSaved, onCancel }: DriverFormProps) {
               />
               <span>
                 Motorista ativo
-                <small>Motoristas inativos continuam no histórico, mas saem da operação.</small>
+                <small>Motoristas arquivados continuam no histórico, mas saem da operação.</small>
               </span>
             </label>
           </div>

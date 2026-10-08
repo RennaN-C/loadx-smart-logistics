@@ -637,3 +637,22 @@ ambiguidade entre volumes do mesmo produto. Somente `CHECKER` confirma em sessã
 `IN_PROGRESS`. Item de outra sessão, inexistente ou já conferido é rejeitado sem
 alteração; uma leitura não finaliza a sessão nem modifica o plano. O contrato
 está em `docs/05-contratos-api.md`; a matriz OC66 permanece vigente.
+
+## OC105 — arquivamento e reativação
+
+`CONFIRMADO`: o gestor arquiva/reativa pelo PATCH existente com `active`. A ação
+é idempotente, mantém UUID, referências e unicidades, e grava auditoria atômica
+com ator e campo `active`. Arquivados podem ser consultados por ID e editados.
+Listas de cadastro ocultam arquivados por padrão; `archive_status` aceita apenas
+`active`, `archived` e `all`, com contagem/paginação aplicada após o filtro.
+Não existe exclusão física. Reativação não libera reservas operacionais.
+
+`CONFIRMADO`: novos pedidos/itens e novos planejamentos não podem usar clientes
+ou produtos arquivados. Aprovação exige fontes ativas. Novos carregamentos e
+viagens não podem usar caminhões arquivados; viagens exigem motorista ativo.
+Operações já criadas continuam seu ciclo com as referências e snapshots
+originais; arquivar não cancela pedidos, planos, carregamentos ou viagens, mantendo
+a matriz RBAC vigente (motorista arquivado perde acesso operacional próprio;
+gestor continua podendo concluir a operação).
+Indisponibilidade temporária continua em `has_operation_conflict`/`available`,
+sem reutilizar o ciclo de arquivamento.

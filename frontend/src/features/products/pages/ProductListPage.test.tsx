@@ -24,6 +24,7 @@ const PRODUCTS: Product[] = [
     fragile: false,
     stackable: true,
     rotationAllowed: true,
+    active: true,
     createdAt: "2026-08-01T12:00:00Z",
   },
   {
@@ -38,6 +39,7 @@ const PRODUCTS: Product[] = [
     fragile: true,
     stackable: false,
     rotationAllowed: false,
+    active: true,
     createdAt: "2026-08-02T12:00:00Z",
   },
 ];

@@ -31,7 +31,7 @@ export function mapTripErrorToMessage(error: ApiError): string {
   }
 
   if (error.code === "TRIP_DRIVER_INACTIVE") {
-    return "Este motorista está inativo e não pode assumir a viagem.";
+    return "Este motorista está arquivado e não pode assumir a viagem.";
   }
 
   if (error.code === "TRIP_LOADING_NOT_FINISHED") {

@@ -5,21 +5,15 @@ import { Modal } from "../../../components/Modal";
 import { Pagination } from "../../../components/Pagination";
 import { StatusPill } from "../../../components/StatusPill";
 import { useEditTarget } from "../../../hooks/useEditTarget";
-import { useResourceList } from "../../../hooks/useResourceList";
+import { useRegistryList } from "../../../hooks/useRegistryList";
+import { ArchiveFilter } from "../../../components/ArchiveFilter";
+import { RecordLifecycleAction } from "../../../components/RecordLifecycleAction";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { getDriver, listDrivers } from "../api/driversApi";
-import type { Driver, DriverListItem } from "../types";
+import type { Driver } from "../types";
 import { DriverForm } from "./DriverForm";
 import { mapDriverErrorToMessage } from "./driversErrorMessages";
 import { Icon } from "../../../components/Icon";
-
-type StatusFilter = "all" | "active" | "inactive";
-
-function matchesStatus(driver: DriverListItem, filter: StatusFilter): boolean {
-  if (filter === "active") return driver.active;
-  if (filter === "inactive") return !driver.active;
-  return true;
-}
 
 export function DriverPanel() {
   const { user } = useAuth();
@@ -32,10 +26,11 @@ export function DriverPanel() {
     total,
     totalPages,
     goToPage,
-  } = useResourceList(listDrivers);
+    archiveStatus,
+    setArchiveStatus,
+  } = useRegistryList(listDrivers);
   const edit = useEditTarget<Driver>(getDriver);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [isCreating, setIsCreating] = useState(false);
 
   const canManage = user?.role === "LOGISTICS_MANAGER";
@@ -47,9 +42,9 @@ export function DriverPanel() {
 
     return drivers.filter(
       (driver) =>
-        (term === "" || driver.name.toLowerCase().includes(term)) && matchesStatus(driver, statusFilter),
+        (term === "" || driver.name.toLowerCase().includes(term)),
     );
-  }, [drivers, search, statusFilter]);
+  }, [drivers, search]);
 
   function closeForm() {
     setIsCreating(false);
@@ -64,6 +59,7 @@ export function DriverPanel() {
   return (
     <>
       <div className="entity-toolbar">
+        <ArchiveFilter value={archiveStatus} onChange={setArchiveStatus} />
         <input
           type="search"
           aria-label="Buscar motorista por nome"
@@ -71,15 +67,7 @@ export function DriverPanel() {
           value={search}
           onChange={(event) => setSearch(event.target.value)}
         />
-        <select
-          aria-label="Filtrar motoristas por status"
-          value={statusFilter}
-          onChange={(event) => setStatusFilter(event.target.value as StatusFilter)}
-        >
-          <option value="all">Todos os status</option>
-          <option value="active">Somente ativos</option>
-          <option value="inactive">Somente inativos</option>
-        </select>
+
         {canManage ? (
           <button type="button" className="btn-primary" onClick={() => setIsCreating(true)}>
             <Icon name="plus" size={16} />
@@ -90,7 +78,7 @@ export function DriverPanel() {
 
       {status === "success" && total > 0 ? (
         <p className="entity-summary">
-          Exibindo {drivers.length} de {total} motoristas. Busca e filtro atuam nesta página.
+          Exibindo {drivers.length} de {total} motoristas. A busca atua nesta página; arquivamento filtra toda a lista.
         </p>
       ) : null}
 
@@ -119,7 +107,7 @@ export function DriverPanel() {
               <div className="contact-card-head">
                 <p className="contact-card-name">{driver.name}</p>
                 <StatusPill tone={driver.active ? "good" : "neutral"}>
-                  {driver.active ? "Ativo" : "Inativo"}
+                  {driver.active ? "Ativo" : "Arquivado"}
                 </StatusPill>
               </div>
               <dl className="contact-card-license">
@@ -130,6 +118,7 @@ export function DriverPanel() {
               </dl>
               {canManage ? (
                 <div className="contact-card-foot">
+                  <RecordLifecycleAction resource="drivers" id={driver.id} active={driver.active} onChanged={refetch} />
                   <button
                     type="button"
                     className="btn-link"

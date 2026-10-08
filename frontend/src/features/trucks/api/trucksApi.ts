@@ -53,7 +53,7 @@ export function mapTruckPageFromDto(dto: PageDto<TruckDto>): Page<Truck> {
 }
 
 export async function listTrucks(params: ListParams = {}): Promise<Page<Truck>> {
-  const { data } = await api.get<PageDto<TruckDto>>("/trucks", { params: toPageQuery(params) });
+  const { data } = await api.get<PageDto<TruckDto>>("/trucks", { params: { ...toPageQuery(params), ...(params.archiveStatus ? { archive_status: params.archiveStatus } : {}) } });
 
   return mapTruckPageFromDto(data);
 }

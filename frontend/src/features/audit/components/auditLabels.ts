@@ -8,12 +8,18 @@ export const AUDIT_ENTITY_LABELS: Record<AuditEntityType, string> = {
   TRIP: "Viagem",
   DELIVERY: "Entrega",
   USER: "Usuário",
+  CUSTOMER: "Cliente",
+  PRODUCT: "Produto",
+  TRUCK: "Caminhão",
+  DRIVER: "Motorista",
 };
 
 export const AUDIT_EVENT_LABELS: Record<AuditEventType, string> = {
   STATUS_CHANGED: "Situação alterada",
   USER_CREATED: "Usuário criado",
   USER_UPDATED: "Usuário atualizado",
+  RECORD_ARCHIVED: "Cadastro arquivado",
+  RECORD_REACTIVATED: "Cadastro reativado",
 };
 
 const FIELD_LABELS: Readonly<Record<string, string>> = {

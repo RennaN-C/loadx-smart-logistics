@@ -18,6 +18,7 @@ const CUSTOMERS: Customer[] = [
     document: "1",
     phone: null,
     address: "Rua A",
+    active: true,
     city: "Campinas",
     state: "SP",
     notes: null,
@@ -38,6 +39,7 @@ const PRODUCTS: Product[] = [
     fragile: false,
     stackable: true,
     rotationAllowed: true,
+    active: true,
     createdAt: "2026-08-01T00:00:00Z",
   },
   {
@@ -52,6 +54,7 @@ const PRODUCTS: Product[] = [
     fragile: false,
     stackable: true,
     rotationAllowed: true,
+    active: true,
     createdAt: "2026-08-01T00:00:00Z",
   },
 ];

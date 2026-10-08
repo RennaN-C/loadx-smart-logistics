@@ -10,6 +10,7 @@ export interface PageDto<T> {
 }
 
 export interface ListParams {
+  archiveStatus?: "active" | "archived" | "all";
   page?: number;
   pageSize?: number;
   sortOrder?: "asc" | "desc";

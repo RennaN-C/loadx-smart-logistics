@@ -10,7 +10,7 @@ import type { TruckOperationalStatus } from "../types";
  * divergiria no dia em que a regra mudasse.
  *
  * `active` e `hasOperationConflict` entram só para EXPLICAR a indisponibilidade.
- * Os dois podem ser verdade ao mesmo tempo — caminhão inativo que ainda está
+ * Os dois podem ser verdade ao mesmo tempo — caminhão arquivado que ainda está
  * numa operação —, e nesse caso os dois motivos aparecem.
  */
 export interface FleetStatusView {
@@ -26,11 +26,11 @@ export function describeFleetStatus(truck: TruckOperationalStatus): FleetStatusV
   }
 
   const motivos: string[] = [];
-  if (!truck.active) motivos.push("cadastro inativo");
+  if (!truck.active) motivos.push("cadastro arquivado");
   if (truck.hasOperationConflict) motivos.push("já está em operação");
 
   return {
-    // Em operação é situação normal e passageira; cadastro inativo é decisão de
+    // Em operação é situação normal e passageira; cadastro arquivado é decisão de
     // quem administra. Tons diferentes porque exigem ações diferentes.
     tone: truck.active ? "warn" : "neutral",
     label: "Indisponível",

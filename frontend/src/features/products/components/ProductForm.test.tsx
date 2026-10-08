@@ -21,6 +21,7 @@ const PRODUCT: Product = {
   fragile: false,
   stackable: true,
   rotationAllowed: true,
+  active: true,
   createdAt: "2026-08-01T12:00:00Z",
 };
 

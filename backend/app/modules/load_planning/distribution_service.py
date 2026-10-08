@@ -83,6 +83,7 @@ class LoadDistributionService:
         product_ids = sorted(
             {i.product_id for i in items.values()}, key=lambda x: x.int
         )
+        self.orders.ensure_operational_sources(orders, for_update=lock)
         products = {
             p.id: p for p in self.products.get_products(product_ids, for_update=lock)
         }

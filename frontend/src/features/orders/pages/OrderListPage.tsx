@@ -4,6 +4,7 @@ import { AlertBanner } from "../../../components/AlertBanner";
 import { Modal } from "../../../components/Modal";
 import { Pagination } from "../../../components/Pagination";
 import { useEditTarget } from "../../../hooks/useEditTarget";
+import type { ListParams } from "../../../services/pagination";
 import { useResourceList } from "../../../hooks/useResourceList";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { listCustomers } from "../../customers/api/customersApi";
@@ -18,6 +19,8 @@ import "./OrderListPage.css";
 import { Icon } from "../../../components/Icon";
 
 type StatusFilter = OrderStatus | "all";
+
+const listHistoricalCustomers = (params: ListParams) => listCustomers({ ...params, archiveStatus: "all" });
 
 export function OrderListPage() {
   const { user } = useAuth();
@@ -34,7 +37,7 @@ export function OrderListPage() {
   // O pedido só traz customer_id: a listagem de clientes resolve o nome. Ela é
   // paginada, então nomes fora da primeira página podem não resolver — por isso
   // o fallback explícito no lugar de um espaço vazio.
-  const { items: customers } = useResourceList(listCustomers);
+  const { items: customers } = useResourceList(listHistoricalCustomers);
   const { items: products } = useResourceList(listProducts);
   const edit = useEditTarget<Order>(getOrder);
 

@@ -16,6 +16,7 @@ const ORDER_FIELDS: FieldLabels = {
 };
 
 export function mapOrderErrorToMessage(error: ApiError): string {
+  if (error.code === "RECORD_ARCHIVED") return "Um cadastro foi arquivado. Selecione um cadastro ativo ou solicite sua reativação.";
   if (error.code === "ORDER_NOT_FOUND") {
     return "Este pedido não foi encontrado. Atualize a lista e tente novamente.";
   }

@@ -43,6 +43,7 @@ from app.modules.status_history.schemas import StatusHistoryCreate
 from app.modules.status_history.service import StatusHistoryService
 from app.modules.trucks.models import Truck
 from app.modules.trucks.service import TruckNotFoundError, TruckService
+from app.shared.record_lifecycle import ensure_record_active
 
 MAX_PERSISTED_VOLUME_CM3 = 9_223_372_036_854_775_807
 
@@ -199,6 +200,7 @@ class LoadPlanningService:
         if missing_product_ids:
             raise LoadPlanProductsNotFoundError(missing_product_ids)
 
+        self.order_service.ensure_operational_sources(orders, for_update=False)
         optimizer_items = tuple(
             self._map_optimizer_item(item, products_by_id[item.product_id])
             for item in order_items
@@ -258,6 +260,9 @@ class LoadPlanningService:
             if load_plan.unloaded_count != 0:
                 raise LoadPlanHasRejectionsError
 
+            ensure_record_active(
+                self.truck_service.get_truck_for_update(load_plan.truck_id), "TRUCK"
+            )
             order_ids = tuple(link.order_id for link in load_plan.orders)
             orders = tuple(self.order_service.get_orders(order_ids, for_update=True))
             if {order.id for order in orders} != set(order_ids):
@@ -276,6 +281,7 @@ class LoadPlanningService:
 
             if LoadDistributionRepository(self.db).has_active_orders(order_ids):
                 raise LoadPlanSourceChangedError
+            self.order_service.ensure_operational_sources(orders)
             previous_statuses = {order.id: order.status for order in orders}
             self.order_service.stage_orders_as_planned(orders)
             load_plan.status = "APPROVED"
@@ -379,6 +385,7 @@ class LoadPlanningService:
                     key=lambda value: value.int,
                 )
             )
+            self.order_service.ensure_operational_sources(orders)
             products = tuple(
                 self.product_service.get_products(
                     product_ids,

@@ -10,6 +10,7 @@ from app.modules.deliveries.reference_service import DeliveryReferenceService
 from app.modules.drivers.models import Driver
 from app.modules.drivers.repository import DriverRepository
 from app.modules.drivers.schemas import DriverCreate, DriverUpdate
+from app.shared.record_lifecycle import stage_lifecycle_event, validate_reactivation
 
 
 class DriverNotFoundError(Exception):
@@ -35,8 +36,10 @@ class DriverService:
         self.db = db
         self.repository = DriverRepository(db)
 
-    def list_drivers(self, pagination: PaginationParams) -> PageResult[Driver]:
-        return self.repository.list(pagination)
+    def list_drivers(
+        self, pagination: PaginationParams, *, active: bool | None = None
+    ) -> PageResult[Driver]:
+        return self.repository.list(pagination, active=active)
 
     def get_driver(self, driver_id: uuid.UUID) -> Driver:
         driver = self.repository.get(driver_id)
@@ -83,8 +86,17 @@ class DriverService:
         driver = Driver(**data.model_dump())
         return self._persist(lambda: self.repository.add(driver))
 
-    def update_driver(self, driver_id: uuid.UUID, data: DriverUpdate) -> Driver:
-        driver = self.get_driver(driver_id)
+    def update_driver(
+        self,
+        driver_id: uuid.UUID,
+        data: DriverUpdate,
+        *,
+        changed_by: uuid.UUID | None = None,
+    ) -> Driver:
+        driver = self.repository.get_for_update(driver_id)
+        if driver is None:
+            raise DriverNotFoundError
+        old_active = driver.active
         update_data = data.model_dump(exclude_unset=True)
 
         new_document = update_data.get("document")
@@ -105,7 +117,21 @@ class DriverService:
         for field_name, value in update_data.items():
             setattr(driver, field_name, value)
 
-        return self._persist(lambda: self.repository.update(driver))
+        def stage_update() -> Driver:
+            if not old_active and driver.active:
+                validate_reactivation(DriverCreate, driver)
+            self.repository.update(driver)
+            stage_lifecycle_event(
+                self.db,
+                entity_type="DRIVER",
+                entity_id=driver.id,
+                old_active=old_active,
+                new_active=driver.active,
+                changed_by=changed_by,
+            )
+            return driver
+
+        return self._persist(stage_update)
 
     def _persist(self, operation: Callable[[], Driver]) -> Driver:
         try:
@@ -119,5 +145,8 @@ class DriverService:
                 raise DriverLicenseNumberAlreadyExistsError from exc
             if constraint_name == "uq_drivers__document":
                 raise DriverDocumentAlreadyExistsError from exc
+            raise
+        except Exception:
+            self.db.rollback()
             raise
         return driver

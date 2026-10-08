@@ -7,19 +7,13 @@ import { TruckCard } from "../components/TruckCard";
 import { TruckForm } from "../components/TruckForm";
 import { mapTruckErrorToMessage } from "../components/trucksErrorMessages";
 import { Pagination } from "../../../components/Pagination";
-import { useResourceList } from "../../../hooks/useResourceList";
+import { useRegistryList } from "../../../hooks/useRegistryList";
+import { ArchiveFilter } from "../../../components/ArchiveFilter";
+
 import { listTrucks } from "../api/trucksApi";
 import type { Truck } from "../types";
 import "./TruckListPage.css";
 import { Icon } from "../../../components/Icon";
-
-type StatusFilter = "all" | "active" | "inactive";
-
-function matchesStatus(truck: Truck, filter: StatusFilter): boolean {
-  if (filter === "active") return truck.active;
-  if (filter === "inactive") return !truck.active;
-  return true;
-}
 
 export function TruckListPage() {
   const { user } = useAuth();
@@ -32,16 +26,17 @@ export function TruckListPage() {
     total,
     totalPages,
     goToPage,
-  } = useResourceList(listTrucks);
+    archiveStatus,
+    setArchiveStatus,
+  } = useRegistryList(listTrucks);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [editingTruck, setEditingTruck] = useState<Truck | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
   const canManage = user?.role === "LOGISTICS_MANAGER";
   const isFormOpen = isCreating || editingTruck !== null;
 
-  // D12 não permite busca ou filtros server-side: ambos operam somente na página atual.
+  // A busca textual permanece local; o arquivamento é filtrado pelo servidor (OC105).
   const visibleTrucks = useMemo(() => {
     const term = search.trim().toLowerCase();
 
@@ -51,9 +46,9 @@ export function TruckListPage() {
         truck.plate.toLowerCase().includes(term) ||
         truck.model.toLowerCase().includes(term);
 
-      return matchesTerm && matchesStatus(truck, statusFilter);
+      return matchesTerm;
     });
-  }, [trucks, search, statusFilter]);
+  }, [trucks, search]);
 
   function closeForm() {
     setIsCreating(false);
@@ -81,6 +76,7 @@ export function TruckListPage() {
       </header>
 
       <div className="entity-toolbar">
+        <ArchiveFilter value={archiveStatus} onChange={setArchiveStatus} />
         <input
           type="search"
           aria-label="Buscar por placa ou modelo"
@@ -88,20 +84,12 @@ export function TruckListPage() {
           value={search}
           onChange={(event) => setSearch(event.target.value)}
         />
-        <select
-          aria-label="Filtrar por status"
-          value={statusFilter}
-          onChange={(event) => setStatusFilter(event.target.value as StatusFilter)}
-        >
-          <option value="all">Todos os status</option>
-          <option value="active">Somente ativos</option>
-          <option value="inactive">Somente inativos</option>
-        </select>
+
       </div>
 
       {status === "success" && total > 0 ? (
         <p className="entity-summary">
-          Exibindo {trucks.length} de {total} caminhões. Busca e filtro atuam nesta página.
+          Exibindo {trucks.length} de {total} caminhões. A busca atua nesta página; arquivamento filtra toda a lista.
         </p>
       ) : null}
 
@@ -127,7 +115,7 @@ export function TruckListPage() {
       {visibleTrucks.length > 0 ? (
         <div className="entity-grid">
           {visibleTrucks.map((truck) => (
-            <TruckCard key={truck.id} truck={truck} canManage={canManage} onEdit={setEditingTruck} />
+            <TruckCard key={truck.id} truck={truck} canManage={canManage} onEdit={setEditingTruck} onChanged={refetch} />
           ))}
         </div>
       ) : null}

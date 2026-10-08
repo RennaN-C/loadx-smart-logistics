@@ -15,11 +15,17 @@ class TruckRepository:
     def __init__(self, db: Session) -> None:
         self.db = db
 
-    def list(self, pagination: PaginationParams) -> PageResult[Truck]:
+    def list(
+        self, pagination: PaginationParams, *, active: bool | None = None
+    ) -> PageResult[Truck]:
         direction = asc if pagination.sort_order == "asc" else desc
-        total = self.db.scalar(select(func.count()).select_from(Truck)) or 0
+        filters = () if active is None else (Truck.active.is_(active),)
+        total = (
+            self.db.scalar(select(func.count()).select_from(Truck).where(*filters)) or 0
+        )
         statement = (
             select(Truck)
+            .where(*filters)
             .order_by(direction(Truck.created_at), direction(Truck.id))
             .offset(pagination.offset)
             .limit(pagination.page_size)
@@ -51,6 +57,7 @@ class TruckRepository:
             select(Truck)
             .where(Truck.id == truck_id)
             .with_for_update()
+            .execution_options(populate_existing=True)
             .execution_options(populate_existing=True)
         )
         return self.db.scalar(statement)

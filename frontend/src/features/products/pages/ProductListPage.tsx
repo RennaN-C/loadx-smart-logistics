@@ -7,7 +7,9 @@ import { useAuth } from "../../auth/hooks/useAuth";
 import { ProductCard } from "../components/ProductCard";
 import { ProductForm } from "../components/ProductForm";
 import { mapProductErrorToMessage } from "../components/productsErrorMessages";
-import { useResourceList } from "../../../hooks/useResourceList";
+import { useRegistryList } from "../../../hooks/useRegistryList";
+import { ArchiveFilter } from "../../../components/ArchiveFilter";
+
 import { listProducts } from "../api/productsApi";
 import type { Product } from "../types";
 import "./ProductListPage.css";
@@ -33,7 +35,9 @@ export function ProductListPage() {
     total,
     totalPages,
     goToPage,
-  } = useResourceList(listProducts);
+    archiveStatus,
+    setArchiveStatus,
+  } = useRegistryList(listProducts);
   const [search, setSearch] = useState("");
   const [restrictionFilter, setRestrictionFilter] = useState<RestrictionFilter>("all");
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -42,7 +46,7 @@ export function ProductListPage() {
   const canManage = user?.role === "LOGISTICS_MANAGER";
   const isFormOpen = isCreating || editingProduct !== null;
 
-  // D12 mantém filtro server-side fora do contrato: busca e filtro agem só na página atual.
+  // Busca e restrições são locais; o arquivamento é filtrado pelo servidor (OC105).
   const visibleProducts = useMemo(() => {
     const term = search.trim().toLowerCase();
 
@@ -82,6 +86,7 @@ export function ProductListPage() {
       </header>
 
       <div className="entity-toolbar">
+        <ArchiveFilter value={archiveStatus} onChange={setArchiveStatus} />
         <input
           type="search"
           aria-label="Buscar por código ou nome"
@@ -102,7 +107,7 @@ export function ProductListPage() {
 
       {status === "success" && total > 0 ? (
         <p className="entity-summary">
-          Exibindo {products.length} de {total} produtos. Busca e filtro atuam nesta página.
+          Exibindo {products.length} de {total} produtos. A busca atua nesta página; arquivamento filtra toda a lista.
         </p>
       ) : null}
 
@@ -131,6 +136,7 @@ export function ProductListPage() {
               product={product}
               canManage={canManage}
               onEdit={setEditingProduct}
+              onChanged={refetch}
             />
           ))}
         </div>

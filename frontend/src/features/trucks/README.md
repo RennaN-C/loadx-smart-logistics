@@ -44,7 +44,7 @@ frota pareceria uma coisa neste painel e outra no planejamento. Há teste que
 passa uma combinação impossível pela regra de hoje (conflito **e** disponível) e
 exige que a tela obedeça.
 
-Os dois motivos podem valer ao mesmo tempo — caminhão inativo que ainda está
+Os dois motivos podem valer ao mesmo tempo — caminhão arquivado que ainda está
 numa operação —, e nesse caso os dois aparecem. Quando o backend recusa sem
 apontar motivo que esta tela conheça, ela diz "Indisponível" e para: inventar
 causa seria pior que não explicar.
@@ -68,3 +68,12 @@ filtros server-side continuam fora do contrato por D12.
 
 Busca server-side e exclusão física (não existe rota; desativar é
 `active: false` via PATCH).
+
+## OC105 — ciclo de vida
+
+`CONFIRMADO`: a tela inicia em somente ativos, permite consultar arquivados ou
+ambos pelo filtro `archive_status` no servidor, reiniciando na página 1. A busca
+textual e as restrições continuam locais à página. Cards mostram Ativo/Arquivado.
+LOGISTICS_MANAGER vê ações Arquivar/Reativar, que usam o PATCH existente, exibem
+loading/erro e atualizam a listagem somente após sucesso. Os demais perfis
+preservam as permissões de leitura e não recebem botões de gestão.

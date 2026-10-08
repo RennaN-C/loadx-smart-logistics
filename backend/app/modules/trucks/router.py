@@ -23,6 +23,7 @@ from app.modules.trucks.service import (
     TruckService,
 )
 from app.modules.users.models import User
+from app.shared.record_lifecycle import ArchiveFilter, active_filter
 
 router = APIRouter(prefix="/trucks", tags=["trucks"])
 TruckReader = Annotated[
@@ -54,8 +55,9 @@ def list_trucks(
     pagination: Pagination,
     _current_user: TruckReader,
     service: Annotated[TruckService, Depends(get_truck_service)],
+    archive_status: ArchiveFilter = "active",
 ) -> PageResponse[TruckRead]:
-    result = service.list_trucks(pagination)
+    result = service.list_trucks(pagination, active=active_filter(archive_status))
     return to_page_response(
         result,
         (TruckRead.model_validate(truck) for truck in result.items),
@@ -137,7 +139,7 @@ def update_truck(
     service: Annotated[TruckService, Depends(get_truck_service)],
 ) -> Truck | JSONResponse:
     try:
-        return service.update_truck(truck_id, data)
+        return service.update_truck(truck_id, data, changed_by=_current_user.id)
     except TruckNotFoundError:
         return error_response(
             status.HTTP_404_NOT_FOUND,

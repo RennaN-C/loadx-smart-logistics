@@ -17,6 +17,7 @@ from app.modules.products.service import (
     ProductService,
 )
 from app.modules.users.models import User
+from app.shared.record_lifecycle import ArchiveFilter, active_filter
 
 router = APIRouter(prefix="/products", tags=["products"])
 ProductReader = Annotated[
@@ -42,8 +43,9 @@ def list_products(
     pagination: Pagination,
     _current_user: ProductReader,
     service: Annotated[ProductService, Depends(get_product_service)],
+    archive_status: ArchiveFilter = "active",
 ) -> PageResponse[ProductRead]:
-    result = service.list_products(pagination)
+    result = service.list_products(pagination, active=active_filter(archive_status))
     return to_page_response(
         result,
         (ProductRead.model_validate(product) for product in result.items),
@@ -105,7 +107,7 @@ def update_product(
     service: Annotated[ProductService, Depends(get_product_service)],
 ) -> Product | JSONResponse:
     try:
-        return service.update_product(product_id, data)
+        return service.update_product(product_id, data, changed_by=_current_user.id)
     except ProductNotFoundError:
         return error_response(
             status.HTTP_404_NOT_FOUND,

@@ -53,3 +53,12 @@ Busca e filtro server-side (D12): atuam só na página carregada. Exclusão não
 `CONFIRMADO`: o vínculo `users.driver_id` existe no backend, é administrado por
 `ADMIN` e permite ao `DRIVER` ativo acessar suas viagens e entregas. Usuário
 sem vínculo permanece sem acesso operacional, conforme `ADR-022`.
+
+## OC105 — ciclo de vida
+
+`CONFIRMADO`: a tela inicia em somente ativos, permite consultar arquivados ou
+ambos pelo filtro `archive_status` no servidor, reiniciando na página 1. A busca
+textual e as restrições continuam locais à página. Cards mostram Ativo/Arquivado.
+LOGISTICS_MANAGER vê ações Arquivar/Reativar, que usam o PATCH existente, exibem
+loading/erro e atualizam a listagem somente após sucesso. Os demais perfis
+preservam as permissões de leitura e não recebem botões de gestão.

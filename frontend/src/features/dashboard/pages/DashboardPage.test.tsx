@@ -130,7 +130,7 @@ describe("DashboardPage", () => {
     vi.mocked(listDrivers).mockResolvedValue(pageWithTotal(3));
     vi.mocked(listCustomers).mockResolvedValue(
       makePage([
-        { id: "c1", name: "Distribuidora Aurora", city: "Campinas", state: "SP", createdAt: "2026-08-01T00:00:00Z" },
+        { id: "c1", name: "Distribuidora Aurora", active: true, city: "Campinas", state: "SP", createdAt: "2026-08-01T00:00:00Z" },
       ]),
     );
     vi.mocked(listOrders).mockResolvedValue({ ...makePage([ORDER]), total: 27 });
