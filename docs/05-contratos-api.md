@@ -1167,3 +1167,20 @@ e na proposta [ADR-026](decisions/ADR-026-seguranca-comandos-externos.md).
 `PENDENTE DE DEFINIÇÃO`: assinatura e composição específicas de fornecedor,
 webhook HTTP e bindings reais serão definidos em OC82/OC83 antes de habilitar
 integração externa. Sessão/Origin/CSRF e RBAC das rotas atuais permanecem vigentes.
+
+## OC105 — cadastros ativos e arquivados
+
+`CONFIRMADO`: GET de `/customers`, `/products`, `/trucks` e `/drivers` aceita
+`archive_status=active|archived|all` (default `active`). O filtro é whitelist,
+não recebe dados pessoais, e precede COUNT/LIMIT/OFFSET. Detalhe por UUID mantém
+arquivados acessíveis aos mesmos leitores. Clientes/produtos passam a retornar
+`active` booleano; os demais campos e o envelope paginado são preservados.
+
+`CONFIRMADO`: PATCH `/{id}` com `{"active": false}` arquiva e com `true` reativa,
+retornando 200 no schema existente. Somente LOGISTICS_MANAGER escreve; sessão,
+origem e CSRF permanecem obrigatórios. `null` é inválido (422), ID ausente 404,
+unicidade global 409. Repetir o mesmo estado não duplica auditoria. Operação nova
+com fonte arquivada retorna 409 `RECORD_ARCHIVED`, com entidade e UUID em
+`details`, sem dados pessoais. Conflitos operacionais anteriores mantêm seus
+códigos. Consulta de situação da frota mantém a visão completa da OC67/68/72;
+as seleções operacionais usam somente registros ativos/disponíveis.

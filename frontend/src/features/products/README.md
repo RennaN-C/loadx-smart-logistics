@@ -24,8 +24,7 @@ chip "Sem restrições". São essas flags que explicam por que um volume foi rej
 coerção no adapter, conforme D06 e ADR-016. Antes chegava como string; se voltar a chegar, é regressão
 do backend, não do frontend.
 
-**Produto não tem `active`.** Não existe conceito de produto inativo no backend, então não há pill de
-status nem filtro por situação — o filtro é por restrição, que é o que muda o planejamento.
+`CONFIRMADO` (OC105): produto possui `active`; arquivamento é independente das restrições físicas.
 
 ## Permissões
 
@@ -36,3 +35,12 @@ status nem filtro por situação — o filtro é por restrição, que é o que m
 
 Busca e filtro server-side: D12 mantém isso fora do contrato, então o que a tela filtra é apenas a
 página carregada — a tela avisa isso em texto. Exclusão não existe rota.
+
+## OC105 — ciclo de vida
+
+`CONFIRMADO`: a tela inicia em somente ativos, permite consultar arquivados ou
+ambos pelo filtro `archive_status` no servidor, reiniciando na página 1. A busca
+textual e as restrições continuam locais à página. Cards mostram Ativo/Arquivado.
+LOGISTICS_MANAGER vê ações Arquivar/Reativar, que usam o PATCH existente, exibem
+loading/erro e atualizam a listagem somente após sucesso. Os demais perfis
+preservam as permissões de leitura e não recebem botões de gestão.

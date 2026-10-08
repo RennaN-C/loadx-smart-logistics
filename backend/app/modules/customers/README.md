@@ -48,3 +48,16 @@ Contrato completo: [ViaCEP — OC62/OC70](../../integrations/viacep/README.md).
   vazio são inválidos. Falhas usam o erro Pydantic padrão, HTTP `422`.
 - Dados pessoais reais não devem ser usados em seeds, testes ou exemplos.
 - Todas as rotas exigem sessão em cookie e consultam o papel e o estado atual do usuário no banco.
+
+## OC105 — arquivamento lógico
+
+`CONFIRMADO`: `active=false` significa arquivado, sem DELETE e sem remoção de
+referências históricas. PATCH com `active=true` reativa, validando o cadastro
+completo e mantendo as unicidades globais. Só LOGISTICS_MANAGER escreve.
+Alterações de estado registram ator, entidade e campo `active` na auditoria,
+na mesma transação; repetições não criam eventos duplicados.
+
+`CONFIRMADO`: a coleção usa `archive_status=active|archived|all`, default
+`active`, filtrado no PostgreSQL antes da paginação. Consulta por ID não esconde
+arquivados. Os contratos de disponibilidade mantêm a visão de cadastro e
+conflito separados; operações existentes preservam histórico e RBAC.

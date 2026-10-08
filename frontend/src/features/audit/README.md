@@ -10,3 +10,6 @@ eventos administrativos selecionados.
 
 `CONFIRMADO`: o catálogo também identifica LOAD_DISTRIBUTION e
 LOAD_DISTRIBUTION_PART da OC87, preservando a consulta existente.
+
+`CONFIRMADO` (OC105): catálogo inclui CUSTOMER/PRODUCT/TRUCK/DRIVER e
+RECORD_ARCHIVED/RECORD_REACTIVATED, com rótulos em português nos filtros/histórico.
