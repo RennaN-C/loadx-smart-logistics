@@ -9,6 +9,28 @@
 - `CONFIRMADO`: coordenadas usam `x = largura`, `y = altura`, `z = comprimento`.
 - `CONFIRMADO`: a origem `(0, 0, 0)` fica no piso, no canto frontal esquerdo do baú.
 
+## Diretriz aprovada para a v1.2.0 — evolução do RBAC (OC112)
+
+**Decisão de produto de 08/10/2026; ainda não implementada em todos os endpoints.**
+O `ADMIN` standalone deve possuir todas as permissões gerenciais e administrativas
+**do LoadX**, inclusive criar/editar/arquivar/reativar clientes, produtos,
+caminhões e motoristas; criar, comparar e aprovar planejamento; e operar recursos
+gerenciais, sempre respeitando identidade, estado, auditoria e regras do domínio.
+O `LOGISTICS_MANAGER` administra somente cadastros e fluxos logísticos e não
+gerencia usuários/credenciais de terceiros, permissões, segurança institucional
+ou dados institucionais da empresa.
+
+As matrizes e descrições de RBAC abaixo documentam **o comportamento atualmente
+implementado**, que ainda pode reservar mutações ao `LOGISTICS_MANAGER`. Não
+tratar essa restrição legada como política-alvo para novas OCs. A execução da
+mudança de backend/frontend exige PR funcional, testes 401/403 por perfil e
+validação transversal antes do release. Consultar
+[OC112 / Issue #159](https://github.com/RennaN-C/loadx-smart-logistics/issues/159).
+
+`ADMIN` não equivale a SUPERADMIN CoreFlow e não pode ignorar ownership por
+ator, fluxo de motorista vinculado, segurança, trilha de auditoria, restrições
+operacionais nem isolamento futuro entre organizações.
+
 ## Perfis
 
 `CONFIRMADO`: perfis previstos no documento-base:

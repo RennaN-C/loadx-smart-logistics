@@ -74,6 +74,25 @@ de schema da v1.3.0 dentro da v1.2.0.
 | OC111 | #158 | Rennan | Operação / linha do tempo | OC97 e OC93 |
 | OC112 | #159 | Rennan | Segurança / permissões | OC86 |
 
+## Diretriz transversal de permissões para todas as OCs
+
+**Aprovado em 08/10/2026; implementação transversal pendente na OC112.**
+`ADMIN` deve poder executar também as ações de `LOGISTICS_MANAGER` em
+clientes, produtos, caminhões, motoristas, pedidos, planos e demais fluxos
+gerenciais do LoadX, sem contornar regras/estados, vínculo de motorista ou
+trilha de auditoria. `LOGISTICS_MANAGER` recebe as ações necessárias à
+operação logística, **sem** poder de administrar usuários, credenciais de
+terceiros, configuração institucional, catálogo de perfis e segurança.
+
+**Orientação para o time:** OC85/86/91/92/99/100/101/102 e demais interfaces
+devem usar este modelo-alvo ao desenhar navegação, ações e testes; porém,
+enquanto a OC112 não integrar a mudança de autorização, a API e a interface
+devem respeitar e declarar o RBAC *realmente vigente* (sem liberar apenas
+botões nem antecipar permissão na API). A OC112 fará auditoria completa,
+backend como autoridade, migração/compatibilidade e testes regressivos.
+A hierarquia do ADMIN é interna ao LoadX; não representa SUPERADMIN nem
+entitlement da plataforma CoreFlow.
+
 ## Frentes da versão
 
 ### Administração, conta e segurança
