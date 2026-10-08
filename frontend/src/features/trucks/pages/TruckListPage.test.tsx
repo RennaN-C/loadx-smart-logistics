@@ -112,15 +112,15 @@ describe("TruckListPage", () => {
     expect(screen.queryByText("ABC1D23")).not.toBeInTheDocument();
   });
 
-  it("esconde as ações de gestão para quem só tem leitura", async () => {
+  it("permite ao ADMIN gerenciar caminhões", async () => {
     vi.mocked(listTrucks).mockResolvedValue(makePage(TRUCKS));
     mockRole("ADMIN");
 
     render(<TruckListPage />);
     await screen.findByText("ABC1D23");
 
-    expect(screen.queryByRole("button", { name: "Novo caminhão" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Editar" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Novo caminhão" })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Editar" }).length).toBeGreaterThan(0);
   });
 
   it("abre o formulário de cadastro para o gestor de logística", async () => {
