@@ -32,10 +32,10 @@ describe("describeFleetStatus", () => {
     expect(view.tone).toBe("warn");
   });
 
-  it("explica a indisponibilidade por cadastro inativo", () => {
+  it("explica a indisponibilidade por cadastro arquivado", () => {
     const view = describeFleetStatus(truck({ active: false, available: false }));
 
-    expect(view.reason).toBe("Cadastro inativo");
+    expect(view.reason).toBe("Cadastro arquivado");
     // tom diferente do conflito: um é decisão de quem administra, o outro passa
     expect(view.tone).toBe("neutral");
   });
@@ -45,7 +45,7 @@ describe("describeFleetStatus", () => {
       truck({ active: false, hasOperationConflict: true, available: false }),
     );
 
-    expect(view.reason).toBe("Cadastro inativo e já está em operação");
+    expect(view.reason).toBe("Cadastro arquivado e já está em operação");
   });
 
   it("NÃO recalcula a disponibilidade: quem decide é o backend", () => {

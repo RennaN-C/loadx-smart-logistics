@@ -80,7 +80,7 @@ describe("TruckListPage", () => {
     expect(await screen.findByText("ABC1D23")).toBeInTheDocument();
     expect(screen.getByText("QRT2B88")).toBeInTheDocument();
     expect(screen.getByText("Ativo")).toBeInTheDocument();
-    expect(screen.getByText("Inativo")).toBeInTheDocument();
+    expect(screen.getByText("Arquivado")).toBeInTheDocument();
   });
 
   it("filtra por placa ou modelo sem chamar o backend de novo", async () => {
@@ -104,10 +104,12 @@ describe("TruckListPage", () => {
     render(<TruckListPage />);
     await screen.findByText("ABC1D23");
 
-    fireEvent.change(screen.getByLabelText("Filtrar por status"), { target: { value: "inactive" } });
+    vi.mocked(listTrucks).mockResolvedValue(makePage([TRUCKS[1]]));
+    fireEvent.change(screen.getByLabelText("Filtrar cadastros por arquivamento"), { target: { value: "archived" } });
 
+    await waitFor(() => expect(listTrucks).toHaveBeenLastCalledWith({ page: 1, pageSize: 20, archiveStatus: "archived" }));
+    expect(await screen.findByText("QRT2B88")).toBeInTheDocument();
     expect(screen.queryByText("ABC1D23")).not.toBeInTheDocument();
-    expect(screen.getByText("QRT2B88")).toBeInTheDocument();
   });
 
   it("esconde as ações de gestão para quem só tem leitura", async () => {
@@ -165,6 +167,6 @@ describe("TruckListPage", () => {
 
     expect(await screen.findByText("QRT2B88")).toBeInTheDocument();
     expect(screen.getByText("Página 2 de 2")).toBeInTheDocument();
-    expect(listTrucks).toHaveBeenLastCalledWith({ page: 2, pageSize: 20 });
+    expect(listTrucks).toHaveBeenLastCalledWith({ page: 2, pageSize: 20, archiveStatus: "active" });
   });
 });

@@ -61,7 +61,7 @@ describe("FleetStatusPage", () => {
     await screen.findByText("DEF2E34");
 
     expect(within(cartao("DEF2E34")).getByText("Já está em operação")).toBeInTheDocument();
-    expect(within(cartao("GHI3F45")).getByText("Cadastro inativo")).toBeInTheDocument();
+    expect(within(cartao("GHI3F45")).getByText("Cadastro arquivado")).toBeInTheDocument();
   });
 
   it("não ocupa linha com motivo quando o caminhão está disponível", async () => {
@@ -70,7 +70,7 @@ describe("FleetStatusPage", () => {
     render(<FleetStatusPage />);
     await screen.findByText("ABC1D23");
 
-    expect(within(cartao("ABC1D23")).queryByText(/operação|inativo/i)).not.toBeInTheDocument();
+    expect(within(cartao("ABC1D23")).queryByText(/operação|arquivado/i)).not.toBeInTheDocument();
   });
 
   it("deixa claro que a contagem vale para a página, não para a frota", async () => {
