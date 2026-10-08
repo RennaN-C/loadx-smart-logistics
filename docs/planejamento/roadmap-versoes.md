@@ -181,6 +181,21 @@ modo standalone, mas não podem tornar o LoadX proprietário permanente de ident
 global, organização, licenciamento ou SUPERADMIN de plataforma. As Issues #128, #129,
 #136, #137, #145 e #159 registram essa fronteira de compatibilidade.
 
+### Hierarquia de perfis do LoadX na v1.2.0
+
+`CONFIRMADO` (08/10/2026): `ADMIN` é superconjunto de funções gerenciais e de
+conferência **internas ao LoadX**; `LOGISTICS_MANAGER` fica restrito à gestão
+operacional e não pode administrar usuários, credenciais de terceiros,
+configuração institucional, segurança de conta ou perfis/permissões. `CHECKER`
+opera conferência e `DRIVER` operações próprias validadas por vínculo.
+
+O ajuste da matriz fixa do backend/frontend e dos contratos ocorre antes da
+OC85/OC86 para evitar divergências de autorização nos novos componentes.
+OC112 continua encarregada dos perfis personalizados, catálogo de permissões
+logísticas e migração de RBAC. Nem `ADMIN` nem perfil customizado obtém direito
+de plataforma, SSO, tenant ou entitlement CoreFlow; todas as regras de domínio,
+auditoria e autoria das ações continuam obrigatórias.
+
 ## Planejamento aprovado
 
 | OC | Issue | Responsável | Entrega planejada |
