@@ -36,7 +36,7 @@ export function TruckListPage() {
   const canManage = user?.role === "LOGISTICS_MANAGER";
   const isFormOpen = isCreating || editingTruck !== null;
 
-  // D12 não permite busca ou filtros server-side: ambos operam somente na página atual.
+  // A busca textual permanece local; o arquivamento é filtrado pelo servidor (OC105).
   const visibleTrucks = useMemo(() => {
     const term = search.trim().toLowerCase();
 
@@ -89,7 +89,7 @@ export function TruckListPage() {
 
       {status === "success" && total > 0 ? (
         <p className="entity-summary">
-          Exibindo {trucks.length} de {total} caminhões. Busca e filtro atuam nesta página.
+          Exibindo {trucks.length} de {total} caminhões. A busca atua nesta página; arquivamento filtra toda a lista.
         </p>
       ) : null}
 

@@ -46,7 +46,7 @@ export function ProductListPage() {
   const canManage = user?.role === "LOGISTICS_MANAGER";
   const isFormOpen = isCreating || editingProduct !== null;
 
-  // D12 mantém filtro server-side fora do contrato: busca e filtro agem só na página atual.
+  // Busca e restrições são locais; o arquivamento é filtrado pelo servidor (OC105).
   const visibleProducts = useMemo(() => {
     const term = search.trim().toLowerCase();
 
@@ -107,7 +107,7 @@ export function ProductListPage() {
 
       {status === "success" && total > 0 ? (
         <p className="entity-summary">
-          Exibindo {products.length} de {total} produtos. Busca e filtro atuam nesta página.
+          Exibindo {products.length} de {total} produtos. A busca atua nesta página; arquivamento filtra toda a lista.
         </p>
       ) : null}
 

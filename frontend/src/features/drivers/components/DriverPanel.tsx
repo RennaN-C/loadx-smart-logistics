@@ -78,7 +78,7 @@ export function DriverPanel() {
 
       {status === "success" && total > 0 ? (
         <p className="entity-summary">
-          Exibindo {drivers.length} de {total} motoristas. Busca e filtro atuam nesta página.
+          Exibindo {drivers.length} de {total} motoristas. A busca atua nesta página; arquivamento filtra toda a lista.
         </p>
       ) : null}
 
