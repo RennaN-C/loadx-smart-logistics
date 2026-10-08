@@ -32,17 +32,17 @@ Legenda:
 | Recurso | `ADMIN` | `LOGISTICS_MANAGER` | `CHECKER` | `DRIVER` |
 |---|---|---|---|---|
 | Usuários | G | Próprio em `/auth/me` | Próprio em `/auth/me` | Próprio em `/auth/me` |
-| Clientes | R | G | - | - |
-| Consulta auxiliar de CEP (OC62) | - | Consultar | - | - |
-| Motoristas | R | G | - | - |
-| Caminhões | R | G | R | S futuro |
-| Produtos | R | G | R | S futuro |
-| Pedidos | R | G | R | S futuro |
-| Planos de carga | R e explicar | G, calcular, comparar, aprovar e explicar | S e explicar plano aprovado | - |
-| Carregamento | R | Criar e consultar | Consultar, iniciar, conferir itens e finalizar | - |
-| Viagens | R | G e atribuir | - | S em transições permitidas |
-| Entregas | R | G e tratar exceções | - | S em transições permitidas |
-| Ocorrências | R | Criar e consultar | - | Criar e consultar somente nas próprias viagens/entregas |
+| Clientes | G | G | - | - |
+| Consulta auxiliar de CEP (OC62) | Consultar | Consultar | - | - |
+| Motoristas | G | G | - | - |
+| Caminhões | G | G | R | S futuro |
+| Produtos | G | G | R | S futuro |
+| Pedidos | G | G | R | S futuro |
+| Planos de carga | G, calcular, comparar, aprovar e explicar | G, calcular, comparar, aprovar e explicar | S e explicar plano aprovado | - |
+| Carregamento | Criar, consultar, iniciar, conferir e finalizar | Criar e consultar | Consultar, iniciar, conferir itens e finalizar | - |
+| Viagens | G e atribuir | G e atribuir | - | S em transições permitidas |
+| Entregas | G e tratar exceções | G e tratar exceções | - | S em transições permitidas |
+| Ocorrências | Criar e consultar | Criar e consultar | - | Criar e consultar somente nas próprias viagens/entregas |
 | Histórico geral | R | R | - | - |
 | Relatórios | R e gerar | R e gerar | - | - |
 
@@ -59,9 +59,19 @@ relatórios constam no
 filtros são aplicados no backend antes da paginação e a consulta não oferece
 mutação ou exclusão de registros.
 
+**Hierarquia vigente na v1.2.0 (ajuste antecipado à OC112):** ADMIN pode executar
+as mesmas ações gerenciais do LOGISTICS_MANAGER e as ações de conferência do CHECKER.
+O gerente gerencia clientes, produtos, caminhões, motoristas, pedidos, planejamento,
+viagens e demais operações logísticas, mas não usuários, credenciais de terceiros,
+configurações institucionais, gestão de perfis/permissões nem segurança administrativa.
+CHECKER/DRIVER permanecem limitados; o ADMIN não ganha automaticamente vínculo de
+motorista, não pode burlar transições, histórico imutável ou autorização por objeto.
+A OC112 futuramente substituirá a matriz fixa por permissões logísticas efetivas,
+sem criar SUPERADMIN, tenant ou entitlement do CoreFlow.
+
 Regras complementares:
 
-- `ADMIN` administra identidades e consulta a operação; alterações operacionais pertencem ao `LOGISTICS_MANAGER`.
+- `ADMIN` administra identidades e também executa operações gerenciais e de conferência do LoadX, sem contornar regras de negócio ou identidade de motorista.
 - `CHECKER` pode consultar caminhões, produtos e pedidos necessários à conferência, sem acessar cadastros pessoais de clientes ou motoristas.
 - Permissão de consulta não libera automaticamente todos os campos pessoais; seleção, omissão e mascaramento de campos seguem `D12`.
 - Acesso `S` exige vínculo comprovado no banco e validação do objeto solicitado, não apenas do perfil.
@@ -433,7 +443,7 @@ cria `LoadPlan`, não altera pedidos, não escolhe vencedor e não produz rankin
 score ou recomendação automática. A ordem dos resultados acompanha `truck_ids`
 somente para reprodução do contrato e não expressa preferência.
 
-`CONFIRMADO`: somente `LOGISTICS_MANAGER` executa a comparação.
+`CONFIRMADO` (v1.2.0): `ADMIN` e `LOGISTICS_MANAGER` executam a comparação.
 
 ### OC22 - explicação de plano
 
@@ -472,13 +482,13 @@ Desenvolvedor 4.
   `finished_at` em UTC.
 - `CONFIRMADO`: somente a sessão `FINISHED` do mesmo plano libera o início da
   viagem; sessão ausente, incompleta ou pertencente a outro plano não libera.
-- `CONFIRMADO` (OC66): `LOGISTICS_MANAGER` cria a sessão; `CHECKER` inicia a
-  sessão, confere os itens e finaliza o carregamento; `ADMIN`, `CHECKER` e
-  `LOGISTICS_MANAGER` consultam; `DRIVER` não acessa o módulo.
+- `CONFIRMADO` (v1.2.0): `ADMIN` e `LOGISTICS_MANAGER` criam a sessão; `ADMIN` e
+  `CHECKER` iniciam, conferem os itens e finalizam; os três consultam. `DRIVER`
+  não acessa o módulo.
 - `CONFIRMADO` (OC66): a matriz aplica menor privilégio e separa a preparação
   logística da execução da conferência. Alterar um item para `CHECKED`, inclusive
   por mecanismo futuro de QR Code ou código de barras, continua sendo operação
-  de conferência exclusiva de `CHECKER`.
+  de conferência restrita a `ADMIN` e `CHECKER`.
 - `CONFIRMADO` (OC66): não há autorização por objeto no carregamento porque o
   modelo atual não atribui sessão ou item a um conferente. OC75 e OC76 não podem
   inferir propriedade por usuário nem criar vínculo novo sem decisão e contrato
@@ -501,8 +511,8 @@ Desenvolvedor 4.
   durante uma viagem `IN_ROUTE`; a conclusão registra `delivered_at` e move o
   pedido correspondente `IN_TRANSIT -> DELIVERED`.
 - `CONFIRMADO`: repetir o status atual é idempotente e não cria histórico.
-- `CONFIRMADO`: `LOGISTICS_MANAGER` cria e opera; `ADMIN` somente consulta;
-  `DRIVER` consulta e opera apenas sua própria viagem; `CHECKER` não acessa.
+- `CONFIRMADO` (v1.2.0): `ADMIN` e `LOGISTICS_MANAGER` criam e operam; `DRIVER`
+  consulta e opera somente a própria viagem, com vínculo validado; `CHECKER` não acessa.
 - `CONFIRMADO`: viagem, entrega, pedidos e todos os registros de histórico da
   ação compartilham um único commit ou rollback.
 - Ocorrência não apaga o status anterior, apenas adiciona contexto.
@@ -570,7 +580,7 @@ Regras:
 - Registro de ocorrência não deve excluir nem sobrescrever histórico.
 - `CONFIRMADO`: na v1.0.0, `ADMIN` consulta; `LOGISTICS_MANAGER` cria e consulta;
   `DRIVER` cria e consulta somente nas próprias viagens/entregas. `CHECKER` não
-  tem acesso. Ocorrência vinculada ao carregamento, registro durante conferência
+  tem acesso. Na v1.2.0, `ADMIN` também registra ocorrências. Ocorrência vinculada ao carregamento, registro durante conferência
   e acesso do `CHECKER` nesse contexto são evoluções futuras.
 
 ## WhatsApp e mensagens
@@ -633,7 +643,7 @@ domínio. Operação rejeitada e repetição idempotente não geram notificaçã
 ## Conferência por código — OC76
 
 `CONFIRMADO`: cada código identifica o UUID de um item de checklist, sem
-ambiguidade entre volumes do mesmo produto. Somente `CHECKER` confirma em sessão
+ambiguidade entre volumes do mesmo produto. `ADMIN` e `CHECKER` confirmam em sessão
 `IN_PROGRESS`. Item de outra sessão, inexistente ou já conferido é rejeitado sem
 alteração; uma leitura não finaliza a sessão nem modifica o plano. O contrato
 está em `docs/05-contratos-api.md`; a matriz OC66 permanece vigente.
