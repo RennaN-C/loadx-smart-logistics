@@ -85,14 +85,14 @@ describe("TripPage", () => {
     renderPage();
 
     expect(await screen.findByRole("button", { name: "Iniciar viagem" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Finalizar viagem" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Finalizar viagem" })).not.toBeInTheDocument();
   });
 
   it("bloqueia entregas enquanto a viagem não entra em rota", async () => {
     renderPage();
     await screen.findByText("Agendada");
 
-    expect(screen.getAllByRole("button", { name: "Iniciar entrega" })[0]).toBeEnabled();
+    expect(screen.getAllByRole("button", { name: "Iniciar entrega" })[0]).toBeDisabled();
     expect(screen.getByText(/só podem ser movimentadas depois/)).toBeInTheDocument();
   });
 
@@ -165,8 +165,8 @@ describe("TripPage", () => {
     renderPage();
     await screen.findByText("Em rota");
 
-    expect(screen.queryByRole("button", { name: "Finalizar viagem" })).not.toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: "Iniciar entrega" })[0]).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Finalizar viagem" })).toBeDisabled();
+    expect(screen.getAllByRole("button", { name: "Iniciar entrega" })[0]).toBeEnabled();
   });
 
   it("não oferece ação na viagem já finalizada", async () => {
