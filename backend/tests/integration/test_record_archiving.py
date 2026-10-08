@@ -86,9 +86,17 @@ def test_downgrade_guard_preserves_archiving_and_audit(
     assert created.status_code == 201
     customer_id = uuid.UUID(created.json()["id"])
     path = f"/api/v1/customers/{customer_id}"
-    assert client.patch(path, headers=manager.headers, json={"active": False}).status_code == 200
+    assert (
+        client.patch(path, headers=manager.headers, json={"active": False}).status_code
+        == 200
+    )
     if reactivate:
-        assert client.patch(path, headers=manager.headers, json={"active": True}).status_code == 200
+        assert (
+            client.patch(
+                path, headers=manager.headers, json={"active": True}
+            ).status_code
+            == 200
+        )
 
     with session_factory() as db:
         events_before = db.scalars(
