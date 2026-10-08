@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { AlertBanner } from "../../../components/AlertBanner";
 import { StatusPill } from "../../../components/StatusPill";
 import { useAuth } from "../../auth/hooks/useAuth";
+import { canOperateTrip } from "../../auth/permissions";
 import { AuditTrail } from "../../audit/components/AuditTrail";
 import { downloadTripReport } from "../../reports/api/reportsApi";
 import { ReportDownloadButton } from "../../reports/components/ReportDownloadButton";
@@ -63,7 +64,7 @@ export function TripPage() {
   const { trip, isLoading, isWorking, errorMessage, run } = useTripPage(tripId);
 
   // Motorista opera a própria viagem; o backend confere o vínculo users.driver_id.
-  const canOperate = user?.role === "LOGISTICS_MANAGER" || user?.role === "DRIVER";
+  const canOperate = canOperateTrip(user?.role);
   const nextTripStatus = trip ? TRIP_TRANSITIONS[trip.status] : undefined;
   const pendingDeliveries = trip?.deliveries.filter((d) => d.status !== "DELIVERED").length ?? 0;
   const canFinish = trip?.status !== "IN_ROUTE" || pendingDeliveries === 0;
