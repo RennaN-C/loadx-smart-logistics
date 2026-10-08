@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.core.pagination import PageResult, PaginationParams
 from app.database.integrity import get_integrity_constraint_name
+from app.modules.customers.address_service import CustomerAddressService
 from app.modules.customers.models import Customer
 from app.modules.customers.repository import CustomerRepository
 from app.modules.customers.schemas import CustomerCreate, CustomerUpdate
@@ -42,12 +43,22 @@ class CustomerService:
             raise CustomerNotFoundError
         return customer
 
-    def create_customer(self, data: CustomerCreate) -> Customer:
+    def create_customer(
+        self, data: CustomerCreate, *, changed_by: uuid.UUID | None = None
+    ) -> Customer:
         if self.repository.get_by_document(data.document) is not None:
             raise CustomerDocumentAlreadyExistsError
 
         customer = Customer(**data.model_dump())
-        return self._persist(lambda: self.repository.add(customer))
+
+        def stage_customer() -> Customer:
+            self.repository.add(customer)
+            CustomerAddressService(self.db).stage_legacy_address(
+                customer, changed_by=changed_by
+            )
+            return customer
+
+        return self._persist(stage_customer)
 
     def update_customer(
         self,
@@ -75,6 +86,10 @@ class CustomerService:
             if not old_active and customer.active:
                 validate_reactivation(CustomerCreate, customer)
             self.repository.update(customer)
+            if {"address", "city", "state"}.intersection(update_data):
+                CustomerAddressService(self.db).stage_legacy_address(
+                    customer, changed_by=changed_by
+                )
             stage_lifecycle_event(
                 self.db,
                 entity_type="CUSTOMER",
