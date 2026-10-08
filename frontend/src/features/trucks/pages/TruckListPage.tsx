@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { AlertBanner } from "../../../components/AlertBanner";
 import { Modal } from "../../../components/Modal";
 import { useAuth } from "../../auth/hooks/useAuth";
+import { canManageLogistics } from "../../auth/permissions";
 import { TruckCard } from "../components/TruckCard";
 import { TruckForm } from "../components/TruckForm";
 import { mapTruckErrorToMessage } from "../components/trucksErrorMessages";
@@ -33,7 +34,7 @@ export function TruckListPage() {
   const [editingTruck, setEditingTruck] = useState<Truck | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
-  const canManage = user?.role === "LOGISTICS_MANAGER";
+  const canManage = canManageLogistics(user?.role);
   const isFormOpen = isCreating || editingTruck !== null;
 
   // A busca textual permanece local; o arquivamento é filtrado pelo servidor (OC105).
