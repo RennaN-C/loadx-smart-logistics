@@ -35,6 +35,24 @@ identidade/empresa/licença ao domínio logístico.
 `CONFIRMADO`: esta seção não autoriza SSO, tenant_id, CoreFlow ou qualquer mudança
 de schema da v1.3.0 dentro da v1.2.0.
 
+## Hierarquia de acesso — decisão antecipada da OC112
+
+`CONFIRMADO` (08/10/2026): no LoadX standalone, o `ADMIN` possui todas as
+capacidades gerenciais e de conferência do próprio módulo, além de administrar
+usuários, configurações institucionais e permissões. `LOGISTICS_MANAGER` atua
+somente na operação logística (clientes, produtos, caminhões, motoristas, pedidos,
+planos, carga, viagens e entregas), **sem** gerenciar credenciais de terceiros,
+perfis/permissões, usuários ou configurações institucionais. `CHECKER` limita-se
+à conferência autorizada e `DRIVER` às próprias viagens/entregas vinculadas.
+
+A normalização da matriz fixa pode ser aplicada antes de OC85/OC86 para que o
+frontend não nasça com permissões contraditórias. **A OC112 continua aberta**:
+será responsável por catálogo configurável, perfis personalizados, migração de
+RBAC, permissões não delegáveis e testes de segurança. ADMIN é poder interno do
+LoadX, **não** SUPERADMIN/tenant/entitlement do CoreFlow. A ampliação de papéis
+não autoriza burlar regras de status, autorização por objeto, integridade física,
+auditoria e identidade do motorista.
+
 ## Divisão oficial
 
 | OC | Issue | Responsável | Área | Dependência principal |
