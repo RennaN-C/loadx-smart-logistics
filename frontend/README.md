@@ -45,3 +45,13 @@ HTTPS; a configuração do Vite não acompanha os arquivos após a publicação.
 serve `dist/` com Caddy. O `Caddyfile` reproduz os headers, aplica cache imutável
 apenas aos assets versionados e mantém o HTML sem cache. Essa imagem é usada
 somente por `compose.production.yaml`.
+
+## OC99 — múltiplos endereços por cliente
+
+`CONFIRMADO`: o botão Endereços no cadastro abre lista paginada, filtro de
+ativos/arquivados, formulário com ViaCEP e ações de edição, principal,
+arquivamento e reativação. ADMIN e LOGISTICS_MANAGER usam a gestão atual.
+Pedidos carregam os endereços ativos do cliente e permitem seleção explícita;
+texto manual continua compatível. Edição preserva snapshot se o destino não
+foi alterado, mesmo que a origem tenha mudado. Trocar cliente limpa o destino.
+Consulta e ações possuem estados de carregamento, erro e vazio.

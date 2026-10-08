@@ -58,3 +58,17 @@ evento específico de ciclo de vida da OC105. Somente é permitido quando não
 existe estado ou auditoria OC105 a preservar. Para reverter após uso real,
 planeje migração compensatória com preservação de dados; não remova registros
 de auditoria para forçar o downgrade.
+
+## OC99 — revision 20261008_0017
+
+`CONFIRMADO`: encadeada a `20261008_0016`, cria customer_addresses, constraints
+e índices e adiciona proveniência/snapshot aos pedidos. Backfill cria um
+principal por cliente, inclusive arquivados, sem alterar o estado do cliente.
+Pedidos antigos preservam seu próprio texto; vínculo com endereço não é
+inferido. A suíte PostgreSQL 16 verifica dados legados, upgrade, downgrade,
+novo upgrade, alembic check e único head.
+
+`CONFIRMADO`: downgrade é permitido para backfill intocado e bloqueia qualquer
+endereço novo/editado/arquivado, proveniência/snapshot estruturado ou auditoria
+de endereços que seria perdido. Falha transacional preserva o schema e dados.
+Não remova dados de produção para contornar essa proteção.

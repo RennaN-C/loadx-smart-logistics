@@ -21,10 +21,9 @@ Crie somente os arquivos necessários para a ocorrência atual.
 - `GET /api/v1/customers/{id}`: consulta cliente por ID.
 - `PATCH /api/v1/customers/{id}`: atualiza campos enviados.
 - `GET /api/v1/customers/cep/{cep}`: consulta auxiliar de endereço por CEP,
-  somente para `LOGISTICS_MANAGER`, com timeout HTTP de 5 segundos por fase.
+  para `ADMIN` e `LOGISTICS_MANAGER`, com timeout HTTP de 5 segundos por fase.
 
-`CONFIRMADO`: `ADMIN` e `LOGISTICS_MANAGER` podem consultar clientes. Somente
-`LOGISTICS_MANAGER` pode criar, atualizar ou consultar CEP. `CHECKER` e
+`CONFIRMADO`: `ADMIN` e `LOGISTICS_MANAGER` podem consultar clientes. `ADMIN` e `LOGISTICS_MANAGER` podem criar, atualizar ou consultar CEP. `CHECKER` e
 `DRIVER` não acessam o módulo.
 
 `CONFIRMADO`: a OC62 retorna `ViaCEPAddress` em `200` e o envelope padrão nos
@@ -53,7 +52,7 @@ Contrato completo: [ViaCEP — OC62/OC70](../../integrations/viacep/README.md).
 
 `CONFIRMADO`: `active=false` significa arquivado, sem DELETE e sem remoção de
 referências históricas. PATCH com `active=true` reativa, validando o cadastro
-completo e mantendo as unicidades globais. Só LOGISTICS_MANAGER escreve.
+completo e mantendo as unicidades globais. ADMIN e LOGISTICS_MANAGER escrevem.
 Alterações de estado registram ator, entidade e campo `active` na auditoria,
 na mesma transação; repetições não criam eventos duplicados.
 
@@ -61,3 +60,26 @@ na mesma transação; repetições não criam eventos duplicados.
 `active`, filtrado no PostgreSQL antes da paginação. Consulta por ID não esconde
 arquivados. Os contratos de disponibilidade mantêm a visão de cadastro e
 conflito separados; operações existentes preservam histórico e RBAC.
+
+## OC99 — endereços reutilizáveis
+
+`CONFIRMADO`: CustomerAddress é definida em `models.py`;
+`address_schemas.py`, `address_repository.py`, `address_service.py` e
+`address_router.py` mantêm a separação de camadas dentro do módulo.
+
+- GET `/customers/{customer_id}/addresses`: página de endereços, com
+  `archive_status=active|archived|all` (ativo por padrão).
+- POST nessa coleção: cria endereço; primeiro ativo torna-se principal.
+- PATCH `/{address_id}`: edita, promove (`is_primary=true`), arquiva
+  (`active=false`) ou reativa (`active=true`), preservando UUID.
+
+`CONFIRMADO`: ADMIN e LOGISTICS_MANAGER consultam e escrevem; demais papéis
+recebem 403. Cliente inexistente/endereço de outro cliente no PATCH retornam
+404; principal inativo/desmarcação sem substituição retornam 409; entrada
+inválida retorna 422. Não existe DELETE. CEP opcional é normalizado e a consulta
+ViaCEP atual auxilia o formulário sem impedir preenchimento manual.
+
+`CONFIRMADO`: parent lock no cliente serializa operações; UNIQUE parcial
+impede dois principais e CHECK exige principal ativo. A projeção legada e
+auditoria fazem parte da mesma transação. `select_for_order` é o serviço público
+para orders; valida origem/estado e fornece uma cópia independente do endereço.
