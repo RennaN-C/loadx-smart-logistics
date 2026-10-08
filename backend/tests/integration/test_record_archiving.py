@@ -77,8 +77,6 @@ def test_downgrade_guard_preserves_archiving_and_audit(
 ) -> None:
     from importlib import import_module
 
-    from sqlalchemy.exc import DBAPIError
-
     migration = import_module("migrations.versions.20261008_0016_record_archiving")
     created = client.post(
         "/api/v1/customers", headers=manager.headers, json=make_customer_payload()
@@ -103,8 +101,8 @@ def test_downgrade_guard_preserves_archiving_and_audit(
             select(AuditEvent).where(AuditEvent.entity_id == customer_id)
         ).all()
         assert len(events_before) == (2 if reactivate else 1)
-        with pytest.raises(DBAPIError, match="OC105 downgrade blocked"):
-            db.execute(migration.DOWNGRADE_GUARD_SQL)
+        with pytest.raises(RuntimeError, match="OC105 downgrade blocked"):
+            migration.ensure_safe_downgrade(db.connection())
         db.rollback()
         assert db.get(Customer, customer_id).active is reactivate
         events_after = db.scalars(
