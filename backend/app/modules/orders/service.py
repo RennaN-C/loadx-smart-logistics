@@ -4,8 +4,10 @@ from collections.abc import Callable, Sequence
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core.exceptions import ApiError
 from app.core.pagination import PageResult, PaginationParams
 from app.database.integrity import get_integrity_constraint_name
+from app.modules.customers.address_service import CustomerAddressService
 from app.modules.customers.service import CustomerNotFoundError, CustomerService
 from app.modules.load_planning.reference_service import LoadPlanReferenceService
 from app.modules.orders.models import Order, OrderItem
@@ -105,12 +107,17 @@ class OrderService:
     def create_order(self, data: OrderCreate, *, changed_by: uuid.UUID) -> Order:
         self._ensure_customer_exists(data.customer_id)
         self._ensure_products_exist(data.items)
+        text, snapshot = self._delivery_address(
+            data.customer_id, data.customer_address_id, data.delivery_address
+        )
 
         order = Order(
             customer_id=data.customer_id,
             status="DRAFT",
             priority=data.priority,
-            delivery_address=data.delivery_address,
+            delivery_address=text,
+            customer_address_id=data.customer_address_id,
+            delivery_address_snapshot=snapshot,
             expected_delivery_at=data.expected_delivery_at,
             items=[self._build_order_item(item) for item in data.items],
         )
@@ -129,6 +136,21 @@ class OrderService:
             stage_order_with_history,
             product_ids=[item.product_id for item in data.items],
         )
+
+    def _delivery_address(
+        self, customer_id: uuid.UUID, address_id: uuid.UUID | None, text: str | None
+    ) -> tuple[str, dict]:
+        if address_id is not None:
+            return CustomerAddressService(self.db).select_for_order(
+                customer_id, address_id
+            )
+        if text is None:
+            raise ApiError(
+                422,
+                "CUSTOMER_ADDRESS_REQUIRED",
+                "Selecione um endereço ou informe o destino.",
+            )
+        return text, {"address": text}
 
     def update_order(self, order_id: uuid.UUID, data: OrderUpdate) -> Order:
         try:
@@ -152,6 +174,28 @@ class OrderService:
         new_customer_id = update_data.get("customer_id")
         if new_customer_id is not None:
             self._ensure_customer_exists(new_customer_id)
+
+        address_id = update_data.pop("customer_address_id", None)
+        customer_changed = (
+            new_customer_id is not None and new_customer_id != order.customer_id
+        )
+        selection_changed = (
+            "customer_address_id" in data.model_fields_set
+            or "delivery_address" in data.model_fields_set
+        )
+        if customer_changed and not selection_changed:
+            raise ApiError(
+                422,
+                "CUSTOMER_ADDRESS_REQUIRED",
+                "Alterar o cliente exige selecionar ou informar o endereço de entrega.",
+            )
+        if selection_changed:
+            text, snapshot = self._delivery_address(
+                new_customer_id or order.customer_id, address_id, data.delivery_address
+            )
+            update_data["delivery_address"] = text
+            order.customer_address_id = address_id
+            order.delivery_address_snapshot = snapshot
 
         update_data.pop("items", None)
         if "items" in data.model_fields_set and data.items is not None:

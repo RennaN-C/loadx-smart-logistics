@@ -60,7 +60,8 @@ class OrderItemRead(OrderItemBase):
 class OrderCreate(BaseModel):
     customer_id: uuid.UUID
     priority: str = Field(min_length=1, max_length=32)
-    delivery_address: str = Field(min_length=1, max_length=255)
+    customer_address_id: uuid.UUID | None = None
+    delivery_address: str | None = Field(default=None, min_length=1, max_length=255)
     expected_delivery_at: datetime | None = None
     items: list[OrderItemCreate] = Field(min_length=1)
 
@@ -78,11 +79,16 @@ class OrderCreate(BaseModel):
 
     @model_validator(mode="after")
     def require_one_delivery_sequence(self) -> "OrderCreate":
+        if (self.customer_address_id is None) == (self.delivery_address is None):
+            raise ValueError(
+                "provide exactly one of customer_address_id or delivery_address"
+            )
         _validate_single_delivery_sequence(self.items)
         return self
 
 
 class OrderUpdate(BaseModel):
+    customer_address_id: uuid.UUID | None = None
     customer_id: uuid.UUID | None = None
     priority: str | None = Field(default=None, min_length=1, max_length=32)
     delivery_address: str | None = Field(default=None, min_length=1, max_length=255)
@@ -103,6 +109,21 @@ class OrderUpdate(BaseModel):
         if value is None:
             raise ValueError("field must not be null")
         return value
+
+    @model_validator(mode="after")
+    def validate_address_selection(self) -> "OrderUpdate":
+        if (
+            self.customer_address_id is not None
+            and "delivery_address" in self.model_fields_set
+        ):
+            raise ValueError("address selection cannot include delivery_address")
+        if (
+            "customer_address_id" in self.model_fields_set
+            and self.customer_address_id is None
+            and self.delivery_address is None
+        ):
+            raise ValueError("clearing address selection requires delivery_address")
+        return self
 
     @field_validator("priority")
     @classmethod
@@ -168,6 +189,8 @@ class OrderRead(BaseModel):
     customer_id: uuid.UUID
     status: str
     priority: str
+    customer_address_id: uuid.UUID | None = None
+    delivery_address_snapshot: dict | None = None
     delivery_address: str
     expected_delivery_at: datetime | None
     created_at: datetime
