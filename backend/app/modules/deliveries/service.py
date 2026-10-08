@@ -523,7 +523,7 @@ class TripService:
         self._ensure_linked_driver(current_user, trip)
 
     def _ensure_can_operate(self, current_user: User, trip: Trip) -> None:
-        if current_user.role == "LOGISTICS_MANAGER":
+        if current_user.role in {"ADMIN", "LOGISTICS_MANAGER"}:
             return
         self._ensure_linked_driver(current_user, trip)
 
