@@ -42,3 +42,11 @@ describe("mapOrderFromDto", () => {
     expect(order.expectedDeliveryAt).toBeNull();
   });
 });
+
+it("preserva proveniência e snapshot retornados pelo backend OC99", () => {
+  const snapshot = { address: "Destino contratado", city: "Campinas", customer_address_id: "a1" };
+  const order = mapOrderFromDto({ id: "o1", customer_id: "c1", status: "DRAFT", priority: "NORMAL", delivery_address: "Destino contratado", customer_address_id: "a1", delivery_address_snapshot: snapshot, expected_delivery_at: null, created_at: "2026-10-08T00:00:00Z", items: [] });
+  expect(order.customerAddressId).toBe("a1");
+  expect(order.deliveryAddressSnapshot).toEqual(snapshot);
+  expect(order.deliveryAddress).toBe("Destino contratado");
+});

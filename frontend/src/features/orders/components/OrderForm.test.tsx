@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { listActiveCustomerAddresses } from "../../customers/api/customerAddressesApi";
 import { ApiError } from "../../../types/api";
 import type { Customer } from "../../customers/types";
 import type { Product } from "../../products/types";
@@ -10,6 +11,7 @@ import { OrderForm } from "./OrderForm";
 import { mapOrderErrorToMessage } from "./ordersErrorMessages";
 
 vi.mock("../api/ordersApi");
+vi.mock("../../customers/api/customerAddressesApi");
 
 const CUSTOMERS: Customer[] = [
   {
@@ -97,6 +99,7 @@ describe("mapOrderErrorToMessage", () => {
 
 describe("OrderForm", () => {
   beforeEach(() => {
+    vi.mocked(listActiveCustomerAddresses).mockReset().mockResolvedValue([]);
     vi.mocked(createOrder).mockReset();
     vi.mocked(updateOrder).mockReset();
     vi.mocked(changeOrderStatus).mockReset();
@@ -286,5 +289,44 @@ describe("OrderForm", () => {
     fireEvent.click(screen.getByRole("button", { name: "Cadastrar pedido" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("O cliente selecionado não existe mais.");
+  });
+});
+
+
+describe("OC99 seleção e preservação de endereço", () => {
+  const addresses = [{ id: "a1", customerId: "c1", label: "Filial", address: "Rua cadastrada", city: "Campinas", state: "SP", postalCode: null, active: true, isPrimary: true, createdAt: "2026-10-08T00:00:00Z" }];
+  beforeEach(() => {
+    vi.mocked(listActiveCustomerAddresses).mockReset().mockResolvedValue(addresses);
+    vi.mocked(createOrder).mockReset().mockResolvedValue(ORDER);
+    vi.mocked(updateOrder).mockReset().mockResolvedValue(ORDER);
+  });
+  it("envia somente o endereço selecionado, sem texto concorrente", async () => {
+    renderForm();
+    fireEvent.change(screen.getByLabelText("CLIENTE"), { target: { value: "c1" } });
+    await screen.findByRole("option", { name: /Filial/ });
+    fireEvent.change(screen.getByLabelText("ENDEREÇO CADASTRADO"), { target: { value: "a1" } });
+    fireEvent.change(screen.getByLabelText("PRODUTO 1"), { target: { value: "p1" } });
+    expect(screen.getByLabelText("ENDEREÇO DE ENTREGA")).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Cadastrar pedido" }));
+    await waitFor(() => expect(createOrder).toHaveBeenCalledWith(expect.objectContaining({ customerAddressId: "a1" })));
+    expect(vi.mocked(createOrder).mock.calls[0][0]).not.toHaveProperty("deliveryAddress");
+  });
+  it("omissão na edição mantém snapshot mesmo se cadastro mudou", async () => {
+    renderForm({ ...ORDER, customerAddressId: "a1" });
+    await screen.findByRole("option", { name: /Filial/ });
+    expect(screen.getByLabelText("ENDEREÇO DE ENTREGA")).toHaveValue(ORDER.deliveryAddress);
+    fireEvent.change(screen.getByLabelText("PRIORIDADE"), { target: { value: "HIGH" } });
+    fireEvent.click(screen.getByRole("button", { name: "Salvar alterações" }));
+    await waitFor(() => expect(updateOrder).toHaveBeenCalled());
+    const payload = vi.mocked(updateOrder).mock.calls[0][1];
+    expect(payload).not.toHaveProperty("deliveryAddress");
+    expect(payload).not.toHaveProperty("customerAddressId");
+  });
+  it("falha na consulta mantém cadastro manual disponível", async () => {
+    vi.mocked(listActiveCustomerAddresses).mockRejectedValue(new Error("offline"));
+    renderForm();
+    fireEvent.change(screen.getByLabelText("CLIENTE"), { target: { value: "c1" } });
+    expect(await screen.findByRole("alert")).toHaveTextContent("Você pode informar o endereço manualmente");
+    expect(screen.getByLabelText("ENDEREÇO DE ENTREGA")).not.toBeDisabled();
   });
 });

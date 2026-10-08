@@ -117,7 +117,7 @@ def create_customer(
     service: Annotated[CustomerService, Depends(get_customer_service)],
 ) -> Customer | JSONResponse:
     try:
-        return service.create_customer(data)
+        return service.create_customer(data, changed_by=_current_user.id)
     except CustomerDocumentAlreadyExistsError:
         return error_response(
             status.HTTP_409_CONFLICT,

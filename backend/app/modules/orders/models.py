@@ -2,15 +2,18 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import (
+    JSON,
     CheckConstraint,
     DateTime,
     ForeignKey,
+    ForeignKeyConstraint,
     Integer,
     String,
     UniqueConstraint,
     Uuid,
     func,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base
@@ -19,6 +22,12 @@ from app.database.base import Base
 class Order(Base):
     __tablename__ = "orders"
     __table_args__ = (
+        ForeignKeyConstraint(
+            ["customer_address_id", "customer_id"],
+            ["customer_addresses.id", "customer_addresses.customer_id"],
+            name="fk_orders__customer_addresses",
+            ondelete="RESTRICT",
+        ),
         CheckConstraint(
             "status IN ('DRAFT', 'READY', 'PLANNED', 'IN_TRANSIT', 'DELIVERED', 'CANCELED')",
             name="status_allowed",
@@ -33,6 +42,10 @@ class Order(Base):
         String(32), nullable=False, default="DRAFT", server_default="DRAFT", index=True
     )
     priority: Mapped[str] = mapped_column(String(32), nullable=False)
+    customer_address_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, index=True)
+    delivery_address_snapshot: Mapped[dict | None] = mapped_column(
+        JSON().with_variant(JSONB(), "postgresql")
+    )
     delivery_address: Mapped[str] = mapped_column(String(255), nullable=False)
     expected_delivery_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), index=True

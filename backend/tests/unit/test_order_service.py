@@ -7,7 +7,7 @@ from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.modules.customers.models import Customer
+from app.modules.customers.models import Customer, CustomerAddress
 from app.modules.drivers.models import Driver
 from app.modules.load_planning.distribution_models import (
     LoadDistribution,
@@ -42,6 +42,7 @@ SQLITE_TABLES = (
     Driver.__table__,
     User.__table__,
     Customer.__table__,
+    CustomerAddress.__table__,
     Truck.__table__,
     Product.__table__,
     Order.__table__,

@@ -33,11 +33,11 @@ class AuditEvent(Base):
     __tablename__ = "audit_events"
     __table_args__ = (
         CheckConstraint(
-            "event_type IN ('USER_CREATED', 'USER_UPDATED', 'RECORD_ARCHIVED', 'RECORD_REACTIVATED')",
+            "event_type IN ('USER_CREATED', 'USER_UPDATED', 'RECORD_ARCHIVED', 'RECORD_REACTIVATED', 'CUSTOMER_ADDRESS_CREATED', 'CUSTOMER_ADDRESS_UPDATED', 'CUSTOMER_ADDRESS_ARCHIVED', 'CUSTOMER_ADDRESS_REACTIVATED')",
             name="event_type_allowed",
         ),
         CheckConstraint(
-            "entity_type IN ('USER', 'CUSTOMER', 'PRODUCT', 'TRUCK', 'DRIVER')",
+            "entity_type IN ('USER', 'CUSTOMER', 'PRODUCT', 'TRUCK', 'DRIVER', 'CUSTOMER_ADDRESS')",
             name="entity_type_allowed",
         ),
         Index("ix_audit_events__entity", "entity_type", "entity_id"),

@@ -99,7 +99,7 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
         head_revision = connection.exec_driver_sql(
             "SELECT version_num FROM alembic_version"
         ).scalar_one()
-        assert head_revision == "20261008_0016"
+        assert head_revision == "20261008_0017"
 
     _run_alembic(test_url, "downgrade", "-1")
     with engine.connect() as connection:
@@ -126,11 +126,11 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
         assert (
             connection.exec_driver_sql(
                 "SELECT count(*) FROM information_schema.columns WHERE table_schema='public' "
-                "AND table_name IN ('customers', 'products') AND column_name='active'"
+                "AND table_name='orders' AND column_name='customer_address_id'"
             ).scalar_one()
             == 0
         )
-        assert downgraded_revision == "20261007_0015"
+        assert downgraded_revision == "20261008_0016"
         assert loading_sessions_exists == "loading_sessions"
         assert loading_items_exists == "loading_session_items"
         assert trip_created_at_exists is True
@@ -160,7 +160,43 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
             == "delivery_evidences"
         )
 
+    # Exercise real OC99 backfill against legacy data, including an archived
+    # customer and a contracted destination different from the registry.
+    with engine.begin() as connection:
+        connection.exec_driver_sql("""
+            INSERT INTO customers (id, name, document, address, city, state, active)
+            VALUES ('00000000-0000-4000-8000-000000000099', 'Legado fictício', '00000000000191', 'Cadastro antigo', 'Campinas', 'SP', false);
+            INSERT INTO orders (id, customer_id, priority, delivery_address)
+            VALUES ('00000000-0000-4000-8000-000000000098', '00000000-0000-4000-8000-000000000099', 'NORMAL', 'Destino contratado antigo')
+        """)
     _run_alembic(test_url, "upgrade", "head")
+    with engine.connect() as connection:
+        legacy = connection.exec_driver_sql(
+            "SELECT a.address, a.city, a.state, a.is_primary, a.active, c.active FROM customer_addresses a JOIN customers c ON c.id=a.customer_id"
+        ).one()
+        assert tuple(legacy) == ("Cadastro antigo", "Campinas", "SP", True, True, False)
+        order = connection.exec_driver_sql(
+            "SELECT customer_address_id, delivery_address, delivery_address_snapshot FROM orders"
+        ).one()
+        assert tuple(order) == (
+            None,
+            "Destino contratado antigo",
+            {"address": "Destino contratado antigo"},
+        )
+    _run_alembic(test_url, "downgrade", "-1")
+    with engine.connect() as connection:
+        assert (
+            connection.exec_driver_sql(
+                "SELECT delivery_address FROM orders"
+            ).scalar_one()
+            == "Destino contratado antigo"
+        )
+    _run_alembic(test_url, "upgrade", "head")
+    _run_alembic(test_url, "check")
+    with engine.begin() as connection:
+        connection.exec_driver_sql("DELETE FROM orders")
+        connection.exec_driver_sql("DELETE FROM customer_addresses")
+        connection.exec_driver_sql("DELETE FROM customers")
 
 
 @pytest.fixture(scope="session")

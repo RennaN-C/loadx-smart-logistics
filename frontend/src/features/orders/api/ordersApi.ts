@@ -36,6 +36,8 @@ interface OrderDto {
   status: OrderStatus;
   priority: OrderPriority;
   delivery_address: string;
+  customer_address_id?: string | null;
+  delivery_address_snapshot?: Record<string, unknown> | null;
   expected_delivery_at: string | null;
   created_at: string;
   items: OrderItemDto[];
@@ -70,6 +72,8 @@ export function mapOrderFromDto(dto: OrderDto): Order {
     status: dto.status,
     priority: dto.priority,
     deliveryAddress: dto.delivery_address,
+    ...(dto.customer_address_id !== undefined ? { customerAddressId: dto.customer_address_id } : {}),
+    ...(dto.delivery_address_snapshot !== undefined ? { deliveryAddressSnapshot: dto.delivery_address_snapshot } : {}),
     expectedDeliveryAt: dto.expected_delivery_at,
     createdAt: dto.created_at,
     items: dto.items.map(mapItemFromDto),
@@ -79,6 +83,7 @@ export function mapOrderFromDto(dto: OrderDto): Order {
 function mapOrderToDto(input: OrderUpdateInput): Record<string, unknown> {
   const dto: Record<string, unknown> = {};
 
+  if (input.customerAddressId !== undefined) dto.customer_address_id = input.customerAddressId;
   if (input.customerId !== undefined) dto.customer_id = input.customerId;
   if (input.priority !== undefined) dto.priority = input.priority;
   if (input.deliveryAddress !== undefined) dto.delivery_address = input.deliveryAddress;

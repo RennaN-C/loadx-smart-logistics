@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.pagination import PaginationParams
-from app.modules.customers.models import Customer
+from app.modules.customers.models import Customer, CustomerAddress
 from app.modules.deliveries.models import Delivery, Trip
 from app.modules.deliveries.repository import TripRepository
 from app.modules.deliveries.schemas import TripCreate
@@ -44,6 +44,7 @@ SQLITE_TABLES = (
     Driver.__table__,
     User.__table__,
     Customer.__table__,
+    CustomerAddress.__table__,
     Truck.__table__,
     Product.__table__,
     Order.__table__,

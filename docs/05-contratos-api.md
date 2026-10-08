@@ -1195,3 +1195,25 @@ com fonte arquivada retorna 409 `RECORD_ARCHIVED`, com entidade e UUID em
 `details`, sem dados pessoais. Conflitos operacionais anteriores mantêm seus
 códigos. Consulta de situação da frota mantém a visão completa da OC67/68/72;
 as seleções operacionais usam somente registros ativos/disponíveis.
+
+## OC99 — endereços de cliente e destino contratado
+
+`CONFIRMADO`: ADMIN e LOGISTICS_MANAGER acessam GET/POST
+`/api/v1/customers/{customer_id}/addresses` e PATCH
+`/api/v1/customers/{customer_id}/addresses/{address_id}`. Coleção usa paginação
+padrão e archive_status=active|archived|all; default active. CREATE exige
+address/city/state, aceita label (default Principal), postal_code opcional
+(8 dígitos ou máscara), active e is_primary. PATCH aceita campos parciais;
+postal_code pode ser null, outros campos enviados não podem ser null.
+Arquivamento/reativação usa active, sem DELETE. UUID é estável. Principal
+arquivado promove o ativo mais antigo; se nenhum permanecer, projeção legada
+mantém último endereço. Erros: 401/403 sessão/RBAC, 404 origem não encontrada,
+409 principal inválido, 422 entrada inválida e 500 envelope comum.
+
+`CONFIRMADO`: POST /orders admite exatamente um de customer_address_id ou
+delivery_address. Endereço selecionado pertence ao cliente e deve estar ativo;
+backend copia snapshot e texto. GET detalhado e respostas de escrita acrescentam
+customer_address_id e delivery_address_snapshot. PATCH DRAFT sem destino mantém
+a cópia; novo destino explicitamente selecionado/textual substitui a cópia.
+Troca de cliente exige destino explícito. Seleção inexistente/de outro cliente
+recebe 422, arquivada recebe 409. Consulta pública resumida continua minimizada.

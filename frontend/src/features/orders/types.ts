@@ -40,6 +40,8 @@ export interface OrderListItem {
 
 export interface Order extends Omit<OrderListItem, "itemCount"> {
   deliveryAddress: string;
+  customerAddressId?: string | null;
+  deliveryAddressSnapshot?: Record<string, unknown> | null;
   items: OrderItem[];
 }
 
@@ -52,7 +54,8 @@ export interface OrderItemInput {
 export interface OrderInput {
   customerId: string;
   priority: OrderPriority;
-  deliveryAddress: string;
+  deliveryAddress?: string;
+  customerAddressId?: string;
   expectedDeliveryAt: string | null;
   items: OrderItemInput[];
 }
