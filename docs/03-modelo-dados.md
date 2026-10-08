@@ -663,3 +663,28 @@ somente a clientes e produtos, preservando dados existentes como ativos.
 Unicidades permanecem globais, inclusive para arquivados; FKs e histórico não
 são removidos. O catálogo de `audit_events` aceita `RECORD_ARCHIVED` e
 `RECORD_REACTIVATED` para CUSTOMER, PRODUCT, TRUCK e DRIVER.
+
+## OC99 — múltiplos endereços por cliente
+
+`CONFIRMADO`: `customer_addresses` pertence a customers: UUID `id`, FK
+`customer_id` RESTRICT, `label`, `address` (texto até 255), `city`, `state`,
+`postal_code` opcional (8 dígitos), `active`, `is_primary` e `created_at` UTC.
+Há UNIQUE parcial de principal por cliente, CHECK principal implica ativo,
+índice por cliente e UNIQUE `(id, customer_id)` para proveniência composta.
+Cada cliente com endereços ativos mantém um principal pelo service, serializado
+pelo bloqueio da linha do cliente. Arquivar o principal promove o ativo mais
+antigo; sem ativos, os campos legados mantêm o último endereço conhecido.
+
+`CONFIRMADO`: `customers.address/city/state` permanecem como projeção do
+principal para compatibilidade. Create/PATCH legado sincroniza a projeção e o
+principal na mesma transação. Backfill cria um principal por cliente sem alterar
+os campos existentes. Pedidos antigos não recebem vínculo inferido ao cadastro.
+
+`CONFIRMADO`: orders adiciona `customer_address_id` opcional, FK composta
+`(customer_address_id, customer_id)` → customer_addresses e
+`delivery_address_snapshot` JSONB opcional. Seleção copia endereço, cidade, UF,
+CEP e rótulo; `delivery_address` continua o texto contratado até 255 caracteres.
+Backfill de pedidos copia apenas seu próprio texto, sem presumir cidade/UF
+históricas. Alterar/arquivar o cadastro não modifica snapshot nem pedido.
+Auditoria administrativa inclui CUSTOMER_ADDRESS e eventos próprios de criação,
+edição, arquivamento e reativação, sem conteúdo do endereço no evento.

@@ -666,3 +666,21 @@ a matriz RBAC vigente (motorista arquivado perde acesso operacional próprio;
 gestor continua podendo concluir a operação).
 Indisponibilidade temporária continua em `has_operation_conflict`/`available`,
 sem reutilizar o ciclo de arquivamento.
+
+## OC99 — endereços reutilizáveis
+
+`CONFIRMADO`: ADMIN e LOGISTICS_MANAGER gerem endereços; CHECKER/DRIVER não
+acessam endereços do cliente. Consulta paginada usa archive_status da OC105;
+seleções operacionais recebem apenas ativos de cliente ativo. Apenas um ativo
+é principal; o primeiro ativo é principal automaticamente. Marcar outro como
+principal desmarca o anterior atomicamente. Não é possível desmarcar o único
+principal sem substituição; arquivar promove o ativo mais antigo.
+
+`CONFIRMADO`: pedido com customer_address_id exige endereço ativo pertencente ao
+cliente. O servidor copia o snapshot; não aceita texto concorrente na mesma
+seleção. Pedido legado pode continuar informando delivery_address textual.
+PATCH em DRAFT pode selecionar outro endereço; alterar cliente exige nova
+seleção ou texto explícito e desfaz o vínculo anterior. PATCH sem mudança de
+endereço preserva snapshot, mesmo se o cadastro for alterado/arquivado depois.
+Nenhuma alteração cadastral reescreve pedidos, planos, viagens ou entregas.
+Consulta ViaCEP reutiliza o contrato existente; falha não impede cadastro manual.
