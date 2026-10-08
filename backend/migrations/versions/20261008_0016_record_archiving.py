@@ -38,31 +38,36 @@ def upgrade() -> None:
     )
 
 
-# Never silently erase lifecycle audit evidence or re-activate archived
+# Never silently discard lifecycle audit evidence or reactivate archived
 # customers/products through a lossy schema rollback.
-DOWNGRADE_GUARD_SQL = sa.text(
+DOWNGRADE_GUARD_QUERY = sa.text(
     """
-    DO $
-    BEGIN
-      IF EXISTS (SELECT 1 FROM customers WHERE active = false)
-         OR EXISTS (SELECT 1 FROM products WHERE active = false)
-         OR EXISTS (
-           SELECT 1 FROM audit_events
-           WHERE event_type IN ('RECORD_ARCHIVED', 'RECORD_REACTIVATED')
-              OR entity_type IN ('CUSTOMER', 'PRODUCT', 'TRUCK', 'DRIVER')
-         ) THEN
-        RAISE EXCEPTION
-          'OC105 downgrade blocked: archived records or lifecycle audit events must be preserved'
-          USING ERRCODE = 'P0001';
-      END IF;
-    END $;
+    SELECT
+      EXISTS (SELECT 1 FROM customers WHERE active = false)
+      OR EXISTS (SELECT 1 FROM products WHERE active = false)
+      OR EXISTS (
+        SELECT 1 FROM audit_events
+        WHERE event_type IN ('RECORD_ARCHIVED', 'RECORD_REACTIVATED')
+           OR entity_type IN ('CUSTOMER', 'PRODUCT', 'TRUCK', 'DRIVER')
+      )
     """
 )
 
 
+def ensure_safe_downgrade(connection: sa.Connection) -> None:
+    if connection.scalar(DOWNGRADE_GUARD_QUERY):
+        raise RuntimeError(
+            "OC105 downgrade blocked: archived records or lifecycle audit "
+            "events must be preserved"
+        )
+
+
 def downgrade() -> None:
-    # Fail closed rather than silently discard business state/audit evidence.
-    op.execute(DOWNGRADE_GUARD_SQL)
+    # Prevent writes racing the safety check and the schema downgrade.
+    op.execute(
+        "LOCK TABLE customers, products, audit_events IN SHARE ROW EXCLUSIVE MODE"
+    )
+    ensure_safe_downgrade(op.get_bind())
     _audit_constraints("'USER_CREATED', 'USER_UPDATED'", "'USER'")
     for table in ("products", "customers"):
         op.drop_column(table, "active")
