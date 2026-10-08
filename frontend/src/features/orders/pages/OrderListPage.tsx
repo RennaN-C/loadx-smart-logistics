@@ -7,6 +7,7 @@ import { useEditTarget } from "../../../hooks/useEditTarget";
 import type { ListParams } from "../../../services/pagination";
 import { useResourceList } from "../../../hooks/useResourceList";
 import { useAuth } from "../../auth/hooks/useAuth";
+import { canManageLogistics } from "../../auth/permissions";
 import { listCustomers } from "../../customers/api/customersApi";
 import { listProducts } from "../../products/api/productsApi";
 import { getOrder, listOrders } from "../api/ordersApi";
@@ -45,7 +46,7 @@ export function OrderListPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [isCreating, setIsCreating] = useState(false);
 
-  const canManage = user?.role === "LOGISTICS_MANAGER";
+  const canManage = canManageLogistics(user?.role);
   const isFormOpen = isCreating || edit.target !== null;
 
   const customerNames = useMemo(

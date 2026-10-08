@@ -5,6 +5,7 @@ import { AlertBanner } from "../../../components/AlertBanner";
 import { Tabs, type TabItem } from "../../../components/Tabs";
 import { ApiError } from "../../../types/api";
 import { useAuth } from "../../auth/hooks/useAuth";
+import { canManageLogistics } from "../../auth/permissions";
 import { AuditTrail } from "../../audit/components/AuditTrail";
 import { downloadLoadingReport } from "../../reports/api/reportsApi";
 import { ReportDownloadButton } from "../../reports/components/ReportDownloadButton";
@@ -49,7 +50,7 @@ export function PlanningPage() {
   const [tab, setTab] = useState<PlanTab>("summary");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const canManage = user?.role === "LOGISTICS_MANAGER";
+  const canManage = canManageLogistics(user?.role);
 
   const toMessage = (error: unknown) =>
     mapLoadPlanErrorToMessage(

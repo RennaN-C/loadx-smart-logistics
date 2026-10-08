@@ -35,6 +35,24 @@ identidade/empresa/licença ao domínio logístico.
 `CONFIRMADO`: esta seção não autoriza SSO, tenant_id, CoreFlow ou qualquer mudança
 de schema da v1.3.0 dentro da v1.2.0.
 
+## Hierarquia de acesso — decisão antecipada da OC112
+
+`CONFIRMADO` (08/10/2026): no LoadX standalone, o `ADMIN` possui todas as
+capacidades gerenciais e de conferência do próprio módulo, além de administrar
+usuários, configurações institucionais e permissões. `LOGISTICS_MANAGER` atua
+somente na operação logística (clientes, produtos, caminhões, motoristas, pedidos,
+planos, carga, viagens e entregas), **sem** gerenciar credenciais de terceiros,
+perfis/permissões, usuários ou configurações institucionais. `CHECKER` limita-se
+à conferência autorizada e `DRIVER` às próprias viagens/entregas vinculadas.
+
+A normalização da matriz fixa pode ser aplicada antes de OC85/OC86 para que o
+frontend não nasça com permissões contraditórias. **A OC112 continua aberta**:
+será responsável por catálogo configurável, perfis personalizados, migração de
+RBAC, permissões não delegáveis e testes de segurança. ADMIN é poder interno do
+LoadX, **não** SUPERADMIN/tenant/entitlement do CoreFlow. A ampliação de papéis
+não autoriza burlar regras de status, autorização por objeto, integridade física,
+auditoria e identidade do motorista.
+
 ## Divisão oficial
 
 | OC | Issue | Responsável | Área | Dependência principal |
@@ -73,25 +91,6 @@ de schema da v1.3.0 dentro da v1.2.0.
 | OC110 | #157 | Rennan | Arquivos / anexos | OC80 |
 | OC111 | #158 | Rennan | Operação / linha do tempo | OC97 e OC93 |
 | OC112 | #159 | Rennan | Segurança / permissões | OC86 |
-
-## Diretriz transversal de permissões para todas as OCs
-
-**Aprovado em 08/10/2026; implementação transversal pendente na OC112.**
-`ADMIN` deve poder executar também as ações de `LOGISTICS_MANAGER` em
-clientes, produtos, caminhões, motoristas, pedidos, planos e demais fluxos
-gerenciais do LoadX, sem contornar regras/estados, vínculo de motorista ou
-trilha de auditoria. `LOGISTICS_MANAGER` recebe as ações necessárias à
-operação logística, **sem** poder de administrar usuários, credenciais de
-terceiros, configuração institucional, catálogo de perfis e segurança.
-
-**Orientação para o time:** OC85/86/91/92/99/100/101/102 e demais interfaces
-devem usar este modelo-alvo ao desenhar navegação, ações e testes; porém,
-enquanto a OC112 não integrar a mudança de autorização, a API e a interface
-devem respeitar e declarar o RBAC *realmente vigente* (sem liberar apenas
-botões nem antecipar permissão na API). A OC112 fará auditoria completa,
-backend como autoridade, migração/compatibilidade e testes regressivos.
-A hierarquia do ADMIN é interna ao LoadX; não representa SUPERADMIN nem
-entitlement da plataforma CoreFlow.
 
 ## Frentes da versão
 

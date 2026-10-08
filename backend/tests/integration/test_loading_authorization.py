@@ -22,10 +22,10 @@ LOADING_AUTHORIZATION_CASES = (
     LoadingAuthorizationCase(
         "read", frozenset({"ADMIN", "LOGISTICS_MANAGER", "CHECKER"})
     ),
-    LoadingAuthorizationCase("create", frozenset({"LOGISTICS_MANAGER"})),
-    LoadingAuthorizationCase("start", frozenset({"CHECKER"})),
-    LoadingAuthorizationCase("check_item", frozenset({"CHECKER"})),
-    LoadingAuthorizationCase("finish", frozenset({"CHECKER"})),
+    LoadingAuthorizationCase("create", frozenset({"ADMIN", "LOGISTICS_MANAGER"})),
+    LoadingAuthorizationCase("start", frozenset({"ADMIN", "CHECKER"})),
+    LoadingAuthorizationCase("check_item", frozenset({"ADMIN", "CHECKER"})),
+    LoadingAuthorizationCase("finish", frozenset({"ADMIN", "CHECKER"})),
 )
 
 

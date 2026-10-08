@@ -150,6 +150,12 @@ describe("LoadingPage — permissões (OC66)", () => {
     expect(await screen.findByLabelText("LER CÓDIGO DO VOLUME")).toBeInTheDocument();
   });
 
+  it("ADMIN também recebe ações de conferência", async () => {
+    mockRole("ADMIN");
+    renderPage();
+    expect(await screen.findByLabelText("LER CÓDIGO DO VOLUME")).toBeInTheDocument();
+  });
+
   it("o gestor acompanha o checklist, sem ação nenhuma", async () => {
     // Esconder não substitui o backend, que responde 403; evita só oferecer um
     // caminho que terminaria em recusa.

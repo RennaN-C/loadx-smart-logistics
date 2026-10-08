@@ -29,7 +29,7 @@ ALL_ROLE_SET = frozenset(ALL_ROLES)
 ADMIN_ONLY = frozenset({"ADMIN"})
 OPERATION_READERS = frozenset({"ADMIN", "LOGISTICS_MANAGER", "CHECKER"})
 PERSONAL_DATA_READERS = frozenset({"ADMIN", "LOGISTICS_MANAGER"})
-MANAGER_ONLY = frozenset({"LOGISTICS_MANAGER"})
+MANAGER_ONLY = frozenset({"ADMIN", "LOGISTICS_MANAGER"})
 
 
 @dataclass(frozen=True)

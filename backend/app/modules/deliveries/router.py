@@ -48,14 +48,14 @@ from app.modules.trucks.service import TruckOperationConflictError
 from app.modules.users.models import User
 
 router = APIRouter(tags=["trips"])
-ManagerUser = Annotated[User, Depends(require_roles("LOGISTICS_MANAGER"))]
+ManagerUser = Annotated[User, Depends(require_roles("ADMIN", "LOGISTICS_MANAGER"))]
 TripReader = Annotated[
     User,
     Depends(require_roles("ADMIN", "LOGISTICS_MANAGER", "DRIVER")),
 ]
 TripOperator = Annotated[
     User,
-    Depends(require_roles("LOGISTICS_MANAGER", "DRIVER")),
+    Depends(require_roles("ADMIN", "LOGISTICS_MANAGER", "DRIVER")),
 ]
 TRIP_SERVICE_ERRORS = (
     DeliveryNotFoundError,

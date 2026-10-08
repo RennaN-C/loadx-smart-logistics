@@ -24,7 +24,7 @@ from app.modules.users.models import User
 router = APIRouter(tags=["occurrences"])
 OccurrenceOperator = Annotated[
     User,
-    Depends(require_roles("LOGISTICS_MANAGER", "DRIVER")),
+    Depends(require_roles("ADMIN", "LOGISTICS_MANAGER", "DRIVER")),
 ]
 OccurrenceReader = Annotated[
     User,

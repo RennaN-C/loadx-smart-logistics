@@ -38,7 +38,7 @@ const ORDER: OrderListItem = {
   itemCount: 3,
 };
 
-function mockRole(role: "LOGISTICS_MANAGER" | "CHECKER" | "DRIVER") {
+function mockRole(role: "ADMIN" | "LOGISTICS_MANAGER" | "CHECKER" | "DRIVER") {
   vi.mocked(useAuth).mockReturnValue({
     status: "authenticated",
     user: {
@@ -182,6 +182,15 @@ describe("DashboardPage", () => {
     renderPage();
 
     expect(await screen.findByText("Nenhum pedido cadastrado ainda.")).toBeInTheDocument();
+  });
+
+  it("mostra o acesso ao planejamento para ADMIN", async () => {
+    mockRole("ADMIN");
+    renderPage();
+    expect(await screen.findByRole("link", { name: "Planejar carga" })).toHaveAttribute(
+      "href",
+      "/planning",
+    );
   });
 
   it("só oferece planejar carga para quem pode", async () => {

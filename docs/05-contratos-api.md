@@ -1,14 +1,3 @@
-> **Diretriz de RBAC para v1.2.0 (OC112, decisão de 08/10/2026):**
-> `ADMIN` deve ser superconjunto das permissões gerenciais/logísticas do
-> `LOGISTICS_MANAGER` dentro do LoadX, além de administrar usuários e
-> configurações. Esse alvo **não está implementado universalmente**.
-> Os perfis descritos por endpoint neste documento retratam o **contrato
-> vigente** até uma PR funcional promover a hierarquia, com testes e versionamento.
-> Novas OCs não devem presumir que a restrição de escrita apenas ao gerente
-> represente o contrato final. O ADMIN não contorna autorização por objeto,
-> identidade de motorista, estados ou auditoria.
-> Especificação: [OC112 / Issue #159](https://github.com/RennaN-C/loadx-smart-logistics/issues/159).
-
 # Contratos iniciais da API
 
 ## OC87 — planejamento multi-caminhão
@@ -230,7 +219,7 @@ Erros específicos:
 Regras de autorização:
 
 - `ADMIN`, `CHECKER` e `LOGISTICS_MANAGER` podem usar `GET`.
-- Somente `LOGISTICS_MANAGER` pode usar `POST` e `PATCH`.
+- `ADMIN` e `LOGISTICS_MANAGER` podem usar `POST` e `PATCH`.
 - `DRIVER` não acessa essas rotas na API atual.
 
 Exemplo de criação:
@@ -258,7 +247,7 @@ Exemplo de criação:
 Regras de autorização:
 
 - `ADMIN`, `CHECKER` e `LOGISTICS_MANAGER` podem usar `GET`.
-- Somente `LOGISTICS_MANAGER` pode usar `POST` e `PATCH`.
+- `ADMIN` e `LOGISTICS_MANAGER` podem usar `POST` e `PATCH`.
 - `DRIVER` não acessa essas rotas na API atual.
 
 Exemplo de criação:
@@ -288,7 +277,7 @@ Exemplo de criação:
 Regras de autorização:
 
 - `ADMIN` e `LOGISTICS_MANAGER` podem usar `GET`.
-- Somente `LOGISTICS_MANAGER` pode usar `POST` e `PATCH`.
+- `ADMIN` e `LOGISTICS_MANAGER` podem usar `POST` e `PATCH`.
 - `CHECKER` e `DRIVER` não acessam essas rotas.
 
 Campos de `GET /customers`: `id`, `name`, `city`, `state` e `created_at`.
@@ -303,8 +292,8 @@ Campos novos/alterados são persistidos e retornados sem máscara.
 
 ### Consulta auxiliar de CEP — OC62
 
-`CONFIRMADO`: `GET /api/v1/customers/cep/{cep}` exige sessão e acesso exclusivo
-de `LOGISTICS_MANAGER`. `ADMIN`, `CHECKER` e `DRIVER` não podem consultá-la.
+`CONFIRMADO` (v1.2.0): `GET /api/v1/customers/cep/{cep}` exige sessão e papel
+`ADMIN` ou `LOGISTICS_MANAGER`. `CHECKER` e `DRIVER` não podem consultá-la.
 A rota recebe somente CEP, normaliza oito dígitos com hífen opcional antes da
 consulta e aplica timeout HTTP de 5 segundos por fase. O cadastro manual é
 independente.
@@ -344,7 +333,7 @@ O frontend deve consultar o backend, nunca o ViaCEP diretamente.
 Regras de autorização:
 
 - `ADMIN` e `LOGISTICS_MANAGER` podem usar `GET`.
-- Somente `LOGISTICS_MANAGER` pode usar `POST` e `PATCH`.
+- `ADMIN` e `LOGISTICS_MANAGER` podem usar `POST` e `PATCH`.
 - `CHECKER` e `DRIVER` não acessam essas rotas.
 
 Campos de `GET /drivers`: `id`, `name`, `license_category`, `active` e
@@ -379,7 +368,7 @@ nem corrigidas automaticamente nesta ocorrência.
 Regras de autorização:
 
 - `ADMIN`, `CHECKER` e `LOGISTICS_MANAGER` podem usar `GET`.
-- Somente `LOGISTICS_MANAGER` pode usar `POST` e `PATCH`.
+- `ADMIN` e `LOGISTICS_MANAGER` podem usar `POST` e `PATCH`.
 - `DRIVER` não acessa essas rotas na API atual; sua operação ocorre pelos
   endpoints da viagem atribuída.
 
@@ -443,11 +432,22 @@ Erros específicos:
 uma única transação. A criação registra `null -> DRAFT`; repetir o estado atual
 retorna o pedido sem criar histórico duplicado.
 
+## Hierarquia administrativa na v1.2.0
+
+A hierarquia vigente autoriza ADMIN a executar as ações logísticas atribuídas
+a LOGISTICS_MANAGER e as ações de conferência de CHECKER, além das funções
+administrativas exclusivas de ADMIN. A ampliação exige sessão, Origin/CSRF,
+autorização por recurso e todas as validações de domínio habituais.
+LOGISTICS_MANAGER não administra usuários/identidade/permissões/configurações
+institucionais. DRIVER permanece vinculado ao próprio motorista e não pode
+ser personificado por ADMIN. A OC112 evoluirá a matriz fixa para catálogo de
+permissões logísticas; esta mudança não cria direitos de plataforma CoreFlow.
+
 ## Planos de carga
 
 Regras de autorização:
 
-- Somente `LOGISTICS_MANAGER` usa criação, comparação, aprovação e recálculo.
+- `ADMIN` e `LOGISTICS_MANAGER` usam criação, comparação, aprovação e recálculo.
 - `ADMIN` e `LOGISTICS_MANAGER` consultam e solicitam explicação de qualquer plano
   persistido tecnicamente válido.
 - `CHECKER` consulta e solicita explicação somente de plano `APPROVED`.
@@ -616,7 +616,7 @@ Erros específicos:
 ### POST `/load-plans/compare-trucks`
 
 Compara de forma transitória os mesmos pedidos em diferentes caminhões. Exige
-`LOGISTICS_MANAGER` e não persiste nem cria `LoadPlan`.
+`ADMIN` ou `LOGISTICS_MANAGER` e não persiste nem cria `LoadPlan`.
 
 ```json
 {
@@ -745,10 +745,10 @@ item, e a finalização falha enquanto algum item estiver pendente.
 | Operação | Endpoint | `ADMIN` | `LOGISTICS_MANAGER` | `CHECKER` | `DRIVER` |
 |---|---|---:|---:|---:|---:|
 | Leitura | `GET /loading-sessions/{id}` | Sim | Sim | Sim | Não |
-| Criação | `POST /loading-sessions` | Não | Sim | Não | Não |
-| Início da conferência | `PATCH /loading-sessions/{id}/status` com `IN_PROGRESS` | Não | Não | Sim | Não |
-| Conferência de item | `PATCH /loading-sessions/{id}/items/{item_id}` com `CHECKED` | Não | Não | Sim | Não |
-| Finalização | `PATCH /loading-sessions/{id}/status` com `FINISHED` | Não | Não | Sim | Não |
+| Criação | `POST /loading-sessions` | Sim | Sim | Não | Não |
+| Início da conferência | `PATCH /loading-sessions/{id}/status` com `IN_PROGRESS` | Sim | Não | Sim | Não |
+| Conferência de item | `PATCH /loading-sessions/{id}/items/{item_id}` com `CHECKED` | Sim | Não | Sim | Não |
+| Finalização | `PATCH /loading-sessions/{id}/status` com `FINISHED` | Sim | Não | Sim | Não |
 
 `CONFIRMADO` (OC66): perfis negados recebem `403 AUTH_FORBIDDEN` antes de
 qualquer consulta à sessão ou ao item; autenticação ausente ou inválida continua
@@ -781,7 +781,7 @@ nas respostas de criação, leitura e atualização fornece o mesmo identificado
 para OC75, sem consulta direta ao banco. A identidade é `loading_session_items.id`,
 não código do produto nem índice de volume. Não há etiqueta física ou imagem.
 
-`CONFIRMADO`: somente `CHECKER` pode conferir por código, com sessão autenticada,
+`CONFIRMADO` (v1.2.0): `ADMIN` ou `CHECKER` pode conferir por código, com sessão autenticada,
 origem permitida e token CSRF, como na OC66. Código não é credencial. O endpoint
 retorna `200 LoadingSessionRead`, com apenas o item identificado em `CHECKED`.
 Sessão deve estar `IN_PROGRESS`; o bloqueio transacional de sessão/item é o mesmo
@@ -882,12 +882,12 @@ explicita o contrato implementado, sem alterar a API.
 
 Regras de autorização:
 
-- somente `LOGISTICS_MANAGER` cria viagem;
+- `ADMIN` e `LOGISTICS_MANAGER` criam viagem;
 - `ADMIN` e `LOGISTICS_MANAGER` consultam qualquer viagem;
-- `LOGISTICS_MANAGER` altera qualquer viagem ou entrega;
+- `ADMIN` e `LOGISTICS_MANAGER` alteram viagem ou entrega conforme estados válidos;
 - `DRIVER` consulta e altera somente viagem atribuída ao seu `driver_id`, desde
   que usuário e motorista continuem ativos;
-- `ADMIN` não executa transições operacionais; `CHECKER` não acessa essas rotas.
+- `ADMIN` não personifica motorista nem ignora o vínculo exigido para `DRIVER`; `CHECKER` não acessa essas rotas.
 
 Regras do contrato:
 
@@ -956,8 +956,8 @@ foto, assinatura ou localização. `id` identifica o histórico, não um arquivo
 `recorded_at` e `delivered_at` são horários distintos, normalizados para UTC.
 Não há referência de evidências, sequer URL mock ou alegação de upload.
 
-`POST` exige `LOGISTICS_MANAGER` ou `DRIVER` vinculado/ativo na própria viagem;
-`GET` admite também `ADMIN`. `CHECKER` é negado. Sessão em cookie é obrigatória;
+`POST` exige `ADMIN`, `LOGISTICS_MANAGER` ou `DRIVER` vinculado/ativo na própria viagem;
+`GET` admite os três perfis. `CHECKER` é negado. Sessão em cookie é obrigatória;
 `POST` exige Origin aprovada e CSRF. Autorização por objeto ocorre antes de
 verificar estado/histórico. A primeira conclusão exige `IN_DELIVERY` e viagem
 `IN_ROUTE`, move somente seu pedido para `DELIVERED` e compartilha commit com
@@ -1188,7 +1188,7 @@ arquivados acessíveis aos mesmos leitores. Clientes/produtos passam a retornar
 `active` booleano; os demais campos e o envelope paginado são preservados.
 
 `CONFIRMADO`: PATCH `/{id}` com `{"active": false}` arquiva e com `true` reativa,
-retornando 200 no schema existente. Somente LOGISTICS_MANAGER escreve; sessão,
+retornando 200 no schema existente. `ADMIN` ou `LOGISTICS_MANAGER` escreve; sessão,
 origem e CSRF permanecem obrigatórios. `null` é inválido (422), ID ausente 404,
 unicidade global 409. Repetir o mesmo estado não duplica auditoria. Operação nova
 com fonte arquivada retorna 409 `RECORD_ARCHIVED`, com entidade e UUID em

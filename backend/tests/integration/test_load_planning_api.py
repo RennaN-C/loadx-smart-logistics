@@ -741,7 +741,7 @@ def test_plan_specific_routes_return_not_found(
         assert response.json()["code"] == "LOAD_PLAN_NOT_FOUND"
 
 
-def test_only_manager_can_create_approve_or_recalculate(
+def test_other_roles_cannot_create_approve_or_recalculate(
     client: TestClient,
     session_factory: SessionFactory,
     manager: AuthenticatedUser,
@@ -754,7 +754,7 @@ def test_only_manager_can_create_approve_or_recalculate(
         "order_ids": [str(scenario.order_id)],
     }
 
-    for role in ("ADMIN", "CHECKER", "DRIVER"):
+    for role in ("CHECKER", "DRIVER"):
         user = create_authenticated_user(session_factory, role)
         create_response = client.post(
             "/api/v1/load-plans",
@@ -1232,7 +1232,7 @@ def test_compare_trucks_is_manager_only(
     assert unauthenticated.status_code == 401
     assert unauthenticated.json()["code"] == "AUTH_INVALID_TOKEN"
 
-    for role in ("ADMIN", "CHECKER", "DRIVER"):
+    for role in ("CHECKER", "DRIVER"):
         user = create_authenticated_user(session_factory, role)
         response = client.post(
             "/api/v1/load-plans/compare-trucks",

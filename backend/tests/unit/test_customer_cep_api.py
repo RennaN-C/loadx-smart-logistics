@@ -86,7 +86,7 @@ def test_cep_lookup_returns_address_and_normalizes_before_provider(
     assert provider.calls == [ViaCEPProviderCall(cep=CEP, timeout_seconds=5.0)]
 
 
-@pytest.mark.parametrize("role", ["ADMIN", "CHECKER", "DRIVER"])
+@pytest.mark.parametrize("role", ["CHECKER", "DRIVER"])
 def test_cep_lookup_rejects_roles_other_than_logistics_manager(
     api: FastAPI, client: TestClient, provider: FakeViaCEPProvider, role: str
 ) -> None:
@@ -101,6 +101,16 @@ def test_cep_lookup_rejects_roles_other_than_logistics_manager(
         "details": [],
     }
     assert provider.calls == []
+
+
+def test_admin_can_lookup_customer_cep(
+    api: FastAPI, client: TestClient, provider: FakeViaCEPProvider
+) -> None:
+    api.dependency_overrides[get_current_user] = lambda: User(role="ADMIN", active=True)
+    response = client.get(f"/api/v1/customers/cep/{CEP}")
+    assert response.status_code == 200
+    assert response.json() == ADDRESS
+    assert provider.calls == [ViaCEPProviderCall(cep=CEP, timeout_seconds=5.0)]
 
 
 def test_cep_lookup_requires_authentication(

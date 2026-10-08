@@ -158,15 +158,15 @@ describe("TripPage", () => {
     expect(screen.queryByTestId("audit-trail")).not.toBeInTheDocument();
   });
 
-  it("ADMIN acompanha mas não opera", async () => {
+  it("ADMIN também opera viagens respeitando as transições", async () => {
     mockRole("ADMIN");
     vi.mocked(getTrip).mockResolvedValue(makeTrip({ status: "IN_ROUTE" }));
 
     renderPage();
     await screen.findByText("Em rota");
 
-    expect(screen.queryByRole("button", { name: "Finalizar viagem" })).not.toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: "Iniciar entrega" })[0]).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Finalizar viagem" })).toBeDisabled();
+    expect(screen.getAllByRole("button", { name: "Iniciar entrega" })[0]).toBeEnabled();
   });
 
   it("não oferece ação na viagem já finalizada", async () => {

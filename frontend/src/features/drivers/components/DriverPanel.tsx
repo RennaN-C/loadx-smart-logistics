@@ -9,6 +9,7 @@ import { useRegistryList } from "../../../hooks/useRegistryList";
 import { ArchiveFilter } from "../../../components/ArchiveFilter";
 import { RecordLifecycleAction } from "../../../components/RecordLifecycleAction";
 import { useAuth } from "../../auth/hooks/useAuth";
+import { canManageLogistics } from "../../auth/permissions";
 import { getDriver, listDrivers } from "../api/driversApi";
 import type { Driver } from "../types";
 import { DriverForm } from "./DriverForm";
@@ -33,7 +34,7 @@ export function DriverPanel() {
   const [search, setSearch] = useState("");
   const [isCreating, setIsCreating] = useState(false);
 
-  const canManage = user?.role === "LOGISTICS_MANAGER";
+  const canManage = canManageLogistics(user?.role);
   const isFormOpen = isCreating || edit.target !== null;
 
   // Só nome: a listagem não traz documento nem CNH.

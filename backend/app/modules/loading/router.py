@@ -31,8 +31,8 @@ from app.modules.users.models import User
 
 router = APIRouter(prefix="/loading-sessions", tags=["loading"])
 LOADING_SESSION_NOT_FOUND_MESSAGE = "Sessão de carregamento não encontrada."
-Creator = Annotated[User, Depends(require_roles("LOGISTICS_MANAGER"))]
-Checker = Annotated[User, Depends(require_roles("CHECKER"))]
+Creator = Annotated[User, Depends(require_roles("ADMIN", "LOGISTICS_MANAGER"))]
+Checker = Annotated[User, Depends(require_roles("ADMIN", "CHECKER"))]
 Reader = Annotated[
     User, Depends(require_roles("ADMIN", "CHECKER", "LOGISTICS_MANAGER"))
 ]
