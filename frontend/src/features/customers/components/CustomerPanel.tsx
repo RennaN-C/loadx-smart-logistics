@@ -11,6 +11,8 @@ import { RecordLifecycleAction } from "../../../components/RecordLifecycleAction
 import { useAuth } from "../../auth/hooks/useAuth";
 import { canManageLogistics } from "../../auth/permissions";
 import { getCustomer, listCustomers } from "../api/customersApi";
+import { CustomerAddressPanel } from "./CustomerAddressPanel";
+import type { CustomerListItem } from "../types";
 import type { Customer } from "../types";
 import { CustomerForm } from "./CustomerForm";
 import { mapCustomerErrorToMessage } from "./customersErrorMessages";
@@ -31,6 +33,7 @@ export function CustomerPanel() {
     setArchiveStatus,
   } = useRegistryList(listCustomers);
   const edit = useEditTarget<Customer>(getCustomer);
+  const [addressCustomer, setAddressCustomer] = useState<CustomerListItem | null>(null);
   const [search, setSearch] = useState("");
   const [isCreating, setIsCreating] = useState(false);
 
@@ -114,6 +117,7 @@ export function CustomerPanel() {
               </p>
               {canManage ? (
                 <div className="contact-card-foot">
+                  <button type="button" className="btn-link" onClick={() => setAddressCustomer(customer)}>Endereços</button>
                   <RecordLifecycleAction resource="customers" id={customer.id} active={customer.active} onChanged={refetch} />
                   <button
                     type="button"
@@ -132,6 +136,12 @@ export function CustomerPanel() {
 
       {status === "success" ? (
         <Pagination page={page} totalPages={totalPages} onChange={goToPage} label="clientes" />
+      ) : null}
+
+      {addressCustomer ? (
+        <Modal title={`Endereços — ${addressCustomer.name}`} onClose={() => setAddressCustomer(null)}>
+          <CustomerAddressPanel customerId={addressCustomer.id} onChanged={refetch} />
+        </Modal>
       ) : null}
 
       {isFormOpen ? (

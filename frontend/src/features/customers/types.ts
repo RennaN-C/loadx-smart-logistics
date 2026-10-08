@@ -52,3 +52,19 @@ export interface CepAddress {
   city: string;
   state: string;
 }
+
+export interface CustomerAddress {
+  id: string;
+  customerId: string;
+  label: string;
+  address: string;
+  city: string;
+  state: string;
+  postalCode: string | null;
+  active: boolean;
+  isPrimary: boolean;
+  createdAt: string;
+}
+
+export type CustomerAddressInput = Omit<CustomerAddress, "id" | "customerId" | "createdAt">;
+export type CustomerAddressUpdateInput = Partial<CustomerAddressInput>;
