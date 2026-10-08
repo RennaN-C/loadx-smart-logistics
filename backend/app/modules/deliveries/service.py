@@ -27,6 +27,7 @@ from app.modules.status_history.schemas import StatusHistoryCreate
 from app.modules.status_history.service import StatusHistoryService
 from app.modules.trucks.service import TruckService
 from app.modules.users.models import User
+from app.shared.record_lifecycle import ensure_record_active
 
 TRIP_STATUS_TRANSITIONS = {
     "SCHEDULED": frozenset({"IN_ROUTE"}),
@@ -178,10 +179,12 @@ class TripService:
             if self.repository.get_by_load_plan_id(load_plan.id) is not None:
                 raise TripLoadPlanAlreadyAssignedError
 
-            self.truck_service.ensure_no_operation_conflict(
+            truck = self.truck_service.ensure_no_operation_conflict(
                 load_plan.truck_id,
                 exclude_load_plan_id=load_plan.id,
             )
+
+            ensure_record_active(truck, "TRUCK")
 
             try:
                 driver = self.driver_service.ensure_no_operation_conflict(

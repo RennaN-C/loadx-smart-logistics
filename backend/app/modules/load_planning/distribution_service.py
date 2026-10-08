@@ -88,6 +88,7 @@ class LoadDistributionService:
         }
         if set(product_ids) != set(products):
             raise LoadPlanProductsNotFoundError(set(product_ids) - set(products))
+        self.orders.ensure_operational_sources(orders, for_update=lock)
         inputs = tuple(
             self.planning._map_optimizer_item(i, products[i.product_id])
             for i in items.values()

@@ -7,6 +7,7 @@ from app.modules.load_planning.reference_service import LoadPlanReferenceService
 from app.modules.loading.models import LoadingSession, LoadingSessionItem
 from app.modules.loading.repository import LoadingRepository
 from app.modules.trucks.service import TruckService
+from app.shared.record_lifecycle import ensure_record_active
 
 
 class LoadingSessionNotFoundError(Exception):
@@ -67,10 +68,12 @@ class LoadingService:
             ],
         )
         try:
-            self.truck_service.ensure_no_operation_conflict(
+            truck = self.truck_service.ensure_no_operation_conflict(
                 plan.truck_id,
                 exclude_load_plan_id=plan.id,
             )
+
+            ensure_record_active(truck, "TRUCK")
 
             concurrent_existing = self.repository.get_by_load_plan_id(load_plan_id)
             if concurrent_existing is not None:
