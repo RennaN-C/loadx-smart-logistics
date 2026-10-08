@@ -52,7 +52,9 @@ com sucesso; `/ready` apenas confere o resultado e não altera o banco.
 `CONFIRMADO` (OC105): head `20261008_0016` → down_revision `20261007_0015`.
 Adiciona `active` com default true a clientes/produtos e expande o catálogo
 restrito de auditoria. Upgrade preserva UUIDs, documentos, códigos e todas as
-FKs. Downgrade remove somente as colunas novas e os eventos específicos da OC105
-para restaurar o catálogo anterior; histórico operacional e eventos de usuários
-permanecem. Reaplicar upgrade após downgrade restaura os cadastros como ativos,
-pois o schema anterior não representa arquivamento desses dois recursos.
+FKs. Downgrade **não** apaga eventos de auditoria nem reativa cadastros
+silenciosamente: é bloqueado se houver clientes/produtos arquivados ou qualquer
+evento específico de ciclo de vida da OC105. Somente é permitido quando não
+existe estado ou auditoria OC105 a preservar. Para reverter após uso real,
+planeje migração compensatória com preservação de dados; não remova registros
+de auditoria para forçar o downgrade.
