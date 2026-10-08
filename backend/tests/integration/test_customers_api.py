@@ -142,7 +142,7 @@ def test_list_customers_returns_created_items(
     assert body["total"] == 1
     assert body["total_pages"] == 1
     customer = body["items"][0]
-    assert set(customer) == {"id", "name", "city", "state", "created_at"}
+    assert set(customer) == {"id", "name", "city", "state", "created_at", "active"}
     assert "document" not in customer
     assert "phone" not in customer
     assert "address" not in customer
