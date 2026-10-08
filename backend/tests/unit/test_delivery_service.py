@@ -449,7 +449,6 @@ def test_receipt_denies_unlinked_inactive_and_wrong_role_before_history(
     service, _manager, driver, _trip, delivery, _orders = prepare_receipt_delivery(
         db_session
     )
-    admin = create_user(db_session, role="ADMIN")
     checker = create_user(db_session, role="CHECKER")
     unlinked = create_user(db_session, role="DRIVER")
     linked = create_user(db_session, role="DRIVER", driver_id=driver.id)
@@ -462,7 +461,7 @@ def test_receipt_denies_unlinked_inactive_and_wrong_role_before_history(
     monkeypatch.setattr(
         service.status_history_service, "list_status_history", forbidden_history
     )
-    for user in (admin, checker, unlinked, linked):
+    for user in (checker, unlinked, linked):
         with pytest.raises(TripAccessForbiddenError):
             service.register_delivery_receipt(delivery.id, current_user=user)
     for user in (checker, unlinked, linked):

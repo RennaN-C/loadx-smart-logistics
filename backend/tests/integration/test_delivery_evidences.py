@@ -138,13 +138,26 @@ def test_registration_replay_and_queries_preserve_receipt_and_responsible(
 
 
 @pytest.mark.parametrize(
-    "actor", ("admin", "checker", "unlinked", "other_driver", "inactive")
+    "actor", ("checker", "unlinked", "other_driver", "inactive")
 )
 def test_registration_rejects_unauthorized_actor(evidence_scenario, actor):
     s = evidence_scenario
     response = register(s, actor=actor)
     assert response.status_code == 403
     assert evidence_count(s) == 0 and not s.storage.objects
+
+
+def test_admin_can_register_and_revoke_delivery_evidence(evidence_scenario):
+    s = evidence_scenario
+    created = register(s, actor="admin")
+    assert created.status_code == 200
+    evidence = created.json()
+    assert evidence["recorded_by"] == str(s.actors["admin"])
+    revoked = s.client.post(
+        f"{s.path}/{evidence['id']}/revoke", json={}, headers=s.headers("admin")
+    )
+    assert revoked.status_code == 200
+    assert revoked.json()["status"] == "REVOKED"
 
 
 def test_anonymous_csrf_and_cross_delivery_access_are_denied(evidence_scenario):
@@ -269,8 +282,8 @@ def test_event_identity_conflict_and_revocation_replay_preserve_history(
     assert register(s, data).json() == metadata
     assert evidence_count(s) == len(s.storage.objects) == 1
     assert (
-        s.client.post(path + "/revoke", json={}, headers=s.headers("admin")).status_code
-        == 403
+        s.client.post(path + "/revoke", json={}, headers=s.headers("admin")).json()
+        == metadata
     )
 
 
