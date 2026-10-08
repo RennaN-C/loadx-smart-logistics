@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { DEFAULT_PAGE_SIZE, type ListParams } from "../services/pagination";
 import { ApiError, type Page } from "../types/api";
@@ -41,6 +41,7 @@ const EMPTY = {
 export function useResourceList<T>(
   load: (params: ListParams) => Promise<Page<T>>,
 ): UseResourceListResult<T> {
+  const requestSequence = useRef(0);
   const [requestedPage, setRequestedPage] = useState(1);
   const [state, setState] = useState<ResourceState<T>>({
     status: "loading",
@@ -50,10 +51,12 @@ export function useResourceList<T>(
   });
 
   const fetchPage = useCallback(async () => {
+    const sequence = ++requestSequence.current;
     setState((current) => ({ ...current, status: "loading", error: null }));
 
     try {
       const result = await load({ page: requestedPage, pageSize: DEFAULT_PAGE_SIZE });
+      if (sequence !== requestSequence.current) return;
       setState({
         status: "success",
         items: result.items,
@@ -64,6 +67,7 @@ export function useResourceList<T>(
         totalPages: result.totalPages,
       });
     } catch (error) {
+      if (sequence !== requestSequence.current) return;
       const apiError =
         error instanceof ApiError ? error : new ApiError("UNKNOWN_ERROR", "Ocorreu um erro inesperado.");
       setState({ status: "error", error: apiError, page: requestedPage, ...EMPTY });
@@ -72,6 +76,7 @@ export function useResourceList<T>(
 
   useEffect(() => {
     void fetchPage();
+    return () => { requestSequence.current += 1; };
   }, [fetchPage]);
 
   return { ...state, refetch: fetchPage, goToPage: setRequestedPage };

@@ -73,7 +73,7 @@ function mapDriverToDto(input: DriverUpdateInput): Partial<DriverDto> {
 }
 
 export async function listDrivers(params: ListParams = {}): Promise<Page<DriverListItem>> {
-  const { data } = await api.get<PageDto<DriverListDto>>("/drivers", { params: toPageQuery(params) });
+  const { data } = await api.get<PageDto<DriverListDto>>("/drivers", { params: { ...toPageQuery(params), ...(params.archiveStatus ? { archive_status: params.archiveStatus } : {}) } });
 
   return mapPageFromDto(data, mapDriverListItemFromDto);
 }

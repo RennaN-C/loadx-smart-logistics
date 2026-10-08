@@ -1,3 +1,4 @@
+import { RecordLifecycleAction } from "../../../components/RecordLifecycleAction";
 import { StatusPill } from "../../../components/StatusPill";
 import type { Product } from "../types";
 
@@ -23,15 +24,17 @@ function restrictionsOf(product: Product): string[] {
 interface ProductCardProps {
   readonly product: Product;
   readonly canManage: boolean;
+  readonly onChanged: () => Promise<void>;
   readonly onEdit: (product: Product) => void;
 }
 
-export function ProductCard({ product, canManage, onEdit }: ProductCardProps) {
+export function ProductCard({ product, canManage, onEdit, onChanged }: ProductCardProps) {
   const volumeM3 = (product.widthCm / 100) * (product.heightCm / 100) * (product.lengthCm / 100);
   const restrictions = restrictionsOf(product);
 
   return (
     <article className="product-card">
+      <StatusPill tone={product.active ? "good" : "neutral"}>{product.active ? "Ativo" : "Arquivado"}</StatusPill>
       <div className="product-card-head">
         <div>
           <p className="product-card-code">{product.code}</p>
@@ -74,9 +77,12 @@ export function ProductCard({ product, canManage, onEdit }: ProductCardProps) {
           )}
         </div>
         {canManage ? (
+          <>
+          <RecordLifecycleAction resource="products" id={product.id} active={product.active} onChanged={onChanged} />
           <button type="button" className="btn-link" onClick={() => onEdit(product)}>
             Editar
           </button>
+          </>
         ) : null}
       </div>
     </article>

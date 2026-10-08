@@ -12,6 +12,7 @@ import type {
 
 /** Resumo da listagem: sem dado pessoal (ver CustomerListRead no backend). */
 interface CustomerListDto {
+  active: boolean;
   id: string;
   name: string;
   city: string;
@@ -32,6 +33,7 @@ export function mapCustomerListItemFromDto(dto: CustomerListDto): CustomerListIt
     name: dto.name,
     city: dto.city,
     state: dto.state,
+    active: dto.active,
     createdAt: dto.created_at,
   };
 }
@@ -57,12 +59,13 @@ function mapCustomerToDto(input: CustomerUpdateInput): Partial<CustomerDto> {
   if (input.state !== undefined) dto.state = input.state;
   if (input.notes !== undefined) dto.notes = input.notes;
 
+  if (input.active !== undefined) dto.active = input.active;
   return dto;
 }
 
 export async function listCustomers(params: ListParams = {}): Promise<Page<CustomerListItem>> {
   const { data } = await api.get<PageDto<CustomerListDto>>("/customers", {
-    params: toPageQuery(params),
+    params: { ...toPageQuery(params), ...(params.archiveStatus ? { archive_status: params.archiveStatus } : {}) },
   });
 
   return mapPageFromDto(data, mapCustomerListItemFromDto);

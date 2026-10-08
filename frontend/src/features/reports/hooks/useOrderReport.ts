@@ -42,12 +42,12 @@ async function fetchAllOrders(): Promise<{ orders: OrderListItem[]; notCounted: 
 async function fetchCustomerNames(): Promise<Map<string, string>> {
   const names = new Map<string, string>();
   try {
-    const first = await listCustomers({ page: 1, pageSize: MAX_PAGE_SIZE });
+    const first = await listCustomers({ page: 1, pageSize: MAX_PAGE_SIZE, archiveStatus: "all" });
     const pages = Math.min(first.totalPages, MAX_PAGES);
     for (const customer of first.items) names.set(customer.id, customer.name);
 
     for (let page = 2; page <= pages; page += 1) {
-      const next = await listCustomers({ page, pageSize: MAX_PAGE_SIZE });
+      const next = await listCustomers({ page, pageSize: MAX_PAGE_SIZE, archiveStatus: "all" });
       for (const customer of next.items) names.set(customer.id, customer.name);
     }
   } catch {

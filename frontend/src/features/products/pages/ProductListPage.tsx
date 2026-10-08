@@ -7,7 +7,9 @@ import { useAuth } from "../../auth/hooks/useAuth";
 import { ProductCard } from "../components/ProductCard";
 import { ProductForm } from "../components/ProductForm";
 import { mapProductErrorToMessage } from "../components/productsErrorMessages";
-import { useResourceList } from "../../../hooks/useResourceList";
+import { useRegistryList } from "../../../hooks/useRegistryList";
+import { ArchiveFilter } from "../../../components/ArchiveFilter";
+
 import { listProducts } from "../api/productsApi";
 import type { Product } from "../types";
 import "./ProductListPage.css";
@@ -33,7 +35,9 @@ export function ProductListPage() {
     total,
     totalPages,
     goToPage,
-  } = useResourceList(listProducts);
+    archiveStatus,
+    setArchiveStatus,
+  } = useRegistryList(listProducts);
   const [search, setSearch] = useState("");
   const [restrictionFilter, setRestrictionFilter] = useState<RestrictionFilter>("all");
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -82,6 +86,7 @@ export function ProductListPage() {
       </header>
 
       <div className="entity-toolbar">
+        <ArchiveFilter value={archiveStatus} onChange={setArchiveStatus} />
         <input
           type="search"
           aria-label="Buscar por código ou nome"
@@ -131,6 +136,7 @@ export function ProductListPage() {
               product={product}
               canManage={canManage}
               onEdit={setEditingProduct}
+              onChanged={refetch}
             />
           ))}
         </div>

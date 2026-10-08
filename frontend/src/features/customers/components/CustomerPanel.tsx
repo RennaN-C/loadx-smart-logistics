@@ -1,10 +1,13 @@
 import { useMemo, useState } from "react";
 
 import { AlertBanner } from "../../../components/AlertBanner";
+import { StatusPill } from "../../../components/StatusPill";
 import { Modal } from "../../../components/Modal";
 import { Pagination } from "../../../components/Pagination";
 import { useEditTarget } from "../../../hooks/useEditTarget";
-import { useResourceList } from "../../../hooks/useResourceList";
+import { useRegistryList } from "../../../hooks/useRegistryList";
+import { ArchiveFilter } from "../../../components/ArchiveFilter";
+import { RecordLifecycleAction } from "../../../components/RecordLifecycleAction";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { getCustomer, listCustomers } from "../api/customersApi";
 import type { Customer } from "../types";
@@ -23,7 +26,9 @@ export function CustomerPanel() {
     total,
     totalPages,
     goToPage,
-  } = useResourceList(listCustomers);
+    archiveStatus,
+    setArchiveStatus,
+  } = useRegistryList(listCustomers);
   const edit = useEditTarget<Customer>(getCustomer);
   const [search, setSearch] = useState("");
   const [isCreating, setIsCreating] = useState(false);
@@ -55,6 +60,7 @@ export function CustomerPanel() {
   return (
     <>
       <div className="entity-toolbar">
+        <ArchiveFilter value={archiveStatus} onChange={setArchiveStatus} />
         <input
           type="search"
           aria-label="Buscar cliente por nome ou cidade"
@@ -100,12 +106,14 @@ export function CustomerPanel() {
             <article key={customer.id} className="contact-card">
               <div className="contact-card-head">
                 <p className="contact-card-name">{customer.name}</p>
+                <StatusPill tone={customer.active ? "good" : "neutral"}>{customer.active ? "Ativo" : "Arquivado"}</StatusPill>
               </div>
               <p className="contact-card-line">
                 {customer.city} · {customer.state}
               </p>
               {canManage ? (
                 <div className="contact-card-foot">
+                  <RecordLifecycleAction resource="customers" id={customer.id} active={customer.active} onChanged={refetch} />
                   <button
                     type="button"
                     className="btn-link"

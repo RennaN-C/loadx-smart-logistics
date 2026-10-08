@@ -34,7 +34,7 @@ export interface TruckOperationalStatus {
   id: string;
   plate: string;
   model: string;
-  /** Estado cadastral. Caminhão inativo sai da operação. */
+  /** Estado cadastral. Caminhão arquivado sai da operação. */
   active: boolean;
   /** Já comprometido com outra operação, pela regra da OC64. */
   hasOperationConflict: boolean;

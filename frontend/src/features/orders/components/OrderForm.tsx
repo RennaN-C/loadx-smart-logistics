@@ -178,7 +178,7 @@ export function OrderForm({ order, customers, products, onSaved, onCancel }: Ord
               onChange={(event) => setCustomerId(event.target.value)}
             >
               <option value="">Selecione o cliente</option>
-              {customers.map((customer) => (
+              {customers.filter((customer) => customer.active).map((customer) => (
                 <option key={customer.id} value={customer.id}>
                   {customer.name} — {customer.city}/{customer.state}
                 </option>
@@ -261,7 +261,7 @@ export function OrderForm({ order, customers, products, onSaved, onCancel }: Ord
                     onChange={(event) => updateItem(item.key, { productId: event.target.value })}
                   >
                     <option value="">Selecione o produto</option>
-                    {products.map((product) => (
+                    {products.filter((product) => product.active).map((product) => (
                       <option key={product.id} value={product.id}>
                         {product.code} — {product.name}
                       </option>
