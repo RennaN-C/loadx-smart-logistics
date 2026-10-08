@@ -11,6 +11,7 @@ import type { OrderListItem } from "../types";
 import { OrderListPage } from "./OrderListPage";
 
 vi.mock("../api/ordersApi");
+vi.mock("../../customers/api/customerAddressesApi", () => ({ listActiveCustomerAddresses: vi.fn().mockResolvedValue([]) }));
 vi.mock("../../customers/api/customersApi");
 vi.mock("../../products/api/productsApi");
 vi.mock("../../auth/hooks/useAuth");

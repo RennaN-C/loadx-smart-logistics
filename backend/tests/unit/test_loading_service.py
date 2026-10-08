@@ -5,7 +5,7 @@ from decimal import Decimal
 import pytest
 from sqlalchemy.orm import Session
 
-from app.modules.customers.models import Customer
+from app.modules.customers.models import Customer, CustomerAddress
 from app.modules.deliveries.models import Trip
 from app.modules.drivers.models import Driver
 from app.modules.load_planning.distribution_models import (
@@ -30,6 +30,7 @@ from app.modules.trucks.service import TruckOperationConflictError
 
 SQLITE_TABLES = (
     Customer.__table__,
+    CustomerAddress.__table__,
     Truck.__table__,
     Driver.__table__,
     Product.__table__,

@@ -376,6 +376,20 @@ for distribution_path, methods in {
             "500",
         }
 
+for address_path, address_method in (
+    ("/api/v1/customers/{customer_id}/addresses", "get"),
+    ("/api/v1/customers/{customer_id}/addresses", "post"),
+    ("/api/v1/customers/{customer_id}/addresses/{address_id}", "patch"),
+):
+    EXPECTED_ERROR_STATUSES[(address_path, address_method)] = {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    }
+
 PUBLIC_OPERATIONS = frozenset(
     {
         ("/health", "get"),
