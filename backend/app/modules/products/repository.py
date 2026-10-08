@@ -12,11 +12,18 @@ class ProductRepository:
     def __init__(self, db: Session) -> None:
         self.db = db
 
-    def list(self, pagination: PaginationParams) -> PageResult[Product]:
+    def list(
+        self, pagination: PaginationParams, *, active: bool | None = None
+    ) -> PageResult[Product]:
         direction = asc if pagination.sort_order == "asc" else desc
-        total = self.db.scalar(select(func.count()).select_from(Product)) or 0
+        filters = () if active is None else (Product.active.is_(active),)
+        total = (
+            self.db.scalar(select(func.count()).select_from(Product).where(*filters))
+            or 0
+        )
         statement = (
             select(Product)
+            .where(*filters)
             .order_by(direction(Product.created_at), direction(Product.id))
             .offset(pagination.offset)
             .limit(pagination.page_size)
@@ -43,8 +50,19 @@ class ProductRepository:
             select(Product).where(Product.id.in_(unique_ids)).order_by(Product.id.asc())
         )
         if for_update:
-            statement = statement.with_for_update()
+            statement = statement.with_for_update().execution_options(
+                populate_existing=True
+            )
         return self.db.scalars(statement).all()
+
+    def get_for_update(self, product_id: uuid.UUID) -> Product | None:
+        statement = (
+            select(Product)
+            .where(Product.id == product_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+        return self.db.scalar(statement)
 
     def get_by_code(self, code: str) -> Product | None:
         statement = select(Product).where(Product.code == code)

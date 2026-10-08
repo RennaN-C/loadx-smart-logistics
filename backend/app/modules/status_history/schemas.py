@@ -13,8 +13,14 @@ STATUS_HISTORY_ENTITY_TYPES = frozenset(
         "LOAD_DISTRIBUTION_PART",
     }
 )
-AUDIT_ENTITY_TYPES = frozenset({*STATUS_HISTORY_ENTITY_TYPES, "USER"})
-AUDIT_EVENT_TYPES = frozenset({"STATUS_CHANGED", "USER_CREATED", "USER_UPDATED"})
+RECORD_ENTITY_TYPES = frozenset({"CUSTOMER", "PRODUCT", "TRUCK", "DRIVER"})
+ADMINISTRATIVE_EVENT_TYPES = frozenset(
+    {"USER_CREATED", "USER_UPDATED", "RECORD_ARCHIVED", "RECORD_REACTIVATED"}
+)
+AUDIT_ENTITY_TYPES = frozenset(
+    {*STATUS_HISTORY_ENTITY_TYPES, "USER", *RECORD_ENTITY_TYPES}
+)
+AUDIT_EVENT_TYPES = frozenset({"STATUS_CHANGED", *ADMINISTRATIVE_EVENT_TYPES})
 
 
 def normalize_upper(value: str | None) -> str | None:
@@ -74,15 +80,15 @@ class AuditEventCreate(BaseModel):
     @field_validator("event_type")
     @classmethod
     def validate_event_type(cls, value: str) -> str:
-        if value not in {"USER_CREATED", "USER_UPDATED"}:
+        if value not in ADMINISTRATIVE_EVENT_TYPES:
             raise ValueError("unsupported administrative audit event")
         return value
 
     @field_validator("entity_type")
     @classmethod
     def validate_entity_type(cls, value: str) -> str:
-        if value != "USER":
-            raise ValueError("administrative audit entity_type must be USER")
+        if value not in {"USER", *RECORD_ENTITY_TYPES}:
+            raise ValueError("unsupported administrative audit entity")
         return value
 
     @field_validator("changed_fields")

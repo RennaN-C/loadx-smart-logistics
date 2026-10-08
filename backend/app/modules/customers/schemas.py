@@ -7,6 +7,7 @@ from app.shared.validators import CustomerDocument, PhoneNumber
 
 
 class CustomerBase(BaseModel):
+    active: bool = True
     name: str = Field(min_length=1, max_length=160)
     document: str = Field(min_length=1, max_length=32)
     phone: str | None = Field(default=None, max_length=32)
@@ -29,6 +30,7 @@ class CustomerCreate(CustomerBase):
 
 
 class CustomerUpdate(BaseModel):
+    active: bool | None = None
     name: str | None = Field(default=None, min_length=1, max_length=160)
     document: CustomerDocument | None = Field(default=None, min_length=1, max_length=32)
     phone: PhoneNumber | None = Field(default=None, max_length=32)
@@ -39,7 +41,9 @@ class CustomerUpdate(BaseModel):
 
     model_config = ConfigDict(str_strip_whitespace=True)
 
-    @field_validator("name", "document", "address", "city", "state", mode="before")
+    @field_validator(
+        "active", "name", "document", "address", "city", "state", mode="before"
+    )
     @classmethod
     def reject_null_required_fields(cls, value: object) -> object:
         if value is None:
@@ -62,6 +66,7 @@ class CustomerRead(CustomerBase):
 
 
 class CustomerListRead(BaseModel):
+    active: bool
     id: uuid.UUID
     name: str
     city: str

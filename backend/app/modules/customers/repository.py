@@ -11,11 +11,18 @@ class CustomerRepository:
     def __init__(self, db: Session) -> None:
         self.db = db
 
-    def list(self, pagination: PaginationParams) -> PageResult[Customer]:
+    def list(
+        self, pagination: PaginationParams, *, active: bool | None = None
+    ) -> PageResult[Customer]:
         direction = asc if pagination.sort_order == "asc" else desc
-        total = self.db.scalar(select(func.count()).select_from(Customer)) or 0
+        filters = () if active is None else (Customer.active.is_(active),)
+        total = (
+            self.db.scalar(select(func.count()).select_from(Customer).where(*filters))
+            or 0
+        )
         statement = (
             select(Customer)
+            .where(*filters)
             .order_by(direction(Customer.created_at), direction(Customer.id))
             .offset(pagination.offset)
             .limit(pagination.page_size)
@@ -28,6 +35,15 @@ class CustomerRepository:
 
     def get(self, customer_id: uuid.UUID) -> Customer | None:
         return self.db.get(Customer, customer_id)
+
+    def get_for_update(self, customer_id: uuid.UUID) -> Customer | None:
+        statement = (
+            select(Customer)
+            .where(Customer.id == customer_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+        return self.db.scalar(statement)
 
     def get_by_document(self, document: str) -> Customer | None:
         statement = select(Customer).where(Customer.document == document)

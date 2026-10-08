@@ -27,6 +27,7 @@ from app.modules.drivers.service import (
     DriverService,
 )
 from app.modules.users.models import User
+from app.shared.record_lifecycle import ArchiveFilter, active_filter
 
 router = APIRouter(prefix="/drivers", tags=["drivers"])
 DriverReader = Annotated[
@@ -58,8 +59,9 @@ def list_drivers(
     pagination: Pagination,
     _current_user: DriverReader,
     service: Annotated[DriverService, Depends(get_driver_service)],
+    archive_status: ArchiveFilter = "active",
 ) -> PageResponse[DriverListRead]:
-    result = service.list_drivers(pagination)
+    result = service.list_drivers(pagination, active=active_filter(archive_status))
     return to_page_response(
         result,
         (DriverListRead.model_validate(driver) for driver in result.items),
@@ -148,7 +150,7 @@ def update_driver(
     service: Annotated[DriverService, Depends(get_driver_service)],
 ) -> Driver | JSONResponse:
     try:
-        return service.update_driver(driver_id, data)
+        return service.update_driver(driver_id, data, changed_by=_current_user.id)
     except DriverNotFoundError:
         return error_response(
             status.HTTP_404_NOT_FOUND,

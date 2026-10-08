@@ -11,11 +11,18 @@ class DriverRepository:
     def __init__(self, db: Session) -> None:
         self.db = db
 
-    def list(self, pagination: PaginationParams) -> PageResult[Driver]:
+    def list(
+        self, pagination: PaginationParams, *, active: bool | None = None
+    ) -> PageResult[Driver]:
         direction = asc if pagination.sort_order == "asc" else desc
-        total = self.db.scalar(select(func.count()).select_from(Driver)) or 0
+        filters = () if active is None else (Driver.active.is_(active),)
+        total = (
+            self.db.scalar(select(func.count()).select_from(Driver).where(*filters))
+            or 0
+        )
         statement = (
             select(Driver)
+            .where(*filters)
             .order_by(direction(Driver.created_at), direction(Driver.id))
             .offset(pagination.offset)
             .limit(pagination.page_size)
@@ -30,7 +37,12 @@ class DriverRepository:
         return self.db.get(Driver, driver_id)
 
     def get_for_update(self, driver_id: uuid.UUID) -> Driver | None:
-        statement = select(Driver).where(Driver.id == driver_id).with_for_update()
+        statement = (
+            select(Driver)
+            .where(Driver.id == driver_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
         return self.db.scalar(statement)
 
     def get_by_document(self, document: str) -> Driver | None:

@@ -653,3 +653,13 @@ gerado pelo PostgreSQL e retrocompatibilidade para viagens existentes.
 ## Observação
 
 O modelo é inicial. Qualquer mudança estrutural relevante deve ser registrada por migration e por ADR quando alterar uma decisão arquitetural, unidade, contrato público ou regra permanente.
+
+## OC105 — ciclo de vida dos cadastros
+
+`CONFIRMADO`: clientes, produtos, caminhões e motoristas usam `active` não nulo,
+com default `true`. `false` significa arquivado; conflitos operacionais continuam
+sendo calculados separadamente. A migration `20261008_0016` adiciona o campo
+somente a clientes e produtos, preservando dados existentes como ativos.
+Unicidades permanecem globais, inclusive para arquivados; FKs e histórico não
+são removidos. O catálogo de `audit_events` aceita `RECORD_ARCHIVED` e
+`RECORD_REACTIVATED` para CUSTOMER, PRODUCT, TRUCK e DRIVER.
