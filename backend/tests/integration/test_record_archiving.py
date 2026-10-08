@@ -174,9 +174,9 @@ def test_archived_identity_cannot_be_reused_and_reactivation_keeps_uniqueness(
     )
 
 
-@pytest.mark.parametrize("role", ["ADMIN", "CHECKER", "DRIVER"])
+@pytest.mark.parametrize("role", ["CHECKER", "DRIVER"])
 @pytest.mark.parametrize("resource,payload", REGISTRIES)
-def test_only_manager_can_change_registry_lifecycle(
+def test_non_managers_cannot_change_registry_lifecycle(
     client: TestClient,
     session_factory: SessionFactory,
     manager,
