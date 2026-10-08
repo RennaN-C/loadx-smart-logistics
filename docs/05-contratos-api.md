@@ -1,3 +1,14 @@
+> **Diretriz de RBAC para v1.2.0 (OC112, decisão de 08/10/2026):**
+> `ADMIN` deve ser superconjunto das permissões gerenciais/logísticas do
+> `LOGISTICS_MANAGER` dentro do LoadX, além de administrar usuários e
+> configurações. Esse alvo **não está implementado universalmente**.
+> Os perfis descritos por endpoint neste documento retratam o **contrato
+> vigente** até uma PR funcional promover a hierarquia, com testes e versionamento.
+> Novas OCs não devem presumir que a restrição de escrita apenas ao gerente
+> represente o contrato final. O ADMIN não contorna autorização por objeto,
+> identidade de motorista, estados ou auditoria.
+> Especificação: [OC112 / Issue #159](https://github.com/RennaN-C/loadx-smart-logistics/issues/159).
+
 # Contratos iniciais da API
 
 ## OC87 — planejamento multi-caminhão
