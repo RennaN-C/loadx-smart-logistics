@@ -137,9 +137,7 @@ def test_registration_replay_and_queries_preserve_receipt_and_responsible(
     )
 
 
-@pytest.mark.parametrize(
-    "actor", ("checker", "unlinked", "other_driver", "inactive")
-)
+@pytest.mark.parametrize("actor", ("checker", "unlinked", "other_driver", "inactive"))
 def test_registration_rejects_unauthorized_actor(evidence_scenario, actor):
     s = evidence_scenario
     response = register(s, actor=actor)
