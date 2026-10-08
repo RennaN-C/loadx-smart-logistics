@@ -514,7 +514,7 @@ def test_operational_port_preserves_single_truck_and_gates_split_orders(
     assert response.status_code == (201 if parts == 1 else 409), response.text
 
 
-@pytest.mark.parametrize("role", ["ADMIN", "CHECKER", "DRIVER"])
+@pytest.mark.parametrize("role", ["CHECKER", "DRIVER"])
 def test_roles_cannot_create_or_approve_distribution(distribution_scenario, role):
     s = distribution_scenario
     user = create_authenticated_user(s.factory, role)
@@ -533,11 +533,34 @@ def test_roles_cannot_create_or_approve_distribution(distribution_scenario, role
         read = s.client.get(
             f"/api/v1/load-distributions/{result['id']}", headers=user.headers
         )
-        assert read.status_code == (200 if role == "ADMIN" else 403)
+        assert read.status_code == 403
     finally:
         with s.factory() as db:
             db.execute(delete(AuthSession).where(AuthSession.user_id == user.id))
             db.execute(delete(User).where(User.id == user.id))
+            db.commit()
+
+
+def test_admin_can_create_and_approve_distribution(distribution_scenario):
+    s = distribution_scenario
+    admin = create_authenticated_user(s.factory, "ADMIN")
+    try:
+        response = s.client.post(
+            "/api/v1/load-distributions", json=s.payload(), headers=admin.headers
+        )
+        assert response.status_code == 201, response.text
+        distribution_id = response.json()["id"]
+        approved = s.client.post(
+            f"/api/v1/load-distributions/{distribution_id}/approve",
+            json={},
+            headers=admin.headers,
+        )
+        assert approved.status_code == 200, approved.text
+        assert approved.json()["status"] == "APPROVED"
+    finally:
+        with s.factory() as db:
+            db.execute(delete(AuthSession).where(AuthSession.user_id == admin.id))
+            db.execute(delete(User).where(User.id == admin.id))
             db.commit()
 
 
