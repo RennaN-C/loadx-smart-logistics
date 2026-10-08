@@ -4,6 +4,7 @@ import { AlertBanner } from "../../../components/AlertBanner";
 import { Modal } from "../../../components/Modal";
 import { Pagination } from "../../../components/Pagination";
 import { useAuth } from "../../auth/hooks/useAuth";
+import { canManageLogistics } from "../../auth/permissions";
 import { ProductCard } from "../components/ProductCard";
 import { ProductForm } from "../components/ProductForm";
 import { mapProductErrorToMessage } from "../components/productsErrorMessages";
@@ -43,7 +44,7 @@ export function ProductListPage() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
-  const canManage = user?.role === "LOGISTICS_MANAGER";
+  const canManage = canManageLogistics(user?.role);
   const isFormOpen = isCreating || editingProduct !== null;
 
   // Busca e restrições são locais; o arquivamento é filtrado pelo servidor (OC105).
