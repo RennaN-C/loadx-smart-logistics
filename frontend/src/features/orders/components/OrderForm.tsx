@@ -1,8 +1,10 @@
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 
 import { AlertBanner } from "../../../components/AlertBanner";
 import { FormField } from "../../../components/FormField";
 import { ApiError } from "../../../types/api";
+import { listActiveCustomerAddresses } from "../../customers/api/customerAddressesApi";
+import type { CustomerAddress } from "../../customers/types";
 import type { CustomerListItem } from "../../customers/types";
 import type { Product } from "../../products/types";
 import { changeOrderStatus, createOrder, updateOrder } from "../api/ordersApi";
@@ -90,6 +92,26 @@ export function OrderForm({ order, customers, products, onSaved, onCancel }: Ord
   };
 
   const [customerId, setCustomerId] = useState(order?.customerId ?? "");
+  const [addresses, setAddresses] = useState<CustomerAddress[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState("");
+  const [addressLoadError, setAddressLoadError] = useState(false);
+  const [loadingAddresses, setLoadingAddresses] = useState(false);
+  useEffect(() => {
+    if (!customerId) return;
+    let current = true;
+    setLoadingAddresses(true);
+    setAddressLoadError(false);
+    listActiveCustomerAddresses(customerId).then((rows) => {
+      if (!current) return;
+      setAddresses(rows);
+      setLoadingAddresses(false);
+    }).catch(() => {
+      if (!current) return;
+      setAddressLoadError(true);
+      setLoadingAddresses(false);
+    });
+    return () => { current = false; };
+  }, [customerId]);
   const [priority, setPriority] = useState<OrderPriority>(order?.priority ?? "NORMAL");
   const [deliveryAddress, setDeliveryAddress] = useState(order?.deliveryAddress ?? "");
   const [expectedDeliveryAt, setExpectedDeliveryAt] = useState(
@@ -135,7 +157,10 @@ export function OrderForm({ order, customers, products, onSaved, onCancel }: Ord
     const payload = {
       customerId,
       priority,
-      deliveryAddress: deliveryAddress.trim(),
+      ...(selectedAddressId
+        ? { customerAddressId: selectedAddressId }
+        : !order || customerId !== order.customerId || deliveryAddress.trim() !== order.deliveryAddress
+          ? { deliveryAddress: deliveryAddress.trim() } : {}),
       expectedDeliveryAt: localInputToIso(expectedDeliveryAt),
       items: items.map((item) => ({
         productId: item.productId,
@@ -175,7 +200,12 @@ export function OrderForm({ order, customers, products, onSaved, onCancel }: Ord
               name="customerId"
               required
               value={customerId}
-              onChange={(event) => setCustomerId(event.target.value)}
+              onChange={(event) => {
+                setCustomerId(event.target.value);
+                setSelectedAddressId("");
+                setDeliveryAddress("");
+                setAddresses([]);
+              }}
             >
               <option value="">Selecione o cliente</option>
               {customers.filter((customer) => customer.active).map((customer) => (
@@ -203,15 +233,29 @@ export function OrderForm({ order, customers, products, onSaved, onCancel }: Ord
           {isEditing && order ? renderStatusField(order.status, status, setStatus) : null}
         </div>
 
+        {customerId ? (
+          <FormField id="order-customer-address" label="ENDEREÇO CADASTRADO">
+            <select id="order-customer-address" value={selectedAddressId} disabled={loadingAddresses}
+              onChange={(event) => setSelectedAddressId(event.target.value)}>
+              <option value="">{order ? "Preservar endereço do pedido / informar manualmente" : "Informar endereço manualmente"}</option>
+              {addresses.map((address) => <option key={address.id} value={address.id}>
+                {address.label}{address.isPrimary ? " (principal)" : ""} — {address.address}, {address.city}/{address.state}
+              </option>)}
+            </select>
+            {loadingAddresses ? <p role="status">Carregando endereços…</p> : null}
+            {addressLoadError ? <p role="alert">Não foi possível carregar os endereços cadastrados. Você pode informar o endereço manualmente.</p> : null}
+          </FormField>
+        ) : null}
         <div className="entity-form-row">
           <FormField id="order-address" label="ENDEREÇO DE ENTREGA">
             <input
               id="order-address"
               name="deliveryAddress"
-              required
+              disabled={selectedAddressId !== ""}
+              required={selectedAddressId === ""}
               maxLength={255}
               placeholder="Av. Brasil, 500 — Sorocaba/SP"
-              value={deliveryAddress}
+              value={selectedAddressId ? addresses.find((address) => address.id === selectedAddressId)?.address ?? "" : deliveryAddress}
               onChange={(event) => setDeliveryAddress(event.target.value)}
             />
           </FormField>
