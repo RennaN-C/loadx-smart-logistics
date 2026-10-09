@@ -1,11 +1,16 @@
 import uuid
 from collections.abc import Callable, Sequence
+from datetime import UTC, datetime
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core.exceptions import ApiError
 from app.core.pagination import PageResult, PaginationParams
 from app.database.integrity import get_integrity_constraint_name
+from app.modules.status_history.schemas import AuditEventCreate
+from app.modules.status_history.service import AuditService
+from app.modules.trucks.maintenance_repository import MaintenanceRepository
 from app.modules.trucks.models import Truck
 from app.modules.trucks.repository import TruckRepository
 from app.modules.trucks.schemas import TruckCreate, TruckUpdate
@@ -73,12 +78,60 @@ class TruckService:
         exclude_load_plan_id: uuid.UUID | None = None,
     ) -> Truck:
         truck = self.get_truck_for_update(truck_id)
+        self.ensure_not_in_maintenance(truck_id)
         if self.repository.has_operation_conflict(
             truck_id,
             exclude_load_plan_id=exclude_load_plan_id,
         ):
             raise TruckOperationConflictError(truck_id)
         return truck
+
+    def has_maintenance_conflict(
+        self, truck_id: uuid.UUID, *, at: datetime | None = None
+    ) -> bool:
+        return MaintenanceRepository(self.db).has_block(
+            truck_id, at or datetime.now(UTC)
+        )
+
+    def ensure_not_in_maintenance(self, truck_id: uuid.UUID) -> None:
+        if self.has_maintenance_conflict(truck_id):
+            raise ApiError(
+                409, "TRUCK_IN_MAINTENANCE", "Caminhão indisponível por manutenção."
+            )
+
+    def stage_maintenance_audit(
+        self, identifier: uuid.UUID, event: str, fields: Sequence[str], actor: uuid.UUID
+    ) -> None:
+        AuditService(self.db).stage_administrative_event(
+            AuditEventCreate(
+                event_type=event,
+                entity_type="TRUCK_MAINTENANCE",
+                entity_id=identifier,
+                actor_id=actor,
+                changed_fields=list(fields),
+            )
+        )
+
+    def stage_odometer(
+        self, truck: Truck, value: int | None, *, actor: uuid.UUID | None
+    ) -> None:
+        if value is None or value == truck.odometer_km:
+            return
+        if truck.odometer_km is not None and value < truck.odometer_km:
+            raise ApiError(
+                409, "ODOMETER_DECREASE", "A quilometragem não pode diminuir."
+            )
+        truck.odometer_km = value
+        if actor is not None:
+            AuditService(self.db).stage_administrative_event(
+                AuditEventCreate(
+                    event_type="TRUCK_ODOMETER_UPDATED",
+                    entity_type="TRUCK",
+                    entity_id=truck.id,
+                    actor_id=actor,
+                    changed_fields=["odometer_km"],
+                )
+            )
 
     def create_truck(self, data: TruckCreate) -> Truck:
         if self.repository.get_by_plate(data.plate) is not None:
@@ -106,10 +159,13 @@ class TruckService:
             if existing_truck is not None and existing_truck.id != truck.id:
                 raise TruckPlateAlreadyExistsError
 
+        odometer = update_data.pop("odometer_km", None)
+
         for field_name, value in update_data.items():
             setattr(truck, field_name, value)
 
         def stage_update() -> Truck:
+            self.stage_odometer(truck, odometer, actor=changed_by)
             if not old_active and truck.active:
                 validate_reactivation(TruckCreate, truck)
             self.repository.update(truck)
