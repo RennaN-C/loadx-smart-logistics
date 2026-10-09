@@ -47,7 +47,13 @@ da mensagem, mas o título do commit e o nome da branch devem priorizar portugu�
 
 Alterações de trabalho entram por Pull Request para `desenvolvimento`.
 Na v1.2.0, a promoção da versão segue por `versao/v1.2.0` até `main`.
-Exigir pelo menos uma revisão de outro integrante.
+`RECOMENDAÇÃO`: solicitar revisão de outro integrante quando houver disponibilidade.
+Por decisão do responsável pelo projeto (09/10/2026), a ausência de revisão
+independente não bloqueia, por si só, PRs em `desenvolvimento`, desde que
+revisão técnica, critérios de aceite, testes, CI, segurança e Sonar obrigatórios
+estejam aprovados e não existam conflitos. Registrar no PR a dispensa e o motivo.
+Não neutralizar regras de proteção do GitHub nem dispensar aprovação quando ela
+for efetivamente exigida; em `main` ou releases, valem as proteções específicas.
 
 `CONFIRMADO`: PRs destinados a `desenvolvimento` possuem contrato validado
 automaticamente pela CI. Todo PR deve fechar exatamente uma Issue com
@@ -66,7 +72,7 @@ Checklist mínimo:
 - Testes foram criados ou atualizados.
 - Migrations foram incluídas quando necessárias.
 - Contratos e documentação foram atualizados.
-- Outro integrante revisou a mudança.
+- Revisão independente realizada ou dispensa motivada registrada (apenas onde permitida).
 
 ## Processo para criar uma funcionalidade
 
