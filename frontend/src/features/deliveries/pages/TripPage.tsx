@@ -1,5 +1,5 @@
 import { TripAttachments } from "../../attachments/components/TripAttachments";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 
 import { AlertBanner } from "../../../components/AlertBanner";
 import { StatusPill } from "../../../components/StatusPill";
@@ -72,6 +72,10 @@ export function TripPage() {
 
   return (
     <div className="entity-page">
+      <nav className="entity-toolbar" aria-label="Caminhos da viagem">
+        <Link to="/">{user?.role === "DRIVER" ? "Voltar às minhas viagens" : "Voltar ao início"}</Link>
+        {trip && (user?.role === "ADMIN" || user?.role === "LOGISTICS_MANAGER") ? <Link to={`/planning/${trip.loadPlanId}`}>Voltar ao plano de origem</Link> : null}
+      </nav>
       <header className="entity-header">
         <div>
           <h1>Acompanhamento da viagem</h1>
