@@ -25,7 +25,7 @@ export function PlanItemsTable({ items }: PlanItemsTableProps) {
         <p className="entity-form-help">
           Carregue nesta ordem. O item 1 entra primeiro, no fundo do baú; a última entrega sai primeiro.
         </p>
-        <div className="plan-table-scroll">
+        <div className="plan-table-scroll" role="region" aria-label="Sequência de carregamento" tabIndex={0}>
           <table className="plan-table">
             <thead>
               <tr>
@@ -68,7 +68,7 @@ export function PlanItemsTable({ items }: PlanItemsTableProps) {
           <p className="entity-form-help">
             Estes volumes não entraram no caminhão. O motivo indica o que precisa mudar.
           </p>
-          <div className="plan-table-scroll">
+          <div className="plan-table-scroll" role="region" aria-label="Volumes recusados" tabIndex={0}>
             <table className="plan-table">
               <thead>
                 <tr>
