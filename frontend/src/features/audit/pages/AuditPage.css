@@ -178,3 +178,6 @@
     text-align: left;
   }
 }
+
+.audit-context-header, .audit-filter-actions { flex-wrap: wrap; }
+.audit-context-list li > div { min-width: 0; overflow-wrap: anywhere; }
