@@ -770,3 +770,12 @@ dentro da transação de confirmação; rollback remove tentativa não confirmad
 AuditEvent adiciona IMPORT_COMPLETED/IMPORT_REJECTED para REGISTRATION_IMPORT,
 na mesma transação do resultado. Migration 20261009_0022 → 20261009_0021;
 downgrade recusa histórico ou auditoria OC104 para evitar perda.
+
+## OC91 — company_profiles
+
+`CONFIRMADO`: cadastro institucional singleton standalone, conforme ADR-035.
+UUID local fixo `00000000-0000-0000-0000-000000000091`, PK e CHECK singleton;
+`legal_name`/`display_name` obrigatórios, `cnpj`/`phone`/`email`/`logo_reference`
+opcionais, `created_at`/`updated_at` UTC. Não representa tenant e não possui
+vínculos dos agregados logísticos. Eventos COMPANY_PROFILE_CREATED/UPDATED
+registram somente nomes de campos e ator, na mesma transação.
