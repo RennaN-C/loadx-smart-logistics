@@ -739,3 +739,18 @@ DRIVER_DOCUMENT_CREATED/RENEWED/POLICY_UPDATED/TYPE_APPROVED. ADR-032.
 `CONFIRMADO` (OC102): driver_documents também possui legacy_backfill boolean
 obrigatório default false, exclusivo do backfill e da proteção de downgrade.
 Policy tem CHECK PostgreSQL jsonb_typeof(allowed_categories)='array'.
+
+## OC110 — anexos operacionais
+
+`CONFIRMADO`: contrato aditivo da Issue #157, detalhado na ADR-033. Tabela
+`operational_attachments`: UUID `id`, exatamente uma FK RESTRICT entre `order_id`,
+`trip_id`, `delivery_id`, `occurrence_id`; `recorded_by`/`revoked_by` referenciam
+usuários com RESTRICT. `event_id` com UNIQUE por autor permite retry sem outro
+blob. `media_type` PNG/JPEG, `size_bytes` 1–5242880, `sha256` e `fingerprint`
+64 caracteres, `recorded_at` UTC e estado ACTIVE/REVOKED com revogação consistente.
+Índices por recurso/data/id suportam consulta paginada. Nenhum caminho ou URL é
+persistido; chave do adapter é o UUID interno. FK impede órfãos fora do service.
+Auditoria adiciona ATTACHMENT_REGISTERED/ATTACHMENT_REVOKED para ATTACHMENT,
+na mesma transação; remoção nunca exclui metadata/histórico nem bytes confirmados.
+Migration 20261009_0021 encadeada em 20261009_0020. Downgrade recusa perda de
+anexos ou auditoria, inclusive revogados.

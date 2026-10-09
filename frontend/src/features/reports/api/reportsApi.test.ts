@@ -4,7 +4,7 @@ import { api } from "../../../services/api";
 import { ApiError } from "../../../types/api";
 import { downloadLoadingReport, downloadTripReport, saveBlob } from "./reportsApi";
 
-vi.mock("../../../services/api", () => ({ api: { get: vi.fn() } }));
+vi.mock("../../../services/api", () => ({ notifyIfSessionInvalidated: vi.fn(), api: { get: vi.fn() } }));
 
 /**
  * Resposta de erro do backend, entregue como Blob por causa do `responseType`.

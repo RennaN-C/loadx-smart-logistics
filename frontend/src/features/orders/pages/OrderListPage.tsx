@@ -1,3 +1,4 @@
+import { AttachmentPanel } from "../../attachments/components/AttachmentPanel";
 import { useMemo, useState } from "react";
 
 import { AlertBanner } from "../../../components/AlertBanner";
@@ -42,6 +43,7 @@ export function OrderListPage() {
   const { items: products } = useResourceList(listProducts);
   const edit = useEditTarget<Order>(getOrder);
 
+  const [attachmentOrderId, setAttachmentOrderId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [isCreating, setIsCreating] = useState(false);
@@ -146,6 +148,7 @@ export function OrderListPage() {
               customerName={customerNames.get(order.customerId) ?? "Cliente não encontrado"}
               canManage={canManage}
               isOpening={edit.loadingId === order.id}
+              onAttachments={setAttachmentOrderId}
               onEdit={(id) => void edit.open(id)}
             />
           ))}
@@ -155,6 +158,8 @@ export function OrderListPage() {
       {status === "success" ? (
         <Pagination page={page} totalPages={totalPages} onChange={goToPage} label="pedidos" />
       ) : null}
+
+      {attachmentOrderId ? <Modal title="Anexos do pedido" onClose={() => setAttachmentOrderId(null)}><AttachmentPanel key={attachmentOrderId} resource="orders" resourceId={attachmentOrderId} canManage={canManage} /></Modal> : null}
 
       {isFormOpen ? (
         <Modal

@@ -10,6 +10,9 @@ class OccurrenceRepository:
     def __init__(self, db: Session) -> None:
         self.db = db
 
+    def get(self, occurrence_id: uuid.UUID) -> Occurrence | None:
+        return self.db.get(Occurrence, occurrence_id)
+
     def count_all(self) -> int:
         return self.db.scalar(select(func.count()).select_from(Occurrence)) or 0
 

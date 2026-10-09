@@ -423,6 +423,20 @@ for method in ("get", "post"):
         "500",
     }
 
+for attachment_suffix, attachment_method in (
+    ("", "get"),
+    ("", "post"),
+    ("/{attachment_id}", "get"),
+    ("/{attachment_id}/content", "get"),
+    ("/{attachment_id}/revoke", "post"),
+):
+    EXPECTED_ERROR_STATUSES[
+        (
+            f"/api/v1/attachments/{{resource_type}}/{{resource_id}}{attachment_suffix}",
+            attachment_method,
+        )
+    ] = {"401", "403", "404", "409", "422", "500", "503"}
+
 PUBLIC_OPERATIONS = frozenset(
     {
         ("/health", "get"),

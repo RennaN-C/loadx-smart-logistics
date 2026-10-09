@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from app.core.responses import openapi_error_responses
+from app.modules.attachments.router import router as attachments_router
 from app.modules.auth.router import router as auth_router
 from app.modules.customers.address_router import router as customer_addresses_router
 from app.modules.customers.router import router as customers_router
@@ -52,3 +53,5 @@ api_router.include_router(truck_documents_router)
 api_router.include_router(users_router)
 
 api_router.include_router(distribution_router)
+
+api_router.include_router(attachments_router)
