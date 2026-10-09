@@ -33,7 +33,7 @@ export function PlanBuilder({ onCalculated }: PlanBuilderProps) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Só caminhão ativo carrega, e só pedido READY entra em plano (regra do backend).
-  const activeTrucks = useMemo(() => trucks.filter((truck) => truck.active), [trucks]);
+  const activeTrucks = useMemo(() => trucks.filter((truck) => truck.active && !situacoes.some((status) => status.id === truck.id && status.hasMaintenanceConflict)), [trucks, situacoes]);
   /**
    * Quais caminhões já estão comprometidos, segundo a OC67.
    *
@@ -73,7 +73,7 @@ export function PlanBuilder({ onCalculated }: PlanBuilderProps) {
   }
 
   const isLoading = trucksStatus === "loading" || ordersStatus === "loading";
-  const canCalculate = truckId !== "" && selectedOrders.length > 0 && !isCalculating;
+  const canCalculate = activeTrucks.some((truck) => truck.id === truckId) && selectedOrders.length > 0 && !isCalculating;
 
   return (
     <div className="plan-builder">

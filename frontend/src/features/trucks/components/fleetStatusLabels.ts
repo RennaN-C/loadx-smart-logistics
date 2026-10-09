@@ -27,6 +27,7 @@ export function describeFleetStatus(truck: TruckOperationalStatus): FleetStatusV
 
   const motivos: string[] = [];
   if (!truck.active) motivos.push("cadastro arquivado");
+  if (truck.hasMaintenanceConflict) motivos.push("em manutenção");
   if (truck.hasOperationConflict) motivos.push("já está em operação");
 
   return {
