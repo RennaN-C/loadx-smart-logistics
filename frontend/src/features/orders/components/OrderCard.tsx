@@ -15,6 +15,7 @@ interface OrderCardProps {
   readonly customerName: string;
   readonly canManage: boolean;
   readonly isOpening: boolean;
+  readonly onAttachments?: (id: string) => void;
   readonly onEdit: (id: string) => void;
 }
 
@@ -22,7 +23,7 @@ interface OrderCardProps {
  * Mostra só o que a listagem entrega. Endereço e itens ficam no detalhe
  * (`GET /orders/{id}`), então o card exibe a contagem em vez da lista.
  */
-export function OrderCard({ order, customerName, canManage, isOpening, onEdit }: OrderCardProps) {
+export function OrderCard({ order, customerName, canManage, isOpening, onEdit, onAttachments }: OrderCardProps) {
   return (
     <article className="order-card">
       <div className="order-card-head">
@@ -61,6 +62,7 @@ export function OrderCard({ order, customerName, canManage, isOpening, onEdit }:
         </div>
       </dl>
 
+      {onAttachments ? <button type="button" className="btn-secondary" onClick={() => onAttachments(order.id)}>Anexos do pedido</button> : null}
       {canManage ? (
         <div className="order-card-foot">
           <button

@@ -1,3 +1,4 @@
+import { TripAttachments } from "../../attachments/components/TripAttachments";
 import { useParams } from "react-router-dom";
 
 import { AlertBanner } from "../../../components/AlertBanner";
@@ -121,6 +122,8 @@ export function TripPage() {
               As entregas só podem ser movimentadas depois que a viagem entrar em rota.
             </p>
           ) : null}
+
+          <TripAttachments trip={trip} canManage={canOperate} />
 
           <TripStops
             trip={trip}
