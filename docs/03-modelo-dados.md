@@ -704,3 +704,17 @@ closed_at encerra o bloqueio. Histórico e auditoria permanecem sem DELETE.
 O catálogo administrativo aceita TRUCK_MAINTENANCE, MAINTENANCE_CREATED,
 MAINTENANCE_CLOSED e TRUCK_ODOMETER_UPDATED. Lock do caminhão serializa
 manutenção, quilometragem e reserva operacional; não altera active da OC105.
+
+## OC101 — documentos dos caminhões
+
+`RECOMENDAÇÃO`: `truck_documents`: id UUID PK, truck_id UUID FK RESTRICT,
+kind varchar(16) limitado a CRLV/LICENSING/INSURANCE, reference varchar(120)
+não vazio, issued_at/expires_at UTC opcionais (expires > issued quando ambas
+presentes), file_reference UUID opaco opcional, superseded_at UTC opcional,
+created_at UTC obrigatório default now. Índice único parcial (truck_id, kind)
+onde superseded_at IS NULL; índice (truck_id, created_at) para histórico.
+`truck_document_policies`: id UUID PK, truck_id FK RESTRICT, kind mesmo catálogo,
+required boolean obrigatório default false; unique (truck_id, kind).
+Auditoria acrescenta entidades TRUCK_DOCUMENT/TRUCK_DOCUMENT_POLICY e eventos
+TRUCK_DOCUMENT_CREATED/TRUCK_DOCUMENT_RENEWED/TRUCK_DOCUMENT_POLICY_UPDATED.
+Migration sequencial 20261009_0019, down_revision 20261009_0018. ADR-031.

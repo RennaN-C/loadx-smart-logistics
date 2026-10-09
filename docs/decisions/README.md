@@ -39,3 +39,5 @@ Proposta para revisão:
 - `ADR-029`: endereços reutilizáveis e snapshot contratado do pedido (OC99), proposta para revisão.
 
 - `ADR-030`: manutenção e disponibilidade programada da frota (OC100), proposta para revisão.
+
+- `ADR-031`: documentos, versões e políticas de elegibilidade dos caminhões (OC101).
