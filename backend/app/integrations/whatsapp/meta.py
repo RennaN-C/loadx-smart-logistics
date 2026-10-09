@@ -4,7 +4,6 @@ import logging
 import re
 import time
 import uuid
-from dataclasses import replace
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
@@ -96,8 +95,13 @@ class MetaWhatsAppProvider:
         response = self._post_message(phone, message.content)
         self._raise_for_status(response)
         message_id = self._message_id(response)
-        receipt = replace(
-            message, provider_message_id=message_id, accepted_at=datetime.now(UTC)
+        receipt = OutgoingWhatsAppMessage(
+            recipient_phone=message.recipient_phone,
+            content=message.content,
+            sent_at=message.sent_at,
+            operation_id=message.operation_id,
+            provider_message_id=message_id,
+            accepted_at=datetime.now(UTC),
         )
         self._complete(message, receipt)
         emit_operational_event(
