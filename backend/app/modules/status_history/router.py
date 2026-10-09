@@ -20,8 +20,16 @@ AuditReader = Annotated[
     User,
     Depends(require_roles("ADMIN", "LOGISTICS_MANAGER")),
 ]
-AuditEntityType = Literal["ORDER", "LOAD_PLAN", "TRIP", "DELIVERY", "USER"]
-AuditEventType = Literal["STATUS_CHANGED", "USER_CREATED", "USER_UPDATED"]
+AuditEntityType = Literal[
+    "ORDER", "LOAD_PLAN", "TRIP", "DELIVERY", "USER", "COMPANY_PROFILE"
+]
+AuditEventType = Literal[
+    "STATUS_CHANGED",
+    "USER_CREATED",
+    "USER_UPDATED",
+    "COMPANY_PROFILE_CREATED",
+    "COMPANY_PROFILE_UPDATED",
+]
 
 
 def get_audit_service(db: Annotated[Session, Depends(get_db)]) -> AuditService:
@@ -35,7 +43,7 @@ def get_audit_service(db: Annotated[Session, Depends(get_db)]) -> AuditService:
 )
 def list_audit_entries(
     pagination: Pagination,
-    _current_user: AuditReader,
+    current_user: AuditReader,
     service: Annotated[AuditService, Depends(get_audit_service)],
     entity_type: Annotated[AuditEntityType | None, Query()] = None,
     entity_id: Annotated[uuid.UUID | None, Query()] = None,
@@ -44,6 +52,13 @@ def list_audit_entries(
     start_at: Annotated[datetime | None, Query()] = None,
     end_at: Annotated[datetime | None, Query()] = None,
 ) -> PageResponse[AuditEntryRead] | JSONResponse:
+    if current_user.role != "ADMIN" and (
+        entity_type == "COMPANY_PROFILE"
+        or event_type in {"COMPANY_PROFILE_CREATED", "COMPANY_PROFILE_UPDATED"}
+    ):
+        return error_response(
+            403, "AUTH_FORBIDDEN", "Acesso restrito ao administrador."
+        )
     try:
         result = service.list_entries(
             pagination,
@@ -53,6 +68,7 @@ def list_audit_entries(
             event_type=event_type,
             start_at=start_at,
             end_at=end_at,
+            exclude_company=current_user.role != "ADMIN",
         )
     except AuditInvalidPeriodError:
         return error_response(

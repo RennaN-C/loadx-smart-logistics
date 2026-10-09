@@ -8,6 +8,7 @@ import { ApiError } from "../types/api";
 import { App } from "./App";
 
 vi.mock("../features/auth/api/authApi");
+vi.mock("../features/settings/api/companyProfileApi", () => ({ getCompanyProfile: vi.fn(async () => null) }));
 vi.mock("../features/dashboard/pages/DashboardPage", () => ({ DashboardPage: () => <h1>Início da operação</h1> }));
 
 const USER: AuthenticatedUser = {
@@ -115,10 +116,12 @@ describe("OC85: navegação e autorização na aplicação", () => {
     render(<App />);
     await screen.findByRole("heading", { name: "Configurações", level: 1 });
     expect(screen.getByRole("region", { name: "Configurações do LoadX" })).toBeInTheDocument();
-    for (const label of ["Gestão de usuários", "Dados da empresa", "Segurança da conta"]) {
+    for (const label of ["Gestão de usuários", "Segurança da conta"]) {
       expect(within(account()).getByRole("heading", { name: label, level: 3 })).toBeInTheDocument();
       expect(screen.queryByRole("link", { name: label })).not.toBeInTheDocument();
     }
+    expect(screen.getByRole("region", { name: "Dados da empresa" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Dados da empresa" })).toHaveAttribute("href", "#settings-company");
     const sections = screen.getByRole("navigation", { name: "Seções de configurações" });
     for (const link of within(sections).getAllByRole("link")) {
       const id = link.getAttribute("href")!.slice(1);

@@ -38,6 +38,7 @@ Registros aceitos relevantes:
 - `ADR-032`: documentos, renovação e elegibilidade de motoristas (OC102, PR #178).
 - `ADR-033`: anexos operacionais com storage privado local e limites de produção (OC110, PR #179).
 - `ADR-034`: importação atômica de cadastros via CSV (OC104, PR #180).
+- `ADR-035`: cadastro institucional monoempresa, contrato ADMIN e auditoria protegida (OC91).
 
 As ADR-029 a ADR-034 foram aceitas para o escopo implementado na v1.2.0 standalone
 em 09/10/2026. Aceitação da decisão técnica não implica liberação da v1.2.0
