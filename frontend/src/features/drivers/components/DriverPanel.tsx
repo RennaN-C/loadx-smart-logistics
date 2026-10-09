@@ -11,7 +11,8 @@ import { RecordLifecycleAction } from "../../../components/RecordLifecycleAction
 import { useAuth } from "../../auth/hooks/useAuth";
 import { canManageLogistics } from "../../auth/permissions";
 import { getDriver, listDrivers } from "../api/driversApi";
-import type { Driver } from "../types";
+import type { DriverListItem, Driver } from "../types";
+import { DocumentsPanel } from "./DocumentsPanel";
 import { DriverForm } from "./DriverForm";
 import { mapDriverErrorToMessage } from "./driversErrorMessages";
 import { Icon } from "../../../components/Icon";
@@ -31,6 +32,7 @@ export function DriverPanel() {
     setArchiveStatus,
   } = useRegistryList(listDrivers);
   const edit = useEditTarget<Driver>(getDriver);
+  const [documentsDriver, setDocumentsDriver] = useState<DriverListItem | null>(null);
   const [search, setSearch] = useState("");
   const [isCreating, setIsCreating] = useState(false);
 
@@ -117,6 +119,7 @@ export function DriverPanel() {
                   <dd>{driver.licenseCategory ?? "—"}</dd>
                 </div>
               </dl>
+              <button type="button" className="btn-link" onClick={() => setDocumentsDriver(driver)}>Documentos</button>
               {canManage ? (
                 <div className="contact-card-foot">
                   <RecordLifecycleAction resource="drivers" id={driver.id} active={driver.active} onChanged={refetch} />
@@ -139,6 +142,7 @@ export function DriverPanel() {
         <Pagination page={page} totalPages={totalPages} onChange={goToPage} label="motoristas" />
       ) : null}
 
+      {documentsDriver ? <Modal title={`Documentos — ${documentsDriver.name}`} onClose={() => setDocumentsDriver(null)}><DocumentsPanel driver={documentsDriver} onChanged={refetch}/></Modal> : null}
       {isFormOpen ? (
         <Modal
           title={edit.target ? "Editar motorista" : "Novo motorista"}

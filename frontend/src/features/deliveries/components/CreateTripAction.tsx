@@ -84,7 +84,7 @@ export function CreateTripAction({ loadPlanId }: CreateTripActionProps) {
                 {activeDrivers.map((driver) => {
                   const operationalStatus = statusByDriver.get(driver.id);
                   const unavailable = operationalStatus?.available === false;
-                  const suffix = operationalStatus?.hasOperationConflict
+                  const suffix = operationalStatus?.hasDocumentConflict ? " — documentação pendente" : operationalStatus?.hasOperationConflict
                     ? " — em operação"
                     : unavailable
                       ? " — indisponível"
