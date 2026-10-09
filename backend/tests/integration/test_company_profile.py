@@ -211,11 +211,9 @@ def test_audit_failure_rolls_back_entire_operation(
             raise RuntimeError("simulated audit failure")
 
         monkeypatch.setattr(AuditService, "stage_administrative_event", fail)
+        input_data = CompanyProfileInput(**{**PAYLOAD, "display_name": "Must rollback"})
         with pytest.raises(RuntimeError):
-            service.update(
-                CompanyProfileInput(**{**PAYLOAD, "display_name": "Must rollback"}),
-                admin.id,
-            )
+            service.update(input_data, admin.id)
     with session_factory() as db:
         profile = db.get(CompanyProfile, PROFILE_ID)
         assert (profile.display_name if profile else None) == (
@@ -293,11 +291,13 @@ def test_downgrade_preserves_institutional_record(session_factory, admin):
     with session_factory() as db:
         migration.ensure_safe_downgrade(db.connection())
         CompanyProfileService(db).update(CompanyProfileInput(**PAYLOAD), admin.id)
+        connection = db.connection()
         with pytest.raises(RuntimeError, match="must be preserved"):
-            migration.ensure_safe_downgrade(db.connection())
+            migration.ensure_safe_downgrade(connection)
         db.execute(text("DELETE FROM company_profiles"))
+        connection = db.connection()
         with pytest.raises(RuntimeError, match="must be preserved"):
-            migration.ensure_safe_downgrade(db.connection())
+            migration.ensure_safe_downgrade(connection)
         db.rollback()
 
 

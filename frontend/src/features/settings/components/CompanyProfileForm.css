@@ -4,3 +4,5 @@
 .company-profile-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-block: 20px; }
 .company-profile-actions button { max-width: 100%; white-space: normal; }
 @media (max-width: 768px) { .company-profile-fields { grid-template-columns: minmax(0, 1fr); } }
+
+.company-profile-feedback { display: block; margin-block: 16px; color: var(--muted); }

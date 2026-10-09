@@ -52,23 +52,23 @@ export function CompanyProfileForm() {
     try {
       const value = await updateCompanyProfile(input);
       setStored(value); setDraft(value); setEditing(false); setSuccess(true);
-    } catch (failure) {
-      if (failure instanceof ApiError) {
-        setErrors(validationFieldMessages(failure));
-        setError(validationMessage(failure, LABELS) ?? failure.message);
+    } catch (error_) {
+      if (error_ instanceof ApiError) {
+        setErrors(validationFieldMessages(error_));
+        setError(validationMessage(error_, LABELS) ?? error_.message);
       } else setError("Não foi possível salvar os dados da empresa. Tente novamente.");
     } finally { setSaving(false); }
   }
   useEffect(() => {
     if (Object.keys(errors).length) form.current?.querySelector<HTMLInputElement>('[aria-invalid="true"]')?.focus();
   }, [errors]);
-  if (loading) return <p role="status">Carregando dados da empresa…</p>;
+  if (loading) return <output className="company-profile-feedback">Carregando dados da empresa…</output>;
   if (!loaded) return <div><p role="alert">{error}</p><button type="button" className="btn-secondary" onClick={() => setRetry((value) => value + 1)}>Tentar novamente</button></div>;
   return <>
     <p>Cadastro institucional do LoadX. Campos opcionais podem ficar em branco.</p>
     {!stored && <p>A empresa ainda não possui dados institucionais cadastrados.</p>}
     {error && <p role="alert" className="entity-form-error">{error}</p>}
-    {success && <p role="status">Dados da empresa salvos com sucesso.</p>}
+    {success && <output className="company-profile-feedback">Dados da empresa salvos com sucesso.</output>}
     <form className="entity-form company-profile-form" ref={form} onSubmit={save} aria-label="Dados institucionais da empresa" aria-busy={saving}>
       <div className="company-profile-fields">
         {FIELDS.map((field) => {
