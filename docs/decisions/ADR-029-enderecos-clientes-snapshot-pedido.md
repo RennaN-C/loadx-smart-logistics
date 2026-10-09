@@ -1,6 +1,6 @@
 # ADR-029: endereços reutilizáveis e destino contratado do pedido
 
-Status: proposta para revisão na OC99 / Issue #146
+Status: aceita para a v1.2.0 standalone em 09/10/2026 (OC99, PR #175). As regras documentadas estão integradas; integrações futuras não são aprovadas implicitamente.
 
 ## Contexto
 

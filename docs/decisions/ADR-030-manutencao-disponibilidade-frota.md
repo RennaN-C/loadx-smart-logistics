@@ -1,6 +1,6 @@
 # ADR-030: manutenção e disponibilidade programada da frota
 
-Status: proposta para revisão na OC100 / Issue #147
+Status: aceita para a v1.2.0 standalone em 09/10/2026 (OC100, PR #176). Limites operacionais e de manutenção descritos neste registro permanecem aplicáveis.
 
 ## Contexto
 
