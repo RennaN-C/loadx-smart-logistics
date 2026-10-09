@@ -2,11 +2,13 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { makePage } from "../../../tests/makePage";
+import { useAuth } from "../../auth/hooks/useAuth";
 import { listAuditEntries } from "../api/auditApi";
 import type { AuditEntry } from "../types";
 import { AuditPage } from "./AuditPage";
 
 vi.mock("../api/auditApi");
+vi.mock("../../auth/hooks/useAuth");
 
 const ENTRY: AuditEntry = {
   id: "a1",
@@ -24,7 +26,16 @@ const ENTRY: AuditEntry = {
 describe("AuditPage", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    vi.mocked(useAuth).mockReturnValue({ user: { role: "ADMIN" } } as ReturnType<typeof useAuth>);
     vi.mocked(listAuditEntries).mockResolvedValue(makePage([ENTRY]));
+  });
+
+  it("oculta filtros institucionais de gestores", async () => {
+    vi.mocked(useAuth).mockReturnValue({ user: { role: "LOGISTICS_MANAGER" } } as ReturnType<typeof useAuth>);
+    render(<AuditPage />);
+    await screen.findByText("Ana Souza");
+    expect(screen.queryByRole("option", { name: "Dados da empresa" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "Dados da empresa atualizados" })).not.toBeInTheDocument();
   });
 
   it("mostra quem alterou, quando e o que mudou", async () => {
