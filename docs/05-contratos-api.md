@@ -1017,11 +1017,12 @@ de upload, armazenamento binário, bucket ou consulta externa de mídia no MVP.
 
 ## Mensagens e WhatsApp
 
-`CONFIRMADO` (OC82): o simulador mantém contrato e provider mock exclusivo.
-Saída real configurável é proposta na [ADR-035](decisions/ADR-035-adapter-whatsapp-business.md),
-com [contrato interno e operação](../backend/app/integrations/whatsapp/README.md).
-Nenhum endpoint novo. `DECISÃO NECESSÁRIA`: confirmar fornecedor/ambiente antes
-de ativar saída; webhook/assinatura continuam na OC83.
+`CONFIRMADO` (OC82): envio e simulador permanecem exclusivamente mock, conforme
+[ADR-035](decisions/ADR-035-adapter-whatsapp-business.md) e
+[contrato interno](../backend/app/integrations/whatsapp/README.md). O contrato
+público permanece o existente. `PENDENTE DE DEFINIÇÃO`: integração real adiada;
+fornecedor, credenciais, retries e idempotência durável de saída serão tratados
+quando esse escopo for retomado. Recepção/webhook pertence à OC83.
 
 - `POST /messages/interpret`: simulador interno disponível somente para usuários
   autenticados com papel `ADMIN` ou `LOGISTICS_MANAGER`.

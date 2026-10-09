@@ -31,6 +31,8 @@ Registros aceitos relevantes:
   e histórico, gate de carregamento e vínculo 1:1 entre usuário e motorista.
 - `ADR-023`: conflito e reserva operacional de caminhões entre carregamento e viagens.
 - `ADR-024`: comprovante operacional como projeção auditável da conclusão da entrega.
+- `ADR-035`: manutenção exclusiva do mock de WhatsApp nesta etapa da OC82;
+  integração real adiada por orientação do solicitante em 09/10/2026.
 
 - `ADR-029`: endereços reutilizáveis e snapshot contratado do pedido (OC99, PR #175).
 - `ADR-030`: manutenção e disponibilidade programada da frota (OC100, PR #176).
@@ -46,5 +48,3 @@ para produção, aprovação por revisor independente ou aceite de decisões fut
 Proposta para revisão:
 
 - `ADR-025`: sinais operacionais e diagnóstico seguro, sem fornecedor obrigatório (OC77).
-
-- `ADR-035`: proposta de adapter Meta, envio seguro e gate de ativação (OC82); fornecedor ainda pendente.
