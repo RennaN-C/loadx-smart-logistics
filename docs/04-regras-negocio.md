@@ -728,3 +728,15 @@ andamento pode concluir. Active/conflito permanecem independentes.
 Validade UTC exclusiva e alerta de 30 dias reutilizam OC101 em shared.
 Histórico de viagens não é apagado; arquivos/notificações externas fora do
 escopo. ADR-032 registra decisão técnica e limites.
+
+## OC110 — anexos e documentos operacionais
+
+`CONFIRMADO`: cada anexo pertence exatamente a um recurso aprovado e autorizado.
+Remoção lógica irreversível conserva metadata, vínculos e auditoria; impede
+download. Upload não muda pedido, viagem, entrega ou ocorrência e não substitui
+comprovante OC78/OC80. Retry por autor/evento não duplica blob ou auditoria;
+reutilização incompatível retorna conflito. Fonte de integridade é PostgreSQL
+(FKs, CHECKs e UNIQUE), com auditoria na transação e compensação conservadora
+do objeto novo em falhas. Regras de acesso mantêm RBAC e vínculo do motorista.
+`PENDENTE DE DEFINIÇÃO`: retenção e storage de produção, conforme ADR-033; binários
+em produção ficam desabilitados, sem prazo legal ou provedor inventado.

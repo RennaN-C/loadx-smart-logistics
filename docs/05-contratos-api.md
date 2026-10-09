@@ -1276,3 +1276,13 @@ política. DriverService valida designação/início de viagem com erro 409
 DRIVER_DOCUMENT_INELIGIBLE. RBAC atual ADMIN/LOGISTICS_MANAGER leitura/escrita;
 CHECKER/DRIVER negados. Erros padrão 401/403/404/409/422; sem DELETE, arquivo,
 storage ou envio de notificações. Eventos documentais na auditoria para OC103.
+
+## OC110 — anexos operacionais
+
+`CONFIRMADO`: API aditiva `/api/v1/attachments/{resource_type}/{resource_id}`
+para orders/trips/deliveries/occurrences; POST registro, GET página, GET /{id}
+metadata, GET /{id}/content protegido, POST /{id}/revoke lógico. DTOs
+AttachmentCreate/AttachmentRead preservam todos os schemas anteriores. Contrato,
+erros e RBAC completos em [README do módulo](../backend/app/modules/attachments/README.md)
+e [ADR-033](decisions/ADR-033-anexos-operacionais.md). Sem URL de storage,
+client-supplied MIME/autor, novos formatos ou ativação de fornecedor em produção.

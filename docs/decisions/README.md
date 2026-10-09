@@ -43,3 +43,5 @@ Proposta para revisão:
 - `ADR-031`: documentos, versões e políticas de elegibilidade dos caminhões (OC101).
 
 - `ADR-032`: documentos, renovação e elegibilidade de motoristas (OC102).
+
+- `ADR-033`: anexos operacionais, storage privado reutilizado e limites de produção (OC110).
