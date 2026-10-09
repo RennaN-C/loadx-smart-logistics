@@ -76,14 +76,23 @@
 
 .product-card-foot {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  justify-content: flex-start;
+  gap: 10px 16px;
+  min-width: 0;
   margin-top: auto;
 }
 
 .product-card-flags {
   display: flex;
+  flex: 1 1 100%;
   flex-wrap: wrap;
   gap: 6px;
+  min-width: 0;
+}
+
+/* Selos ficam em linha independente, sem esmagar Arquivar e Editar. */
+.product-card-foot > * {
+  max-width: 100%;
 }
