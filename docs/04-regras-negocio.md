@@ -749,3 +749,12 @@ confirmação revalida e aplica o arquivo inteiro atomicamente. Rejeição gera
 resultado auditável sem cadastros; falha inesperada desfaz também a tentativa.
 Retry idempotente por ator/evento; endereço principal, CNH e auditorias fazem
 parte da transação. [ADR-034](decisions/ADR-034-importacao-cadastros.md).
+
+## OC85 — área administrativa
+
+`CONFIRMADO`: Configurações é uma área de navegação somente ADMIN ativo, sem
+mudança da matriz RBAC dos demais módulos. Acesso direto de outros perfis é
+negado; contexto da conta é leitura da sessão atual. Conta/administração e
+configurações logísticas são seções distintas. OC86, OC91 e OC92 permanecem
+entradas informativas em preparação, sem operações antecipadas. Não cria
+isolamento por empresa, licenciamento ou dependência do CoreFlow.

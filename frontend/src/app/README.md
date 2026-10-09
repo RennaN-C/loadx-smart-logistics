@@ -19,3 +19,11 @@ Abaixo de 900px a barra deita no topo e quebra em duas linhas: identidade e cont
 na largura inteira embaixo, rolando na horizontal. Não vira gaveta — sem estado, sem botão e sem
 precisar prender o foco. Espremido ao lado da conta, o menu tinha 130px de janela para 560px de
 links; na linha inteira passa a mostrar 60% deles de saída num aparelho de 375px.
+
+## Configurações — OC85
+
+`CONFIRMADO`: ADMIN vê Administração → Configurações. `/settings` reutiliza
+RequireAuth/AppLayout e monta SettingsPage sob RequireSettingsAdmin; demais
+perfis recebem Acesso negado ao digitar a URL, sem conteúdo administrativo.
+Não muda os itens/permissões operacionais existentes. Seções de conta e de
+logística ficam na feature settings; OC86/91/92 não recebem rotas prematuras.

@@ -81,6 +81,11 @@ const NAV_GROUPS: readonly NavGroup[] = [
       },
     ],
   },
+  {
+    id: "administracao",
+    title: "Administração",
+    items: [{ to: "/settings", label: "Configurações", icon: "settings", roles: ["ADMIN"] }],
+  },
 ];
 
 export function AppLayout() {
