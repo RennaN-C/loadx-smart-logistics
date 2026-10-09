@@ -227,7 +227,8 @@ pedidos aceita cliente ou referência, somente na página carregada.
 
 `CONFIRMADO`: trocar o ID de plano, sessão ou viagem limpa o conteúdo anterior.
 Respostas e falhas de ações anteriores não substituem o registro atual nem
-redirecionam um recálculo sobre outra navegação. Modais mantêm foco, Escape,
+redirecionam um recálculo sobre outra navegação, inclusive depois de sair da
+tela. Um cálculo concluído após sair também não força reentrada. Modais mantêm foco, Escape,
 retorno ao acionador e bloqueio de rolagem, inclusive quando aninhados. Links de ação usam o token de contraste forte;
 menu, botões, abas e campos mantêm contorno sólido visível ao receber foco.
 
@@ -235,7 +236,9 @@ menu, botões, abas e campos mantêm contorno sólido visível ao receber foco.
 
 - `RISCO IDENTIFICADO`: sem listagem geral de planos na API, quem perde a URL
   não consegue localizar todos os planos anteriores na tela `/planning`.
-  Links permanentes mitigam o problema; não o resolvem integralmente.
+  Links permanentes mitigam o problema; não o resolvem integralmente. Se a
+  requisição de cálculo terminar após sair da tela, o registro persistido
+  também exige a futura listagem para ser localizado sem conhecer a URL.
 - `PENDENTE DE DEFINIÇÃO`: busca/listagem geral de planos exige Issue própria,
   contrato backend aprovado, documentação de RBAC e testes; não foi criada
   API neste trabalho. A OC93 não é autorização implícita para esse contrato.

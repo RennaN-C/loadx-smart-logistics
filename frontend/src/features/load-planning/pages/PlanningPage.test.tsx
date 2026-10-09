@@ -429,6 +429,47 @@ describe("PlanningPage", () => {
     expect(screen.getByRole("link", { name: "Abrir este plano" })).toHaveAttribute("href", "/planning/lp2");
   });
 
+  it("recálculo concluído após sair não interrompe a tela de destino", async () => {
+    vi.mocked(getLoadPlan).mockResolvedValue(makePlan());
+    let complete!: (plan: LoadPlan) => void;
+    vi.mocked(recalculateLoadPlan).mockImplementation(() => new Promise((resolve) => { complete = resolve; }));
+    render(<MemoryRouter initialEntries={["/planning/lp1"]}>
+      <Link to="/orders">Sair da operação</Link>
+      <Routes>
+        <Route path="/planning/:planId" element={<PlanningPage />} />
+        <Route path="/orders" element={<h1>Lista de pedidos</h1>} />
+      </Routes>
+    </MemoryRouter>);
+    await screen.findByText("Calculado");
+    fireEvent.click(screen.getByRole("button", { name: "Recalcular" }));
+    fireEvent.click(screen.getByRole("link", { name: "Sair da operação" }));
+    await screen.findByText("Lista de pedidos");
+    await act(async () => { complete(makePlan({ id: "lp3" })); });
+    expect(screen.getByText("Lista de pedidos")).toBeInTheDocument();
+  });
+
+  it("cálculo concluído após sair não força reentrada no planejamento", async () => {
+    let complete!: (plan: LoadPlan) => void;
+    vi.mocked(createLoadPlan).mockImplementation(() => new Promise((resolve) => { complete = resolve; }));
+    render(<MemoryRouter initialEntries={["/planning"]}>
+      <Link to="/orders">Sair da operação</Link>
+      <Routes>
+        <Route path="/planning" element={<PlanningPage />} />
+        <Route path="/planning/:planId" element={<PlanningPage />} />
+        <Route path="/orders" element={<h1>Lista de pedidos</h1>} />
+      </Routes>
+    </MemoryRouter>);
+    await screen.findByLabelText("CAMINHÃO");
+    fireEvent.change(screen.getByLabelText("CAMINHÃO"), { target: { value: "t1" } });
+    fireEvent.click(screen.getByRole("checkbox"));
+    fireEvent.click(screen.getByRole("button", { name: "Calcular plano de carga" }));
+    await waitFor(() => expect(createLoadPlan).toHaveBeenCalled());
+    fireEvent.click(screen.getByRole("link", { name: "Sair da operação" }));
+    await screen.findByText("Lista de pedidos");
+    await act(async () => { complete(makePlan({ id: "lp3" })); });
+    expect(screen.getByText("Lista de pedidos")).toBeInTheDocument();
+  });
+
 });
 
 

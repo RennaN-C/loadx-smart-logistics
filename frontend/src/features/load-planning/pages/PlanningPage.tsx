@@ -50,6 +50,12 @@ export function PlanningPage() {
   const [tab, setTab] = useState<PlanTab>("summary");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const mounted = useRef(false);
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
+
   const currentId = useRef(planId);
   currentId.current = planId;
   const plan = storedPlan?.id === planId ? storedPlan : null;
@@ -92,6 +98,7 @@ export function PlanningPage() {
 
   const handleCalculated = useCallback(
     (created: LoadPlan) => {
+      if (!mounted.current || currentId.current !== undefined) return;
       setPlan(created);
       navigate(`/planning/${created.id}`);
     },
@@ -105,7 +112,7 @@ export function PlanningPage() {
 
     try {
       const result = await action(plan.id);
-      if (currentId.current !== plan.id) return;
+      if (!mounted.current || currentId.current !== plan.id) return;
       if (result.id === plan.id) {
         setPlan(result);
       } else {
@@ -114,9 +121,9 @@ export function PlanningPage() {
         navigate(`/planning/${result.id}`);
       }
     } catch (error) {
-      if (currentId.current === plan.id) setErrorMessage(toMessage(error));
+      if (mounted.current && currentId.current === plan.id) setErrorMessage(toMessage(error));
     } finally {
-      if (currentId.current === plan.id) setIsWorking(false);
+      if (mounted.current && currentId.current === plan.id) setIsWorking(false);
     }
   }
 
