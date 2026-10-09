@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { AlertBanner } from "../../../components/AlertBanner";
@@ -50,6 +50,8 @@ export function PlanningPage() {
   const [tab, setTab] = useState<PlanTab>("summary");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const currentId = useRef(planId);
+  currentId.current = planId;
   const plan = storedPlan?.id === planId ? storedPlan : null;
 
   const canManage = canManageLogistics(user?.role);
@@ -61,6 +63,7 @@ export function PlanningPage() {
 
   useEffect(() => {
     setPlan(null);
+    setIsWorking(false);
     setErrorMessage(null);
     if (!planId) {
       setIsLoading(false);
@@ -102,6 +105,7 @@ export function PlanningPage() {
 
     try {
       const result = await action(plan.id);
+      if (currentId.current !== plan.id) return;
       if (result.id === plan.id) {
         setPlan(result);
       } else {
@@ -110,17 +114,18 @@ export function PlanningPage() {
         navigate(`/planning/${result.id}`);
       }
     } catch (error) {
-      setErrorMessage(toMessage(error));
+      if (currentId.current === plan.id) setErrorMessage(toMessage(error));
     } finally {
-      setIsWorking(false);
+      if (currentId.current === plan.id) setIsWorking(false);
     }
   }
 
   return (
     <div className="entity-page">
       <nav className="entity-toolbar" aria-label="Caminhos do planejamento">
-        <Link to="/orders">Voltar aos pedidos</Link>
-        {planId ? <Link to="/planning">Voltar ao planejamento</Link> : null}
+        <Link to="/">Voltar ao início</Link>
+        {user?.role !== "DRIVER" ? <Link to="/orders">Voltar aos pedidos</Link> : null}
+        {planId && user?.role !== "DRIVER" ? <Link to="/planning">Voltar ao planejamento</Link> : null}
       </nav>
       <header className="entity-header">
         <div>

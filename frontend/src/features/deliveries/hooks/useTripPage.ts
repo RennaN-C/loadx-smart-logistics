@@ -47,6 +47,7 @@ export function useTripPage(tripId: string | undefined): UseTripPageResult {
 
     let active = true;
     setIsLoading(true);
+    setIsWorking(false);
     setErrorMessage(null);
 
     getTrip(tripId)
@@ -67,6 +68,7 @@ export function useTripPage(tripId: string | undefined): UseTripPageResult {
 
   const run = useCallback(
     async (action: () => Promise<Trip>) => {
+      const actionId = currentId.current;
       setErrorMessage(null);
       setIsWorking(true);
 
@@ -74,9 +76,9 @@ export function useTripPage(tripId: string | undefined): UseTripPageResult {
         const updated = await action();
         if (currentId.current === updated.id) setTrip(updated);
       } catch (error) {
-        setErrorMessage(toMessage(error));
+        if (currentId.current === actionId) setErrorMessage(toMessage(error));
       } finally {
-        setIsWorking(false);
+        if (currentId.current === actionId) setIsWorking(false);
       }
     },
     [toMessage],

@@ -51,3 +51,17 @@ it("trocar carregamento limpa checklist e nomes quando o plano secundário falha
   expect(view.result.current.session?.id).toBe("s2");
   expect(view.result.current.rows[0].product).toBeUndefined();
 });
+
+it("falha de ação anterior não exibe erro na viagem seguinte", async () => {
+  vi.mocked(getTrip).mockImplementation(async (id) => trip(id));
+  const view = renderHook(({ id }) => useTripPage(id), { initialProps: { id: "t1" } });
+  await waitFor(() => expect(view.result.current.trip?.id).toBe("t1"));
+  let reject!: (error: unknown) => void;
+  let operation!: Promise<void>;
+  act(() => { operation = view.result.current.run(() => new Promise((_resolve, failure) => { reject = failure; })); });
+  view.rerender({ id: "t2" });
+  await waitFor(() => expect(view.result.current.trip?.id).toBe("t2"));
+  await act(async () => { reject(new ApiError("TRIP_OPERATION_CONFLICT", "Conflito")); await operation; });
+  expect(view.result.current.errorMessage).toBeNull();
+  expect(view.result.current.isWorking).toBe(false);
+});

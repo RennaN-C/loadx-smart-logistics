@@ -80,6 +80,7 @@ export function useLoadingSession(sessionId: string | undefined): UseLoadingSess
 
     let ativo = true;
     setIsLoading(true);
+    setIsWorking(false);
     setErrorMessage(null);
 
     getLoadingSession(sessionId)
@@ -106,6 +107,7 @@ export function useLoadingSession(sessionId: string | undefined): UseLoadingSess
 
   const run = useCallback(
     async (action: () => Promise<LoadingSession>) => {
+      const actionId = currentId.current;
       setErrorMessage(null);
       setIsWorking(true);
 
@@ -113,9 +115,9 @@ export function useLoadingSession(sessionId: string | undefined): UseLoadingSess
         const updated = await action();
         if (currentId.current === updated.id) setSession(updated);
       } catch (error) {
-        setErrorMessage(toMessage(error));
+        if (currentId.current === actionId) setErrorMessage(toMessage(error));
       } finally {
-        setIsWorking(false);
+        if (currentId.current === actionId) setIsWorking(false);
       }
     },
     [toMessage],
