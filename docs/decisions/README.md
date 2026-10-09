@@ -37,3 +37,5 @@ Proposta para revisão:
 - `ADR-025`: sinais operacionais e diagnóstico seguro, sem fornecedor obrigatório (OC77).
 
 - `ADR-029`: endereços reutilizáveis e snapshot contratado do pedido (OC99), proposta para revisão.
+
+- `ADR-030`: manutenção e disponibilidade programada da frota (OC100), proposta para revisão.
