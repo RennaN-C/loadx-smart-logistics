@@ -98,19 +98,27 @@ class DriverService:
     def create_driver(
         self, data: DriverCreate, *, changed_by: uuid.UUID | None = None
     ) -> Driver:
+        return self._persist(
+            lambda: self.stage_create_driver(data, changed_by=changed_by)
+        )
+
+    def stage_create_driver(
+        self, data: DriverCreate, *, changed_by: uuid.UUID | None = None
+    ) -> Driver:
+        """Stage native CNH/history and creation without committing the caller."""
         if self.repository.get_by_document(data.document) is not None:
             raise DriverDocumentAlreadyExistsError
         if self.repository.get_by_license_number(data.license_number) is not None:
             raise DriverLicenseNumberAlreadyExistsError
+        driver = self.repository.add(Driver(**data.model_dump()))
+        stage_license_history(self.db, driver, actor=changed_by)
+        return driver
 
-        driver = Driver(**data.model_dump())
-
-        def stage_create() -> Driver:
-            self.repository.add(driver)
-            stage_license_history(self.db, driver, actor=changed_by)
-            return driver
-
-        return self._persist(stage_create)
+    def existing_registration_keys(
+        self, keys: dict[str, set[str]]
+    ) -> dict[str, set[str]]:
+        """Public batched uniqueness boundary, including archived registrations."""
+        return self.repository.existing_registration_keys(keys)
 
     def update_driver(
         self,

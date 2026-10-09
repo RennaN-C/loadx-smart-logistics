@@ -149,11 +149,19 @@ class TruckService:
             )
 
     def create_truck(self, data: TruckCreate) -> Truck:
+        return self._persist(lambda: self.stage_create_truck(data))
+
+    def stage_create_truck(self, data: TruckCreate) -> Truck:
+        """Stage manual creation rules without committing an outer import."""
         if self.repository.get_by_plate(data.plate) is not None:
             raise TruckPlateAlreadyExistsError
+        return self.repository.add(Truck(**data.model_dump()))
 
-        truck = Truck(**data.model_dump())
-        return self._persist(lambda: self.repository.add(truck))
+    def existing_registration_keys(
+        self, keys: dict[str, set[str]]
+    ) -> dict[str, set[str]]:
+        """Public batched uniqueness boundary, including archived registrations."""
+        return self.repository.existing_registration_keys(keys)
 
     def update_truck(
         self,

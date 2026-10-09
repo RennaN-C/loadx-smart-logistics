@@ -45,6 +45,20 @@ class CustomerRepository:
         )
         return self.db.scalar(statement)
 
+    def existing_registration_keys(
+        self, keys: dict[str, set[str]]
+    ) -> dict[str, set[str]]:
+        return {
+            field: set(
+                self.db.scalars(
+                    select(getattr(Customer, field)).where(
+                        getattr(Customer, field).in_(keys.get(field, set()))
+                    )
+                )
+            )
+            for field in ("document",)
+        }
+
     def get_by_document(self, document: str) -> Customer | None:
         statement = select(Customer).where(Customer.document == document)
         return self.db.scalar(statement)

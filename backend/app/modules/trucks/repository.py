@@ -98,6 +98,20 @@ class TruckRepository:
         )
         return self.db.scalar(statement) is not None
 
+    def existing_registration_keys(
+        self, keys: dict[str, set[str]]
+    ) -> dict[str, set[str]]:
+        return {
+            field: set(
+                self.db.scalars(
+                    select(getattr(Truck, field)).where(
+                        getattr(Truck, field).in_(keys.get(field, set()))
+                    )
+                )
+            )
+            for field in ("plate",)
+        }
+
     def get_by_plate(self, plate: str) -> Truck | None:
         statement = select(Truck).where(Truck.plate == plate)
         return self.db.scalar(statement)

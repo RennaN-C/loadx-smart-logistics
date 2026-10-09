@@ -45,3 +45,5 @@ Proposta para revisão:
 - `ADR-032`: documentos, renovação e elegibilidade de motoristas (OC102).
 
 - `ADR-033`: anexos operacionais, storage privado reutilizado e limites de produção (OC110).
+
+- `ADR-034`: importação atômica de cadastros, limites CSV e resultado auditável (OC104).

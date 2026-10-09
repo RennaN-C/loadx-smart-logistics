@@ -1,3 +1,4 @@
+import { ImportAction } from "../../registration-imports/components/ImportAction";
 import { useMemo, useState } from "react";
 
 import { AlertBanner } from "../../../components/AlertBanner";
@@ -81,6 +82,7 @@ export function TruckListPage() {
       </header>
 
       <div className="entity-toolbar">
+        {canManage ? <ImportAction entity="trucks" onImported={refetch} /> : null}
         <ArchiveFilter value={archiveStatus} onChange={setArchiveStatus} />
         <input
           type="search"

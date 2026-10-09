@@ -437,6 +437,17 @@ for attachment_suffix, attachment_method in (
         )
     ] = {"401", "403", "404", "409", "422", "500", "503"}
 
+for import_suffix, import_method in (
+    ("", "get"),
+    ("/{import_id}", "get"),
+    ("/{entity_type}/template", "get"),
+    ("/{entity_type}/preview", "post"),
+    ("/{entity_type}/confirm", "post"),
+):
+    EXPECTED_ERROR_STATUSES[
+        (f"/api/v1/registration-imports{import_suffix}", import_method)
+    ] = {"401", "403", "404", "409", "422", "500"}
+
 PUBLIC_OPERATIONS = frozenset(
     {
         ("/health", "get"),

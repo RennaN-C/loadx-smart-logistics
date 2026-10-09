@@ -46,19 +46,27 @@ class CustomerService:
     def create_customer(
         self, data: CustomerCreate, *, changed_by: uuid.UUID | None = None
     ) -> Customer:
+        return self._persist(
+            lambda: self.stage_create_customer(data, changed_by=changed_by)
+        )
+
+    def stage_create_customer(
+        self, data: CustomerCreate, *, changed_by: uuid.UUID | None = None
+    ) -> Customer:
+        """Stage the same manual creation rules in an outer atomic transaction."""
         if self.repository.get_by_document(data.document) is not None:
             raise CustomerDocumentAlreadyExistsError
+        customer = self.repository.add(Customer(**data.model_dump()))
+        CustomerAddressService(self.db).stage_legacy_address(
+            customer, changed_by=changed_by
+        )
+        return customer
 
-        customer = Customer(**data.model_dump())
-
-        def stage_customer() -> Customer:
-            self.repository.add(customer)
-            CustomerAddressService(self.db).stage_legacy_address(
-                customer, changed_by=changed_by
-            )
-            return customer
-
-        return self._persist(stage_customer)
+    def existing_registration_keys(
+        self, keys: dict[str, set[str]]
+    ) -> dict[str, set[str]]:
+        """Public batched uniqueness boundary, including archived registrations."""
+        return self.repository.existing_registration_keys(keys)
 
     def update_customer(
         self,
