@@ -75,3 +75,13 @@ emissão futura e substituído usando status do backend. Frota explica política
 pendente; planejamento oculta veículos documentalmente inelegíveis. Há estados
 de loading/erro/vazio e paginação. Referência UUID de arquivo é metadado, sem
 upload/download; envio de notificações permanece na OC103.
+
+## OC85 — configurações administrativas
+
+`CONFIRMADO`: Administração → Configurações (`/settings`) somente ADMIN ativo.
+Contexto da conta vem da sessão existente, somente leitura. Seções distinguem
+conta/administração de configurações do LoadX. Gestão de usuários, dados da
+empresa e segurança da conta aparecem em preparação, sem ações nem rotas falsas.
+Sessão ausente/expirada segue login; perfil negado recebe alerta e volta ao início;
+carregamento usa SessionLoading. Não cria API, preferências locais, tenant ou
+integração CoreFlow. [Estrutura extensível](src/features/settings/README.md).
