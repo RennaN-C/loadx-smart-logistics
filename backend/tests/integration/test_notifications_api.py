@@ -159,3 +159,61 @@ def test_provider_failure_does_not_rollback_confirmed_trip_start(
     assert started.json()["status"] == "IN_ROUTE"
     assert persisted.status_code == 200
     assert persisted.json()["status"] == "IN_ROUTE"
+
+
+@pytest.mark.parametrize("status", [401, 503])
+def test_real_adapter_rejection_preserves_committed_domain_and_idempotent_transition(
+    client: TestClient, session_factory, status: int
+) -> None:
+    import httpx2
+    from sqlalchemy import select
+
+    from app.core.config import Settings
+    from app.integrations.whatsapp.factory import create_whatsapp_provider
+    from app.modules.drivers.models import Driver
+
+    calls = []
+
+    def handler(request):
+        calls.append(request)
+        return httpx2.Response(status, json={"error": {"message": "fictitious"}})
+
+    provider = create_whatsapp_provider(
+        Settings(
+            app_env="local",
+            whatsapp_provider="meta",
+            whatsapp_real_enabled=True,
+            whatsapp_access_token="fictional-test-token-never-valid",
+            whatsapp_phone_number_id="000000000001",
+            whatsapp_api_version="v99.0",
+            whatsapp_country_code="55",
+            _env_file=None,
+        ),
+        transport=httpx2.MockTransport(handler),
+    )
+    app = client.app
+    assert isinstance(app, FastAPI)
+    app.dependency_overrides[get_whatsapp_provider] = lambda: provider
+    try:
+        scenario = seed_operational_scenario(session_factory)
+        with session_factory() as db:
+            driver = db.scalar(select(Driver))
+            driver.phone = "11900000000"
+            db.commit()
+        trip = create_trip(client, scenario)
+        finish_loading(client, scenario)
+        for _ in range(2):
+            response = client.patch(
+                f"/api/v1/trips/{trip['id']}/status",
+                json={"status": "IN_ROUTE"},
+                headers=scenario.manager_headers,
+            )
+            assert response.status_code == 200
+            assert response.json()["status"] == "IN_ROUTE"
+        persisted = client.get(
+            f"/api/v1/trips/{trip['id']}", headers=scenario.manager_headers
+        )
+        assert persisted.json()["status"] == "IN_ROUTE"
+        assert len(calls) == 1
+    finally:
+        app.dependency_overrides.pop(get_whatsapp_provider, None)

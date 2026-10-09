@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.core.responses import openapi_error_responses
 from app.database.session import get_db
-from app.integrations.whatsapp import WhatsAppProvider, get_whatsapp_provider
+from app.integrations.whatsapp import WhatsAppProvider, get_mock_whatsapp_provider
 from app.modules.auth.dependencies import require_roles
 from app.modules.messages.schemas import (
     MessageInterpretRequest,
@@ -22,7 +22,7 @@ MessageSimulatorUser = Annotated[
 
 def get_message_service(
     db: Annotated[Session, Depends(get_db)],
-    provider: Annotated[WhatsAppProvider, Depends(get_whatsapp_provider)],
+    provider: Annotated[WhatsAppProvider, Depends(get_mock_whatsapp_provider)],
 ) -> ControlledMessageService:
     return ControlledMessageService(db, provider)
 
