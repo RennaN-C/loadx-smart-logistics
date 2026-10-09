@@ -97,6 +97,18 @@ describe("ContactsPage", () => {
     expect(screen.queryByText("Distribuidora Aurora")).not.toBeInTheDocument();
   });
 
+  it("mantém Documentos no rodapé de ações dos motoristas", async () => {
+    render(<ContactsPage />);
+    await screen.findByText("Distribuidora Aurora");
+    fireEvent.click(screen.getByRole("tab", { name: "Motoristas" }));
+    const name = await screen.findByText("Carlos Pereira");
+    const footer = name.closest(".contact-card")?.querySelector<HTMLElement>(".contact-card-foot");
+    expect(footer).toBeTruthy();
+    expect(within(footer!).getAllByRole("button").map((button) => button.textContent)).toEqual([
+      "Documentos", "Arquivar", "Editar",
+    ]);
+  });
+
   it("marca a aba ativa para leitores de tela", async () => {
     render(<ContactsPage />);
     await screen.findByText("Distribuidora Aurora");
