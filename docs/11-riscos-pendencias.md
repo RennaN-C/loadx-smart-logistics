@@ -98,6 +98,30 @@ Este documento concentra pontos que ainda precisam de validação da equipe. Nã
 
 ## Decisões necessárias
 
+### Pendências de integração e publicação da v1.2.0 (09/10/2026)
+
+- `CONFIRMADO`: OC99, OC100, OC101, OC102, OC110 e OC104 foram integradas
+  em `desenvolvimento`. O CI pós-merge da OC104 (`e3af09d`) concluiu com sucesso,
+  com 2.033 testes backend, 570 frontend e Alembic até `20261009_0022`.
+  Isso não significa que o ambiente publicado foi testado.
+- `DECISÃO NECESSÁRIA`: escolher storage privado de produção para evidências
+  e anexos da OC110, política de retenção/purge, backups, proteção dos bytes e
+  procedimento de restauração. O adapter atual aceita binários apenas em
+  `APP_ENV=local`; upload/download em produção retornam 503, sem ativação implícita.
+- `PENDENTE DE CONFIGURAÇÃO EXTERNA`: SonarCloud em Automatic Analysis não
+  importa os relatórios de cobertura do Pytest. As métricas de cobertura da CI
+  permanecem válidas, mas 0% de código novo no Sonar não representa ausência
+  de testes. Migrar para análise por CI requer configurar o projeto SonarCloud,
+  autenticação segura e importação de coverage; não desativar a análise atual
+  sem validar a alternativa para evitar duplicidade ou perda do Quality Gate.
+- `PENDENTE DE RELEASE`: `main` continua na v1.1.0. Comparação GitHub em
+  09/10/2026: `desenvolvimento` 192 commits à frente e 1 atrás de `main`.
+  Reconciliar o histórico pela branch `versao/v1.2.0` com revisão de conflitos
+  e testes antes de promover, sem rebase/force push em branches compartilhadas.
+- `PENDENTE`: 23 Issues da v1.2.0 seguem abertas após a OC104; não declarar
+  a release final pronta antes da execução do escopo selecionado.
+
+
 - `DECISÃO NECESSÁRIA`: definir formato final de relatório PDF e se haverá envio por e-mail/WhatsApp no MVP.
 
 ## Pendências técnicas
