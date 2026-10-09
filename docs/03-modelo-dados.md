@@ -758,7 +758,7 @@ anexos ou auditoria, inclusive revogados.
 ## OC104 — importação controlada de cadastros
 
 `CONFIRMADO`: Issue #151 e ADR-034 definem `registration_imports`: id UUID,
-entity_type CUSTOMERS/PRODUCTS/TRUCKS/DRIVERS, recorded_by FK RESTRICT users,
+entity_type customers/products/trucks/drivers, recorded_by FK RESTRICT users,
 event_id UUID UNIQUE com recorded_by, sha256/fingerprint (64 hex), recorded_at UTC,
 status PROCESSING/COMPLETED/REJECTED, row_count/created_count/rejected_count
 limitados a 0–1000, errors/records JSONB arrays. Records associa número da linha

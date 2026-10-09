@@ -32,6 +32,9 @@ def import_models() -> None:
     from app.modules.occurrences import models as occurrences_models  # noqa: F401
     from app.modules.orders import models as orders_models  # noqa: F401
     from app.modules.products import models as products_models  # noqa: F401
+    from app.modules.registration_imports import (
+        models as registration_imports_models,  # noqa: F401
+    )
     from app.modules.status_history import models as status_history_models  # noqa: F401
     from app.modules.trucks import models as trucks_models  # noqa: F401
     from app.modules.users import models as users_models  # noqa: F401
