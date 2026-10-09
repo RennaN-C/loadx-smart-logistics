@@ -6,6 +6,10 @@ from app.modules.customers.address_router import router as customer_addresses_ro
 from app.modules.customers.router import router as customers_router
 from app.modules.deliveries.evidence_router import router as evidence_router
 from app.modules.deliveries.router import router as deliveries_router
+from app.modules.drivers.document_router import router as driver_documents_router
+from app.modules.drivers.document_router import (
+    type_router as driver_document_types_router,
+)
 from app.modules.drivers.router import router as drivers_router
 from app.modules.load_planning.distribution_router import router as distribution_router
 from app.modules.load_planning.router import router as load_planning_router
@@ -32,6 +36,8 @@ api_router.include_router(customer_addresses_router)
 api_router.include_router(deliveries_router)
 api_router.include_router(evidence_router)
 api_router.include_router(drivers_router)
+api_router.include_router(driver_documents_router)
+api_router.include_router(driver_document_types_router)
 api_router.include_router(load_planning_router)
 api_router.include_router(loading_router)
 api_router.include_router(messages_router)
