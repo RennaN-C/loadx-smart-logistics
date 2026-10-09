@@ -1286,3 +1286,14 @@ AttachmentCreate/AttachmentRead preservam todos os schemas anteriores. Contrato,
 erros e RBAC completos em [README do módulo](../backend/app/modules/attachments/README.md)
 e [ADR-033](decisions/ADR-033-anexos-operacionais.md). Sem URL de storage,
 client-supplied MIME/autor, novos formatos ou ativação de fornecedor em produção.
+
+## OC104 — importação de cadastros
+
+`CONFIRMADO`: `/api/v1/registration-imports`, ADMIN/LOGISTICS_MANAGER ativos.
+Tipos customers/products/trucks/drivers; GET /{entity_type}/template, POST
+/{entity_type}/preview, POST /{entity_type}/confirm, GET histórico paginado com
+entity_type e GET /{import_id}. Prévia: file_name/content_base64; confirmação
+acrescenta preview_sha256/event_id UUID. Prévia expõe linhas normalizadas e
+can_confirm; resultado COMPLETED/REJECTED contém totais, autor, data, checksum,
+erros por linha/campo e UUIDs criados. Arquivo inválido não cria cadastros.
+[Contrato completo](../backend/app/modules/registration_imports/README.md).

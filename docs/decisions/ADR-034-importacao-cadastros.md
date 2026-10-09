@@ -19,7 +19,8 @@ com timezone conforme schema. Não há XLSX: a biblioteca csv já cobre o mínim
 sem custo/manutenção de dependência ou execução de fórmulas.
 
 `RECOMENDAÇÃO`: máximo 1 MiB decodificado, 1000 registros e 4096 caracteres por
-célula. Base64 tem teto antes da decodificação. Recusar binários, encoding
+célula. Dimensões respeitam INTEGER PostgreSQL (2147483647); odômetro
+conserva inteiro estrito. Base64 tem teto antes da decodificação. Recusar binários, encoding
 inválido, NUL/controles, cabeçalhos/quantidade de colunas incoerentes e células
 com prefixo de fórmula (=,+,-,@), exceto telefone com + e caracteres de máscara
 numérica válidos. Não executar fórmulas, arquivos, URLs ou código. Não refletir

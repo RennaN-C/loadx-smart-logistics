@@ -740,3 +740,12 @@ reutilização incompatível retorna conflito. Fonte de integridade é PostgreSQ
 do objeto novo em falhas. Regras de acesso mantêm RBAC e vínculo do motorista.
 `PENDENTE DE DEFINIÇÃO`: retenção e storage de produção, conforme ADR-033; binários
 em produção ficam desabilitados, sem prazo legal ou provedor inventado.
+
+## OC104 — importação de cadastros
+
+`CONFIRMADO`: criação separada para clientes, produtos, caminhões e motoristas;
+sem pedidos, upsert ou reativação. Unicidade inclui arquivados. Prévia não grava;
+confirmação revalida e aplica o arquivo inteiro atomicamente. Rejeição gera
+resultado auditável sem cadastros; falha inesperada desfaz também a tentativa.
+Retry idempotente por ator/evento; endereço principal, CNH e auditorias fazem
+parte da transação. [ADR-034](decisions/ADR-034-importacao-cadastros.md).
