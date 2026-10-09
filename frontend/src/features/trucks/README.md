@@ -58,7 +58,7 @@ durante o dia, o caminhão em si não.
 
 ## Permissões
 
-`ADMIN`, `CHECKER` e `LOGISTICS_MANAGER` leem a lista. Só `LOGISTICS_MANAGER` cria e edita — a UI
+`ADMIN`, `CHECKER` e `LOGISTICS_MANAGER` leem a lista. `ADMIN` e `LOGISTICS_MANAGER` criam e editam — a UI
 esconde "Novo caminhão" e "Editar" para os demais, mas quem barra de verdade é o backend.
 
 `CONFIRMADO`: a listagem consome o envelope e os parâmetros da ADR-017. Busca e
@@ -74,6 +74,20 @@ Busca server-side e exclusão física (não existe rota; desativar é
 `CONFIRMADO`: a tela inicia em somente ativos, permite consultar arquivados ou
 ambos pelo filtro `archive_status` no servidor, reiniciando na página 1. A busca
 textual e as restrições continuam locais à página. Cards mostram Ativo/Arquivado.
-LOGISTICS_MANAGER vê ações Arquivar/Reativar, que usam o PATCH existente, exibem
+ADMIN e LOGISTICS_MANAGER veem ações Arquivar/Reativar, que usam o PATCH existente, exibem
 loading/erro e atualizam a listagem somente após sucesso. Os demais perfis
 preservam as permissões de leitura e não recebem botões de gestão.
+
+## OC101 — documentos e políticas
+
+`CONFIRMADO`: `api/documentsApi.ts` mantém DTOs documentais snake_case para
+não duplicar mapeamento. DocumentsPanel abre pelo card, lista histórico paginado
+e políticas por CRLV/licenciamento/seguro; DocumentForm registra/renova sem
+apagar versões. Datas locais do formulário são enviadas em UTC; status de
+validade/alerta vem do backend. Política carregada só permite gestão a ADMIN e
+LOGISTICS_MANAGER em caminhão ativo; erro de consulta não apresenta exigências
+supostas. CHECKER e arquivados consultam histórico.
+
+`CONFIRMADO`: frota explica has_document_conflict e planejamento oculta veículos
+com bloqueio documental. UUID de arquivo é referência opaca de metadados;
+não há link público, upload ou download. Notificações externas ficam na OC103.
