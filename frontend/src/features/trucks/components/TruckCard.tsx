@@ -6,6 +6,7 @@ import { TruckSchematic } from "./TruckSchematic";
 const weightFormatter = new Intl.NumberFormat("pt-BR");
 
 interface TruckCardProps {
+  readonly onDocuments?: (truck: Truck) => void;
   readonly onMaintenance?: (truck: Truck) => void;
   readonly truck: Truck;
   readonly canManage: boolean;
@@ -13,7 +14,7 @@ interface TruckCardProps {
   readonly onEdit: (truck: Truck) => void;
 }
 
-export function TruckCard({ truck, canManage, onEdit, onChanged, onMaintenance }: TruckCardProps) {
+export function TruckCard({ truck, canManage, onEdit, onChanged, onMaintenance, onDocuments }: TruckCardProps) {
   return (
     <article className="truck-card">
       <div className="truck-card-figure">
@@ -56,6 +57,7 @@ export function TruckCard({ truck, canManage, onEdit, onChanged, onMaintenance }
           <span className="truck-card-weight">
             Peso máx. <strong>{weightFormatter.format(truck.maxWeightKg)} kg</strong>
           </span>
+          {onDocuments ? <button type="button" className="btn-link" onClick={() => onDocuments(truck)}>Documentos</button> : null}
           {onMaintenance ? <button type="button" className="btn-link" onClick={() => onMaintenance(truck)}>Manutenções</button> : null}
           {canManage ? (
             <>

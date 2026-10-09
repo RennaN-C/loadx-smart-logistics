@@ -83,6 +83,7 @@ interface TruckOperationalStatusDto {
   model: string;
   active: boolean;
   has_operation_conflict: boolean;
+  has_document_conflict?: boolean;
   has_maintenance_conflict?: boolean;
   available: boolean;
 }
@@ -95,6 +96,7 @@ function mapOperationalStatusFromDto(dto: TruckOperationalStatusDto): TruckOpera
     active: dto.active,
     hasOperationConflict: dto.has_operation_conflict,
     available: dto.available,
+    ...(dto.has_document_conflict !== undefined ? { hasDocumentConflict: dto.has_document_conflict } : {}),
     ...(dto.has_maintenance_conflict !== undefined ? { hasMaintenanceConflict: dto.has_maintenance_conflict } : {}),
   };
 }

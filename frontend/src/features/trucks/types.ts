@@ -41,6 +41,7 @@ export interface TruckOperationalStatus {
   active: boolean;
   /** Já comprometido com outra operação, pela regra da OC64. */
   hasOperationConflict: boolean;
+  hasDocumentConflict?: boolean;
   hasMaintenanceConflict?: boolean;
   available: boolean;
 }
