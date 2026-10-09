@@ -700,3 +700,15 @@ por data/km é opcional e exibida como alerta; vencimento não cria manutenção
 silenciosa. Encerramento mantém programação omitida e admite null explícito
 para limpar critério. Data deve ser futura e km superar o conhecido.
 Transações e lock do caminhão protegem histórico, odômetro, auditoria e conflitos.
+
+## OC101 — documentos e elegibilidade
+
+`CONFIRMADO`: CRLV, LICENSING e INSURANCE têm versões imutáveis e uma corrente
+por caminhão/tipo. Renovação preserva histórico, inclusive arquivo de referência.
+Datas UTC opcionais; vencimento exclusivo e emissão futura impedem validade.
+Status VALID/EXPIRING (30 dias)/EXPIRED/NOT_YET_VALID/SUPERSEDED é derivado.
+Política required por tipo/caminhão exige presença e validade; default sem
+exigências preserva a frota legada. Alerta não modifica active nem manutenção.
+Novas operações validam documentos junto da manutenção; operações iniciadas
+podem concluir. Gestão ADMIN/LOGISTICS_MANAGER, leitura CHECKER; DRIVER negado.
+Locks no caminhão, constraints e auditoria atômica. ADR-031.

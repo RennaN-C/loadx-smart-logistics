@@ -86,3 +86,10 @@ separado de active e has_operation_conflict. O módulo consome TruckService sem
 acessar a tabela de manutenção nem duplicar regras de período. Encerrar uma
 manutenção só restaura available quando cadastro e demais bloqueios permitem.
 Motoristas e suas regras permanecem compatíveis.
+
+## OC101 — elegibilidade documental
+
+`CONFIRMADO`: FleetAvailabilityService consulta TruckService.has_document_conflict
+e combina a política documental com active, conflito operacional e manutenção.
+Não duplica consultas de outros módulos nem persiste available.
+Has_document_conflict é separado de manutenção e conflito operacional.

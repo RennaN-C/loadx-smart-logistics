@@ -1235,3 +1235,22 @@ CREATE/PATCH truck admitem odometer_km (PATCH não admite null). Status da frota
 acrescenta has_maintenance_conflict e available considera esse bloqueio.
 Novas operações com manutenção atual recebem TRUCK_IN_MAINTENANCE (409);
 preflight de distribuição apresenta esse motivo entre os ineligíveis.
+
+## OC101 — documentos dos caminhões
+
+`CONFIRMADO`: GET/POST `/api/v1/trucks/{truck_id}/documents`; POST
+`/documents/{document_id}/renew`; GET `/document-policies`; PATCH
+`/document-policies/{kind}` (todos sob o mesmo caminhão). GET documents usa o
+envelope paginado ADR-017, inclui versões históricas e `status` derivado.
+Create/renew recebem kind CRLV|LICENSING|INSURANCE, reference (1–120),
+issued_at/expires_at UTC opcionais e file_reference UUID opcional. Read adiciona
+id/truck_id/created_at/superseded_at/status. Renovação retorna novo UUID (201).
+Policy PATCH exige boolean estrito required; GET retorna políticas configuradas
+(não configurada equivale a false). Sem DELETE nem atualização destrutiva.
+RBAC do cadastro: ADMIN/LOGISTICS_MANAGER escreve, CHECKER lê, DRIVER negado.
+Erros 401/403/404/409/422 padrão. Duplicidade TRUCK_DOCUMENT_DUPLICATE;
+renovação obsoleta TRUCK_DOCUMENT_NOT_CURRENT; ausência TRUCK_DOCUMENT_NOT_FOUND.
+Política documental violada: TRUCK_DOCUMENT_INELIGIBLE (409).
+Operational-status acrescenta has_document_conflict e available incorpora
+políticas; preflight usa motivo TRUCK_DOCUMENT_INELIGIBLE. Endpoints anteriores
+permanecem compatíveis. Referência de arquivo nunca é URL/caminho ou download.
