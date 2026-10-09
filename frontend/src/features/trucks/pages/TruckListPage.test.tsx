@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ApiError } from "../../../types/api";
@@ -81,6 +81,21 @@ describe("TruckListPage", () => {
     expect(screen.getByText("QRT2B88")).toBeInTheDocument();
     expect(screen.getByText("Ativo")).toBeInTheDocument();
     expect(screen.getByText("Arquivado")).toBeInTheDocument();
+  });
+
+  it("organiza as ações em grupo separado do peso máximo de cada caminhão", async () => {
+    vi.mocked(listTrucks).mockResolvedValue(makePage(TRUCKS));
+    mockRole("ADMIN");
+    render(<TruckListPage />);
+
+    const actions = await screen.findByRole("group", { name: "Ações do caminhão ABC1D23" });
+    expect(within(actions).getByRole("button", { name: "Documentos" })).toBeInTheDocument();
+    expect(within(actions).getByRole("button", { name: "Manutenções" })).toBeInTheDocument();
+    expect(within(actions).getByRole("button", { name: "Arquivar" })).toBeInTheDocument();
+    expect(within(actions).getByRole("button", { name: "Editar" })).toBeInTheDocument();
+    const card = actions.closest(".truck-card");
+    expect(card?.querySelector(".truck-card-weight")).toHaveTextContent("8.000 kg");
+    expect(actions).not.toContainElement(card?.querySelector(".truck-card-weight") ?? null);
   });
 
   it("filtra por placa ou modelo sem chamar o backend de novo", async () => {
