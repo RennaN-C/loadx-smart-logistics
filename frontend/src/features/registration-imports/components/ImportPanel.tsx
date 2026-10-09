@@ -40,7 +40,7 @@ export function ImportPanel({ entity, onImported }: Props) {
     <p>CSV UTF-8, vírgula ou ponto-e-vírgula; até 1 MiB e 1000 registros. Cria novos cadastros. Um erro rejeita o arquivo inteiro.</p>
     <p>Use os cabeçalhos do modelo, cm/kg, decimais com ponto, true/false e datas ISO com timezone. active=false cria cadastro arquivado.</p>
     {error ? <AlertBanner>{error}</AlertBanner> : null}
-    <div className="import-panel-controls">
+    <div className="import-panel-controls" role="group" aria-label="Controles de importação CSV">
       <button type="button" className="btn-secondary" disabled={working} onClick={() => void run(async () => {
         saveBlob(await downloadImportTemplate(entity), `${entity}-modelo.csv`);
       })}>Baixar modelo CSV</button>
