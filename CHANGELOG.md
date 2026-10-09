@@ -5,6 +5,26 @@
 `CONFIRMADO`: a v1.2.0 — Administração, comunicação real e operação
 multi-caminhão é o ciclo atual.
 
+### Entregas integradas em `desenvolvimento` (não publicadas em `main`)
+
+- **OC105 / PR #170 e correções de permissões:** arquivamento e reativação controlados de cadastros.
+- **OC99 / PR #175:** múltiplos endereços por cliente e snapshot imutável do destino do pedido.
+- **OC100 / PR #176:** manutenção programada, histórico, quilometragem e bloqueio de frota.
+- **OC101 / PR #177:** documentos dos caminhões, renovação, alertas e política de elegibilidade.
+- **OC102 / PR #178:** CNH e documentos dos motoristas, histórico, validade, categoria e elegibilidade.
+- **OC110 / PR #179:** anexos operacionais com autorização, histórico, storage local privado e remoção lógica.
+- **OC104 / PR #180:** importação CSV atômica de clientes, produtos, caminhões e motoristas, com prévia e auditoria.
+
+`CONFIRMADO`: o merge da OC104 (`e3af09d`) em 09/10/2026 passou na CI pós-merge:
+2.033 testes backend e 570 frontend, Alembic até `20261009_0022`, Segurança e build.
+Isso valida o estado de desenvolvimento, não a publicação da versão.
+
+`PENDENTE`: anexos binários exigem definição de fornecedor, retenção e backup antes
+de storage de produção; por padrão, o adapter atual opera somente em ambiente
+local. O SonarCloud em Automatic Analysis não importa a cobertura Pytest do código
+novo: a cobertura executada na CI não deve ser confundida com os 0% da interface.
+Uma futura mudança para análise por CI requer configuração de projeto e credenciais.
+
 ### Planejamento aprovado
 
 - comunicação externa segura e idempotente;
