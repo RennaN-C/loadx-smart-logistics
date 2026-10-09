@@ -228,7 +228,8 @@ pedidos aceita cliente ou referência, somente na página carregada.
 `CONFIRMADO`: trocar o ID de plano, sessão ou viagem limpa o conteúdo anterior.
 Respostas e falhas de ações anteriores não substituem o registro atual nem
 redirecionam um recálculo sobre outra navegação. Modais mantêm foco, Escape,
-retorno ao acionador e bloqueio de rolagem, inclusive quando aninhados.
+retorno ao acionador e bloqueio de rolagem, inclusive quando aninhados. Links de ação usam o token de contraste forte;
+menu, botões, abas e campos mantêm contorno sólido visível ao receber foco.
 
 ### Bloqueios que permanecem
 

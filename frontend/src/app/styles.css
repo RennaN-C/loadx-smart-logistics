@@ -219,7 +219,8 @@ body {
   border-left-color: var(--accent);
 }
 .app-nav a:focus-visible {
-  outline: none;
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
   box-shadow: 0 0 0 3px rgba(201, 122, 34, 0.35);
 }
 
@@ -273,7 +274,8 @@ body {
   border-color: var(--danger);
 }
 .app-logout:focus-visible {
-  outline: none;
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
   box-shadow: 0 0 0 3px rgba(201, 122, 34, 0.35);
 }
 
@@ -442,7 +444,7 @@ body {
   font-family: inherit;
   font-size: 0.88rem;
   font-weight: 600;
-  color: var(--accent);
+  color: var(--accent-strong);
   background: none;
   border: none;
   padding: 0;
@@ -457,7 +459,8 @@ body {
 .btn-primary:focus-visible,
 .btn-secondary:focus-visible,
 .btn-link:focus-visible {
-  outline: none;
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
   box-shadow: 0 0 0 3px rgba(201, 122, 34, 0.35);
   border-radius: 3px;
 }
@@ -671,7 +674,8 @@ body {
 
 .entity-toolbar input:focus-visible,
 .entity-toolbar select:focus-visible {
-  outline: none;
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(201, 122, 34, 0.35);
 }
@@ -751,7 +755,8 @@ body {
   border-bottom-color: var(--accent);
 }
 .tab:focus-visible {
-  outline: none;
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
   box-shadow: 0 0 0 3px rgba(201, 122, 34, 0.35);
   border-radius: 3px 3px 0 0;
 }
@@ -892,7 +897,8 @@ input[type="checkbox"]:hover:not(:disabled) {
 }
 
 input[type="checkbox"]:focus-visible {
-  outline: none;
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
   box-shadow: 0 0 0 3px rgba(201, 122, 34, 0.35);
 }
 
@@ -908,7 +914,8 @@ input[type="checkbox"]:disabled {
 .entity-form input:focus-visible,
 .entity-form select:focus-visible,
 .entity-form textarea:focus-visible {
-  outline: none;
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(201, 122, 34, 0.35);
 }
@@ -1084,7 +1091,8 @@ input[type="checkbox"]:disabled {
 }
 
 .tooltip-trigger:focus-visible {
-  outline: none;
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
   box-shadow: 0 0 0 3px rgba(201, 122, 34, 0.35);
 }
 
