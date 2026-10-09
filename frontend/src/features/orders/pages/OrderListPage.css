@@ -1,6 +1,7 @@
 /* A casca da tela (.entity-*) e o formulário (.entity-form-*) vêm de app/styles.css. */
 
 .order-card {
+  min-width: 0;
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: 4px;
@@ -21,7 +22,7 @@
   gap: 12px;
 }
 
-/* min-width: 0 autoriza o nome longo a encurtar em vez de empurrar a situação */
+/* O nome pode quebrar linhas sem empurrar a situação para fora do card. */
 .order-card-who {
   display: flex;
   align-items: center;
@@ -35,7 +36,8 @@
   margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .order-card-address {
@@ -184,3 +186,7 @@
   flex: 1;
   min-width: 200px;
 }
+
+.order-detail { display: flex; flex-direction: column; gap: 12px; overflow-wrap: anywhere; }
+.order-detail p, .order-detail h3 { margin: 0; }
+.order-detail-items { padding-left: 20px; }

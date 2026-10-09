@@ -785,6 +785,7 @@ body {
 }
 
 .entity-form-fieldset {
+  min-width: 0;
   border: none;
   padding: 0;
   margin: 0;
@@ -828,6 +829,8 @@ body {
   background: var(--card);
   color: var(--ink);
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
 }
 
 /* A lista suspensa do select é desenhada pelo navegador, fora do fluxo da
