@@ -1,6 +1,6 @@
 .company-profile-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
 .company-profile-fields .entity-form-field { min-width: 0; }
-.company-profile-fields input { width: 100%; min-width: 0; box-sizing: border-box; }
+.company-profile-fields input { width: 100%; min-width: 0; box-sizing: border-box; font-family: inherit; font-size: 0.95rem; padding: 10px 12px; border: 1px solid var(--line); border-radius: 3px; background: var(--card); color: var(--ink); }
 .company-profile-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-block: 20px; }
 .company-profile-actions button { max-width: 100%; white-space: normal; }
 @media (max-width: 768px) { .company-profile-fields { grid-template-columns: minmax(0, 1fr); } }

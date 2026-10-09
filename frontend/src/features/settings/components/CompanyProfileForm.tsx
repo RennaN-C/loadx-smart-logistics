@@ -69,7 +69,7 @@ export function CompanyProfileForm() {
     {!stored && <p>A empresa ainda não possui dados institucionais cadastrados.</p>}
     {error && <p role="alert" className="entity-form-error">{error}</p>}
     {success && <p role="status">Dados da empresa salvos com sucesso.</p>}
-    <form ref={form} onSubmit={save} aria-label="Dados institucionais da empresa" aria-busy={saving}>
+    <form className="entity-form company-profile-form" ref={form} onSubmit={save} aria-label="Dados institucionais da empresa" aria-busy={saving}>
       <div className="company-profile-fields">
         {FIELDS.map((field) => {
           const id = `company-${field.key}`;
