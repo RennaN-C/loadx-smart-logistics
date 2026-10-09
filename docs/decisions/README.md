@@ -46,3 +46,5 @@ para produção, aprovação por revisor independente ou aceite de decisões fut
 Proposta para revisão:
 
 - `ADR-025`: sinais operacionais e diagnóstico seguro, sem fornecedor obrigatório (OC77).
+
+- `ADR-035`: proposta de adapter Meta, envio seguro e gate de ativação (OC82); fornecedor ainda pendente.

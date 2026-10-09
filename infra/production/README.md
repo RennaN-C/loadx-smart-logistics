@@ -133,3 +133,13 @@ público `/metrics`, fornecedor pago, dashboard de negócio ou armazenamento nov
 `CONFIRMADO`: testes em `backend/tests/unit/test_observability.py`, sondas em
 `backend/tests/test_health.py` e integração em `backend/tests/integration/test_readiness.py`.
 ADR proposta: `docs/decisions/ADR-025-observabilidade-operacional.md`.
+
+## WhatsApp — proposta OC82
+
+`CONFIRMADO`: Compose encaminha WHATSAPP_* ao backend exclusivamente pelo
+ambiente do host; padrão mock com saída real desabilitada. Credenciais nunca
+são versionadas. Contrato, erros, idempotência e diagnóstico no
+[README do adapter](../../backend/app/integrations/whatsapp/README.md).
+`DECISÃO NECESSÁRIA`: confirmar fornecedor/API e credenciais no ambiente antes
+de ativar. Envio idempotente exige guard durável; não usar double em memória
+entre os workers. Não repetir operação de domínio para recuperar aviso.

@@ -45,3 +45,8 @@ backend também emite HSTS; o terminador TLS precisa preservar esse header.
 por UUID, templates de rota e duração/status sem payload de requisição ou
 exceção. Configuração, eventos, diagnóstico e limites estão em
 `infra/production/README.md`; ADR-025 permanece proposta para revisão.
+
+`CONFIRMADO` (OC82): seleção, habilitação explícita, credenciais e limites de
+WhatsApp vêm de Settings; configuração padrão usa mock. Contrato e operação em
+[whatsapp/README](../integrations/whatsapp/README.md). `DECISÃO NECESSÁRIA`:
+confirmar fornecedor/API e ambiente antes da ativação da proposta Meta.

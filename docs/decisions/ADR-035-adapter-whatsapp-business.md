@@ -15,6 +15,7 @@ recepção/webhook; OC84 consumirá o envio; persistência/outbox pertence à OC
 Referências oficiais consultadas em 2026-10-09:
 
 - [início e recursos de teste](https://developers.facebook.com/documentation/business-messaging/whatsapp/get-started);
+- [códigos de erro](https://developers.facebook.com/documentation/business-messaging/whatsapp/support/error-codes.md);
 - [Messages API](https://developers.facebook.com/documentation/business-messaging/whatsapp/reference/whatsapp-business-phone-number/message-api);
 - [mensagens de serviço](https://developers.facebook.com/documentation/business-messaging/whatsapp/messages/send-messages);
 - [coleção oficial Meta](https://www.postman.com/meta/whatsapp-business-platform/documentation/wlk6lh4/whatsapp-cloud-api).

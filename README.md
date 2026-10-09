@@ -12,7 +12,9 @@ O **LoadX** é um projeto acadêmico desenvolvido por uma equipe de quatro integ
 
 As entregas publicadas e em desenvolvimento são registradas no [Changelog](CHANGELOG.md).
 
-`CONFIRMADO`: WhatsApp usa provider mock e simulador controlado; a explicação de
+`CONFIRMADO`: WhatsApp usa provider mock por padrão e simulador controlado;
+a OC82 propõe [adapter Meta configurável](backend/app/integrations/whatsapp/README.md),
+com ativação real pendente de confirmação do fornecedor/ambiente. A explicação de
 planos usa `AIProvider` com provider fake e fallback determinístico. Integrações
 reais e outras evoluções futuras estão no [roadmap canônico de versões](docs/planejamento/roadmap-versoes.md).
 
