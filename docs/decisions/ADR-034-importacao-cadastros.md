@@ -1,6 +1,6 @@
 # ADR-034 — importação atômica de cadastros
 
-Status: proposta técnica na OC104 (#151), sujeita à revisão do PR.
+Status: aceita para a v1.2.0 standalone em 09/10/2026 (OC104, PR #180). Aprovação restrita a CSV de criação com validação e transação atômica; XLSX, upsert e pedidos permanecem fora do escopo.
 
 ## Decisão e escopo
 
