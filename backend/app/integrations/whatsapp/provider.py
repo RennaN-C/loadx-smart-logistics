@@ -83,4 +83,6 @@ def get_mock_whatsapp_provider() -> WhatsAppProvider:
 
 def get_whatsapp_provider() -> WhatsAppProvider:
     """Composição configurável; falha real não vira sucesso simulado."""
-    return mock_whatsapp_provider
+    from app.integrations.whatsapp.factory import get_configured_whatsapp_provider
+
+    return get_configured_whatsapp_provider()

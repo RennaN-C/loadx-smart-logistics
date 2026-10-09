@@ -22,6 +22,8 @@ _FIELDS = frozenset(
         "duration_ms",
         "reason",
         "exception_type",
+        "operation_id",
+        "attempt",
     }
 )
 _METHODS = frozenset({"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"})
@@ -34,6 +36,9 @@ class OperationalEvent(StrEnum):
     HTTP_REQUEST_FAILED = "HTTP_REQUEST_FAILED"
     READINESS_FAILED = "READINESS_FAILED"
     NOTIFICATION_FAILED = "NOTIFICATION_FAILED"
+    WHATSAPP_SEND_ACCEPTED = "WHATSAPP_SEND_ACCEPTED"
+    WHATSAPP_SEND_FAILED = "WHATSAPP_SEND_FAILED"
+    WHATSAPP_SEND_RETRY = "WHATSAPP_SEND_RETRY"
 
 
 def emit_operational_event(

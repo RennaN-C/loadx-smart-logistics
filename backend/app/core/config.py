@@ -3,7 +3,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.engine import make_url
 from sqlalchemy.exc import ArgumentError
@@ -26,7 +26,19 @@ class Settings(BaseSettings):
     password_blocklist_path: Path | None = None
     ai_provider: str = "mock"
     ai_explanation_timeout_seconds: float = Field(default=5.0, gt=0)
-    whatsapp_provider: str = "mock"
+    whatsapp_provider: Literal["mock", "meta"] = "mock"
+    whatsapp_real_enabled: bool = False
+    whatsapp_access_token: SecretStr = Field(default=SecretStr(""), repr=False)
+    whatsapp_phone_number_id: str = Field(default="", repr=False)
+    whatsapp_api_version: str = ""
+    whatsapp_country_code: str = ""
+    whatsapp_timeout_seconds: float = Field(
+        default=5.0, ge=0.1, le=30, allow_inf_nan=False
+    )
+    whatsapp_max_attempts: int = Field(default=2, ge=1, le=3)
+    whatsapp_retry_backoff_seconds: float = Field(
+        default=0.25, ge=0, le=2, allow_inf_nan=False
+    )
     operational_log_level: Literal["INFO", "WARNING", "ERROR"] = "INFO"
     operational_request_logs: bool = True
     evidence_storage_dir: Path | None = None
@@ -35,6 +47,7 @@ class Settings(BaseSettings):
         env_file=".env",
         extra="ignore",
         populate_by_name=True,
+        hide_input_in_errors=True,
     )
 
     @field_validator("database_url")
