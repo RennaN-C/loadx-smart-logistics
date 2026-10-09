@@ -1,6 +1,11 @@
 # ADR-031: documentos e elegibilidade documental dos caminhões (OC101)
 
-Status: proposta para revisão humana no PR da Issue #148.
+Status: aceita para a v1.2.0 standalone, em 09/10/2026, na revisão do PR #177.
+
+A decisão aprova a política documental configurável por caminhão, o histórico
+imutável, as verificações de elegibilidade e a referência opaca de arquivos.
+Não define obrigatoriedade legal automática, armazenamento de arquivos ou
+notificações externas; esses itens permanecem fora do escopo da OC101.
 
 ## Contexto
 
