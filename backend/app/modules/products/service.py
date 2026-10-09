@@ -51,11 +51,19 @@ class ProductService:
         return self.repository.get_many(product_ids, for_update=for_update)
 
     def create_product(self, data: ProductCreate) -> Product:
+        return self._persist(lambda: self.stage_create_product(data))
+
+    def stage_create_product(self, data: ProductCreate) -> Product:
+        """Stage manual creation rules without committing an outer import."""
         if self.repository.get_by_code(data.code) is not None:
             raise ProductCodeAlreadyExistsError
+        return self.repository.add(Product(**data.model_dump()))
 
-        product = Product(**data.model_dump())
-        return self._persist(lambda: self.repository.add(product))
+    def existing_registration_keys(
+        self, keys: dict[str, set[str]]
+    ) -> dict[str, set[str]]:
+        """Public batched uniqueness boundary, including archived registrations."""
+        return self.repository.existing_registration_keys(keys)
 
     def update_product(
         self,

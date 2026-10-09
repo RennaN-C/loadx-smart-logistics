@@ -45,6 +45,20 @@ class DriverRepository:
         )
         return self.db.scalar(statement)
 
+    def existing_registration_keys(
+        self, keys: dict[str, set[str]]
+    ) -> dict[str, set[str]]:
+        return {
+            field: set(
+                self.db.scalars(
+                    select(getattr(Driver, field)).where(
+                        getattr(Driver, field).in_(keys.get(field, set()))
+                    )
+                )
+            )
+            for field in ("document", "license_number")
+        }
+
     def get_by_document(self, document: str) -> Driver | None:
         statement = select(Driver).where(Driver.document == document)
         return self.db.scalar(statement)

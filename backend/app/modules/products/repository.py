@@ -64,6 +64,20 @@ class ProductRepository:
         )
         return self.db.scalar(statement)
 
+    def existing_registration_keys(
+        self, keys: dict[str, set[str]]
+    ) -> dict[str, set[str]]:
+        return {
+            field: set(
+                self.db.scalars(
+                    select(getattr(Product, field)).where(
+                        getattr(Product, field).in_(keys.get(field, set()))
+                    )
+                )
+            )
+            for field in ("code",)
+        }
+
     def get_by_code(self, code: str) -> Product | None:
         statement = select(Product).where(Product.code == code)
         return self.db.scalar(statement)
