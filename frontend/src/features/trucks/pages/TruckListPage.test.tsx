@@ -95,7 +95,7 @@ describe("TruckListPage", () => {
     expect(within(actions).getByRole("button", { name: "Editar" })).toBeInTheDocument();
     const card = actions.closest(".truck-card");
     expect(card?.querySelector(".truck-card-weight")).toHaveTextContent("8.000 kg");
-    expect(actions).not.toContainElement(card?.querySelector(".truck-card-weight") ?? null);
+    expect(actions.contains(card?.querySelector(".truck-card-weight") ?? null)).toBe(false);
   });
 
   it("filtra por placa ou modelo sem chamar o backend de novo", async () => {
