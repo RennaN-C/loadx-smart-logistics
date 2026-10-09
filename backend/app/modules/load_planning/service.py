@@ -155,6 +155,9 @@ class LoadPlanningService:
         if inactive_truck_ids:
             raise LoadPlanTruckInactiveError(inactive_truck_ids)
 
+        for identifier in truck_ids:
+            self.truck_service.ensure_not_in_maintenance(identifier)
+
         orders = tuple(
             self.order_service.get_orders(normalized_order_ids, for_update=False)
         )
@@ -263,6 +266,7 @@ class LoadPlanningService:
             ensure_record_active(
                 self.truck_service.get_truck_for_update(load_plan.truck_id), "TRUCK"
             )
+            self.truck_service.ensure_not_in_maintenance(load_plan.truck_id)
             order_ids = tuple(link.order_id for link in load_plan.orders)
             orders = tuple(self.order_service.get_orders(order_ids, for_update=True))
             if {order.id for order in orders} != set(order_ids):
@@ -330,6 +334,7 @@ class LoadPlanningService:
                 raise LoadPlanTruckNotFoundError from exc
             if not truck.active:
                 raise LoadPlanTruckInactiveError
+            self.truck_service.ensure_not_in_maintenance(truck_id)
             internal_volume_cm3 = (
                 truck.internal_width_cm
                 * truck.internal_height_cm

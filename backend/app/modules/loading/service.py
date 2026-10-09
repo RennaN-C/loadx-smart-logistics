@@ -97,6 +97,12 @@ class LoadingService:
         if status == session.status:
             return session
         if session.status == "PENDING" and status == "IN_PROGRESS":
+            plan = self.load_plan_reference_service.get_operational_plan(
+                session.load_plan_id
+            )
+            if plan is not None:
+                self.truck_service.get_truck_for_update(plan.truck_id)
+                self.truck_service.ensure_not_in_maintenance(plan.truck_id)
             session.status = status
             session.started_at = datetime.now(UTC)
         elif session.status == "IN_PROGRESS" and status == "FINISHED":

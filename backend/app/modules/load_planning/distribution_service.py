@@ -102,6 +102,13 @@ class LoadDistributionService:
         _, _, _, volumes = self._sources(data.order_ids, lock=False)
         eligible, ineligible = [], []
         for truck in self.trucks.list_all_trucks():
+            if self.trucks.has_maintenance_conflict(truck.id):
+                ineligible.append(
+                    IneligibleTruckRead(
+                        truck_id=truck.id, reason="TRUCK_IN_MAINTENANCE"
+                    )
+                )
+                continue
             reason = (
                 "INACTIVE"
                 if not truck.active
