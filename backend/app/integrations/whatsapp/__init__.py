@@ -3,6 +3,7 @@ from app.integrations.whatsapp.provider import (
     MockWhatsAppProvider,
     OutgoingWhatsAppMessage,
     WhatsAppProvider,
+    get_mock_whatsapp_provider,
     get_whatsapp_provider,
     mock_whatsapp_provider,
 )
@@ -12,6 +13,7 @@ __all__ = [
     "MockWhatsAppProvider",
     "OutgoingWhatsAppMessage",
     "WhatsAppProvider",
+    "get_mock_whatsapp_provider",
     "get_whatsapp_provider",
     "mock_whatsapp_provider",
 ]
