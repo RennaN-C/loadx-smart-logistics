@@ -10,7 +10,6 @@ from sqlalchemy.orm import Session
 from app.core.pagination import PageResult, PaginationParams
 from app.modules.trucks.models import TruckDocument, TruckDocumentPolicy
 
-
 DocumentRecord = TypeVar("DocumentRecord", TruckDocument, TruckDocumentPolicy)
 
 
@@ -100,9 +99,7 @@ class DocumentRepository:
             is not None
         )
 
-    def save(
-        self, record: DocumentRecord
-    ) -> DocumentRecord:
+    def save(self, record: DocumentRecord) -> DocumentRecord:
         self.db.add(record)
         self.db.flush()
         return record

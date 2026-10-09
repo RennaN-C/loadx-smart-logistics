@@ -56,7 +56,9 @@ class PolicyRead(PolicyUpdate):
     model_config = ConfigDict(from_attributes=True)
 
 
-def document_status(record: TruckDocument, *, at: datetime | None = None) -> DocumentStatus:
+def document_status(
+    record: TruckDocument, *, at: datetime | None = None
+) -> DocumentStatus:
     now = at or datetime.now(UTC)
     if record.superseded_at is not None:
         return "SUPERSEDED"
