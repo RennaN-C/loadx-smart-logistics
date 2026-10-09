@@ -39,6 +39,10 @@ it("retry mantém event_id e troca de arquivo cria novo evento", async () => {
   await waitFor(() => expect(uploadAttachment).toHaveBeenCalledTimes(2));
   expect(vi.mocked(uploadAttachment).mock.calls[1][2]).toBe(vi.mocked(uploadAttachment).mock.calls[0][2]);
   await waitFor(() => expect(screen.getByRole("button", { name: "Enviar anexo" })).toBeDisabled());
+  fireEvent.change(screen.getByLabelText("Arquivo PNG/JPEG"), { target: { files: [new File(["different pixels"], "b.png", { type: "image/png" })] } });
+  fireEvent.click(screen.getByRole("button", { name: "Enviar anexo" }));
+  await waitFor(() => expect(uploadAttachment).toHaveBeenCalledTimes(3));
+  expect(vi.mocked(uploadAttachment).mock.calls[2][2]).not.toBe(vi.mocked(uploadAttachment).mock.calls[0][2]);
 });
 it("remove após confirmação, preserva revogado e bloqueia download visual", async () => {
   vi.mocked(listAttachments).mockResolvedValueOnce(page([row])).mockResolvedValue(page([{ ...row, status: "REVOKED" }]));

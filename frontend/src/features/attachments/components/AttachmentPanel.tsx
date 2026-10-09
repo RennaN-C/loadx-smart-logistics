@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { AlertBanner } from "../../../components/AlertBanner";
 import { Pagination } from "../../../components/Pagination";
@@ -16,6 +16,7 @@ function message(error: unknown) {
   return error instanceof Error ? error.message : "Não foi possível acessar os anexos.";
 }
 export function AttachmentPanel({ resource, resourceId, canManage }: Props) {
+  const fileInput = useRef<HTMLInputElement>(null);
   const [items, setItems] = useState<Attachment[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
@@ -48,10 +49,12 @@ export function AttachmentPanel({ resource, resourceId, canManage }: Props) {
       if (pending) void run(async () => {
         const content = await readAttachmentFile(pending.file);
         await uploadAttachment(resource, resourceId, pending.eventId, content);
-        setPending(null); setPage(1); setRefresh((value) => value + 1);
+        setPending(null);
+        if (fileInput.current) fileInput.current.value = "";
+        setPage(1); setRefresh((value) => value + 1);
       });
     }}>
-      <label>Arquivo PNG/JPEG <input type="file" accept="image/png,image/jpeg" disabled={working} onChange={(event) => {
+      <label>Arquivo PNG/JPEG <input ref={fileInput} type="file" accept="image/png,image/jpeg" disabled={working} onChange={(event) => {
         const file = event.target.files?.[0];
         setPending(file ? { file, eventId: crypto.randomUUID() } : null);
       }} /></label>
