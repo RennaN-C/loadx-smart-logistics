@@ -16,13 +16,20 @@ from app.modules.load_planning.models import LoadPlan, LoadPlanItem, LoadPlanOrd
 from app.modules.load_planning.repository import LoadPlanRepository
 from app.modules.orders.models import Order, OrderItem
 from app.modules.products.models import Product
-from app.modules.trucks.models import Truck, TruckMaintenance
+from app.modules.trucks.models import (
+    Truck,
+    TruckDocument,
+    TruckDocumentPolicy,
+    TruckMaintenance,
+)
 
 SQLITE_TABLES = (
     Customer.__table__,
     CustomerAddress.__table__,
     Truck.__table__,
     TruckMaintenance.__table__,
+    TruckDocument.__table__,
+    TruckDocumentPolicy.__table__,
     Product.__table__,
     Order.__table__,
     OrderItem.__table__,

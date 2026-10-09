@@ -34,7 +34,9 @@ class DocumentService:
         self.trucks.get_truck(truck_id)
         return self.repository.policies(truck_id)
 
-    def stage_audit(self, record, event: str, actor: uuid.UUID) -> None:
+    def stage_audit(
+        self, record: TruckDocument | TruckDocumentPolicy, event: str, actor: uuid.UUID
+    ) -> None:
         AuditService(self.db).stage_administrative_event(
             AuditEventCreate(
                 event_type=event,

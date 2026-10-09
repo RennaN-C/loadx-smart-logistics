@@ -25,7 +25,12 @@ from app.modules.loading.service import (
 )
 from app.modules.orders.models import Order, OrderItem
 from app.modules.products.models import Product
-from app.modules.trucks.models import Truck, TruckMaintenance
+from app.modules.trucks.models import (
+    Truck,
+    TruckDocument,
+    TruckDocumentPolicy,
+    TruckMaintenance,
+)
 from app.modules.trucks.service import TruckOperationConflictError
 
 SQLITE_TABLES = (
@@ -33,6 +38,8 @@ SQLITE_TABLES = (
     CustomerAddress.__table__,
     Truck.__table__,
     TruckMaintenance.__table__,
+    TruckDocument.__table__,
+    TruckDocumentPolicy.__table__,
     Driver.__table__,
     Product.__table__,
     Order.__table__,

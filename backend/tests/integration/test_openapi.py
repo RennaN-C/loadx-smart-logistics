@@ -391,6 +391,11 @@ for address_path, address_method in (
     }
 
 for maintenance_path, maintenance_method in (
+    ("/api/v1/trucks/{truck_id}/documents", "get"),
+    ("/api/v1/trucks/{truck_id}/documents", "post"),
+    ("/api/v1/trucks/{truck_id}/documents/{document_id}/renew", "post"),
+    ("/api/v1/trucks/{truck_id}/document-policies", "get"),
+    ("/api/v1/trucks/{truck_id}/document-policies/{kind}", "patch"),
     ("/api/v1/trucks/{truck_id}/maintenances", "get"),
     ("/api/v1/trucks/{truck_id}/maintenances", "post"),
     ("/api/v1/trucks/{truck_id}/maintenances/{maintenance_id}/close", "post"),
@@ -581,6 +586,7 @@ def test_openapi_documents_truck_operational_status_contract() -> None:
         "active",
         "has_operation_conflict",
         "has_maintenance_conflict",
+        "has_document_conflict",
         "available",
     }
 

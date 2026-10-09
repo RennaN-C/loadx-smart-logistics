@@ -5,6 +5,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.modules.trucks.maintenance_schemas import utc_datetime
+from app.modules.trucks.models import TruckDocument
 
 DocumentKind = Literal["CRLV", "LICENSING", "INSURANCE"]
 DocumentStatus = Literal["VALID", "EXPIRING", "EXPIRED", "NOT_YET_VALID", "SUPERSEDED"]
@@ -55,7 +56,7 @@ class PolicyRead(PolicyUpdate):
     model_config = ConfigDict(from_attributes=True)
 
 
-def document_status(record, *, at: datetime | None = None) -> DocumentStatus:
+def document_status(record: TruckDocument, *, at: datetime | None = None) -> DocumentStatus:
     now = at or datetime.now(UTC)
     if record.superseded_at is not None:
         return "SUPERSEDED"
