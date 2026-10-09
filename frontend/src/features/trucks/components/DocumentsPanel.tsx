@@ -18,15 +18,15 @@ export function DocumentsPanel({ truck, onChanged }: { readonly truck: Truck; re
   const load = useCallback((params: ListParams) => listDocuments(truck.id, params), [truck.id]);
   const { items, status, error, refetch, page, totalPages, goToPage } = useResourceList(load);
   const [policies, setPolicies] = useState<DocumentPolicy[]>([]);
-  const [policyLoaded, setPolicyLoaded] = useState(false);
+  const [policyStatus, setPolicyStatus] = useState<"loading" | "success" | "error">("loading");
   const [creating, setCreating] = useState(false);
   const [replacing, setReplacing] = useState<TruckDocument>();
   const [pending, setPending] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   useEffect(() => {
     let live = true;
-    setPolicyLoaded(false);
-    listDocumentPolicies(truck.id).then((rows) => { if (live) { setPolicies(rows); setPolicyLoaded(true); } }).catch(() => { if (live) setActionError("Não foi possível consultar a política documental."); });
+    setPolicyStatus("loading");
+    listDocumentPolicies(truck.id).then((rows) => { if (live) { setPolicies(rows); setPolicyStatus("success"); } }).catch(() => { if (live) { setPolicyStatus("error"); setActionError("Não foi possível consultar a política documental."); } });
     return () => { live = false; };
   }, [truck.id]);
   async function changed() { setCreating(false); setReplacing(undefined); await refetch(); await onChanged(); }
@@ -43,7 +43,8 @@ export function DocumentsPanel({ truck, onChanged }: { readonly truck: Truck; re
   return <div>
     <h3>Elegibilidade documental</h3>
     <p>Tipos exigidos bloqueiam novas operações quando ausentes, vencidos ou com emissão futura. Alertas não enviam notificações.</p>
-    {!policyLoaded ? <output>Carregando política documental…</output> : Object.entries(documentKinds).map(([kind, label]) => <label key={kind}><input type="checkbox" checked={policies.some((row) => row.kind === kind && row.required)} disabled={!canManage || pending} onChange={(event) => void toggle(kind as DocumentKind, event.target.checked)} />Exigir {label}</label>)}
+    {policyStatus === "loading" ? <output>Carregando política documental…</output> : null}
+    {policyStatus === "success" ? Object.entries(documentKinds).map(([kind, label]) => <label key={kind}><input type="checkbox" checked={policies.some((row) => row.kind === kind && row.required)} disabled={!canManage || pending} onChange={(event) => void toggle(kind as DocumentKind, event.target.checked)} />Exigir {label}</label>) : null}
     {canManage ? <button type="button" onClick={() => setCreating(true)}>Novo documento</button> : null}
     {actionError ? <AlertBanner>{actionError}</AlertBanner> : null}
     {status === "loading" ? <output>Carregando documentos…</output> : null}
