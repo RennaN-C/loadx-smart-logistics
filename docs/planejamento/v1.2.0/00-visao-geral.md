@@ -63,7 +63,7 @@ auditoria e identidade do motorista.
 | OC82 | #125 | Marcelo | Integração / WhatsApp | OC79 |
 | OC83 | #126 | Marcelo | Integração / webhook e mídia | OC79, OC80 e OC82 |
 | OC84 | #127 | Marcelo | Integração / notificações | OC79 e OC82 |
-| OC85 | #128 | Marlon | Frontend / configurações | Nenhuma OC anterior |
+| OC85 | #128 | Rennan | Frontend / configurações | Nenhuma OC anterior |
 | OC86 | #129 | Marlon | Frontend / usuários | OC85 |
 | OC87 | #130 | Rennan | Domínio / multi-caminhão | Exige ADR |
 | OC88 | #131 | João | Algoritmo / multi-caminhão | OC87 |
@@ -91,6 +91,11 @@ auditoria e identidade do motorista.
 | OC110 | #157 | Rennan | Arquivos / anexos | OC80 |
 | OC111 | #158 | Rennan | Operação / linha do tempo | OC97 e OC93 |
 | OC112 | #159 | Rennan | Segurança / permissões | OC86 |
+
+
+`CONFIRMADO` (09/10/2026): a execução integral da OC85 (#128) foi
+redistribuída de Marlon para Rennan, mantendo o escopo administrativo e a
+matriz RBAC vigentes. Branch: `rennan/oc85-configuracoes-admin`.
 
 ## Frentes da versão
 

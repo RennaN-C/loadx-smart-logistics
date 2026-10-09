@@ -22,7 +22,7 @@ Branches:
 Documentação é versionada normalmente pelo mesmo fluxo.
 `RECOMENDAÇÃO`: para as novas OCs, usar `<desenvolvedor>/ocNN-descricao`, em
 minúsculas e sem acentos, como `rennan/oc79-seguranca-comandos-externos`,
-`joao/oc88-otimizacao-multi-caminhao`, `marlon/oc85-configuracoes-admin` e
+`joao/oc88-otimizacao-multi-caminhao`, `rennan/oc85-configuracoes-admin` e
 `marcelo/oc84-notificacoes-operacionais-reais`.
 `CONFIRMADO`: OC01–OC78 são histórico; a v1.2.0 usa OC79–OC112 sem reutilização de números. O roadmap da v1.3.0 não reserva numeração antes do planejamento formal.
 
