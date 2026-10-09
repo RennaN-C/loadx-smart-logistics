@@ -8,6 +8,9 @@ export interface Truck {
   maxWeightKg: number;
   active: boolean;
   createdAt: string;
+  odometerKm?: number | null;
+  nextServiceAt?: string | null;
+  nextServiceKm?: number | null;
 }
 
 /** Criação não expõe `active`: o backend já assume `true`. */
@@ -20,7 +23,7 @@ export interface TruckInput {
   maxWeightKg: number;
 }
 
-export type TruckUpdateInput = Partial<TruckInput> & { active?: boolean };
+export type TruckUpdateInput = Partial<TruckInput> & { active?: boolean; odometerKm?: number };
 
 /**
  * Situação operacional do caminhão (OC68), lida em `GET /trucks/operational-status`.
@@ -38,5 +41,39 @@ export interface TruckOperationalStatus {
   active: boolean;
   /** Já comprometido com outra operação, pela regra da OC64. */
   hasOperationConflict: boolean;
+  hasMaintenanceConflict?: boolean;
   available: boolean;
+}
+
+export interface TruckMaintenance {
+  id: string;
+  truckId: string;
+  kind: "PREVENTIVE" | "CORRECTIVE";
+  startsAt: string;
+  endsAt: string | null;
+  description: string;
+  workshop: string | null;
+  notes: string | null;
+  cost: number | null;
+  odometerKm: number | null;
+  completionOdometerKm: number | null;
+  nextServiceAt: string | null;
+  nextServiceKm: number | null;
+  closedAt: string | null;
+  createdAt: string;
+}
+export interface MaintenanceInput {
+  kind: TruckMaintenance["kind"];
+  startsAt: string;
+  endsAt?: string | null;
+  description: string;
+  workshop?: string | null;
+  notes?: string | null;
+  cost?: number | null;
+  odometerKm?: number;
+}
+export interface MaintenanceCloseInput {
+  odometerKm?: number;
+  nextServiceAt?: string | null;
+  nextServiceKm?: number | null;
 }
