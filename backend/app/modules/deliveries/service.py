@@ -427,7 +427,7 @@ class TripService:
         plan = self.load_plan_reference_service.get_operational_plan(trip.load_plan_id)
         if plan is not None:
             self.truck_service.get_truck_for_update(plan.truck_id)
-            self.truck_service.ensure_not_in_maintenance(plan.truck_id)
+            self.truck_service.ensure_operational_eligibility(plan.truck_id)
         self.driver_service.ensure_no_operation_conflict(
             trip.driver_id, exclude_trip_id=trip.id
         )

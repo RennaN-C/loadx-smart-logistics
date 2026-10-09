@@ -14,6 +14,7 @@ class TruckAvailability:
     has_operation_conflict: bool
     available: bool
     has_maintenance_conflict: bool = False
+    has_document_conflict: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -55,13 +56,18 @@ class FleetAvailabilityService:
         truck = self.truck_service.get_truck(truck_id)
         has_conflict = self.truck_service.has_operation_conflict(truck_id)
         maintenance = self.truck_service.has_maintenance_conflict(truck_id)
+        documents = self.truck_service.has_document_conflict(truck_id)
 
         return TruckAvailability(
             truck_id=truck.id,
             active=truck.active,
             has_operation_conflict=has_conflict,
-            available=truck.active and not has_conflict and not maintenance,
+            available=truck.active
+            and not has_conflict
+            and not maintenance
+            and not documents,
             has_maintenance_conflict=maintenance,
+            has_document_conflict=documents,
         )
 
     def get_driver_availability(

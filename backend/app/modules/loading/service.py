@@ -102,7 +102,7 @@ class LoadingService:
             )
             if plan is not None:
                 self.truck_service.get_truck_for_update(plan.truck_id)
-                self.truck_service.ensure_not_in_maintenance(plan.truck_id)
+                self.truck_service.ensure_operational_eligibility(plan.truck_id)
             session.status = status
             session.started_at = datetime.now(UTC)
         elif session.status == "IN_PROGRESS" and status == "FINISHED":
