@@ -17,6 +17,7 @@ class DriverOperationalStatus:
     active: bool
     has_operation_conflict: bool
     available: bool
+    has_document_conflict: bool = False
 
 
 class DriverOperationalStatusService:
@@ -62,4 +63,5 @@ class DriverOperationalStatusService:
             active=availability.active,
             has_operation_conflict=availability.has_operation_conflict,
             available=availability.available,
+            has_document_conflict=availability.has_document_conflict,
         )

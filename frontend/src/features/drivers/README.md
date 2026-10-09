@@ -43,7 +43,7 @@ aceitando, porque o backend já assume `true`.
 ## Permissões
 
 **Só `ADMIN` e `LOGISTICS_MANAGER` leem motoristas — `CHECKER` é bloqueado**, por serem dados
-pessoais. Criar e editar é exclusivo do `LOGISTICS_MANAGER`.
+pessoais. ADMIN e LOGISTICS_MANAGER criam e editam.
 
 ## Fora de escopo
 
@@ -59,6 +59,19 @@ sem vínculo permanece sem acesso operacional, conforme `ADR-022`.
 `CONFIRMADO`: a tela inicia em somente ativos, permite consultar arquivados ou
 ambos pelo filtro `archive_status` no servidor, reiniciando na página 1. A busca
 textual e as restrições continuam locais à página. Cards mostram Ativo/Arquivado.
-LOGISTICS_MANAGER vê ações Arquivar/Reativar, que usam o PATCH existente, exibem
+ADMIN e LOGISTICS_MANAGER veem ações Arquivar/Reativar, que usam o PATCH existente, exibem
 loading/erro e atualizam a listagem somente após sucesso. Os demais perfis
 preservam as permissões de leitura e não recebem botões de gestão.
+
+## OC102 — documentos
+
+`CONFIRMADO`: Documentos no card abre histórico e renovação CNH, validade/categoria,
+tipos adicionais aprovados e políticas explícitas. ADMIN/LOGISTICS_MANAGER
+gerenciam ativos; arquivados preservam leitura. CHECKER/DRIVER não acessam API.
+Status de vencimento/próximo do vencimento vem do backend e rótulos temporais
+são compartilhados com OC101. Emissão/validade local são enviadas em UTC.
+Categorias aceitas são selecionadas explicitamente; não se calcula classe de
+veículo ou exigência legal. Novo tipo não ativa política automaticamente.
+Loading/erro/vazio/paginação são tratados; erro de catálogo não supõe política
+desligada. Seleção de viagem explica bloqueio documental recebido do backend.
+Sem upload/storage/notificação externa.

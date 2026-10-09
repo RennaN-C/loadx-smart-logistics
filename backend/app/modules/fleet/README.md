@@ -93,3 +93,9 @@ Motoristas e suas regras permanecem compatíveis.
 e combina a política documental com active, conflito operacional e manutenção.
 Não duplica consultas de outros módulos nem persiste available.
 Has_document_conflict é separado de manutenção e conflito operacional.
+
+## OC102 — motoristas
+
+`CONFIRMADO`: get_driver_availability usa DriverService.has_document_conflict,
+separado de active/conflito. Available é calculado no backend. Categoria/validade
+exigidas são políticas explícitas; sem derivar classe legal de caminhão.

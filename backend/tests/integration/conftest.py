@@ -93,14 +93,49 @@ def _reset_public_schema(engine: Engine) -> None:
 
 def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
     _reset_public_schema(engine)
+    _run_alembic(test_url, "upgrade", "20261009_0019")
+    with engine.begin() as connection:
+        connection.exec_driver_sql(
+            "INSERT INTO drivers(id,name,document,phone,license_number,license_category,active) VALUES ('00000000-0000-4000-8000-000000000202','Legado fictício','12345678909','11900000000','12345678900','D',false)"
+        )
     _run_alembic(test_url, "upgrade", "head")
+    with engine.connect() as connection:
+        assert tuple(
+            connection.exec_driver_sql(
+                "SELECT reference,category,expires_at,legacy_backfill FROM driver_documents WHERE driver_id='00000000-0000-4000-8000-000000000202'"
+            ).one()
+        ) == ("12345678900", "D", None, True)
 
     with engine.connect() as connection:
         head_revision = connection.exec_driver_sql(
             "SELECT version_num FROM alembic_version"
         ).scalar_one()
-        assert head_revision == "20261009_0019"
+        assert head_revision == "20261009_0020"
 
+    _run_alembic(test_url, "downgrade", "-1")
+    with engine.connect() as connection:
+        assert (
+            connection.exec_driver_sql(
+                "SELECT version_num FROM alembic_version"
+            ).scalar_one()
+            == "20261009_0019"
+        )
+        assert (
+            connection.exec_driver_sql(
+                "SELECT to_regclass('public.driver_documents')"
+            ).scalar_one()
+            is None
+        )
+    with engine.begin() as connection:
+        assert (
+            connection.exec_driver_sql(
+                "SELECT license_number FROM drivers WHERE id='00000000-0000-4000-8000-000000000202'"
+            ).scalar_one()
+            == "12345678900"
+        )
+        connection.exec_driver_sql(
+            "DELETE FROM drivers WHERE id='00000000-0000-4000-8000-000000000202'"
+        )
     _run_alembic(test_url, "downgrade", "-1")
     with engine.connect() as connection:
         assert (

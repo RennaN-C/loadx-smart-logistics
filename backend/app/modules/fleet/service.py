@@ -23,6 +23,7 @@ class DriverAvailability:
     active: bool
     has_operation_conflict: bool
     available: bool
+    has_document_conflict: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -75,13 +76,15 @@ class FleetAvailabilityService:
         driver_id: uuid.UUID,
     ) -> DriverAvailability:
         driver = self.driver_service.get_driver(driver_id)
+        documents = self.driver_service.has_document_conflict(driver_id)
         has_conflict = self.driver_service.has_operation_conflict(driver_id)
 
         return DriverAvailability(
             driver_id=driver.id,
             active=driver.active,
             has_operation_conflict=has_conflict,
-            available=driver.active and not has_conflict,
+            available=driver.active and not has_conflict and not documents,
+            has_document_conflict=documents,
         )
 
     def get_operation_availability(

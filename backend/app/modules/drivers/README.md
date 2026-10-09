@@ -25,7 +25,7 @@ Crie somente os arquivos necessários para a ocorrência atual.
 - `GET /api/v1/drivers/{id}`: consulta motorista por ID.
 - `PATCH /api/v1/drivers/{id}`: atualiza campos enviados.
 
-`CONFIRMADO`: `ADMIN` e `LOGISTICS_MANAGER` podem consultar. Somente `LOGISTICS_MANAGER` pode criar ou atualizar. `CHECKER` e `DRIVER` não acessam o módulo.
+`CONFIRMADO`: `ADMIN` e `LOGISTICS_MANAGER` podem consultar. `ADMIN` e `LOGISTICS_MANAGER` podem criar ou atualizar. `CHECKER` e `DRIVER` não acessam o módulo.
 
 ## Regras implementadas
 
@@ -80,7 +80,7 @@ conflito da OC65 e não persiste disponibilidade.
 
 `CONFIRMADO`: `active=false` significa arquivado, sem DELETE e sem remoção de
 referências históricas. PATCH com `active=true` reativa, validando o cadastro
-completo e mantendo as unicidades globais. Só LOGISTICS_MANAGER escreve.
+completo e mantendo as unicidades globais. ADMIN e LOGISTICS_MANAGER escrevem.
 Alterações de estado registram ator, entidade e campo `active` na auditoria,
 na mesma transação; repetições não criam eventos duplicados.
 
@@ -88,3 +88,19 @@ na mesma transação; repetições não criam eventos duplicados.
 `active`, filtrado no PostgreSQL antes da paginação. Consulta por ID não esconde
 arquivados. Os contratos de disponibilidade mantêm a visão de cadastro e
 conflito separados; operações existentes preservam histórico e RBAC.
+
+## OC102 — histórico documental e validade CNH
+
+`CONFIRMADO`: models inclui tipos aprovados, versões e políticas. document_*
+mantêm regras no módulo; document_history compartilha staging com CRUD atual,
+versionando número/categoria/validade e projetando CNH corrente no cadastro.
+Migração faz backfill sem inventar validade. Shared/document_validity concentra
+a regra temporal da OC101; sem importar tabelas internas de trucks.
+DriverService.has_document_conflict(at=...) e ensure_operational_eligibility
+compõem reserva/início de viagem e disponibilidade. Categoria aceita é
+configuração explícita, sem classificação inferida do veículo; CNH exigida sem
+validade/categoria conhecida é inelegível. Tipo adicional aprovado por gestor,
+política inicialmente desligada. Constraints/locks/auditoria/rollback preservam
+identidade, unicidade CNH e histórico. Sem DELETE/storage/DETRAN/notificação.
+ADMIN/LOGISTICS_MANAGER consultam e gerenciam; CHECKER/DRIVER continuam negados.
+ADR-032, head 20261009_0020.

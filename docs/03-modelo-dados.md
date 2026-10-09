@@ -718,3 +718,24 @@ required boolean obrigatório default false; unique (truck_id, kind).
 Auditoria acrescenta entidades TRUCK_DOCUMENT/TRUCK_DOCUMENT_POLICY e eventos
 TRUCK_DOCUMENT_CREATED/TRUCK_DOCUMENT_RENEWED/TRUCK_DOCUMENT_POLICY_UPDATED.
 Migration sequencial 20261009_0019, down_revision 20261009_0018. ADR-031.
+
+## OC102 — documentos de motoristas
+
+`RECOMENDAÇÃO`: drivers acrescenta license_expires_at UTC opcional.
+DriverDocumentType: driver_document_types (id UUID PK, code varchar32 unique
+não vazio, name varchar120 não vazio); CNH é tipo nativo com UUID reservado.
+DriverDocument: driver_documents (id UUID PK, driver_id FK RESTRICT,
+document_type_id FK RESTRICT, reference varchar120 não vazio, category varchar8
+opcional, issued_at/expires_at UTC opcionais, superseded_at UTC opcional,
+created_at UTC default now). Check expires > issued; índice único parcial
+(driver_id, document_type_id) onde superseded_at IS NULL; índice histórico
+(driver_id, created_at).
+DriverDocumentPolicy: driver_document_policies (id UUID PK, driver_id FK
+RESTRICT, document_type_id FK RESTRICT, required boolean default false,
+allowed_categories JSONB array obrigatório default []), unique por motorista/tipo.
+Auditoria: DRIVER_DOCUMENT, DRIVER_DOCUMENT_POLICY, DRIVER_DOCUMENT_TYPE e
+DRIVER_DOCUMENT_CREATED/RENEWED/POLICY_UPDATED/TYPE_APPROVED. ADR-032.
+
+`CONFIRMADO` (OC102): driver_documents também possui legacy_backfill boolean
+obrigatório default false, exclusivo do backfill e da proteção de downgrade.
+Policy tem CHECK PostgreSQL jsonb_typeof(allowed_categories)='array'.

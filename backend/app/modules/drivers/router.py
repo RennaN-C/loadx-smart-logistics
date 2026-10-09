@@ -100,7 +100,7 @@ def create_driver(
     service: Annotated[DriverService, Depends(get_driver_service)],
 ) -> Driver | JSONResponse:
     try:
-        return service.create_driver(data)
+        return service.create_driver(data, changed_by=_current_user.id)
     except DriverDocumentAlreadyExistsError:
         return error_response(
             status.HTTP_409_CONFLICT,

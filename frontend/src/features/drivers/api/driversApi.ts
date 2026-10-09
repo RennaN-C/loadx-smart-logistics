@@ -15,6 +15,7 @@ interface DriverListDto {
 interface DriverDto extends DriverListDto {
   document: string;
   phone: string;
+  license_expires_at?: string | null;
   license_number: string;
 }
 
@@ -23,6 +24,7 @@ interface DriverOperationalStatusDto {
   name: string;
   license_category: string | null;
   active: boolean;
+  has_document_conflict?: boolean;
   has_operation_conflict: boolean;
   available: boolean;
 }
@@ -45,6 +47,7 @@ export function mapDriverOperationalStatusFromDto(
     name: dto.name,
     licenseCategory: dto.license_category,
     active: dto.active,
+    ...(dto.has_document_conflict !== undefined ? { hasDocumentConflict: dto.has_document_conflict } : {}),
     hasOperationConflict: dto.has_operation_conflict,
     available: dto.available,
   };
@@ -56,6 +59,7 @@ export function mapDriverFromDto(dto: DriverDto): Driver {
     document: dto.document,
     phone: dto.phone,
     licenseNumber: dto.license_number,
+    ...(dto.license_expires_at !== undefined ? { licenseExpiresAt: dto.license_expires_at } : {}),
   };
 }
 
@@ -65,6 +69,7 @@ function mapDriverToDto(input: DriverUpdateInput): Partial<DriverDto> {
   if (input.name !== undefined) dto.name = input.name;
   if (input.document !== undefined) dto.document = input.document;
   if (input.phone !== undefined) dto.phone = input.phone;
+  if (input.licenseExpiresAt !== undefined) dto.license_expires_at = input.licenseExpiresAt;
   if (input.licenseNumber !== undefined) dto.license_number = input.licenseNumber;
   if (input.licenseCategory !== undefined) dto.license_category = input.licenseCategory;
   if (input.active !== undefined) dto.active = input.active;

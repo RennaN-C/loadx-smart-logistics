@@ -2,7 +2,9 @@ from sqlalchemy import CheckConstraint, UniqueConstraint
 
 from app.database.base import Base
 from app.modules.customers.models import Customer
-from app.modules.drivers.models import Driver
+from app.modules.drivers.models import (
+    Driver,
+)
 from app.modules.products.models import Product
 from app.modules.trucks.models import Truck
 from app.modules.users.models import User

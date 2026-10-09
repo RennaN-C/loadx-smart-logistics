@@ -6,7 +6,9 @@ from sqlalchemy.orm import Session
 from app.core.security import verify_password
 from app.modules.auth.models import AuthSession
 from app.modules.auth.sessions import AuthSessionService
-from app.modules.drivers.models import Driver
+from app.modules.drivers.models import (
+    Driver,
+)
 from app.modules.users.models import User
 from app.modules.users.schemas import UserCreate, UserUpdate
 from app.modules.users.service import (

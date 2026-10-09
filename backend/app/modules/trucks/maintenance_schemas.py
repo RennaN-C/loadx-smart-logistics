@@ -1,20 +1,13 @@
 import uuid
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.core.json_decimal import JsonDecimal
+from app.shared.document_validity import utc_datetime
 
 Kilometers = Annotated[int, Field(ge=0, le=9_223_372_036_854_775_807, strict=True)]
-
-
-def utc_datetime(value: datetime | None) -> datetime | None:
-    if value is not None:
-        if value.tzinfo is None or value.utcoffset() is None:
-            raise ValueError("datetime must include timezone")
-        return value.astimezone(UTC)
-    return None
 
 
 class MaintenanceCreate(BaseModel):

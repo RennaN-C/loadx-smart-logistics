@@ -26,6 +26,16 @@ def db_session(request: pytest.FixtureRequest) -> Generator[Session, None, None]
     for table in tables:
         table.create(engine, checkfirst=True)
 
+    if any(table.name == "driver_document_types" for table in tables):
+        from app.modules.drivers.models import CNH_TYPE_ID, DriverDocumentType
+
+        with engine.begin() as connection:
+            connection.execute(
+                DriverDocumentType.__table__.insert().values(
+                    id=CNH_TYPE_ID, code="CNH", name="CNH"
+                )
+            )
+
     testing_session_local = sessionmaker(
         bind=engine,
         autoflush=False,
