@@ -559,6 +559,61 @@ body {
   padding: 20px 24px 24px;
 }
 
+/* Importação CSV (OC104): download, arquivo e validação sem sobreposição
+   em modais de caminhões, clientes, produtos e motoristas. */
+.import-panel-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 14px 18px;
+  margin: 20px 0;
+  min-width: 0;
+}
+
+.import-panel-controls > .btn-secondary {
+  flex: 0 1 auto;
+  max-width: 100%;
+}
+
+.import-panel-file {
+  display: flex;
+  flex: 1 1 240px;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.import-panel-file input[type="file"] {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  font: inherit;
+  font-weight: 400;
+  color: var(--ink);
+}
+
+.import-panel-file input[type="file"]::file-selector-button {
+  margin-right: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.import-panel-file input[type="file"]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.import-panel h3 {
+  margin-top: 24px;
+}
+
 /* ---- casca das telas de cadastro ----
    Compartilhada por caminhões, produtos, clientes/motoristas e pedidos: todas
    têm o mesmo esqueleto (título + ação, busca + filtro, grade de cards, estados

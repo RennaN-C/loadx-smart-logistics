@@ -121,20 +121,24 @@ export function DriverPanel() {
                   <dd>{driver.licenseCategory ?? "—"}</dd>
                 </div>
               </dl>
-              <button type="button" className="btn-link" onClick={() => setDocumentsDriver(driver)}>Documentos</button>
-              {canManage ? (
-                <div className="contact-card-foot">
-                  <RecordLifecycleAction resource="drivers" id={driver.id} active={driver.active} onChanged={refetch} />
-                  <button
-                    type="button"
-                    className="btn-link"
-                    disabled={edit.loadingId === driver.id}
-                    onClick={() => void edit.open(driver.id)}
-                  >
-                    {edit.loadingId === driver.id ? "Abrindo…" : "Editar"}
-                  </button>
-                </div>
-              ) : null}
+              <div className="contact-card-foot">
+                <button type="button" className="btn-link" onClick={() => setDocumentsDriver(driver)}>
+                  Documentos
+                </button>
+                {canManage ? (
+                  <>
+                    <RecordLifecycleAction resource="drivers" id={driver.id} active={driver.active} onChanged={refetch} />
+                    <button
+                      type="button"
+                      className="btn-link"
+                      disabled={edit.loadingId === driver.id}
+                      onClick={() => void edit.open(driver.id)}
+                    >
+                      {edit.loadingId === driver.id ? "Abrindo…" : "Editar"}
+                    </button>
+                  </>
+                ) : null}
+              </div>
             </article>
           ))}
         </div>

@@ -36,23 +36,27 @@ export function ImportPanel({ entity, onImported }: Props) {
     catch (reason) { setError(reason instanceof Error ? reason.message : "Não foi possível importar o arquivo."); }
     finally { setWorking(false); }
   }
-  return <section aria-label="Importação de cadastros">
+  return <section className="import-panel" aria-label="Importação de cadastros">
     <p>CSV UTF-8, vírgula ou ponto-e-vírgula; até 1 MiB e 1000 registros. Cria novos cadastros. Um erro rejeita o arquivo inteiro.</p>
     <p>Use os cabeçalhos do modelo, cm/kg, decimais com ponto, true/false e datas ISO com timezone. active=false cria cadastro arquivado.</p>
     {error ? <AlertBanner>{error}</AlertBanner> : null}
-    <button type="button" className="btn-secondary" disabled={working} onClick={() => void run(async () => {
-      saveBlob(await downloadImportTemplate(entity), `${entity}-modelo.csv`);
-    })}>Baixar modelo CSV</button>
-    <label>Arquivo CSV <input type="file" accept=".csv,text/csv" disabled={working} onChange={(event) => {
-      setFile(event.target.files?.[0] ?? null); setReady(null); setResult(null); setError(null);
-    }} /></label>
-    <button type="button" className="btn-secondary" disabled={!file || working} onClick={() => void run(async () => {
-      if (!file) return;
-      setReady(null); setResult(null);
-      const data = await readCsvFile(file);
-      const view = await previewImport(entity, data);
-      setReady({ file: data, preview: view, eventId: crypto.randomUUID() });
-    })}>Validar e gerar prévia</button>
+    <div className="import-panel-controls" role="group" aria-label="Controles de importação CSV">
+      <button type="button" className="btn-secondary" disabled={working} onClick={() => void run(async () => {
+        saveBlob(await downloadImportTemplate(entity), `${entity}-modelo.csv`);
+      })}>Baixar modelo CSV</button>
+      <label className="import-panel-file">Arquivo CSV
+        <input type="file" accept=".csv,text/csv" disabled={working} onChange={(event) => {
+          setFile(event.target.files?.[0] ?? null); setReady(null); setResult(null); setError(null);
+        }} />
+      </label>
+      <button type="button" className="btn-secondary" disabled={!file || working} onClick={() => void run(async () => {
+        if (!file) return;
+        setReady(null); setResult(null);
+        const data = await readCsvFile(file);
+        const view = await previewImport(entity, data);
+        setReady({ file: data, preview: view, eventId: crypto.randomUUID() });
+      })}>Validar e gerar prévia</button>
+    </div>
     {working ? <output>Processando importação…</output> : null}
     {ready ? <>
       <ImportPreviewTable key={ready.eventId} preview={ready.preview} />

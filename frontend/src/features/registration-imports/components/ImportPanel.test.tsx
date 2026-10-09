@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
 import { ApiError } from "../../../types/api";
 import { confirmImport, downloadImportTemplate, getImport, listImports, previewImport, readCsvFile, type ImportPreview, type ImportResult } from "../api/importsApi";
@@ -31,6 +31,15 @@ it("carrega histórico vazio sem importar ou prévia automaticamente", async () 
   expect(confirmImport).not.toHaveBeenCalled();
   expect(screen.queryByRole("button", { name: "Confirmar importação" })).not.toBeInTheDocument();
 });
+it("agrupa modelo, escolha de arquivo e validação sem perder seus rótulos", async () => {
+  render(<ImportPanel entity="trucks" onImported={saved} />);
+  const group = screen.getByRole("group", { name: "Controles de importação CSV" });
+  expect(group).toHaveClass("import-panel-controls");
+  expect(within(group).getByRole("button", { name: "Baixar modelo CSV" })).toBeInTheDocument();
+  expect(within(group).getByLabelText("Arquivo CSV")).toHaveAttribute("type", "file");
+  expect(within(group).getByRole("button", { name: "Validar e gerar prévia" })).toBeDisabled();
+});
+
 it("mostra prévia e exige confirmação explícita antes da criação", async () => {
   render(<ImportPanel entity="products" onImported={saved} />);
   await generatePreview();
