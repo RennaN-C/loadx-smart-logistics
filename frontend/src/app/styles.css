@@ -1114,3 +1114,8 @@ input[type="checkbox"]:disabled {
   bottom: auto;
   top: calc(100% + 8px);
 }
+
+/* Diálogo compartilhado: títulos extensos não empurram o conteúdo lateralmente. */
+.modal-header { flex-wrap: wrap; }
+.modal-header h2, .modal-subtitle { min-width: 0; overflow-wrap: anywhere; }
+.modal-dialog { min-width: 0; }
