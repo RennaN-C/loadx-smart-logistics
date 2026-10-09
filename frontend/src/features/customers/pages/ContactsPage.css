@@ -70,8 +70,17 @@
 
 .contact-card-foot {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  min-width: 0;
   border-top: 1px solid var(--line);
   padding-top: 12px;
   margin-top: auto;
+}
+
+/* Ações de clientes e motoristas podem quebrar linha sem se sobrepor. */
+.contact-card-foot > * {
+  max-width: 100%;
 }
