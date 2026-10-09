@@ -36,13 +36,20 @@ class MetaWhatsAppProvider:
         if (
             not configured.whatsapp_real_enabled
             or not token
-            or re.search(r"\s|[^\x21-\x7e]", token)
-            or re.fullmatch(r"[0-9]{1,32}", configured.whatsapp_phone_number_id) is None
-            or re.fullmatch(r"v[0-9]{1,3}\.[0-9]{1,2}", configured.whatsapp_api_version)
+            or re.search(r"[^\x21-\x7e]", token)
+            or re.fullmatch(
+                r"\d{1,32}", configured.whatsapp_phone_number_id, flags=re.ASCII
+            )
+            is None
+            or re.fullmatch(
+                r"v\d{1,3}\.\d{1,2}", configured.whatsapp_api_version, flags=re.ASCII
+            )
             is None
             or (
                 configured.whatsapp_country_code
-                and re.fullmatch(r"[1-9][0-9]{0,2}", configured.whatsapp_country_code)
+                and re.fullmatch(
+                    r"[1-9]\d{0,2}", configured.whatsapp_country_code, flags=re.ASCII
+                )
                 is None
             )
         ):
@@ -82,23 +89,58 @@ class MetaWhatsAppProvider:
         self, message: OutgoingWhatsAppMessage
     ) -> OutgoingWhatsAppMessage:
         phone = self._validate_message(message)
-        if message.operation_id is not None:
-            if self._send_guard is None:
-                raise WhatsAppProviderError(WhatsAppErrorCode.IDEMPOTENCY_UNAVAILABLE)
-            try:
-                receipt = self._send_guard.claim(
-                    message.operation_id, send_fingerprint(phone, message.content)
-                )
-            except WhatsAppProviderError:
-                raise
-            except Exception:  # noqa: BLE001 - storage details are not part of the port
-                raise WhatsAppProviderError(
-                    WhatsAppErrorCode.IDEMPOTENCY_UNAVAILABLE
-                ) from None
-            if receipt is not None:
-                return receipt
+        previous = self._claim(message, phone)
+        if previous is not None:
+            return previous
 
         response = self._post_message(phone, message.content)
+        self._raise_for_status(response)
+        message_id = self._message_id(response)
+        receipt = replace(
+            message, provider_message_id=message_id, accepted_at=datetime.now(UTC)
+        )
+        self._complete(message, receipt)
+        emit_operational_event(
+            OperationalEvent.WHATSAPP_SEND_ACCEPTED,
+            operation_id=str(message.operation_id) if message.operation_id else None,
+        )
+        return receipt
+
+    def _guard(self) -> SendGuard:
+        if self._send_guard is None:
+            raise WhatsAppProviderError(WhatsAppErrorCode.IDEMPOTENCY_UNAVAILABLE)
+        return self._send_guard
+
+    def _claim(
+        self, message: OutgoingWhatsAppMessage, phone: str
+    ) -> OutgoingWhatsAppMessage | None:
+        if message.operation_id is None:
+            return None
+        guard = self._guard()
+        try:
+            return guard.claim(
+                message.operation_id, send_fingerprint(phone, message.content)
+            )
+        except WhatsAppProviderError:
+            raise
+        except Exception:  # noqa: BLE001 - storage details are not part of the port
+            raise WhatsAppProviderError(
+                WhatsAppErrorCode.IDEMPOTENCY_UNAVAILABLE
+            ) from None
+
+    def _complete(
+        self, message: OutgoingWhatsAppMessage, receipt: OutgoingWhatsAppMessage
+    ) -> None:
+        if message.operation_id is None:
+            return
+        try:
+            self._guard().complete(message.operation_id, receipt)
+        except Exception:  # noqa: BLE001 - accepted send cannot be retried blindly
+            raise WhatsAppProviderError(
+                WhatsAppErrorCode.SEND_IN_DOUBT, delivery_uncertain=True
+            ) from None
+
+    def _raise_for_status(self, response: httpx2.Response) -> None:
         if response.status_code in {401, 403}:
             raise WhatsAppProviderError(WhatsAppErrorCode.AUTHENTICATION_FAILED)
         if response.status_code == 429:
@@ -115,22 +157,6 @@ class MetaWhatsAppProvider:
                 raise WhatsAppProviderError(WhatsAppErrorCode.RATE_LIMITED)
         if response.status_code != 200:
             raise WhatsAppProviderError(WhatsAppErrorCode.REJECTED)
-        message_id = self._message_id(response)
-        receipt = replace(
-            message, provider_message_id=message_id, accepted_at=datetime.now(UTC)
-        )
-        if message.operation_id is not None:
-            try:
-                self._send_guard.complete(message.operation_id, receipt)
-            except Exception:  # noqa: BLE001 - confirmed send cannot be retried blindly
-                raise WhatsAppProviderError(
-                    WhatsAppErrorCode.SEND_IN_DOUBT, delivery_uncertain=True
-                ) from None
-        emit_operational_event(
-            OperationalEvent.WHATSAPP_SEND_ACCEPTED,
-            operation_id=str(message.operation_id) if message.operation_id else None,
-        )
-        return receipt
 
     def _validate_message(self, message: OutgoingWhatsAppMessage) -> str:
         if (
@@ -146,7 +172,7 @@ class MetaWhatsAppProvider:
             raise WhatsAppProviderError(WhatsAppErrorCode.INVALID_MESSAGE)
         phone = message.recipient_phone.strip()
         if phone.startswith("+"):
-            if re.fullmatch(r"\+[1-9][0-9]{6,14}", phone) is None:
+            if re.fullmatch(r"\+[1-9]\d{6,14}", phone, flags=re.ASCII) is None:
                 raise WhatsAppProviderError(WhatsAppErrorCode.INVALID_MESSAGE)
             return phone[1:]
         if not self._country_code:
@@ -215,7 +241,7 @@ class MetaWhatsAppProvider:
         """Lê somente código numérico; textos/trace_ids externos não atravessam a port."""
         try:
             code = response.json()["error"]["code"]
-        except (ValueError, UnicodeError, KeyError, TypeError):
+        except (ValueError, KeyError, TypeError):
             return None
         return code if type(code) is int else None
 
@@ -235,7 +261,6 @@ class MetaWhatsAppProvider:
             )
         except (
             ValueError,
-            UnicodeError,
             KeyError,
             IndexError,
             TypeError,

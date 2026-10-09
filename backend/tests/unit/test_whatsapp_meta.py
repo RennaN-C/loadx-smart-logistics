@@ -102,14 +102,18 @@ def test_send_uses_bearer_fixed_host_and_normalizes_acceptance() -> None:
         {"whatsapp_access_token": "invalid token\n"},
         {"whatsapp_phone_number_id": ""},
         {"whatsapp_phone_number_id": "../another-host"},
+        {"whatsapp_phone_number_id": "١٢٣"},
         {"whatsapp_api_version": ""},
         {"whatsapp_api_version": "v99.0/path?token=secret"},
+        {"whatsapp_api_version": "v٩٩.٠"},
         {"whatsapp_country_code": "0"},
+        {"whatsapp_country_code": "5٥"},
     ],
 )
 def test_invalid_or_missing_configuration_fails_closed(overrides: dict) -> None:
+    configured = configuration(**overrides)
     with pytest.raises(WhatsAppProviderError) as caught:
-        create_whatsapp_provider(configuration(**overrides))
+        create_whatsapp_provider(configured)
     assert caught.value.code == WhatsAppErrorCode.NOT_CONFIGURED
     assert TOKEN not in str(caught.value)
 
@@ -171,8 +175,9 @@ def test_http_errors_are_sanitized_and_never_blindly_retried(status, code, uncer
     provider = create_whatsapp_provider(
         configuration(), transport=httpx2.MockTransport(handler)
     )
+    message = outgoing()
     with pytest.raises(WhatsAppProviderError) as caught:
-        provider.send_response(outgoing())
+        provider.send_response(message)
     assert len(calls) == 1
     assert caught.value.code == code
     assert caught.value.delivery_uncertain == uncertain
@@ -192,8 +197,9 @@ def test_ambiguous_transport_failure_does_not_retry(error_type):
     provider = create_whatsapp_provider(
         configuration(), transport=httpx2.MockTransport(handler)
     )
+    message = outgoing()
     with pytest.raises(WhatsAppProviderError) as caught:
-        provider.send_response(outgoing())
+        provider.send_response(message)
     assert len(calls) == 1
     assert caught.value.delivery_uncertain is True
     assert TOKEN not in str(caught.value)
@@ -233,8 +239,9 @@ def test_connection_retries_stop_at_configured_limit():
     provider = create_whatsapp_provider(
         configuration(), transport=httpx2.MockTransport(handler)
     )
+    message = outgoing()
     with pytest.raises(WhatsAppProviderError) as caught:
-        provider.send_response(outgoing())
+        provider.send_response(message)
     assert caught.value.code == WhatsAppErrorCode.TIMEOUT
     assert caught.value.delivery_uncertain is False
     assert len(calls) == 2
@@ -264,8 +271,9 @@ def test_invalid_acceptance_is_uncertain_and_not_retried(payload):
     provider = create_whatsapp_provider(
         configuration(), transport=httpx2.MockTransport(handler)
     )
+    message = outgoing()
     with pytest.raises(WhatsAppProviderError) as caught:
-        provider.send_response(outgoing())
+        provider.send_response(message)
     assert caught.value.code == WhatsAppErrorCode.INVALID_RESPONSE
     assert caught.value.delivery_uncertain is True
     assert len(calls) == 1
@@ -279,14 +287,16 @@ def test_invalid_acceptance_is_uncertain_and_not_retried(payload):
         {"content": "x" * 4097},
         {"recipient_phone": ""},
         {"recipient_phone": "+0"},
+        {"recipient_phone": "+55٠٠٠٠٠٠٠٠٠٠٠"},
         {"recipient_phone": "11900000000"},
         {"operation_id": "not-a-uuid"},
     ],
 )
 def test_invalid_message_never_reaches_transport(overrides):
     provider = create_whatsapp_provider(configuration())
+    message = outgoing(**overrides)
     with pytest.raises(WhatsAppProviderError) as caught:
-        provider.send_response(outgoing(**overrides))
+        provider.send_response(message)
     assert caught.value.code == WhatsAppErrorCode.INVALID_MESSAGE
 
 
@@ -321,17 +331,17 @@ def test_fake_selection_requires_no_credentials_or_network():
 
 def test_real_provider_does_not_receive_or_execute_commands():
     provider = create_whatsapp_provider(configuration())
+    incoming = IncomingWhatsAppMessage(sender_phone=PHONE, content="INICIAR VIAGEM")
     with pytest.raises(WhatsAppProviderError) as caught:
-        provider.receive_message(
-            IncomingWhatsAppMessage(sender_phone=PHONE, content="INICIAR VIAGEM")
-        )
+        provider.receive_message(incoming)
     assert caught.value.code == WhatsAppErrorCode.INCOMING_UNSUPPORTED
 
 
 def test_real_idempotent_send_without_guard_is_denied_before_io():
     provider = create_whatsapp_provider(configuration())
+    message = outgoing(operation_id=uuid.uuid4())
     with pytest.raises(WhatsAppProviderError) as caught:
-        provider.send_response(outgoing(operation_id=uuid.uuid4()))
+        provider.send_response(message)
     assert caught.value.code == WhatsAppErrorCode.IDEMPOTENCY_UNAVAILABLE
 
 
@@ -351,8 +361,9 @@ def test_same_operation_returns_original_receipt_and_conflicting_payload_is_deni
     message = outgoing(operation_id=uuid.uuid4())
     first = provider.send_response(message)
     assert provider.send_response(replace(message)) is first
+    changed_message = replace(message, content="Outro conteúdo fictício.")
     with pytest.raises(WhatsAppProviderError) as caught:
-        provider.send_response(replace(message, content="Outro conteúdo fictício."))
+        provider.send_response(changed_message)
     assert caught.value.code == WhatsAppErrorCode.IDENTITY_CONFLICT
     assert len(calls) == 1
 
@@ -447,8 +458,9 @@ def test_logs_and_repr_do_not_expose_sensitive_input_or_provider_body(caplog):
         configuration(), transport=httpx2.MockTransport(handler)
     )
     with caplog.at_level(logging.DEBUG):
+        message = outgoing()
         with pytest.raises(WhatsAppProviderError):
-            provider.send_response(outgoing())
+            provider.send_response(message)
         logging.getLogger("httpx2").info("unrelated-http-log")
     assert "WHATSAPP_SEND_FAILED" in caplog.text
     assert "unrelated-http-log" in caplog.text
@@ -481,8 +493,9 @@ def test_graph_codes_in_http_400_are_normalized_without_provider_text(
             )
         ),
     )
+    message = outgoing()
     with pytest.raises(WhatsAppProviderError) as caught:
-        provider.send_response(outgoing())
+        provider.send_response(message)
     assert caught.value.code == expected
     assert TOKEN not in str(caught.value)
 
@@ -496,8 +509,9 @@ def test_claim_storage_failure_prevents_transmission():
             raise AssertionError("must not complete failed claim")
 
     provider = create_whatsapp_provider(configuration(), send_guard=BrokenClaim())
+    message = outgoing(operation_id=uuid.uuid4())
     with pytest.raises(WhatsAppProviderError) as caught:
-        provider.send_response(outgoing(operation_id=uuid.uuid4()))
+        provider.send_response(message)
     assert caught.value.code == WhatsAppErrorCode.IDEMPOTENCY_UNAVAILABLE
     assert TOKEN not in str(caught.value)
 
@@ -509,8 +523,9 @@ def test_malformed_json_success_is_uncertain():
             lambda request: httpx2.Response(200, content=b"not-json")
         ),
     )
+    message = outgoing()
     with pytest.raises(WhatsAppProviderError) as caught:
-        provider.send_response(outgoing())
+        provider.send_response(message)
     assert caught.value.code == WhatsAppErrorCode.INVALID_RESPONSE
     assert caught.value.delivery_uncertain is True
 
@@ -521,6 +536,7 @@ def test_guard_capacity_does_not_evict_success_and_allow_duplicate():
     message = outgoing(operation_id=identity)
     assert guard.claim(identity, "fingerprint") is None
     guard.complete(identity, message)
+    operation_id = uuid.uuid4()
     with pytest.raises(WhatsAppProviderError, match="IDEMPOTENCY_UNAVAILABLE"):
-        guard.claim(uuid.uuid4(), "another")
+        guard.claim(operation_id, "another")
     assert guard.claim(identity, "fingerprint") is message
