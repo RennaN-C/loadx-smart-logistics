@@ -1,6 +1,6 @@
 # ADR-033 — anexos operacionais reutilizáveis
 
-Status: proposta técnica na OC110 (#157), sujeita à revisão do PR.
+Status: aceita para a v1.2.0 standalone em 09/10/2026 (OC110, PR #179). Aprovação restrita ao adapter local e aos contratos implementados; fornecedor, retenção, descarte e storage de produção permanecem pendentes.
 
 ## Contexto e decisão
 
