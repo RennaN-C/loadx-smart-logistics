@@ -6,7 +6,12 @@ import pytest
 from sqlalchemy.orm import Session
 
 from app.modules.deliveries.models import Trip
-from app.modules.drivers.models import Driver
+from app.modules.drivers.models import (
+    Driver,
+    DriverDocument,
+    DriverDocumentPolicy,
+    DriverDocumentType,
+)
 from app.modules.load_planning.models import LoadPlan
 from app.modules.loading.models import LoadingSession
 from app.modules.trucks.models import (
@@ -26,6 +31,9 @@ SQLITE_TABLES = (
     TruckDocument.__table__,
     TruckDocumentPolicy.__table__,
     Driver.__table__,
+    DriverDocumentType.__table__,
+    DriverDocument.__table__,
+    DriverDocumentPolicy.__table__,
     LoadPlan.__table__,
     LoadingSession.__table__,
     Trip.__table__,

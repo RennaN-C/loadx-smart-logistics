@@ -3,7 +3,9 @@ import uuid
 import pytest
 from sqlalchemy.orm import Session
 
-from app.modules.drivers.models import Driver
+from app.modules.drivers.models import (
+    Driver,
+)
 from app.modules.status_history.models import StatusHistory
 from app.modules.status_history.schemas import StatusHistoryCreate
 from app.modules.status_history.service import (

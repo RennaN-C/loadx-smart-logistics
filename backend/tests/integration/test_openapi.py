@@ -391,6 +391,11 @@ for address_path, address_method in (
     }
 
 for maintenance_path, maintenance_method in (
+    ("/api/v1/drivers/{driver_id}/documents", "get"),
+    ("/api/v1/drivers/{driver_id}/documents", "post"),
+    ("/api/v1/drivers/{driver_id}/documents/{document_id}/renew", "post"),
+    ("/api/v1/drivers/{driver_id}/document-policies", "get"),
+    ("/api/v1/drivers/{driver_id}/document-policies/{document_type_id}", "patch"),
     ("/api/v1/trucks/{truck_id}/documents", "get"),
     ("/api/v1/trucks/{truck_id}/documents", "post"),
     ("/api/v1/trucks/{truck_id}/documents/{document_id}/renew", "post"),
@@ -404,6 +409,15 @@ for maintenance_path, maintenance_method in (
         "401",
         "403",
         "404",
+        "409",
+        "422",
+        "500",
+    }
+
+for method in ("get", "post"):
+    EXPECTED_ERROR_STATUSES[("/api/v1/driver-document-types", method)] = {
+        "401",
+        "403",
         "409",
         "422",
         "500",
@@ -664,6 +678,7 @@ def test_openapi_documents_driver_operational_status_contract() -> None:
         "name",
         "license_category",
         "active",
+        "has_document_conflict",
         "has_operation_conflict",
         "available",
     }

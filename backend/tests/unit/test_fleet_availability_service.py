@@ -40,6 +40,7 @@ def make_service(
         active=driver_active,
     )
     driver_service.has_operation_conflict.return_value = driver_conflict
+    driver_service.has_document_conflict.return_value = False
 
     db = MagicMock(spec=Session)
 

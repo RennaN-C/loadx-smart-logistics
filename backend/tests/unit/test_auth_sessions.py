@@ -10,7 +10,9 @@ from app.modules.auth.sessions import (
     AuthSessionInvalidError,
     AuthSessionService,
 )
-from app.modules.drivers.models import Driver
+from app.modules.drivers.models import (
+    Driver,
+)
 from app.modules.users.models import User
 
 SQLITE_TABLES = (Driver.__table__, User.__table__, AuthSession.__table__)

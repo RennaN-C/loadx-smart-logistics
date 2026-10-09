@@ -7,7 +7,12 @@ from sqlalchemy.orm import Session
 
 from app.modules.customers.models import Customer, CustomerAddress
 from app.modules.deliveries.models import Trip
-from app.modules.drivers.models import Driver
+from app.modules.drivers.models import (
+    Driver,
+    DriverDocument,
+    DriverDocumentPolicy,
+    DriverDocumentType,
+)
 from app.modules.load_planning.distribution_models import (
     LoadDistribution,
     LoadDistributionOrder,
@@ -41,6 +46,9 @@ SQLITE_TABLES = (
     TruckDocument.__table__,
     TruckDocumentPolicy.__table__,
     Driver.__table__,
+    DriverDocumentType.__table__,
+    DriverDocument.__table__,
+    DriverDocumentPolicy.__table__,
     Product.__table__,
     Order.__table__,
     OrderItem.__table__,

@@ -8,7 +8,12 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.modules.customers.models import Customer, CustomerAddress
-from app.modules.drivers.models import Driver
+from app.modules.drivers.models import (
+    Driver,
+    DriverDocument,
+    DriverDocumentPolicy,
+    DriverDocumentType,
+)
 from app.modules.load_planning.distribution_models import (
     LoadDistribution,
     LoadDistributionOrder,
@@ -45,6 +50,9 @@ from app.modules.users.models import User
 
 SQLITE_TABLES = (
     Driver.__table__,
+    DriverDocumentType.__table__,
+    DriverDocument.__table__,
+    DriverDocumentPolicy.__table__,
     User.__table__,
     Customer.__table__,
     CustomerAddress.__table__,
