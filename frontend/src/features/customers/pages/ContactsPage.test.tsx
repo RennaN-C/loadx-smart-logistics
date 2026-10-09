@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { makePage } from "../../../tests/makePage";
@@ -77,6 +77,16 @@ describe("ContactsPage", () => {
     expect(listDrivers).not.toHaveBeenCalled();
   });
 
+  it("agrupa as ações de clientes em rodapé que pode quebrar linhas", async () => {
+    render(<ContactsPage />);
+    const name = await screen.findByText("Distribuidora Aurora");
+    const card = name.closest(".contact-card");
+    const footer = card?.querySelector<HTMLElement>(".contact-card-foot");
+    expect(footer).toBeTruthy();
+    const actionNames = within(footer!).getAllByRole("button").map((button) => button.textContent);
+    expect(actionNames).toEqual(["Endereços", "Arquivar", "Editar"]);
+  });
+
   it("troca para a aba de motoristas", async () => {
     render(<ContactsPage />);
     await screen.findByText("Distribuidora Aurora");
@@ -85,6 +95,18 @@ describe("ContactsPage", () => {
 
     expect(await screen.findByText("Carlos Pereira")).toBeInTheDocument();
     expect(screen.queryByText("Distribuidora Aurora")).not.toBeInTheDocument();
+  });
+
+  it("mantém Documentos no rodapé de ações dos motoristas", async () => {
+    render(<ContactsPage />);
+    await screen.findByText("Distribuidora Aurora");
+    fireEvent.click(screen.getByRole("tab", { name: "Motoristas" }));
+    const name = await screen.findByText("Carlos Pereira");
+    const footer = name.closest(".contact-card")?.querySelector<HTMLElement>(".contact-card-foot");
+    expect(footer).toBeTruthy();
+    expect(within(footer!).getAllByRole("button").map((button) => button.textContent)).toEqual([
+      "Documentos", "Arquivar", "Editar",
+    ]);
   });
 
   it("marca a aba ativa para leitores de tela", async () => {
