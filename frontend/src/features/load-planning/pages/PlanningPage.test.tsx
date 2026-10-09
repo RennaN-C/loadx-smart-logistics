@@ -1,5 +1,5 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { Link, MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { makePage } from "../../../tests/makePage";
@@ -397,6 +397,38 @@ describe("PlanningPage", () => {
 
     expect(await screen.findByTestId("viewer")).toHaveTextContent("cena de lp1");
   });
+  it("oferece retorno e vínculos de pedidos em plano persistido", async () => {
+    vi.mocked(getLoadPlan).mockResolvedValue(makePlan({ status: "APPROVED" }));
+    renderAt("/planning/lp1");
+    await screen.findByText("Aprovado");
+    expect(screen.getByRole("link", { name: "Voltar aos pedidos" })).toHaveAttribute("href", "/orders");
+    expect(screen.getByRole("link", { name: "Abrir este plano" })).toHaveAttribute("href", "/planning/lp1");
+    expect(screen.getAllByRole("link", { name: "Ver pedido" })[0]).toHaveAttribute("href", "/orders?order=o1");
+  });
+
+  it("preserva caminhos de retorno quando o plano não existe", async () => {
+    vi.mocked(getLoadPlan).mockRejectedValue(new ApiError("LOAD_PLAN_NOT_FOUND", "x"));
+    renderAt("/planning/lp1");
+    await screen.findByRole("alert");
+    expect(screen.getByRole("link", { name: "Voltar ao planejamento" })).toHaveAttribute("href", "/planning");
+  });
+
+  it("recalcular plano anterior não redireciona após abrir outro registro", async () => {
+    vi.mocked(getLoadPlan).mockImplementation(async (id) => makePlan({ id }));
+    let complete!: (plan: LoadPlan) => void;
+    vi.mocked(recalculateLoadPlan).mockImplementation(() => new Promise((resolve) => { complete = resolve; }));
+    render(<MemoryRouter initialEntries={["/planning/lp1"]}>
+      <Link to="/planning/lp2">Outro registro</Link>
+      <Routes><Route path="/planning/:planId" element={<PlanningPage />} /></Routes>
+    </MemoryRouter>);
+    await screen.findByText("Calculado");
+    fireEvent.click(screen.getByRole("button", { name: "Recalcular" }));
+    fireEvent.click(screen.getByRole("link", { name: "Outro registro" }));
+    await waitFor(() => expect(screen.getByRole("link", { name: "Abrir este plano" })).toHaveAttribute("href", "/planning/lp2"));
+    await act(async () => { complete(makePlan({ id: "lp3" })); });
+    expect(screen.getByRole("link", { name: "Abrir este plano" })).toHaveAttribute("href", "/planning/lp2");
+  });
+
 });
 
 
