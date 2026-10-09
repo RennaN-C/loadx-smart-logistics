@@ -174,24 +174,3 @@ def test_unknown_message_does_not_execute_an_action(
         persisted_trip = db.scalar(select(Trip))
         assert persisted_trip is not None
         assert persisted_trip.status == "SCHEDULED"
-
-
-def test_simulator_never_uses_configured_real_output(
-    client: TestClient, session_factory, monkeypatch
-) -> None:
-    from app.core.config import settings
-    from app.integrations.whatsapp.factory import get_configured_whatsapp_provider
-
-    def forbidden_real_provider():
-        raise AssertionError("simulator must not resolve real output")
-
-    scenario = seed_operational_scenario(session_factory)
-    monkeypatch.setattr(settings, "whatsapp_provider", "meta")
-    monkeypatch.setattr(
-        "app.integrations.whatsapp.factory.get_configured_whatsapp_provider",
-        forbidden_real_provider,
-    )
-    response = send_command(client, "Preciso de ajuda", scenario.manager_headers)
-    assert response.status_code == 200
-    assert response.json()["executed"] is False
-    get_configured_whatsapp_provider.cache_clear()

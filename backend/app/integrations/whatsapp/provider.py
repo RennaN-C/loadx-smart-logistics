@@ -1,11 +1,8 @@
-"""Port independente do fornecedor, DTOs e provider falso."""
+"""Contratos e provider mock para a integração controlada com WhatsApp."""
 
-import uuid
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Protocol
-
-from app.integrations.whatsapp.idempotency import InMemorySendGuard, send_fingerprint
 
 
 @dataclass(frozen=True, slots=True)
@@ -24,9 +21,6 @@ class OutgoingWhatsAppMessage:
     recipient_phone: str = field(repr=False)
     content: str = field(repr=False)
     sent_at: datetime = field(default_factory=lambda: datetime.now(UTC))
-    operation_id: uuid.UUID | None = None
-    provider_message_id: str | None = field(default=None, repr=False)
-    accepted_at: datetime | None = None
 
 
 class WhatsAppProvider(Protocol):
@@ -47,7 +41,6 @@ class MockWhatsAppProvider:
     """Provider em memória para desenvolvimento e testes sem serviço externo."""
 
     def __init__(self) -> None:
-        self._send_guard = InMemorySendGuard()
         self.received_messages: list[IncomingWhatsAppMessage] = []
         self.sent_messages: list[OutgoingWhatsAppMessage] = []
 
@@ -60,29 +53,14 @@ class MockWhatsAppProvider:
     def send_response(
         self, message: OutgoingWhatsAppMessage
     ) -> OutgoingWhatsAppMessage:
-        if message.operation_id is not None:
-            receipt = self._send_guard.claim(
-                message.operation_id,
-                send_fingerprint(message.recipient_phone, message.content),
-            )
-            if receipt is not None:
-                return receipt
         self.sent_messages.append(message)
-        if message.operation_id is not None:
-            self._send_guard.complete(message.operation_id, message)
         return message
 
 
 mock_whatsapp_provider = MockWhatsAppProvider()
 
 
-def get_mock_whatsapp_provider() -> WhatsAppProvider:
-    """Simulação interna nunca usa credenciais ou IO externo."""
-    return mock_whatsapp_provider
-
-
 def get_whatsapp_provider() -> WhatsAppProvider:
-    """Composição configurável; falha real não vira sucesso simulado."""
-    from app.integrations.whatsapp.factory import get_configured_whatsapp_provider
+    """Retorna o provider controlado compartilhado pela aplicação."""
 
-    return get_configured_whatsapp_provider()
+    return mock_whatsapp_provider
