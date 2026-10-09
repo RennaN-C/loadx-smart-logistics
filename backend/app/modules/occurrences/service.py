@@ -19,6 +19,10 @@ from app.modules.occurrences.schemas import OccurrenceCreate
 from app.modules.users.models import User
 
 
+class OccurrenceNotFoundError(Exception):
+    pass
+
+
 class OccurrenceTripNotFoundError(Exception):
     pass
 
@@ -48,6 +52,15 @@ class OccurrenceService:
         self.delivery_reference_service = DeliveryReferenceService(db)
         self.driver_service = DriverService(db)
         self.notification_service = notification_service
+
+    def get_occurrence_for_access(
+        self, occurrence_id: uuid.UUID, *, current_user: User
+    ) -> Occurrence:
+        occurrence = self.repository.get(occurrence_id)
+        if occurrence is None:
+            raise OccurrenceNotFoundError
+        self.trip_service.get_trip(occurrence.trip_id, current_user=current_user)
+        return occurrence
 
     def register_occurrence(
         self, data: OccurrenceCreate, *, current_user: User
