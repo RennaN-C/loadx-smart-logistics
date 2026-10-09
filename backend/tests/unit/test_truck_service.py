@@ -4,7 +4,7 @@ from decimal import Decimal
 import pytest
 from sqlalchemy.orm import Session
 
-from app.modules.trucks.models import Truck
+from app.modules.trucks.models import Truck, TruckMaintenance
 from app.modules.trucks.schemas import TruckCreate, TruckUpdate
 from app.modules.trucks.service import (
     TruckNotFoundError,
@@ -12,7 +12,10 @@ from app.modules.trucks.service import (
     TruckService,
 )
 
-SQLITE_TABLES = (Truck.__table__,)
+SQLITE_TABLES = (
+    Truck.__table__,
+    TruckMaintenance.__table__,
+)
 
 
 def make_truck_create(plate: str = "ABC1D23") -> TruckCreate:

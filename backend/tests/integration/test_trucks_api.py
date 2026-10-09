@@ -435,6 +435,7 @@ def test_operational_status_returns_available_truck(
         "model": "Bau medio",
         "active": True,
         "has_operation_conflict": False,
+        "has_maintenance_conflict": False,
         "available": True,
     }
 

@@ -31,6 +31,7 @@ def make_service(
         active=truck_active,
     )
     truck_service.has_operation_conflict.return_value = truck_conflict
+    truck_service.has_maintenance_conflict.return_value = False
 
     driver_service = MagicMock(spec=DriverService)
     driver_service.get_driver.return_value = SimpleNamespace(

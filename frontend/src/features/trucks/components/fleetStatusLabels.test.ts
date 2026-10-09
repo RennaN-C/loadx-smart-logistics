@@ -68,3 +68,7 @@ describe("describeFleetStatus", () => {
     expect(view.reason).toBeNull();
   });
 });
+
+it("explica indisponibilidade por manutenção sem confundir arquivamento", () => {
+  expect(describeFleetStatus({ id: "t1", plate: "ABC1D23", model: "Baú", active: true, hasOperationConflict: false, hasMaintenanceConflict: true, available: false }).reason).toBe("Em manutenção");
+});

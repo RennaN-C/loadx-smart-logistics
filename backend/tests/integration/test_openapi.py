@@ -390,6 +390,20 @@ for address_path, address_method in (
         "500",
     }
 
+for maintenance_path, maintenance_method in (
+    ("/api/v1/trucks/{truck_id}/maintenances", "get"),
+    ("/api/v1/trucks/{truck_id}/maintenances", "post"),
+    ("/api/v1/trucks/{truck_id}/maintenances/{maintenance_id}/close", "post"),
+):
+    EXPECTED_ERROR_STATUSES[(maintenance_path, maintenance_method)] = {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    }
+
 PUBLIC_OPERATIONS = frozenset(
     {
         ("/health", "get"),
@@ -566,6 +580,7 @@ def test_openapi_documents_truck_operational_status_contract() -> None:
         "model",
         "active",
         "has_operation_conflict",
+        "has_maintenance_conflict",
         "available",
     }
 
