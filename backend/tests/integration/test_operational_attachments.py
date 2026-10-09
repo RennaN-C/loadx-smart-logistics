@@ -365,11 +365,13 @@ def test_upload_refuses_savepoint_bound_session(attachments):
     s = attachments
     with s.factory() as outer:
         user = outer.get(User, s.actors["manager"])
-        with Session(bind=outer.connection()) as nested:
-            with pytest.raises(EvidenceStorageError):
-                AttachmentService(nested, s.storage).register(
-                    "trips", s.trip_id, AttachmentCreate(**payload()), current_user=user
-                )
+        with (
+            Session(bind=outer.connection()) as nested,
+            pytest.raises(EvidenceStorageError),
+        ):
+            AttachmentService(nested, s.storage).register(
+                "trips", s.trip_id, AttachmentCreate(**payload()), current_user=user
+            )
     assert not s.storage.objects
 
 
