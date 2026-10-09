@@ -754,3 +754,19 @@ Auditoria adiciona ATTACHMENT_REGISTERED/ATTACHMENT_REVOKED para ATTACHMENT,
 na mesma transação; remoção nunca exclui metadata/histórico nem bytes confirmados.
 Migration 20261009_0021 encadeada em 20261009_0020. Downgrade recusa perda de
 anexos ou auditoria, inclusive revogados.
+
+## OC104 — importação controlada de cadastros
+
+`CONFIRMADO`: Issue #151 e ADR-034 definem `registration_imports`: id UUID,
+entity_type CUSTOMERS/PRODUCTS/TRUCKS/DRIVERS, recorded_by FK RESTRICT users,
+event_id UUID UNIQUE com recorded_by, sha256/fingerprint (64 hex), recorded_at UTC,
+status PROCESSING/COMPLETED/REJECTED, row_count/created_count/rejected_count
+limitados a 0–1000, errors/records JSONB arrays. Records associa número da linha
+a UUID criado; errors contém linha/campo/código/mensagem sem valor pessoal.
+CHECK protege conservação dos totais, resultado completo ou rejeição total e
+tipos dos JSONs. Índices por entidade/data/id e ator suportam histórico paginado.
+Não persiste nome, CSV original nem valores dos cadastros. PROCESSING só existe
+dentro da transação de confirmação; rollback remove tentativa não confirmada.
+AuditEvent adiciona IMPORT_COMPLETED/IMPORT_REJECTED para REGISTRATION_IMPORT,
+na mesma transação do resultado. Migration 20261009_0022 → 20261009_0021;
+downgrade recusa histórico ou auditoria OC104 para evitar perda.
