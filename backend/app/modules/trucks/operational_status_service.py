@@ -16,6 +16,7 @@ class TruckOperationalStatus:
     active: bool
     has_operation_conflict: bool
     available: bool
+    has_maintenance_conflict: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -101,4 +102,5 @@ class TruckOperationalStatusService:
             active=availability.active,
             has_operation_conflict=availability.has_operation_conflict,
             available=availability.available,
+            has_maintenance_conflict=availability.has_maintenance_conflict,
         )

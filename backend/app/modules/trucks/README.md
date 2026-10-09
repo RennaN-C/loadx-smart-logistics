@@ -20,8 +20,7 @@ Crie somente os arquivos necessários para a ocorrência atual.
 - `GET /api/v1/trucks/{id}`: consulta caminhão por ID.
 - `PATCH /api/v1/trucks/{id}`: atualiza campos enviados.
 
-`CONFIRMADO`: `ADMIN`, `CHECKER` e `LOGISTICS_MANAGER` podem consultar. Somente
-`LOGISTICS_MANAGER` pode criar ou atualizar. `DRIVER` não acessa os endpoints do
+`CONFIRMADO`: `ADMIN`, `CHECKER` e `LOGISTICS_MANAGER` podem consultar. ADMIN e LOGISTICS_MANAGER podem criar ou atualizar. `DRIVER` não acessa os endpoints do
 módulo na API atual.
 
 ## Regras implementadas
@@ -31,7 +30,7 @@ módulo na API atual.
 - Dimensões internas e peso máximo devem ser maiores que zero.
 - `max_weight_kg` permanece `Decimal` internamente e usa exclusivamente número
   JSON na entrada e na saída, conforme D06 e ADR-016.
-- Exclusão física ainda não foi implementada; use `active = false` para indisponibilidade.
+- Exclusão física ainda não foi implementada; use `active = false` para arquivamento; manutenção é bloqueio temporal separado.
 - Todas as rotas exigem sessão em cookie e consultam o papel e o estado atual do usuário no banco.
 
 ## OC64 — conflito operacional
@@ -105,7 +104,7 @@ Este contrato é a fronteira de leitura destinada ao painel da OC73.
 
 `CONFIRMADO`: `active=false` significa arquivado, sem DELETE e sem remoção de
 referências históricas. PATCH com `active=true` reativa, validando o cadastro
-completo e mantendo as unicidades globais. Só LOGISTICS_MANAGER escreve.
+completo e mantendo as unicidades globais. ADMIN e LOGISTICS_MANAGER escrevem.
 Alterações de estado registram ator, entidade e campo `active` na auditoria,
 na mesma transação; repetições não criam eventos duplicados.
 
@@ -113,3 +112,25 @@ na mesma transação; repetições não criam eventos duplicados.
 `active`, filtrado no PostgreSQL antes da paginação. Consulta por ID não esconde
 arquivados. Os contratos de disponibilidade mantêm a visão de cadastro e
 conflito separados; operações existentes preservam histórico e RBAC.
+
+## OC100 — manutenção e revisão
+
+`CONFIRMADO`: TruckMaintenance é definido em models.py; maintenance_schemas,
+maintenance_repository, maintenance_service e maintenance_router mantêm o domínio
+no módulo trucks. GET/POST /trucks/{id}/maintenances e POST /{maintenance_id}/close
+permitem histórico paginado, preventiva/corretiva, período UTC, descrição,
+oficina/observação, custo opcional e encerramento. ADMIN/LOGISTICS_MANAGER
+escrevem; CHECKER consulta; DRIVER não acessa. Sem DELETE.
+
+`CONFIRMADO`: uma manutenção aberta bloqueia em [starts_at, ends_at), ou sem
+fim indefinidamente; futura não bloqueia agora. Close cancela janela futura ou
+encerra a atual, sem liberar outros bloqueios nem reativar cadastro arquivado.
+Operação ativa impede registro inclusive futuro. Locks no caminhão serializam
+manutenção e reservas; auditoria e odômetro são atômicos.
+
+`CONFIRMADO`: km inicial/final e próxima revisão ficam no histórico. Truck possui
+odometer_km opcional/monotônico e next_service_at/km; create/PATCH aceitam km,
+close programa revisão. Vencimento é alerta, não manutenção automática.
+TruckService.has_maintenance_conflict(..., at=...) e ensure_not_in_maintenance
+são fronteiras públicas para disponibilidade e operações. ADR-030 registra
+semântica, limites temporais e compatibilidade com OC99/OC105.

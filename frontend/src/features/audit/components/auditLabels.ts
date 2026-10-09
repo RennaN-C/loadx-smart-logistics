@@ -9,6 +9,7 @@ export const AUDIT_ENTITY_LABELS: Record<AuditEntityType, string> = {
   DELIVERY: "Entrega",
   USER: "Usuário",
   CUSTOMER: "Cliente",
+  TRUCK_MAINTENANCE: "Manutenção de caminhão",
   CUSTOMER_ADDRESS: "Endereço de cliente",
   PRODUCT: "Produto",
   TRUCK: "Caminhão",
@@ -20,6 +21,9 @@ export const AUDIT_EVENT_LABELS: Record<AuditEventType, string> = {
   USER_CREATED: "Usuário criado",
   USER_UPDATED: "Usuário atualizado",
   RECORD_ARCHIVED: "Cadastro arquivado",
+  MAINTENANCE_CREATED: "Manutenção registrada",
+  MAINTENANCE_CLOSED: "Manutenção encerrada",
+  TRUCK_ODOMETER_UPDATED: "Quilometragem atualizada",
   CUSTOMER_ADDRESS_CREATED: "Endereço criado",
   CUSTOMER_ADDRESS_UPDATED: "Endereço atualizado",
   CUSTOMER_ADDRESS_ARCHIVED: "Endereço arquivado",
@@ -29,6 +33,10 @@ export const AUDIT_EVENT_LABELS: Record<AuditEventType, string> = {
 
 const FIELD_LABELS: Readonly<Record<string, string>> = {
   active: "ativo",
+  odometer_km: "quilometragem",
+  next_service_at: "data da revisão",
+  next_service_km: "quilometragem da revisão",
+  closed_at: "encerramento",
   is_primary: "principal",
   label: "identificação",
   address: "endereço",

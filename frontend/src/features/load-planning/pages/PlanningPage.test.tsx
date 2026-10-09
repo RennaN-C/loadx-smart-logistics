@@ -398,3 +398,15 @@ describe("PlanningPage", () => {
     expect(await screen.findByTestId("viewer")).toHaveTextContent("cena de lp1");
   });
 });
+
+
+it("OC100 remove caminhão em manutenção da seleção de planejamento", async () => {
+  vi.mocked(listTrucks).mockResolvedValue(makePage([{ id: "t-maint", plate: "ABC1D23", model: "Baú", active: true, internalWidthCm: 100, internalHeightCm: 100, internalLengthCm: 100, maxWeightKg: 1000, createdAt: "2026-01-01T00:00:00Z" }]));
+  vi.mocked(listTruckOperationalStatus).mockResolvedValue(makePage([{ id: "t-maint", plate: "ABC1D23", model: "Baú", active: true, hasOperationConflict: false, hasMaintenanceConflict: true, available: false }]));
+  vi.mocked(listOrders).mockResolvedValue(makePage([]));
+  vi.mocked(listCustomers).mockResolvedValue(makePage([]));
+  vi.mocked(useAuth).mockReturnValue({ user: { id: "u1", name: "Gestor", email: "manager@example.test", role: "LOGISTICS_MANAGER", active: true, createdAt: "2026-01-01T00:00:00Z" }, status: "authenticated", login: vi.fn(), logout: vi.fn() });
+  renderAt("/planning");
+  await screen.findByLabelText("CAMINHÃO");
+  expect(screen.queryByRole("option", { name: /ABC1D23/ })).not.toBeInTheDocument();
+});

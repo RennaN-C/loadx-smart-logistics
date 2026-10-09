@@ -9,7 +9,7 @@ from app.modules.deliveries.models import Trip
 from app.modules.drivers.models import Driver
 from app.modules.load_planning.models import LoadPlan
 from app.modules.loading.models import LoadingSession
-from app.modules.trucks.models import Truck
+from app.modules.trucks.models import Truck, TruckMaintenance
 from app.modules.trucks.service import (
     TruckOperationConflictError,
     TruckService,
@@ -17,6 +17,7 @@ from app.modules.trucks.service import (
 
 SQLITE_TABLES = (
     Truck.__table__,
+    TruckMaintenance.__table__,
     Driver.__table__,
     LoadPlan.__table__,
     LoadingSession.__table__,

@@ -19,6 +19,7 @@ from app.modules.orders.router import router as orders_router
 from app.modules.products.router import router as products_router
 from app.modules.reports.router import router as reports_router
 from app.modules.status_history.router import router as audit_router
+from app.modules.trucks.maintenance_router import router as maintenance_router
 from app.modules.trucks.router import router as trucks_router
 from app.modules.users.router import router as users_router
 
@@ -39,6 +40,7 @@ api_router.include_router(orders_router)
 api_router.include_router(products_router)
 api_router.include_router(reports_router)
 api_router.include_router(trucks_router)
+api_router.include_router(maintenance_router)
 api_router.include_router(users_router)
 
 api_router.include_router(distribution_router)

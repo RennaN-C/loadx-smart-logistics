@@ -77,3 +77,12 @@ Este módulo:
 - não possui repository próprio porque não realiza persistência.
 
 A fronteira é destinada ao consumo pelas OC68, OC69 e OC72.
+
+## OC100 — bloqueio por manutenção
+
+`CONFIRMADO`: disponibilidade do caminhão também exige ausência de manutenção
+no instante consultado. TruckAvailability expõe has_maintenance_conflict,
+separado de active e has_operation_conflict. O módulo consome TruckService sem
+acessar a tabela de manutenção nem duplicar regras de período. Encerrar uma
+manutenção só restaura available quando cadastro e demais bloqueios permitem.
+Motoristas e suas regras permanecem compatíveis.

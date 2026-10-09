@@ -684,3 +684,19 @@ seleção ou texto explícito e desfaz o vínculo anterior. PATCH sem mudança d
 endereço preserva snapshot, mesmo se o cadastro for alterado/arquivado depois.
 Nenhuma alteração cadastral reescreve pedidos, planos, viagens ou entregas.
 Consulta ViaCEP reutiliza o contrato existente; falha não impede cadastro manual.
+
+## OC100 — manutenção e quilometragem
+
+`CONFIRMADO`: manutenção preventiva/corretiva é bloqueio temporal independente
+de arquivamento. Janela aberta [início, fim), ou indefinida sem fim, torna o
+veículo indisponível; futura não bloqueia agora. Encerrar/cancelar janela futura
+preserva histórico e remove apenas esse bloqueio. Operação ativa impede criar
+manutenção, inclusive futura, porque não há liberação prevista confiável.
+Novos planejamentos/aprovação/distribuição, criação/início de carregamento e
+viagem validam manutenção no backend; operações em andamento podem concluir.
+
+`CONFIRMADO`: odômetro informado é inteiro não negativo e não diminui. Revisão
+por data/km é opcional e exibida como alerta; vencimento não cria manutenção
+silenciosa. Encerramento mantém programação omitida e admite null explícito
+para limpar critério. Data deve ser futura e km superar o conhecido.
+Transações e lock do caminhão protegem histórico, odômetro, auditoria e conflitos.

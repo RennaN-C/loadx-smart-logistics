@@ -72,3 +72,12 @@ novo upgrade, alembic check e único head.
 endereço novo/editado/arquivado, proveniência/snapshot estruturado ou auditoria
 de endereços que seria perdido. Falha transacional preserva o schema e dados.
 Não remova dados de produção para contornar essa proteção.
+
+## OC100 — revision 20261009_0018
+
+`CONFIRMADO`: head único encadeado a 20261008_0017. Acrescenta campos opcionais
+de odômetro/revisão em trucks, histórico truck_maintenances com FK RESTRICT,
+CHECKs de tipo/período/valores não negativos e índice de histórico/período;
+expande o catálogo de auditoria. Dados antigos mantêm quilometragem desconhecida,
+sem histórico artificial. Upgrade/downgrade seguro preserva OC99/OC105;
+uso da OC100 bloqueia downgrade que perderia histórico, km/revisão ou auditoria.

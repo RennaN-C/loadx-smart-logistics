@@ -36,7 +36,7 @@ from app.modules.loading.models import LoadingSession
 from app.modules.orders.models import Order, OrderItem
 from app.modules.products.models import Product
 from app.modules.status_history.models import StatusHistory
-from app.modules.trucks.models import Truck
+from app.modules.trucks.models import Truck, TruckMaintenance
 from app.modules.trucks.service import TruckOperationConflictError
 from app.modules.users.models import User
 
@@ -46,6 +46,7 @@ SQLITE_TABLES = (
     Customer.__table__,
     CustomerAddress.__table__,
     Truck.__table__,
+    TruckMaintenance.__table__,
     Product.__table__,
     Order.__table__,
     OrderItem.__table__,

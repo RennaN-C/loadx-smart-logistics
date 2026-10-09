@@ -688,3 +688,19 @@ Backfill de pedidos copia apenas seu próprio texto, sem presumir cidade/UF
 históricas. Alterar/arquivar o cadastro não modifica snapshot nem pedido.
 Auditoria administrativa inclui CUSTOMER_ADDRESS e eventos próprios de criação,
 edição, arquivamento e reativação, sem conteúdo do endereço no evento.
+
+## OC100 — manutenção da frota
+
+`CONFIRMADO`: trucks acrescenta odometer_km, next_service_at (UTC) e
+next_service_km opcionais. Quilometragens são inteiros não negativos; informação
+omitida não inventa valores e odômetro informado não pode diminuir.
+truck_maintenances pertence a trucks, com UUID, truck_id RESTRICT, kind
+PREVENTIVE/CORRECTIVE, starts_at/ends_at UTC (fim opcional, maior que início),
+description, workshop/notes opcionais, cost opcional não negativo, odometer_km,
+completion_odometer_km, next_service_at/km opcionais, closed_at e created_at.
+Índice por truck_id/starts_at atende histórico e consulta de período.
+Manutenção aberta bloqueia em [starts_at, ends_at), ou sem fim indefinidamente;
+closed_at encerra o bloqueio. Histórico e auditoria permanecem sem DELETE.
+O catálogo administrativo aceita TRUCK_MAINTENANCE, MAINTENANCE_CREATED,
+MAINTENANCE_CLOSED e TRUCK_ODOMETER_UPDATED. Lock do caminhão serializa
+manutenção, quilometragem e reserva operacional; não altera active da OC105.

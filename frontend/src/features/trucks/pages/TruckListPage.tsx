@@ -5,6 +5,7 @@ import { Modal } from "../../../components/Modal";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { canManageLogistics } from "../../auth/permissions";
 import { TruckCard } from "../components/TruckCard";
+import { MaintenancePanel } from "../components/MaintenancePanel";
 import { TruckForm } from "../components/TruckForm";
 import { mapTruckErrorToMessage } from "../components/trucksErrorMessages";
 import { Pagination } from "../../../components/Pagination";
@@ -30,6 +31,7 @@ export function TruckListPage() {
     archiveStatus,
     setArchiveStatus,
   } = useRegistryList(listTrucks);
+  const [maintenanceTruck, setMaintenanceTruck] = useState<Truck | null>(null);
   const [search, setSearch] = useState("");
   const [editingTruck, setEditingTruck] = useState<Truck | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -116,7 +118,7 @@ export function TruckListPage() {
       {visibleTrucks.length > 0 ? (
         <div className="entity-grid">
           {visibleTrucks.map((truck) => (
-            <TruckCard key={truck.id} truck={truck} canManage={canManage} onEdit={setEditingTruck} onChanged={refetch} />
+            <TruckCard key={truck.id} truck={truck} canManage={canManage} onEdit={setEditingTruck} onChanged={refetch} onMaintenance={setMaintenanceTruck} />
           ))}
         </div>
       ) : null}
@@ -124,6 +126,10 @@ export function TruckListPage() {
       {status === "success" ? (
         <Pagination page={page} totalPages={totalPages} onChange={goToPage} label="caminhões" />
       ) : null}
+
+      {maintenanceTruck ? <Modal title={`Manutenções — ${maintenanceTruck.plate}`} onClose={() => setMaintenanceTruck(null)}>
+        <MaintenancePanel truck={maintenanceTruck} onChanged={refetch} />
+      </Modal> : null}
 
       {isFormOpen ? (
         <Modal
