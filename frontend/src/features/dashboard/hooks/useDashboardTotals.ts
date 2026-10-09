@@ -49,6 +49,7 @@ export function useDashboardTotals(role: Role | undefined): UseDashboardResult {
   const readsPersonalData = role === "ADMIN" || role === "LOGISTICS_MANAGER";
 
   const load = useCallback(async () => {
+    if (role === "DRIVER" || !role) return;
     setStatus("loading");
     const missing: string[] = [];
 
@@ -84,7 +85,7 @@ export function useDashboardTotals(role: Role | undefined): UseDashboardResult {
     setRecentOrders(orders?.items ?? []);
     setUnavailable(missing);
     setStatus("ready");
-  }, [readsPersonalData]);
+  }, [readsPersonalData, role]);
 
   useEffect(() => {
     void load();

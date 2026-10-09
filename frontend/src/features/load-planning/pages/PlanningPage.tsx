@@ -1,5 +1,5 @@
-import { lazy, Suspense, useCallback, useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { AlertBanner } from "../../../components/AlertBanner";
 import { Tabs, type TabItem } from "../../../components/Tabs";
@@ -44,11 +44,21 @@ export function PlanningPage() {
   const { user } = useAuth();
   const podeBaixarRelatorio = canReadReports(user?.role);
 
-  const [plan, setPlan] = useState<LoadPlan | null>(null);
+  const [storedPlan, setPlan] = useState<LoadPlan | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isWorking, setIsWorking] = useState(false);
   const [tab, setTab] = useState<PlanTab>("summary");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const mounted = useRef(false);
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
+
+  const currentId = useRef(planId);
+  currentId.current = planId;
+  const plan = storedPlan?.id === planId ? storedPlan : null;
 
   const canManage = canManageLogistics(user?.role);
 
@@ -58,8 +68,11 @@ export function PlanningPage() {
     );
 
   useEffect(() => {
+    setPlan(null);
+    setIsWorking(false);
+    setErrorMessage(null);
     if (!planId) {
-      setPlan(null);
+      setIsLoading(false);
       return;
     }
 
@@ -85,6 +98,7 @@ export function PlanningPage() {
 
   const handleCalculated = useCallback(
     (created: LoadPlan) => {
+      if (!mounted.current || currentId.current !== undefined) return;
       setPlan(created);
       navigate(`/planning/${created.id}`);
     },
@@ -98,6 +112,7 @@ export function PlanningPage() {
 
     try {
       const result = await action(plan.id);
+      if (!mounted.current || currentId.current !== plan.id) return;
       if (result.id === plan.id) {
         setPlan(result);
       } else {
@@ -106,14 +121,19 @@ export function PlanningPage() {
         navigate(`/planning/${result.id}`);
       }
     } catch (error) {
-      setErrorMessage(toMessage(error));
+      if (mounted.current && currentId.current === plan.id) setErrorMessage(toMessage(error));
     } finally {
-      setIsWorking(false);
+      if (mounted.current && currentId.current === plan.id) setIsWorking(false);
     }
   }
 
   return (
     <div className="entity-page">
+      <nav className="entity-toolbar" aria-label="Caminhos do planejamento">
+        <Link to="/">Voltar ao início</Link>
+        {user?.role !== "DRIVER" ? <Link to="/orders">Voltar aos pedidos</Link> : null}
+        {planId && user?.role !== "DRIVER" ? <Link to="/planning">Voltar ao planejamento</Link> : null}
+      </nav>
       <header className="entity-header">
         <div>
           <h1>Planejamento de carga</h1>
@@ -144,10 +164,14 @@ export function PlanningPage() {
         </p>
       ) : null}
 
-      {!planId && !isLoading ? <PlanBuilder onCalculated={handleCalculated} /> : null}
+      {!planId && !isLoading ? <>
+        <p className="entity-form-help">Para reabrir um plano anterior, use seu link permanente. A listagem de planos ainda não está disponível.</p>
+        <PlanBuilder onCalculated={handleCalculated} />
+      </> : null}
 
       {plan && !isLoading ? (
         <>
+          <p className="entity-form-help">Link permanente: <Link to={`/planning/${plan.id}`}>Abrir este plano</Link>. Guarde este endereço para reabrir após sair.</p>
           <PlanSummary
             plan={plan}
             canManage={canManage}

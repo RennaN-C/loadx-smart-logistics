@@ -96,3 +96,8 @@
 .product-card-foot > * {
   max-width: 100%;
 }
+
+/* Códigos válidos podem ser extensos e não ter espaços. */
+.product-card, .product-card-head > div { min-width: 0; }
+.product-card-code { max-width: 100%; overflow-wrap: anywhere; }
+.product-card-name { overflow-wrap: anywhere; }

@@ -222,4 +222,20 @@ describe("TripPage", () => {
       "A viagem precisa estar em rota para movimentar as entregas.",
     );
   });
+  it("vincula origem e pedidos para gestão sem oferecer acesso proibido ao motorista", async () => {
+    renderPage();
+    await screen.findByText("Agendada");
+    expect(screen.getByRole("link", { name: "Voltar ao plano de origem" })).toHaveAttribute("href", "/planning/lp1");
+    expect(screen.getByRole("link", { name: "Ver pedido o1" })).toHaveAttribute("href", "/orders?order=o1");
+  });
+
+  it("retorna motorista às próprias viagens sem links de pedidos ou planejamento", async () => {
+    mockRole("DRIVER");
+    renderPage();
+    await screen.findByText("Agendada");
+    expect(screen.getByRole("link", { name: "Voltar às minhas viagens" })).toHaveAttribute("href", "/");
+    expect(screen.queryByRole("link", { name: "Voltar ao plano de origem" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("navigation", { name: "Pedidos desta viagem" })).not.toBeInTheDocument();
+  });
+
 });

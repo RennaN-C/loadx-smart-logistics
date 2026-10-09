@@ -85,3 +85,7 @@
   font-size: 0.8rem;
   color: var(--muted);
 }
+
+.trip-stop { flex-wrap: wrap; }
+.trip-stop-body { min-width: 0; overflow-wrap: anywhere; }
+.trip-meta > div { min-width: 0; }

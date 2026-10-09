@@ -1,5 +1,5 @@
 import { TripAttachments } from "../../attachments/components/TripAttachments";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 
 import { AlertBanner } from "../../../components/AlertBanner";
 import { StatusPill } from "../../../components/StatusPill";
@@ -52,7 +52,8 @@ function TripAction({ trip, nextStatus, canFinish, isWorking, onRun }: TripActio
 /**
  * Acompanhamento de uma viagem (OC34).
  *
- * Chega-se aqui pela lista de viagens ou pelo plano aprovado que a gerou.
+ * Chega-se aqui pelas viagens do motorista ou pelo plano aprovado que a gerou.
+ * A central geral permanece dependente da OC93.
  *
  * O componente só desenha: carregamento e transições moram em `useTripPage`, e
  * o resumo e as paradas em componentes próprios. Isso é o que mantém esta
@@ -72,6 +73,10 @@ export function TripPage() {
 
   return (
     <div className="entity-page">
+      <nav className="entity-toolbar" aria-label="Caminhos da viagem">
+        <Link to="/">{user?.role === "DRIVER" ? "Voltar às minhas viagens" : "Voltar ao início"}</Link>
+        {trip && (user?.role === "ADMIN" || user?.role === "LOGISTICS_MANAGER") ? <Link to={`/planning/${trip.loadPlanId}`}>Voltar ao plano de origem</Link> : null}
+      </nav>
       <header className="entity-header">
         <div>
           <h1>Acompanhamento da viagem</h1>
@@ -124,6 +129,10 @@ export function TripPage() {
           ) : null}
 
           <TripAttachments trip={trip} canManage={canOperate} />
+
+          {user?.role === "ADMIN" || user?.role === "LOGISTICS_MANAGER" ? <nav className="entity-toolbar" aria-label="Pedidos desta viagem">
+            {[...new Set(trip.deliveries.map((delivery) => delivery.orderId))].map((orderId) => <Link key={orderId} to={`/orders?order=${encodeURIComponent(orderId)}`}>Ver pedido {orderId}</Link>)}
+          </nav> : null}
 
           <TripStops
             trip={trip}

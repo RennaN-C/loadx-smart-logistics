@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 import type { LoadPlanItem } from "../types";
 import { REJECTION_LABELS, ROTATION_LABELS } from "./loadPlanLabels";
 
@@ -23,11 +25,12 @@ export function PlanItemsTable({ items }: PlanItemsTableProps) {
         <p className="entity-form-help">
           Carregue nesta ordem. O item 1 entra primeiro, no fundo do baú; a última entrega sai primeiro.
         </p>
-        <div className="plan-table-scroll">
+        <div className="plan-table-scroll" role="region" aria-label="Sequência de carregamento" tabIndex={0}>
           <table className="plan-table">
             <thead>
               <tr>
                 <th scope="col">#</th>
+                <th scope="col">Pedido</th>
                 <th scope="col">Produto</th>
                 <th scope="col">Posição (x, y, z)</th>
                 <th scope="col">Medidas</th>
@@ -39,6 +42,7 @@ export function PlanItemsTable({ items }: PlanItemsTableProps) {
               {loaded.map((item) => (
                 <tr key={item.id}>
                   <td className="plan-table-num">{item.loadingSequence}</td>
+                  <td><Link to={`/orders?order=${encodeURIComponent(item.orderId)}`}>Ver pedido</Link></td>
                   <td>
                     <strong>{item.productCode}</strong>
                     <span className="plan-table-sub">{item.productName}</span>
@@ -64,10 +68,11 @@ export function PlanItemsTable({ items }: PlanItemsTableProps) {
           <p className="entity-form-help">
             Estes volumes não entraram no caminhão. O motivo indica o que precisa mudar.
           </p>
-          <div className="plan-table-scroll">
+          <div className="plan-table-scroll" role="region" aria-label="Volumes recusados" tabIndex={0}>
             <table className="plan-table">
               <thead>
                 <tr>
+                  <th scope="col">Pedido</th>
                   <th scope="col">Produto</th>
                   <th scope="col">Medidas originais</th>
                   <th scope="col">Peso</th>
@@ -77,6 +82,7 @@ export function PlanItemsTable({ items }: PlanItemsTableProps) {
               <tbody>
                 {rejected.map((item) => (
                   <tr key={item.id}>
+                    <td><Link to={`/orders?order=${encodeURIComponent(item.orderId)}`}>Ver pedido</Link></td>
                     <td>
                       <strong>{item.productCode}</strong>
                       <span className="plan-table-sub">{item.productName}</span>

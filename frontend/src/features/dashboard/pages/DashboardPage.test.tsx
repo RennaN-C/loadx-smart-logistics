@@ -202,3 +202,14 @@ describe("DashboardPage", () => {
     expect(screen.queryByRole("link", { name: "Planejar carga" })).not.toBeInTheDocument();
   });
 });
+
+it("motorista não dispara consultas aos cadastros restritos ao abrir painel", async () => {
+  vi.clearAllMocks();
+  vi.mocked(useAuth).mockReturnValue({ status: "authenticated", user: { id: "u1", name: "Motorista de teste", email: "d@example.test", role: "DRIVER", active: true, createdAt: "2026-01-01T00:00:00Z" }, login: vi.fn(), logout: vi.fn() });
+  vi.mocked(listTrips).mockResolvedValue(makePage([]));
+  render(<MemoryRouter><DashboardPage /></MemoryRouter>);
+  await screen.findByText(/Você ainda não tem viagens/);
+  expect(listCustomers).not.toHaveBeenCalled();
+  expect(listTrucks).not.toHaveBeenCalled();
+  expect(listOrders).not.toHaveBeenCalled();
+});

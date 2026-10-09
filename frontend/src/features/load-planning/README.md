@@ -48,7 +48,7 @@ caminhão, outra a quem resolve pendência. Uma tabela só, com coluna de situa�
 
 ## Permissões
 
-`ADMIN`, `CHECKER` e `LOGISTICS_MANAGER` leem. Só `LOGISTICS_MANAGER` calcula, aprova e recalcula.
+`ADMIN`, `CHECKER` e `LOGISTICS_MANAGER` leem. `ADMIN` e `LOGISTICS_MANAGER` calculam, aprovam e recalculam.
 
 ## Fora de escopo
 
@@ -56,3 +56,11 @@ caminhão, outra a quem resolve pendência. Uma tabela só, com coluna de situa�
 comparação entre caminhões (`OC21`) e explicação por `AIProvider` com fallback
 (`OC22`); `loadPlansApi.ts` e a tela atual ainda não consomem essas operações.
 A visualização 3D está integrada em `features/load-visualization` (`OC31`).
+
+## Retorno e recuperação (#188)
+
+`CONFIRMADO`: planos persistidos exibem seu link permanente e retorno aos
+pedidos, planejamento e início. Volumes aceitos e recusados vinculam à leitura
+do pedido em `/orders?order=<id>`. Troca de ID e recálculo assíncrono não
+reaproveitam o plano anterior. A listagem geral continua sem contrato aprovado;
+ver limites no [fluxo operacional](../../../../docs/06-fluxo-operacional.md).

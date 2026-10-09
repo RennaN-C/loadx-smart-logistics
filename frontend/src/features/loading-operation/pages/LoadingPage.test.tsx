@@ -376,4 +376,11 @@ describe("LoadingPage — fluxo manual e etapas", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(/não existe mais/);
     expect(screen.getByRole("button", { name: "Tentar novamente" })).toBeInTheDocument();
   });
+  it("mantém retorno à origem e link estável da sessão persistida", async () => {
+    renderPage();
+    await screen.findByRole("link", { name: "Voltar ao plano de origem" });
+    expect(screen.getByRole("link", { name: "Voltar ao plano de origem" })).toHaveAttribute("href", "/planning/lp1");
+    expect(screen.getByRole("link", { name: "Abrir este carregamento" })).toHaveAttribute("href", "/loading/ls1");
+  });
+
 });

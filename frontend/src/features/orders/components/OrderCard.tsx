@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 import { Avatar } from "../../../components/Avatar";
 import { Icon } from "../../../components/Icon";
 import { StatusPill } from "../../../components/StatusPill";
@@ -62,6 +64,7 @@ export function OrderCard({ order, customerName, canManage, isOpening, onEdit, o
         </div>
       </dl>
 
+      <Link className="btn-secondary" to={`/orders?order=${encodeURIComponent(order.id)}`}>Ver pedido</Link>
       {onAttachments ? <button type="button" className="btn-secondary" onClick={() => onAttachments(order.id)}>Anexos do pedido</button> : null}
       {canManage ? (
         <div className="order-card-foot">

@@ -1,4 +1,4 @@
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 
 import { AlertBanner } from "../../../components/AlertBanner";
 import { StatusPill } from "../../../components/StatusPill";
@@ -102,6 +102,10 @@ export function LoadingPage() {
 
   return (
     <div className="entity-page">
+      <nav className="entity-toolbar" aria-label="Caminhos do carregamento">
+        <Link to="/">Voltar ao início</Link>
+        {session ? <Link to={`/planning/${session.loadPlanId}`}>Voltar ao plano de origem</Link> : null}
+      </nav>
       <header className="entity-header">
         <div>
           <h1>Conferência do carregamento</h1>
@@ -136,6 +140,8 @@ export function LoadingPage() {
 
       {session && !isLoading ? (
         <>
+          <p className="entity-form-help">Link permanente: <Link to={`/loading/${session.id}`}>Abrir este carregamento</Link>. Guarde o endereço; a listagem de carregamentos ainda não está disponível.</p>
+          {session.status === "FINISHED" && (user?.role === "ADMIN" || user?.role === "LOGISTICS_MANAGER") ? <p><Link to={`/planning/${session.loadPlanId}`}>Carregamento concluído: voltar ao plano para criar a viagem</Link></p> : null}
           <section className="loading-head">
             <dl className="loading-metrics">
               <div>

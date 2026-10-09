@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import { Tabs, type TabItem } from "../../../components/Tabs";
 import { DriverPanel } from "../../drivers/components/DriverPanel";
@@ -18,7 +18,13 @@ const TABS: readonly TabItem<ContactTab>[] = [
  * para `drivers`: é composição de tela, não regra de negócio compartilhada.
  */
 export function ContactsPage() {
-  const [activeTab, setActiveTab] = useState<ContactTab>("customers");
+  const [params, setParams] = useSearchParams();
+  const activeTab: ContactTab = params.get("tab") === "drivers" ? "drivers" : "customers";
+  function setActiveTab(tab: ContactTab) {
+    const next = new URLSearchParams(params);
+    next.set("tab", tab);
+    setParams(next);
+  }
 
   return (
     <div className="entity-page">
