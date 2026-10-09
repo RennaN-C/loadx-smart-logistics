@@ -1,4 +1,4 @@
-import { api } from "./api";
+import { api, notifyIfSessionInvalidated } from "./api";
 import { ApiError, isApiErrorResponse } from "../types/api";
 
 async function apiErrorFromBlob(body: unknown, status: number, fallbackMessage: string): Promise<ApiError> {
@@ -6,7 +6,9 @@ async function apiErrorFromBlob(body: unknown, status: number, fallbackMessage: 
     try {
       const parsed: unknown = JSON.parse(await body.text());
       if (isApiErrorResponse(parsed)) {
-        return new ApiError(parsed.code, parsed.message, parsed.details);
+        const error = new ApiError(parsed.code, parsed.message, parsed.details, status);
+        notifyIfSessionInvalidated(error);
+        return error;
       }
     } catch {
       // corpo não era JSON: cai no genérico abaixo
@@ -33,4 +35,3 @@ export async function requestProtectedBlob(path: string, fallbackMessage: string
 
   throw await apiErrorFromBlob(response.data, response.status, fallbackMessage);
 }
-

@@ -1,8 +1,8 @@
 import { beforeEach, expect, it, vi } from "vitest";
-import { api } from "../../../services/api";
+import { api, notifyIfSessionInvalidated } from "../../../services/api";
 import { downloadAttachment, listAttachments, listTripAttachmentOccurrences, readAttachmentFile, revokeAttachment, uploadAttachment } from "./attachmentsApi";
 
-vi.mock("../../../services/api", () => ({ api: { get: vi.fn(), post: vi.fn() } }));
+vi.mock("../../../services/api", () => ({ notifyIfSessionInvalidated: vi.fn(), api: { get: vi.fn(), post: vi.fn() } }));
 beforeEach(() => vi.clearAllMocks());
 it("consulta metadata paginada sem endereço público", async () => {
   vi.mocked(api.get).mockResolvedValue({ data: { items: [{ id: "a1", status: "ACTIVE" }], page: 2, page_size: 20, total: 22, total_pages: 2 } });
@@ -36,4 +36,12 @@ it("lê PNG como base64 e rejeita tamanho ou tipo inválido", async () => {
   for (const file of [new File(["pdf"], "a.pdf", { type: "application/pdf" }), new File([], "empty.png", { type: "image/png" }), new File([new Uint8Array(5242881)], "large.png", { type: "image/png" })]) {
     await expect(readAttachmentFile(file)).rejects.toThrow("PNG/JPEG");
   }
+});
+
+it("invalida sessão expirada também no download binário", async () => {
+  const errorBlob = new Blob([]);
+  Object.defineProperty(errorBlob, "text", { value: async () => JSON.stringify({ code: "AUTH_INVALID_TOKEN", message: "Sessão expirada", details: [] }) });
+  vi.mocked(api.get).mockResolvedValue({ status: 401, data: errorBlob });
+  await expect(downloadAttachment("trips", "t1", "a1")).rejects.toMatchObject({ code: "AUTH_INVALID_TOKEN", status: 401 });
+  expect(notifyIfSessionInvalidated).toHaveBeenCalledWith(expect.objectContaining({ code: "AUTH_INVALID_TOKEN" }));
 });
