@@ -57,16 +57,26 @@ export function TruckCard({ truck, canManage, onEdit, onChanged, onMaintenance, 
           <span className="truck-card-weight">
             Peso máx. <strong>{weightFormatter.format(truck.maxWeightKg)} kg</strong>
           </span>
-          {onDocuments ? <button type="button" className="btn-link" onClick={() => onDocuments(truck)}>Documentos</button> : null}
-          {onMaintenance ? <button type="button" className="btn-link" onClick={() => onMaintenance(truck)}>Manutenções</button> : null}
-          {canManage ? (
-            <>
-          <RecordLifecycleAction resource="trucks" id={truck.id} active={truck.active} onChanged={onChanged} />
-          <button type="button" className="btn-link" onClick={() => onEdit(truck)}>
-              Editar
-            </button>
-          </>
-          ) : null}
+          <div className="truck-card-actions" aria-label={`Ações do caminhão ${truck.plate}`}>
+            {onDocuments ? (
+              <button type="button" className="btn-link" onClick={() => onDocuments(truck)}>
+                Documentos
+              </button>
+            ) : null}
+            {onMaintenance ? (
+              <button type="button" className="btn-link" onClick={() => onMaintenance(truck)}>
+                Manutenções
+              </button>
+            ) : null}
+            {canManage ? (
+              <>
+                <RecordLifecycleAction resource="trucks" id={truck.id} active={truck.active} onChanged={onChanged} />
+                <button type="button" className="btn-link" onClick={() => onEdit(truck)}>
+                  Editar
+                </button>
+              </>
+            ) : null}
+          </div>
         </div>
       </div>
     </article>
