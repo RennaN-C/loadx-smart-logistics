@@ -5,13 +5,23 @@ from sqlalchemy.orm import Session
 
 from app.core.exceptions import ApiError
 from app.modules.drivers.document_repository import DocumentRepository
-from app.modules.drivers.models import CNH_TYPE_ID, Driver, DriverDocument, DriverDocumentPolicy, DriverDocumentType
+from app.modules.drivers.models import (
+    CNH_TYPE_ID,
+    Driver,
+    DriverDocument,
+    DriverDocumentPolicy,
+    DriverDocumentType,
+)
 from app.modules.status_history.schemas import AuditEventCreate
 from app.modules.status_history.service import AuditService
 
 
 def stage_document_audit(
-    db: Session, record: DriverDocument | DriverDocumentPolicy | DriverDocumentType, event: str, entity: str, actor: uuid.UUID | None
+    db: Session,
+    record: DriverDocument | DriverDocumentPolicy | DriverDocumentType,
+    event: str,
+    entity: str,
+    actor: uuid.UUID | None,
 ) -> None:
     if actor is not None:
         AuditService(db).stage_administrative_event(

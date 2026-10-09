@@ -684,3 +684,19 @@ def test_openapi_documents_driver_operational_status_contract() -> None:
     }
     assert set(status_schema["properties"]) == expected_fields
     assert set(status_schema["required"]) == expected_fields
+
+
+def test_driver_documents_preserve_oc101_schema_names():
+    schema = get_openapi_schema()
+    assert "DocumentRead" in schema["components"]["schemas"]
+    assert "DriverDocumentRead" in schema["components"]["schemas"]
+    assert schema["paths"]["/api/v1/trucks/{truck_id}/documents"]["post"]["responses"][
+        "201"
+    ]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/DocumentRead"
+    }
+    assert schema["paths"]["/api/v1/drivers/{driver_id}/documents"]["post"][
+        "responses"
+    ]["201"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/DriverDocumentRead"
+    }

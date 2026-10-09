@@ -14,9 +14,9 @@ from app.modules.drivers.document_history import stage_document_audit
 from app.modules.drivers.document_repository import DocumentRepository
 from app.modules.drivers.document_schemas import (
     LICENSE_CATEGORIES,
-    DocumentCreate,
-    DocumentTypeCreate,
-    PolicyUpdate,
+    DriverDocumentCreate,
+    DriverDocumentPolicyUpdate,
+    DriverDocumentTypeCreate,
 )
 from app.modules.drivers.models import (
     CNH_TYPE_ID,
@@ -39,7 +39,7 @@ class DocumentService:
         return self.repository.types()
 
     def approve_type(
-        self, data: DocumentTypeCreate, *, actor: uuid.UUID
+        self, data: DriverDocumentTypeCreate, *, actor: uuid.UUID
     ) -> DriverDocumentType:
         try:
             record = self.repository.save(DriverDocumentType(**data.model_dump()))
@@ -85,7 +85,7 @@ class DocumentService:
         return self.repository.policies(driver_id)
 
     @staticmethod
-    def validate_license(data: DocumentCreate) -> None:
+    def validate_license(data: DriverDocumentCreate) -> None:
         if data.document_type_id != CNH_TYPE_ID:
             if data.category is not None:
                 raise ApiError(
@@ -114,7 +114,7 @@ class DocumentService:
     def replace_current(
         self,
         driver_id: uuid.UUID,
-        data: DocumentCreate,
+        data: DriverDocumentCreate,
         replacing: uuid.UUID | None,
         actor: uuid.UUID,
     ) -> None:
@@ -157,7 +157,7 @@ class DocumentService:
     def create(
         self,
         driver_id: uuid.UUID,
-        data: DocumentCreate,
+        data: DriverDocumentCreate,
         *,
         actor: uuid.UUID,
         replacing: uuid.UUID | None = None,
@@ -184,7 +184,10 @@ class DocumentService:
         except IntegrityError as error:
             self.db.rollback()
             constraint = get_integrity_constraint_name(error)
-            if constraint not in {"uq_drivers__license_number", "uq_driver_documents__current_type"}:
+            if constraint not in {
+                "uq_drivers__license_number",
+                "uq_driver_documents__current_type",
+            }:
                 raise
             code = (
                 "DRIVER_LICENSE_NUMBER_ALREADY_EXISTS"
@@ -200,7 +203,7 @@ class DocumentService:
         self,
         driver_id: uuid.UUID,
         type_id: uuid.UUID,
-        data: PolicyUpdate,
+        data: DriverDocumentPolicyUpdate,
         *,
         actor: uuid.UUID,
     ) -> DriverDocumentPolicy:

@@ -6,7 +6,10 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
-from app.modules.drivers.document_schemas import DocumentCreate, PolicyUpdate
+from app.modules.drivers.document_schemas import (
+    DriverDocumentCreate,
+    DriverDocumentPolicyUpdate,
+)
 from app.modules.drivers.document_service import DocumentService
 from app.modules.drivers.models import (
     CNH_TYPE_ID,
@@ -333,7 +336,9 @@ def test_audit_failure_rolls_back(
             if operation == "renewal":
                 service.create(
                     identifier,
-                    DocumentCreate.model_validate(payload(reference="98765432109")),
+                    DriverDocumentCreate.model_validate(
+                        payload(reference="98765432109")
+                    ),
                     actor=manager.id,
                     replacing=uuid.UUID(old["id"]),
                 )
@@ -341,7 +346,7 @@ def test_audit_failure_rolls_back(
                 service.update_policy(
                     identifier,
                     CNH_TYPE_ID,
-                    PolicyUpdate(required=True),
+                    DriverDocumentPolicyUpdate(required=True),
                     actor=manager.id,
                 )
             else:
@@ -451,7 +456,7 @@ def test_concurrent_renewal_has_one_winner(postgres_engine, monkeypatch):
         AuditService, "stage_administrative_event", lambda *args, **kwargs: None
     )
     barrier = Barrier(2)
-    data = DocumentCreate.model_validate(payload())
+    data = DriverDocumentCreate.model_validate(payload())
 
     def submit():
         with factory() as db:

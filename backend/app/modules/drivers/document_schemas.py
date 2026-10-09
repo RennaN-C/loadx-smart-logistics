@@ -10,18 +10,18 @@ LicenseCategory = Literal["C", "D", "E", "AC", "AD", "AE"]
 LICENSE_CATEGORIES = frozenset({"C", "D", "E", "AC", "AD", "AE"})
 
 
-class DocumentTypeCreate(BaseModel):
+class DriverDocumentTypeCreate(BaseModel):
     code: str = Field(min_length=1, max_length=32, pattern=r"^[A-Z][A-Z0-9_]*$")
     name: str = Field(min_length=1, max_length=120)
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
 
-class DocumentTypeRead(DocumentTypeCreate):
+class DriverDocumentTypeRead(DriverDocumentTypeCreate):
     id: uuid.UUID
     model_config = ConfigDict(from_attributes=True)
 
 
-class DocumentCreate(DocumentDates):
+class DriverDocumentCreate(DocumentDates):
     document_type_id: uuid.UUID
     reference: str = Field(min_length=1, max_length=120)
     category: str | None = Field(default=None, min_length=1, max_length=8)
@@ -33,7 +33,7 @@ class DocumentCreate(DocumentDates):
         return value.upper() if value is not None else None
 
 
-class DocumentRead(DocumentCreate):
+class DriverDocumentRead(DriverDocumentCreate):
     id: uuid.UUID
     driver_id: uuid.UUID
     superseded_at: datetime | None
@@ -42,7 +42,7 @@ class DocumentRead(DocumentCreate):
     model_config = ConfigDict(from_attributes=True)
 
 
-class PolicyUpdate(BaseModel):
+class DriverDocumentPolicyUpdate(BaseModel):
     required: bool = Field(strict=True)
     allowed_categories: list[LicenseCategory] = Field(
         default_factory=list, max_length=6
@@ -57,7 +57,7 @@ class PolicyUpdate(BaseModel):
         return sorted(value)
 
 
-class PolicyRead(PolicyUpdate):
+class DriverDocumentPolicyRead(DriverDocumentPolicyUpdate):
     id: uuid.UUID
     driver_id: uuid.UUID
     document_type_id: uuid.UUID

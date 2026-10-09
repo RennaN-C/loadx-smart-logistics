@@ -9,12 +9,12 @@ from app.core.pagination import PageResponse, Pagination, to_page_response
 from app.core.responses import openapi_error_responses
 from app.database.session import get_db
 from app.modules.drivers.document_schemas import (
-    DocumentCreate,
-    DocumentRead,
-    DocumentTypeCreate,
-    DocumentTypeRead,
-    PolicyRead,
-    PolicyUpdate,
+    DriverDocumentCreate,
+    DriverDocumentPolicyRead,
+    DriverDocumentPolicyUpdate,
+    DriverDocumentRead,
+    DriverDocumentTypeCreate,
+    DriverDocumentTypeRead,
 )
 from app.modules.drivers.document_service import DocumentService
 from app.modules.drivers.models import DriverDocument
@@ -36,11 +36,11 @@ def get_service(db: Annotated[Session, Depends(get_db)]) -> DocumentService:
 Service = Annotated[DocumentService, Depends(get_service)]
 
 
-def read_document(record: DriverDocument) -> DocumentRead:
-    return DocumentRead(
+def read_document(record: DriverDocument) -> DriverDocumentRead:
+    return DriverDocumentRead(
         **{
             field: getattr(record, field)
-            for field in DocumentRead.model_fields
+            for field in DriverDocumentRead.model_fields
             if field != "status"
         },
         status=document_status(record),
@@ -54,7 +54,7 @@ def driver_error() -> ApiError:
 @router.get("/documents")
 def list_documents(
     driver_id: uuid.UUID, pagination: Pagination, _user: DriverReader, service: Service
-) -> PageResponse[DocumentRead]:
+) -> PageResponse[DriverDocumentRead]:
     try:
         result = service.list_documents(driver_id, pagination)
         return to_page_response(result, (read_document(row) for row in result.items))
@@ -64,8 +64,11 @@ def list_documents(
 
 @router.post("/documents", status_code=201)
 def create_document(
-    driver_id: uuid.UUID, data: DocumentCreate, _user: DriverManager, service: Service
-) -> DocumentRead:
+    driver_id: uuid.UUID,
+    data: DriverDocumentCreate,
+    _user: DriverManager,
+    service: Service,
+) -> DriverDocumentRead:
     try:
         return read_document(service.create(driver_id, data, actor=_user.id))
     except DriverNotFoundError as error:
@@ -76,10 +79,10 @@ def create_document(
 def renew_document(
     driver_id: uuid.UUID,
     document_id: uuid.UUID,
-    data: DocumentCreate,
+    data: DriverDocumentCreate,
     _user: DriverManager,
     service: Service,
-) -> DocumentRead:
+) -> DriverDocumentRead:
     try:
         return read_document(
             service.create(driver_id, data, actor=_user.id, replacing=document_id)
@@ -91,9 +94,12 @@ def renew_document(
 @router.get("/document-policies")
 def list_policies(
     driver_id: uuid.UUID, _user: DriverReader, service: Service
-) -> list[PolicyRead]:
+) -> list[DriverDocumentPolicyRead]:
     try:
-        return [PolicyRead.model_validate(row) for row in service.policies(driver_id)]
+        return [
+            DriverDocumentPolicyRead.model_validate(row)
+            for row in service.policies(driver_id)
+        ]
     except DriverNotFoundError as error:
         raise driver_error() from error
 
@@ -102,12 +108,12 @@ def list_policies(
 def update_policy(
     driver_id: uuid.UUID,
     document_type_id: uuid.UUID,
-    data: PolicyUpdate,
+    data: DriverDocumentPolicyUpdate,
     _user: DriverManager,
     service: Service,
-) -> PolicyRead:
+) -> DriverDocumentPolicyRead:
     try:
-        return PolicyRead.model_validate(
+        return DriverDocumentPolicyRead.model_validate(
             service.update_policy(driver_id, document_type_id, data, actor=_user.id)
         )
     except DriverNotFoundError as error:
@@ -124,12 +130,14 @@ type_router = APIRouter(
 @type_router.get("")
 def list_document_types(
     _user: DriverReader, service: Service
-) -> list[DocumentTypeRead]:
-    return [DocumentTypeRead.model_validate(row) for row in service.types()]
+) -> list[DriverDocumentTypeRead]:
+    return [DriverDocumentTypeRead.model_validate(row) for row in service.types()]
 
 
 @type_router.post("", status_code=201)
 def approve_document_type(
-    data: DocumentTypeCreate, _user: DriverManager, service: Service
-) -> DocumentTypeRead:
-    return DocumentTypeRead.model_validate(service.approve_type(data, actor=_user.id))
+    data: DriverDocumentTypeCreate, _user: DriverManager, service: Service
+) -> DriverDocumentTypeRead:
+    return DriverDocumentTypeRead.model_validate(
+        service.approve_type(data, actor=_user.id)
+    )
