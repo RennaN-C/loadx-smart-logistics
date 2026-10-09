@@ -166,7 +166,7 @@ artefatos de carregamento e viagem, sem criar novos estados.
 com os dois verificadores válidos. Sequências repetidas são rejeitadas.
 Telefone é obrigatório e segue o formato nacional descrito abaixo.
 
-`PENDENTE DE DEFINIÇÃO`: validação formal da categoria de CNH.
+`CONFIRMADO` (OC102): novas categorias usam catálogo operacional existente; política explícita valida categorias aceitas sem inferir hierarquia legal.
 
 ### Conflito operacional — OC65
 
@@ -712,3 +712,19 @@ exigências preserva a frota legada. Alerta não modifica active nem manutençã
 Novas operações validam documentos junto da manutenção; operações iniciadas
 podem concluir. Gestão ADMIN/LOGISTICS_MANAGER, leitura CHECKER; DRIVER negado.
 Locks no caminhão, constraints e auditoria atômica. ADR-031.
+
+## OC102 — documentos de motoristas
+
+`CONFIRMADO`: CNH é tipo nativo. ADMIN/LOGISTICS_MANAGER aprovam tipos adicionais
+explicitamente; nenhum MOPP/exame/requisito legal é inventado. Documentos têm
+versões imutáveis por motorista/tipo, renovação e auditoria atômica. CNH corrente
+projeta número/categoria/validade no cadastro; create/PATCH também versionam
+esses dados. Políticas desligadas preservam elegibilidade legada.
+CNH exigida precisa de validade e categoria conhecidas. Catálogo existente
+C/D/E/AC/AD/AE, com categorias aceitas explicitamente por política e pertinência
+exata, sem inferir hierarquia ou classe de veículo. Versão vencida/emissão
+futura/ausente impede criação e início de viagem quando exigida; viagem em
+andamento pode concluir. Active/conflito permanecem independentes.
+Validade UTC exclusiva e alerta de 30 dias reutilizam OC101 em shared.
+Histórico de viagens não é apagado; arquivos/notificações externas fora do
+escopo. ADR-032 registra decisão técnica e limites.

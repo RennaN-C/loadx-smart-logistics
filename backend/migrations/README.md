@@ -90,3 +90,13 @@ auditoria. Sem backfill de obrigatoriedade/validade e sem mudança em dados
 existentes. Downgrade sem dados é reversível; com documentos/políticas/auditoria
 OC101 é bloqueado para preservar histórico. Testes usam PostgreSQL 16 real e
 validam upgrade/downgrade/head e constraints.
+
+## OC102 — revision 20261009_0020
+
+`CONFIRMADO`: down_revision 20261009_0019, único head. Adiciona validade opcional
+a drivers, tipos aprovados (CNH nativo), versões documentais e políticas com
+índice único parcial, FK RESTRICT e CHECKs. Backfill de número/categoria dos
+legados sem inventar validade; flags de backfill permitem downgrade intocado.
+Histórico novo, políticas, validade e auditoria OC102 bloqueiam downgrade para
+não descartar dados. Testes PostgreSQL 16 cobrem backfill legado, upgrade,
+downgrade, constraints, concorrência e rollback.

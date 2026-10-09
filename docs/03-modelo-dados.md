@@ -735,3 +735,7 @@ RESTRICT, document_type_id FK RESTRICT, required boolean default false,
 allowed_categories JSONB array obrigatório default []), unique por motorista/tipo.
 Auditoria: DRIVER_DOCUMENT, DRIVER_DOCUMENT_POLICY, DRIVER_DOCUMENT_TYPE e
 DRIVER_DOCUMENT_CREATED/RENEWED/POLICY_UPDATED/TYPE_APPROVED. ADR-032.
+
+`CONFIRMADO` (OC102): driver_documents também possui legacy_backfill boolean
+obrigatório default false, exclusivo do backfill e da proteção de downgrade.
+Policy tem CHECK PostgreSQL jsonb_typeof(allowed_categories)='array'.

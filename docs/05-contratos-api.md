@@ -1254,3 +1254,25 @@ Política documental violada: TRUCK_DOCUMENT_INELIGIBLE (409).
 Operational-status acrescenta has_document_conflict e available incorpora
 políticas; preflight usa motivo TRUCK_DOCUMENT_INELIGIBLE. Endpoints anteriores
 permanecem compatíveis. Referência de arquivo nunca é URL/caminho ou download.
+
+## OC102 — documentos de motoristas
+
+`CONFIRMADO`: GET/POST `/api/v1/driver-document-types` lista/aprova tipos com
+id UUID, code único uppercase (32) e name (120); CNH é nativo.
+GET/POST `/api/v1/drivers/{driver_id}/documents`; POST
+`/documents/{document_id}/renew` (201, nova identidade); GET `/document-policies`;
+PATCH `/document-policies/{document_type_id}`. Todos sob prefixo do motorista.
+Documents usa paginação ADR-017, inclui versões históricas e status derivado.
+Create recebe document_type_id, reference, category opcional somente CNH,
+issued_at/expires_at UTC opcionais; versão CNH explicitamente criada/renovada
+exige expires_at. Read acrescenta id/driver_id/created_at/superseded_at/status.
+Policy PATCH recebe required boolean estrito e allowed_categories lista única
+C/D/E/AC/AD/AE somente para CNH (default [], sem restrição extra).
+CRUD de drivers acrescenta license_expires_at opcional; omissão preserva, null
+limpa validade e torna inelegível se CNH exigida. Novas categorias usam catálogo
+atual; leituras legadas preservam strings antigas. Resumos não expõem CNH/CPF.
+Operational-status acrescenta has_document_conflict; available incorpora a
+política. DriverService valida designação/início de viagem com erro 409
+DRIVER_DOCUMENT_INELIGIBLE. RBAC atual ADMIN/LOGISTICS_MANAGER leitura/escrita;
+CHECKER/DRIVER negados. Erros padrão 401/403/404/409/422; sem DELETE, arquivo,
+storage ou envio de notificações. Eventos documentais na auditoria para OC103.
