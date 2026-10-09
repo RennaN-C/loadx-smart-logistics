@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { ApiError } from "../../../types/api";
 import { getLoadPlan } from "../../load-planning/api/loadPlansApi";
@@ -60,6 +60,9 @@ export function useLoadingSession(sessionId: string | undefined): UseLoadingSess
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [tentativa, setTentativa] = useState(0);
 
+  const currentId = useRef(sessionId);
+  currentId.current = sessionId;
+
   const toMessage = useCallback(
     (error: unknown) =>
       mapLoadingErrorToMessage(
@@ -71,6 +74,8 @@ export function useLoadingSession(sessionId: string | undefined): UseLoadingSess
   );
 
   useEffect(() => {
+    setSession(null);
+    setPlanItems([]);
     if (!sessionId) return;
 
     let ativo = true;
@@ -105,7 +110,8 @@ export function useLoadingSession(sessionId: string | undefined): UseLoadingSess
       setIsWorking(true);
 
       try {
-        setSession(await action());
+        const updated = await action();
+        if (currentId.current === updated.id) setSession(updated);
       } catch (error) {
         setErrorMessage(toMessage(error));
       } finally {
@@ -115,10 +121,11 @@ export function useLoadingSession(sessionId: string | undefined): UseLoadingSess
     [toMessage],
   );
 
-  const rows = session ? juntar(session, planItems) : [];
+  const currentSession = session?.id === sessionId ? session : null;
+  const rows = currentSession ? juntar(currentSession, planItems) : [];
 
   return {
-    session,
+    session: currentSession,
     rows,
     pendingCount: rows.filter((row) => !row.checked).length,
     isLoading,

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { ApiError } from "../../../types/api";
 import { getTrip } from "../api/tripsApi";
@@ -28,6 +28,9 @@ export function useTripPage(tripId: string | undefined): UseTripPageResult {
   const [isWorking, setIsWorking] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const currentId = useRef(tripId);
+  currentId.current = tripId;
+
   const toMessage = useCallback(
     (error: unknown) =>
       mapTripErrorToMessage(
@@ -39,6 +42,7 @@ export function useTripPage(tripId: string | undefined): UseTripPageResult {
   );
 
   useEffect(() => {
+    setTrip(null);
     if (!tripId) return;
 
     let active = true;
@@ -67,7 +71,8 @@ export function useTripPage(tripId: string | undefined): UseTripPageResult {
       setIsWorking(true);
 
       try {
-        setTrip(await action());
+        const updated = await action();
+        if (currentId.current === updated.id) setTrip(updated);
       } catch (error) {
         setErrorMessage(toMessage(error));
       } finally {
@@ -77,5 +82,5 @@ export function useTripPage(tripId: string | undefined): UseTripPageResult {
     [toMessage],
   );
 
-  return { trip, isLoading, isWorking, errorMessage, run };
+  return { trip: trip?.id === tripId ? trip : null, isLoading, isWorking, errorMessage, run };
 }
