@@ -1,7 +1,6 @@
 # ADR-032: documentos e elegibilidade dos motoristas (OC102)
 
-Status: decisão técnica implementada por autorização da Issue #149; revisão
-independente pelo contrato normal do PR. Aprovação independente não é presumida.
+Status: aceita para a v1.2.0 standalone em 09/10/2026 (OC102, PR #178), por decisão do responsável pelo projeto. O merge teve exceção documentada à revisão independente; isso não significa que houve aprovação por outro integrante.
 
 ## Contexto e decisão
 
