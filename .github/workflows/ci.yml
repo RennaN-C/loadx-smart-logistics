@@ -5,10 +5,12 @@ on:
     branches:
       - desenvolvimento
       - main
+      - pentest-lab
   push:
     branches:
       - desenvolvimento
       - main
+      - pentest-lab
 
 permissions:
   contents: read
