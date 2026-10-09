@@ -1,3 +1,4 @@
+import { ImportAction } from "../../registration-imports/components/ImportAction";
 import { useMemo, useState } from "react";
 
 import { AlertBanner } from "../../../components/AlertBanner";
@@ -62,6 +63,7 @@ export function DriverPanel() {
   return (
     <>
       <div className="entity-toolbar">
+        {canManage ? <ImportAction entity="drivers" onImported={refetch} /> : null}
         <ArchiveFilter value={archiveStatus} onChange={setArchiveStatus} />
         <input
           type="search"
