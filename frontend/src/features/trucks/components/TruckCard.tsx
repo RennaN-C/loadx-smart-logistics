@@ -57,7 +57,7 @@ export function TruckCard({ truck, canManage, onEdit, onChanged, onMaintenance, 
           <span className="truck-card-weight">
             Peso máx. <strong>{weightFormatter.format(truck.maxWeightKg)} kg</strong>
           </span>
-          <div className="truck-card-actions" aria-label={`Ações do caminhão ${truck.plate}`}>
+          <div className="truck-card-actions" role="group" aria-label={`Ações do caminhão ${truck.plate}`}>
             {onDocuments ? (
               <button type="button" className="btn-link" onClick={() => onDocuments(truck)}>
                 Documentos
