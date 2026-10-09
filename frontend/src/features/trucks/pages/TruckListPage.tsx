@@ -5,6 +5,7 @@ import { Modal } from "../../../components/Modal";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { canManageLogistics } from "../../auth/permissions";
 import { TruckCard } from "../components/TruckCard";
+import { DocumentsPanel } from "../components/DocumentsPanel";
 import { MaintenancePanel } from "../components/MaintenancePanel";
 import { TruckForm } from "../components/TruckForm";
 import { mapTruckErrorToMessage } from "../components/trucksErrorMessages";
@@ -31,6 +32,7 @@ export function TruckListPage() {
     archiveStatus,
     setArchiveStatus,
   } = useRegistryList(listTrucks);
+  const [documentsTruck, setDocumentsTruck] = useState<Truck | null>(null);
   const [maintenanceTruck, setMaintenanceTruck] = useState<Truck | null>(null);
   const [search, setSearch] = useState("");
   const [editingTruck, setEditingTruck] = useState<Truck | null>(null);
@@ -118,7 +120,7 @@ export function TruckListPage() {
       {visibleTrucks.length > 0 ? (
         <div className="entity-grid">
           {visibleTrucks.map((truck) => (
-            <TruckCard key={truck.id} truck={truck} canManage={canManage} onEdit={setEditingTruck} onChanged={refetch} onMaintenance={setMaintenanceTruck} />
+            <TruckCard key={truck.id} truck={truck} canManage={canManage} onEdit={setEditingTruck} onChanged={refetch} onMaintenance={setMaintenanceTruck} onDocuments={setDocumentsTruck} />
           ))}
         </div>
       ) : null}
@@ -127,6 +129,9 @@ export function TruckListPage() {
         <Pagination page={page} totalPages={totalPages} onChange={goToPage} label="caminhões" />
       ) : null}
 
+      {documentsTruck ? <Modal title={`Documentos — ${documentsTruck.plate}`} onClose={() => setDocumentsTruck(null)}>
+        <DocumentsPanel truck={documentsTruck} onChanged={refetch} />
+      </Modal> : null}
       {maintenanceTruck ? <Modal title={`Manutenções — ${maintenanceTruck.plate}`} onClose={() => setMaintenanceTruck(null)}>
         <MaintenancePanel truck={maintenanceTruck} onChanged={refetch} />
       </Modal> : null}

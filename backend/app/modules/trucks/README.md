@@ -134,3 +134,17 @@ close programa revisão. Vencimento é alerta, não manutenção automática.
 TruckService.has_maintenance_conflict(..., at=...) e ensure_not_in_maintenance
 são fronteiras públicas para disponibilidade e operações. ADR-030 registra
 semântica, limites temporais e compatibilidade com OC99/OC105.
+
+## OC101 — documentos
+
+`CONFIRMADO`: document_schemas/repository/service/router no módulo trucks;
+TruckDocument e TruckDocumentPolicy em models. Histórico paginado, cadastro e
+renovação imutável, três tipos e política explícita por caminhão/tipo. Sem
+DELETE; emissão/validade UTC opcionais. Alerta EXPIRING até 30 dias, vencimento
+exclusivo. Default sem exigência preserva veículos legados.
+TruckService.has_document_conflict(..., at=...) e ensure_operational_eligibility
+concentram documento e manutenção para novos cálculos/aprovações/reservas e
+inícios. ensure_not_in_maintenance permanece compatível como consulta específica.
+Índice único parcial e locks no caminhão protegem renovação; audit atômico.
+Referência de arquivo UUID é somente metadado, sem storage interno público.
+RBAC atual, histórico em arquivados, ADR-031 e migration 0019.

@@ -83,6 +83,7 @@ class TruckOperationalStatusRead(BaseModel):
     model: str
     active: bool
     has_operation_conflict: bool
+    has_document_conflict: bool
     has_maintenance_conflict: bool
     available: bool
 

@@ -436,6 +436,7 @@ def test_operational_status_returns_available_truck(
         "active": True,
         "has_operation_conflict": False,
         "has_maintenance_conflict": False,
+        "has_document_conflict": False,
         "available": True,
     }
 

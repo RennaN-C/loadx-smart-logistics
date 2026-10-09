@@ -65,3 +65,13 @@ oficina/observação/custo opcional, encerram/cancelam período e atualizam odô
 Conferente consulta sem ações de gestão. Estados de carregamento, erro e vazio
 são apresentados. Frota explica manutenção; planejamento omite veículos com
 bloqueio atual recebido do backend. Não duplica cálculo de disponibilidade.
+
+## OC101 — documentos dos caminhões
+
+`CONFIRMADO`: Documentos no card abre histórico, tipos, validade, renovação
+e política explícita de elegibilidade. ADMIN/LOGISTICS_MANAGER gerenciam ativos;
+CHECKER e cadastro arquivado consultam. UI destaca vencido, próximo (30 dias),
+emissão futura e substituído usando status do backend. Frota explica política
+pendente; planejamento oculta veículos documentalmente inelegíveis. Há estados
+de loading/erro/vazio e paginação. Referência UUID de arquivo é metadado, sem
+upload/download; envio de notificações permanece na OC103.

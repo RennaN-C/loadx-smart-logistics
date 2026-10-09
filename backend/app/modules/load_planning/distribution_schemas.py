@@ -97,7 +97,12 @@ class NeedVolumeRead(VolumeReference):
 
 class IneligibleTruckRead(BaseModel):
     truck_id: uuid.UUID
-    reason: Literal["INACTIVE", "TRUCK_OPERATION_CONFLICT", "TRUCK_IN_MAINTENANCE"]
+    reason: Literal[
+        "INACTIVE",
+        "TRUCK_OPERATION_CONFLICT",
+        "TRUCK_IN_MAINTENANCE",
+        "TRUCK_DOCUMENT_INELIGIBLE",
+    ]
 
 
 class DistributionNeedRead(BaseModel):

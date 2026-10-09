@@ -345,9 +345,9 @@ def test_cancel_releases_claims_but_preserves_history_and_blocks_legacy_bypass(
     assert new["id"] != result["id"] and new["volumes"][0]["volume_index"] == 1
     with s.factory() as db:
         histories = db.scalars(
-            select(StatusHistory).where(
-                StatusHistory.entity_id == uuid.UUID(result["id"])
-            )
+            select(StatusHistory)
+            .where(StatusHistory.entity_id == uuid.UUID(result["id"]))
+            .order_by(StatusHistory.created_at, StatusHistory.id)
         ).all()
         assert [(h.old_status, h.new_status) for h in histories] == [
             (None, "PROPOSED"),

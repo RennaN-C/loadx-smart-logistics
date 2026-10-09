@@ -72,3 +72,7 @@ describe("describeFleetStatus", () => {
 it("explica indisponibilidade por manutenção sem confundir arquivamento", () => {
   expect(describeFleetStatus({ id: "t1", plate: "ABC1D23", model: "Baú", active: true, hasOperationConflict: false, hasMaintenanceConflict: true, available: false }).reason).toBe("Em manutenção");
 });
+
+it("explica bloqueio pela política documental", () => {
+  expect(describeFleetStatus({ id: "t1", plate: "ABC1D23", model: "Baú", active: true, hasOperationConflict: false, hasDocumentConflict: true, available: false }).reason).toBe("Política documental pendente");
+});

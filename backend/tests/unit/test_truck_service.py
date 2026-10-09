@@ -4,7 +4,12 @@ from decimal import Decimal
 import pytest
 from sqlalchemy.orm import Session
 
-from app.modules.trucks.models import Truck, TruckMaintenance
+from app.modules.trucks.models import (
+    Truck,
+    TruckDocument,
+    TruckDocumentPolicy,
+    TruckMaintenance,
+)
 from app.modules.trucks.schemas import TruckCreate, TruckUpdate
 from app.modules.trucks.service import (
     TruckNotFoundError,
@@ -15,6 +20,8 @@ from app.modules.trucks.service import (
 SQLITE_TABLES = (
     Truck.__table__,
     TruckMaintenance.__table__,
+    TruckDocument.__table__,
+    TruckDocumentPolicy.__table__,
 )
 
 

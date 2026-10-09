@@ -81,3 +81,12 @@ CHECKs de tipo/período/valores não negativos e índice de histórico/período;
 expande o catálogo de auditoria. Dados antigos mantêm quilometragem desconhecida,
 sem histórico artificial. Upgrade/downgrade seguro preserva OC99/OC105;
 uso da OC100 bloqueia downgrade que perderia histórico, km/revisão ou auditoria.
+
+## OC101 — revision 20261009_0019
+
+`CONFIRMADO`: segue 20261009_0018; adiciona documentos com índice único parcial
+de versão corrente, políticas com unique por caminhão/tipo e catálogos de
+auditoria. Sem backfill de obrigatoriedade/validade e sem mudança em dados
+existentes. Downgrade sem dados é reversível; com documentos/políticas/auditoria
+OC101 é bloqueado para preservar histórico. Testes usam PostgreSQL 16 real e
+validam upgrade/downgrade/head e constraints.

@@ -10,6 +10,7 @@ from app.core.pagination import PageResult, PaginationParams
 from app.database.integrity import get_integrity_constraint_name
 from app.modules.status_history.schemas import AuditEventCreate
 from app.modules.status_history.service import AuditService
+from app.modules.trucks.document_repository import DocumentRepository
 from app.modules.trucks.maintenance_repository import MaintenanceRepository
 from app.modules.trucks.models import Truck
 from app.modules.trucks.repository import TruckRepository
@@ -78,7 +79,7 @@ class TruckService:
         exclude_load_plan_id: uuid.UUID | None = None,
     ) -> Truck:
         truck = self.get_truck_for_update(truck_id)
-        self.ensure_not_in_maintenance(truck_id)
+        self.ensure_operational_eligibility(truck_id)
         if self.repository.has_operation_conflict(
             truck_id,
             exclude_load_plan_id=exclude_load_plan_id,
@@ -97,6 +98,20 @@ class TruckService:
         if self.has_maintenance_conflict(truck_id):
             raise ApiError(
                 409, "TRUCK_IN_MAINTENANCE", "Caminhão indisponível por manutenção."
+            )
+
+    def has_document_conflict(
+        self, truck_id: uuid.UUID, *, at: datetime | None = None
+    ) -> bool:
+        return DocumentRepository(self.db).has_block(truck_id, at or datetime.now(UTC))
+
+    def ensure_operational_eligibility(self, truck_id: uuid.UUID) -> None:
+        self.ensure_not_in_maintenance(truck_id)
+        if self.has_document_conflict(truck_id):
+            raise ApiError(
+                409,
+                "TRUCK_DOCUMENT_INELIGIBLE",
+                "Caminhão indisponível pela política documental.",
             )
 
     def stage_maintenance_audit(

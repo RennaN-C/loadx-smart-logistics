@@ -11,8 +11,10 @@ from sqlalchemy import (
     Index,
     Numeric,
     String,
+    UniqueConstraint,
     Uuid,
     func,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -91,4 +93,60 @@ class TruckMaintenance(Base):
     closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+class TruckDocument(Base):
+    __tablename__ = "truck_documents"
+    __table_args__ = (
+        CheckConstraint(
+            "kind IN ('CRLV', 'LICENSING', 'INSURANCE')", name="kind_allowed"
+        ),
+        CheckConstraint("length(trim(reference)) > 0", name="reference_required"),
+        CheckConstraint(
+            "issued_at IS NULL OR expires_at IS NULL OR expires_at > issued_at",
+            name="period_valid",
+        ),
+        Index(
+            "uq_truck_documents__current_kind",
+            "truck_id",
+            "kind",
+            unique=True,
+            postgresql_where=text("superseded_at IS NULL"),
+            sqlite_where=text("superseded_at IS NULL"),
+        ),
+        Index("ix_truck_documents__truck_created", "truck_id", "created_at"),
+    )
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    truck_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("trucks.id", ondelete="RESTRICT"), nullable=False
+    )
+    kind: Mapped[str] = mapped_column(String(16), nullable=False)
+    reference: Mapped[str] = mapped_column(String(120), nullable=False)
+    issued_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    file_reference: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    superseded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+class TruckDocumentPolicy(Base):
+    __tablename__ = "truck_document_policies"
+    __table_args__ = (
+        CheckConstraint(
+            "kind IN ('CRLV', 'LICENSING', 'INSURANCE')", name="kind_allowed"
+        ),
+        UniqueConstraint(
+            "truck_id", "kind", name="uq_truck_document_policies__truck_kind"
+        ),
+    )
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    truck_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("trucks.id", ondelete="RESTRICT"), nullable=False
+    )
+    kind: Mapped[str] = mapped_column(String(16), nullable=False)
+    required: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
     )
