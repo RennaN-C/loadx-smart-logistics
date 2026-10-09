@@ -1217,3 +1217,21 @@ customer_address_id e delivery_address_snapshot. PATCH DRAFT sem destino mantém
 a cópia; novo destino explicitamente selecionado/textual substitui a cópia.
 Troca de cliente exige destino explícito. Seleção inexistente/de outro cliente
 recebe 422, arquivada recebe 409. Consulta pública resumida continua minimizada.
+
+## OC100 — manutenção da frota
+
+`CONFIRMADO`: GET/POST `/api/v1/trucks/{truck_id}/maintenances` lista histórico
+paginado/cria manutenção; POST `/{maintenance_id}/close` encerra/cancela período.
+ADMIN e LOGISTICS_MANAGER escrevem; CHECKER lê, DRIVER recebe 403. CREATE:
+kind PREVENTIVE|CORRECTIVE, starts_at com fuso, ends_at opcional exclusivo,
+description, workshop/notes/cost opcionais e odometer_km opcional inteiro.
+CLOSE: odometer_km e next_service_at/km opcionais; campos omitidos preservam
+revisão, null limpa critério. Repetir encerramento retorna 409. Não há DELETE.
+Erros 401/403 sessão/RBAC, 404 origem inexistente, 409 conflito/arquivado/km
+reduzido, 422 período/revisão/entrada inválida, 500 envelope comum.
+
+`CONFIRMADO`: TruckRead acrescenta odometer_km e next_service_at/km opcionais;
+CREATE/PATCH truck admitem odometer_km (PATCH não admite null). Status da frota
+acrescenta has_maintenance_conflict e available considera esse bloqueio.
+Novas operações com manutenção atual recebem TRUCK_IN_MAINTENANCE (409);
+preflight de distribuição apresenta esse motivo entre os ineligíveis.

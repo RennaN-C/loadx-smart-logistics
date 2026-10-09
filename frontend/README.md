@@ -55,3 +55,13 @@ Pedidos carregam os endereços ativos do cliente e permitem seleção explícita
 texto manual continua compatível. Edição preserva snapshot se o destino não
 foi alterado, mesmo que a origem tenha mudado. Trocar cliente limpa o destino.
 Consulta e ações possuem estados de carregamento, erro e vazio.
+
+## OC100 — manutenção da frota
+
+`CONFIRMADO`: Manutenções no card do caminhão abre histórico paginado e próxima
+revisão por data/km, com alerta de vencimento e quilometragem atual. Gestores e
+administradores registram preventiva/corretiva com período, descrição,
+oficina/observação/custo opcional, encerram/cancelam período e atualizam odômetro.
+Conferente consulta sem ações de gestão. Estados de carregamento, erro e vazio
+são apresentados. Frota explica manutenção; planejamento omite veículos com
+bloqueio atual recebido do backend. Não duplica cálculo de disponibilidade.
