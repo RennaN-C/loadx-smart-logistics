@@ -15,6 +15,8 @@ import { ProductListPage } from "../features/products/pages/ProductListPage";
 import { ReportsPage } from "../features/reports/pages/ReportsPage";
 import { FleetStatusPage } from "../features/trucks/pages/FleetStatusPage";
 import { TruckListPage } from "../features/trucks/pages/TruckListPage";
+import { RequireSettingsAdmin } from "../features/settings/components/RequireSettingsAdmin";
+import { SettingsPage } from "../features/settings/pages/SettingsPage";
 import { AppLayout } from "./AppLayout";
 
 export function App() {
@@ -26,6 +28,9 @@ export function App() {
           <Route element={<RequireAuth />}>
             <Route element={<AppLayout />}>
               <Route index element={<DashboardPage />} />
+              <Route element={<RequireSettingsAdmin />}>
+                <Route path="settings" element={<SettingsPage />} />
+              </Route>
               <Route path="trucks" element={<TruckListPage />} />
               <Route path="fleet" element={<FleetStatusPage />} />
               <Route path="products" element={<ProductListPage />} />

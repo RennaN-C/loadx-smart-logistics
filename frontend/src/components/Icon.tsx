@@ -13,6 +13,7 @@ import type { ReactNode } from "react";
  * acessível, e aí quem usa é que deve fornecer — não este componente.
  */
 export type IconName =
+  | "settings"
   | "home"
   | "truck"
   | "package"
@@ -29,6 +30,12 @@ export type IconName =
   | "gauge";
 
 const PATHS: Record<IconName, ReactNode> = {
+  settings: (
+    <>
+      <path d="M9 3h6l.7 3 2.7 1 2.5 2.5-1.7 2.5 1.7 2.5-2.5 2.5-2.7 1-.7 3H9l-.7-3-2.7-1-2.5-2.5L4.8 12 3.1 9.5 5.6 7l2.7-1z" />
+      <circle cx="12" cy="12" r="3" />
+    </>
+  ),
   home: (
     <>
       <path d="M3.5 10.8 12 3.5l8.5 7.3" />
