@@ -120,7 +120,7 @@ def upgrade() -> None:
         f"INSERT INTO driver_document_types(id,code,name) VALUES ('{CNH}','CNH','CNH')"
     )
     op.execute(
-        f"INSERT INTO driver_documents(id,driver_id,document_type_id,legacy_backfill,reference,category,created_at) SELECT md5('oc102:' || id::text)::uuid,id,'{CNH}',true,license_number,license_category,created_at FROM drivers"
+        f"INSERT INTO driver_documents(id,driver_id,document_type_id,legacy_backfill,reference,category,created_at) SELECT gen_random_uuid(),id,'{CNH}',true,license_number,license_category,created_at FROM drivers"
     )
     catalog(
         f"{PREVIOUS_EVENTS}, 'DRIVER_DOCUMENT_CREATED', 'DRIVER_DOCUMENT_RENEWED', 'DRIVER_DOCUMENT_POLICY_UPDATED', 'DRIVER_DOCUMENT_TYPE_APPROVED'",

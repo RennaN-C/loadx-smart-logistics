@@ -37,12 +37,13 @@ class DriverCreate(DriverBase):
     phone: PhoneNumber = Field(min_length=1, max_length=32)
     license_number: CNH = Field(min_length=1, max_length=32)
 
-
     @field_validator("license_category")
     @classmethod
     def validate_category(cls, value: str | None) -> str | None:
         if value is not None and value not in LICENSE_CATEGORIES:
-            raise ValueError("license_category must use the current operational catalog")
+            raise ValueError(
+                "license_category must use the current operational catalog"
+            )
         return value
 
 
@@ -83,7 +84,9 @@ class DriverUpdate(BaseModel):
             return None
         value = value.upper()
         if value not in LICENSE_CATEGORIES:
-            raise ValueError("license_category must use the current operational catalog")
+            raise ValueError(
+                "license_category must use the current operational catalog"
+            )
         return value
 
 

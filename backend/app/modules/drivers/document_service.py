@@ -55,6 +55,8 @@ class DocumentService:
             return record
         except IntegrityError as error:
             self.db.rollback()
+            if get_integrity_constraint_name(error) != "uq_driver_document_types__code":
+                raise
             raise ApiError(
                 409,
                 "DRIVER_DOCUMENT_TYPE_DUPLICATE",
@@ -181,6 +183,9 @@ class DocumentService:
             return record
         except IntegrityError as error:
             self.db.rollback()
+            constraint = get_integrity_constraint_name(error)
+            if constraint not in {"uq_drivers__license_number", "uq_driver_documents__current_type"}:
+                raise
             code = (
                 "DRIVER_LICENSE_NUMBER_ALREADY_EXISTS"
                 if get_integrity_constraint_name(error) == "uq_drivers__license_number"
