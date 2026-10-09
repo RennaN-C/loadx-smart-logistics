@@ -200,3 +200,61 @@ contextual para os perfis que possuem acesso ao histórico geral.
 
 `CONFIRMADO`: na v1.0.0 o PDF é gerado em memória e retornado como download;
 armazenamento permanente e envio por e-mail/WhatsApp ficam fora do escopo.
+
+## Navegação e retorno no frontend — auditoria técnica #188
+
+`CONFIRMADO`: os caminhos abaixo usam registros e contratos persistidos. Não
+há recuperação simulada por localStorage nem uma central operacional paralela.
+
+| Recurso | Entrada e detalhe | Retorno / recuperação |
+| --- | --- | --- |
+| Clientes e motoristas | Menu Cadastros; `/contacts` e `/contacts?tab=drivers` | A aba fica na URL, incluindo F5 e anterior/próxima; o contador Motoristas abre a aba correta. |
+| Caminhões e produtos | Menu e cards dos respectivos cadastros | Listagens paginadas, filtros explícitos e edição contextual existentes. |
+| Pedidos | Dashboard/listagem `/orders`; card ou vínculo em plano/viagem → `/orders?order=<id>` | Detalhe somente leitura com endereço registrado, itens, histórico autorizado, erro/carregamento e retorno à lista; URL reabre com F5/acesso direto. |
+| Planejamento | Menu `/planning`; resultado da criação → `/planning/:planId` | Link permanente, retorno aos pedidos/planejamento/início; volumes vinculam ao pedido. Plano aprovado reabre pela URL. |
+| Carregamento | Ação existente no plano aprovado → `/loading/:sessionId` | Link permanente, retorno ao plano/início; conclusão orienta a gestão a criar viagem no plano. |
+| Viagem e entregas | Criação no plano; motorista encontra suas viagens no Dashboard → `/trips/:tripId` | Retorno às próprias viagens para DRIVER; gestão retorna ao plano e consulta pedidos das entregas. Histórico contextual para ADMIN/LOGISTICS_MANAGER. |
+| Relatórios e auditoria | Menu e contexto de plano/viagem | Downloads e filtros existentes; histórico respeita a autorização da API. |
+| Configurações | Menu/rota `/settings`, somente ADMIN | Estrutura da OC85 preservada; outros perfis recebem a negação existente. |
+| Disponibilidade e painel operacional | `/fleet` e `/operations`, entradas existentes | Indicadores de disponibilidade não representam listagens gerais de sessões/viagens/entregas. |
+
+`CONFIRMADO`: ADMIN e LOGISTICS_MANAGER gerenciam a logística; CHECKER lê
+pedidos/planos e confere carregamentos; DRIVER opera somente suas viagens.
+Links contextuais não ampliam permissões. CHECKER não solicita cadastros de
+clientes; DRIVER não solicita contadores de cadastros restritos. Referências
+continuam disponíveis quando o nome não pode ser consultado. Busca local em
+pedidos aceita cliente ou referência, somente na página carregada.
+
+`CONFIRMADO`: trocar o ID de plano, sessão ou viagem limpa o conteúdo anterior.
+Respostas e falhas de ações anteriores não substituem o registro atual nem
+redirecionam um recálculo sobre outra navegação. Modais mantêm foco, Escape,
+retorno ao acionador e bloqueio de rolagem, inclusive quando aninhados.
+
+### Bloqueios que permanecem
+
+- `RISCO IDENTIFICADO`: sem listagem geral de planos na API, quem perde a URL
+  não consegue localizar todos os planos anteriores na tela `/planning`.
+  Links permanentes mitigam o problema; não o resolvem integralmente.
+- `PENDENTE DE DEFINIÇÃO`: busca/listagem geral de planos exige Issue própria,
+  contrato backend aprovado, documentação de RBAC e testes; não foi criada
+  API neste trabalho. A OC93 não é autorização implícita para esse contrato.
+- `CONFIRMADO`: a central geral de carregamentos, viagens e entregas pertence
+  à OC93 (#138), dependente da OC90 (#133) e OC94 (#139). A API ainda não lista
+  sessões de carregamento. Não foram adicionados menu/central/listagens que
+  dupliquem essa OC, nem modelos de exceção ou multi-caminhão antecipados.
+- `RISCO IDENTIFICADO`: gestão/conferência ainda dependem da URL ou do contexto
+  do plano para reencontrar sessões e da origem para viagens. DRIVER já dispõe
+  da listagem de suas viagens. A recuperação geral permanece incompleta.
+- `RECOMENDAÇÃO`: aprovar os contratos faltantes e concluir as dependências da
+  OC93 antes de declarar o fluxo operacional integralmente reencontrável.
+
+### Verificação reproduzível
+
+`CONFIRMADO`: Vitest cobre modais, acesso por perfil, aba na URL, detalhe de
+pedido, links de origem e troca de ID/ações assíncronas. A auditoria manual
+usa Chromium com banco PostgreSQL exclusivo de auditoria e dados fictícios
+persistidos pelas APIs existentes. As larguras são 375, 768, 1280 e 1920 px;
+verificar telas preenchidas, formulários, erros de ID inexistente e estados
+vazios/carregamento. Validar também sair para Produtos, usar anterior/próxima,
+F5 e reabrir a URL. Esses testes não autorizam backend novo nem substituem a
+central ainda bloqueada.
