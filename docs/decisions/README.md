@@ -41,3 +41,5 @@ Proposta para revisão:
 - `ADR-030`: manutenção e disponibilidade programada da frota (OC100), proposta para revisão.
 
 - `ADR-031`: documentos, versões e políticas de elegibilidade dos caminhões (OC101).
+
+- `ADR-032`: documentos, renovação e elegibilidade de motoristas (OC102).
