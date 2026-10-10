@@ -1333,3 +1333,21 @@ consultas gerais de LOGISTICS_MANAGER os excluem e filtros explícitos recebem
 403. Histórico contém somente ator, data e nomes dos campos, sem valores.
 Fora desse histórico institucional, as permissões existentes são preservadas.
 Detalhes: [ADR-035](decisions/ADR-035-configuracoes-institucionais-standalone.md).
+
+## OC108 — Integrações e Saúde
+
+`CONFIRMADO`: `GET /api/v1/integration-health`, exclusivo ADMIN ativo. Retorna
+200 com falhas parciais em indicadores; 401/403/422/500 no envelope existente.
+Campos: `checked_at` UTC, `correlation_id` UUID da consulta, `overall_status`
+PARTIAL/DEGRADED, `components` com nome do componente, modo INTERNAL/MOCK/REAL,
+status fechado, configured boolean/null e reason_code fechado. Sem segredos,
+URLs, traces, dados pessoais ou configuração bruta. Consulta passiva sem envios,
+prompts ou alterações. Reusa liveness/readiness e timeouts existentes.
+
+WhatsApp SIMULATED (UI SIMULADO), IA mock SIMULATED, IA externa não implementada
+NOT_CONFIGURED, webhook NOT_IMPLEMENTED/OC83_PENDING e notificações internas
+LIMITED/OC84_PENDING. Sinais futuros aprovados podem informar AVAILABLE,
+UNAVAILABLE e TIMEOUT; não são criados providers nesta OC. Consultas paralelas
+com falha isolada e configuração desconhecida null. Histórico durável indisponível;
+falhas atuais são correlacionadas por UUID/data e logs sanitizados.
+Contrato detalhado: [integration_health](../backend/app/modules/integration_health/README.md).
