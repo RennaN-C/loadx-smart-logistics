@@ -9,8 +9,8 @@ from typing import Protocol
 class IncomingWhatsAppMessage:
     """Mensagem recebida pelo adapter, antes de qualquer regra de negócio."""
 
-    sender_phone: str
-    content: str
+    sender_phone: str = field(repr=False)
+    content: str = field(repr=False)
     received_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
 
@@ -18,8 +18,8 @@ class IncomingWhatsAppMessage:
 class OutgoingWhatsAppMessage:
     """Resposta enviada pelo adapter ao motorista."""
 
-    recipient_phone: str
-    content: str
+    recipient_phone: str = field(repr=False)
+    content: str = field(repr=False)
     sent_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
 

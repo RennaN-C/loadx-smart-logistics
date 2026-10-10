@@ -29,6 +29,7 @@ services:
       PASSWORD_BLOCKLIST_PATH: /run/secrets/PASSWORD_BLOCKLIST
       OPERATIONAL_LOG_LEVEL: "${OPERATIONAL_LOG_LEVEL:-INFO}"
       OPERATIONAL_REQUEST_LOGS: "${OPERATIONAL_REQUEST_LOGS:-true}"
+      WHATSAPP_PROVIDER: "${WHATSAPP_PROVIDER:-mock}"
     command:
       - uvicorn
       - app.main:app

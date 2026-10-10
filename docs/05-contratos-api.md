@@ -1017,6 +1017,14 @@ de upload, armazenamento binário, bucket ou consulta externa de mídia no MVP.
 
 ## Mensagens e WhatsApp
 
+`CONFIRMADO` (decisão de manutenção vinculada à OC82): envio e simulador permanecem exclusivamente mock, conforme
+[ADR-036](decisions/ADR-036-whatsapp-mock.md) e
+[contrato interno](../backend/app/integrations/whatsapp/README.md). O contrato
+público permanece o existente. `PENDENTE DE DEFINIÇÃO`: integração real adiada;
+fornecedor, credenciais, retries e idempotência durável de saída serão tratados
+quando esse escopo for retomado. Recepção/webhook pertence à OC83.
+
+
 - `POST /messages/interpret`: simulador interno disponível somente para usuários
   autenticados com papel `ADMIN` ou `LOGISTICS_MANAGER`.
 - `POST /webhooks/whatsapp` permanece fora da v1.0.0; o provider controlado usa
