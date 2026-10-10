@@ -1,0 +1,11 @@
+.integration-health-panel { min-width: 0; }
+.integration-health-panel > button { max-width: 100%; white-space: normal; }
+.integration-health-feedback { display: block; margin-block: 16px; }
+.integration-health-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; padding: 0; list-style: none; }
+.integration-health-card { min-width: 0; padding: 20px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); overflow-wrap: anywhere; }
+.integration-health-card dl { display: grid; gap: 12px; }
+.integration-health-card dd { margin: 4px 0 0; }
+.integration-health-badge { display: inline-block; max-width: 100%; padding: 6px 10px; border: 1px solid currentColor; border-radius: 4px; color: var(--ink); font-size: .85rem; font-weight: 700; }
+.integration-health-badge[data-status="UNAVAILABLE"], .integration-health-badge[data-status="TIMEOUT"] { color: var(--danger); }
+.integration-health-reference code { overflow-wrap: anywhere; }
+@media (max-width: 768px) { .integration-health-grid { grid-template-columns: minmax(0, 1fr); } }
