@@ -101,6 +101,26 @@ jobs:
             done
           done
 
+      - name: Remover bloqueios obsoletos da OC108
+        shell: bash
+        run: |
+          set -euo pipefail
+          for BLOCKER in 126 127; do
+            BLOCKER_ID=$(gh api "repos/${REPOSITORY}/issues/${BLOCKER}" --jq '.id')
+            CURRENT=$(gh api \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: ${API_VERSION}" \
+              "repos/${REPOSITORY}/issues/155/dependencies/blocked_by?per_page=100")
+            if echo "$CURRENT" | jq -e --argjson id "$BLOCKER_ID" \
+              '.[] | select(.id == $id)' >/dev/null; then
+              gh api --method DELETE \
+                -H "Accept: application/vnd.github+json" \
+                -H "X-GitHub-Api-Version: ${API_VERSION}" \
+                "repos/${REPOSITORY}/issues/155/dependencies/blocked_by/${BLOCKER_ID}" >/dev/null
+              echo "OC108: removido bloqueio obsoleto por #${BLOCKER}."
+            fi
+          done
+
       - name: Aguardar fechamento das Issues vinculadas ao PR
         if: github.event_name == 'pull_request'
         env:
