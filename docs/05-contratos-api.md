@@ -1017,6 +1017,14 @@ de upload, armazenamento binário, bucket ou consulta externa de mídia no MVP.
 
 ## Mensagens e WhatsApp
 
+`CONFIRMADO` (decisão de manutenção vinculada à OC82): envio e simulador permanecem exclusivamente mock, conforme
+[ADR-036](decisions/ADR-036-whatsapp-mock.md) e
+[contrato interno](../backend/app/integrations/whatsapp/README.md). O contrato
+público permanece o existente. `PENDENTE DE DEFINIÇÃO`: integração real adiada;
+fornecedor, credenciais, retries e idempotência durável de saída serão tratados
+quando esse escopo for retomado. Recepção/webhook pertence à OC83.
+
+
 - `POST /messages/interpret`: simulador interno disponível somente para usuários
   autenticados com papel `ADMIN` ou `LOGISTICS_MANAGER`.
 - `POST /webhooks/whatsapp` permanece fora da v1.0.0; o provider controlado usa
@@ -1297,3 +1305,31 @@ acrescenta preview_sha256/event_id UUID. Prévia expõe linhas normalizadas e
 can_confirm; resultado COMPLETED/REJECTED contém totais, autor, data, checksum,
 erros por linha/campo e UUIDs criados. Arquivo inválido não cria cadastros.
 [Contrato completo](../backend/app/modules/registration_imports/README.md).
+
+## OC91 — cadastro institucional da empresa
+
+`CONFIRMADO`: `GET /api/v1/company-profile` e `PUT /api/v1/company-profile`
+são exclusivos de ADMIN ativo, com sessão/CSRF/origem existentes. GET retorna
+`null` antes do primeiro cadastro e não escreve dados. PUT substitui o cadastro
+único e retorna 200 com `id`, os seis campos e timestamps `created_at/updated_at`.
+
+| Campo | Contrato |
+| --- | --- |
+| `legal_name`, `display_name` | Obrigatórios, texto não vazio após trim, até 160 caracteres |
+| `cnpj` | Opcional, CNPJ numérico válido; retorna 14 dígitos |
+| `phone` | Opcional, regra existente de telefone com DDD; retorna dígitos |
+| `email` | Opcional, formato existente, até 255 caracteres; retorna minúsculas |
+| `logo_reference` | Opcional, URL HTTPS sem credenciais, até 2048 caracteres; apenas metadado |
+
+Vazio opcional equivale a null; campos desconhecidos são recusados. Sem sessão:
+401; outros perfis: 403; entrada inválida: 422 no envelope padrão com erros por
+campo. Não há DELETE, upload, fetch remoto, tenant, cadastro paralelo de usuários
+ou credenciais de integração. Atualizações concorrentes são serializadas no
+PostgreSQL: última gravação válida prevalece, sem auditoria de no-op.
+
+Auditoria institucional usa `COMPANY_PROFILE` e eventos
+`COMPANY_PROFILE_CREATED/COMPANY_PROFILE_UPDATED`. ADMIN pode filtrá-los na API;
+consultas gerais de LOGISTICS_MANAGER os excluem e filtros explícitos recebem
+403. Histórico contém somente ator, data e nomes dos campos, sem valores.
+Fora desse histórico institucional, as permissões existentes são preservadas.
+Detalhes: [ADR-035](decisions/ADR-035-configuracoes-institucionais-standalone.md).

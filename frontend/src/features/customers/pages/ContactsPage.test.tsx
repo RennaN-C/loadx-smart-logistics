@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { makePage } from "../../../tests/makePage";
@@ -71,14 +72,14 @@ describe("ContactsPage", () => {
   });
 
   it("abre em Clientes e não busca motoristas antes de precisar", async () => {
-    render(<ContactsPage />);
+    render(<MemoryRouter><ContactsPage /></MemoryRouter>);
 
     expect(await screen.findByText("Distribuidora Aurora")).toBeInTheDocument();
     expect(listDrivers).not.toHaveBeenCalled();
   });
 
   it("agrupa as ações de clientes em rodapé que pode quebrar linhas", async () => {
-    render(<ContactsPage />);
+    render(<MemoryRouter><ContactsPage /></MemoryRouter>);
     const name = await screen.findByText("Distribuidora Aurora");
     const card = name.closest(".contact-card");
     const footer = card?.querySelector<HTMLElement>(".contact-card-foot");
@@ -88,7 +89,7 @@ describe("ContactsPage", () => {
   });
 
   it("troca para a aba de motoristas", async () => {
-    render(<ContactsPage />);
+    render(<MemoryRouter><ContactsPage /></MemoryRouter>);
     await screen.findByText("Distribuidora Aurora");
 
     fireEvent.click(screen.getByRole("tab", { name: "Motoristas" }));
@@ -98,7 +99,7 @@ describe("ContactsPage", () => {
   });
 
   it("mantém Documentos no rodapé de ações dos motoristas", async () => {
-    render(<ContactsPage />);
+    render(<MemoryRouter><ContactsPage /></MemoryRouter>);
     await screen.findByText("Distribuidora Aurora");
     fireEvent.click(screen.getByRole("tab", { name: "Motoristas" }));
     const name = await screen.findByText("Carlos Pereira");
@@ -110,7 +111,7 @@ describe("ContactsPage", () => {
   });
 
   it("marca a aba ativa para leitores de tela", async () => {
-    render(<ContactsPage />);
+    render(<MemoryRouter><ContactsPage /></MemoryRouter>);
     await screen.findByText("Distribuidora Aurora");
 
     expect(screen.getByRole("tab", { name: "Clientes" })).toHaveAttribute("aria-selected", "true");
@@ -118,7 +119,7 @@ describe("ContactsPage", () => {
   });
 
   it("não expõe dado pessoal no card, porque a listagem não traz", async () => {
-    render(<ContactsPage />);
+    render(<MemoryRouter><ContactsPage /></MemoryRouter>);
     await screen.findByText("Distribuidora Aurora");
 
     expect(screen.queryByText("12.345.678/0001-90")).not.toBeInTheDocument();
@@ -127,7 +128,7 @@ describe("ContactsPage", () => {
   });
 
   it("busca o cliente completo antes de abrir a edição", async () => {
-    render(<ContactsPage />);
+    render(<MemoryRouter><ContactsPage /></MemoryRouter>);
     await screen.findByText("Distribuidora Aurora");
 
     fireEvent.click(screen.getByRole("button", { name: "Editar" }));
@@ -141,7 +142,7 @@ describe("ContactsPage", () => {
   it("avisa quando não consegue carregar o detalhe para edição", async () => {
     vi.mocked(getCustomer).mockRejectedValue(new ApiError("CUSTOMER_NOT_FOUND", "x"));
 
-    render(<ContactsPage />);
+    render(<MemoryRouter><ContactsPage /></MemoryRouter>);
     await screen.findByText("Distribuidora Aurora");
 
     fireEvent.click(screen.getByRole("button", { name: "Editar" }));
@@ -155,7 +156,7 @@ describe("ContactsPage", () => {
       makePage([CUSTOMER_ITEM, { ...CUSTOMER_ITEM, id: "c2", name: "Mercado Central", city: "Sorocaba" }]),
     );
 
-    render(<ContactsPage />);
+    render(<MemoryRouter><ContactsPage /></MemoryRouter>);
     await screen.findByText("Distribuidora Aurora");
 
     fireEvent.change(screen.getByLabelText("Buscar cliente por nome ou cidade"), {
@@ -172,7 +173,7 @@ describe("ContactsPage", () => {
       makePage([DRIVER_ITEM, { ...DRIVER_ITEM, id: "d2", name: "Rita Alves", active: false }]),
     );
 
-    render(<ContactsPage />);
+    render(<MemoryRouter><ContactsPage /></MemoryRouter>);
     fireEvent.click(screen.getByRole("tab", { name: "Motoristas" }));
     await screen.findByText("Carlos Pereira");
 
@@ -190,7 +191,7 @@ describe("ContactsPage", () => {
   it("permite ao ADMIN gerenciar clientes e motoristas", async () => {
     mockRole("ADMIN");
 
-    render(<ContactsPage />);
+    render(<MemoryRouter><ContactsPage /></MemoryRouter>);
     await screen.findByText("Distribuidora Aurora");
 
     expect(screen.getByRole("button", { name: "Novo cliente" })).toBeInTheDocument();
@@ -200,7 +201,7 @@ describe("ContactsPage", () => {
   it("mostra a mensagem mapeada quando a busca de clientes falha", async () => {
     vi.mocked(listCustomers).mockRejectedValue(new ApiError("AUTH_FORBIDDEN", "Acesso negado."));
 
-    render(<ContactsPage />);
+    render(<MemoryRouter><ContactsPage /></MemoryRouter>);
 
     await waitFor(() =>
       expect(screen.getByRole("alert")).toHaveTextContent(
@@ -208,4 +209,12 @@ describe("ContactsPage", () => {
       ),
     );
   });
+});
+
+it("URL da aba Motoristas reabre o cadastro correto após acesso direto", async () => {
+  mockRole("ADMIN");
+  vi.mocked(listDrivers).mockResolvedValue(makePage([DRIVER_ITEM]));
+  render(<MemoryRouter initialEntries={["/contacts?tab=drivers"]}><ContactsPage /></MemoryRouter>);
+  await waitFor(() => expect(screen.getByRole("tab", { name: "Motoristas" })).toHaveAttribute("aria-selected", "true"));
+  expect(screen.getByRole("tabpanel")).toHaveAttribute("id", "panel-drivers");
 });

@@ -40,6 +40,7 @@ const EMPTY = {
  */
 export function useResourceList<T>(
   load: (params: ListParams) => Promise<Page<T>>,
+  enabled = true,
 ): UseResourceListResult<T> {
   const requestSequence = useRef(0);
   const [requestedPage, setRequestedPage] = useState(1);
@@ -52,6 +53,10 @@ export function useResourceList<T>(
 
   const fetchPage = useCallback(async () => {
     const sequence = ++requestSequence.current;
+    if (!enabled) {
+      setState({ status: "success", error: null, page: 1, ...EMPTY });
+      return;
+    }
     setState((current) => ({ ...current, status: "loading", error: null }));
 
     try {
@@ -72,12 +77,12 @@ export function useResourceList<T>(
         error instanceof ApiError ? error : new ApiError("UNKNOWN_ERROR", "Ocorreu um erro inesperado.");
       setState({ status: "error", error: apiError, page: requestedPage, ...EMPTY });
     }
-  }, [load, requestedPage]);
+  }, [enabled, load, requestedPage]);
 
   useEffect(() => {
     void fetchPage();
     return () => { requestSequence.current += 1; };
   }, [fetchPage]);
 
-  return { ...state, refetch: fetchPage, goToPage: setRequestedPage };
+  return { ...(enabled ? state : { ...state, ...EMPTY, status: "success" as const, error: null }), refetch: fetchPage, goToPage: setRequestedPage };
 }

@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { makePage } from "../../../tests/makePage";
@@ -11,6 +12,7 @@ import type { OrderListItem } from "../types";
 import { OrderListPage } from "./OrderListPage";
 
 vi.mock("../api/ordersApi");
+vi.mock("../../audit/components/AuditTrail", () => ({ AuditTrail: () => <div>Histórico do pedido</div> }));
 vi.mock("../../customers/api/customerAddressesApi", () => ({ listActiveCustomerAddresses: vi.fn().mockResolvedValue([]) }));
 vi.mock("../../customers/api/customersApi");
 vi.mock("../../products/api/productsApi");
@@ -102,13 +104,13 @@ describe("OrderListPage", () => {
   });
 
   it("resolve o nome do cliente a partir do id, que é tudo que a listagem traz", async () => {
-    render(<OrderListPage />);
+    render(<MemoryRouter><OrderListPage /></MemoryRouter>);
 
     expect(await screen.findByText("Distribuidora Aurora")).toBeInTheDocument();
   });
 
   it("avisa quando o cliente não está na página carregada, em vez de deixar vazio", async () => {
-    render(<OrderListPage />);
+    render(<MemoryRouter><OrderListPage /></MemoryRouter>);
     await screen.findByText("Distribuidora Aurora");
 
     // c2 não veio na listagem paginada de clientes
@@ -116,7 +118,7 @@ describe("OrderListPage", () => {
   });
 
   it("mostra a contagem de itens, já que a listagem não devolve os itens", async () => {
-    render(<OrderListPage />);
+    render(<MemoryRouter><OrderListPage /></MemoryRouter>);
     await screen.findByText("Distribuidora Aurora");
 
     const grid = within(document.querySelector(".entity-grid") as HTMLElement);
@@ -125,7 +127,7 @@ describe("OrderListPage", () => {
   });
 
   it("busca o pedido completo antes de abrir a edição", async () => {
-    render(<OrderListPage />);
+    render(<MemoryRouter><OrderListPage /></MemoryRouter>);
     await screen.findByText("Distribuidora Aurora");
 
     fireEvent.click(screen.getAllByRole("button", { name: "Editar" })[0]);
@@ -137,7 +139,7 @@ describe("OrderListPage", () => {
   });
 
   it("traduz situação e prioridade para português nos cards", async () => {
-    render(<OrderListPage />);
+    render(<MemoryRouter><OrderListPage /></MemoryRouter>);
     await screen.findByText("Distribuidora Aurora");
 
     // escopado à grade: os mesmos rótulos aparecem nas opções do filtro
@@ -149,7 +151,7 @@ describe("OrderListPage", () => {
   });
 
   it("filtra por situação", async () => {
-    render(<OrderListPage />);
+    render(<MemoryRouter><OrderListPage /></MemoryRouter>);
     await screen.findByText("Distribuidora Aurora");
 
     fireEvent.change(screen.getByLabelText("Filtrar por situação"), { target: { value: "DELIVERED" } });
@@ -159,10 +161,10 @@ describe("OrderListPage", () => {
   });
 
   it("busca por cliente sem chamar o backend de novo", async () => {
-    render(<OrderListPage />);
+    render(<MemoryRouter><OrderListPage /></MemoryRouter>);
     await screen.findByText("Distribuidora Aurora");
 
-    fireEvent.change(screen.getByLabelText("Buscar por cliente"), { target: { value: "aurora" } });
+    fireEvent.change(screen.getByLabelText("Buscar por cliente ou referência"), { target: { value: "aurora" } });
 
     expect(screen.getByText("Distribuidora Aurora")).toBeInTheDocument();
     expect(screen.queryByText("Cliente não encontrado")).not.toBeInTheDocument();
@@ -172,8 +174,10 @@ describe("OrderListPage", () => {
   it("esconde as ações de gestão para quem só tem leitura", async () => {
     mockRole("CHECKER");
 
-    render(<OrderListPage />);
-    await screen.findByText("Distribuidora Aurora");
+    render(<MemoryRouter><OrderListPage /></MemoryRouter>);
+    await screen.findByText("Cliente c1");
+    expect(listCustomers).not.toHaveBeenCalled();
+    expect(screen.getByLabelText("Buscar por referência")).toBeInTheDocument();
 
     expect(screen.queryByRole("button", { name: "Novo pedido" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Editar" })).not.toBeInTheDocument();
@@ -182,10 +186,31 @@ describe("OrderListPage", () => {
   it("mostra a mensagem mapeada quando a busca falha", async () => {
     vi.mocked(listOrders).mockRejectedValue(new ApiError("AUTH_FORBIDDEN", "Acesso negado."));
 
-    render(<OrderListPage />);
+    render(<MemoryRouter><OrderListPage /></MemoryRouter>);
 
     await waitFor(() =>
       expect(screen.getByRole("alert")).toHaveTextContent("Seu perfil não tem permissão para esta ação."),
     );
   });
+  it("reabre o pedido por URL sem oferecer edição ao conferente", async () => {
+    mockRole("CHECKER");
+    render(<MemoryRouter initialEntries={["/orders?order=o1"]}><OrderListPage /></MemoryRouter>);
+    const dialog = await screen.findByRole("dialog");
+    expect(await within(dialog).findByText("Av. Brasil, 500")).toBeInTheDocument();
+    expect(getOrder).toHaveBeenCalledWith("o1");
+    expect(within(dialog).getByText(/Caixa média.*Quantidade: 4/)).toBeInTheDocument();
+    expect(within(dialog).queryByText("Histórico do pedido")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Editar" })).not.toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Voltar à lista de pedidos" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: "Ver pedido" })[0]).toHaveAttribute("href", "/orders?order=o1");
+  });
+
+  it("mantém retorno à lista quando o pedido da URL não existe", async () => {
+    vi.mocked(getOrder).mockRejectedValue(new ApiError("ORDER_NOT_FOUND", "Pedido não encontrado."));
+    render(<MemoryRouter initialEntries={["/orders?order=inexistente"]}><OrderListPage /></MemoryRouter>);
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Voltar à lista de pedidos" })).toBeEnabled();
+  });
+
 });

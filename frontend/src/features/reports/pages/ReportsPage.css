@@ -75,7 +75,7 @@
 
 .report-columns {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
   gap: 20px;
 }
 
@@ -196,3 +196,6 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.report-block-head { flex-wrap: wrap; }
+.report-columns > * { min-width: 0; }

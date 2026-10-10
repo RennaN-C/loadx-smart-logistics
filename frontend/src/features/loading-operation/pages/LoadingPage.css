@@ -143,3 +143,8 @@
     flex-direction: column;
   }
 }
+
+.loading-checklist-scroll { overflow-x: auto; margin-top: 20px; }
+.loading-checklist { margin-top: 0; min-width: 540px; }
+.loading-code, .loading-product { overflow-wrap: anywhere; }
+.scan-field-row input { min-width: 0; }

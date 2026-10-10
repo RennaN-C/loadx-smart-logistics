@@ -1,10 +1,10 @@
 import { useAuth } from "../../auth/hooks/useAuth";
+import { CompanyProfileForm } from "../components/CompanyProfileForm";
 import { SettingsSection } from "../components/SettingsSection";
 import "./SettingsPage.css";
 
 const UPCOMING_ACCOUNT_SECTIONS = [
   { id: "users", title: "Gestão de usuários", description: "Cadastro e gestão de acesso dos usuários do LoadX." },
-  { id: "company", title: "Dados da empresa", description: "Informações institucionais da empresa atual." },
   { id: "security", title: "Segurança da conta", description: "Gerenciamento de segurança da conta conectada." },
 ] as const;
 
@@ -22,6 +22,7 @@ export function SettingsPage() {
       </header>
       <nav className="settings-navigation" aria-label="Seções de configurações">
         <a href="#settings-account">Conta e administração</a>
+        <a href="#settings-company">Dados da empresa</a>
         <a href="#settings-logistics">Configurações do LoadX</a>
       </nav>
       <SettingsSection id="settings-account" title="Conta e administração">
@@ -42,6 +43,7 @@ export function SettingsPage() {
           ))}
         </ul>
       </SettingsSection>
+      <SettingsSection id="settings-company" title="Dados da empresa"><CompanyProfileForm /></SettingsSection>
       <SettingsSection id="settings-logistics" title="Configurações do LoadX">
         <p>Esta seção reúne as configurações específicas do módulo logístico,
           separadas da administração da conta e dos dados da empresa.</p>

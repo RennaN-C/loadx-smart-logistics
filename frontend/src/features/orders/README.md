@@ -61,7 +61,7 @@ para maiúsculas antes da validação, e o `<select>` do frontend oferece os mes
 
 ## Permissões
 
-`ADMIN`, `CHECKER` e `LOGISTICS_MANAGER` leem. Só `LOGISTICS_MANAGER` cria e edita.
+`ADMIN`, `CHECKER` e `LOGISTICS_MANAGER` leem. `ADMIN` e `LOGISTICS_MANAGER` criam e editam. `CHECKER` não consulta cadastros de clientes; nessa leitura a referência do cliente permanece visível sem solicitar uma API proibida.
 
 ## Fora de escopo
 
@@ -69,3 +69,11 @@ para maiúsculas antes da validação, e o `<select>` do frontend oferece os mes
 Busca server-side e exclusão permanecem fora do contrato. Alterar
 itens de pedido já usado em plano de carga é recusado pelo backend com
 `ORDER_ITEMS_REFERENCED_BY_LOAD_PLAN`, e a mensagem explica isso.
+
+## Navegação persistente (auditoria #188)
+
+`CONFIRMADO`: os cards abrem leitura do pedido em `/orders?order=<id>`, usando
+`GET /orders/{id}`. A URL permite F5, acesso direto e histórico do navegador;
+fechar o detalhe preserva os demais parâmetros da listagem. O detalhe é somente
+leitura, inclui o endereço persistido e os itens, e respeita os perfis existentes.
+A edição continua sendo uma ação separada. Nenhum dado é salvo em localStorage.

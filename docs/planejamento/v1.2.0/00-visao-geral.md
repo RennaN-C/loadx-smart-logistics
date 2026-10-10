@@ -97,6 +97,11 @@ auditoria e identidade do motorista.
 redistribuída de Marlon para Rennan, mantendo o escopo administrativo e a
 matriz RBAC vigentes. Branch: `rennan/oc85-configuracoes-admin`.
 
+
+## Decisão das integrações na fase inicial (10/10/2026)
+
+WhatsApp permanece simulado na v1.2.0 inicial. A OC82 entrega a base mock e a conexão Meta fica para a pré-produção na Issue #193. A OC83 implementa webhook HTTP interno autenticado e a OC84 implementa notificações originadas de eventos reais, com envio externo WhatsApp simulado. IA é exceção: pode integrar provider real aprovado, com credenciais protegidas e fallback. Ver ADR-037.
+
 ## Frentes da versão
 
 ### Administração, conta e segurança

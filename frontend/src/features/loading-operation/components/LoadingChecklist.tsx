@@ -26,6 +26,7 @@ export function LoadingChecklist({ rows, canCheck, isWorking, onCheck }: Loading
   }
 
   return (
+    <div className="loading-checklist-scroll" role="region" aria-label="Volumes do carregamento" tabIndex={0}>
     <table className="loading-checklist">
       <caption className="sr-only">Volumes do carregamento, na ordem de carregamento</caption>
       <thead>
@@ -82,5 +83,6 @@ export function LoadingChecklist({ rows, canCheck, isWorking, onCheck }: Loading
         ))}
       </tbody>
     </table>
+    </div>
   );
 }

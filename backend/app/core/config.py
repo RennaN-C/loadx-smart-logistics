@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     password_blocklist_path: Path | None = None
     ai_provider: str = "mock"
     ai_explanation_timeout_seconds: float = Field(default=5.0, gt=0)
-    whatsapp_provider: str = "mock"
+    whatsapp_provider: Literal["mock"] = "mock"
     operational_log_level: Literal["INFO", "WARNING", "ERROR"] = "INFO"
     operational_request_logs: bool = True
     evidence_storage_dir: Path | None = None

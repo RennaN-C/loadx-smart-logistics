@@ -1,5 +1,7 @@
 import { AttachmentPanel } from "../../attachments/components/AttachmentPanel";
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { OrderDetail } from "../components/OrderDetail";
 
 import { AlertBanner } from "../../../components/AlertBanner";
 import { Modal } from "../../../components/Modal";
@@ -26,6 +28,13 @@ const listHistoricalCustomers = (params: ListParams) => listCustomers({ ...param
 
 export function OrderListPage() {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const detailId = searchParams.get("order");
+  function closeDetail() {
+    const next = new URLSearchParams(searchParams);
+    next.delete("order");
+    setSearchParams(next);
+  }
   const {
     status,
     items: orders,
@@ -39,7 +48,7 @@ export function OrderListPage() {
   // O pedido só traz customer_id: a listagem de clientes resolve o nome. Ela é
   // paginada, então nomes fora da primeira página podem não resolver — por isso
   // o fallback explícito no lugar de um espaço vazio.
-  const { items: customers } = useResourceList(listHistoricalCustomers);
+  const { items: customers } = useResourceList(listHistoricalCustomers, user?.role === "ADMIN" || user?.role === "LOGISTICS_MANAGER");
   const { items: products } = useResourceList(listProducts);
   const edit = useEditTarget<Order>(getOrder);
 
@@ -49,6 +58,7 @@ export function OrderListPage() {
   const [isCreating, setIsCreating] = useState(false);
 
   const canManage = canManageLogistics(user?.role);
+  const canReadCustomers = canManage;
   const isFormOpen = isCreating || edit.target !== null;
 
   const customerNames = useMemo(
@@ -61,7 +71,7 @@ export function OrderListPage() {
 
     return orders.filter((order) => {
       const name = customerNames.get(order.customerId) ?? "";
-      const matchesTerm = term === "" || name.toLowerCase().includes(term);
+      const matchesTerm = term === "" || name.toLowerCase().includes(term) || order.id.toLowerCase().includes(term) || order.customerId.toLowerCase().includes(term);
       const matchesStatus = statusFilter === "all" || order.status === statusFilter;
 
       return matchesTerm && matchesStatus;
@@ -96,8 +106,8 @@ export function OrderListPage() {
       <div className="entity-toolbar">
         <input
           type="search"
-          aria-label="Buscar por cliente"
-          placeholder="Buscar por cliente"
+          aria-label={canReadCustomers ? "Buscar por cliente ou referência" : "Buscar por referência"}
+          placeholder={canReadCustomers ? "Buscar por cliente ou referência" : "Buscar por referência"}
           value={search}
           onChange={(event) => setSearch(event.target.value)}
         />
@@ -145,7 +155,7 @@ export function OrderListPage() {
             <OrderCard
               key={order.id}
               order={order}
-              customerName={customerNames.get(order.customerId) ?? "Cliente não encontrado"}
+              customerName={customerNames.get(order.customerId) ?? (canReadCustomers ? "Cliente não encontrado" : `Cliente ${order.customerId}`)}
               canManage={canManage}
               isOpening={edit.loadingId === order.id}
               onAttachments={setAttachmentOrderId}
@@ -158,6 +168,8 @@ export function OrderListPage() {
       {status === "success" ? (
         <Pagination page={page} totalPages={totalPages} onChange={goToPage} label="pedidos" />
       ) : null}
+
+      {detailId ? <Modal title="Detalhes do pedido" onClose={closeDetail}><OrderDetail key={detailId} orderId={detailId} products={products} canReadHistory={canManage} onClose={closeDetail} /></Modal> : null}
 
       {attachmentOrderId ? <Modal title="Anexos do pedido" onClose={() => setAttachmentOrderId(null)}><AttachmentPanel key={attachmentOrderId} resource="orders" resourceId={attachmentOrderId} canManage={canManage} /></Modal> : null}
 

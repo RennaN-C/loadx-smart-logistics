@@ -103,13 +103,13 @@ def test_create_close_restore_and_keep_history(
     )
     with session_factory() as db:
         events = db.scalars(
-            select(AuditEvent)
-            .where(AuditEvent.entity_id == uuid.UUID(record["id"]))
-            .order_by(AuditEvent.created_at)
+            select(AuditEvent).where(AuditEvent.entity_id == uuid.UUID(record["id"]))
         ).all()
-        assert [row.event_type for row in events] == [
-            "MAINTENANCE_CREATED",
+        # O banco pode atribuir o mesmo created_at a eventos próximos.
+        # Exigir ambos os fatos, sem presumir ordem de um timestamp empatado.
+        assert sorted(row.event_type for row in events) == [
             "MAINTENANCE_CLOSED",
+            "MAINTENANCE_CREATED",
         ]
 
 

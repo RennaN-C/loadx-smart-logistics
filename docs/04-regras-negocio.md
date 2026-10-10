@@ -758,3 +758,13 @@ negado; contexto da conta é leitura da sessão atual. Conta/administração e
 configurações logísticas são seções distintas. OC86, OC91 e OC92 permanecem
 entradas informativas em preparação, sem operações antecipadas. Não cria
 isolamento por empresa, licenciamento ou dependência do CoreFlow.
+
+## OC91 — dados da empresa
+
+`CONFIRMADO`: o LoadX standalone tem um único cadastro institucional opcional
+até sua primeira gravação explícita. ADMIN ativo consulta/edita; outros perfis
+não acessam cadastro nem histórico institucional. Identificador técnico local
+não é CNPJ/e-mail e não é tenant. Alteração e auditoria são atômicas; histórico
+registra nomes dos campos sem valores. Logotipo é referência HTTPS, sem upload
+ou leitura externa automática. OC86, OC92 e integração CoreFlow não integram
+este escopo. Contrato e concorrência: ADR-035 e `docs/05-contratos-api.md`.

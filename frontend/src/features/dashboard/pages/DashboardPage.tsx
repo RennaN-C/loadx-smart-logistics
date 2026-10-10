@@ -33,10 +33,10 @@ const listHistoricalCustomers = (params: ListParams) => listCustomers({ ...param
 export function DashboardPage() {
   const { user } = useAuth();
   const { status, totals, recentOrders, unavailable } = useDashboardTotals(user?.role);
-  const { items: customers } = useResourceList(listHistoricalCustomers);
+  const readsPersonalData = user?.role === "ADMIN" || user?.role === "LOGISTICS_MANAGER";
+  const { items: customers } = useResourceList(listHistoricalCustomers, readsPersonalData);
 
   const customerNames = new Map(customers.map((customer) => [customer.id, customer.name]));
-  const readsPersonalData = user?.role === "ADMIN" || user?.role === "LOGISTICS_MANAGER";
   const canPlan = canManageLogistics(user?.role);
 
   /**
@@ -92,7 +92,7 @@ export function DashboardPage() {
             {readsPersonalData ? (
               <>
                 <Counter label="CLIENTES" value={totals.customers} to="/contacts" />
-                <Counter label="MOTORISTAS" value={totals.drivers} to="/contacts" />
+                <Counter label="MOTORISTAS" value={totals.drivers} to="/contacts?tab=drivers" />
               </>
             ) : null}
             <Counter label="PEDIDOS" value={totals.orders} to="/orders" />
