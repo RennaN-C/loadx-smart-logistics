@@ -99,6 +99,7 @@ class AuditService:
         event_type: str | None = None,
         start_at: datetime | None = None,
         end_at: datetime | None = None,
+        exclude_company: bool = False,
     ) -> PageResult[AuditEntryRecord]:
         start_at = self._normalize_datetime(start_at)
         end_at = self._normalize_datetime(end_at)
@@ -113,6 +114,7 @@ class AuditService:
             event_type=event_type,
             start_at=start_at,
             end_at=end_at,
+            exclude_company=exclude_company,
         )
 
     def stage_administrative_event(self, data: AuditEventCreate) -> AuditEvent:

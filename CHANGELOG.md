@@ -1,5 +1,14 @@
 # Changelog
 
+## OC91 — Configurações gerais da empresa
+
+- Cadastro institucional persistente monoempresa integrado às Configurações,
+  com consulta e edição exclusivas do ADMIN e validações existentes.
+- Referência HTTPS de logotipo sem upload, binários ou carregamento remoto.
+- Auditoria transacional sem valores e protegida contra consulta de outros perfis.
+- Migration `20261009_0023`, encadeada em `20261009_0022`; downgrade bloqueia
+  remoção de cadastro/histórico existentes. ADR-035 documenta limites standalone.
+
 ## [Unreleased] — v1.2.0
 
 `CONFIRMADO`: a v1.2.0 — Administração, comunicação real e operação

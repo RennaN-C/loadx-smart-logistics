@@ -64,6 +64,7 @@ class StatusHistoryRepository:
         event_type: str | None = None,
         start_at: datetime | None = None,
         end_at: datetime | None = None,
+        exclude_company: bool = False,
     ) -> PageResult[AuditEntryRecord]:
         statements = []
 
@@ -106,7 +107,13 @@ class StatusHistoryRepository:
                 )
             statements.append(status_statement)
 
-        if event_type in {None, "USER_CREATED", "USER_UPDATED"}:
+        if event_type in {
+            None,
+            "USER_CREATED",
+            "USER_UPDATED",
+            "COMPANY_PROFILE_CREATED",
+            "COMPANY_PROFILE_UPDATED",
+        }:
             audit_statement = (
                 select(
                     AuditEvent.id.label("id"),
@@ -123,6 +130,10 @@ class StatusHistoryRepository:
                 .select_from(AuditEvent)
                 .join(User, User.id == AuditEvent.actor_id)
             )
+            if exclude_company:
+                audit_statement = audit_statement.where(
+                    AuditEvent.entity_type != "COMPANY_PROFILE"
+                )
             if event_type is not None:
                 audit_statement = audit_statement.where(
                     AuditEvent.event_type == event_type

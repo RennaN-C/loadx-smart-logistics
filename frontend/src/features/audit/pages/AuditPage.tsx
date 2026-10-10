@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 
+import { useAuth } from "../../auth/hooks/useAuth";
 import { AlertBanner } from "../../../components/AlertBanner";
 import { Pagination } from "../../../components/Pagination";
 import { ApiError } from "../../../types/api";
@@ -58,6 +59,8 @@ function toAuditParams(filters: FilterDraft, page: number): AuditListParams {
 }
 
 export function AuditPage() {
+  const { user } = useAuth();
+  const canReadCompany = user?.role === "ADMIN";
   const [draft, setDraft] = useState<FilterDraft>(EMPTY_FILTERS);
   const [filters, setFilters] = useState<FilterDraft>(EMPTY_FILTERS);
   const [entries, setEntries] = useState<AuditEntry[]>([]);
@@ -127,7 +130,7 @@ export function AuditPage() {
             }
           >
             <option value="">Todas</option>
-            {AUDIT_ENTITY_TYPES.map((value) => (
+            {AUDIT_ENTITY_TYPES.filter((value) => canReadCompany || value !== "COMPANY_PROFILE").map((value) => (
               <option key={value} value={value}>
                 {AUDIT_ENTITY_LABELS[value]}
               </option>
@@ -147,7 +150,7 @@ export function AuditPage() {
             }
           >
             <option value="">Todos</option>
-            {AUDIT_EVENT_TYPES.map((value) => (
+            {AUDIT_EVENT_TYPES.filter((value) => canReadCompany || !value.startsWith("COMPANY_PROFILE_")).map((value) => (
               <option key={value} value={value}>
                 {AUDIT_EVENT_LABELS[value]}
               </option>

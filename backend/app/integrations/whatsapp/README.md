@@ -3,7 +3,7 @@
 `CONFIRMADO`: nesta etapa, por orientação do solicitante em 09/10/2026,
 o WhatsApp permanece exclusivamente mock. Não há adapter Meta, comunicação
 externa, credenciais ou opção de ativação real. Decisão em
-[ADR-035](../../../../docs/decisions/ADR-036-whatsapp-mock.md).
+[ADR-036](../../../../docs/decisions/ADR-036-whatsapp-mock.md).
 
 ## Interface e configuração
 
