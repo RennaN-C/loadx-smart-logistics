@@ -13,6 +13,7 @@ from app.modules.drivers.document_router import (
     type_router as driver_document_types_router,
 )
 from app.modules.drivers.router import router as drivers_router
+from app.modules.integration_health.router import router as integration_health_router
 from app.modules.load_planning.distribution_router import router as distribution_router
 from app.modules.load_planning.router import router as load_planning_router
 from app.modules.loading.router import router as loading_router
@@ -35,6 +36,7 @@ from app.modules.users.router import router as users_router
 
 api_router = APIRouter(responses=openapi_error_responses(500))
 api_router.include_router(auth_router)
+api_router.include_router(integration_health_router)
 api_router.include_router(company_profile_router)
 api_router.include_router(audit_router)
 api_router.include_router(customers_router)

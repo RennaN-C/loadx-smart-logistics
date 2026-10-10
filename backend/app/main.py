@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from app.api.router import api_router
 from app.core.config import Settings, settings
 from app.core.exceptions import ApiError, register_exception_handlers
+from app.core.health import liveness_status
 from app.core.http_security import OriginValidationMiddleware, SecurityHeadersMiddleware
 from app.core.observability import (
     OperationalContextMiddleware,
@@ -52,6 +53,8 @@ def create_app(app_settings: Settings | None = None) -> FastAPI:
         lifespan=lifespan,
     )
     register_exception_handlers(application)
+    application.state.integration_health_sources = {}
+    application.state.integration_health_settings = current_settings
     application.state.readiness_checker = DatabaseReadinessChecker(
         current_settings.database_url
     )
@@ -85,7 +88,7 @@ def create_app(app_settings: Settings | None = None) -> FastAPI:
         responses=openapi_error_responses(500),
     )
     def health() -> dict[str, str]:
-        return {"status": "ok", "service": "loadx-api"}
+        return liveness_status()
 
     @application.get(
         "/ready",
