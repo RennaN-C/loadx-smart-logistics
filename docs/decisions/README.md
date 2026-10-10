@@ -42,6 +42,8 @@ Registros aceitos relevantes:
 - `ADR-036`: manutenção exclusiva do mock de WhatsApp nesta etapa da OC82;
   integração real adiada por orientação do solicitante em 09/10/2026.
 
+- `ADR-037`: decisões de integração da fase inicial; WhatsApp simulado, IA real e webhook/notificações internos.
+
 As ADR-029 a ADR-034 foram aceitas para o escopo implementado na v1.2.0 standalone
 em 09/10/2026. Aceitação da decisão técnica não implica liberação da v1.2.0
 para produção, aprovação por revisor independente ou aceite de decisões futuras.

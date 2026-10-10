@@ -203,9 +203,9 @@ auditoria e autoria das ações continuam obrigatórias.
 | OC79 | #122 | Rennan | Segurança, autorização e idempotência de comandos externos |
 | OC80 | #123 | Rennan | Contrato de evidências e comprovante de entrega |
 | OC81 | #124 | Marlon | Interface de comprovante e comunicação operacional |
-| OC82 | #125 | Marcelo | Adaptador real para WhatsApp Business |
+| OC82 | #125 | Marcelo | Adapter mock de WhatsApp; integração real adiada para #193 |
 | OC83 | #126 | Marcelo | Webhook, recebimento de mensagens e mídia |
-| OC84 | #127 | Marcelo | Notificações operacionais reais |
+| OC84 | #127 | Marcelo | Notificações internas reais; canal WhatsApp mock |
 | OC85 | #128 | Marlon | Área de configurações administrativas |
 | OC86 | #129 | Marlon | Gestão de usuários pelo administrador |
 | OC87 | #130 | Rennan | Modelo e regras para planejamento multi-caminhão |
@@ -238,6 +238,8 @@ auditoria e autoria das ações continuam obrigatórias.
 Planejamento detalhado:
 
 `docs/planejamento/v1.2.0/00-visao-geral.md`
+
+WhatsApp real foi adiado para a pré-produção (#193). A OC83 pode entregar webhook interno funcional e autenticado; a OC84 produzirá notificações reais do domínio, mantendo o envio externo simulado. A IA poderá usar integração real aprovada com credenciais protegidas. Ver ADR-037.
 
 ## Dependências principais
 
