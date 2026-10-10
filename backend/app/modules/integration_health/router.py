@@ -25,7 +25,7 @@ def get_service(request: Request) -> IntegrationHealthService:
     )
 
 
-@router.get("", response_model=IntegrationHealthReport)
+@router.get("")
 async def read_integration_health(
     _admin: Annotated[User, Depends(require_roles("ADMIN"))],
     service: Annotated[IntegrationHealthService, Depends(get_service)],

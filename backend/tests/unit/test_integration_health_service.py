@@ -170,5 +170,6 @@ def test_failures_emit_correlatable_safe_events(caplog):
 
 
 def test_timeout_must_be_positive():
+    checker = Checker()
     with pytest.raises(ValueError):
-        IntegrationHealthService(Checker(), signal_timeout_seconds=0)
+        IntegrationHealthService(checker, signal_timeout_seconds=0)
