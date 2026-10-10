@@ -42,3 +42,17 @@ nomes dos campos alterados, sem valores. Outros perfis não consultam nem
 editam o cadastro ou seus eventos. Não há tenant nem autenticação adicional.
 
 Decisão e limites: [ADR-035](../../../../docs/decisions/ADR-035-configuracoes-institucionais-standalone.md).
+
+## Integrações e Saúde — OC108
+
+`CONFIRMADO`: seção da mesma rota/guarda ADMIN, âncora `#settings-integrations`.
+Consulta real à API administrativa, atualização manual somente leitura com
+limite de 8 s; sem polling, envio de mensagem, prompts ou botões de teste falso.
+Seis cards distinguem simulados/pendentes/falha/timeout e configuração desconhecida.
+loading, erro/repetição, vazio, falha parcial e última consulta marcada como
+possivelmente desatualizada. 401/403 limpa snapshot anteriormente carregado.
+
+`CONFIRMADO`: interface mostra data e UUID para correlação, sem logs brutos ou
+mensagens privadas da API. Layout responsivo, texto de estado além de cor,
+regiões/labels existentes e loading em output sem alteração das guardas OC85/OC91.
+Sem storage local. Não implementa OC83, OC84, OC103 ou provider externo de IA.

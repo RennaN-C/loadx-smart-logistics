@@ -1,5 +1,6 @@
 import { useAuth } from "../../auth/hooks/useAuth";
 import { CompanyProfileForm } from "../components/CompanyProfileForm";
+import { IntegrationHealthPanel } from "../components/IntegrationHealthPanel";
 import { SettingsSection } from "../components/SettingsSection";
 import "./SettingsPage.css";
 
@@ -23,6 +24,7 @@ export function SettingsPage() {
       <nav className="settings-navigation" aria-label="Seções de configurações">
         <a href="#settings-account">Conta e administração</a>
         <a href="#settings-company">Dados da empresa</a>
+        <a href="#settings-integrations">Integrações e Saúde</a>
         <a href="#settings-logistics">Configurações do LoadX</a>
       </nav>
       <SettingsSection id="settings-account" title="Conta e administração">
@@ -44,6 +46,7 @@ export function SettingsPage() {
         </ul>
       </SettingsSection>
       <SettingsSection id="settings-company" title="Dados da empresa"><CompanyProfileForm /></SettingsSection>
+      <SettingsSection id="settings-integrations" title="Integrações e Saúde"><IntegrationHealthPanel /></SettingsSection>
       <SettingsSection id="settings-logistics" title="Configurações do LoadX">
         <p>Esta seção reúne as configurações específicas do módulo logístico,
           separadas da administração da conta e dos dados da empresa.</p>
