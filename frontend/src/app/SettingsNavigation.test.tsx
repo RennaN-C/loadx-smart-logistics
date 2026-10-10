@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { getIntegrationHealth } from "../features/settings/api/integrationHealthApi";
 import { getCurrentUser, login, logout } from "../features/auth/api/authApi";
 import type { AuthenticatedUser, Role } from "../features/auth/types";
 import { notifyIfSessionInvalidated } from "../services/api";
@@ -8,6 +9,7 @@ import { ApiError } from "../types/api";
 import { App } from "./App";
 
 vi.mock("../features/auth/api/authApi");
+vi.mock("../features/settings/api/integrationHealthApi", () => ({ getIntegrationHealth: vi.fn(async () => ({ checked_at: "2026-10-10T00:00:00Z", correlation_id: "00000000-0000-0000-0000-000000000108", overall_status: "PARTIAL", components: [] })) }));
 vi.mock("../features/settings/api/companyProfileApi", () => ({ getCompanyProfile: vi.fn(async () => null) }));
 vi.mock("../features/dashboard/pages/DashboardPage", () => ({ DashboardPage: () => <h1>Início da operação</h1> }));
 
@@ -47,6 +49,7 @@ describe("OC85: navegação e autorização na aplicação", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("somente para administradores ativos");
     expect(screen.queryByRole("link", { name: "Configurações" })).not.toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "Conta e administração" })).not.toBeInTheDocument();
+    expect(getIntegrationHealth).not.toHaveBeenCalled();
     expect(screen.queryByText("Administração", { exact: true })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("link", { name: "Voltar ao início" }));
     await screen.findByRole("heading", { name: "Início da operação" });
@@ -116,6 +119,8 @@ describe("OC85: navegação e autorização na aplicação", () => {
     render(<App />);
     await screen.findByRole("heading", { name: "Configurações", level: 1 });
     expect(screen.getByRole("region", { name: "Configurações do LoadX" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Integrações e Saúde" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Integrações e Saúde" })).toHaveAttribute("href", "#settings-integrations");
     for (const label of ["Gestão de usuários", "Segurança da conta"]) {
       expect(within(account()).getByRole("heading", { name: label, level: 3 })).toBeInTheDocument();
       expect(screen.queryByRole("link", { name: label })).not.toBeInTheDocument();
