@@ -1017,8 +1017,8 @@ de upload, armazenamento binário, bucket ou consulta externa de mídia no MVP.
 
 ## Mensagens e WhatsApp
 
-`CONFIRMADO` (OC82): envio e simulador permanecem exclusivamente mock, conforme
-[ADR-035](decisions/ADR-035-adapter-whatsapp-business.md) e
+`CONFIRMADO` (decisão de manutenção vinculada à OC82): envio e simulador permanecem exclusivamente mock, conforme
+[ADR-035](decisions/ADR-036-whatsapp-mock.md) e
 [contrato interno](../backend/app/integrations/whatsapp/README.md). O contrato
 público permanece o existente. `PENDENTE DE DEFINIÇÃO`: integração real adiada;
 fornecedor, credenciais, retries e idempotência durável de saída serão tratados

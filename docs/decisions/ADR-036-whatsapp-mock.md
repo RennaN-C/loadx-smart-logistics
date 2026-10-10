@@ -1,4 +1,4 @@
-# ADR-035: manter WhatsApp exclusivamente mock nesta etapa — OC82
+# ADR-036: manter WhatsApp exclusivamente mock nesta etapa — OC82
 
 Status: aceita para o escopo mock por orientação do solicitante em 09/10/2026;
 a integração real permanece adiada
