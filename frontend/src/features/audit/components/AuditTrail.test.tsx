@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { makePage } from "../../../tests/makePage";
@@ -10,6 +10,17 @@ vi.mock("../api/auditApi");
 describe("AuditTrail", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+  });
+
+  it("oferece nova tentativa quando o histórico falha, sem bloquear o contexto", async () => {
+    vi.mocked(listAuditEntries).mockRejectedValueOnce(new Error("indisponível")).mockResolvedValueOnce(makePage([]));
+
+    render(<AuditTrail entityType="ORDER" entityId="o1" title="Histórico do pedido" />);
+
+    expect(await screen.findByText("Histórico indisponível no momento.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Tentar carregar histórico novamente" }));
+    expect(await screen.findByText("Nenhum evento registrado para este item.")).toBeInTheDocument();
+    expect(listAuditEntries).toHaveBeenCalledTimes(2);
   });
 
   it("consulta somente a entidade contextual e mostra o ator", async () => {
