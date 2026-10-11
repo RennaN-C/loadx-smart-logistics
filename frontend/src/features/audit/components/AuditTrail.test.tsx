@@ -53,4 +53,17 @@ describe("AuditTrail", () => {
       sortOrder: "desc",
     });
   });
+  it("oculta eventos anteriores enquanto consulta outra entidade", async () => {
+    vi.mocked(listAuditEntries).mockResolvedValueOnce(makePage([{
+      id: "h1", eventType: "STATUS_CHANGED", entityType: "ORDER", entityId: "o1",
+      actorId: "u1", actorName: "Ator anterior", oldStatus: "DRAFT", newStatus: "READY",
+      changedFields: [], createdAt: "2026-10-06T18:00:00Z",
+    }])).mockImplementationOnce(() => new Promise(() => {}));
+    const { rerender } = render(<AuditTrail entityType="ORDER" entityId="o1" />);
+    expect(await screen.findByText("Ator anterior")).toBeInTheDocument();
+    rerender(<AuditTrail entityType="ORDER" entityId="o2" />);
+    expect(screen.getByRole("status")).toHaveTextContent("Carregando histórico");
+    expect(screen.queryByText("Ator anterior")).not.toBeInTheDocument();
+  });
+
 });

@@ -73,7 +73,7 @@ export function AuditTrail({
         <p className="entity-form-help">Nenhum evento registrado para este item.</p>
       ) : null}
 
-      {entries.length > 0 ? (
+      {state === "success" && entries.length > 0 ? (
         <ol className="audit-context-list">
           {entries.map((entry) => (
             <li key={entry.id}>
