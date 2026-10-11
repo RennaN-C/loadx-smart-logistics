@@ -1,0 +1,11 @@
+.account-page { min-width: 0; }
+.account-page .account-section { padding: 20px; margin-block: 20px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); min-width: 0; }
+.account-page .account-form, .account-page .account-sessions { display: grid; gap: 16px; min-width: 0; }
+.account-page .account-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.account-page .account-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.account-page .account-session-list { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.account-page .account-session-list li, .account-page .account-confirm { padding: 16px; border: 1px solid var(--line); border-radius: 6px; min-width: 0; overflow-wrap: anywhere; }
+.account-page .account-session-list dl { display: grid; gap: 8px; }
+.account-page .account-session-list dd { margin: 0; }
+.account-page button { justify-self: start; max-width: 100%; white-space: normal; }
+@media (max-width: 768px) { .account-page .account-fields, .account-page .account-session-list { grid-template-columns: minmax(0, 1fr); } }

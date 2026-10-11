@@ -8,10 +8,11 @@ import "./LoginPage.css";
 
 interface LocationState {
   from?: { pathname: string };
+  accountNotice?: "password-changed" | "session-revoked";
 }
 
 export function LoginPage() {
-  const { status } = useAuth();
+  const { status, accountNotice } = useAuth();
   const location = useLocation();
 
   if (status === "loading") {
@@ -28,6 +29,8 @@ export function LoginPage() {
     <div className="login-page">
       <BrandPanel />
       <main className="login-formside">
+        {accountNotice === "password-changed" && <p role="status">Senha alterada. Todas as sessões foram encerradas; entre novamente.</p>}
+        {accountNotice === "session-revoked" && <p role="status">Sessão encerrada. Entre novamente para continuar.</p>}
         <LoginForm />
       </main>
     </div>
