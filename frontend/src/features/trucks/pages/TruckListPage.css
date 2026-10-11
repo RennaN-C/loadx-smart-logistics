@@ -62,7 +62,10 @@
   margin: 0;
 }
 
+.truck-card-head > div { min-width: 0; }
+
 .truck-card-model {
+  overflow-wrap: anywhere;
   font-size: 0.95rem;
   font-weight: 600;
   margin: 8px 0 0;
