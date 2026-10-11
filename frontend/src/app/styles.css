@@ -80,7 +80,7 @@ body {
   position: fixed;
   top: 12px;
   left: 12px;
-  z-index: 20;
+  z-index: 60;
   background: var(--card);
   color: var(--ink);
   border: 1px solid var(--accent);
