@@ -18,7 +18,7 @@ CoreFlow, SSO, tenant e licenciamento não são implementados nem dependências.
 
 `CONFIRMADO`: não persiste preferências críticas no navegador. Nenhum cadastro
 institucional é chave de isolamento. Página responsiva, títulos hierárquicos,
-regiões nomeadas, âncoras de navegação e foco visível, sem interação por ícone só.
+regiões nomeadas, navegação por fragmento da URL e foco visível, sem interação por ícone só.
 
 ## Dados da empresa — OC91
 
@@ -54,3 +54,51 @@ Sem storage local. Não implementa OC83, OC84, OC103 ou provider externo de IA.
 
 
 `CONFIRMADO` (OC92): Conta e administração agora oferece link funcional para `/account` (Meu perfil, senha e sessões). Gestão de usuários permanece em preparação na OC86. A conta pessoal está disponível para todos os perfis via Minha conta, sem liberar Configurações aos demais. Dados da empresa e Integrações e Saúde preservados.
+
+## Experiência de Configurações — manutenção #200
+
+`CONFIRMADO`: a página usa navegação interna lateral no desktop e grade de
+seções no tablet/celular. Somente uma seção fica visível e disponível à
+tecnologia assistiva por vez. Os fragmentos existentes (`#settings-account`,
+`#settings-company`, `#settings-integrations`, `#settings-logistics`) abrem a
+seção correspondente após F5 ou acesso direto. Anterior/próxima do navegador
+restaura a seção; fragmento desconhecido abre Conta e administração.
+
+`CONFIRMADO`: os painéis permanecem montados ao alternar seções para preservar
+rascunhos e consultas em andamento. Isso não persiste dados no navegador:
+sair da página ou F5 descarta alterações não salvas e reconsulta a API. Cancelar
+restaura os valores consultados, enquanto salvar continua usando o contrato
+institucional existente. A edição foca o primeiro campo; erro de validação
+preserva o rascunho e foca o campo inválido.
+
+`CONFIRMADO`: o formulário institucional agrupa identificação, contato e marca
+em cards, com labels associados, indicação de obrigatoriedade e grid responsivo.
+Consulta e edição possuem apresentação distinta. Histórico fica recolhido em
+`details` nativo, disponível por teclado. Nenhum campo, formato, regra de
+validação, payload ou endpoint mudou.
+
+`CONFIRMADO`: os indicadores de saúde mantêm estado, motivo, modo e configuração
+visíveis. Escopo/limites e referência de correlação podem ser expandidos, sem
+inventar histórico ou métricas. Atualização continua somente leitura; falha,
+timeout, configuração desconhecida e último resultado desatualizado mantêm as
+regras da OC108. WhatsApp continua identificado como simulado.
+
+`CONFIRMADO`: a conta usa identidade real da sessão e link para `/account`.
+Gestão de usuários continua preparação discreta da OC86. Configurações do LoadX
+não cria controles para parâmetros inexistentes: oferece contexto e links para
+as rotas existentes `/fleet` e `/planning`. ADMIN continua sendo o único perfil
+com acesso a Configurações, incluindo os serviços administrativos no backend.
+
+### Validação de interface
+
+1. Entrar como ADMIN e abrir Configurações; alternar as quatro seções.
+2. Abrir `/settings#settings-company` diretamente e recarregar a página.
+3. Editar dados, alternar para Integrações e voltar; verificar o rascunho.
+4. Cancelar; editar/salvar e verificar persistência após F5.
+5. Testar campo inválido, falha/retentativa da API e carregamento sem inventar dados.
+6. Expandir histórico e limites de integração; usar Tab, Enter e foco visível.
+7. Validar acesso negado a LOGISTICS_MANAGER, CHECKER e DRIVER.
+8. Inspecionar 375, 768, 1280×720 e 1920×1080 px nos temas escuro e claro.
+
+`CONFIRMADO`: manutenção exclusivamente de frontend, sem migration, dependência
+nova, alteração de RBAC ou contrato HTTP. Backend permanece fonte de verdade.
