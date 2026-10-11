@@ -158,7 +158,7 @@ def test_wrong_password_and_existing_throttle(client, session_factory):
         json={"current_password": PASSWORD, "new_password": NEW_PASSWORD},
     )
     assert blocked.status_code == 429
-    assert blocked.headers['retry-after']
+    assert blocked.headers["retry-after"]
     assert client.get(BASE, headers=headers).status_code == 200
 
 
@@ -177,7 +177,7 @@ def test_session_list_real_metadata_excludes_expired_and_foreign(
         db.commit()
     rows = client.get(BASE + "/sessions", headers=headers).json()
     assert len(rows) == 2
-    assert sum((row['current'] for row in rows)) == 1
+    assert sum(row["current"] for row in rows) == 1
     assert all(
         set(row)
         == {
@@ -207,7 +207,7 @@ def test_revoke_other_and_current_sessions(client, session_factory):
     current_id = next(row["id"] for row in rows if row["current"])
     response = client.delete(BASE + "/sessions/" + current_id, headers=current)
     assert response.status_code == 204
-    assert 'Max-Age=0' in response.headers['set-cookie']
+    assert "Max-Age=0" in response.headers["set-cookie"]
     assert client.get(BASE, headers=current).status_code == 401
 
 
@@ -239,7 +239,7 @@ def test_cannot_revoke_foreign_or_unknown_session(client, session_factory):
     for session_id in (foreign_id, str(uuid.uuid4())):
         response = client.delete(BASE + "/sessions/" + session_id, headers=headers)
         assert response.status_code == 404
-        assert response.json()['code'] == 'AUTH_SESSION_NOT_FOUND'
+        assert response.json()["code"] == "AUTH_SESSION_NOT_FOUND"
     assert client.get(BASE, headers=foreign).status_code == 200
 
 
