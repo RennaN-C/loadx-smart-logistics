@@ -77,9 +77,9 @@ export function CompanyProfileForm() {
     {error && <p role="alert" className="entity-form-error">{error}</p>}
     {success && <output className="company-profile-feedback company-profile-success">Dados da empresa salvos com sucesso.</output>}
     <form className="entity-form company-profile-form" ref={form} onSubmit={save} aria-label="Dados institucionais da empresa" aria-busy={saving}>
-      <div className="company-profile-toolbar"><p>{stored ? "Cadastro institucional do LoadX." : "A empresa ainda não possui dados institucionais cadastrados."}<span>Campos opcionais podem ficar em branco.</span></p><span className="settings-readonly">{editing ? "Em edição" : "Somente leitura"}</span></div>
-      {GROUPS.map((group) => <section className="company-profile-card" key={group.id} aria-labelledby={`company-group-${group.id}`}>
-        <div className="company-profile-card-heading"><span className="settings-card-icon"><Icon name={group.icon} size={20} /></span><div><h3 id={`company-group-${group.id}`}>{group.title}</h3><p>{group.description}</p></div></div>
+      <div className="company-profile-toolbar"><p>{stored ? "Informações institucionais" : "A empresa ainda não possui dados institucionais cadastrados."}</p><span className="settings-readonly">{editing ? "Em edição" : "Somente leitura"}</span></div>
+      {GROUPS.map((group) => <section className="company-profile-group" key={group.id} aria-labelledby={`company-group-${group.id}`}>
+        <div className="company-profile-group-heading"><Icon name={group.icon} size={20} /><div><h3 id={`company-group-${group.id}`}>{group.title}</h3><p>{group.description}</p></div></div>
         <div className="company-profile-fields">
           {FIELDS.filter((field) => (group.fields as readonly string[]).includes(field.key)).map((field) => {
             const id = `company-${field.key}`;
