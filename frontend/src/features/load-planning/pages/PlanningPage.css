@@ -250,3 +250,6 @@
 .plan-summary-head { flex-wrap: wrap; }
 .plan-order-list label > span { min-width: 0; overflow-wrap: anywhere; }
 .plan-table-scroll { min-width: 0; }
+
+.plan-builder .btn-primary:disabled { opacity: 0.6; }
+.plan-builder .btn-primary:disabled:not([aria-busy="true"]) { cursor: not-allowed; }

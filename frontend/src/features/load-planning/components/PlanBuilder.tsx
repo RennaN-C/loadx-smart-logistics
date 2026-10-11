@@ -162,6 +162,7 @@ export function PlanBuilder({ onCalculated }: PlanBuilderProps) {
               type="button"
               className="btn-primary"
               disabled={!canCalculate}
+              aria-busy={isCalculating}
               onClick={() => void handleCalculate()}
             >
               {isCalculating ? (
