@@ -51,7 +51,7 @@ describe("AppLayout", () => {
     signedInAs("ADMIN");
     renderLayout();
 
-    expect(screen.getByText("LOADX")).toBeInTheDocument();
+    expect(screen.getByText("LOADX", { selector: ".app-brand-label" })).toBeInTheDocument();
     expect(screen.getByText("conteudo da rota")).toBeInTheDocument();
   });
 

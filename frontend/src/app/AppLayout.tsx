@@ -124,6 +124,7 @@ export function AppLayout() {
   useEffect(() => {
     if (!mobileOpen) return;
     const originalOverflow = document.body.style.overflow;
+    const mobileTrigger = mobileTriggerRef.current;
     document.body.style.overflow = "hidden";
     mobileCloseRef.current?.focus();
 
@@ -136,7 +137,10 @@ export function AppLayout() {
       if (event.key !== "Tab") return;
       const focusable = Array.from(sidebarRef.current?.querySelectorAll<HTMLElement>(
         'a[href], button:not(:disabled), [tabindex]:not([tabindex="-1"])',
-      ) ?? []);
+      ) ?? []).filter((element) => {
+        const computed = window.getComputedStyle(element);
+        return computed.display !== "none" && computed.visibility !== "hidden";
+      });
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
       if (!first || !last) return;
@@ -152,7 +156,7 @@ export function AppLayout() {
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = originalOverflow;
-      if (mobileTriggerRef.current?.isConnected) mobileTriggerRef.current.focus();
+      if (mobileTrigger?.isConnected) mobileTrigger.focus();
     };
   }, [mobileOpen]);
 
