@@ -22,10 +22,10 @@ function HealthCard({ item }: { readonly item: ComponentHealth }) {
   let configuration = "Não verificada";
   if (item.configured !== null) configuration = item.configured ? "Presente" : "Ausente";
   return <li className="integration-health-card">
-    <div className="integration-health-card-header"><span className="settings-card-icon"><Icon name={COMPONENT_ICONS[item.component]} size={19} /></span><h3>{metadata.title}</h3><span className="integration-health-badge" data-status={item.status}>{STATUSES[item.status]}</span></div>
-    <p className="integration-health-reason">{REASONS[item.reason_code]}</p>
-    <dl><div><dt>Modo</dt><dd>{{ INTERNAL: "Interno", MOCK: "Simulado", REAL: "Real (sujeito à configuração e aprovação)" }[item.mode]}</dd></div><div><dt>Configuração</dt><dd>{configuration}</dd></div></dl>
-    <details className="integration-health-details"><summary>Escopo e limites</summary><p>{metadata.description}</p></details>
+    <div className="integration-health-card-header"><Icon name={COMPONENT_ICONS[item.component]} size={20} /><h3>{metadata.title}</h3><span className="integration-health-badge" data-status={item.status}>{STATUSES[item.status]}</span></div>
+    <p className="integration-health-context">{{ api: "Serviço da aplicação", database: "Persistência e integridade", whatsapp: "Mensagens operacionais", ai: "Apoio ao planejamento", webhook: "Entrada de eventos", notifications: "Comunicação interna" }[item.component]}</p>
+    <details className="integration-health-details"><summary>Escopo e limites</summary><p className="integration-health-reason">{REASONS[item.reason_code]}</p><dl><div><dt>Modo</dt><dd>{{ INTERNAL: "Interno", MOCK: "Simulado", REAL: "Real (sujeito à configuração e aprovação)" }[item.mode]}</dd></div><div><dt>Configuração</dt><dd>{configuration}</dd></div></dl>
+    <p>{metadata.description}</p></details>
   </li>;
 
 }
@@ -52,7 +52,7 @@ export function IntegrationHealthPanel() {
     return () => { active = false; };
   }, [refresh]);
   return <div className="integration-health-panel" aria-busy={loading}>
-    <div className="integration-health-toolbar"><p>Diagnóstico atual, somente para consulta.<span>Atualizar não envia mensagens, executa prompts ou modifica configurações.</span></p><button type="button" className="btn-secondary" disabled={loading} onClick={() => setRefresh((value) => value + 1)}>{loading ? "Consultando…" : "Atualizar estados"}</button></div>
+    <div className="integration-health-toolbar"><p>Estado das integrações<span>Consulta somente leitura, sem executar ações nos serviços.</span></p><button type="button" className="btn-secondary" disabled={loading} onClick={() => setRefresh((value) => value + 1)}>{loading ? "Consultando…" : "Atualizar estados"}</button></div>
     {loading && <output className="integration-health-feedback"><span className="spinner" aria-hidden="true" /><span>Carregando integrações e saúde…</span></output>}
     {error && <p role="alert" className="integration-health-error">{error}</p>}
     {report && <>
