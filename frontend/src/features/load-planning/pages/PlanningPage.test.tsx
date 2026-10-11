@@ -271,6 +271,17 @@ describe("PlanningPage", () => {
     expect(t1?.textContent).not.toContain("em operação");
   });
 
+  it("não confunde erro ao carregar caminhões com lista vazia e permite tentar novamente", async () => {
+    vi.mocked(listTrucks).mockRejectedValueOnce(new ApiError("NETWORK_ERROR", "Falha de rede."));
+    renderAt("/planning");
+
+    expect(await screen.findByText(/Não foi possível carregar os dados necessários para planejar/)).toBeInTheDocument();
+    expect(screen.queryByText(/Nenhum pedido pronto para planejar/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Tentar novamente" }));
+    expect(await screen.findByLabelText("CAMINHÃO")).toBeInTheDocument();
+    expect(listTrucks).toHaveBeenCalledTimes(2);
+  });
+
   it("só habilita o cálculo com caminhão e ao menos um pedido", async () => {
     renderAt("/planning");
     await screen.findByLabelText("CAMINHÃO");
