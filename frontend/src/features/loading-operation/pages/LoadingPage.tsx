@@ -102,7 +102,7 @@ export function LoadingPage() {
 
   return (
     <div className="entity-page">
-      <nav className="entity-toolbar" aria-label="Caminhos do carregamento">
+      <nav className="entity-toolbar entity-page-nav" aria-label="Caminhos do carregamento">
         <Link to="/">Voltar ao início</Link>
         {session ? <Link to={`/planning/${session.loadPlanId}`}>Voltar ao plano de origem</Link> : null}
       </nav>

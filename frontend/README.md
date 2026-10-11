@@ -80,8 +80,43 @@ upload/download; envio de notificações permanece na OC103.
 
 `CONFIRMADO`: Administração → Configurações (`/settings`) somente ADMIN ativo.
 Contexto da conta vem da sessão existente, somente leitura. Seções distinguem
-conta/administração de configurações do LoadX. Gestão de usuários, dados da
-empresa e segurança da conta aparecem em preparação, sem ações nem rotas falsas.
+conta/administração de configurações do LoadX. Dados da empresa (OC91),
+Integrações e Saúde (OC108) e Meu perfil (OC92) usam seus contratos reais;
+gestão de usuários continua em preparação, sem ações nem rotas falsas.
 Sessão ausente/expirada segue login; perfil negado recebe alerta e volta ao início;
 carregamento usa SessionLoading. Não cria API, preferências locais, tenant ou
 integração CoreFlow. [Estrutura extensível](src/features/settings/README.md).
+
+## Polimento visual e de navegação — v1.2.0
+
+`CONFIRMADO`: links de retorno nas telas de conta, planejamento, viagem e
+carregamento usam ações contextuais com cores, foco visível e área clicável
+consistente. Configurações expõe âncoras em navegação de seções com estados
+hover/focus, mantendo as mesmas rotas e autorizações.
+
+`CONFIRMADO`: o detalhe do pedido diferencia referência, situação, endereço,
+itens e histórico sem alterar contratos. A frota apresenta ações em grade de
+duas colunas, sem botões soltos em linhas irregulares.
+
+`CONFIRMADO`: no planejamento, falha ao obter caminhões, pedidos ou
+disponibilidade não aparece como lista vazia; a tela oferece nova consulta.
+Histórico contextual oferece retry quando sua consulta falha, sem bloquear
+outras informações do pedido.
+
+`CONFIRMADO`: a validação visual da manutenção #198 utiliza Chromium com
+API/PostgreSQL locais e dados fictícios, em temas claro/escuro e larguras
+375/768/1280/1920 px (desktop 1280×720 e 1920×1080). Inclui screenshots,
+textos extensos, estados vazios, falha/retry das consultas, loading, foco no
+modal e Escape. Resultados e limites da publicação ficam no PR #199.
+
+`CONFIRMADO`: links com aparência de botão preservam hover/focus sem
+sublinhado nativo; modelos extensos da frota quebram dentro do card. O histórico
+contextual oculta os eventos anteriores enquanto consulta outra entidade, e a
+ação de calcular distingue indisponibilidade de processamento em andamento.
+
+`CONFIRMADO`: a manutenção não adiciona listagens de planos/carregamentos
+nem muda RBAC, contratos HTTP, backend ou migrations. A publicação na
+`pentest-lab`, autorizada separadamente, deve preservar o proxy e headers de
+`frontend/vercel.json`, o gatilho da CI e a identificação do ambiente de testes.
+Validação autenticada online exige conta de testes autorizada; liveness/readiness
+não comprovam por si só o SHA nem ausência de erros nos logs do Render.

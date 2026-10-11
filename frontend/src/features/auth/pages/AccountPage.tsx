@@ -9,7 +9,7 @@ export function AccountPage() {
   function signedOut(accountNotice: "password-changed" | "session-revoked") {
     updateUser(null, accountNotice);
   }
-  return <div className="entity-page account-page"><header className="entity-header"><div><h1>Meu perfil</h1><p className="entity-lede">Gerencie seus dados, senha e sessões.</p></div><Link to="/">Voltar ao início</Link></header>
+  return <div className="entity-page account-page"><header className="entity-header"><div><h1>Meu perfil</h1><p className="entity-lede">Gerencie seus dados, senha e sessões.</p></div><Link className="entity-header-link" to="/">Voltar ao início</Link></header>
     <section className="account-section" aria-labelledby="own-data"><h2 id="own-data">Dados pessoais</h2><OwnProfileForm /></section>
     <section className="account-section" aria-labelledby="own-security"><h2 id="own-security">Segurança</h2><OwnPasswordForm onSignedOut={signedOut} /></section>
     <section className="account-section" aria-labelledby="own-sessions"><h2 id="own-sessions">Sessões</h2><OwnSessionsPanel onSignedOut={signedOut} /></section>

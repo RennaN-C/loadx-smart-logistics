@@ -19,12 +19,12 @@ interface PlanBuilderProps {
 const listHistoricalCustomers = (params: ListParams) => listCustomers({ ...params, archiveStatus: "all" });
 
 export function PlanBuilder({ onCalculated }: PlanBuilderProps) {
-  const { items: trucks, status: trucksStatus } = useResourceList(listTrucks);
+  const { items: trucks, status: trucksStatus, refetch: reloadTrucks } = useResourceList(listTrucks);
   // Duas consultas porque os dois contratos são diferentes: `GET /trucks` traz as
   // medidas internas, que são o que ajuda a escolher o baú; `operational-status`
   // traz a disponibilidade da OC67, e não traz medida nenhuma.
-  const { items: situacoes } = useResourceList(listTruckOperationalStatus);
-  const { items: orders, status: ordersStatus } = useResourceList(listOrders);
+  const { items: situacoes, status: situationsStatus, refetch: reloadSituations } = useResourceList(listTruckOperationalStatus);
+  const { items: orders, status: ordersStatus, refetch: reloadOrders } = useResourceList(listOrders);
   const { items: customers } = useResourceList(listHistoricalCustomers);
 
   const [truckId, setTruckId] = useState("");
@@ -72,7 +72,8 @@ export function PlanBuilder({ onCalculated }: PlanBuilderProps) {
     }
   }
 
-  const isLoading = trucksStatus === "loading" || ordersStatus === "loading";
+  const isLoading = trucksStatus === "loading" || ordersStatus === "loading" || situationsStatus === "loading";
+  const hasListError = trucksStatus === "error" || ordersStatus === "error" || situationsStatus === "error";
   const canCalculate = activeTrucks.some((truck) => truck.id === truckId) && selectedOrders.length > 0 && !isCalculating;
 
   return (
@@ -80,13 +81,25 @@ export function PlanBuilder({ onCalculated }: PlanBuilderProps) {
       {errorMessage ? <AlertBanner>{errorMessage}</AlertBanner> : null}
 
       {isLoading ? (
-        <p className="entity-state">
+        <output className="plan-builder-loading" aria-live="polite">
           <span className="spinner" aria-hidden="true" />
-          <span>Carregando caminhões e pedidos…</span>
-        </p>
+          <span>
+            <strong>Carregando caminhões e pedidos…</strong>
+            <span className="plan-builder-loading-message">Consultando os dados e a disponibilidade operacional para montar o plano.</span>
+          </span>
+        </output>
       ) : null}
 
-      {!isLoading ? (
+      {!isLoading && hasListError ? (
+        <div className="plan-builder-feedback">
+          <AlertBanner>Não foi possível carregar os dados necessários para planejar. Nenhuma carga foi alterada.</AlertBanner>
+          <button type="button" className="btn-secondary" onClick={() => {
+            void Promise.all([reloadTrucks(), reloadOrders(), reloadSituations()]);
+          }}>Tentar novamente</button>
+        </div>
+      ) : null}
+
+      {!isLoading && !hasListError ? (
         <>
           <div className="entity-form-row">
             <FormField
@@ -149,6 +162,7 @@ export function PlanBuilder({ onCalculated }: PlanBuilderProps) {
               type="button"
               className="btn-primary"
               disabled={!canCalculate}
+              aria-busy={isCalculating}
               onClick={() => void handleCalculate()}
             >
               {isCalculating ? (
