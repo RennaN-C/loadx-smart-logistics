@@ -70,10 +70,10 @@ export function TruckCard({ truck, canManage, onEdit, onChanged, onMaintenance, 
             ) : null}
             {canManage ? (
               <>
-                <RecordLifecycleAction resource="trucks" id={truck.id} active={truck.active} onChanged={onChanged} />
                 <button type="button" className="btn-link" onClick={() => onEdit(truck)}>
                   Editar
                 </button>
+                <RecordLifecycleAction resource="trucks" id={truck.id} active={truck.active} onChanged={onChanged} />
               </>
             ) : null}
           </div>
