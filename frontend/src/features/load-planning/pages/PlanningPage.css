@@ -92,7 +92,8 @@
 }
 .plan-builder-loading .spinner { margin-top: 3px; }
 .plan-builder-loading strong { font-size: 0.92rem; }
-.plan-builder-loading p {
+.plan-builder-loading-message {
+  display: block;
   margin: 5px 0 0;
   font-size: 0.84rem;
   color: var(--muted);

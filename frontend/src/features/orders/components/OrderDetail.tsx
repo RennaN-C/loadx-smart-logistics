@@ -48,10 +48,10 @@ export function OrderDetail({ orderId, onClose, products, canReadHistory }: Orde
 
       {error ? <AlertBanner>{mapOrderErrorToMessage(error)}</AlertBanner> : null}
       {!order && !error ? (
-        <p className="entity-state" role="status">
+        <output className="entity-state">
           <span className="spinner" aria-hidden="true" />
-          Carregando detalhes do pedido…
-        </p>
+          <span>Carregando detalhes do pedido…</span>
+        </output>
       ) : null}
 
       {order?.id === orderId ? (

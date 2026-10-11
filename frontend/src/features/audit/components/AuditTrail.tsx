@@ -56,10 +56,10 @@ export function AuditTrail({
       </div>
 
       {state === "loading" ? (
-        <p className="entity-state" role="status">
+        <output className="entity-state">
           <span className="spinner" aria-hidden="true" />
-          Carregando histórico…
-        </p>
+          <span>Carregando histórico…</span>
+        </output>
       ) : null}
       {state === "error" ? (
         <div className="audit-context-retry">

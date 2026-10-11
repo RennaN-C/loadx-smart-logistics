@@ -81,13 +81,13 @@ export function PlanBuilder({ onCalculated }: PlanBuilderProps) {
       {errorMessage ? <AlertBanner>{errorMessage}</AlertBanner> : null}
 
       {isLoading ? (
-        <div className="plan-builder-loading" role="status" aria-live="polite">
+        <output className="plan-builder-loading" aria-live="polite">
           <span className="spinner" aria-hidden="true" />
-          <div>
+          <span>
             <strong>Carregando caminhões e pedidos…</strong>
-            <p>Consultando os dados e a disponibilidade operacional para montar o plano.</p>
-          </div>
-        </div>
+            <span className="plan-builder-loading-message">Consultando os dados e a disponibilidade operacional para montar o plano.</span>
+          </span>
+        </output>
       ) : null}
 
       {!isLoading && hasListError ? (
