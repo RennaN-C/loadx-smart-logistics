@@ -88,4 +88,26 @@ describe("OC91: dados institucionais", () => {
     fireEvent.submit(screen.getByRole("form"));
     expect(updateCompanyProfile).toHaveBeenCalledOnce();
   });
+  it("agrupa os campos e anuncia obrigatoriedade sem alterar os labels", async () => {
+    render(<CompanyProfileForm />);
+    fireEvent.click(await screen.findByRole("button", { name: "Editar dados da empresa" }));
+    expect(screen.getByRole("region", { name: "Identificação da empresa" })).toBeVisible();
+    expect(screen.getByRole("region", { name: "Canais de contato" })).toBeVisible();
+    expect(screen.getByRole("region", { name: "Referência de marca" })).toBeVisible();
+    expect(screen.getByLabelText("Nome empresarial")).toHaveAccessibleDescription("Obrigatório");
+    expect(screen.getByLabelText("CNPJ")).toHaveAccessibleDescription("Opcional");
+    expect(screen.getByLabelText("Nome empresarial")).toHaveFocus();
+    expect(screen.getByLabelText("CNPJ")).not.toBeRequired();
+  });
+
+  it("histórico recolhido pode ser aberto sem ocupar todo o formulário", async () => {
+    render(<CompanyProfileForm />);
+    await screen.findByLabelText("Nome empresarial");
+    const summary = screen.getByText("Histórico de alterações da empresa");
+    expect(summary.closest("details")).not.toHaveAttribute("open");
+    fireEvent.click(summary);
+    expect(summary.closest("details")).toHaveAttribute("open");
+    expect(screen.getByText("Histórico institucional")).toBeVisible();
+  });
+
 });

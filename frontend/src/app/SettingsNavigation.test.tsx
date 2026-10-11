@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { getCompanyProfile, updateCompanyProfile } from "../features/settings/api/companyProfileApi";
 import { getIntegrationHealth } from "../features/settings/api/integrationHealthApi";
 import { getCurrentUser, login, logout } from "../features/auth/api/authApi";
 import type { AuthenticatedUser, Role } from "../features/auth/types";
@@ -10,7 +11,7 @@ import { App } from "./App";
 
 vi.mock("../features/auth/api/authApi");
 vi.mock("../features/settings/api/integrationHealthApi", () => ({ getIntegrationHealth: vi.fn(async () => ({ checked_at: "2026-10-10T00:00:00Z", correlation_id: "00000000-0000-0000-0000-000000000108", overall_status: "PARTIAL", components: [] })) }));
-vi.mock("../features/settings/api/companyProfileApi", () => ({ getCompanyProfile: vi.fn(async () => null) }));
+vi.mock("../features/settings/api/companyProfileApi", () => ({ getCompanyProfile: vi.fn(async () => null), updateCompanyProfile: vi.fn() }));
 vi.mock("../features/dashboard/pages/DashboardPage", () => ({ DashboardPage: () => <h1>Início da operação</h1> }));
 
 const USER: AuthenticatedUser = {
@@ -118,22 +119,67 @@ describe("OC85: navegação e autorização na aplicação", () => {
   it("separa regiões acessíveis e não oferece links para OCs futuras", async () => {
     render(<App />);
     await screen.findByRole("heading", { name: "Configurações", level: 1 });
-    expect(screen.getByRole("region", { name: "Configurações do LoadX" })).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: "Integrações e Saúde" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Integrações e Saúde" })).toHaveAttribute("href", "#settings-integrations");
+    expect(screen.queryByRole("region", { name: "Configurações do LoadX" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Integrações e Saúde" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Integrações e Saúde" })).toHaveAttribute("href", "/settings#settings-integrations");
     for (const label of ["Gestão de usuários"]) {
       expect(within(account()).getByRole("heading", { name: label, level: 3 })).toBeInTheDocument();
       expect(screen.queryByRole("link", { name: label })).not.toBeInTheDocument();
     }
     expect(within(account()).getByRole("link", { name: "Meu perfil, senha e sessões" })).toHaveAttribute("href", "/account");
     expect(within(account()).getByRole("link", { name: "Meu perfil, senha e sessões" })).toHaveClass("settings-account-link");
-    expect(screen.getByRole("region", { name: "Dados da empresa" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Dados da empresa" })).toHaveAttribute("href", "#settings-company");
+    expect(screen.queryByRole("region", { name: "Dados da empresa" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Dados da empresa" })).toHaveAttribute("href", "/settings#settings-company");
     const sections = screen.getByRole("navigation", { name: "Seções de configurações" });
     for (const link of within(sections).getAllByRole("link")) {
-      const id = link.getAttribute("href")!.slice(1);
+      const id = new URL(link.getAttribute("href")!, window.location.origin).hash.slice(1);
       expect(document.getElementById(id)).not.toBeNull();
     }
     await waitFor(() => expect(getCurrentUser).toHaveBeenCalledOnce());
   });
+  it("troca uma seção por vez e mantém a seção selecionada na URL", async () => {
+    render(<App />);
+    await screen.findByRole("heading", { name: "Configurações", level: 1 });
+    for (const [name, hash] of [["Dados da empresa", "settings-company"], ["Integrações e Saúde", "settings-integrations"], ["Configurações do LoadX", "settings-logistics"], ["Conta e administração", "settings-account"]]) {
+      fireEvent.click(screen.getByRole("link", { name }));
+      expect(screen.getByRole("region", { name })).toBeVisible();
+      expect(screen.getByRole("link", { name })).toHaveAttribute("aria-current", "location");
+      expect(window.location.hash).toBe(`#${hash}`);
+      expect(screen.getAllByRole("region").filter((region) => region.classList.contains("settings-section"))).toHaveLength(1);
+    }
+  });
+
+  it.each(["settings-company", "settings-integrations", "settings-logistics"])("reabre diretamente a seção %s sem exibir a conta", async (hash) => {
+    window.history.replaceState({}, "", `/settings#${hash}`);
+    render(<App />);
+    await screen.findByRole("heading", { name: "Configurações", level: 1 });
+    expect(document.getElementById(hash)).toBeVisible();
+    expect(screen.queryByRole("region", { name: "Conta e administração" })).not.toBeInTheDocument();
+  });
+
+  it("fragmento desconhecido mantém entrada segura na conta", async () => {
+    window.history.replaceState({}, "", "/settings#inexistente");
+    render(<App />);
+    await screen.findByRole("heading", { name: "Configurações", level: 1 });
+    expect(account()).toBeVisible();
+  });
+
+  it("preserva rascunho ao navegar entre seções e cancelar restaura a consulta", async () => {
+    vi.mocked(getCompanyProfile).mockResolvedValue(null);
+    render(<App />);
+    await screen.findByRole("heading", { name: "Configurações", level: 1 });
+    fireEvent.click(screen.getByRole("link", { name: "Dados da empresa" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Cadastrar dados da empresa" }));
+    fireEvent.change(screen.getByLabelText("Nome empresarial"), { target: { value: "Rascunho preservado" } });
+    fireEvent.click(screen.getByRole("link", { name: "Integrações e Saúde" }));
+    fireEvent.click(screen.getByRole("link", { name: "Dados da empresa" }));
+    expect(screen.getByLabelText("Nome empresarial")).toHaveValue("Rascunho preservado");
+    expect(screen.getByLabelText("Nome empresarial")).not.toHaveAttribute("readonly");
+    expect(getCompanyProfile).toHaveBeenCalledOnce();
+    expect(updateCompanyProfile).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+    expect(screen.getByLabelText("Nome empresarial")).toHaveValue("");
+    expect(screen.getByLabelText("Nome empresarial")).toHaveAttribute("readonly");
+  });
+
 });
