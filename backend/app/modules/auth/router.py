@@ -1,24 +1,40 @@
-from typing import Annotated
+import uuid
+from collections.abc import Callable
+from typing import Annotated, TypeVar
 
 from fastapi import APIRouter, Depends, Request, Response, status
 from fastapi.responses import JSONResponse
+from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.core.exceptions import ApiError
 from app.core.responses import error_response, openapi_error_responses
+from app.database.session import get_db
+from app.modules.auth.account_service import (
+    AccountService,
+    OwnPasswordInvalidError,
+    OwnSessionNotFoundError,
+)
 from app.modules.auth.dependencies import (
     CSRF_HEADER_NAME,
     get_auth_service,
     get_current_session,
 )
-from app.modules.auth.schemas import AuthLogin
+from app.modules.auth.schemas import (
+    AuthLogin,
+    OwnPasswordChange,
+    OwnProfileUpdate,
+    OwnSessionRead,
+)
 from app.modules.auth.service import (
     AuthInvalidCredentialsError,
     AuthService,
 )
-from app.modules.auth.sessions import ResolvedAuthSession
+from app.modules.auth.sessions import AuthSessionInvalidError, ResolvedAuthSession
 from app.modules.auth.throttling import AuthRateLimitedError
 from app.modules.users.models import User
 from app.modules.users.schemas import UserRead
+from app.modules.users.service import UserEmailAlreadyExistsError
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -94,3 +110,113 @@ def logout(
         httponly=True,
         samesite="lax",
     )
+
+
+def get_account_service(db: Annotated[Session, Depends(get_db)]) -> AccountService:
+    return AccountService(db)
+
+
+T = TypeVar("T")
+
+
+def account_operation(operation: Callable[[], T]) -> T:
+    try:
+        return operation()
+    except AuthSessionInvalidError:
+        raise ApiError(
+            401, "AUTH_INVALID_TOKEN", "Sessão ausente ou inválida."
+        ) from None
+    except OwnPasswordInvalidError:
+        raise ApiError(
+            400, "AUTH_CURRENT_PASSWORD_INVALID", "Senha atual incorreta."
+        ) from None
+    except UserEmailAlreadyExistsError:
+        raise ApiError(
+            409, "USER_EMAIL_ALREADY_EXISTS", "E-mail já cadastrado."
+        ) from None
+    except OwnSessionNotFoundError:
+        raise ApiError(
+            404, "AUTH_SESSION_NOT_FOUND", "Sessão não encontrada."
+        ) from None
+    except AuthRateLimitedError as error:
+        raise ApiError(
+            429,
+            "AUTH_RATE_LIMITED",
+            "Muitas tentativas. Tente novamente mais tarde.",
+            headers={"Retry-After": str(error.retry_after_seconds)},
+        ) from None
+
+
+def clear_session_cookie(response: Response) -> None:
+    response.delete_cookie(
+        key=settings.session_cookie_name,
+        path="/",
+        secure=settings.session_cookie_secure,
+        httponly=True,
+        samesite="lax",
+    )
+
+
+@router.patch(
+    "/me",
+    response_model=UserRead,
+    responses=openapi_error_responses(401, 403, 409, 422),
+)
+def update_me(
+    data: OwnProfileUpdate,
+    current: Annotated[ResolvedAuthSession, Depends(get_current_session)],
+    service: Annotated[AccountService, Depends(get_account_service)],
+) -> User:
+    return account_operation(lambda: service.update_profile(current, data))
+
+
+@router.post(
+    "/me/password",
+    status_code=204,
+    responses=openapi_error_responses(400, 401, 403, 422, 429),
+)
+def change_own_password(
+    request: Request,
+    response: Response,
+    data: OwnPasswordChange,
+    current: Annotated[ResolvedAuthSession, Depends(get_current_session)],
+    service: Annotated[AccountService, Depends(get_account_service)],
+) -> None:
+    client_ip = request.client.host if request.client else "unknown"
+    account_operation(lambda: service.change_password(current, data, client_ip))
+    clear_session_cookie(response)
+
+
+@router.get("/me/sessions", responses=openapi_error_responses(401, 403, 422))
+def list_own_sessions(
+    current: Annotated[ResolvedAuthSession, Depends(get_current_session)],
+    service: Annotated[AccountService, Depends(get_account_service)],
+) -> list[OwnSessionRead]:
+    return service.list_sessions(current)
+
+
+@router.delete(
+    "/me/sessions/{session_id}",
+    status_code=204,
+    responses=openapi_error_responses(401, 403, 404, 422),
+)
+def revoke_own_session(
+    session_id: uuid.UUID,
+    response: Response,
+    current: Annotated[ResolvedAuthSession, Depends(get_current_session)],
+    service: Annotated[AccountService, Depends(get_account_service)],
+) -> None:
+    if account_operation(lambda: service.revoke_session(current, session_id)):
+        clear_session_cookie(response)
+
+
+@router.post(
+    "/me/sessions/revoke-others",
+    status_code=204,
+    responses=openapi_error_responses(401, 403, 422),
+)
+def revoke_other_sessions(
+    current: Annotated[ResolvedAuthSession, Depends(get_current_session)],
+    service: Annotated[AccountService, Depends(get_account_service)],
+) -> None:
+    account_operation(lambda: service.revoke_other_sessions(current))

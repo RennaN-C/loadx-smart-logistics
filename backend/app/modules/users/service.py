@@ -68,6 +68,12 @@ class UserService:
             raise UserNotFoundError
         return user
 
+    def lock_account(self, user_id: uuid.UUID) -> User:
+        user = self.repository.get_for_update(user_id)
+        if user is None:
+            raise UserNotFoundError
+        return user
+
     def get_user_by_email(self, email: str) -> User | None:
         return self.repository.get_by_email(email)
 

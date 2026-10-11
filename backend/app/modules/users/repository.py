@@ -34,6 +34,14 @@ class UserRepository:
     def get(self, user_id: uuid.UUID) -> User | None:
         return self.db.get(User, user_id)
 
+    def get_for_update(self, user_id: uuid.UUID) -> User | None:
+        return self.db.scalar(
+            select(User)
+            .where(User.id == user_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+
     def get_for_authorization(self, user_id: uuid.UUID) -> User | None:
         # SHARE prevents security-state updates until the owning transaction ends,
         # while remaining compatible with foreign-key checks and other readers.
