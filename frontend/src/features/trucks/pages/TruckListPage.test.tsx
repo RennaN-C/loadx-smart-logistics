@@ -94,6 +94,9 @@ describe("TruckListPage", () => {
     expect(within(actions).getByRole("button", { name: "Manutenções" })).toBeInTheDocument();
     expect(within(actions).getByRole("button", { name: "Arquivar" })).toBeInTheDocument();
     expect(within(actions).getByRole("button", { name: "Editar" })).toBeInTheDocument();
+    expect(within(actions).getAllByRole("button").map((button) => button.textContent)).toEqual([
+      "Documentos", "Manutenções", "Editar", "Arquivar",
+    ]);
     const card = actions.closest(".truck-card");
     expect(card?.querySelector(".truck-card-weight")).toHaveTextContent("8.000 kg");
     expect(actions.contains(card?.querySelector(".truck-card-weight") ?? null)).toBe(false);

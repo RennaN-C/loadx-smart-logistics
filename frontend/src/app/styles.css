@@ -407,6 +407,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 10px;
+  text-decoration: none;
   transition: filter 0.15s ease;
 }
 
@@ -654,6 +655,60 @@ body {
   gap: 12px;
   margin: 28px 0 20px;
   flex-wrap: wrap;
+}
+
+/* Caminho de navegação em todas as telas operacionais. */
+/* Ação de retorno no cabeçalho, inclusive na página de conta. */
+.entity-header-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 9px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--ink);
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+.entity-header-link:hover {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+.entity-header-link:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
+}
+
+.entity-page-nav {
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 28px;
+}
+.entity-page-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--ink);
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.35;
+  text-decoration: none;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.entity-page-nav a:hover {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+.entity-page-nav a:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
 }
 
 .entity-toolbar input[type="search"] {
@@ -1130,3 +1185,18 @@ input[type="checkbox"]:disabled {
 .modal-header { flex-wrap: wrap; }
 .modal-header h2, .modal-subtitle { min-width: 0; overflow-wrap: anywhere; }
 .modal-dialog { min-width: 0; }
+
+
+/* Falha em histórico contextual deve permitir nova tentativa sem travar a tela. */
+.audit-context-retry {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  align-items: center;
+}
+.audit-context-retry .entity-form-help {
+  flex: 1 1 180px;
+}
+.audit-context-retry .btn-secondary {
+  min-height: 40px;
+}

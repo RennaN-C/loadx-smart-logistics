@@ -199,7 +199,10 @@ describe("OrderListPage", () => {
     const dialog = await screen.findByRole("dialog");
     expect(await within(dialog).findByText("Av. Brasil, 500")).toBeInTheDocument();
     expect(getOrder).toHaveBeenCalledWith("o1");
-    expect(within(dialog).getByText(/Caixa média.*Quantidade: 4/)).toBeInTheDocument();
+    expect(within(dialog).getByText("Caixa média")).toBeInTheDocument();
+    expect(within(dialog).getByText("Quantidade: 4")).toBeInTheDocument();
+    expect(within(dialog).getByText("Entrega: 1")).toBeInTheDocument();
+    expect(within(dialog).getByText("Link permanente do pedido")).toHaveAttribute("href", "/orders?order=o1");
     expect(within(dialog).queryByText("Histórico do pedido")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Editar" })).not.toBeInTheDocument();
     fireEvent.click(within(dialog).getByRole("button", { name: "Voltar à lista de pedidos" }));

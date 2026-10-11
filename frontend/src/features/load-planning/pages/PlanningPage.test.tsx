@@ -271,6 +271,37 @@ describe("PlanningPage", () => {
     expect(t1?.textContent).not.toContain("em operação");
   });
 
+  it("não confunde erro ao carregar caminhões com lista vazia e permite tentar novamente", async () => {
+    vi.mocked(listTrucks).mockRejectedValueOnce(new ApiError("NETWORK_ERROR", "Falha de rede."));
+    renderAt("/planning");
+
+    expect(await screen.findByText(/Não foi possível carregar os dados necessários para planejar/)).toBeInTheDocument();
+    expect(screen.queryByText(/Nenhum pedido pronto para planejar/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Tentar novamente" }));
+    expect(await screen.findByLabelText("CAMINHÃO")).toBeInTheDocument();
+    expect(listTrucks).toHaveBeenCalledTimes(2);
+  });
+
+
+  it.each(["orders", "availability"])("oferece retry quando a consulta de %s falha", async (source) => {
+    const load = source === "orders" ? listOrders : listTruckOperationalStatus;
+    vi.mocked(load).mockRejectedValueOnce(new ApiError("NETWORK_ERROR", "Falha de rede."));
+    renderAt("/planning");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Não foi possível carregar");
+    expect(screen.queryByLabelText("CAMINHÃO")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Tentar novamente" }));
+    expect(await screen.findByLabelText("CAMINHÃO")).toBeInTheDocument();
+    expect(load).toHaveBeenCalledTimes(2);
+  });
+
+  it("anuncia carregamento enquanto aguarda a disponibilidade", async () => {
+    vi.mocked(listTruckOperationalStatus).mockImplementationOnce(() => new Promise(() => {}));
+    renderAt("/planning");
+    expect(screen.getByRole("status")).toHaveTextContent("Carregando caminhões e pedidos");
+    expect(screen.queryByLabelText("CAMINHÃO")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Nenhum pedido pronto/)).not.toBeInTheDocument();
+  });
+
   it("só habilita o cálculo com caminhão e ao menos um pedido", async () => {
     renderAt("/planning");
     await screen.findByLabelText("CAMINHÃO");

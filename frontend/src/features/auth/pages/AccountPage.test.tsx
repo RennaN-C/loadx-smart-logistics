@@ -24,6 +24,7 @@ describe("OC92 Meu perfil", () => {
     expect(screen.getByRole("form", { name: "Dados pessoais" })).toHaveTextContent({ ADMIN: "Administrador", LOGISTICS_MANAGER: "Gestor de logística", CHECKER: "Conferente", DRIVER: "Motorista" }[role]);
     expect(screen.queryByLabelText("Perfil de acesso")).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Meu perfil" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: "Voltar ao início" })).toHaveClass("entity-header-link");
     fireEvent.click(screen.getByRole("link", { name: "Voltar ao início" }));
     await screen.findByRole("heading", { name: "Início da operação" });
     fireEvent.click(screen.getByRole("link", { name: "Meu perfil" }));

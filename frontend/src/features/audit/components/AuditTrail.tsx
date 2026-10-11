@@ -17,6 +17,7 @@ export function AuditTrail({
 }: AuditTrailProps) {
   const [entries, setEntries] = useState<AuditEntry[]>([]);
   const [state, setState] = useState<"loading" | "success" | "error">("loading");
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -45,7 +46,7 @@ export function AuditTrail({
     return () => {
       active = false;
     };
-  }, [entityId, entityType]);
+  }, [entityId, entityType, attempt]);
 
   return (
     <section className="audit-context" aria-labelledby={`audit-context-${entityId}`}>
@@ -54,15 +55,25 @@ export function AuditTrail({
         <span>Últimos eventos</span>
       </div>
 
-      {state === "loading" ? <p className="entity-state">Carregando histórico…</p> : null}
+      {state === "loading" ? (
+        <output className="entity-state">
+          <span className="spinner" aria-hidden="true" />
+          <span>Carregando histórico…</span>
+        </output>
+      ) : null}
       {state === "error" ? (
-        <p className="entity-form-help">Histórico indisponível no momento.</p>
+        <div className="audit-context-retry">
+          <p className="entity-form-help">Histórico indisponível no momento.</p>
+          <button type="button" className="btn-secondary" onClick={() => setAttempt((current) => current + 1)}>
+            Tentar carregar histórico novamente
+          </button>
+        </div>
       ) : null}
       {state === "success" && entries.length === 0 ? (
         <p className="entity-form-help">Nenhum evento registrado para este item.</p>
       ) : null}
 
-      {entries.length > 0 ? (
+      {state === "success" && entries.length > 0 ? (
         <ol className="audit-context-list">
           {entries.map((entry) => (
             <li key={entry.id}>

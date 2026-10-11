@@ -73,7 +73,7 @@ export function TripPage() {
 
   return (
     <div className="entity-page">
-      <nav className="entity-toolbar" aria-label="Caminhos da viagem">
+      <nav className="entity-toolbar entity-page-nav" aria-label="Caminhos da viagem">
         <Link to="/">{user?.role === "DRIVER" ? "Voltar às minhas viagens" : "Voltar ao início"}</Link>
         {trip && (user?.role === "ADMIN" || user?.role === "LOGISTICS_MANAGER") ? <Link to={`/planning/${trip.loadPlanId}`}>Voltar ao plano de origem</Link> : null}
       </nav>
