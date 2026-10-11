@@ -182,4 +182,29 @@ describe("OC85: navegação e autorização na aplicação", () => {
     expect(screen.getByLabelText("Nome empresarial")).toHaveAttribute("readonly");
   });
 
+  it("oferece quatro abas com labels curtos e nomes acessíveis completos", async () => {
+    render(<App />);
+    await screen.findByRole("heading", { name: "Configurações", level: 1 });
+    const navigation = screen.getByRole("navigation", { name: "Seções de configurações" });
+    expect(within(navigation).getAllByRole("link")).toHaveLength(4);
+    for (const [name, label] of [["Conta e administração", "Conta"], ["Dados da empresa", "Empresa"], ["Integrações e Saúde", "Integrações"], ["Configurações do LoadX", "Operação"]]) {
+      const link = within(navigation).getByRole("link", { name });
+      expect(link).toHaveTextContent(label);
+      fireEvent.click(link);
+      expect(link).toHaveAttribute("aria-current", "location");
+      expect(screen.getByRole("region", { name })).toBeVisible();
+    }
+  });
+
+  it("Operação oferece atalhos existentes sem simular configurações editáveis", async () => {
+    window.history.replaceState({}, "", "/settings#settings-logistics");
+    render(<App />);
+    await screen.findByRole("heading", { name: "Configurações", level: 1 });
+    const operation = screen.getByRole("region", { name: "Configurações do LoadX" });
+    expect(within(operation).getByRole("link", { name: /Consultar frota/ })).toHaveAttribute("href", "/fleet");
+    expect(within(operation).getByRole("link", { name: /Ir para planejamento/ })).toHaveAttribute("href", "/planning");
+    expect(within(operation).queryByRole("textbox")).not.toBeInTheDocument();
+    expect(within(operation).queryByRole("button")).not.toBeInTheDocument();
+  });
+
 });
