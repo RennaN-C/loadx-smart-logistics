@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { Icon } from "../../../components/Icon";
 import { FormField } from "../../../components/FormField";
 import { fieldErrorProps } from "../../../components/fieldErrorProps";
 import { validationFieldMessages, validationMessage } from "../../../services/validationErrors";
@@ -15,6 +16,11 @@ const FIELDS = [
   { key: "phone", label: "Telefone", max: 20, required: false, type: "tel" },
   { key: "email", label: "E-mail institucional", max: 255, required: false, type: "email" },
   { key: "logo_reference", label: "Referência de logotipo", max: 2048, required: false, type: "url" },
+] as const;
+const GROUPS = [
+  { id: "identity", title: "Identificação da empresa", description: "Nome institucional e identificação fiscal da empresa.", icon: "orders", fields: ["legal_name", "display_name", "cnpj"] },
+  { id: "contact", title: "Canais de contato", description: "Informações institucionais para contato com a empresa.", icon: "users", fields: ["phone", "email"] },
+  { id: "brand", title: "Referência de marca", description: "Endereço de referência do logotipo, sem envio de arquivos.", icon: "settings", fields: ["logo_reference"] },
 ] as const;
 const LABELS = Object.fromEntries(FIELDS.map((field) => [field.key, field.label]));
 
@@ -41,6 +47,9 @@ export function CompanyProfileForm() {
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [retry]);
+  useEffect(() => {
+    if (editing) form.current?.querySelector<HTMLInputElement>("input")?.focus();
+  }, [editing]);
   function cancel() {
     setDraft(stored ?? EMPTY); setEditing(false); setErrors({}); setError(null); setSuccess(false);
   }
@@ -65,23 +74,28 @@ export function CompanyProfileForm() {
   if (loading) return <output className="company-profile-feedback">Carregando dados da empresa…</output>;
   if (!loaded) return <div><p role="alert">{error}</p><button type="button" className="btn-secondary" onClick={() => setRetry((value) => value + 1)}>Tentar novamente</button></div>;
   return <>
-    <p>Cadastro institucional do LoadX. Campos opcionais podem ficar em branco.</p>
-    {!stored && <p>A empresa ainda não possui dados institucionais cadastrados.</p>}
     {error && <p role="alert" className="entity-form-error">{error}</p>}
-    {success && <output className="company-profile-feedback">Dados da empresa salvos com sucesso.</output>}
+    {success && <output className="company-profile-feedback company-profile-success">Dados da empresa salvos com sucesso.</output>}
     <form className="entity-form company-profile-form" ref={form} onSubmit={save} aria-label="Dados institucionais da empresa" aria-busy={saving}>
-      <div className="company-profile-fields">
-        {FIELDS.map((field) => {
-          const id = `company-${field.key}`;
-          return <FormField key={field.key} id={id} label={field.label} error={errors[field.key]} hint={field.key === "logo_reference" ? "URL HTTPS sem credenciais. Apenas referência; não envia nem carrega arquivos." : undefined}>
-            <input id={id} name={field.key} type={field.type} maxLength={field.max} required={editing && field.required} readOnly={!editing} disabled={saving} value={draft[field.key] ?? ""} {...fieldErrorProps(id, errors[field.key])} onChange={(event) => setDraft((value) => ({ ...value, [field.key]: event.target.value }))} />
-          </FormField>;
-        })}
-      </div>
-      <div className="company-profile-actions">
-        {editing ? <><button type="submit" className="btn-primary" disabled={saving}>{saving ? "Salvando…" : "Salvar dados da empresa"}</button><button type="button" className="btn-secondary" disabled={saving} onClick={cancel}>Cancelar</button></> : <button type="button" className="btn-primary" onClick={() => { setEditing(true); setSuccess(false); }}>{stored ? "Editar dados da empresa" : "Cadastrar dados da empresa"}</button>}
-      </div>
+      <div className="company-profile-toolbar"><p>{stored ? "Cadastro institucional do LoadX." : "A empresa ainda não possui dados institucionais cadastrados."}<span>Campos opcionais podem ficar em branco.</span></p><span className="settings-readonly">{editing ? "Em edição" : "Somente leitura"}</span></div>
+      {GROUPS.map((group) => <section className="company-profile-card" key={group.id} aria-labelledby={`company-group-${group.id}`}>
+        <div className="company-profile-card-heading"><span className="settings-card-icon"><Icon name={group.icon} size={20} /></span><div><h3 id={`company-group-${group.id}`}>{group.title}</h3><p>{group.description}</p></div></div>
+        <div className="company-profile-fields">
+          {FIELDS.filter((field) => (group.fields as readonly string[]).includes(field.key)).map((field) => {
+            const id = `company-${field.key}`;
+            return <div key={field.key} className={field.key === "legal_name" || field.key === "logo_reference" ? "company-profile-field company-profile-field-wide" : "company-profile-field"}>
+              <FormField id={id} label={field.label} error={errors[field.key]} hint={field.key === "logo_reference" ? "URL HTTPS sem credenciais. Apenas referência; não envia nem carrega arquivos." : undefined}>
+                <span id={`${id}-requirement`} className="company-field-requirement">{field.required ? "Obrigatório" : "Opcional"}</span>
+                <input id={id} name={field.key} type={field.type} maxLength={field.max} required={editing && field.required} readOnly={!editing} disabled={saving} value={draft[field.key] ?? ""} {...fieldErrorProps(id, errors[field.key])} aria-describedby={errors[field.key] ? `${id}-error` : `${id}-requirement`} onChange={(event) => setDraft((value) => ({ ...value, [field.key]: event.target.value }))} />
+              </FormField>
+            </div>;
+          })}
+        </div>
+      </section>)}
+      <div className="company-profile-footer"><p>{editing ? "As alterações serão aplicadas após salvar." : "Para alterar as informações, ative a edição."}</p><div className="company-profile-actions">
+        {editing ? <><button type="button" className="btn-secondary" disabled={saving} onClick={cancel}>Cancelar</button><button type="submit" className="btn-primary" disabled={saving}>{saving ? "Salvando…" : "Salvar dados da empresa"}</button></> : <button type="button" className="btn-primary" onClick={() => { setEditing(true); setSuccess(false); }}>{stored ? "Editar dados da empresa" : "Cadastrar dados da empresa"}</button>}
+      </div></div>
     </form>
-    {stored && <AuditTrail key={stored.updated_at} entityType="COMPANY_PROFILE" entityId={stored.id} title="Histórico de alterações da empresa" />}
+    {stored && <details className="company-profile-history"><summary>Histórico de alterações da empresa</summary><AuditTrail key={stored.updated_at} entityType="COMPANY_PROFILE" entityId={stored.id} title="Histórico de alterações da empresa" /></details>}
   </>;
 }
