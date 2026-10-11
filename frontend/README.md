@@ -91,10 +91,10 @@ integração CoreFlow. [Estrutura extensível](src/features/settings/README.md).
 
 `CONFIRMADO`: links de retorno nas telas de conta, planejamento, viagem e
 carregamento usam ações contextuais com cores, foco visível e área clicável
-consistente. Configurações usa navegação interna por seções, com painel ativo à direita no
-desktop e grade no mobile. Fragmentos da URL preservam acesso direto e histórico
+consistente. Configurações usa quatro abas horizontais integradas ao conteúdo (Conta, Empresa,
+Integrações e Operação), mantendo apenas a sidebar principal. Fragmentos da URL preservam acesso direto e histórico
 do navegador; rascunhos permanecem ao alternar seções. Dados institucionais usam
-cards de identificação, contato e marca; integrações apresentam indicadores
+um formulário com grupos e divisórias, sem cards aninhados; integrações apresentam indicadores
 compactos com limites expansíveis. Rotas, contratos e autorizações preservados.
 
 `CONFIRMADO`: o detalhe do pedido diferencia referência, situação, endereço,

@@ -57,8 +57,11 @@ Sem storage local. Não implementa OC83, OC84, OC103 ou provider externo de IA.
 
 ## Experiência de Configurações — manutenção #200
 
-`CONFIRMADO`: a página usa navegação interna lateral no desktop e grade de
-seções no tablet/celular. Somente uma seção fica visível e disponível à
+`CONFIRMADO`: a página usa quatro abas horizontais: Conta, Empresa,
+Integrações e Operação. A sidebar principal é a única navegação lateral.
+No celular, as abas priorizam os nomes, com indicador ativo e foco visível.
+São links nativos em navegação nomeada com `aria-current`, acessíveis por Tab/Enter;
+não simulam o padrão ARIA de tabs sem seu comportamento de teclado. Somente uma seção fica visível e disponível à
 tecnologia assistiva por vez. Os fragmentos existentes (`#settings-account`,
 `#settings-company`, `#settings-integrations`, `#settings-logistics`) abrem a
 seção correspondente após F5 ou acesso direto. Anterior/próxima do navegador
@@ -72,20 +75,24 @@ institucional existente. A edição foca o primeiro campo; erro de validação
 preserva o rascunho e foca o campo inválido.
 
 `CONFIRMADO`: o formulário institucional agrupa identificação, contato e marca
-em cards, com labels associados, indicação de obrigatoriedade e grid responsivo.
+em uma única superfície de formulário, com divisórias entre grupos e orientação
+lateral no desktop. Labels associados, campos de 48 px, indicação de
+obrigatoriedade e grid responsivo preservam leitura e alinhamento.
 Consulta e edição possuem apresentação distinta. Histórico fica recolhido em
 `details` nativo, disponível por teclado. Nenhum campo, formato, regra de
 validação, payload ou endpoint mudou.
 
-`CONFIRMADO`: os indicadores de saúde mantêm estado, motivo, modo e configuração
-visíveis. Escopo/limites e referência de correlação podem ser expandidos, sem
+`CONFIRMADO`: os indicadores de saúde mostram nome, status e propósito de cada
+serviço em cards compactos. Motivo, modo, configuração, escopo/limites e referência
+de correlação podem ser expandidos, sem
 inventar histórico ou métricas. Atualização continua somente leitura; falha,
 timeout, configuração desconhecida e último resultado desatualizado mantêm as
 regras da OC108. WhatsApp continua identificado como simulado.
 
-`CONFIRMADO`: a conta usa identidade real da sessão e link para `/account`.
+`CONFIRMADO`: a conta apresenta identidade real da sessão e ação de segurança em uma
+única superfície com separadores, sem cards aninhados, e link para `/account`.
 Gestão de usuários continua preparação discreta da OC86. Configurações do LoadX
-não cria controles para parâmetros inexistentes: oferece contexto e links para
+não cria controles para parâmetros inexistentes: oferece contexto e dois atalhos independentes para
 as rotas existentes `/fleet` e `/planning`. ADMIN continua sendo o único perfil
 com acesso a Configurações, incluindo os serviços administrativos no backend.
 
