@@ -1,80 +1,68 @@
-.settings-navigation {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 24px 0;
+.entity-page.settings-page { max-width: 1360px; }
+.entity-header.settings-header { align-items: center; margin-bottom: 32px; }
+.entity-header.settings-header h1 { font-size: clamp(1.7rem, 2.5vw, 2.15rem); letter-spacing: -.035em; }
+.settings-eyebrow { margin: 0 0 8px; font-size: .72rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--accent-strong); }
+.settings-header .entity-lede { font-size: .9rem; line-height: 1.65; max-width: 640px; }
+.settings-access { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; color: var(--muted); font-size: .75rem; }
+.settings-workspace { display: grid; grid-template-columns: 224px minmax(0, 1fr); gap: 28px; align-items: start; }
+.settings-navigation { display: flex; flex-direction: column; gap: 6px; position: sticky; top: 24px; }
+.settings-nav-caption { margin: 0 12px 10px; font-size: .68rem; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+.settings-nav-link { display: flex; align-items: flex-start; gap: 12px; min-height: 64px; padding: 14px 12px; border: 1px solid transparent; border-radius: 10px; color: var(--muted); text-decoration: none; transition: background-color .15s ease, border-color .15s ease; }
+.settings-nav-link > svg { flex-shrink: 0; margin-top: 2px; }
+.settings-nav-link > span { min-width: 0; font-size: .82rem; font-weight: 600; line-height: 1.45; }
+.settings-nav-link small { display: block; font-size: .7rem; font-weight: 400; color: var(--muted); margin-top: 5px; }
+.settings-nav-link:hover { background: var(--card); color: var(--ink); }
+.settings-nav-link[aria-current] { color: var(--accent-strong); background: var(--accent-bg); border-color: var(--accent); }
+.settings-nav-link:focus-visible, .settings-account-link:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 3px; }
+.settings-content { min-width: 0; }
+.settings-section { min-width: 0; border: 1px solid var(--line); border-radius: 14px; background: var(--card); overflow-wrap: anywhere; box-shadow: 0 6px 24px rgba(0, 0, 0, .035); }
+.settings-section[hidden] { display: none; }
+.settings-section-header { padding: 26px 28px 22px; border-bottom: 1px solid var(--line); }
+.settings-section-header h2 { margin: 0; font-size: 1.2rem; font-weight: 600; letter-spacing: -.025em; }
+.settings-section-header p { margin: 8px 0 0; font-size: .82rem; line-height: 1.65; color: var(--muted); max-width: 640px; }
+.settings-section-body { padding: 26px 28px; }
+.settings-page .btn-primary, .settings-page .btn-secondary, .settings-account-link { min-height: 44px; border-radius: 8px; font-size: .82rem; padding: 10px 16px; white-space: normal; text-align: center; }
+.settings-page .btn-primary:disabled, .settings-page .btn-secondary:disabled { opacity: .6; cursor: wait; }
+.settings-account-card { padding: 22px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); }
+.settings-card-heading { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.settings-card-heading > div { flex: 1 1 180px; min-width: 0; }
+.settings-card-heading h3, .settings-account-action h3, .settings-upcoming h3, .settings-operational-note h3 { margin: 0; font-size: .94rem; font-weight: 600; }
+.settings-card-heading p, .settings-account-action p, .settings-upcoming p, .settings-operational-note p { margin: 6px 0 0; color: var(--muted); font-size: .8rem; line-height: 1.65; }
+.settings-readonly, .settings-pending { display: inline-flex; align-items: center; padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; font-size: .67rem; color: var(--muted); }
+.settings-profile { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 24px; margin: 24px 0; }
+.settings-profile > div { min-width: 0; }
+.settings-profile dt { font-size: .72rem; color: var(--muted); margin-bottom: 6px; }
+.settings-profile dd { font-size: .86rem; margin: 0; color: var(--ink); }
+.settings-account-action { border-top: 1px solid var(--line); padding-top: 20px; display: flex; flex-wrap: wrap; gap: 18px; align-items: center; }
+.settings-account-action > div { flex: 1 1 240px; }
+.settings-account-link { display: inline-flex; justify-content: center; align-items: center; gap: 8px; background: var(--accent-bg); color: var(--accent-strong); border: 1px solid var(--accent); text-decoration: none; font-weight: 600; }
+.settings-account-link:hover { filter: brightness(1.08); }
+.settings-upcoming { margin-top: 24px; padding: 0 4px; }
+.settings-upcoming > div { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.settings-upcoming p { max-width: 580px; }
+.settings-operational-note { display: flex; gap: 16px; align-items: flex-start; }
+.settings-card-icon { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 42px; height: 42px; border: 1px solid var(--line); border-radius: 10px; color: var(--accent-strong); background: var(--paper); }
+.settings-operational-links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+@media (max-width: 1100px) {
+  .settings-workspace { grid-template-columns: 196px minmax(0, 1fr); gap: 20px; }
+  .settings-section-header, .settings-section-body { padding: 22px; }
 }
-
-.settings-navigation a {
-  display: inline-flex;
-  align-items: center;
-  min-height: 40px;
-  padding: 8px 14px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: var(--card);
-  color: var(--ink);
-  font-size: 0.88rem;
-  font-weight: 600;
-  line-height: 1.4;
-  text-decoration: none;
+@media (max-width: 900px) {
+  .settings-workspace { grid-template-columns: minmax(0, 1fr); }
+  .settings-navigation { position: static; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .settings-nav-caption { grid-column: 1 / -1; margin: 0 0 4px; }
+  .settings-nav-link { background: var(--card); border-color: var(--line); }
 }
-.settings-navigation a:hover {
-  color: var(--accent-strong);
-  background: var(--accent-bg);
-  border-color: var(--accent);
-}
-.settings-navigation a:focus-visible,
-.settings-account-link:focus-visible {
-  outline: 2px solid var(--accent-strong);
-  outline-offset: 3px;
-}
-
-.settings-account-link {
-  display: inline-flex;
-  align-items: center;
-  min-height: 38px;
-  padding: 8px 12px;
-  border: 1px solid var(--accent);
-  border-radius: 8px;
-  background: var(--accent-bg);
-  color: var(--accent-strong);
-  font-size: 0.88rem;
-  font-weight: 600;
-  text-decoration: none;
-}
-.settings-account-link:hover {
-  filter: brightness(1.1);
-}
-
-.settings-section {
-  min-width: 0;
-  padding: 24px;
-  margin-top: 20px;
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  overflow-wrap: anywhere;
-  scroll-margin-top: 24px;
-}
-
-.settings-section h2 { margin: 0 0 20px; font-size: 1.3rem; }
-.settings-section h3 { margin: 0 0 8px; font-size: 1rem; }
-.settings-section p { color: var(--muted); }
-
-.settings-profile, .settings-upcoming {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 20px;
-}
-
-.settings-profile dt { color: var(--muted); font-size: 0.85rem; }
-.settings-profile dd { margin: 4px 0 0; }
-.settings-upcoming { padding: 20px 0 0; list-style: none; border-top: 1px solid var(--line); }
-.settings-pending { color: var(--muted); font-size: 0.85rem; }
-
-@media (max-width: 720px) {
-  .settings-profile, .settings-upcoming { grid-template-columns: minmax(0, 1fr); }
-  .settings-section { padding: 20px; }
+@media (max-width: 520px) {
+  .entity-header.settings-header { gap: 16px; margin-bottom: 24px; }
+  .settings-access { font-size: .7rem; }
+  .settings-nav-link { padding: 12px 10px; gap: 8px; min-height: 68px; }
+  .settings-nav-link > span { font-size: .75rem; }
+  .settings-nav-link small { display: none; }
+  .settings-nav-link > svg { width: 17px; height: 17px; }
+  .settings-section-header, .settings-section-body { padding: 20px 16px; }
+  .settings-account-card { padding: 18px 16px; }
+  .settings-profile { grid-template-columns: minmax(0, 1fr); }
+  .settings-account-link { width: 100%; }
+  .settings-operational-note { flex-direction: column; }
 }
