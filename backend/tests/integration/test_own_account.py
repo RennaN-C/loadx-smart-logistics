@@ -121,11 +121,9 @@ def test_password_change_revokes_every_session_and_requires_login(
         ).status_code
         == 200
     )
-    assert (
-        PASSWORD not in caplog.text
-        and NEW_PASSWORD not in caplog.text
-        and user.email not in caplog.text
-    )
+    assert PASSWORD not in caplog.text
+    assert NEW_PASSWORD not in caplog.text
+    assert user.email not in caplog.text
 
 
 @pytest.mark.parametrize("password", ["short", "a" * 129, "passwordpassword"])
@@ -159,7 +157,8 @@ def test_wrong_password_and_existing_throttle(client, session_factory):
         headers=headers,
         json={"current_password": PASSWORD, "new_password": NEW_PASSWORD},
     )
-    assert blocked.status_code == 429 and blocked.headers["retry-after"]
+    assert blocked.status_code == 429
+    assert blocked.headers['retry-after']
     assert client.get(BASE, headers=headers).status_code == 200
 
 
@@ -177,7 +176,8 @@ def test_session_list_real_metadata_excludes_expired_and_foreign(
         expired.idle_expires_at = datetime.now(UTC) - timedelta(seconds=1)
         db.commit()
     rows = client.get(BASE + "/sessions", headers=headers).json()
-    assert len(rows) == 2 and sum(row["current"] for row in rows) == 1
+    assert len(rows) == 2
+    assert sum((row['current'] for row in rows)) == 1
     assert all(
         set(row)
         == {
@@ -206,7 +206,8 @@ def test_revoke_other_and_current_sessions(client, session_factory):
     assert client.get(BASE, headers=other).status_code == 401
     current_id = next(row["id"] for row in rows if row["current"])
     response = client.delete(BASE + "/sessions/" + current_id, headers=current)
-    assert response.status_code == 204 and "Max-Age=0" in response.headers["set-cookie"]
+    assert response.status_code == 204
+    assert 'Max-Age=0' in response.headers['set-cookie']
     assert client.get(BASE, headers=current).status_code == 401
 
 
@@ -237,10 +238,8 @@ def test_cannot_revoke_foreign_or_unknown_session(client, session_factory):
     foreign_id = client.get(BASE + "/sessions", headers=foreign).json()[0]["id"]
     for session_id in (foreign_id, str(uuid.uuid4())):
         response = client.delete(BASE + "/sessions/" + session_id, headers=headers)
-        assert (
-            response.status_code == 404
-            and response.json()["code"] == "AUTH_SESSION_NOT_FOUND"
-        )
+        assert response.status_code == 404
+        assert response.json()['code'] == 'AUTH_SESSION_NOT_FOUND'
     assert client.get(BASE, headers=foreign).status_code == 200
 
 
@@ -331,7 +330,8 @@ def test_profile_audit_contains_fields_without_values(client, session_factory, c
     assert "novo@example.test" not in caplog.text
     with session_factory() as db:
         event = db.scalars(select(AuditEvent)).one()
-        assert event.actor_id == user.id and event.entity_id == user.id
+        assert event.actor_id == user.id
+        assert event.entity_id == user.id
         assert event.changed_fields == "email,name"
         assert "novo@example.test" not in str(event.__dict__)
 

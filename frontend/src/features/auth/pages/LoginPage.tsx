@@ -29,8 +29,8 @@ export function LoginPage() {
     <div className="login-page">
       <BrandPanel />
       <main className="login-formside">
-        {accountNotice === "password-changed" && <p role="status">Senha alterada. Todas as sessões foram encerradas; entre novamente.</p>}
-        {accountNotice === "session-revoked" && <p role="status">Sessão encerrada. Entre novamente para continuar.</p>}
+        {accountNotice === "password-changed" && <output>Senha alterada. Todas as sessões foram encerradas; entre novamente.</output>}
+        {accountNotice === "session-revoked" && <output>Sessão encerrada. Entre novamente para continuar.</output>}
         <LoginForm />
       </main>
     </div>
