@@ -56,7 +56,17 @@ class AuthSessionService:
         self.secret_key = secret_key.encode()
         self.now_provider = now_provider or (lambda: datetime.now(UTC))
 
-    def create_session(self, user_id: uuid.UUID) -> IssuedAuthSession:
+    def create_session(
+        self, user_id: uuid.UUID, *, expected_password_hash: str | None = None
+    ) -> IssuedAuthSession:
+        if expected_password_hash is not None:
+            user = self.repository.lock_session_user(user_id)
+            if (
+                user is None
+                or not user.active
+                or user.password_hash != expected_password_hash
+            ):
+                raise AuthSessionInvalidError
         now = self.now_provider()
         token = secrets.token_urlsafe(SESSION_TOKEN_BYTES)
         auth_session = self.repository.add(

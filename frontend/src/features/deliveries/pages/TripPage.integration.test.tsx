@@ -43,7 +43,7 @@ describe("TripPage com adapter e hook reais", () => {
         id: "u1", name: "Motorista de teste", email: "driver@example.test",
         role: "DRIVER", active: true, createdAt: "2026-09-09T00:00:00Z",
       },
-      login: vi.fn(), logout: vi.fn(),
+      login: vi.fn(), updateUser: vi.fn(), logout: vi.fn(),
     });
     vi.mocked(api.get).mockResolvedValueOnce({ data: tripDto("PENDING") });
   });

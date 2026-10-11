@@ -16,4 +16,6 @@ export interface AuthContextValue {
   user: AuthenticatedUser | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  updateUser: (user: AuthenticatedUser | null, accountNotice?: "password-changed" | "session-revoked") => void;
+  accountNotice?: "password-changed" | "session-revoked";
 }

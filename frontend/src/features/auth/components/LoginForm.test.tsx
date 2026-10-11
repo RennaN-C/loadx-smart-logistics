@@ -61,7 +61,7 @@ describe("LoginForm", () => {
           resolveLogin = resolve;
         }),
     );
-    vi.mocked(useAuth).mockReturnValue({ status: "unauthenticated", user: null, login, logout: vi.fn() });
+    vi.mocked(useAuth).mockReturnValue({ status: "unauthenticated", user: null, login, updateUser: vi.fn(), logout: vi.fn() });
 
     render(<LoginForm />);
 
@@ -80,7 +80,7 @@ describe("LoginForm", () => {
     const login = vi
       .fn()
       .mockRejectedValue(new ApiError("AUTH_INVALID_CREDENTIALS", "E-mail ou senha inválidos."));
-    vi.mocked(useAuth).mockReturnValue({ status: "unauthenticated", user: null, login, logout: vi.fn() });
+    vi.mocked(useAuth).mockReturnValue({ status: "unauthenticated", user: null, login, updateUser: vi.fn(), logout: vi.fn() });
 
     render(<LoginForm />);
 

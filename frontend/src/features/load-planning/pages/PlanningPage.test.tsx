@@ -104,6 +104,7 @@ function mockRole(role: "LOGISTICS_MANAGER" | "CHECKER") {
       createdAt: "2026-08-01T00:00:00Z",
     },
     login: vi.fn(),
+    updateUser: vi.fn(),
     logout: vi.fn(),
   });
 }
@@ -478,7 +479,7 @@ it("OC100 remove caminhão em manutenção da seleção de planejamento", async 
   vi.mocked(listTruckOperationalStatus).mockResolvedValue(makePage([{ id: "t-maint", plate: "ABC1D23", model: "Baú", active: true, hasOperationConflict: false, hasMaintenanceConflict: true, available: false }]));
   vi.mocked(listOrders).mockResolvedValue(makePage([]));
   vi.mocked(listCustomers).mockResolvedValue(makePage([]));
-  vi.mocked(useAuth).mockReturnValue({ user: { id: "u1", name: "Gestor", email: "manager@example.test", role: "LOGISTICS_MANAGER", active: true, createdAt: "2026-01-01T00:00:00Z" }, status: "authenticated", login: vi.fn(), logout: vi.fn() });
+  vi.mocked(useAuth).mockReturnValue({ user: { id: "u1", name: "Gestor", email: "manager@example.test", role: "LOGISTICS_MANAGER", active: true, createdAt: "2026-01-01T00:00:00Z" }, status: "authenticated", login: vi.fn(), updateUser: vi.fn(), logout: vi.fn() });
   renderAt("/planning");
   await screen.findByLabelText("CAMINHÃO");
   expect(screen.queryByRole("option", { name: /ABC1D23/ })).not.toBeInTheDocument();

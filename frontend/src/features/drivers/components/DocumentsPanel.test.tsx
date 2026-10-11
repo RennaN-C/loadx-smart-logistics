@@ -11,7 +11,7 @@ const changed = vi.fn().mockResolvedValue(undefined);
 function show(active = true) { render(<DocumentsPanel driver={{ ...driver, active }} onChanged={changed}/>); }
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(useAuth).mockReturnValue({ user: { id: "u1", name: "Gestor", email: "manager@example.test", role: "LOGISTICS_MANAGER", active: true, createdAt: "2026-01-01T00:00:00Z" }, status: "authenticated", login: vi.fn(), logout: vi.fn() });
+  vi.mocked(useAuth).mockReturnValue({ user: { id: "u1", name: "Gestor", email: "manager@example.test", role: "LOGISTICS_MANAGER", active: true, createdAt: "2026-01-01T00:00:00Z" }, status: "authenticated", login: vi.fn(), updateUser: vi.fn(), logout: vi.fn() });
   vi.mocked(listDocuments).mockResolvedValue({ items: [record], page: 1, pageSize: 20, total: 1, totalPages: 1 });
   vi.mocked(listDocumentTypes).mockResolvedValue([{ id: "cnh", code: "CNH", name: "CNH" }]); vi.mocked(listDocumentPolicies).mockResolvedValue([]);
   vi.mocked(saveDocument).mockResolvedValue(record); vi.mocked(setDocumentPolicy).mockResolvedValue({ id: "p1", driver_id: "m1", document_type_id: "cnh", required: true, allowed_categories: ["D"] });

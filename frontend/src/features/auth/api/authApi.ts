@@ -1,7 +1,7 @@
 import { api } from "../../../services/api";
 import type { AuthenticatedUser, Role } from "../types";
 
-interface UserDto {
+export interface UserDto {
   id: string;
   name: string;
   email: string;

@@ -56,6 +56,7 @@ function mockRole(role: "LOGISTICS_MANAGER" | "CHECKER") {
       createdAt: "2026-08-01T00:00:00Z",
     },
     login: vi.fn(),
+    updateUser: vi.fn(),
     logout: vi.fn(),
   });
 }

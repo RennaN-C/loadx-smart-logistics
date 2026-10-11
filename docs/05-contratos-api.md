@@ -1351,3 +1351,12 @@ UNAVAILABLE e TIMEOUT; não são criados providers nesta OC. Consultas paralelas
 com falha isolada e configuração desconhecida null. Histórico durável indisponível;
 falhas atuais são correlacionadas por UUID/data e logs sanitizados.
 Contrato detalhado: [integration_health](../backend/app/modules/integration_health/README.md).
+
+
+## OC92 — Minha conta standalone
+
+`CONFIRMADO`: `GET /api/v1/auth/me` continua restaurando usuário e CSRF. Novos contratos próprios: `PATCH /auth/me` (nome/e-mail), `POST /auth/me/password` (confirmação atual e senha nova), `GET /auth/me/sessions`, `DELETE /auth/me/sessions/{session_id}` e `POST /auth/me/sessions/revoke-others`, todos sob prefixo `/api/v1`.
+
+`CONFIRMADO`: todos os perfis autenticados acessam apenas a própria conta. Sem role/active/driver_id editáveis, hashes/tokens nas respostas ou ID de usuário arbitrário. UUID de sessão é referência pública de revogação, não credencial. Sessões listadas são próprias, não revogadas, dentro dos dois prazos existentes; `current` vem da sessão autenticada. Falhas retornam envelope sanitizado; 401/403 e Origin/CSRF mantidos. Senha inválida 400, duplicidade de e-mail 409, schema/política 422, throttling 429. Sessão alheia/inexistente 404 indistinguível.
+
+`CONFIRMADO`: senha válida revoga todas as sessões e exige novo login (204 + remoção do cookie), na mesma transação de hash/auditoria. Revogar as outras preserva a atual; revogar a atual encerra autenticação. Contrato completo e concorrência em [auth/README](../backend/app/modules/auth/README.md). Política: ADR-020; sem migration ou novo modo de identidade/CoreFlow.

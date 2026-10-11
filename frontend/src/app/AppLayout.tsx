@@ -81,6 +81,7 @@ const NAV_GROUPS: readonly NavGroup[] = [
       },
     ],
   },
+  { id: "conta", title: "Minha conta", items: [{ to: "/account", label: "Meu perfil", icon: "users", roles: ALL_ROLES }] },
   {
     id: "administracao",
     title: "Administração",

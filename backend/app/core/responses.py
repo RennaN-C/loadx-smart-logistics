@@ -11,6 +11,7 @@ class ErrorResponse(BaseModel):
 
 
 _ERROR_RESPONSE_DESCRIPTIONS = {
+    400: "Requisição inválida.",
     401: "Autenticação ausente ou inválida.",
     403: "Acesso negado ou usuário inativo.",
     404: "Entidade relacionada não encontrada.",

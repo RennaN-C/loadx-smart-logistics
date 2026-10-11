@@ -15,7 +15,7 @@ const onChanged=vi.fn().mockResolvedValue(undefined);
 function show() { render(<MaintenancePanel truck={truck} onChanged={onChanged}/>); }
 beforeEach(()=>{
  vi.clearAllMocks();
- vi.mocked(useAuth).mockReturnValue({user:{id:"u1",name:"Gestor",email:"manager@example.test",role:"LOGISTICS_MANAGER",active:true,createdAt:"2026-01-01T00:00:00Z"},status:"authenticated",login:vi.fn(),logout:vi.fn()});
+ vi.mocked(useAuth).mockReturnValue({user:{id:"u1",name:"Gestor",email:"manager@example.test",role:"LOGISTICS_MANAGER",active:true,createdAt:"2026-01-01T00:00:00Z"},status:"authenticated",login:vi.fn(),updateUser:vi.fn(),logout:vi.fn()});
  vi.mocked(listMaintenances).mockResolvedValue({items:[record],page:1,pageSize:20,total:1,totalPages:1});
  vi.mocked(getTruck).mockResolvedValue(truck);vi.mocked(updateTruck).mockResolvedValue(truck);
  vi.mocked(createMaintenance).mockResolvedValue(record);vi.mocked(closeMaintenance).mockResolvedValue({...record,closedAt:"2026-01-01T00:00:00Z"});

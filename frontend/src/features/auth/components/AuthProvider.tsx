@@ -9,6 +9,7 @@ import { AuthContext } from "./AuthContext";
 interface AuthState {
   status: AuthStatus;
   user: AuthenticatedUser | null;
+  accountNotice?: "password-changed" | "session-revoked";
 }
 
 interface AuthProviderProps {
@@ -62,14 +63,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setState({ status: "unauthenticated", user: null });
   }, []);
 
+  const updateUser = useCallback((user: AuthenticatedUser | null, accountNotice?: "password-changed" | "session-revoked") => {
+    if (user === null) clearCsrfToken();
+    setState({ status: user ? "authenticated" : "unauthenticated", user, accountNotice });
+  }, []);
+
   const value = useMemo<AuthContextValue>(
     () => ({
       status: state.status,
       user: state.user,
       login,
       logout,
+      updateUser,
+      accountNotice: state.accountNotice,
     }),
-    [state.status, state.user, login, logout],
+    [state.status, state.user, state.accountNotice, login, logout, updateUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

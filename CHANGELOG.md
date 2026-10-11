@@ -1,5 +1,7 @@
 # Changelog
 
+- OC92: Meu perfil para todos os usuários autenticados, edição de nome/e-mail, alteração segura de senha com revogação integral e gerenciamento de sessões próprias; sem migration.
+
 ## OC108 — Painel de integrações e saúde operacional
 
 - Painel ADMIN em Configurações com sinais reais de liveness/readiness e

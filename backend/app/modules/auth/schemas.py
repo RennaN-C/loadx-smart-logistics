@@ -1,5 +1,13 @@
-from pydantic import BaseModel, Field, field_validator
+import uuid
+from datetime import datetime
 
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from app.modules.users.password_policy import (
+    PASSWORD_MAX_LENGTH,
+    PASSWORD_MIN_LENGTH,
+    validate_password_policy,
+)
 from app.modules.users.schemas import EMAIL_PATTERN, normalize_email
 
 
@@ -14,3 +22,36 @@ class AuthLogin(BaseModel):
         if normalized_value is None:
             raise ValueError("email is required")
         return normalized_value
+
+
+class OwnProfileUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    name: str = Field(min_length=1, max_length=120)
+    email: str = Field(min_length=3, max_length=255, pattern=EMAIL_PATTERN)
+
+    @field_validator("email")
+    @classmethod
+    def normalize_own_email(cls, value: str) -> str:
+        return value.lower()
+
+
+class OwnPasswordChange(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    current_password: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(
+        min_length=PASSWORD_MIN_LENGTH, max_length=PASSWORD_MAX_LENGTH
+    )
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_new_password(cls, value: str) -> str:
+        return validate_password_policy(value)
+
+
+class OwnSessionRead(BaseModel):
+    id: uuid.UUID
+    created_at: datetime
+    last_seen_at: datetime
+    idle_expires_at: datetime
+    absolute_expires_at: datetime
+    current: bool

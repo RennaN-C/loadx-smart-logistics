@@ -74,3 +74,8 @@ Não existem clientes externos que precisem preservar o contrato Bearer.
 - [OWASP CSRF Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html).
 - [OWASP Password Storage Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html).
 - [NIST SP 800-63B](https://pages.nist.gov/800-63-4/sp800-63b.html).
+
+
+## Aplicação na OC92
+
+`CONFIRMADO`: os contratos próprios descritos no módulo auth aplicam esta decisão: nome/e-mail editáveis, papel somente leitura, sessão opaca/CSRF, confirmação da senha atual, revogação integral e reautenticação após troca. O UUID público de sessão permite revogação por ownership sem expor credencial. Banco atual suficiente; sem nova migration ou mecanismo de identidade. A ordem de locks usuário → sessões e a verificação do hash no momento da emissão preservam a revogação sob concorrência.

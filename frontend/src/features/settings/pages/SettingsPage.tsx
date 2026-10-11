@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { CompanyProfileForm } from "../components/CompanyProfileForm";
 import { IntegrationHealthPanel } from "../components/IntegrationHealthPanel";
@@ -6,7 +7,6 @@ import "./SettingsPage.css";
 
 const UPCOMING_ACCOUNT_SECTIONS = [
   { id: "users", title: "Gestão de usuários", description: "Cadastro e gestão de acesso dos usuários do LoadX." },
-  { id: "security", title: "Segurança da conta", description: "Gerenciamento de segurança da conta conectada." },
 ] as const;
 
 export function SettingsPage() {
@@ -34,7 +34,7 @@ export function SettingsPage() {
           <div><dt>E-mail</dt><dd>{user.email}</dd></div>
           <div><dt>Perfil</dt><dd>Administrador</dd></div>
         </dl>
-        <p>Informações da sessão atual, somente para consulta.</p>
+        <p>Informações da sessão atual, somente para consulta.</p><Link to="/account">Meu perfil, senha e sessões</Link>
         <ul className="settings-upcoming">
           {UPCOMING_ACCOUNT_SECTIONS.map((section) => (
             <li key={section.id}>

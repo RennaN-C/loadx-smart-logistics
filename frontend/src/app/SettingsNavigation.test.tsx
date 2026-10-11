@@ -121,10 +121,11 @@ describe("OC85: navegação e autorização na aplicação", () => {
     expect(screen.getByRole("region", { name: "Configurações do LoadX" })).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Integrações e Saúde" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Integrações e Saúde" })).toHaveAttribute("href", "#settings-integrations");
-    for (const label of ["Gestão de usuários", "Segurança da conta"]) {
+    for (const label of ["Gestão de usuários"]) {
       expect(within(account()).getByRole("heading", { name: label, level: 3 })).toBeInTheDocument();
       expect(screen.queryByRole("link", { name: label })).not.toBeInTheDocument();
     }
+    expect(within(account()).getByRole("link", { name: "Meu perfil, senha e sessões" })).toHaveAttribute("href", "/account");
     expect(screen.getByRole("region", { name: "Dados da empresa" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Dados da empresa" })).toHaveAttribute("href", "#settings-company");
     const sections = screen.getByRole("navigation", { name: "Seções de configurações" });
