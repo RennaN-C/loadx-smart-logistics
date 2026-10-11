@@ -7,11 +7,11 @@ import { SettingsAccountPanel } from "../components/SettingsAccountPanel";
 import { SettingsSection } from "../components/SettingsSection";
 import "./SettingsPage.css";
 
-const SECTIONS: readonly { id: string; title: string; detail: string; icon: IconName }[] = [
-  { id: "settings-account", title: "Conta e administração", detail: "Sua conta e acesso", icon: "users" },
-  { id: "settings-company", title: "Dados da empresa", detail: "Identificação e contato", icon: "orders" },
-  { id: "settings-integrations", title: "Integrações e Saúde", detail: "Serviços e conectividade", icon: "gauge" },
-  { id: "settings-logistics", title: "Configurações do LoadX", detail: "Contexto operacional", icon: "settings" },
+const SECTIONS: readonly { id: string; title: string; label: string; icon: IconName }[] = [
+  { id: "settings-account", title: "Conta e administração", label: "Conta", icon: "users" },
+  { id: "settings-company", title: "Dados da empresa", label: "Empresa", icon: "orders" },
+  { id: "settings-integrations", title: "Integrações e Saúde", label: "Integrações", icon: "gauge" },
+  { id: "settings-logistics", title: "Configurações do LoadX", label: "Operação", icon: "settings" },
 ];
 
 export function SettingsPage() {
@@ -29,9 +29,8 @@ export function SettingsPage() {
       </header>
       <div className="settings-workspace">
         <nav className="settings-navigation" aria-label="Seções de configurações">
-          <p className="settings-nav-caption">Áreas de configuração</p>
           {SECTIONS.map((section) => <Link key={section.id} to={`#${section.id}`} className="settings-nav-link" aria-label={section.title} aria-current={activeId === section.id ? "location" : undefined}>
-            <Icon name={section.icon} size={20} /><span>{section.title}<small aria-hidden="true">{section.detail}</small></span>
+            <Icon name={section.icon} size={18} /><span>{section.label}</span>
           </Link>)}
         </nav>
         <div className="settings-content">
@@ -40,10 +39,11 @@ export function SettingsPage() {
           <SettingsSection id="settings-company" title="Dados da empresa" description="Identificação institucional, canais de contato e referência de marca." hidden={activeId !== "settings-company"}><CompanyProfileForm /></SettingsSection>
           <SettingsSection id="settings-integrations" title="Integrações e Saúde" description="Consulte o estado real dos serviços e os limites de cada integração." hidden={activeId !== "settings-integrations"}><IntegrationHealthPanel /></SettingsSection>
           <SettingsSection id="settings-logistics" title="Configurações do LoadX" description="Configurações próprias da operação, separadas dos dados da empresa." hidden={activeId !== "settings-logistics"}>
-            <div className="settings-operational-note"><span className="settings-card-icon"><Icon name="truck" size={22} /></span><div>
-              <h3>Parâmetros operacionais</h3><p>Não há configurações logísticas adicionais disponíveis nesta etapa. Cadastros e operações continuam nos respectivos módulos do menu.</p>
-              <div className="settings-operational-links"><Link className="btn-secondary" to="/fleet">Consultar frota</Link><Link className="btn-secondary" to="/planning">Ir para planejamento</Link></div>
-            </div></div>
+            <div className="settings-operational-links">
+              <Link className="settings-operation-link" to="/fleet"><Icon name="truck" size={24} /><div><h3>Frota e disponibilidade</h3><p>Consulte veículos, motoristas e restrições da operação.</p><span>Consultar frota <Icon name="arrow-right" size={16} /></span></div></Link>
+              <Link className="settings-operation-link" to="/planning"><Icon name="planning" size={24} /><div><h3>Planejamento de cargas</h3><p>Acesse os pedidos e os recursos do planejamento.</p><span>Ir para planejamento <Icon name="arrow-right" size={16} /></span></div></Link>
+            </div>
+            <p className="settings-operational-note">Os parâmetros operacionais são gerenciados nos respectivos módulos. Não há configurações logísticas adicionais disponíveis nesta etapa.</p>
           </SettingsSection>
         </div>
       </div>
