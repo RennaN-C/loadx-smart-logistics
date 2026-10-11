@@ -36,23 +36,58 @@ export function OrderDetail({ orderId, onClose, products, canReadHistory }: Orde
 
   return (
     <div className="order-detail">
-      <Link to={`/orders?order=${encodeURIComponent(orderId)}`}>Link permanente do pedido</Link>
-      <p className="entity-form-help">Referência: {orderId}</p>
+      <div className="order-detail-top">
+        <div className="order-detail-identification">
+          <span className="order-detail-caption">Referência do pedido</span>
+          <p className="order-detail-reference">{orderId}</p>
+        </div>
+        <Link className="order-detail-permalink" to={`/orders?order=${encodeURIComponent(orderId)}`}>
+          Link permanente do pedido
+        </Link>
+      </div>
+
       {error ? <AlertBanner>{mapOrderErrorToMessage(error)}</AlertBanner> : null}
-      {!order && !error ? <p role="status">Carregando pedido…</p> : null}
-      {order?.id === orderId ? <>
-        <p>Situação: {STATUS_LABELS[order.status]}</p>
-        <h3>Endereço de entrega registrado</h3>
-        <p>{order.deliveryAddress}</p>
-        <h3>Itens do pedido</h3>
-        <ul className="order-detail-items">
-          {order.items.map((item) => <li key={item.id}>
-            Produto {products.find((product) => product.id === item.productId)?.name ?? item.productId} · Quantidade: {item.quantity} · Entrega: {item.deliverySequence}
-          </li>)}
-        </ul>
-        {canReadHistory ? <AuditTrail entityType="ORDER" entityId={order.id} title="Histórico do pedido" /> : null}
-      </> : null}
-      <button type="button" className="btn-secondary" onClick={onClose}>Voltar à lista de pedidos</button>
+      {!order && !error ? (
+        <p className="entity-state" role="status">
+          <span className="spinner" aria-hidden="true" />
+          Carregando detalhes do pedido…
+        </p>
+      ) : null}
+
+      {order?.id === orderId ? (
+        <>
+          <div className="order-detail-status">
+            <span>Situação do pedido</span>
+            <strong>{STATUS_LABELS[order.status]}</strong>
+          </div>
+
+          <section className="order-detail-section" aria-label="Entrega do pedido">
+            <h3>Endereço de entrega registrado</h3>
+            <p>{order.deliveryAddress}</p>
+          </section>
+
+          <section className="order-detail-section" aria-label="Produtos do pedido">
+            <h3>Itens do pedido</h3>
+            <ul className="order-detail-items">
+              {order.items.map((item) => (
+                <li key={item.id}>
+                  <strong className="order-detail-item-name">
+                    {products.find((product) => product.id === item.productId)?.name ?? item.productId}
+                  </strong>
+                  <span>Quantidade: {item.quantity}</span>
+                  <span>Entrega: {item.deliverySequence}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          {canReadHistory ? <AuditTrail entityType="ORDER" entityId={order.id} title="Histórico do pedido" /> : null}
+        </>
+      ) : null}
+
+      <div className="order-detail-actions">
+        <button type="button" className="btn-secondary" onClick={onClose}>Voltar à lista de pedidos</button>
+      </div>
     </div>
   );
 }
