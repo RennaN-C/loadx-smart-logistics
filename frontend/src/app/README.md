@@ -27,3 +27,21 @@ RequireAuth/AppLayout e monta SettingsPage sob RequireSettingsAdmin; demais
 perfis recebem Acesso negado ao digitar a URL, sem conteúdo administrativo.
 Não muda os itens/permissões operacionais existentes. Seções de conta e de
 logística ficam na feature settings; OC86/91/92 não recebem rotas prematuras.
+
+
+## Navegação recolhível (manutenção #202)
+
+`CONFIRMADO`: em telas acima de 900 px, o botão da sidebar alterna entre
+menu completo (236 px) e trilho compacto (80 px), mantendo ícones clicáveis,
+nomes acessíveis e indicação de item ativo. A preferência usa armazenamento
+local quando disponível e não altera RBAC nem rotas.
+
+`CONFIRMADO`: até 900 px, a navegação fica sob um botão no cabeçalho e abre
+em gaveta sobreposta, sem barra horizontal de links. Pode fechar com botão,
+clique fora, Escape ou ao navegar. Enquanto aberta, a rolagem do fundo
+fica suspensa e o foco retorna ao botão ao fechar. Movimentos reduzidos
+são respeitados.
+
+`PENDENTE DE VALIDAÇÃO MANUAL`: verificar a transição entre 900/901 px e
+larguras 375, 768, 1280 e 1920 px no navegador, em temas claro/escuro,
+incluindo textos longos, rolagem vertical da gaveta e modal aberto.
