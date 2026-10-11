@@ -34,7 +34,7 @@ export function SettingsPage() {
           <div><dt>E-mail</dt><dd>{user.email}</dd></div>
           <div><dt>Perfil</dt><dd>Administrador</dd></div>
         </dl>
-        <p>Informações da sessão atual, somente para consulta.</p><Link to="/account">Meu perfil, senha e sessões</Link>
+        <p>Informações da sessão atual, somente para consulta.</p><Link className="settings-account-link" to="/account">Meu perfil, senha e sessões</Link>
         <ul className="settings-upcoming">
           {UPCOMING_ACCOUNT_SECTIONS.map((section) => (
             <li key={section.id}>

@@ -129,7 +129,7 @@ export function PlanningPage() {
 
   return (
     <div className="entity-page">
-      <nav className="entity-toolbar" aria-label="Caminhos do planejamento">
+      <nav className="entity-toolbar entity-page-nav" aria-label="Caminhos do planejamento">
         <Link to="/">Voltar ao início</Link>
         {user?.role !== "DRIVER" ? <Link to="/orders">Voltar aos pedidos</Link> : null}
         {planId && user?.role !== "DRIVER" ? <Link to="/planning">Voltar ao planejamento</Link> : null}
