@@ -1,11 +1,12 @@
+import { Link } from "react-router-dom";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { CompanyProfileForm } from "../components/CompanyProfileForm";
+import { IntegrationHealthPanel } from "../components/IntegrationHealthPanel";
 import { SettingsSection } from "../components/SettingsSection";
 import "./SettingsPage.css";
 
 const UPCOMING_ACCOUNT_SECTIONS = [
   { id: "users", title: "Gestão de usuários", description: "Cadastro e gestão de acesso dos usuários do LoadX." },
-  { id: "security", title: "Segurança da conta", description: "Gerenciamento de segurança da conta conectada." },
 ] as const;
 
 export function SettingsPage() {
@@ -23,6 +24,7 @@ export function SettingsPage() {
       <nav className="settings-navigation" aria-label="Seções de configurações">
         <a href="#settings-account">Conta e administração</a>
         <a href="#settings-company">Dados da empresa</a>
+        <a href="#settings-integrations">Integrações e Saúde</a>
         <a href="#settings-logistics">Configurações do LoadX</a>
       </nav>
       <SettingsSection id="settings-account" title="Conta e administração">
@@ -32,7 +34,7 @@ export function SettingsPage() {
           <div><dt>E-mail</dt><dd>{user.email}</dd></div>
           <div><dt>Perfil</dt><dd>Administrador</dd></div>
         </dl>
-        <p>Informações da sessão atual, somente para consulta.</p>
+        <p>Informações da sessão atual, somente para consulta.</p><Link to="/account">Meu perfil, senha e sessões</Link>
         <ul className="settings-upcoming">
           {UPCOMING_ACCOUNT_SECTIONS.map((section) => (
             <li key={section.id}>
@@ -44,6 +46,7 @@ export function SettingsPage() {
         </ul>
       </SettingsSection>
       <SettingsSection id="settings-company" title="Dados da empresa"><CompanyProfileForm /></SettingsSection>
+      <SettingsSection id="settings-integrations" title="Integrações e Saúde"><IntegrationHealthPanel /></SettingsSection>
       <SettingsSection id="settings-logistics" title="Configurações do LoadX">
         <p>Esta seção reúne as configurações específicas do módulo logístico,
           separadas da administração da conta e dos dados da empresa.</p>

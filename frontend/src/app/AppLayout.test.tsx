@@ -23,6 +23,7 @@ function signedInAs(role: Role, logout = vi.fn()) {
     user: { ...AUTHENTICATED_USER, role },
     login: vi.fn(),
     logout,
+    updateUser: vi.fn(),
   });
   return logout;
 }

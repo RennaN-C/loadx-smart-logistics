@@ -9,7 +9,11 @@ from app.core.security import (
 )
 from app.core.security_events import SecurityEvent, emit_security_event
 from app.modules.auth.schemas import AuthLogin
-from app.modules.auth.sessions import AuthSessionService, IssuedAuthSession
+from app.modules.auth.sessions import (
+    AuthSessionInvalidError,
+    AuthSessionService,
+    IssuedAuthSession,
+)
 from app.modules.auth.throttling import LoginThrottleService
 from app.modules.users.models import User
 from app.modules.users.schemas import UserCreate
@@ -83,13 +87,18 @@ class AuthService:
         if updated_hash is not None:
             user = self.user_service.upgrade_password_hash(user, updated_hash)
         self.login_throttle.reset_after_success(data.email, client_ip)
+        try:
+            issued_session = self.auth_sessions.create_session(
+                user.id, expected_password_hash=user.password_hash
+            )
+        except AuthSessionInvalidError:
+            raise AuthInvalidCredentialsError from None
         emit_security_event(
             SecurityEvent.LOGIN_SUCCEEDED,
             user_id=str(user.id),
             role=user.role,
             privileged_account=user.role in {"ADMIN", "LOGISTICS_MANAGER"},
         )
-        issued_session = self.auth_sessions.create_session(user.id)
         return LoginResult(
             user=user,
             session=issued_session,

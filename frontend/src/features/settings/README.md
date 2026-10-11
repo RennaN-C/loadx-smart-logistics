@@ -13,12 +13,7 @@ SettingsSection compõe seções identificadas/rotuladas semanticamente; conta e
 administração ficam separadas das configurações próprias do módulo LoadX.
 Layout, navegação, alertas e tokens visuais existentes são reutilizados.
 
-`PENDENTE DE DEFINIÇÃO`: funções de gestão de usuários OC86 e segurança da
-conta OC92 são entradas informativas em preparação, sem
-links/rotas falsas, formulários ou chamadas prematuras. Ao implementá-las,
-adicionar conteúdo/rotas filhas sob a mesma guarda e manter um único item no
-menu principal. Configurações logísticas permanecem no módulo; futuras funções
-de conta podem ser ocultadas/delegadas sem alterar páginas operacionais.
+`PENDENTE DE DEFINIÇÃO`: gestão de usuários OC86 permanece informativa, sem chamadas ou rotas fictícias. Segurança da própria conta (OC92) usa a rota autenticada `/account`, disponível a todos os perfis; Configurações continua ADMIN. Configurações logísticas permanecem no módulo e futuras funções de conta podem ser delegadas sem alterar páginas operacionais.
 CoreFlow, SSO, tenant e licenciamento não são implementados nem dependências.
 
 `CONFIRMADO`: não persiste preferências críticas no navegador. Nenhum cadastro
@@ -42,3 +37,20 @@ nomes dos campos alterados, sem valores. Outros perfis não consultam nem
 editam o cadastro ou seus eventos. Não há tenant nem autenticação adicional.
 
 Decisão e limites: [ADR-035](../../../../docs/decisions/ADR-035-configuracoes-institucionais-standalone.md).
+
+## Integrações e Saúde — OC108
+
+`CONFIRMADO`: seção da mesma rota/guarda ADMIN, âncora `#settings-integrations`.
+Consulta real à API administrativa, atualização manual somente leitura com
+limite de 8 s; sem polling, envio de mensagem, prompts ou botões de teste falso.
+Seis cards distinguem simulados/pendentes/falha/timeout e configuração desconhecida.
+loading, erro/repetição, vazio, falha parcial e última consulta marcada como
+possivelmente desatualizada. 401/403 limpa snapshot anteriormente carregado.
+
+`CONFIRMADO`: interface mostra data e UUID para correlação, sem logs brutos ou
+mensagens privadas da API. Layout responsivo, texto de estado além de cor,
+regiões/labels existentes e loading em output sem alteração das guardas OC85/OC91.
+Sem storage local. Não implementa OC83, OC84, OC103 ou provider externo de IA.
+
+
+`CONFIRMADO` (OC92): Conta e administração agora oferece link funcional para `/account` (Meu perfil, senha e sessões). Gestão de usuários permanece em preparação na OC86. A conta pessoal está disponível para todos os perfis via Minha conta, sem liberar Configurações aos demais. Dados da empresa e Integrações e Saúde preservados.

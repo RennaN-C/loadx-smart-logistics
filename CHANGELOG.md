@@ -1,5 +1,14 @@
 # Changelog
 
+- OC92: Meu perfil para todos os usuários autenticados, edição de nome/e-mail, alteração segura de senha com revogação integral e gerenciamento de sessões próprias; sem migration.
+
+## OC108 — Painel de integrações e saúde operacional
+
+- Painel ADMIN em Configurações com sinais reais de liveness/readiness e
+  estados honestos de WhatsApp/IA simulados e webhook/notificações pendentes.
+- Endpoint sanitizado, falha parcial e timeout isolados, UUID de correlação e
+  contrato de sinais futuros aprovados; sem envios, prompts ou novas migrations.
+
 ## OC91 — Configurações gerais da empresa
 
 - Cadastro institucional persistente monoempresa integrado às Configurações,

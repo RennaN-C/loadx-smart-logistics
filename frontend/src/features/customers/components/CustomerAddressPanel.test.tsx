@@ -16,7 +16,7 @@ function show() { return render(<CustomerAddressPanel customerId="c1" onChanged=
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(useAuth).mockReturnValue({ user: { id: "u1", name: "Gestor", email: "manager@example.test", role: "LOGISTICS_MANAGER", active: true, createdAt: "2026-10-08T00:00:00Z" }, status: "authenticated", login: vi.fn(), logout: vi.fn() });
+  vi.mocked(useAuth).mockReturnValue({ user: { id: "u1", name: "Gestor", email: "manager@example.test", role: "LOGISTICS_MANAGER", active: true, createdAt: "2026-10-08T00:00:00Z" }, status: "authenticated", login: vi.fn(), updateUser: vi.fn(), logout: vi.fn() });
   vi.mocked(listCustomerAddresses).mockResolvedValue({ items: [address], total: 1, page: 1, pageSize: 20, totalPages: 1 });
   vi.mocked(updateCustomerAddress).mockResolvedValue(address);
   vi.mocked(createCustomerAddress).mockResolvedValue(address);

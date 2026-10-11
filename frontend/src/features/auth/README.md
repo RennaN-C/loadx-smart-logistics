@@ -25,3 +25,14 @@ cookie `HttpOnly`; o frontend não lê nem persiste credenciais. O
 
 - `PENDENTE DE DEFINIÇÃO`: recuperação de senha e MFA para funções críticas
   pertencem a ocorrências futuras.
+
+
+## OC92 — Meu perfil
+
+`CONFIRMADO`: `/account` fica dentro de RequireAuth/AppLayout para ADMIN, LOGISTICS_MANAGER, CHECKER e DRIVER. Entrada Minha conta → Meu perfil e link contextual em Configurações (ADMIN); retorno ao início disponível. Não modifica a proteção de `/settings` nem as seções OC91/OC108.
+
+`CONFIRMADO`: `accountApi.ts` concentra contratos próprios de edição, senha e sessões. `OwnProfileForm`, `OwnPasswordForm` e `OwnSessionsPanel` isolam estados de carregamento, envio, validação, falha parcial, vazio e confirmação. Metadata vem da API; sem armazenamento local, localização ou dispositivo fictício. Senhas têm controles acessíveis de visibilidade e confirmação; o backend valida política/CSRF/ownership.
+
+`CONFIRMADO`: atualização bem-sucedida sincroniza o usuário no AuthProvider. Troca de senha ou encerramento da atual limpa CSRF/estado autenticado pelo contexto central e exige login; mensagem de sucesso permanece somente em memória. Expiração e revogação remotas preservam a reação central existente. Revogar outra sessão reconsulta a lista. Falha transitória conserva a lista anterior com aviso explícito; não declara revogação concluída quando a API falha.
+
+`CONFIRMADO`: a conta standalone é visualmente separada de preferências logísticas futuras. Sem OC86/OC98/OC112, MFA/recuperação/SSO ou nova dependência. Layout de uma coluna em telas pequenas e duas em telas largas, controles sem sobreposição e labels ligados aos inputs.

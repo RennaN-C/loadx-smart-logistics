@@ -26,6 +26,7 @@ describe("RequireAuth", () => {
       status: "unauthenticated",
       user: null,
       login: vi.fn(),
+      updateUser: vi.fn(),
       logout: vi.fn(),
     });
 
@@ -47,6 +48,7 @@ describe("RequireAuth", () => {
         createdAt: "2026-08-01T00:00:00Z",
       },
       login: vi.fn(),
+      updateUser: vi.fn(),
       logout: vi.fn(),
     });
 
@@ -60,6 +62,7 @@ describe("RequireAuth", () => {
       status: "loading",
       user: null,
       login: vi.fn(),
+      updateUser: vi.fn(),
       logout: vi.fn(),
     });
 
