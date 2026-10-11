@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Role } from "../features/auth/types";
 import { useAuth } from "../features/auth/hooks/useAuth";
@@ -45,6 +45,8 @@ function menu() {
 }
 
 describe("AppLayout", () => {
+  beforeEach(() => window.localStorage.removeItem("loadx.sidebar-collapsed"));
+
   it("renderiza o cabeçalho da LoadX e o conteúdo da rota filha", () => {
     signedInAs("ADMIN");
     renderLayout();
@@ -169,4 +171,71 @@ describe("AppLayout", () => {
     expect(atalho).toHaveAttribute("href", "#conteudo");
     expect(document.getElementById("conteudo")).not.toBeNull();
   });
+  it("recolhe para navegação por ícones sem perder links ou RBAC", () => {
+    signedInAs("ADMIN");
+    renderLayout();
+    fireEvent.click(screen.getByRole("button", { name: "Recolher menu lateral" }));
+
+    const shell = document.querySelector(".app-shell");
+    expect(shell).toHaveAttribute("data-sidebar-collapsed", "true");
+    expect(screen.getByRole("button", { name: "Expandir menu lateral" })).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByRole("link", { name: "Caminhões" })).toHaveAttribute("title", "Caminhões");
+
+    fireEvent.click(screen.getByRole("button", { name: "Expandir menu lateral" }));
+    expect(shell).toHaveAttribute("data-sidebar-collapsed", "false");
+    expect(screen.getByRole("link", { name: "Caminhões" })).not.toHaveAttribute("title");
+  });
+
+  it("preserva preferência de sidebar ao remontar a página", () => {
+    signedInAs("ADMIN");
+    const rendered = renderLayout();
+    fireEvent.click(screen.getByRole("button", { name: "Recolher menu lateral" }));
+    expect(window.localStorage.getItem("loadx.sidebar-collapsed")).toBe("true");
+    rendered.unmount();
+    renderLayout();
+    expect(screen.getByRole("button", { name: "Expandir menu lateral" })).toBeInTheDocument();
+  });
+
+  it("abre a gaveta mobile e fecha com Escape, restaurando a rolagem", () => {
+    signedInAs("ADMIN");
+    renderLayout();
+    const trigger = screen.getByRole("button", { name: "Abrir menu" });
+    fireEvent.click(trigger);
+    expect(trigger).toHaveAttribute("aria-expanded", "true");
+    expect(document.querySelector(".app-shell")).toHaveAttribute("data-mobile-open", "true");
+    expect(document.body.style.overflow).toBe("hidden");
+    expect(screen.getByRole("button", { name: "Fechar menu" })).toHaveFocus();
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(document.querySelector(".app-shell")).toHaveAttribute("data-mobile-open", "false");
+    expect(document.body.style.overflow).toBe("");
+    expect(trigger).toHaveFocus();
+  });
+
+  it("fecha a gaveta ao clicar fora, no botão ou ao navegar", () => {
+    signedInAs("ADMIN");
+    renderLayout();
+    const trigger = screen.getByRole("button", { name: "Abrir menu" });
+    fireEvent.click(trigger);
+    fireEvent.click(screen.getByRole("button", { name: "Fechar o menu ao clicar fora" }));
+    expect(document.querySelector(".app-shell")).toHaveAttribute("data-mobile-open", "false");
+
+    fireEvent.click(trigger);
+    fireEvent.click(screen.getByRole("button", { name: "Fechar menu" }));
+    expect(document.querySelector(".app-shell")).toHaveAttribute("data-mobile-open", "false");
+
+    fireEvent.click(trigger);
+    fireEvent.click(within(menu()).getByRole("link", { name: "Início" }));
+    expect(document.querySelector(".app-shell")).toHaveAttribute("data-mobile-open", "false");
+  });
+
+  it("não expõe links proibidos dentro do menu mobile", () => {
+    signedInAs("DRIVER");
+    renderLayout();
+    fireEvent.click(screen.getByRole("button", { name: "Abrir menu" }));
+    expect(within(menu()).getByRole("link", { name: "Meu perfil" })).toBeInTheDocument();
+    expect(within(menu()).queryByRole("link", { name: "Configurações" })).not.toBeInTheDocument();
+    expect(within(menu()).queryByRole("link", { name: "Frota" })).not.toBeInTheDocument();
+  });
+
 });
