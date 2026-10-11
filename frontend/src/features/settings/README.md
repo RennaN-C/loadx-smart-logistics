@@ -13,12 +13,7 @@ SettingsSection compõe seções identificadas/rotuladas semanticamente; conta e
 administração ficam separadas das configurações próprias do módulo LoadX.
 Layout, navegação, alertas e tokens visuais existentes são reutilizados.
 
-`PENDENTE DE DEFINIÇÃO`: funções de gestão de usuários OC86 e segurança da
-conta OC92 são entradas informativas em preparação, sem
-links/rotas falsas, formulários ou chamadas prematuras. Ao implementá-las,
-adicionar conteúdo/rotas filhas sob a mesma guarda e manter um único item no
-menu principal. Configurações logísticas permanecem no módulo; futuras funções
-de conta podem ser ocultadas/delegadas sem alterar páginas operacionais.
+`PENDENTE DE DEFINIÇÃO`: gestão de usuários OC86 permanece informativa, sem chamadas ou rotas fictícias. Segurança da própria conta (OC92) usa a rota autenticada `/account`, disponível a todos os perfis; Configurações continua ADMIN. Configurações logísticas permanecem no módulo e futuras funções de conta podem ser delegadas sem alterar páginas operacionais.
 CoreFlow, SSO, tenant e licenciamento não são implementados nem dependências.
 
 `CONFIRMADO`: não persiste preferências críticas no navegador. Nenhum cadastro
@@ -56,3 +51,6 @@ possivelmente desatualizada. 401/403 limpa snapshot anteriormente carregado.
 mensagens privadas da API. Layout responsivo, texto de estado além de cor,
 regiões/labels existentes e loading em output sem alteração das guardas OC85/OC91.
 Sem storage local. Não implementa OC83, OC84, OC103 ou provider externo de IA.
+
+
+`CONFIRMADO` (OC92): Conta e administração agora oferece link funcional para `/account` (Meu perfil, senha e sessões). Gestão de usuários permanece em preparação na OC86. A conta pessoal está disponível para todos os perfis via Minha conta, sem liberar Configurações aos demais. Dados da empresa e Integrações e Saúde preservados.

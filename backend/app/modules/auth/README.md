@@ -57,3 +57,24 @@ Crie somente os arquivos necessários para a ocorrência atual.
 - `CONFIRMADO`: a matriz de permissões e a negação por padrão seguem `docs/04-regras-negocio.md` e `ADR-004`; a `OC51-I` auditou todos os endpoints de negócio implementados.
 - `CONFIRMADO`: D18 e `ADR-020` eliminaram JWT/refresh token para o frontend
   próprio e definiram sessões opacas revogáveis.
+
+
+## Minha conta — OC92
+
+`CONFIRMADO`: todos os perfis autenticados podem consultar `/auth/me` e usar os contratos próprios abaixo. O ator sempre vem da sessão; não existe parâmetro de usuário alvo.
+
+| Método e caminho (prefixo `/api/v1`) | Contrato |
+|---|---|
+| `PATCH /auth/me` | Nome e e-mail obrigatórios, normalizados; somente esses dois campos são aceitos. Retorna `UserRead`, sem credenciais. |
+| `POST /auth/me/password` | `current_password`, `new_password`; política central de 15–128 caracteres/Unicode/blocklist. Sucesso 204, revoga **todas** as sessões, inclusive atual, e remove cookie. Novo login obrigatório. |
+| `GET /auth/me/sessions` | Array das sessões próprias não revogadas e não expiradas. UUID, `current`, `created_at`, `last_seen_at`, `idle_expires_at`, `absolute_expires_at`; sem token/hash, IP ou user agent. |
+| `DELETE /auth/me/sessions/{session_id}` | 204 para sessão própria (idempotente enquanto autenticado); 404 indistinguível para UUID inexistente ou de outro usuário. Remove cookie se a atual for revogada. |
+| `POST /auth/me/sessions/revoke-others` | 204; revoga as demais sessões e mantém a atual. |
+
+`CONFIRMADO`: campos extras como role/active/password/driver_id em edição pessoal retornam 422; e-mail duplicado retorna 409. Senha atual incorreta retorna 400 `AUTH_CURRENT_PASSWORD_INVALID`, sem revogar a sessão. Falhas de confirmação usam o throttling durável existente por conta/IP, com 429/Retry-After quando bloqueado. Validar a política da nova senha não emite sessão ou modifica dados.
+
+`CONFIRMADO`: métodos inseguros preservam Origin e CSRF centrais; ausência/expiração/revogação usam 401 e usuário inativo 403. Alterações pessoais reutilizam `UserService`, unicidade PostgreSQL e auditoria `USER_UPDATED` com nomes dos campos, sem valores. Eventos `AUTH_OWN_PROFILE_UPDATED`, `AUTH_OWN_PASSWORD_CHANGED`, `AUTH_OWN_PASSWORD_REJECTED` e revogação usam somente UUIDs/metadados seguros.
+
+`CONFIRMADO`: mutações bloqueiam usuário antes de sessões e revalidam a sessão sob lock. Consulta autenticada segue a mesma ordem para evitar deadlocks. Troca de hash, revogação e auditoria compartilham commit/rollback. A emissão ao final do login compara o hash verificado com o atual sob lock de usuário, impedindo criar uma sessão com credenciais invalidadas por troca concorrente. Nenhuma migration: `users`, `auth_sessions` e `audit_events` atuais suportam o contrato; head `20261009_0023`.
+
+`CONFIRMADO`: frontend restaura os dados por `/auth/me` após F5; lista sessões pela API, oferece confirmação e reconsulta após revogação. Não grava dados de sessão em Web Storage nem inventa dispositivos/localização. Conta é separada de configurações administrativas e logísticas. Password/sessions ficam concentrados no módulo auth e nos adapters da feature de conta, para futura delegação central, sem SSO, MFA, recuperação ou administração de terceiros nesta OC.
