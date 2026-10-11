@@ -1184,3 +1184,18 @@ input[type="checkbox"]:disabled {
 .modal-header { flex-wrap: wrap; }
 .modal-header h2, .modal-subtitle { min-width: 0; overflow-wrap: anywhere; }
 .modal-dialog { min-width: 0; }
+
+
+/* Falha em histórico contextual deve permitir nova tentativa sem travar a tela. */
+.audit-context-retry {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  align-items: center;
+}
+.audit-context-retry .entity-form-help {
+  flex: 1 1 180px;
+}
+.audit-context-retry .btn-secondary {
+  min-height: 40px;
+}

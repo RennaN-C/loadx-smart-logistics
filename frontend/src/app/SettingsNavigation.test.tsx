@@ -126,6 +126,7 @@ describe("OC85: navegação e autorização na aplicação", () => {
       expect(screen.queryByRole("link", { name: label })).not.toBeInTheDocument();
     }
     expect(within(account()).getByRole("link", { name: "Meu perfil, senha e sessões" })).toHaveAttribute("href", "/account");
+    expect(within(account()).getByRole("link", { name: "Meu perfil, senha e sessões" })).toHaveClass("settings-account-link");
     expect(screen.getByRole("region", { name: "Dados da empresa" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Dados da empresa" })).toHaveAttribute("href", "#settings-company");
     const sections = screen.getByRole("navigation", { name: "Seções de configurações" });

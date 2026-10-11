@@ -85,3 +85,23 @@ empresa e segurança da conta aparecem em preparação, sem ações nem rotas fa
 Sessão ausente/expirada segue login; perfil negado recebe alerta e volta ao início;
 carregamento usa SessionLoading. Não cria API, preferências locais, tenant ou
 integração CoreFlow. [Estrutura extensível](src/features/settings/README.md).
+
+## Polimento visual e de navegação — v1.2.0
+
+`CONFIRMADO`: links de retorno nas telas de conta, planejamento, viagem e
+carregamento usam ações contextuais com cores, foco visível e área clicável
+consistente. Configurações expõe âncoras em navegação de seções com estados
+hover/focus, mantendo as mesmas rotas e autorizações.
+
+`CONFIRMADO`: o detalhe do pedido diferencia referência, situação, endereço,
+itens e histórico sem alterar contratos. A frota apresenta ações em grade de
+duas colunas, sem botões soltos em linhas irregulares.
+
+`CONFIRMADO`: no planejamento, falha ao obter caminhões, pedidos ou
+disponibilidade não aparece como lista vazia; a tela oferece nova consulta.
+Histórico contextual oferece retry quando sua consulta falha, sem bloquear
+outras informações do pedido.
+
+`PENDENTE DE VALIDAÇÃO MANUAL`: conferir contraste, quebra de textos
+extensos e navegação por teclado em navegadores reais e resoluções
+375/768/1280/1920 px antes de promover este polimento à pentest-lab.
