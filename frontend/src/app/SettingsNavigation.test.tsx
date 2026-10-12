@@ -118,22 +118,53 @@ describe("OC85: navegação e autorização na aplicação", () => {
   it("separa regiões acessíveis e não oferece links para OCs futuras", async () => {
     render(<App />);
     await screen.findByRole("heading", { name: "Configurações", level: 1 });
-    expect(screen.getByRole("region", { name: "Configurações do LoadX" })).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: "Integrações e Saúde" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Integrações e Saúde" })).toHaveAttribute("href", "#settings-integrations");
+    const menu = screen.getByRole("navigation", { name: "Navegação principal" });
+    expect(screen.queryByRole("region", { name: "Configurações do LoadX" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Integrações e Saúde" })).not.toBeInTheDocument();
+    expect(within(menu).getByRole("link", { name: "Integrações e Saúde" })).toHaveAttribute("href", "/settings#settings-integrations");
     for (const label of ["Gestão de usuários"]) {
       expect(within(account()).getByRole("heading", { name: label, level: 3 })).toBeInTheDocument();
       expect(screen.queryByRole("link", { name: label })).not.toBeInTheDocument();
     }
     expect(within(account()).getByRole("link", { name: "Meu perfil, senha e sessões" })).toHaveAttribute("href", "/account");
     expect(within(account()).getByRole("link", { name: "Meu perfil, senha e sessões" })).toHaveClass("settings-account-link");
-    expect(screen.getByRole("region", { name: "Dados da empresa" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Dados da empresa" })).toHaveAttribute("href", "#settings-company");
-    const sections = screen.getByRole("navigation", { name: "Seções de configurações" });
-    for (const link of within(sections).getAllByRole("link")) {
-      const id = link.getAttribute("href")!.slice(1);
-      expect(document.getElementById(id)).not.toBeNull();
+    expect(screen.queryByRole("region", { name: "Dados da empresa" })).not.toBeInTheDocument();
+    expect(within(menu).getByRole("link", { name: "Dados da empresa" })).toHaveAttribute("href", "/settings#settings-company");
+    expect(screen.queryByRole("navigation", { name: "Seções de configurações" })).not.toBeInTheDocument();
+    for (const link of within(menu).getAllByRole("link").filter((item) => item.getAttribute("href")?.includes("/settings#"))) {
+      expect(document.getElementById(link.getAttribute("href")!.split("#")[1])).not.toBeNull();
     }
     await waitFor(() => expect(getCurrentUser).toHaveBeenCalledOnce());
+  });
+
+  it("ADMIN alterna uma única seção pelo menu lateral com seleção na URL", async () => {
+    render(<App />);
+    await screen.findByRole("heading", { name: "Configurações", level: 1 });
+    const menu = screen.getByRole("navigation", { name: "Navegação principal" });
+    for (const [label, id] of [
+      ["Dados da empresa", "settings-company"],
+      ["Integrações e Saúde", "settings-integrations"],
+      ["Configurações do LoadX", "settings-logistics"],
+      ["Conta e administração", "settings-account"],
+    ]) {
+      fireEvent.click(within(menu).getByRole("link", { name: label }));
+      expect(window.location.hash).toBe(`#${id}`);
+      expect(screen.getByRole("region", { name: label })).toBeVisible();
+      expect(document.querySelectorAll(".settings-section:not([hidden])")).toHaveLength(1);
+      expect(within(menu).getByRole("link", { name: label })).toHaveAttribute("aria-current", "location");
+    }
+  });
+
+  it("link direto abre a seção correta; hash desconhecido volta para Conta", async () => {
+    window.history.replaceState({}, "", "/settings#settings-company");
+    const app = render(<App />);
+    await screen.findByRole("heading", { name: "Configurações", level: 1 });
+    expect(screen.getByRole("region", { name: "Dados da empresa" })).toBeVisible();
+    expect(screen.queryByRole("region", { name: "Conta e administração" })).not.toBeInTheDocument();
+    app.unmount();
+    window.history.replaceState({}, "", "/settings#nao-existe");
+    render(<App />);
+    await screen.findByRole("heading", { name: "Configurações", level: 1 });
+    expect(screen.getByRole("region", { name: "Conta e administração" })).toBeVisible();
   });
 });
