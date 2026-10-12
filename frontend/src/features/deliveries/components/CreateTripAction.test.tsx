@@ -126,3 +126,17 @@ describe("CreateTripAction", () => {
     expect(createTrip).not.toHaveBeenCalled();
   });
 });
+
+
+it("atualiza continuidade quando outra sessao ja criou a viagem", async () => {
+  vi.mocked(listDrivers).mockResolvedValue(makePage([{ id: "d1", name: "Motorista fictício", licenseCategory: "D", active: true, createdAt: "2026-10-12T12:00:00Z" }]));
+  vi.mocked(listDriverOperationalStatus).mockResolvedValue(makePage([]));
+  vi.mocked(createTrip).mockRejectedValueOnce(new ApiError("TRIP_LOAD_PLAN_ALREADY_ASSIGNED", "Já atribuída"));
+  const refresh = vi.fn();
+  render(<MemoryRouter><CreateTripAction loadPlanId="lp1" onExistingTrip={refresh} /></MemoryRouter>);
+  fireEvent.click(screen.getByRole("button", { name: "Criar viagem" }));
+  await screen.findByRole("option", { name: /Motorista fictício/ });
+  fireEvent.change(screen.getByLabelText("MOTORISTA"), { target: { value: "d1" } });
+  fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Criar viagem" }));
+  await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
+});

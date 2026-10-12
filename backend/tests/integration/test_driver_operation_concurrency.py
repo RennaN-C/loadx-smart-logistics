@@ -3,13 +3,14 @@ from concurrent.futures import ThreadPoolExecutor
 from decimal import Decimal
 from threading import Barrier
 
+import pytest
 from sqlalchemy import Engine, delete, select
 from sqlalchemy.orm import sessionmaker
 
 from app.modules.customers.models import Customer
 from app.modules.deliveries.models import Delivery, Trip
 from app.modules.deliveries.schemas import TripCreate
-from app.modules.deliveries.service import TripService
+from app.modules.deliveries.service import TripLoadPlanAlreadyAssignedError, TripService
 from app.modules.drivers.models import Driver
 from app.modules.drivers.service import DriverOperationConflictError
 from app.modules.load_planning.models import LoadPlan, LoadPlanItem, LoadPlanOrder
@@ -21,8 +22,10 @@ from app.modules.users.models import User
 from tests.integration.test_truck_operation_concurrency import _create_plan
 
 
-def test_concurrent_driver_allocation_on_different_trucks_creates_only_one_trip(
+@pytest.mark.parametrize("same_plan", [False, True])
+def test_concurrent_driver_allocation_creates_only_one_trip(
     postgres_engine: Engine,
+    same_plan: bool,
 ) -> None:
     session_factory = sessionmaker(bind=postgres_engine, autoflush=False)
     with session_factory() as db:
@@ -72,13 +75,14 @@ def test_concurrent_driver_allocation_on_different_trucks_creates_only_one_trip(
                     TripCreate(load_plan_id=plan_id, driver_id=driver_id),
                     changed_by=manager_id,
                 )
-            except DriverOperationConflictError:
+            except (DriverOperationConflictError, TripLoadPlanAlreadyAssignedError):
                 return "CONFLICT"
             return "CREATED"
 
     try:
         with ThreadPoolExecutor(max_workers=2) as executor:
-            futures = [executor.submit(reserve, plan_id) for plan_id in plan_ids]
+            attempts = (plan_ids[0], plan_ids[0]) if same_plan else plan_ids
+            futures = [executor.submit(reserve, plan_id) for plan_id in attempts]
             results = [future.result(timeout=15) for future in futures]
         assert sorted(results) == ["CONFLICT", "CREATED"]
         with session_factory() as db:
