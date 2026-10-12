@@ -258,7 +258,7 @@ export function AppLayout() {
                     className="app-nav-title app-nav-group-toggle"
                     id={`nav-${group.id}`}
                     aria-controls={`nav-group-items-${group.id}`}
-                    aria-expanded={expanded}
+                    aria-expanded={expanded && (!sidebarCollapsed || mobileOpen)}
                     data-active={hasActivePage}
                     title={sidebarCollapsed ? group.title : undefined}
                     onClick={() => {
