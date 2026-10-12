@@ -138,7 +138,7 @@ export function ReportsPage() {
                 </h2>
                 <p>Do mais antigo para o mais recente.</p>
               </div>
-              <div className="report-table-scroll" tabIndex={0}>
+              <div className="report-table-scroll" tabIndex={0} role="region" aria-label="Tabela de pedidos atrasados">
                 <table className="report-table">
                   <thead>
                     <tr>
@@ -182,7 +182,7 @@ export function ReportsPage() {
                 </h2>
                 <p>Ordenado pelo maior volume.</p>
               </div>
-              <div className="report-table-scroll" tabIndex={0}>
+              <div className="report-table-scroll" tabIndex={0} role="region" aria-label="Tabela de indicadores por cliente">
                 <table className="report-table">
                   <thead>
                     <tr>
