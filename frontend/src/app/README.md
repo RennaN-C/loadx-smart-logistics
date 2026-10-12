@@ -98,3 +98,9 @@ componentes e consultas dos perfis negados, sem substituir autorização backend
 `RISCO IDENTIFICADO`: OC86 em desenvolvimento também altera AppLayout e testes
 de Configurações; reconciliar os rótulos/links do menu ao integrar aquela branch.
 Nenhum código de gestão de usuários/autenticação ou evidências OC81 foi remodelado.
+
+## Grupos fechados por padrão — refinamento UX #206
+
+`CONFIRMADO`: os grupos com múltiplas opções **Cadastros** e **Operação** iniciam fechados a cada montagem do menu; o usuário expande/recolhe pelo clique, inclusive no drawer mobile. O item ativo e a página atual não são alterados ao alternar o acordeão. A sidebar inteira mantém sua preferência independente de largura compacta. O submenu administrativo continua associado à rota de Configurações, preservando a seleção ativa e a navegação direta.
+
+A continuidade de planos e viagens entre telas é uma lacuna funcional independente, rastreada pela Issue #208; não deve ser contornada com rascunho simulado ou plano criado automaticamente.
