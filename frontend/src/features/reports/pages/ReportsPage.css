@@ -210,3 +210,5 @@
 .report-table-who span:last-child { white-space: normal; overflow-wrap: anywhere; }
 .report-table-scroll:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .report-table { min-width: 600px; }
+.report-scroll-hint { display: none; }
+@media (max-width: 600px) { .report-scroll-hint { display: block; font-size: .8rem; line-height: 1.6; margin-top: 12px; } }

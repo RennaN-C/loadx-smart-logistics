@@ -170,6 +170,7 @@ export function ReportsPage() {
                   </tbody>
                 </table>
               </div>
+              <p className="entity-form-help report-scroll-hint">Deslize a tabela ou use as setas do teclado para ver todas as colunas.</p>
             </section>
           ) : null}
 
@@ -220,6 +221,7 @@ export function ReportsPage() {
                   </tbody>
                 </table>
               </div>
+              <p className="entity-form-help report-scroll-hint">Deslize a tabela ou use as setas do teclado para ver todas as colunas.</p>
             </section>
           ) : (
             <p className="entity-form-help report-block">
