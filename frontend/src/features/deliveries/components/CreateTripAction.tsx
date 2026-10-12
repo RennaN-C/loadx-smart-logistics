@@ -12,6 +12,7 @@ import { mapTripErrorToMessage } from "./tripsErrorMessages";
 
 interface CreateTripActionProps {
   readonly loadPlanId: string;
+  readonly onExistingTrip?: () => void;
 }
 
 /**
@@ -19,7 +20,7 @@ interface CreateTripActionProps {
  * nem planos, então a navegação precisa partir daqui — depois de criada, a
  * viagem vive em `/trips/:tripId`.
  */
-export function CreateTripAction({ loadPlanId }: CreateTripActionProps) {
+export function CreateTripAction({ loadPlanId, onExistingTrip }: CreateTripActionProps) {
   const navigate = useNavigate();
   const { items: drivers } = useResourceList(listDrivers);
   const { items: driverStatuses, status: driverStatusesStatus } = useResourceList(
@@ -46,6 +47,10 @@ export function CreateTripAction({ loadPlanId }: CreateTripActionProps) {
       const trip = await createTrip({ loadPlanId, driverId });
       navigate(`/trips/${trip.id}`);
     } catch (error) {
+      if (error instanceof ApiError && error.code === "TRIP_LOAD_PLAN_ALREADY_ASSIGNED" && onExistingTrip) {
+        onExistingTrip();
+        return;
+      }
       setErrorMessage(
         mapTripErrorToMessage(
           error instanceof ApiError
