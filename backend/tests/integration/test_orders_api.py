@@ -277,6 +277,7 @@ def test_list_orders_returns_created_items(
     listed_order = body["items"][0]
     assert listed_order["id"] == order["id"]
     assert listed_order["item_count"] == 1
+    assert listed_order["volume_count"] == 3
     assert "delivery_address" not in listed_order
     assert "items" not in listed_order
 
