@@ -24,7 +24,7 @@ export interface OrderItem {
 
 /**
  * A listagem devolve um resumo (`OrderListRead`): sem endereço de entrega e sem
- * os itens, só a contagem. O card usa `OrderListItem`; o formulário exige
+ * os itens, apenas contagens de linhas e volumes. O card usa `OrderListItem`; o formulário exige
  * `Order` completo, buscado por `GET /orders/{id}` na hora de editar.
  */
 export interface OrderListItem {
@@ -36,9 +36,11 @@ export interface OrderListItem {
   expectedDeliveryAt: string | null;
   createdAt: string;
   itemCount: number;
+  /** Soma das quantidades físicas (não equivale ao número de linhas do pedido). */
+  volumeCount?: number;
 }
 
-export interface Order extends Omit<OrderListItem, "itemCount"> {
+export interface Order extends Omit<OrderListItem, "itemCount" | "volumeCount"> {
   deliveryAddress: string;
   customerAddressId?: string | null;
   deliveryAddressSnapshot?: Record<string, unknown> | null;

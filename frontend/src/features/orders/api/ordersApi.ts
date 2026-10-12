@@ -28,6 +28,7 @@ interface OrderListDto {
   expected_delivery_at: string | null;
   created_at: string;
   item_count: number;
+  volume_count: number;
 }
 
 interface OrderDto {
@@ -52,6 +53,7 @@ export function mapOrderListItemFromDto(dto: OrderListDto): OrderListItem {
     expectedDeliveryAt: dto.expected_delivery_at,
     createdAt: dto.created_at,
     itemCount: dto.item_count,
+    ...(dto.volume_count !== undefined ? { volumeCount: dto.volume_count } : {}),
   };
 }
 

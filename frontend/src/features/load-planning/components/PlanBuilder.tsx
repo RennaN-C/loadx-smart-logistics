@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 
 import { AlertBanner } from "../../../components/AlertBanner";
 import { FormField } from "../../../components/FormField";
@@ -17,6 +18,8 @@ interface PlanBuilderProps {
 }
 
 const listHistoricalCustomers = (params: ListParams) => listCustomers({ ...params, archiveStatus: "all" });
+/** Limite operacional do cálculo síncrono, imposto novamente pelo backend. */
+const MAX_SYNC_VOLUMES = 200;
 
 export function PlanBuilder({ onCalculated }: PlanBuilderProps) {
   const { items: trucks, status: trucksStatus, refetch: reloadTrucks } = useResourceList(listTrucks);
@@ -50,6 +53,11 @@ export function PlanBuilder({ onCalculated }: PlanBuilderProps) {
     () => new Map(customers.map((customer) => [customer.id, customer.name])),
     [customers],
   );
+  // Uma linha do pedido pode representar centenas de volumes físicos.
+  const selectedReadyOrders = readyOrders.filter((order) => selectedOrders.includes(order.id));
+  const selectedVolumeCount = selectedReadyOrders.reduce((sum, order) => sum + (order.volumeCount ?? 0), 0);
+  const hasUnknownVolumeCounts = selectedReadyOrders.some((order) => order.volumeCount === undefined);
+  const exceedsVolumeLimit = selectedVolumeCount > MAX_SYNC_VOLUMES;
 
   function toggleOrder(orderId: string) {
     setSelectedOrders((current) =>
@@ -74,7 +82,8 @@ export function PlanBuilder({ onCalculated }: PlanBuilderProps) {
 
   const isLoading = trucksStatus === "loading" || ordersStatus === "loading" || situationsStatus === "loading";
   const hasListError = trucksStatus === "error" || ordersStatus === "error" || situationsStatus === "error";
-  const canCalculate = activeTrucks.some((truck) => truck.id === truckId) && selectedOrders.length > 0 && !isCalculating;
+  const canCalculate = activeTrucks.some((truck) => truck.id === truckId)
+    && selectedOrders.length > 0 && !exceedsVolumeLimit && !isCalculating;
 
   return (
     <div className="plan-builder">
@@ -123,7 +132,8 @@ export function PlanBuilder({ onCalculated }: PlanBuilderProps) {
           <p className="field-label">PEDIDOS A CARREGAR</p>
           <p className="entity-form-help">
             Só pedidos com situação <strong>Pronto</strong> entram em um plano. Aprovar o plano move todos
-            eles para Planejado.
+            eles para Planejado. O cálculo aceita até {MAX_SYNC_VOLUMES} volumes físicos por plano;
+            um item pode conter várias unidades.
           </p>
 
           {readyOrders.length === 0 ? (
@@ -145,7 +155,9 @@ export function PlanBuilder({ onCalculated }: PlanBuilderProps) {
                     <span>
                       {customerNames.get(order.customerId) ?? "Cliente não encontrado"}
                       <small>
-                        {order.itemCount} {order.itemCount === 1 ? "item" : "itens"}
+                        Pedido {order.id.slice(0, 8)} · {order.itemCount} {order.itemCount === 1 ? "item" : "itens"}
+                        {" · "}{order.volumeCount === undefined ? "volumes não informados" :
+                          `${order.volumeCount} ${order.volumeCount === 1 ? "volume" : "volumes"}`}
                       </small>
                     </span>
                   </label>
@@ -154,6 +166,20 @@ export function PlanBuilder({ onCalculated }: PlanBuilderProps) {
             </ul>
           )}
 
+          <div className="plan-volume-summary" role="status" aria-live="polite" data-over-limit={exceedsVolumeLimit}>
+            <strong>{selectedVolumeCount} de {MAX_SYNC_VOLUMES} volumes físicos</strong>
+            <span>{selectedOrders.length} {selectedOrders.length === 1 ? "pedido selecionado" : "pedidos selecionados"}
+              {hasUnknownVolumeCounts ? " · algumas quantidades indisponíveis (validação no servidor)" : ""}
+            </span>
+          </div>
+          {exceedsVolumeLimit ? (
+            <div className="plan-volume-limit" role="alert">
+              A seleção possui {selectedVolumeCount} volumes, acima do limite de {MAX_SYNC_VOLUMES} por cálculo.
+              Desmarque pedidos até ficar dentro do limite. Se um único pedido ultrapassar {MAX_SYNC_VOLUMES},
+              revise suas quantidades na tela de <Link to="/orders">Pedidos</Link>.
+              O sistema não divide pedidos automaticamente.
+            </div>
+          ) : null}
           <div className="entity-form-actions">
             <span className="plan-builder-count">
               {selectedOrders.length} {selectedOrders.length === 1 ? "pedido" : "pedidos"} selecionados
