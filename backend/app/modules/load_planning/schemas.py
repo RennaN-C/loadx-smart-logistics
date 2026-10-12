@@ -24,6 +24,37 @@ RejectionReasonValue = Literal[
 ]
 
 
+class LoadPlanListRead(BaseModel):
+    id: uuid.UUID
+    truck_id: uuid.UUID
+    truck_plate: str
+    truck_model: str
+    status: LoadPlanStatus
+    created_at: datetime
+    recalculated_from_id: uuid.UUID | None
+    loaded_count: int = Field(ge=0)
+    unloaded_count: int = Field(ge=0)
+    occupancy_percent: JsonDecimal
+    total_weight_kg: JsonDecimal
+    order_count: int = Field(ge=0)
+
+
+class LoadingContinuityRead(BaseModel):
+    id: uuid.UUID
+    status: Literal["PENDING", "IN_PROGRESS", "FINISHED"]
+
+
+class TripContinuityRead(BaseModel):
+    id: uuid.UUID
+    status: Literal["SCHEDULED", "IN_ROUTE", "FINISHED"]
+
+
+class LoadPlanContinuityRead(BaseModel):
+    loading_session: LoadingContinuityRead | None
+    trip: TripContinuityRead | None
+    operational_ready: bool
+
+
 class LoadPlanCreate(BaseModel):
     truck_id: uuid.UUID
     order_ids: list[uuid.UUID] = Field(min_length=1)

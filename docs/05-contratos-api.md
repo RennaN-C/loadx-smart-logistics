@@ -454,6 +454,49 @@ Regras de autorização:
 - `DRIVER` não acessa os endpoints de plano de carga; a viagem usa internamente o
   plano atribuído.
 
+### GET `/load-plans` — recuperação de planejamentos (#208)
+
+`CONFIRMADO`: consulta somente leitura, paginada no PostgreSQL. Usa `page=1`,
+`page_size=20` (1–100) e `sort_order=desc` (`asc`/`desc`). Ordena por
+`created_at, id` na mesma direção. Filtros opcionais aprovados nesta manutenção:
+`status` (`CALCULATED`, `APPROVED`, `REJECTED`) e `truck_id` UUID, aplicados antes
+do COUNT/LIMIT/OFFSET. Não há busca livre, `sort_by` ou filtro por dados pessoais.
+
+Envelope: `items`, `page`, `page_size`, `total`, `total_pages`. Cada item contém
+`id`, `truck_id`, `truck_plate`, `truck_model`, `status`, `created_at`,
+`recalculated_from_id`, `loaded_count`, `unloaded_count`, `occupancy_percent`,
+`total_weight_kg`, `order_count`. Placa/modelo vêm do snapshot histórico, não do
+cadastro atual. Não carrega entidades/coleções de volumes, coordenadas, pedidos
+completos nem dados pessoais; contagem de pedidos é uma subconsulta agregada.
+
+ADMIN e LOGISTICS_MANAGER consultam todos os planos. CHECKER recebe somente
+APPROVED, inclusive no total e nas páginas; solicitar outro status retorna
+coleção vazia. DRIVER recebe 403, sessão ausente 401, parâmetros inválidos 422.
+Página além do fim retorna items vazio; nenhum GET calcula ou cria operação.
+
+### GET `/load-plans/{id}/continuity`
+
+`CONFIRMADO`: consulta contextual dos vínculos persistidos, sem central global
+ou varredura de `GET /trips`. Retorna `loading_session: {id, status} | null`,
+`trip: {id, status} | null` e `operational_ready: boolean`. Reutiliza interfaces
+públicas dos módulos de carregamento/entrega e a fronteira operacional dos planos.
+Inclui viagens finalizadas para preservar a recuperação histórica.
+
+Mesma autorização do detalhe: ADMIN/LOGISTICS_MANAGER leem; CHECKER somente
+APPROVED e recebe `trip=null`, pois não pode consultar viagens; DRIVER 403,
+sessão ausente 401, plano inexistente 404, UUID inválido 422. `operational_ready`
+exige plano aprovado e compatibilidade da distribuição com a operação atual;
+não representa reserva ou garantia de disponibilidade. Escritas continuam
+validando conflitos, identidade, aprovação, pedidos, motorista e documentação.
+Uma viagem pode ser programada antes de concluir o carregamento, conforme
+ADR-022; somente seu início exige carregamento FINISHED.
+
+`CONFIRMADO`: vínculo único `uq_trips__load_plan_id` e lock do plano na criação
+já protegem contra viagens duplicadas. A consulta não elimina a necessidade da
+validação transacional. Falha ao consultar continuidade não significa ausência.
+A UI não oferece criar enquanto os vínculos não forem confirmados; conflito
+TRIP_LOAD_PLAN_ALREADY_ASSIGNED reconsulta a continuidade.
+
 ### POST `/load-plans`
 
 ```json
