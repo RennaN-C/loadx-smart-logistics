@@ -180,8 +180,14 @@ describe("AppLayout", () => {
     const shell = document.querySelector(".app-shell");
     expect(shell).toHaveAttribute("data-sidebar-collapsed", "true");
     expect(screen.getByRole("button", { name: "Expandir menu lateral" })).toHaveAttribute("aria-expanded", "false");
-    expect(screen.getByRole("link", { name: "Caminhões" })).toHaveAttribute("title", "Caminhões");
+    expect(screen.queryByRole("link", { name: "Caminhões" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Cadastros" })).toHaveAttribute("title", "Cadastros");
+    fireEvent.click(screen.getByRole("button", { name: "Cadastros" }));
+    expect(shell).toHaveAttribute("data-sidebar-collapsed", "false");
+    expect(screen.getByRole("link", { name: "Caminhões" })).toBeInTheDocument();
 
+    fireEvent.click(screen.getByRole("button", { name: "Recolher menu lateral" }));
+    expect(shell).toHaveAttribute("data-sidebar-collapsed", "true");
     fireEvent.click(screen.getByRole("button", { name: "Expandir menu lateral" }));
     expect(shell).toHaveAttribute("data-sidebar-collapsed", "false");
     expect(screen.getByRole("link", { name: "Caminhões" })).not.toHaveAttribute("title");
@@ -285,5 +291,65 @@ describe("AppLayout", () => {
       expect(within(menu()).queryByRole("link", { name: "Conta e administração" })).not.toBeInTheDocument();
       app.unmount();
     }
+  });
+
+  it("recolhe e expande Cadastros e Operação com cliques repetidos sem navegar", () => {
+    signedInAs("ADMIN");
+    renderLayout();
+    const cadastros = within(menu()).getByRole("button", { name: "Cadastros" });
+    const operacao = within(menu()).getByRole("button", { name: "Operação" });
+    expect(cadastros).toHaveAttribute("aria-expanded", "true");
+    expect(operacao).toHaveAttribute("aria-expanded", "true");
+
+    fireEvent.click(cadastros);
+    expect(cadastros).toHaveAttribute("aria-expanded", "false");
+    expect(within(menu()).queryByRole("link", { name: "Caminhões" })).not.toBeInTheDocument();
+    expect(within(menu()).getByRole("link", { name: "Pedidos" })).toBeInTheDocument();
+
+    fireEvent.click(operacao);
+    expect(operacao).toHaveAttribute("aria-expanded", "false");
+    expect(within(menu()).queryByRole("link", { name: "Pedidos" })).not.toBeInTheDocument();
+    fireEvent.click(cadastros);
+    expect(cadastros).toHaveAttribute("aria-expanded", "true");
+    expect(within(menu()).getByRole("link", { name: "Caminhões" })).toHaveAttribute("href", "/trucks");
+    fireEvent.click(operacao);
+    expect(within(menu()).getByRole("link", { name: "Frota" })).toHaveAttribute("href", "/fleet");
+    expect(within(menu()).getByRole("link", { name: "Início" })).toHaveAttribute("aria-current", "page");
+  });
+
+  it("fecha Configurações no segundo clique e reabre no terceiro sem sair da página", () => {
+    signedInAs("ADMIN");
+    renderLayout("/settings#settings-company");
+    const parent = within(menu()).getByRole("link", { name: "Configurações" });
+    expect(parent).toHaveAttribute("aria-expanded", "true");
+    expect(within(menu()).getByRole("link", { name: "Dados da empresa" })).toHaveAttribute("aria-current", "location");
+    fireEvent.click(parent);
+    expect(parent).toHaveAttribute("aria-expanded", "false");
+    expect(within(menu()).queryByRole("link", { name: "Dados da empresa" })).not.toBeInTheDocument();
+    expect(screen.getByText("conteudo das configurações")).toBeInTheDocument();
+
+    fireEvent.click(parent);
+    expect(parent).toHaveAttribute("aria-expanded", "true");
+    expect(within(menu()).getByRole("link", { name: "Dados da empresa" })).toHaveAttribute("aria-current", "location");
+  });
+
+  it("abre e fecha os grupos também dentro da gaveta mobile", () => {
+    signedInAs("ADMIN");
+    renderLayout();
+    fireEvent.click(screen.getByRole("button", { name: "Abrir menu" }));
+    const cadastros = within(menu()).getByRole("button", { name: "Cadastros" });
+    fireEvent.click(cadastros);
+    expect(cadastros).toHaveAttribute("aria-expanded", "false");
+    expect(within(menu()).queryByRole("link", { name: "Caminhões" })).not.toBeInTheDocument();
+    expect(document.querySelector(".app-shell")).toHaveAttribute("data-mobile-open", "true");
+    fireEvent.click(cadastros);
+    expect(within(menu()).getByRole("link", { name: "Caminhões" })).toBeInTheDocument();
+
+    const settings = within(menu()).getByRole("link", { name: "Configurações" });
+    fireEvent.click(settings);
+    expect(within(menu()).getByRole("link", { name: "Dados da empresa" })).toBeInTheDocument();
+    fireEvent.click(settings);
+    expect(within(menu()).queryByRole("link", { name: "Dados da empresa" })).not.toBeInTheDocument();
+    expect(document.querySelector(".app-shell")).toHaveAttribute("data-mobile-open", "true");
   });
 });
