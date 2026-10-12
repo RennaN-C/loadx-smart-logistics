@@ -77,3 +77,22 @@
   color: var(--muted);
   line-height: 1.4;
 }
+
+.overview-operations { margin-top: 28px; }
+.overview-operations > .entity-header { align-items: center; }
+.overview-operations > .entity-header h2 { font-size: 1.15rem; font-weight: 600; margin: 0; }
+.overview-operations > .entity-header .entity-lede { font-size: .85rem; }
+.overview-indicator-groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin-top: 22px; }
+.overview-indicator-groups .ops-block { margin: 0; padding: 22px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; min-width: 0; }
+.overview-indicator-groups .ops-block-head { flex-wrap: wrap; align-items: center; }
+.overview-indicator-groups .ops-block-head h2 { font-size: 1rem; font-weight: 500; }
+.overview-indicator-groups .ops-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.overview-indicator-groups .ops-kpi { padding: 8px 0; background: transparent; border: 0; border-radius: 0; }
+.overview-indicator-groups .ops-kpi-label { font-family: inherit; font-size: .75rem; letter-spacing: .02em; }
+.overview-indicator-groups .ops-kpi-value { font-family: inherit; font-weight: 600; font-size: 1.8rem; }
+.overview-indicator-groups .ops-kpi-note { font-size: .8rem; }
+.overview-indicator-details { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 12px; }
+.overview-indicator-details summary { cursor: pointer; color: var(--muted); font-size: .8rem; padding-block: 4px; }
+.overview-indicator-details summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.overview-indicator-groups .btn-link { display: inline-block; margin-top: 12px; }
+@media (max-width: 600px) { .overview-indicator-groups { grid-template-columns: minmax(0, 1fr); } }

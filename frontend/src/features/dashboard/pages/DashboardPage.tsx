@@ -9,6 +9,7 @@ import { listCustomers } from "../../customers/api/customersApi";
 import { STATUS_LABELS, priorityLabel, statusTone } from "../../orders/components/orderLabels";
 import { useDashboardTotals } from "../hooks/useDashboardTotals";
 import "./DashboardPage.css";
+import { OperationsDashboardPage } from "../../operations/pages/OperationsDashboardPage";
 import { DriverTrips } from "../components/DriverTrips";
 
 const dateFormatter = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" });
@@ -32,7 +33,7 @@ const listHistoricalCustomers = (params: ListParams) => listCustomers({ ...param
 
 export function DashboardPage() {
   const { user } = useAuth();
-  const { status, totals, recentOrders, unavailable } = useDashboardTotals(user?.role);
+  const { status, totals, recentOrders, unavailable, reload } = useDashboardTotals(user?.role);
   const readsPersonalData = user?.role === "ADMIN" || user?.role === "LOGISTICS_MANAGER";
   const { items: customers } = useResourceList(listHistoricalCustomers, readsPersonalData);
 
@@ -47,10 +48,10 @@ export function DashboardPage() {
    */
   if (user?.role === "DRIVER") {
     return (
-      <div className="entity-page">
+      <div className="entity-page overview-page">
         <header className="entity-header">
           <div>
-            <h1>Olá, {user.name.split(" ")[0]}</h1>
+            <h1>Visão geral</h1>
             <p className="entity-lede">Suas viagens e o que falta entregar.</p>
           </div>
         </header>
@@ -66,11 +67,11 @@ export function DashboardPage() {
   }
 
   return (
-    <div className="entity-page">
+    <div className="entity-page overview-page">
       <header className="entity-header">
         <div>
-          <h1>Olá, {user?.name.split(" ")[0]}</h1>
-          <p className="entity-lede">O que já está cadastrado e o que entrou por último.</p>
+          <h1>Visão geral</h1>
+          <p className="entity-lede">Acompanhe a operação e acesse os próximos passos.</p>
         </div>
         {canPlan ? (
           <Link className="btn-primary" to="/planning">
@@ -78,6 +79,8 @@ export function DashboardPage() {
           </Link>
         ) : null}
       </header>
+
+      {canPlan && <OperationsDashboardPage embedded />}
 
       {status === "loading" ? (
         <p className="entity-state">
@@ -87,7 +90,7 @@ export function DashboardPage() {
       ) : (
         <>
           <div className="kpi-grid">
-            <Counter label="CAMINHÕES" value={totals.trucks} to="/trucks" />
+            {!canPlan && <Counter label="CAMINHÕES" value={totals.trucks} to="/trucks" />}
             <Counter label="PRODUTOS" value={totals.products} to="/products" />
             {readsPersonalData ? (
               <>
@@ -99,10 +102,10 @@ export function DashboardPage() {
           </div>
 
           {unavailable.length > 0 ? (
-            <p className="entity-form-help">
+            <div className="dashboard-partial"><p className="entity-form-help">
               Alguns números não puderam ser carregados e aparecem como “—”. O restante do painel
               continua válido.
-            </p>
+            </p><button className="btn-secondary" onClick={reload} type="button">Tentar novamente o resumo</button></div>
           ) : null}
 
           <section className="dash-block">
@@ -114,21 +117,22 @@ export function DashboardPage() {
             </div>
 
             {recentOrders.length === 0 ? (
-              <p className="entity-state">Nenhum pedido cadastrado ainda.</p>
+              <p className="entity-state">{unavailable.includes("orders") ? "Não foi possível consultar os pedidos recentes." : "Nenhum pedido cadastrado ainda."}</p>
             ) : (
               <ul className="dash-orders">
                 {recentOrders.map((order) => (
                   <li key={order.id}>
                     <div>
                       <p className="dash-order-customer">
-                        {customerNames.get(order.customerId) ?? "Cliente não encontrado"}
+                        {customerNames.get(order.customerId) ?? `Pedido ${order.id.slice(0, 8)}`}
                       </p>
                       <p className="dash-order-meta">
                         {dateFormatter.format(new Date(order.createdAt))} · {order.itemCount}{" "}
-                        {order.itemCount === 1 ? "item" : "itens"} · {priorityLabel(order.priority)}
+                        {order.itemCount === 1 ? "linha" : "linhas"} · {priorityLabel(order.priority)}
                       </p>
                     </div>
                     <StatusPill tone={statusTone(order.status)}>{STATUS_LABELS[order.status]}</StatusPill>
+                    <Link className="btn-link" to={`/orders?order=${order.id}`}>Abrir pedido</Link>
                   </li>
                 ))}
               </ul>

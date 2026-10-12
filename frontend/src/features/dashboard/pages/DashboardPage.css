@@ -94,3 +94,16 @@
   color: var(--muted);
   margin: 3px 0 0;
 }
+
+.dashboard-partial { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 18px; }
+.dashboard-partial p { flex: 1 1 260px; }
+.kpi-grid .kpi { border-radius: 10px; }
+.kpi-grid .kpi-label { font-family: inherit; font-size: .75rem; letter-spacing: .02em; }
+.kpi-grid .kpi-value { font-family: inherit; font-weight: 600; }
+.dash-orders { border-radius: 10px; }
+.dash-orders li { flex-wrap: wrap; }
+.dash-orders li > div { flex: 1 1 200px; min-width: 0; overflow-wrap: anywhere; }
+.dash-block-head { flex-wrap: wrap; }
+.overview-page.entity-page { max-width: 1264px; }
+.overview-page .entity-header h1 { font-size: clamp(1.75rem, 2.5vw, 2rem); font-weight: 600; letter-spacing: -.04em; }
+.overview-page .btn-primary, .overview-page .btn-secondary { border-radius: 8px; }
