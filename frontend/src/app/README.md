@@ -62,10 +62,8 @@ tocar em uma subseção navega e fecha a gaveta.
 A proteção de backend/frontend permanece ADMIN. O submenu não implementa
 gestão de usuários, parâmetros inexistentes ou novos contratos HTTP.
 
-**Integração pendente:** a PR #201 trabalha o redesenho visual de Configurações
-em branch separada. A PR #203 não incorpora esse redesign; reconciliar as duas
-PRs antes de publicar uma versão combinada, evitando voltar a criar navegação
-duplicada.
+`CONFIRMADO`: as PRs #201, #203 e #205 já estão integradas na base da manutenção
+#206. A consolidação preserva as subseções de Configurações na sidebar global.
 
 ## Acordeões da sidebar — manutenção PR #203
 
@@ -85,3 +83,18 @@ rota final. Recarregar diretamente `/settings#settings-company` continua
 selecionando a subseção correta.
 
 Nenhuma alteração em endpoint, regras de autorização, schema ou permissões.
+
+## Consolidação — manutenção #206
+
+`CONFIRMADO`: navegação global Visão geral; Cadastros (Caminhões e frota,
+Produtos, Clientes e motoristas); Operação (Pedidos, Planejamento de carga,
+Relatórios e indicadores, Auditoria); Minha conta; Configurações. Acordeões,
+sidebar compacta, drawer mobile, submenus e RBAC da PR #203 são preservados.
+
+`CONFIRMADO`: aliases `/operations` → `/` (ADMIN/LOGISTICS_MANAGER) e `/fleet` →
+`/trucks?tab=availability` (ADMIN/LOGISTICS_MANAGER/CHECKER). A guarda evita montar
+componentes e consultas dos perfis negados, sem substituir autorização backend.
+
+`RISCO IDENTIFICADO`: OC86 em desenvolvimento também altera AppLayout e testes
+de Configurações; reconciliar os rótulos/links do menu ao integrar aquela branch.
+Nenhum código de gestão de usuários/autenticação ou evidências OC81 foi remodelado.

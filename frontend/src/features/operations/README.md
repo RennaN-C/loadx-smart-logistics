@@ -1,11 +1,11 @@
 # Feature: operations
 
-Painel operacional da v1.1.0 (OC74), em `/operations`. Consome
+Painel operacional da v1.1.0 (OC74), integrado à Visão geral `/` pela manutenção #206. Consome
 `GET /operational-indicators` (OC69).
 
 ## O que existe hoje
 
-- `pages/OperationsDashboardPage.tsx` (+ `.css`): a tela inteira, com os quatro
+- `pages/OperationsDashboardPage.tsx` (+ `.css`): componente reutilizado na Visão geral, com os quatro
   grupos de indicadores, carregando, erro, nova tentativa e atualização.
 - `api/operationalIndicatorsApi.ts`: mapeamento snake_case para camelCase.
 - `types.ts`: o contrato da OC69.
@@ -42,8 +42,8 @@ vêm da OC69".
 ## Permissões
 
 `CONFIRMADO`: `GET /operational-indicators` responde a `ADMIN` e
-`LOGISTICS_MANAGER`. `CHECKER` e `DRIVER` não acessam o painel global, e o item
-some do menu para eles.
+`LOGISTICS_MANAGER`. `CHECKER` e `DRIVER` não acessam o painel global, e o bloco global não é montado para eles. O item separado foi removido do menu;
+`/operations` preserva acesso legado com guarda e redirecionamento para `/`.
 
 O motivo não é dado pessoal — é **alcance**: conferente e motorista enxergam a
 própria tarefa, não a operação inteira. Por isso `AppLayout` usa uma constante
@@ -59,3 +59,11 @@ zeros; não é erro e não vira estado vazio.
 
 Filtro por período, gráfico de série histórica, métrica financeira e qualquer
 taxa derivada. Nenhum tem suporte na OC69 desta versão.
+
+## Integração na Visão geral — #206
+
+`CONFIRMADO`: o modo incorporado usa a mesma chamada e grupos, destacando
+indicadores prioritários e mantendo os demais em detalhes expansíveis. Períodos,
+zeros, falhas, nova tentativa e atualização manual continuam funcionando. Não
+consulta séries históricas nem calcula porcentagens. O contrato independente de
+`/reports` continua distinto: aquela página apura somente pedidos, com teto.
