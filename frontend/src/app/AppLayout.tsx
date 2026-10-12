@@ -311,13 +311,11 @@ export function AppLayout() {
                               setSettingsSubmenuExpanded(true);
                               return;
                             }
-                            if (settingsSubmenuExpanded) {
-                              // Segundo clique: fecha o submenu e preserva a tela ativa.
+                            if (location.pathname === "/settings") {
+                              // Alternar o submenu nunca remove o hash da seção atual.
                               event.preventDefault();
-                              setSettingsSubmenuExpanded(false);
-                              return;
                             }
-                            setSettingsSubmenuExpanded(true);
+                            setSettingsSubmenuExpanded((expanded) => !expanded);
                           }
                           setMobileOpen(false);
                         }}
