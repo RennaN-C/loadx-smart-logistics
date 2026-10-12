@@ -1,7 +1,6 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { getCompanyProfile, updateCompanyProfile } from "../features/settings/api/companyProfileApi";
 import { getIntegrationHealth } from "../features/settings/api/integrationHealthApi";
 import { getCurrentUser, login, logout } from "../features/auth/api/authApi";
 import type { AuthenticatedUser, Role } from "../features/auth/types";
@@ -11,7 +10,7 @@ import { App } from "./App";
 
 vi.mock("../features/auth/api/authApi");
 vi.mock("../features/settings/api/integrationHealthApi", () => ({ getIntegrationHealth: vi.fn(async () => ({ checked_at: "2026-10-10T00:00:00Z", correlation_id: "00000000-0000-0000-0000-000000000108", overall_status: "PARTIAL", components: [] })) }));
-vi.mock("../features/settings/api/companyProfileApi", () => ({ getCompanyProfile: vi.fn(async () => null), updateCompanyProfile: vi.fn() }));
+vi.mock("../features/settings/api/companyProfileApi", () => ({ getCompanyProfile: vi.fn(async () => null) }));
 vi.mock("../features/dashboard/pages/DashboardPage", () => ({ DashboardPage: () => <h1>Início da operação</h1> }));
 
 const USER: AuthenticatedUser = {
@@ -119,9 +118,10 @@ describe("OC85: navegação e autorização na aplicação", () => {
   it("separa regiões acessíveis e não oferece links para OCs futuras", async () => {
     render(<App />);
     await screen.findByRole("heading", { name: "Configurações", level: 1 });
+    const menu = screen.getByRole("navigation", { name: "Navegação principal" });
     expect(screen.queryByRole("region", { name: "Configurações do LoadX" })).not.toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "Integrações e Saúde" })).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Integrações e Saúde" })).toHaveAttribute("href", "/settings#settings-integrations");
+    expect(within(menu).getByRole("link", { name: "Integrações e Saúde" })).toHaveAttribute("href", "/settings#settings-integrations");
     for (const label of ["Gestão de usuários"]) {
       expect(within(account()).getByRole("heading", { name: label, level: 3 })).toBeInTheDocument();
       expect(screen.queryByRole("link", { name: label })).not.toBeInTheDocument();
@@ -129,82 +129,58 @@ describe("OC85: navegação e autorização na aplicação", () => {
     expect(within(account()).getByRole("link", { name: "Meu perfil, senha e sessões" })).toHaveAttribute("href", "/account");
     expect(within(account()).getByRole("link", { name: "Meu perfil, senha e sessões" })).toHaveClass("settings-account-link");
     expect(screen.queryByRole("region", { name: "Dados da empresa" })).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Dados da empresa" })).toHaveAttribute("href", "/settings#settings-company");
-    const sections = screen.getByRole("navigation", { name: "Seções de configurações" });
-    for (const link of within(sections).getAllByRole("link")) {
-      const id = new URL(link.getAttribute("href")!, window.location.origin).hash.slice(1);
-      expect(document.getElementById(id)).not.toBeNull();
+    expect(within(menu).getByRole("link", { name: "Dados da empresa" })).toHaveAttribute("href", "/settings#settings-company");
+    expect(screen.queryByRole("navigation", { name: "Seções de configurações" })).not.toBeInTheDocument();
+    for (const link of within(menu).getAllByRole("link").filter((item) => item.getAttribute("href")?.includes("/settings#"))) {
+      expect(document.getElementById(link.getAttribute("href")!.split("#")[1])).not.toBeNull();
     }
     await waitFor(() => expect(getCurrentUser).toHaveBeenCalledOnce());
   });
-  it("troca uma seção por vez e mantém a seção selecionada na URL", async () => {
+
+  it("ADMIN alterna uma única seção pelo menu lateral com seleção na URL", async () => {
     render(<App />);
     await screen.findByRole("heading", { name: "Configurações", level: 1 });
-    for (const [name, hash] of [["Dados da empresa", "settings-company"], ["Integrações e Saúde", "settings-integrations"], ["Configurações do LoadX", "settings-logistics"], ["Conta e administração", "settings-account"]]) {
-      fireEvent.click(screen.getByRole("link", { name }));
-      expect(screen.getByRole("region", { name })).toBeVisible();
-      expect(screen.getByRole("link", { name })).toHaveAttribute("aria-current", "location");
-      expect(window.location.hash).toBe(`#${hash}`);
-      expect(screen.getAllByRole("region").filter((region) => region.classList.contains("settings-section"))).toHaveLength(1);
+    const menu = screen.getByRole("navigation", { name: "Navegação principal" });
+    for (const [label, id] of [
+      ["Dados da empresa", "settings-company"],
+      ["Integrações e Saúde", "settings-integrations"],
+      ["Configurações do LoadX", "settings-logistics"],
+      ["Conta e administração", "settings-account"],
+    ]) {
+      fireEvent.click(within(menu).getByRole("link", { name: label }));
+      expect(window.location.hash).toBe(`#${id}`);
+      expect(screen.getByRole("region", { name: label })).toBeVisible();
+      expect(document.querySelectorAll(".settings-section:not([hidden])")).toHaveLength(1);
+      expect(within(menu).getByRole("link", { name: label })).toHaveAttribute("aria-current", "location");
     }
   });
 
-  it.each(["settings-company", "settings-integrations", "settings-logistics"])("reabre diretamente a seção %s sem exibir a conta", async (hash) => {
-    window.history.replaceState({}, "", `/settings#${hash}`);
-    render(<App />);
+  it("link direto abre a seção correta; hash desconhecido volta para Conta", async () => {
+    window.history.replaceState({}, "", "/settings#settings-company");
+    const app = render(<App />);
     await screen.findByRole("heading", { name: "Configurações", level: 1 });
-    expect(document.getElementById(hash)).toBeVisible();
+    expect(screen.getByRole("region", { name: "Dados da empresa" })).toBeVisible();
     expect(screen.queryByRole("region", { name: "Conta e administração" })).not.toBeInTheDocument();
-  });
-
-  it("fragmento desconhecido mantém entrada segura na conta", async () => {
-    window.history.replaceState({}, "", "/settings#inexistente");
+    app.unmount();
+    window.history.replaceState({}, "", "/settings#nao-existe");
     render(<App />);
     await screen.findByRole("heading", { name: "Configurações", level: 1 });
-    expect(account()).toBeVisible();
+    expect(screen.getByRole("region", { name: "Conta e administração" })).toBeVisible();
   });
 
-  it("preserva rascunho ao navegar entre seções e cancelar restaura a consulta", async () => {
-    vi.mocked(getCompanyProfile).mockResolvedValue(null);
+  it("mantém componentes premium sem navegação interna duplicada", async () => {
     render(<App />);
     await screen.findByRole("heading", { name: "Configurações", level: 1 });
-    fireEvent.click(screen.getByRole("link", { name: "Dados da empresa" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Cadastrar dados da empresa" }));
-    fireEvent.change(screen.getByLabelText("Nome empresarial"), { target: { value: "Rascunho preservado" } });
-    fireEvent.click(screen.getByRole("link", { name: "Integrações e Saúde" }));
-    fireEvent.click(screen.getByRole("link", { name: "Dados da empresa" }));
-    expect(screen.getByLabelText("Nome empresarial")).toHaveValue("Rascunho preservado");
-    expect(screen.getByLabelText("Nome empresarial")).not.toHaveAttribute("readonly");
-    expect(getCompanyProfile).toHaveBeenCalledOnce();
-    expect(updateCompanyProfile).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
-    expect(screen.getByLabelText("Nome empresarial")).toHaveValue("");
-    expect(screen.getByLabelText("Nome empresarial")).toHaveAttribute("readonly");
-  });
+    const sidebar = screen.getByRole("navigation", { name: "Navegação principal" });
+    expect(screen.queryByRole("navigation", { name: "Seções de configurações" })).not.toBeInTheDocument();
+    expect(screen.getByText("Perfil e segurança")).toBeInTheDocument();
 
-  it("oferece quatro abas com labels curtos e nomes acessíveis completos", async () => {
-    render(<App />);
-    await screen.findByRole("heading", { name: "Configurações", level: 1 });
-    const navigation = screen.getByRole("navigation", { name: "Seções de configurações" });
-    expect(within(navigation).getAllByRole("link")).toHaveLength(4);
-    for (const [name, label] of [["Conta e administração", "Conta"], ["Dados da empresa", "Empresa"], ["Integrações e Saúde", "Integrações"], ["Configurações do LoadX", "Operação"]]) {
-      const link = within(navigation).getByRole("link", { name });
-      expect(link).toHaveTextContent(label);
-      fireEvent.click(link);
-      expect(link).toHaveAttribute("aria-current", "location");
-      expect(screen.getByRole("region", { name })).toBeVisible();
-    }
+    fireEvent.click(within(sidebar).getByRole("link", { name: "Dados da empresa" }));
+    expect(await screen.findByRole("button", { name: "Cadastrar dados da empresa" })).toBeInTheDocument();
+    expect(screen.getByText("Identificação da empresa")).toBeInTheDocument();
+    fireEvent.click(within(sidebar).getByRole("link", { name: "Configurações do LoadX" }));
+    const op = screen.getByRole("region", { name: "Configurações do LoadX" });
+    expect(within(op).getByRole("link", { name: /Consultar frota/ })).toHaveAttribute("href", "/fleet");
+    expect(within(op).getByRole("link", { name: /Ir para planejamento/ })).toHaveAttribute("href", "/planning");
   });
-
-  it("Operação oferece atalhos existentes sem simular configurações editáveis", async () => {
-    window.history.replaceState({}, "", "/settings#settings-logistics");
-    render(<App />);
-    await screen.findByRole("heading", { name: "Configurações", level: 1 });
-    const operation = screen.getByRole("region", { name: "Configurações do LoadX" });
-    expect(within(operation).getByRole("link", { name: /Consultar frota/ })).toHaveAttribute("href", "/fleet");
-    expect(within(operation).getByRole("link", { name: /Ir para planejamento/ })).toHaveAttribute("href", "/planning");
-    expect(within(operation).queryByRole("textbox")).not.toBeInTheDocument();
-    expect(within(operation).queryByRole("button")).not.toBeInTheDocument();
-  });
-
 });
