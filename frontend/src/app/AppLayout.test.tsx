@@ -28,12 +28,13 @@ function signedInAs(role: Role, logout = vi.fn()) {
   return logout;
 }
 
-function renderLayout() {
+function renderLayout(path = "/") {
   return render(
-    <MemoryRouter initialEntries={["/"]}>
+    <MemoryRouter initialEntries={[path]}>
       <Routes>
         <Route element={<AppLayout />}>
           <Route index element={<p>conteudo da rota</p>} />
+          <Route path="settings" element={<p>conteudo das configurações</p>} />
         </Route>
       </Routes>
     </MemoryRouter>,
@@ -238,4 +239,51 @@ describe("AppLayout", () => {
     expect(within(menu()).queryByRole("link", { name: "Frota" })).not.toBeInTheDocument();
   });
 
+
+  it("ADMIN abre Configurações no menu existente, com subseções apenas nessa área", () => {
+    signedInAs("ADMIN");
+    renderLayout();
+    expect(within(menu()).queryByRole("link", { name: "Dados da empresa" })).not.toBeInTheDocument();
+    fireEvent.click(within(menu()).getByRole("link", { name: "Configurações" }));
+    expect(screen.getByText("conteudo das configurações")).toBeInTheDocument();
+    expect(within(menu()).getByRole("link", { name: "Configurações" })).toHaveAttribute("aria-expanded", "true");
+    expect(within(menu()).getByRole("link", { name: "Dados da empresa" })).toHaveAttribute("href", "/settings#settings-company");
+    expect(within(menu()).getByRole("link", { name: "Conta e administração" })).toHaveAttribute("aria-current", "location");
+    fireEvent.click(within(menu()).getByRole("link", { name: "Início" }));
+    expect(within(menu()).queryByRole("link", { name: "Dados da empresa" })).not.toBeInTheDocument();
+  });
+
+  it("expande a sidebar compacta ao selecionar Configurações e marca hash direto", () => {
+    signedInAs("ADMIN");
+    renderLayout("/settings#settings-integrations");
+    expect(within(menu()).getByRole("link", { name: "Integrações e Saúde" })).toHaveAttribute("aria-current", "location");
+    fireEvent.click(screen.getByRole("button", { name: "Recolher menu lateral" }));
+    expect(document.querySelector(".app-shell")).toHaveAttribute("data-sidebar-collapsed", "true");
+    expect(within(menu()).queryByRole("link", { name: "Integrações e Saúde" })).not.toBeInTheDocument();
+    fireEvent.click(within(menu()).getByRole("link", { name: "Configurações" }));
+    expect(document.querySelector(".app-shell")).toHaveAttribute("data-sidebar-collapsed", "false");
+    expect(within(menu()).getByRole("link", { name: "Conta e administração" })).toHaveAttribute("aria-current", "location");
+  });
+
+  it("no drawer, primeiro expande Configurações e só fecha ao escolher subseção", () => {
+    signedInAs("ADMIN");
+    renderLayout();
+    fireEvent.click(screen.getByRole("button", { name: "Abrir menu" }));
+    fireEvent.click(within(menu()).getByRole("link", { name: "Configurações" }));
+    expect(document.querySelector(".app-shell")).toHaveAttribute("data-mobile-open", "true");
+    expect(within(menu()).getByRole("link", { name: "Dados da empresa" })).toBeInTheDocument();
+    fireEvent.click(within(menu()).getByRole("link", { name: "Dados da empresa" }));
+    expect(document.querySelector(".app-shell")).toHaveAttribute("data-mobile-open", "false");
+    expect(within(menu()).getByRole("link", { name: "Dados da empresa" })).toHaveAttribute("aria-current", "location");
+  });
+
+  it("não apresenta subseções administrativas para LOGISTICS_MANAGER, CHECKER e DRIVER", () => {
+    for (const role of ["LOGISTICS_MANAGER", "CHECKER", "DRIVER"] as const) {
+      signedInAs(role);
+      const app = renderLayout();
+      expect(within(menu()).queryByRole("link", { name: "Configurações" })).not.toBeInTheDocument();
+      expect(within(menu()).queryByRole("link", { name: "Conta e administração" })).not.toBeInTheDocument();
+      app.unmount();
+    }
+  });
 });
