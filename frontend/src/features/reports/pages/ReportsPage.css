@@ -209,3 +209,4 @@
 .reports-page .btn-secondary { border-radius: 8px; }
 .report-table-who span:last-child { white-space: normal; overflow-wrap: anywhere; }
 .report-table-scroll:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.report-table { min-width: 600px; }

@@ -140,6 +140,7 @@ describe("ReportsPage", () => {
     render(<ReportsPage />);
 
     expect(await screen.findByRole("alert")).toHaveTextContent(/Não foi possível apurar/);
+    expect(screen.getByRole("heading", { name: "Relatórios e indicadores", level: 1 })).toBeInTheDocument();
   });
   it("usa volumes físicos tanto no total quanto nas tabelas", async () => {
     arrange([order({ itemCount: 2, volumeCount: 19, expectedDeliveryAt: VENCIDO })]);

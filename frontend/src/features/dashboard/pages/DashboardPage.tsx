@@ -37,7 +37,7 @@ export function DashboardPage() {
   const readsPersonalData = user?.role === "ADMIN" || user?.role === "LOGISTICS_MANAGER";
   const { items: customers } = useResourceList(listHistoricalCustomers, readsPersonalData);
 
-  const customerNames = new Map(customers.map((customer) => [customer.id, customer.name]));
+  const customerNames = new Map((readsPersonalData ? customers : []).map((customer) => [customer.id, customer.name]));
   const canPlan = canManageLogistics(user?.role);
 
   /**

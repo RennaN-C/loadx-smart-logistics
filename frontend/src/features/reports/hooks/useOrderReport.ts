@@ -94,5 +94,5 @@ export function useOrderReport(): UseOrderReportResult {
     void load();
   }, [load]);
 
-  return { status, report, customerNames, notCounted, reference, reload: () => void load() };
+  return { status, report, customerNames: readsCustomers ? customerNames : new Map<string, string>(), notCounted, reference, reload: () => void load() };
 }

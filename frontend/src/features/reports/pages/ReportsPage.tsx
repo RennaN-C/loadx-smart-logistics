@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { AlertBanner } from "../../../components/AlertBanner";
 import { Avatar } from "../../../components/Avatar";
 import { Icon } from "../../../components/Icon";
@@ -17,12 +18,17 @@ function statusToneBar(key: OrderStatus): "accent" | "muted" | "good" {
   return "accent";
 }
 
+function ReportsHeader({ reference, action }: { readonly reference?: Date; readonly action?: ReactNode }) {
+  return <header className="entity-header"><div><h1>Relatórios e indicadores</h1><p className="entity-lede">{reference ? `Indicadores de pedidos. Apuração em ${dateFormatter.format(reference)}.` : "Indicadores de pedidos e quantidades físicas."}</p></div>{action && <div className="entity-toolbar">{action}</div>}</header>;
+}
+
 export function ReportsPage() {
   const { status, report, customerNames, notCounted, reference, reload } = useOrderReport();
 
   if (status === "loading") {
     return (
       <div className="entity-page reports-page">
+        <ReportsHeader />
         <p className="entity-state">
           <span className="spinner" aria-hidden="true" />
           <span>Apurando indicadores…</span>
@@ -34,6 +40,7 @@ export function ReportsPage() {
   if (status === "error" || report === null) {
     return (
       <div className="entity-page reports-page">
+        <ReportsHeader />
         <AlertBanner>Não foi possível apurar os indicadores. Tente novamente.</AlertBanner>
         <button type="button" className="btn-secondary" onClick={reload}>
           Recarregar
@@ -44,19 +51,7 @@ export function ReportsPage() {
 
   return (
     <div className="entity-page reports-page">
-      <header className="entity-header">
-        <div>
-          <h1>Relatórios e indicadores</h1>
-          <p className="entity-lede">
-            Indicadores de pedidos. Apuração em {dateFormatter.format(reference)}.
-          </p>
-        </div>
-        <div className="entity-toolbar">
-          <button type="button" className="btn-secondary" onClick={reload}>
-            Atualizar
-          </button>
-        </div>
-      </header>
+      <ReportsHeader reference={reference} action={<button type="button" className="btn-secondary" onClick={reload}>Atualizar</button>} />
 
       <p className="entity-summary">Apuração limitada a até 1.000 pedidos carregados nesta consulta.</p>
       {report.unknownVolumeOrders > 0 && <AlertBanner>Volumes físicos não informados em {report.unknownVolumeOrders} pedido(s). Os totais afetados aparecem como “—”; linhas não substituem quantidades físicas.</AlertBanner>}
