@@ -1,4 +1,4 @@
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import { AuthProvider } from "../features/auth/components/AuthProvider";
 import { RequireAuth } from "../features/auth/components/RequireAuth";
@@ -9,12 +9,11 @@ import { DashboardPage } from "../features/dashboard/pages/DashboardPage";
 import { TripPage } from "../features/deliveries/pages/TripPage";
 import { PlanningPage } from "../features/load-planning/pages/PlanningPage";
 import { LoadingPage } from "../features/loading-operation/pages/LoadingPage";
-import { OperationsDashboardPage } from "../features/operations/pages/OperationsDashboardPage";
 import { OrderListPage } from "../features/orders/pages/OrderListPage";
 import { ProductListPage } from "../features/products/pages/ProductListPage";
 import { ReportsPage } from "../features/reports/pages/ReportsPage";
-import { FleetStatusPage } from "../features/trucks/pages/FleetStatusPage";
-import { TruckListPage } from "../features/trucks/pages/TruckListPage";
+import { TruckWorkspacePage } from "../features/trucks/pages/TruckWorkspacePage";
+import { OperationalAccess } from "./OperationalAccess";
 import { RequireSettingsAdmin } from "../features/settings/components/RequireSettingsAdmin";
 import { SettingsPage } from "../features/settings/pages/SettingsPage";
 import { AccountPage } from "../features/auth/pages/AccountPage";
@@ -33,13 +32,13 @@ export function App() {
               <Route element={<RequireSettingsAdmin />}>
                 <Route path="settings" element={<SettingsPage />} />
               </Route>
-              <Route path="trucks" element={<TruckListPage />} />
-              <Route path="fleet" element={<FleetStatusPage />} />
+              <Route path="trucks" element={<OperationalAccess><TruckWorkspacePage /></OperationalAccess>} />
+              <Route path="fleet" element={<OperationalAccess><Navigate to="/trucks?tab=availability" replace /></OperationalAccess>} />
               <Route path="products" element={<ProductListPage />} />
               <Route path="contacts" element={<ContactsPage />} />
               <Route path="orders" element={<OrderListPage />} />
-              <Route path="reports" element={<ReportsPage />} />
-              <Route path="operations" element={<OperationsDashboardPage />} />
+              <Route path="reports" element={<OperationalAccess><ReportsPage /></OperationalAccess>} />
+              <Route path="operations" element={<OperationalAccess overview><Navigate to="/" replace /></OperationalAccess>} />
               <Route path="audit" element={<AuditPage />} />
               <Route path="planning" element={<PlanningPage />} />
               <Route path="planning/:planId" element={<PlanningPage />} />

@@ -45,13 +45,13 @@ const NAV_GROUPS: readonly NavGroup[] = [
   {
     id: "inicio",
     title: null,
-    items: [{ to: "/", label: "Início", icon: "home", roles: ALL_ROLES }],
+    items: [{ to: "/", label: "Visão geral", icon: "home", roles: ALL_ROLES }],
   },
   {
     id: "cadastros",
     title: "Cadastros",
     items: [
-      { to: "/trucks", label: "Caminhões", icon: "truck", roles: OPERATION_READERS },
+      { to: "/trucks", label: "Caminhões e frota", icon: "truck", roles: OPERATION_READERS },
       { to: "/products", label: "Produtos", icon: "package", roles: OPERATION_READERS },
       {
         to: "/contacts",
@@ -66,15 +66,8 @@ const NAV_GROUPS: readonly NavGroup[] = [
     title: "Operação",
     items: [
       { to: "/orders", label: "Pedidos", icon: "orders", roles: OPERATION_READERS },
-      { to: "/fleet", label: "Frota", icon: "gauge", roles: OPERATION_READERS },
-      { to: "/planning", label: "Planejamento", icon: "planning", roles: OPERATION_READERS },
-      { to: "/reports", label: "Indicadores", icon: "chart", roles: OPERATION_READERS },
-      {
-        to: "/operations",
-        label: "Painel operacional",
-        icon: "report",
-        roles: OPERATION_OVERVIEW_READERS,
-      },
+      { to: "/planning", label: "Planejamento de carga", icon: "planning", roles: OPERATION_READERS },
+      { to: "/reports", label: "Relatórios e indicadores", icon: "chart", roles: OPERATION_READERS },
       {
         to: "/audit",
         label: "Auditoria",
