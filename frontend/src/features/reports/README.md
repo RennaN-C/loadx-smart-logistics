@@ -59,6 +59,6 @@ Encerrados significa entregues/cancelados; volumes em aberto não afirmam que
 pedidos já em trânsito ainda precisam carregar.
 
 `CONFIRMADO`: a identidade visual usa os tokens LoadX, hierarquia e superfícies
-da área administrativa, tabelas responsivas com foco/rolagem por teclado e nomes
+da área administrativa, tabelas responsivas com controles nativos de rolagem por teclado/toque e nomes
 longos legíveis. Fonte e escopo dos indicadores são independentes da OC69.
 PDFs de viagem/carregamento e suas permissões próprias permanecem intactos.

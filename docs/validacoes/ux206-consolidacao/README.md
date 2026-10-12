@@ -20,8 +20,9 @@ em produção, merge ou deploy nesta entrega.
 `CONFIRMADO`: revisadas 32 combinações finais (4 telas × 4 larguras × 2 temas).
 A avaliação incluiu densidade, hierarquia, alinhamento, campos, conteúdo extenso,
 foco/contraste e rolagem, além de overflow. Na revisão, uma tabela móvel que
-comprimia nomes foi corrigida com largura mínima, rolagem por teclado, regiões
-nomeadas e instrução explícita. Os textos não são reduzidos a uma letra por linha.
+comprimia nomes foi corrigida com largura mínima, controles nativos de rolagem, regiões
+nomeadas e instrução explícita. Os controles aparecem apenas quando há overflow
+e permitem acesso por teclado/toque às colunas, respeitando os limites. Os textos não são reduzidos a uma letra por linha.
 
 ## Antes/depois — notebook, tema escuro
 
@@ -69,7 +70,7 @@ PNGs da página inteira; viewport notebook 1280×720 e desktop 1920×1080.
 ## Qualidade, limites e integração
 
 `CONFIRMADO`: ESLint, TypeScript, build e Vitest completo locais aprovados:
-719 testes em 84 arquivos. As validações remotas de Backend, Frontend, Segurança,
+721 testes em 85 arquivos. As validações remotas de Backend, Frontend, Segurança,
 Contrato e SonarCloud ficam registradas no PR. Sem mudança de contrato HTTP,
 dependência ou migration. Cobertura frontend não instrumentada pela suíte atual.
 
