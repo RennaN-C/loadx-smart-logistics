@@ -19,7 +19,7 @@ import type { Truck } from "../types";
 import "./TruckListPage.css";
 import { Icon } from "../../../components/Icon";
 
-export function TruckListPage() {
+export function TruckListPage({ embedded = false, active = true }: { readonly embedded?: boolean; readonly active?: boolean }) {
   const { user } = useAuth();
   const {
     status,
@@ -67,10 +67,10 @@ export function TruckListPage() {
   }
 
   return (
-    <div className="entity-page">
+    <div className={embedded ? "truck-section" : "entity-page"}>
       <header className="entity-header">
         <div>
-          <h1>Caminhões</h1>
+          {embedded ? <h2>Veículos</h2> : <h1>Caminhões</h1>}
           <p className="entity-lede">Baús cadastrados para planejamento de carga.</p>
         </div>
         {canManage ? (
@@ -108,7 +108,7 @@ export function TruckListPage() {
       ) : null}
 
       {status === "error" && error ? (
-        <AlertBanner>{mapTruckErrorToMessage(error)}</AlertBanner>
+        <><AlertBanner>{mapTruckErrorToMessage(error)}</AlertBanner><button type="button" className="btn-secondary" onClick={() => void refetch()}>Tentar novamente</button></>
       ) : null}
 
       {status === "success" && visibleTrucks.length === 0 ? (
@@ -131,15 +131,16 @@ export function TruckListPage() {
         <Pagination page={page} totalPages={totalPages} onChange={goToPage} label="caminhões" />
       ) : null}
 
-      {documentsTruck ? <Modal title={`Documentos — ${documentsTruck.plate}`} onClose={() => setDocumentsTruck(null)}>
+      {documentsTruck ? <Modal active={active} title={`Documentos — ${documentsTruck.plate}`} onClose={() => setDocumentsTruck(null)}>
         <DocumentsPanel truck={documentsTruck} onChanged={refetch} />
       </Modal> : null}
-      {maintenanceTruck ? <Modal title={`Manutenções — ${maintenanceTruck.plate}`} onClose={() => setMaintenanceTruck(null)}>
+      {maintenanceTruck ? <Modal active={active} title={`Manutenções — ${maintenanceTruck.plate}`} onClose={() => setMaintenanceTruck(null)}>
         <MaintenancePanel truck={maintenanceTruck} onChanged={refetch} />
       </Modal> : null}
 
       {isFormOpen ? (
         <Modal
+          active={active}
           title={editingTruck ? "Editar caminhão" : "Novo caminhão"}
           subtitle="Compartimento de carga"
           onClose={closeForm}
