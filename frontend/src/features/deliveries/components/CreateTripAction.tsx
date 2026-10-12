@@ -15,11 +15,7 @@ interface CreateTripActionProps {
   readonly onExistingTrip?: () => void;
 }
 
-/**
- * Único caminho para CRIAR viagem: o plano aprovado. A viagem criada aparece
- * nem planos, então a navegação precisa partir daqui — depois de criada, a
- * viagem vive em `/trips/:tripId`.
- */
+/** Criação explícita pelo plano aprovado; conflito reconsulta os vínculos reais. */
 export function CreateTripAction({ loadPlanId, onExistingTrip }: CreateTripActionProps) {
   const navigate = useNavigate();
   const { items: drivers } = useResourceList(listDrivers);

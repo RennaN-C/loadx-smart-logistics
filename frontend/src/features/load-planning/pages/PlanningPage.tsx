@@ -45,6 +45,7 @@ export function PlanningPage() {
   const [storedPlan, setPlan] = useState<LoadPlan | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isWorking, setIsWorking] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [tab, setTab] = useState<PlanTab>("summary");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -56,7 +57,8 @@ export function PlanningPage() {
 
   const currentId = useRef(planId);
   currentId.current = planId;
-  const plan = storedPlan?.id === planId ? storedPlan : null;
+  const readablePlan = user?.role !== "CHECKER" || storedPlan?.status === "APPROVED";
+  const plan = storedPlan?.id === planId && readablePlan ? storedPlan : null;
 
   const canManage = canManageLogistics(user?.role);
 
@@ -92,7 +94,7 @@ export function PlanningPage() {
     return () => {
       active = false;
     };
-  }, [planId, user?.role, user?.active]);
+  }, [planId, user?.role, user?.active, loadAttempt]);
 
   const handleCalculated = useCallback(
     (created: LoadPlan) => {
@@ -156,6 +158,7 @@ export function PlanningPage() {
       </header>
 
       {errorMessage ? <AlertBanner>{errorMessage}</AlertBanner> : null}
+      {errorMessage && planId && !plan && !isLoading ? <button className="btn-secondary" type="button" onClick={() => setLoadAttempt((value) => value + 1)}>Tentar novamente</button> : null}
 
       {isLoading ? (
         <p className="entity-state">
