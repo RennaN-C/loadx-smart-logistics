@@ -268,7 +268,7 @@ describe("AppLayout", () => {
     expect(within(menu()).queryByRole("link", { name: "Integrações e Saúde" })).not.toBeInTheDocument();
     fireEvent.click(within(menu()).getByRole("link", { name: "Configurações" }));
     expect(document.querySelector(".app-shell")).toHaveAttribute("data-sidebar-collapsed", "false");
-    expect(within(menu()).getByRole("link", { name: "Conta e administração" })).toHaveAttribute("aria-current", "location");
+    expect(within(menu()).getByRole("link", { name: "Integrações e Saúde" })).toHaveAttribute("aria-current", "location");
   });
 
   it("no drawer, primeiro expande Configurações e só fecha ao escolher subseção", () => {
