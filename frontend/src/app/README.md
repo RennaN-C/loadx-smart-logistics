@@ -15,10 +15,8 @@ Esconder o link não substitui o backend, que continua barrando — evita só of
 que responderia 403. **Grupo que fica sem itens some junto com o título**, senão o conferente
 veria "Cadastros" sobre lugar nenhum.
 
-Abaixo de 900px a barra deita no topo e quebra em duas linhas: identidade e conta em cima, menu
-na largura inteira embaixo, rolando na horizontal. Não vira gaveta — sem estado, sem botão e sem
-precisar prender o foco. Espremido ao lado da conta, o menu tinha 130px de janela para 560px de
-links; na linha inteira passa a mostrar 60% deles de saída num aparelho de 375px.
+Até 900px, o menu global é uma gaveta sobreposta, acionada pela barra compacta.
+Acima de 900px, a mesma sidebar é recolhível para um trilho de ícones.
 
 ## Configurações — OC85
 
@@ -45,3 +43,26 @@ são respeitados.
 `PENDENTE DE VALIDAÇÃO MANUAL`: verificar a transição entre 900/901 px e
 larguras 375, 768, 1280 e 1920 px no navegador, em temas claro/escuro,
 incluindo textos longos, rolagem vertical da gaveta e modal aberto.
+
+## Subseções de Configurações — manutenção #202 / PR #203
+
+`CONFIRMADO`: Configurações é um item exclusivo de ADMIN e expande na **mesma**
+sidebar global as quatro subseções (Conta e administração, Dados da empresa,
+Integrações e Saúde, Configurações do LoadX). Não há segunda sidebar nem abas
+horizontais na área de conteúdo. O painel central mostra somente a seção ativa,
+sem desmontar as outras e perder um rascunho em andamento.
+
+A seleção usa `/settings#settings-account`, `#settings-company`,
+`#settings-integrations` ou `#settings-logistics`; URL sem hash ou
+desconhecida seleciona Conta e administração. Links diretos e histórico
+continuam disponíveis. A sidebar compacta abre ao selecionar Configurações.
+No drawer mobile, tocar em Configurações expande suas opções sem fechar a gaveta;
+tocar em uma subseção navega e fecha a gaveta.
+
+A proteção de backend/frontend permanece ADMIN. O submenu não implementa
+gestão de usuários, parâmetros inexistentes ou novos contratos HTTP.
+
+**Integração pendente:** a PR #201 trabalha o redesenho visual de Configurações
+em branch separada. A PR #203 não incorpora esse redesign; reconciliar as duas
+PRs antes de publicar uma versão combinada, evitando voltar a criar navegação
+duplicada.
