@@ -66,3 +66,22 @@ gestão de usuários, parâmetros inexistentes ou novos contratos HTTP.
 em branch separada. A PR #203 não incorpora esse redesign; reconciliar as duas
 PRs antes de publicar uma versão combinada, evitando voltar a criar navegação
 duplicada.
+
+## Acordeões da sidebar — manutenção PR #203
+
+`CONFIRMADO`: **Cadastros** e **Operação** possuem mais de um destino e agora
+são grupos recolhíveis por botões nativos (`aria-expanded` e `aria-controls`).
+Um clique oculta os links, outro clique volta a mostrá-los, sem trocar a página
+ativa. Os grupos funcionam independentemente, têm estado visual e foco visível,
+e nunca oferecem rotas que o perfil não pode acessar. Grupos com apenas um
+destino (Início, Minha conta) não criam acordeões desnecessários.
+
+**Configurações** mantém as quatro subseções na sidebar global. Clicar no item
+pai na área já aberta recolhe o submenu; clicar novamente expande, preservando
+o conteúdo e o fragmento atuais. Na sidebar compacta, os grupos mostram botões
+com ícones acessíveis; selecionar um grupo expande a barra. No mobile, o drawer
+permanece aberto durante abertura/fechamento de grupos e fecha ao escolher uma
+rota final. Recarregar diretamente `/settings#settings-company` continua
+selecionando a subseção correta.
+
+Nenhuma alteração em endpoint, regras de autorização, schema ou permissões.
