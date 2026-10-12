@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { mapOrderFromDto } from "./ordersApi";
+import { mapOrderFromDto, mapOrderListItemFromDto } from "./ordersApi";
 
 describe("mapOrderFromDto", () => {
   it("converte o pedido e os itens aninhados para camelCase", () => {
@@ -49,4 +49,19 @@ it("preserva proveniência e snapshot retornados pelo backend OC99", () => {
   expect(order.customerAddressId).toBe("a1");
   expect(order.deliveryAddressSnapshot).toEqual(snapshot);
   expect(order.deliveryAddress).toBe("Destino contratado");
+});
+
+it("diferencia uma linha de produto de 201 volumes físicos no resumo", () => {
+  const summary = mapOrderListItemFromDto({
+    id: "pedido-201",
+    customer_id: "cliente-1",
+    status: "READY",
+    priority: "NORMAL",
+    expected_delivery_at: null,
+    created_at: "2026-10-12T00:00:00Z",
+    item_count: 1,
+    volume_count: 201,
+  });
+  expect(summary.itemCount).toBe(1);
+  expect(summary.volumeCount).toBe(201);
 });

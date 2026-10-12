@@ -37,7 +37,7 @@ function atendeFiltro(truck: TruckOperationalStatus, filtro: Filtro): boolean {
  * mantém filtro e agregação server-side fora do contrato, e deixar isso
  * implícito faria alguém concluir que só existem três caminhões disponíveis.
  */
-export function FleetStatusPage() {
+export function FleetStatusPage({ embedded = false }: { readonly embedded?: boolean }) {
   const { status, items, error, refetch, page, total, totalPages, goToPage } = useResourceList(
     listTruckOperationalStatus,
   );
@@ -50,10 +50,10 @@ export function FleetStatusPage() {
   const disponiveis = useMemo(() => items.filter((truck) => truck.available).length, [items]);
 
   return (
-    <div className="entity-page">
+    <div className={embedded ? "truck-section" : "entity-page"}>
       <header className="entity-header">
         <div>
-          <h1>Situação da frota</h1>
+          {embedded ? <h2>Disponibilidade</h2> : <h1>Situação da frota</h1>}
           <p className="entity-lede">Quais caminhões podem receber carga agora.</p>
         </div>
         <button type="button" className="btn-secondary" onClick={() => void refetch()}>

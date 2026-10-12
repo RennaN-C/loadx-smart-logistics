@@ -92,4 +92,19 @@ describe("OC108: painel de integrações", () => {
     expect(screen.getByRole("button", { name:"Consultando…" })).toBeDisabled();
     await waitFor(() => expect(getIntegrationHealth).toHaveBeenCalledOnce());
   });
+  it("mantém limites e referência disponíveis em detalhes acessíveis", async () => {
+    render(<IntegrationHealthPanel />);
+    await screen.findByRole("heading", { name: "WhatsApp" });
+    const policy = screen.getByText(/Não há conexão, envio ou confirmação de entrega pela Meta/);
+    expect(policy).not.toBeVisible();
+    const limits = policy.closest("details")!;
+    fireEvent.click(limits.querySelector("summary")!);
+    expect(policy).toBeVisible();
+    const reference = screen.getByText(REPORT.correlation_id);
+    expect(reference).not.toBeVisible();
+    fireEvent.click(screen.getByText("Referência do diagnóstico"));
+    expect(reference).toBeVisible();
+    expect(screen.getAllByText("SIMULADO").every((status) => status.closest("details") === null)).toBe(true);
+  });
+
 });

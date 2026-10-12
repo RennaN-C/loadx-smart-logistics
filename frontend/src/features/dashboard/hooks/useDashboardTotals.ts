@@ -22,6 +22,7 @@ export interface UseDashboardResult {
   recentOrders: OrderListItem[];
   /** Recursos que responderam erro; a tela mostra "—" no lugar do número. */
   unavailable: string[];
+  reload: () => void;
 }
 
 const EMPTY: DashboardTotals = {
@@ -74,7 +75,7 @@ export function useDashboardTotals(role: Role | undefined): UseDashboardResult {
       });
 
     const [trucks, products, customers, drivers, orders] = await Promise.all([
-      countOf("trucks", listTrucks),
+      role === "CHECKER" ? countOf("trucks", listTrucks) : Promise.resolve(null),
       countOf("products", listProducts),
       readsPersonalData ? countOf("customers", listCustomers) : Promise.resolve(null),
       readsPersonalData ? countOf("drivers", listDrivers) : Promise.resolve(null),
@@ -91,5 +92,5 @@ export function useDashboardTotals(role: Role | undefined): UseDashboardResult {
     void load();
   }, [load]);
 
-  return { status, totals, recentOrders, unavailable };
+  return { status, totals, recentOrders, unavailable, reload: () => void load() };
 }

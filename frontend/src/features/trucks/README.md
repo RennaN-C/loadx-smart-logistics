@@ -6,7 +6,7 @@ Consome `GET/POST/PATCH /trucks` e `GET /trucks/operational-status`.
 ## O que existe hoje
 
 - `pages/TruckListPage.tsx` (+ `.css`): grid paginado de cards, busca e filtro de
-  status **client-side na página atual**, estados de carregando/vazio/erro e o
+  arquivamento no servidor e busca **client-side na página atual**, estados de carregando/vazio/erro e o
   modal de cadastro.
 - `components/TruckCard.tsx`: placa, modelo, status, desenho técnico e specs de um caminhão.
 - `components/TruckForm.tsx`: criação e edição, com pré-visualização do desenho e do volume interno
@@ -20,7 +20,7 @@ Consome `GET/POST/PATCH /trucks` e `GET /trucks/operational-status`.
   Ficam em `public/` (e não em `src/assets/`) de propósito: assim uma imagem ausente não quebra o build.
   Devem ser PNG com fundo transparente e recortadas na silhueta do caminhão — o CSS as encaixa com
   `object-fit: contain` e `object-position: bottom`, para as duas vistas ficarem apoiadas no mesmo chão.
-- `pages/FleetStatusPage.tsx` (+ `.css`): painel de situação da frota em `/fleet` (OC73).
+- `pages/FleetStatusPage.tsx` (+ `.css`): painel de disponibilidade (OC73), incorporado à área de caminhões.
 - `components/fleetStatusLabels.ts`: como a situação do caminhão vira rótulo e tom.
 - `components/trucksErrorMessages.ts`: tradução dos códigos de erro do backend.
 - `api/trucksApi.ts`: mapeamento snake_case ↔ camelCase.
@@ -53,8 +53,9 @@ Os contadores valem para a **página carregada**, e a frase na tela diz isso. D1
 mantém filtro e agregação server-side fora do contrato, e "3 de 6 disponíveis"
 sem a ressalva passaria por total da frota.
 
-O item fica em **Operação** no menu, não em Cadastros: a situação muda sozinha
-durante o dia, o caminhão em si não.
+`CONFIRMADO`: na manutenção #206, a disponibilidade integra **Caminhões e frota**
+em Cadastros, com as abas Veículos e Disponibilidade. O item separado Frota foi
+removido; a mudança de organização não altera a fonte dos estados operacionais.
 
 ## Permissões
 
@@ -91,3 +92,18 @@ supostas. CHECKER e arquivados consultam histórico.
 `CONFIRMADO`: frota explica has_document_conflict e planejamento oculta veículos
 com bloqueio documental. UUID de arquivo é referência opaca de metadados;
 não há link público, upload ou download. Notificações externas ficam na OC103.
+
+## Área consolidada — manutenção #206
+
+`CONFIRMADO`: `TruckWorkspacePage` monta os componentes existentes sem reescrever
+cadastro, importação, arquivamento, documentos ou manutenção. `/trucks` abre
+Veículos; `/trucks?tab=availability` abre Disponibilidade; `/fleet` é um alias
+seguro para a segunda URL. ADMIN/LOGISTICS_MANAGER/CHECKER preservam leitura;
+DRIVER não monta a área nem faz consultas protegidas.
+
+`CONFIRMADO`: trocar abas mantém busca, paginação, filtros e rascunhos montados.
+A disponibilidade é consultada ao visitar a aba pela primeira vez. Um modal
+oculto libera foco/rolagem e retoma seu rascunho quando a aba é reaberta. Ao sair
+da página/F5, consultas e estado temporário são reconstruídos a partir da API.
+`available` nunca é recalculado. Filtros e contadores de disponibilidade seguem
+restritos à página carregada, com aviso explícito.

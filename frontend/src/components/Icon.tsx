@@ -27,9 +27,11 @@ export type IconName =
   | "priority"
   | "chart"
   | "report"
-  | "gauge";
+  | "gauge"
+  | "arrow-right";
 
 const PATHS: Record<IconName, ReactNode> = {
+  "arrow-right": <path d="M5 12h14m-6-6 6 6-6 6" />,
   settings: (
     <>
       <path d="M9 3h6l.7 3 2.7 1 2.5 2.5-1.7 2.5 1.7 2.5-2.5 2.5-2.7 1-.7 3H9l-.7-3-2.7-1-2.5-2.5L4.8 12 3.1 9.5 5.6 7l2.7-1z" />

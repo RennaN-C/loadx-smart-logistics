@@ -171,6 +171,7 @@ class OrderListRead(BaseModel):
     expected_delivery_at: datetime | None
     created_at: datetime
     item_count: int = Field(ge=0)
+    volume_count: int = Field(ge=0)
 
     model_config = ConfigDict(str_strip_whitespace=True)
 

@@ -91,8 +91,10 @@ integração CoreFlow. [Estrutura extensível](src/features/settings/README.md).
 
 `CONFIRMADO`: links de retorno nas telas de conta, planejamento, viagem e
 carregamento usam ações contextuais com cores, foco visível e área clicável
-consistente. Configurações expõe âncoras em navegação de seções com estados
-hover/focus, mantendo as mesmas rotas e autorizações.
+consistente. Configurações utiliza as quatro subseções da sidebar principal (Conta, Empresa, Integrações e Operação), sem abas horizontais ou navegação duplicada. Fragmentos da URL preservam acesso direto e histórico
+do navegador; rascunhos permanecem ao alternar seções. Dados institucionais usam
+um formulário com grupos e divisórias, sem cards aninhados; integrações apresentam indicadores
+compactos com limites expansíveis. Rotas, contratos e autorizações preservados.
 
 `CONFIRMADO`: o detalhe do pedido diferencia referência, situação, endereço,
 itens e histórico sem alterar contratos. A frota apresenta ações em grade de
@@ -120,3 +122,11 @@ nem muda RBAC, contratos HTTP, backend ou migrations. A publicação na
 `frontend/vercel.json`, o gatilho da CI e a identificação do ambiente de testes.
 Validação autenticada online exige conta de testes autorizada; liveness/readiness
 não comprovam por si só o SHA nem ausência de erros nos logs do Render.
+
+## Consolidação de navegação — #206
+
+`CONFIRMADO`: Visão geral integra indicadores reais da OC69 para gestores e
+preserva início por perfil. Caminhões e frota reúne Veículos/Disponibilidade;
+Relatórios e indicadores apura pedidos e volumes físicos com limite explícito.
+Aliases `/operations` e `/fleet` continuam protegidos e navegáveis. Sidebar,
+acordeões e submenu de Configurações da base #201/#203/#205 são preservados.

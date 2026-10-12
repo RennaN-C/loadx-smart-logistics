@@ -316,6 +316,84 @@ describe("PlanningPage", () => {
     expect(button).toBeEnabled();
   });
 
+  it.each([
+    [200, false],
+    [201, true],
+  ])("diferencia item da quantidade de %i volumes e bloqueia apenas acima do limite", async (volumes, exceeds) => {
+    vi.mocked(listOrders).mockResolvedValue(makePage([{
+      id: "o1",
+      customerId: "c1",
+      status: "READY",
+      priority: "NORMAL",
+      expectedDeliveryAt: null,
+      createdAt: "2026-08-01T00:00:00Z",
+      itemCount: 1,
+      volumeCount: volumes,
+    }]));
+
+    renderAt("/planning");
+    await screen.findByLabelText("CAMINHÃO");
+    expect(screen.getByText(new RegExp(`1 item.*${volumes} volumes`))).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("CAMINHÃO"), { target: { value: "t1" } });
+    fireEvent.click(screen.getByRole("checkbox"));
+    expect(screen.getByText(`${volumes} de 200 volumes físicos`)).toBeInTheDocument();
+    if (exceeds) {
+      expect(screen.getByRole("button", { name: "Calcular plano de carga" })).toBeDisabled();
+    } else {
+      expect(screen.getByRole("button", { name: "Calcular plano de carga" })).toBeEnabled();
+    }
+    if (exceeds) {
+      expect(screen.getByRole("alert")).toHaveTextContent("Desmarque pedidos");
+      expect(screen.getByRole("link", { name: "Pedidos" })).toHaveAttribute("href", "/orders");
+    }
+  });
+
+  it("soma volumes físicos de dois pedidos e impede o cálculo acima de 200", async () => {
+    vi.mocked(listOrders).mockResolvedValue(makePage([120, 90].map((count, index) => ({
+      id: `o${index + 1}`,
+      customerId: "c1",
+      status: "READY" as const,
+      priority: "NORMAL" as const,
+      expectedDeliveryAt: null,
+      createdAt: "2026-08-01T00:00:00Z",
+      itemCount: 1,
+      volumeCount: count,
+    }))));
+
+    renderAt("/planning");
+    await screen.findByLabelText("CAMINHÃO");
+    fireEvent.change(screen.getByLabelText("CAMINHÃO"), { target: { value: "t1" } });
+    const checkboxes = screen.getAllByRole("checkbox");
+    fireEvent.click(checkboxes[0]);
+    expect(screen.getByText("120 de 200 volumes físicos")).toBeInTheDocument();
+    fireEvent.click(checkboxes[1]);
+    expect(screen.getByText("210 de 200 volumes físicos")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Calcular plano de carga" })).toBeDisabled();
+    fireEvent.click(checkboxes[1]);
+    expect(screen.getByRole("button", { name: "Calcular plano de carga" })).toBeEnabled();
+  });
+
+  it("traduz erro 422 do servidor com contagem efetiva se os pedidos mudarem", async () => {
+    vi.mocked(listOrders).mockResolvedValue(makePage([{
+      id: "o1", customerId: "c1", status: "READY", priority: "NORMAL",
+      expectedDeliveryAt: null, createdAt: "2026-08-01T00:00:00Z", itemCount: 1,
+      volumeCount: 190,
+    }]));
+    vi.mocked(createLoadPlan).mockRejectedValue(new ApiError(
+      "LOAD_PLAN_VOLUME_LIMIT_EXCEEDED",
+      "O plano excede o limite síncrono de volumes.",
+      [{ field: "order_ids", volume_count: 215, max_volumes: 200 }],
+      422,
+    ));
+    renderAt("/planning");
+    await screen.findByLabelText("CAMINHÃO");
+    fireEvent.change(screen.getByLabelText("CAMINHÃO"), { target: { value: "t1" } });
+    fireEvent.click(screen.getByRole("checkbox"));
+    fireEvent.click(screen.getByRole("button", { name: "Calcular plano de carga" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("215 volumes físicos");
+    expect(createLoadPlan).toHaveBeenCalledOnce();
+  });
+
   it("calcula e mostra as métricas do plano", async () => {
     vi.mocked(createLoadPlan).mockResolvedValue(makePlan());
     vi.mocked(getLoadPlan).mockResolvedValue(makePlan());
