@@ -31,6 +31,10 @@ class DeliveryReferenceService:
     def __init__(self, db: Session) -> None:
         self.db = db
 
+    def get_trip_for_load_plan(self, load_plan_id: uuid.UUID) -> Trip | None:
+        """Exact lookup, including finished trips; never scans the global list."""
+        return TripRepository(self.db).get_by_load_plan_id(load_plan_id)
+
     def get_delivery(self, delivery_id: uuid.UUID) -> Delivery | None:
         return self.db.get(Delivery, delivery_id)
 

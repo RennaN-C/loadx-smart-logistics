@@ -4,6 +4,8 @@ from datetime import UTC, datetime
 
 from sqlalchemy.orm import Session
 
+from app.core.pagination import PageResult, PaginationParams
+from app.modules.deliveries.reference_service import DeliveryReferenceService
 from app.modules.load_planning.distribution_repository import LoadDistributionRepository
 from app.modules.load_planning.models import (
     LoadPlan,
@@ -33,8 +35,17 @@ from app.modules.load_planning.optimizer.engine import (
     calculate_volume_load_plan,
 )
 from app.modules.load_planning.optimizer.loading_sequence import SequencedPlacement
+from app.modules.load_planning.reference_service import LoadPlanReferenceService
 from app.modules.load_planning.repository import LoadPlanRepository
-from app.modules.load_planning.schemas import LoadPlanCreate, TruckComparisonCreate
+from app.modules.load_planning.schemas import (
+    LoadingContinuityRead,
+    LoadPlanContinuityRead,
+    LoadPlanCreate,
+    LoadPlanListRead,
+    TripContinuityRead,
+    TruckComparisonCreate,
+)
+from app.modules.loading.reference_service import LoadingReferenceService
 from app.modules.orders.models import Order, OrderItem
 from app.modules.orders.service import OrderService
 from app.modules.products.models import Product
@@ -112,6 +123,40 @@ class LoadPlanningService:
         self.order_service = OrderService(db)
         self.product_service = ProductService(db)
         self.status_history_service = StatusHistoryService(db)
+
+    def get_continuity(
+        self, plan: LoadPlan, *, requester_role: str
+    ) -> LoadPlanContinuityRead:
+        loading = LoadingReferenceService(self.db).get_by_load_plan_id(plan.id)
+        trip = (
+            DeliveryReferenceService(self.db).get_trip_for_load_plan(plan.id)
+            if requester_role in {"ADMIN", "LOGISTICS_MANAGER"}
+            else None
+        )
+        operational = LoadPlanReferenceService(self.db).get_operational_plan(plan.id)
+        return LoadPlanContinuityRead(
+            loading_session=LoadingContinuityRead(id=loading.id, status=loading.status)
+            if loading
+            else None,
+            trip=TripContinuityRead(id=trip.id, status=trip.status) if trip else None,
+            operational_ready=plan.status == "APPROVED"
+            and operational.operational_ready,
+        )
+
+    def list_load_plans(
+        self,
+        pagination: PaginationParams,
+        *,
+        requester_role: str,
+        status: str | None = None,
+        truck_id: uuid.UUID | None = None,
+    ) -> PageResult[LoadPlanListRead]:
+        # Apply the same object-level restriction as the detail BEFORE pagination.
+        if requester_role == "CHECKER":
+            if status is not None and status != "APPROVED":
+                return PageResult.create([], pagination, 0)
+            status = "APPROVED"
+        return self.repository.list(pagination, status=status, truck_id=truck_id)
 
     def get_load_plan(self, load_plan_id: uuid.UUID) -> LoadPlan:
         load_plan = self.repository.get(load_plan_id)
