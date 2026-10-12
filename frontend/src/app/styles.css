@@ -309,6 +309,39 @@ body {
   box-shadow: 0 0 0 3px rgba(201, 122, 34, 0.35);
 }
 
+/* Subseções pertencem ao menu global, sem segunda sidebar ou abas duplicadas. */
+.app-nav-group ul.app-settings-submenu {
+  margin: 5px 0 8px 14px;
+  padding: 2px 0 2px 10px;
+  border-left: 1px solid var(--line);
+  gap: 2px;
+}
+.app-nav .app-settings-submenu a {
+  display: block;
+  min-height: 36px;
+  padding: 9px 10px;
+  font-size: 0.79rem;
+  line-height: 1.4;
+  border-radius: 7px;
+  border-left: 2px solid transparent;
+  overflow-wrap: break-word;
+}
+.app-nav .app-settings-submenu a[aria-current="location"] {
+  color: var(--accent-strong);
+  background: var(--accent-bg);
+  border-left-color: var(--accent);
+  font-weight: 600;
+}
+.app-nav .app-settings-submenu a:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
+}
+@media (min-width: 901px) {
+  .app-shell[data-sidebar-collapsed="true"] .app-settings-submenu {
+    display: none;
+  }
+}
+
 .app-account {
   margin-top: auto;
   display: flex;
