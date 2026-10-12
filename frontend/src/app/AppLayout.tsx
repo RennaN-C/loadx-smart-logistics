@@ -283,7 +283,7 @@ export function AppLayout() {
                 <ul
                   id={collapsible ? `nav-group-items-${group.id}` : undefined}
                   aria-labelledby={group.title ? `nav-${group.id}` : undefined}
-                  hidden={collapsible && !expanded}
+                  hidden={collapsible && (!expanded || (sidebarCollapsed && !mobileOpen))}
                 >
                   {group.items.map((item) => (
                     <li key={item.to}>
