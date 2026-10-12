@@ -93,3 +93,54 @@ Ler: `ADMIN`, `LOGISTICS_MANAGER` e `DRIVER`. Operar (mover viagem e entregas):
 O motorista só enxerga a própria viagem — o backend confere pelo vínculo `users.driver_id`, criado na
 `OC09`. A tela não tenta replicar essa checagem; um acesso indevido volta `AUTH_FORBIDDEN` e a
 mensagem diz que a viagem não é sua.
+
+## Comprovante e evidências (OC78 / OC80 / OC81)
+
+`CONFIRMADO`: são dois contratos ENCADEADOS. O comprovante nasce da conclusão
+da entrega e identifica o HISTÓRICO dela — não é um arquivo, não tem foto nem
+assinatura embutida. A evidência se pendura nesse comprovante. Por isso o
+painel carrega o comprovante primeiro: sem ele não há onde anexar, e o backend
+responde `DELIVERY_RECEIPT_NOT_AVAILABLE`.
+
+Chega-se pelo botão **Comprovante** de cada parada, que só aparece em entrega
+`DELIVERED` — antes disso não há o que mostrar.
+
+### A chave de intenção é o que impede duplicata
+
+`CONFIRMADO`: o registro leva `event_id`, e o backend tem
+`UNIQUE (recorded_by, event_id)`. Numa falha de rede, repetir com a MESMA chave
+devolve o registro original em vez de criar uma segunda evidência igual.
+
+Por isso o arquivo escolhido só é descartado depois de um registro
+bem-sucedido, e a chave vive junto dele: o botão vira "Tentar novamente" e
+reenvia com a mesma chave. Chave nova só quando o ARQUIVO muda — reaproveitá-la
+para outros bytes daria `EVIDENCE_IDENTITY_CONFLICT`.
+
+### Validação local não substitui a do servidor
+
+PNG/JPEG e 5 MiB são conferidos antes de enviar (`services/imageFile.ts`,
+compartilhado com os anexos da OC110), para a pessoa não esperar o upload de um
+arquivo grande só para receber recusa. O limite de 20 milhões de pixels fica de
+fora de propósito: só se conhece decodificando a imagem. O backend revalida
+pelos BYTES, não pelo tipo que o navegador declarou.
+
+A recusa local não passa pelo mapa de códigos da API — mandá-la para lá
+transformaria "Selecione PNG/JPEG de até 5 MiB" em "erro inesperado".
+
+### Revogação
+
+É lógica e definitiva: preserva metadados e responsável, bloqueia o download e
+não tem reativação nem substituição de arquivo. Por isso a tela confirma antes.
+
+### Permissões
+
+`CONFIRMADO`: `ADMIN`, `LOGISTICS_MANAGER` e `DRIVER` leem e operam no nível de
+perfil; o recorte por viagem (motorista só na própria) é do backend e não é
+reproduzido aqui. `CHECKER` é negado.
+
+### Pendência
+
+`PENDENTE DE DEFINIÇÃO`: a parte de **comunicação operacional** da OC81 depende
+dos contratos da OC82/OC84, ainda não publicados. O único endpoint de mensagens
+hoje é `/messages/interpret`, que não é vinculado a entrega. Nada foi inventado
+aqui enquanto esse contrato não existir.

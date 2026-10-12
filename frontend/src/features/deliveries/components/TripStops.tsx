@@ -1,4 +1,8 @@
+import { useState } from "react";
+
+import { Modal } from "../../../components/Modal";
 import { StatusPill } from "../../../components/StatusPill";
+import { DeliveryEvidencePanel } from "./DeliveryEvidencePanel";
 import {
   DELIVERY_ACTION_LABELS,
   DELIVERY_STATUS_LABELS,
@@ -14,9 +18,10 @@ interface TripStopProps {
   readonly canAdvance: boolean;
   readonly isWorking: boolean;
   readonly onAdvance: (delivery: Delivery, next: Delivery["status"]) => void;
+  readonly onOpenReceipt: (delivery: Delivery) => void;
 }
 
-function TripStop({ delivery, canAdvance, isWorking, onAdvance }: TripStopProps) {
+function TripStop({ delivery, canAdvance, isWorking, onAdvance, onOpenReceipt }: TripStopProps) {
   const next = DELIVERY_TRANSITIONS[delivery.status];
 
   return (
@@ -32,6 +37,18 @@ function TripStop({ delivery, canAdvance, isWorking, onAdvance }: TripStopProps)
           </span>
         ) : null}
       </div>
+      {/* O comprovante nasce da CONCLUSÃO: antes dela o backend recusa, então
+          o botão só aparece quando há o que mostrar. */}
+      {delivery.status === "DELIVERED" ? (
+        <button
+          type="button"
+          className="btn-secondary"
+          aria-label={`Comprovante da parada ${delivery.sequence}`}
+          onClick={() => onOpenReceipt(delivery)}
+        >
+          Comprovante
+        </button>
+      ) : null}
       {next ? (
         <button
           type="button"
@@ -61,8 +78,10 @@ interface TripStopsProps {
  */
 export function TripStops({ trip, canOperate, isWorking, onAdvance }: TripStopsProps) {
   const inRoute = trip.status === "IN_ROUTE";
+  const [receiptOf, setReceiptOf] = useState<Delivery | null>(null);
 
   return (
+    <>
     <ol className="trip-stops">
       {[...trip.deliveries]
         .sort((a, b) => a.sequence - b.sequence)
@@ -73,8 +92,20 @@ export function TripStops({ trip, canOperate, isWorking, onAdvance }: TripStopsP
             canAdvance={canOperate && inRoute}
             isWorking={isWorking}
             onAdvance={onAdvance}
+            onOpenReceipt={setReceiptOf}
           />
         ))}
     </ol>
+
+    {receiptOf ? (
+      <Modal
+        title={`Comprovante — parada ${receiptOf.sequence}`}
+        subtitle="Conclusão registrada e evidências ligadas a ela"
+        onClose={() => setReceiptOf(null)}
+      >
+        <DeliveryEvidencePanel deliveryId={receiptOf.id} canOperate={canOperate} />
+      </Modal>
+    ) : null}
+    </>
   );
 }
