@@ -100,9 +100,10 @@ export function AppLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(initialSidebarCollapsed);
   const [mobileOpen, setMobileOpen] = useState(false);
   // Grupos com vários links funcionam como menus sanfonados independentes.
+  // Começar com acordeões fechados evita poluição visual no primeiro acesso.
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
-    cadastros: true,
-    operacao: true,
+    cadastros: false,
+    operacao: false,
   });
   const [settingsSubmenuExpanded, setSettingsSubmenuExpanded] = useState(
     () => location.pathname === "/settings",
