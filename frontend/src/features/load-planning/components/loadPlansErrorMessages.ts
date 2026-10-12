@@ -33,6 +33,17 @@ export function mapLoadPlanErrorToMessage(error: ApiError): string {
     return "Um dos produtos dos pedidos não existe mais. Revise os pedidos selecionados.";
   }
 
+  if (error.code === "LOAD_PLAN_VOLUME_LIMIT_EXCEEDED") {
+    const detail = error.details.find((item): item is { volume_count: number; max_volumes: number } =>
+      typeof item === "object" && item !== null
+      && "volume_count" in item && "max_volumes" in item
+      && typeof item.volume_count === "number" && typeof item.max_volumes === "number",
+    );
+    return detail
+      ? `Os pedidos somam ${detail.volume_count} volumes físicos, mas o limite por cálculo é ${detail.max_volumes}. Desmarque pedidos ou revise a quantidade das linhas do pedido; não é possível dividir um pedido nesta tela.`
+      : "A seleção excedeu o limite de volumes por cálculo. Revise a quantidade de unidades dos pedidos.";
+  }
+
   if (error.code === "LOAD_PLAN_HAS_REJECTIONS") {
     return "Este plano tem volumes que ficaram de fora e não pode ser aprovado. Recalcule ou ajuste a seleção.";
   }

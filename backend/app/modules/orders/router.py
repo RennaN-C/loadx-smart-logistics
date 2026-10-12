@@ -65,6 +65,7 @@ def list_orders(
                 expected_delivery_at=order.expected_delivery_at,
                 created_at=order.created_at,
                 item_count=len(order.items),
+                volume_count=sum(item.quantity for item in order.items),
             )
             for order in result.items
         ),

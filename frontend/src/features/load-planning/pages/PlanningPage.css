@@ -79,6 +79,41 @@
   color: var(--muted);
 }
 
+.plan-volume-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  font-size: 0.88rem;
+}
+.plan-volume-summary strong { color: var(--ink); }
+.plan-volume-summary span { color: var(--muted); font-size: 0.78rem; }
+.plan-volume-summary[data-over-limit="true"] {
+  border-color: var(--danger-line);
+  background: var(--danger-bg);
+}
+.plan-volume-summary[data-over-limit="true"] strong { color: var(--danger); }
+.plan-volume-limit {
+  padding: 12px 14px;
+  border: 1px solid var(--danger-line);
+  border-radius: 8px;
+  color: var(--danger);
+  background: var(--danger-bg);
+  line-height: 1.6;
+  font-size: 0.83rem;
+}
+.plan-volume-limit a { color: inherit; text-decoration: underline; font-weight: 600; }
+.plan-volume-limit a:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 3px;
+}
+
+
 /* Consulta inicial: comunica a operação real, sem simular porcentagens. */
 .plan-builder-loading {
   display: flex;

@@ -64,3 +64,23 @@ pedidos, planejamento e início. Volumes aceitos e recusados vinculam à leitura
 do pedido em `/orders?order=<id>`. Troca de ID e recálculo assíncrono não
 reaproveitam o plano anterior. A listagem geral continua sem contrato aprovado;
 ver limites no [fluxo operacional](../../../../docs/06-fluxo-operacional.md).
+
+
+## Pré-validação de volumes físicos — manutenção #204
+
+`CONFIRMADO`: `GET /orders` inclui `volume_count` (soma das quantidades das linhas
+visíveis no pedido, sem expor os itens completos). A listagem mostra número de
+linhas E de volumes, incluindo a referência curta do pedido para diferenciar
+pedidos do mesmo cliente. A seleção resume volumes expandidos e bloqueia o botão
+quando o total conhecido excede os 200 volumes permitidos por cálculo síncrono.
+
+O backend permanece fonte de verdade e sempre valida novamente: quando os
+resumos estiverem desatualizados, a resposta
+`LOAD_PLAN_VOLUME_LIMIT_EXCEEDED` apresenta quantidade real e teto devolvidos
+pela API. Cliente não fraciona pedidos automaticamente, não aumenta limites e
+não oculta dados faltantes; versões antigas da API exibem contagem desconhecida
+e permitem o backend realizar a validação.
+
+Para um único pedido acima de 200 volumes, é necessário revisar as quantidades
+no módulo de Pedidos, respeitando a regra de edição em `DRAFT`, ou seguir o
+fluxo de planejamento de capacidade maior quando for implementado.

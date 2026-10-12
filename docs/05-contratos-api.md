@@ -1360,3 +1360,15 @@ Contrato detalhado: [integration_health](../backend/app/modules/integration_heal
 `CONFIRMADO`: todos os perfis autenticados acessam apenas a própria conta. Sem role/active/driver_id editáveis, hashes/tokens nas respostas ou ID de usuário arbitrário. UUID de sessão é referência pública de revogação, não credencial. Sessões listadas são próprias, não revogadas, dentro dos dois prazos existentes; `current` vem da sessão autenticada. Falhas retornam envelope sanitizado; 401/403 e Origin/CSRF mantidos. Senha inválida 400, duplicidade de e-mail 409, schema/política 422, throttling 429. Sessão alheia/inexistente 404 indistinguível.
 
 `CONFIRMADO`: senha válida revoga todas as sessões e exige novo login (204 + remoção do cookie), na mesma transação de hash/auditoria. Revogar as outras preserva a atual; revogar a atual encerra autenticação. Contrato completo e concorrência em [auth/README](../backend/app/modules/auth/README.md). Política: ADR-020; sem migration ou novo modo de identidade/CoreFlow.
+
+
+### Contagem física em listagem de pedidos — manutenção #204
+
+`GET /api/v1/orders` retorna agora `volume_count` (inteiro não negativo) para
+cada resumo, além de `item_count`. O primeiro é
+`sum(order_item.quantity)`, correspondente aos volumes expandidos avaliados
+pelo planejamento; `item_count` continua representando a quantidade de linhas
+de produto. Trata-se de campo aditivo, sem expor `items` completos ou endereço
+no resumo. O contrato do cálculo `POST /load-plans` permanece inalterado:
+máximo de 200 volumes e erro 422 com `volume_count` e `max_volumes` nos
+detalhes quando o limite é superado.
