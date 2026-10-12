@@ -106,8 +106,14 @@ export function AppLayout() {
   const location = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(initialSidebarCollapsed);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [settingsSubmenuExpanded, setSettingsSubmenuExpanded] = useState(false);
-  const settingsSubmenuVisible = location.pathname === "/settings" || settingsSubmenuExpanded;
+  // Grupos com vários links funcionam como menus sanfonados independentes.
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
+    cadastros: true,
+    operacao: true,
+  });
+  const [settingsSubmenuExpanded, setSettingsSubmenuExpanded] = useState(
+    () => location.pathname === "/settings",
+  );
   const mobileTriggerRef = useRef<HTMLButtonElement>(null);
   const mobileCloseRef = useRef<HTMLButtonElement>(null);
   const sidebarRef = useRef<HTMLElement>(null);
@@ -122,7 +128,7 @@ export function AppLayout() {
 
   useEffect(() => {
     setMobileOpen(false);
-    if (location.pathname !== "/settings") setSettingsSubmenuExpanded(false);
+    setSettingsSubmenuExpanded(location.pathname === "/settings");
   }, [location.pathname, location.search]);
 
   useEffect(() => {
@@ -236,14 +242,49 @@ export function AppLayout() {
 
         {groups.length > 0 ? (
           <nav id="loadx-side-navigation" className="app-nav" aria-label="Navegação principal">
-            {groups.map((group) => (
-              <div key={group.id} className="app-nav-group">
-                {group.title ? (
-                  <p className="app-nav-title" id={`nav-${group.id}`}>
-                    {group.title}
-                  </p>
+            {groups.map((group) => {
+              const collapsible = group.items.length > 1;
+              const expanded = expandedGroups[group.id] ?? true;
+              const hasActivePage = group.items.some((item) =>
+                location.pathname === item.to || (
+                  item.to !== "/" && location.pathname.startsWith(`${item.to}/`)
+                ),
+              );
+              return (
+              <div key={group.id} className="app-nav-group" data-collapsible={collapsible}>
+                {group.title ? collapsible ? (
+                  <button
+                    type="button"
+                    className="app-nav-title app-nav-group-toggle"
+                    id={`nav-${group.id}`}
+                    aria-controls={`nav-group-items-${group.id}`}
+                    aria-expanded={expanded}
+                    data-active={hasActivePage}
+                    title={sidebarCollapsed ? group.title : undefined}
+                    onClick={() => {
+                      if (sidebarCollapsed && !mobileOpen) {
+                        setSidebarCollapsed(false);
+                        setExpandedGroups((current) => ({ ...current, [group.id]: true }));
+                      } else {
+                        setExpandedGroups((current) => ({
+                          ...current,
+                          [group.id]: !(current[group.id] ?? true),
+                        }));
+                      }
+                    }}
+                  >
+                    <Icon name={group.id === "cadastros" ? "package" : "planning"} size={16} />
+                    <span className="app-nav-group-title">{group.title}</span>
+                    <span className="app-nav-chevron" aria-hidden="true">⌄</span>
+                  </button>
+                ) : (
+                  <p className="app-nav-title" id={`nav-${group.id}`}>{group.title}</p>
                 ) : null}
-                <ul aria-labelledby={group.title ? `nav-${group.id}` : undefined}>
+                <ul
+                  id={collapsible ? `nav-group-items-${group.id}` : undefined}
+                  aria-labelledby={group.title ? `nav-${group.id}` : undefined}
+                  hidden={collapsible && !expanded}
+                >
                   {group.items.map((item) => (
                     <li key={item.to}>
                       {/* `end` na raiz: sem isso o NavLink casa por prefixo e
@@ -253,18 +294,27 @@ export function AppLayout() {
                         end={item.to === "/"}
                         aria-label={sidebarCollapsed ? item.label : undefined}
                         title={sidebarCollapsed ? item.label : undefined}
-                        aria-expanded={item.to === "/settings" ? settingsSubmenuVisible : undefined}
+                        aria-expanded={item.to === "/settings" ? settingsSubmenuExpanded && (!sidebarCollapsed || mobileOpen) : undefined}
                         aria-controls={item.to === "/settings" ? "loadx-settings-submenu" : undefined}
                         onClick={(event) => {
                           if (item.to === "/settings") {
                             if (mobileOpen) {
-                              // No drawer, primeiro expandir as opções, sem fechar a gaveta.
+                              // No drawer, tocar no pai expande/recolhe, sem sair da página.
                               event.preventDefault();
                               setSettingsSubmenuExpanded((expanded) => !expanded);
                               return;
                             }
-                            // Na barra compacta, mostrar as opções no mesmo menu global.
-                            setSidebarCollapsed(false);
+                            if (sidebarCollapsed) {
+                              setSidebarCollapsed(false);
+                              setSettingsSubmenuExpanded(true);
+                              return;
+                            }
+                            if (settingsSubmenuExpanded) {
+                              // Segundo clique: fecha o submenu e preserva a tela ativa.
+                              event.preventDefault();
+                              setSettingsSubmenuExpanded(false);
+                              return;
+                            }
                             setSettingsSubmenuExpanded(true);
                           }
                           setMobileOpen(false);
@@ -273,7 +323,7 @@ export function AppLayout() {
                         <Icon name={item.icon} size={17} />
                         <span className="app-nav-label">{item.label}</span>
                       </NavLink>
-                      {item.to === "/settings" && settingsSubmenuVisible && (!sidebarCollapsed || mobileOpen) ? (
+                      {item.to === "/settings" && settingsSubmenuExpanded && (!sidebarCollapsed || mobileOpen) ? (
                         <ul id="loadx-settings-submenu" className="app-settings-submenu" aria-label="Subseções de Configurações">
                           {SETTINGS_SECTIONS.map((section) => (
                             <li key={section.id}>
@@ -292,7 +342,8 @@ export function AppLayout() {
                   ))}
                 </ul>
               </div>
-            ))}
+              );
+            })}
           </nav>
         ) : null}
 
