@@ -57,11 +57,7 @@ Sem storage local. Não implementa OC83, OC84, OC103 ou provider externo de IA.
 
 ## Experiência de Configurações — manutenção #200
 
-`CONFIRMADO`: a página usa quatro abas horizontais: Conta, Empresa,
-Integrações e Operação. A sidebar principal é a única navegação lateral.
-No celular, as abas priorizam os nomes, com indicador ativo e foco visível.
-São links nativos em navegação nomeada com `aria-current`, acessíveis por Tab/Enter;
-não simulam o padrão ARIA de tabs sem seu comportamento de teclado. Somente uma seção fica visível e disponível à
+`CONFIRMADO`: a página usa quatro subseções na sidebar global, sem abas horizontais nem outro menu. A sidebar é recolhível no desktop e abre em gaveta no celular; clicar no pai Configurações expande ou recolhe as opções. Os links nativos preservam `aria-current`, foco e navegação por teclado. Somente uma seção fica visível e disponível à
 tecnologia assistiva por vez. Os fragmentos existentes (`#settings-account`,
 `#settings-company`, `#settings-integrations`, `#settings-logistics`) abrem a
 seção correspondente após F5 ou acesso direto. Anterior/próxima do navegador
