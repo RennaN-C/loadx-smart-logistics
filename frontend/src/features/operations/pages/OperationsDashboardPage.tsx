@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { useCallback, useEffect, useState } from "react";
 
 import { AlertBanner } from "../../../components/AlertBanner";
@@ -110,7 +111,7 @@ function montarGrupos(dados: OperationalIndicators): readonly Grupo[] {
  * dois contratos de confiança diferentes, e juntá-los numa aba só borraria
  * justamente a distinção que a OC74 cobra.
  */
-export function OperationsDashboardPage() {
+export function OperationsDashboardPage({ embedded = false }: { readonly embedded?: boolean }) {
   const [dados, setDados] = useState<OperationalIndicators | null>(null);
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -137,10 +138,10 @@ export function OperationsDashboardPage() {
   }, [carregar]);
 
   return (
-    <div className="entity-page">
+    <div className={embedded ? "overview-operations" : "entity-page"}>
       <header className="entity-header">
         <div>
-          <h1>Painel operacional</h1>
+          {embedded ? <h2>Operação em números</h2> : <h1>Painel operacional</h1>}
           <p className="entity-lede">
             Números apurados pelo servidor. Nenhum é calculado nesta tela.
           </p>
@@ -179,13 +180,16 @@ export function OperationsDashboardPage() {
       ) : null}
 
       {dados !== null && status !== "error"
-        ? montarGrupos(dados).map((grupo) => <GrupoDeIndicadores key={grupo.id} grupo={grupo} />)
+        ?  <div className={embedded ? "overview-indicator-groups" : undefined}>{montarGrupos(dados).map((grupo) => <GrupoDeIndicadores key={grupo.id} grupo={grupo} compact={embedded} />)}</div>
         : null}
     </div>
   );
 }
 
-function GrupoDeIndicadores({ grupo }: { readonly grupo: Grupo }) {
+function GrupoDeIndicadores({ grupo, compact = false }: { readonly grupo: Grupo; readonly compact?: boolean }) {
+  const primary = compact ? grupo.numbers.filter((number) => ["DISPONÍVEIS", "INDISPONÍVEIS", "PROGRAMADAS", "EM ROTA", "PENDENTES", "ENTREGUES", "REGISTRADAS"].includes(number.label)) : grupo.numbers;
+  const secondary = compact ? grupo.numbers.filter((number) => !primary.includes(number)) : [];
+
   return (
     <section className="ops-block" aria-labelledby={`ops-${grupo.id}`}>
       <div className="ops-block-head">
@@ -198,20 +202,16 @@ function GrupoDeIndicadores({ grupo }: { readonly grupo: Grupo }) {
         <p>{PERIOD_LABELS[grupo.period] ?? grupo.period}</p>
       </div>
 
-      <div className="ops-grid">
-        {grupo.numbers.map((numero) => (
-          <div
-            key={numero.label}
-            className={numero.alert ? "ops-kpi ops-kpi-alert" : "ops-kpi"}
-          >
-            <span className="ops-kpi-label">{numero.label}</span>
-            <span className="ops-kpi-value">{numero.value}</span>
-            {numero.note === undefined ? null : (
-              <span className="ops-kpi-note">{numero.note}</span>
-            )}
-          </div>
-        ))}
-      </div>
+      <IndicatorNumbers numbers={primary} />
+      {secondary.length > 0 && <details className="overview-indicator-details"><summary>Mais indicadores de {grupo.title.toLowerCase()}</summary><IndicatorNumbers numbers={secondary} /></details>}
+      {compact && grupo.id === "fleet" && <Link className="btn-link" to="/trucks?tab=availability">Consultar disponibilidade</Link>}
+
     </section>
   );
+}
+
+function IndicatorNumbers({ numbers }: { readonly numbers: readonly Numero[] }) {
+  return <div className="ops-grid">{numbers.map((number) => <div key={number.label} className={number.alert ? "ops-kpi ops-kpi-alert" : "ops-kpi"}>
+    <span className="ops-kpi-label">{number.label}</span><span className="ops-kpi-value">{number.value}</span>{number.note && <span className="ops-kpi-note">{number.note}</span>}
+  </div>)}</div>;
 }

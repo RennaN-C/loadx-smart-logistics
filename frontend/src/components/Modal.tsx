@@ -1,7 +1,9 @@
+import "./Modal.css";
 import { useEffect, useId, useRef, type ReactNode } from "react";
 
 interface ModalProps {
   readonly title: string;
+  readonly active?: boolean;
   readonly subtitle?: string;
   readonly onClose: () => void;
   readonly children: ReactNode;
@@ -10,7 +12,7 @@ interface ModalProps {
 let openModalCount = 0;
 let previousBodyOverflow = "";
 
-export function Modal({ title, subtitle, onClose, children }: ModalProps) {
+export function Modal({ title, subtitle, onClose, children, active = true }: ModalProps) {
   const titleId = useId();
 
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -18,6 +20,7 @@ export function Modal({ title, subtitle, onClose, children }: ModalProps) {
   closeRef.current = onClose;
 
   useEffect(() => {
+    if (!active) return;
     const dialog = dialogRef.current;
     const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     if (openModalCount++ === 0) {
@@ -54,10 +57,10 @@ export function Modal({ title, subtitle, onClose, children }: ModalProps) {
       if (--openModalCount === 0) document.body.style.overflow = previousBodyOverflow;
       if (previousFocus?.isConnected) previousFocus.focus();
     };
-  }, []);
+  }, [active]);
 
   return (
-    <div className="modal-overlay">
+    <div className="modal-overlay" hidden={!active}>
       <button type="button" className="modal-backdrop" tabIndex={-1} aria-label="Fechar" onClick={onClose} />
       <div ref={dialogRef} tabIndex={-1} className="modal-dialog" role="dialog" aria-modal="true" aria-labelledby={titleId}>
         <header className="modal-header">

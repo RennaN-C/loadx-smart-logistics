@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -15,6 +15,8 @@ import type { TripListItem } from "../../deliveries/types";
 import { listTrucks } from "../../trucks/api/trucksApi";
 import { DashboardPage } from "./DashboardPage";
 
+import { getOperationalIndicators } from "../../operations/api/operationalIndicatorsApi";
+vi.mock("../../operations/api/operationalIndicatorsApi");
 vi.mock("../../trucks/api/trucksApi");
 vi.mock("../../products/api/productsApi");
 vi.mock("../../customers/api/customersApi");
@@ -126,6 +128,7 @@ describe("DashboardPage", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     mockRole("LOGISTICS_MANAGER");
+    vi.mocked(getOperationalIndicators).mockResolvedValue({ fleet: { period: "CURRENT_SNAPSHOT", total: 6, active: 5, inactive: 1, available: 4, unavailable: 2, withOperationConflict: 1 }, trips: { period: "ALL_TIME", total: 9, scheduled: 3, inRoute: 2, finished: 4 }, deliveries: { period: "ALL_TIME", total: 20, pending: 7, inDelivery: 3, delivered: 10 }, occurrences: { period: "ALL_TIME", total: 2 } });
     vi.mocked(listTrucks).mockResolvedValue(pageWithTotal(4));
     vi.mocked(listProducts).mockResolvedValue(pageWithTotal(12));
     vi.mocked(listDrivers).mockResolvedValue(pageWithTotal(3));
@@ -138,6 +141,7 @@ describe("DashboardPage", () => {
   });
 
   it("conta pelo total do envelope, sem baixar a coleção inteira", async () => {
+    mockRole("CHECKER");
     renderPage();
 
     expect(await screen.findByText("4")).toBeInTheDocument();
@@ -152,7 +156,7 @@ describe("DashboardPage", () => {
 
     expect(await screen.findByText("Distribuidora Aurora")).toBeInTheDocument();
     expect(screen.getByText("Pronto")).toBeInTheDocument();
-    expect(screen.getByText(/3 itens/)).toBeInTheDocument();
+    expect(screen.getByText(/3 linhas/)).toBeInTheDocument();
     expect(screen.getByText(/Alta/)).toBeInTheDocument();
   });
 
@@ -167,6 +171,7 @@ describe("DashboardPage", () => {
   });
 
   it("um recurso indisponível não derruba o painel inteiro", async () => {
+    mockRole("CHECKER");
     vi.mocked(listProducts).mockRejectedValue(new ApiError("AUTH_FORBIDDEN", "x"));
 
     renderPage();
@@ -202,6 +207,33 @@ describe("DashboardPage", () => {
 
     expect(screen.queryByRole("link", { name: "Planejar carga" })).not.toBeInTheDocument();
   });
+  it.each(["ADMIN", "LOGISTICS_MANAGER"] as const)("%s recebe indicadores reais sem duplicar o total de caminhões", async (role) => {
+    mockRole(role); renderPage();
+    await screen.findByRole("heading", { name: "Frota" });
+    expect(getOperationalIndicators).toHaveBeenCalledOnce();
+    expect(listTrucks).not.toHaveBeenCalled();
+    expect(screen.getByRole("link", { name: "Consultar disponibilidade" })).toHaveAttribute("href", "/trucks?tab=availability");
+    expect(screen.getByRole("link", { name: "Abrir pedido" })).toHaveAttribute("href", "/orders?order=o1");
+  });
+
+  it("falha operacional preserva pedidos recentes e permite nova tentativa", async () => {
+    vi.mocked(getOperationalIndicators).mockRejectedValueOnce(new ApiError("NETWORK_ERROR", "sem rede"));
+    renderPage();
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    expect(await screen.findByText("Distribuidora Aurora")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Tentar novamente" }));
+    await screen.findByRole("heading", { name: "Frota" });
+    expect(getOperationalIndicators).toHaveBeenCalledTimes(2);
+  });
+
+  it("conferente não consulta indicadores globais nem dados pessoais", async () => {
+    mockRole("CHECKER"); renderPage();
+    await screen.findByText("4");
+    expect(getOperationalIndicators).not.toHaveBeenCalled();
+    expect(listCustomers).not.toHaveBeenCalled();
+    expect(listDrivers).not.toHaveBeenCalled();
+  });
+
 });
 
 it("motorista não dispara consultas aos cadastros restritos ao abrir painel", async () => {

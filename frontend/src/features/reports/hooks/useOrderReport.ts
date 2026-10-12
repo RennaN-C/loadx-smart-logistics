@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 
+import { useAuth } from "../../auth/hooks/useAuth";
+import { canManageLogistics } from "../../auth/permissions";
 import { MAX_PAGE_SIZE } from "../../../services/pagination";
 import { listCustomers } from "../../customers/api/customersApi";
 import { listOrders } from "../../orders/api/ordersApi";
@@ -58,6 +60,8 @@ async function fetchCustomerNames(): Promise<Map<string, string>> {
 }
 
 export function useOrderReport(): UseOrderReportResult {
+  const { user } = useAuth();
+  const readsCustomers = canManageLogistics(user?.role);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [report, setReport] = useState<OrderReport | null>(null);
   const [customerNames, setCustomerNames] = useState(new Map<string, string>());
@@ -73,7 +77,7 @@ export function useOrderReport(): UseOrderReportResult {
     try {
       const [{ orders, notCounted: fora }, names] = await Promise.all([
         fetchAllOrders(),
-        fetchCustomerNames(),
+        readsCustomers ? fetchCustomerNames() : Promise.resolve(new Map<string, string>()),
       ]);
 
       setReference(agora);
@@ -84,11 +88,11 @@ export function useOrderReport(): UseOrderReportResult {
     } catch {
       setStatus("error");
     }
-  }, []);
+  }, [readsCustomers]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
-  return { status, report, customerNames, notCounted, reference, reload: () => void load() };
+  return { status, report, customerNames: readsCustomers ? customerNames : new Map<string, string>(), notCounted, reference, reload: () => void load() };
 }

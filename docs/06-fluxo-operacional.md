@@ -216,7 +216,7 @@ há recuperação simulada por localStorage nem uma central operacional paralela
 | Viagem e entregas | Criação no plano; motorista encontra suas viagens no Dashboard → `/trips/:tripId` | Retorno às próprias viagens para DRIVER; gestão retorna ao plano e consulta pedidos das entregas. Histórico contextual para ADMIN/LOGISTICS_MANAGER. |
 | Relatórios e auditoria | Menu e contexto de plano/viagem | Downloads e filtros existentes; histórico respeita a autorização da API. |
 | Configurações | Menu/rota `/settings`, somente ADMIN | Estrutura da OC85 preservada; outros perfis recebem a negação existente. |
-| Disponibilidade e painel operacional | `/fleet` e `/operations`, entradas existentes | Indicadores de disponibilidade não representam listagens gerais de sessões/viagens/entregas. |
+| Disponibilidade e visão operacional | `/trucks?tab=availability` e `/`; `/fleet` e `/operations` preservados como aliases protegidos | Indicadores de disponibilidade não representam listagens gerais de sessões/viagens/entregas. |
 
 `CONFIRMADO`: ADMIN e LOGISTICS_MANAGER gerenciam a logística; CHECKER lê
 pedidos/planos e confere carregamentos; DRIVER opera somente suas viagens.

@@ -14,6 +14,7 @@ function order(overrides: Partial<OrderListItem> = {}): OrderListItem {
     expectedDeliveryAt: null,
     createdAt: "2026-08-01T00:00:00Z",
     itemCount: 1,
+    volumeCount: 1,
     ...overrides,
   };
 }
@@ -75,9 +76,9 @@ describe("buildOrderReport", () => {
   it("soma volumes só dos pedidos em aberto", () => {
     const report = buildOrderReport(
       [
-        order({ status: "READY", itemCount: 3 }),
-        order({ status: "PLANNED", itemCount: 5 }),
-        order({ status: "DELIVERED", itemCount: 100 }),
+        order({ status: "READY", itemCount: 1, volumeCount: 3 }),
+        order({ status: "PLANNED", itemCount: 1, volumeCount: 5 }),
+        order({ status: "DELIVERED", itemCount: 1, volumeCount: 100 }),
       ],
       REFERENCE,
     );
@@ -107,9 +108,9 @@ describe("buildOrderReport", () => {
   it("agrupa por cliente e ordena pelo maior volume", () => {
     const report = buildOrderReport(
       [
-        order({ customerId: "a", itemCount: 2 }),
-        order({ customerId: "b", itemCount: 9 }),
-        order({ customerId: "a", itemCount: 3 }),
+        order({ customerId: "a", itemCount: 1, volumeCount: 2 }),
+        order({ customerId: "b", itemCount: 1, volumeCount: 9 }),
+        order({ customerId: "a", itemCount: 1, volumeCount: 3 }),
       ],
       REFERENCE,
     );
@@ -141,4 +142,17 @@ describe("buildOrderReport", () => {
     expect(report.byStatus).toEqual([]);
     expect(report.byCustomer).toEqual([]);
   });
+  it("distingue duas linhas de dezenove volumes físicos", () => {
+    const report = buildOrderReport([order({ itemCount: 2, volumeCount: 19 })], REFERENCE);
+    expect(report.openVolumes).toBe(19);
+    expect(report.byCustomer[0].volumes).toBe(19);
+  });
+
+  it("não substitui volume físico ausente por linhas nem por zero", () => {
+    const report = buildOrderReport([order({ itemCount: 7, volumeCount: undefined }), order({ volumeCount: 3 })], REFERENCE);
+    expect(report.openVolumes).toBeNull();
+    expect(report.byCustomer[0].volumes).toBeNull();
+    expect(report.unknownVolumeOrders).toBe(1);
+  });
+
 });

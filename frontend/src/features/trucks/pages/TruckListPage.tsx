@@ -2,13 +2,10 @@ import { ImportAction } from "../../registration-imports/components/ImportAction
 import { useMemo, useState } from "react";
 
 import { AlertBanner } from "../../../components/AlertBanner";
-import { Modal } from "../../../components/Modal";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { canManageLogistics } from "../../auth/permissions";
+import { TruckDialogs } from "../components/TruckDialogs";
 import { TruckCard } from "../components/TruckCard";
-import { DocumentsPanel } from "../components/DocumentsPanel";
-import { MaintenancePanel } from "../components/MaintenancePanel";
-import { TruckForm } from "../components/TruckForm";
 import { mapTruckErrorToMessage } from "../components/trucksErrorMessages";
 import { Pagination } from "../../../components/Pagination";
 import { useRegistryList } from "../../../hooks/useRegistryList";
@@ -19,7 +16,7 @@ import type { Truck } from "../types";
 import "./TruckListPage.css";
 import { Icon } from "../../../components/Icon";
 
-export function TruckListPage() {
+export function TruckListPage({ embedded = false, active = true }: { readonly embedded?: boolean; readonly active?: boolean }) {
   const { user } = useAuth();
   const {
     status,
@@ -40,7 +37,6 @@ export function TruckListPage() {
   const [isCreating, setIsCreating] = useState(false);
 
   const canManage = canManageLogistics(user?.role);
-  const isFormOpen = isCreating || editingTruck !== null;
 
   // A busca textual permanece local; o arquivamento é filtrado pelo servidor (OC105).
   const visibleTrucks = useMemo(() => {
@@ -67,10 +63,10 @@ export function TruckListPage() {
   }
 
   return (
-    <div className="entity-page">
+    <div className={embedded ? "truck-section" : "entity-page"}>
       <header className="entity-header">
         <div>
-          <h1>Caminhões</h1>
+          {embedded ? <h2>Veículos</h2> : <h1>Caminhões</h1>}
           <p className="entity-lede">Baús cadastrados para planejamento de carga.</p>
         </div>
         {canManage ? (
@@ -108,7 +104,7 @@ export function TruckListPage() {
       ) : null}
 
       {status === "error" && error ? (
-        <AlertBanner>{mapTruckErrorToMessage(error)}</AlertBanner>
+        <><AlertBanner>{mapTruckErrorToMessage(error)}</AlertBanner><button type="button" className="btn-secondary" onClick={() => void refetch()}>Tentar novamente</button></>
       ) : null}
 
       {status === "success" && visibleTrucks.length === 0 ? (
@@ -131,22 +127,8 @@ export function TruckListPage() {
         <Pagination page={page} totalPages={totalPages} onChange={goToPage} label="caminhões" />
       ) : null}
 
-      {documentsTruck ? <Modal title={`Documentos — ${documentsTruck.plate}`} onClose={() => setDocumentsTruck(null)}>
-        <DocumentsPanel truck={documentsTruck} onChanged={refetch} />
-      </Modal> : null}
-      {maintenanceTruck ? <Modal title={`Manutenções — ${maintenanceTruck.plate}`} onClose={() => setMaintenanceTruck(null)}>
-        <MaintenancePanel truck={maintenanceTruck} onChanged={refetch} />
-      </Modal> : null}
+      <TruckDialogs active={active} documentsTruck={documentsTruck} maintenanceTruck={maintenanceTruck} editingTruck={editingTruck} isCreating={isCreating} onCloseDocuments={() => setDocumentsTruck(null)} onCloseMaintenance={() => setMaintenanceTruck(null)} onCloseForm={closeForm} onChanged={refetch} onSaved={handleSaved} />
 
-      {isFormOpen ? (
-        <Modal
-          title={editingTruck ? "Editar caminhão" : "Novo caminhão"}
-          subtitle="Compartimento de carga"
-          onClose={closeForm}
-        >
-          <TruckForm truck={editingTruck ?? undefined} onSaved={handleSaved} onCancel={closeForm} />
-        </Modal>
-      ) : null}
     </div>
   );
 }

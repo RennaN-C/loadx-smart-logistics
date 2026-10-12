@@ -62,7 +62,7 @@ describe("OC85: navegação e autorização na aplicação", () => {
     fireEvent.click(screen.getByRole("link", { name: "Configurações" }));
     await screen.findByRole("heading", { name: "Configurações", level: 1 });
     expect(window.location.pathname).toBe("/settings");
-    expect(screen.getByRole("link", { name: "Início" })).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("link", { name: "Visão geral" })).not.toHaveAttribute("aria-current");
     expect(screen.getByRole("link", { name: "Configurações" })).toHaveAttribute("aria-current", "page");
   });
 

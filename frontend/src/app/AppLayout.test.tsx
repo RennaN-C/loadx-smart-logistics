@@ -69,60 +69,47 @@ describe("AppLayout", () => {
   it("agrupa os itens do menu por natureza da operação", () => {
     signedInAs("ADMIN");
     renderLayout();
+    fireEvent.click(screen.getByRole("button", { name: "Cadastros" }));
+    fireEvent.click(screen.getByRole("button", { name: "Operação" }));
 
     const grupos = within(menu()).getAllByRole("list");
     // o primeiro grupo é o Início, que não tem título
-    expect(within(grupos[1]).getByRole("link", { name: "Caminhões" })).toBeInTheDocument();
+    expect(within(grupos[1]).getByRole("link", { name: "Caminhões e frota" })).toBeInTheDocument();
     expect(within(grupos[2]).getByRole("link", { name: "Pedidos" })).toBeInTheDocument();
     expect(screen.getByText("Cadastros")).toBeInTheDocument();
     expect(screen.getByText("Operação")).toBeInTheDocument();
   });
 
-  it("põe a Frota na Operação, e não nos Cadastros", () => {
-    // Situação da frota muda sozinha durante o dia: é acompanhamento, não
-    // cadastro. O caminhão em si continua em Cadastros.
+  it("consolida os itens redundantes sem remover leitura autorizada", () => {
     signedInAs("ADMIN");
     renderLayout();
-
-    const grupos = within(menu()).getAllByRole("list");
-    expect(within(grupos[2]).getByRole("link", { name: "Frota" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Frota" })).toHaveAttribute("href", "/fleet");
+    fireEvent.click(screen.getByRole("button", { name: "Cadastros" }));
+    fireEvent.click(screen.getByRole("button", { name: "Operação" }));
+    expect(screen.getByRole("link", { name: "Caminhões e frota" })).toHaveAttribute("href", "/trucks");
+    expect(screen.queryByRole("link", { name: "Frota" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Painel operacional" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Relatórios e indicadores" })).toHaveAttribute("href", "/reports");
   });
 
-  it("o conferente vê a situação da frota, que ele também lê no backend", () => {
-    signedInAs("CHECKER");
+  it.each(["ADMIN", "LOGISTICS_MANAGER", "CHECKER"] as const)("%s lê Caminhões e frota pelo menu consolidado", (role) => {
+    signedInAs(role);
     renderLayout();
-
-    expect(screen.getByRole("link", { name: "Frota" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Cadastros" }));
+    expect(screen.getByRole("link", { name: "Caminhões e frota" })).toBeInTheDocument();
   });
 
-  it("o motorista não vê a frota: o backend responderia 403", () => {
+  it("motorista não recebe links para cadastros nem relatórios globais", () => {
     signedInAs("DRIVER");
     renderLayout();
-
-    expect(screen.queryByRole("link", { name: "Frota" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Caminhões e frota" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Relatórios e indicadores" })).not.toBeInTheDocument();
   });
 
-  it("o painel operacional não aparece para o conferente", () => {
-    signedInAs("CHECKER");
-    renderLayout();
-
-    expect(screen.queryByRole("link", { name: "Painel operacional" })).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Indicadores" })).toBeInTheDocument();
-  });
-
-  it("o gestor chega ao painel operacional e à auditoria", () => {
+  it("o gestor preserva acesso à auditoria", () => {
     signedInAs("LOGISTICS_MANAGER");
     renderLayout();
-
-    expect(screen.getByRole("link", { name: "Painel operacional" })).toHaveAttribute(
-      "href",
-      "/operations",
-    );
-    expect(screen.getByRole("link", { name: "Auditoria" })).toHaveAttribute(
-      "href",
-      "/audit",
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Operação" }));
+    expect(screen.getByRole("link", { name: "Auditoria" })).toHaveAttribute("href", "/audit");
   });
 
   it("esconde a auditoria de conferente e motorista", () => {
@@ -139,10 +126,11 @@ describe("AppLayout", () => {
   it("esconde dados pessoais do conferente sem derrubar o grupo inteiro", () => {
     signedInAs("CHECKER");
     renderLayout();
+    fireEvent.click(screen.getByRole("button", { name: "Cadastros" }));
 
     expect(screen.queryByRole("link", { name: "Clientes e motoristas" })).not.toBeInTheDocument();
     // Caminhões e Produtos continuam lá, então o título tem que ficar
-    expect(screen.getByRole("link", { name: "Caminhões" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Caminhões e frota" })).toBeInTheDocument();
     expect(screen.getByText("Cadastros")).toBeInTheDocument();
   });
 
@@ -150,7 +138,7 @@ describe("AppLayout", () => {
     signedInAs("DRIVER");
     renderLayout();
 
-    expect(screen.getByRole("link", { name: "Início" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Visão geral" })).toBeInTheDocument();
     expect(screen.queryByText("Cadastros")).not.toBeInTheDocument();
     expect(screen.queryByText("Operação")).not.toBeInTheDocument();
   });
@@ -158,10 +146,11 @@ describe("AppLayout", () => {
   it("marca só a tela atual como ativa", () => {
     signedInAs("ADMIN");
     renderLayout();
+    fireEvent.click(screen.getByRole("button", { name: "Cadastros" }));
 
     // `end` na raiz: sem ele o Início casaria por prefixo em toda rota
-    expect(screen.getByRole("link", { name: "Início" })).toHaveAttribute("aria-current", "page");
-    expect(screen.getByRole("link", { name: "Caminhões" })).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("link", { name: "Visão geral" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: "Caminhões e frota" })).not.toHaveAttribute("aria-current");
   });
 
   it("oferece atalho para pular o menu, que vem antes do conteúdo no DOM", () => {
@@ -180,17 +169,17 @@ describe("AppLayout", () => {
     const shell = document.querySelector(".app-shell");
     expect(shell).toHaveAttribute("data-sidebar-collapsed", "true");
     expect(screen.getByRole("button", { name: "Expandir menu lateral" })).toHaveAttribute("aria-expanded", "false");
-    expect(screen.queryByRole("link", { name: "Caminhões" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Caminhões e frota" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Cadastros" })).toHaveAttribute("title", "Cadastros");
     fireEvent.click(screen.getByRole("button", { name: "Cadastros" }));
     expect(shell).toHaveAttribute("data-sidebar-collapsed", "false");
-    expect(screen.getByRole("link", { name: "Caminhões" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Caminhões e frota" })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Recolher menu lateral" }));
     expect(shell).toHaveAttribute("data-sidebar-collapsed", "true");
     fireEvent.click(screen.getByRole("button", { name: "Expandir menu lateral" }));
     expect(shell).toHaveAttribute("data-sidebar-collapsed", "false");
-    expect(screen.getByRole("link", { name: "Caminhões" })).not.toHaveAttribute("title");
+    expect(screen.getByRole("link", { name: "Caminhões e frota" })).not.toHaveAttribute("title");
   });
 
   it("preserva preferência de sidebar ao remontar a página", () => {
@@ -232,7 +221,7 @@ describe("AppLayout", () => {
     expect(document.querySelector(".app-shell")).toHaveAttribute("data-mobile-open", "false");
 
     fireEvent.click(trigger);
-    fireEvent.click(within(menu()).getByRole("link", { name: "Início" }));
+    fireEvent.click(within(menu()).getByRole("link", { name: "Visão geral" }));
     expect(document.querySelector(".app-shell")).toHaveAttribute("data-mobile-open", "false");
   });
 
@@ -255,7 +244,7 @@ describe("AppLayout", () => {
     expect(within(menu()).getByRole("link", { name: "Configurações" })).toHaveAttribute("aria-expanded", "true");
     expect(within(menu()).getByRole("link", { name: "Dados da empresa" })).toHaveAttribute("href", "/settings#settings-company");
     expect(within(menu()).getByRole("link", { name: "Conta e administração" })).toHaveAttribute("aria-current", "location");
-    fireEvent.click(within(menu()).getByRole("link", { name: "Início" }));
+    fireEvent.click(within(menu()).getByRole("link", { name: "Visão geral" }));
     expect(within(menu()).queryByRole("link", { name: "Dados da empresa" })).not.toBeInTheDocument();
   });
 
@@ -293,28 +282,31 @@ describe("AppLayout", () => {
     }
   });
 
-  it("recolhe e expande Cadastros e Operação com cliques repetidos sem navegar", () => {
+  it("inicia Cadastros e Operação fechados e alterna ambos por clique", () => {
     signedInAs("ADMIN");
     renderLayout();
     const cadastros = within(menu()).getByRole("button", { name: "Cadastros" });
     const operacao = within(menu()).getByRole("button", { name: "Operação" });
-    expect(cadastros).toHaveAttribute("aria-expanded", "true");
-    expect(operacao).toHaveAttribute("aria-expanded", "true");
+    expect(cadastros).toHaveAttribute("aria-expanded", "false");
+    expect(operacao).toHaveAttribute("aria-expanded", "false");
+    expect(within(menu()).queryByRole("link", { name: "Caminhões e frota" })).not.toBeInTheDocument();
+    expect(within(menu()).queryByRole("link", { name: "Pedidos" })).not.toBeInTheDocument();
 
     fireEvent.click(cadastros);
-    expect(cadastros).toHaveAttribute("aria-expanded", "false");
-    expect(within(menu()).queryByRole("link", { name: "Caminhões" })).not.toBeInTheDocument();
-    expect(within(menu()).getByRole("link", { name: "Pedidos" })).toBeInTheDocument();
+    expect(cadastros).toHaveAttribute("aria-expanded", "true");
+    expect(within(menu()).getByRole("link", { name: "Caminhões e frota" })).toHaveAttribute("href", "/trucks");
+    expect(within(menu()).queryByRole("link", { name: "Pedidos" })).not.toBeInTheDocument();
 
+    fireEvent.click(operacao);
+    expect(operacao).toHaveAttribute("aria-expanded", "true");
+    expect(within(menu()).getByRole("link", { name: "Relatórios e indicadores" })).toHaveAttribute("href", "/reports");
+    fireEvent.click(cadastros);
+    expect(cadastros).toHaveAttribute("aria-expanded", "false");
+    expect(within(menu()).queryByRole("link", { name: "Caminhões e frota" })).not.toBeInTheDocument();
     fireEvent.click(operacao);
     expect(operacao).toHaveAttribute("aria-expanded", "false");
     expect(within(menu()).queryByRole("link", { name: "Pedidos" })).not.toBeInTheDocument();
-    fireEvent.click(cadastros);
-    expect(cadastros).toHaveAttribute("aria-expanded", "true");
-    expect(within(menu()).getByRole("link", { name: "Caminhões" })).toHaveAttribute("href", "/trucks");
-    fireEvent.click(operacao);
-    expect(within(menu()).getByRole("link", { name: "Frota" })).toHaveAttribute("href", "/fleet");
-    expect(within(menu()).getByRole("link", { name: "Início" })).toHaveAttribute("aria-current", "page");
+    expect(within(menu()).getByRole("link", { name: "Visão geral" })).toHaveAttribute("aria-current", "page");
   });
 
   it("fecha Configurações no segundo clique e reabre no terceiro sem sair da página", () => {
@@ -338,12 +330,13 @@ describe("AppLayout", () => {
     renderLayout();
     fireEvent.click(screen.getByRole("button", { name: "Abrir menu" }));
     const cadastros = within(menu()).getByRole("button", { name: "Cadastros" });
-    fireEvent.click(cadastros);
     expect(cadastros).toHaveAttribute("aria-expanded", "false");
-    expect(within(menu()).queryByRole("link", { name: "Caminhões" })).not.toBeInTheDocument();
+    fireEvent.click(cadastros);
+    expect(cadastros).toHaveAttribute("aria-expanded", "true");
+    expect(within(menu()).getByRole("link", { name: "Caminhões e frota" })).toBeInTheDocument();
     expect(document.querySelector(".app-shell")).toHaveAttribute("data-mobile-open", "true");
     fireEvent.click(cadastros);
-    expect(within(menu()).getByRole("link", { name: "Caminhões" })).toBeInTheDocument();
+    expect(within(menu()).queryByRole("link", { name: "Caminhões e frota" })).not.toBeInTheDocument();
 
     const settings = within(menu()).getByRole("link", { name: "Configurações" });
     fireEvent.click(settings);

@@ -1,0 +1,15 @@
+.truck-workspace-tabs { display: flex; gap: 28px; border-bottom: 1px solid var(--line); margin: 24px 0 28px; }
+.truck-workspace-tabs a { display: inline-flex; align-items: center; min-height: 48px; padding: 10px 2px; text-decoration: none; color: var(--muted); font-size: .9rem; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.truck-workspace-tabs a[aria-current] { color: var(--accent-strong); border-color: var(--accent-strong); }
+.truck-workspace-tabs a:hover { color: var(--ink); }
+.truck-workspace-tabs a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.truck-workspace section[hidden] { display: none; }
+.truck-section .entity-header { align-items: center; }
+.truck-section .entity-header h2 { margin: 0; font-size: 1.2rem; font-weight: 600; }
+.truck-section .entity-header .entity-lede { font-size: .875rem; }
+.truck-section .fleet-card { border-radius: 10px; padding: 18px; }
+.truck-section .fleet-grid { grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr)); }
+.truck-workspace .btn-primary, .truck-workspace .btn-secondary { border-radius: 8px; }
+.truck-workspace.entity-page { max-width: 1264px; }
+.truck-workspace > .entity-header h1 { font-size: clamp(1.75rem, 2.5vw, 2rem); font-weight: 600; letter-spacing: -.04em; }
+.truck-section .truck-card { border-radius: 10px; overflow: hidden; }
