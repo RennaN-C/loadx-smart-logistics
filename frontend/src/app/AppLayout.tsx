@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 
 import { Avatar } from "../components/Avatar";
 import { BrandMark, Icon, type IconName } from "../components/Icon";
 import type { Role } from "../features/auth/types";
 import { useAuth } from "../features/auth/hooks/useAuth";
+import { activeSettingsSection, SETTINGS_SECTIONS } from "../features/settings/settingsSections";
 
 interface NavItem {
   readonly to: string;
@@ -105,6 +106,8 @@ export function AppLayout() {
   const location = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(initialSidebarCollapsed);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [settingsSubmenuExpanded, setSettingsSubmenuExpanded] = useState(false);
+  const settingsSubmenuVisible = location.pathname === "/settings" || settingsSubmenuExpanded;
   const mobileTriggerRef = useRef<HTMLButtonElement>(null);
   const mobileCloseRef = useRef<HTMLButtonElement>(null);
   const sidebarRef = useRef<HTMLElement>(null);
@@ -119,6 +122,7 @@ export function AppLayout() {
 
   useEffect(() => {
     setMobileOpen(false);
+    if (location.pathname !== "/settings") setSettingsSubmenuExpanded(false);
   }, [location.pathname, location.search]);
 
   useEffect(() => {
@@ -249,11 +253,41 @@ export function AppLayout() {
                         end={item.to === "/"}
                         aria-label={sidebarCollapsed ? item.label : undefined}
                         title={sidebarCollapsed ? item.label : undefined}
-                        onClick={() => setMobileOpen(false)}
+                        aria-expanded={item.to === "/settings" ? settingsSubmenuVisible : undefined}
+                        aria-controls={item.to === "/settings" ? "loadx-settings-submenu" : undefined}
+                        onClick={(event) => {
+                          if (item.to === "/settings") {
+                            if (mobileOpen) {
+                              // No drawer, primeiro expandir as opções, sem fechar a gaveta.
+                              event.preventDefault();
+                              setSettingsSubmenuExpanded((expanded) => !expanded);
+                              return;
+                            }
+                            // Na barra compacta, mostrar as opções no mesmo menu global.
+                            setSidebarCollapsed(false);
+                            setSettingsSubmenuExpanded(true);
+                          }
+                          setMobileOpen(false);
+                        }}
                       >
                         <Icon name={item.icon} size={17} />
                         <span className="app-nav-label">{item.label}</span>
                       </NavLink>
+                      {item.to === "/settings" && settingsSubmenuVisible && (!sidebarCollapsed || mobileOpen) ? (
+                        <ul id="loadx-settings-submenu" className="app-settings-submenu" aria-label="Subseções de Configurações">
+                          {SETTINGS_SECTIONS.map((section) => (
+                            <li key={section.id}>
+                              <Link
+                                to={`/settings#${section.id}`}
+                                aria-current={location.pathname === "/settings" && activeSettingsSection(location.hash) === section.id ? "location" : undefined}
+                                onClick={() => { setSettingsSubmenuExpanded(true); setMobileOpen(false); }}
+                              >
+                                {section.label}
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
                     </li>
                   ))}
                 </ul>
