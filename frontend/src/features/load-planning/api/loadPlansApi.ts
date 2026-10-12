@@ -1,3 +1,6 @@
+import { mapPageFromDto, toPageQuery, type ListParams, type PageDto } from "../../../services/pagination";
+import type { Page } from "../../../types/api";
+import type { LoadPlanListItem, LoadPlanContinuity } from "../types";
 import { api } from "../../../services/api";
 import type {
   LoadPlan,
@@ -208,4 +211,39 @@ export async function recalculateLoadPlan(id: string): Promise<LoadPlan> {
   const { data } = await api.post<LoadPlanDto>(`/load-plans/${id}/recalculate`);
 
   return mapLoadPlanFromDto(data);
+}
+
+interface LoadPlanListDto {
+  id: string;
+  truck_id: string;
+  truck_plate: string;
+  truck_model: string;
+  status: LoadPlanStatus;
+  created_at: string;
+  recalculated_from_id: string | null;
+  loaded_count: number;
+  unloaded_count: number;
+  occupancy_percent: number;
+  total_weight_kg: number;
+  order_count: number;
+}
+
+export async function listLoadPlans(
+  params: ListParams & { status?: LoadPlanStatus; truckId?: string } = {},
+): Promise<Page<LoadPlanListItem>> {
+  const { data } = await api.get<PageDto<LoadPlanListDto>>("/load-plans", {
+    params: { ...toPageQuery(params), status: params.status, truck_id: params.truckId },
+  });
+  return mapPageFromDto(data, (dto) => ({
+    id: dto.id, truckId: dto.truck_id, truckPlate: dto.truck_plate,
+    truckModel: dto.truck_model, status: dto.status, createdAt: dto.created_at,
+    recalculatedFromId: dto.recalculated_from_id, loadedCount: dto.loaded_count,
+    unloadedCount: dto.unloaded_count, occupancyPercent: dto.occupancy_percent,
+    totalWeightKg: dto.total_weight_kg, orderCount: dto.order_count,
+  }));
+}
+
+export async function getLoadPlanContinuity(id: string): Promise<LoadPlanContinuity> {
+  const { data } = await api.get<LoadPlanContinuity>(`/load-plans/${id}/continuity`);
+  return data;
 }

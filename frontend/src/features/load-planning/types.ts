@@ -108,3 +108,24 @@ export interface LoadPlanVisualization {
   items: PlacedItem[];
   unloadedItems: UnloadedItem[];
 }
+
+export interface LoadPlanListItem {
+  id: string;
+  truckId: string;
+  truckPlate: string;
+  truckModel: string;
+  status: LoadPlanStatus;
+  createdAt: string;
+  recalculatedFromId: string | null;
+  loadedCount: number;
+  unloadedCount: number;
+  occupancyPercent: number;
+  totalWeightKg: number;
+  orderCount: number;
+}
+
+export interface LoadPlanContinuity {
+  loading_session: { id: string; status: "PENDING" | "IN_PROGRESS" | "FINISHED" } | null;
+  trip: { id: string; status: "SCHEDULED" | "IN_ROUTE" | "FINISHED" } | null;
+  operational_ready: boolean;
+}

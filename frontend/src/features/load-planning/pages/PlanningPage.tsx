@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { AlertBanner } from "../../../components/AlertBanner";
 import { Tabs, type TabItem } from "../../../components/Tabs";
@@ -11,6 +11,7 @@ import { downloadLoadingReport } from "../../reports/api/reportsApi";
 import { ReportDownloadButton } from "../../reports/components/ReportDownloadButton";
 import { canReadReports } from "../../reports/permissions";
 import { approveLoadPlan, getLoadPlan, recalculateLoadPlan } from "../api/loadPlansApi";
+import { PlanHistory } from "../components/PlanHistory";
 import { PlanBuilder } from "../components/PlanBuilder";
 import { PlanItemsTable } from "../components/PlanItemsTable";
 import { PlanSummary } from "../components/PlanSummary";
@@ -33,14 +34,11 @@ const PLAN_TABS: readonly TabItem<PlanTab>[] = [
   { id: "scene", label: "Visualização 3D" },
 ];
 
-/**
- * O backend não tem listagem de planos — só criar e buscar por id. Por isso o
- * plano vive na URL (`/planning/:planId`): sem isso, recarregar a página perderia
- * o resultado sem nenhuma forma de recuperá-lo.
- */
 export function PlanningPage() {
   const { planId } = useParams<{ planId: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isNew = searchParams.get("tab") === "new";
   const { user } = useAuth();
   const podeBaixarRelatorio = canReadReports(user?.role);
 
@@ -71,7 +69,7 @@ export function PlanningPage() {
     setPlan(null);
     setIsWorking(false);
     setErrorMessage(null);
-    if (!planId) {
+    if (!planId || !user?.active || !["ADMIN", "LOGISTICS_MANAGER", "CHECKER"].includes(user.role)) {
       setIsLoading(false);
       return;
     }
@@ -94,7 +92,7 @@ export function PlanningPage() {
     return () => {
       active = false;
     };
-  }, [planId]);
+  }, [planId, user?.role, user?.active]);
 
   const handleCalculated = useCallback(
     (created: LoadPlan) => {
@@ -127,6 +125,10 @@ export function PlanningPage() {
     }
   }
 
+  if (!user?.active || !["ADMIN", "LOGISTICS_MANAGER", "CHECKER"].includes(user.role)) {
+    return <div className="entity-page"><h1>Planejamento de carga</h1><AlertBanner>Seu perfil não tem acesso ao planejamento.</AlertBanner><Link to="/">Voltar ao início</Link></div>;
+  }
+
   return (
     <div className="entity-page">
       <nav className="entity-toolbar entity-page-nav" aria-label="Caminhos do planejamento">
@@ -137,7 +139,7 @@ export function PlanningPage() {
       <header className="entity-header">
         <div>
           <h1>Planejamento de carga</h1>
-          <p className="entity-lede">Escolha o caminhão e os pedidos; o otimizador monta a carga.</p>
+          <p className="entity-lede">Retome planos salvos ou prepare uma nova carga.</p>
         </div>
         {plan ? (
           <div className="entity-toolbar">
@@ -148,9 +150,7 @@ export function PlanningPage() {
                 download={() => downloadLoadingReport(plan.id)}
               />
             ) : null}
-            <button type="button" className="btn-secondary" onClick={() => navigate("/planning")}>
-              Novo plano
-            </button>
+            {canManage ? <button type="button" className="btn-secondary" onClick={() => navigate("/planning?tab=new")}>Novo plano</button> : null}
           </div>
         ) : null}
       </header>
@@ -165,13 +165,17 @@ export function PlanningPage() {
       ) : null}
 
       {!planId && !isLoading ? <>
-        <p className="entity-form-help">Para reabrir um plano anterior, use seu link permanente. A listagem de planos ainda não está disponível.</p>
-        <PlanBuilder onCalculated={handleCalculated} />
+        <nav className="plan-workspace-nav" aria-label="Área de planejamento">
+          <Link to="/planning" aria-current={!isNew ? "page" : undefined}>Planos existentes</Link>
+          {canManage ? <Link to="/planning?tab=new" aria-current={isNew ? "page" : undefined}>Novo planejamento</Link> : null}
+        </nav>
+        {isNew && canManage ? <><p className="entity-form-help">Seleções ainda não calculadas são rascunhos desta tela. O plano será salvo somente ao calcular (até 200 volumes).</p><PlanBuilder onCalculated={handleCalculated} /></>
+          : <PlanHistory checker={user?.role === "CHECKER"} />}
       </> : null}
 
       {plan && !isLoading ? (
         <>
-          <p className="entity-form-help">Link permanente: <Link to={`/planning/${plan.id}`}>Abrir este plano</Link>. Guarde este endereço para reabrir após sair.</p>
+          <p className="entity-form-help">Plano {plan.id.slice(0, 8)} salvo. <Link to={`/planning/${plan.id}`}>Abrir este plano</Link> ou reencontre em <Link to="/planning">Planos existentes</Link>.</p>
           <PlanSummary
             plan={plan}
             canManage={canManage}
