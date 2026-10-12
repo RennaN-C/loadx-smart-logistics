@@ -305,6 +305,8 @@ export function AppLayout() {
                               return;
                             }
                             if (sidebarCollapsed) {
+                              // Abrir o trilho não deve apagar a subseção atualmente selecionada.
+                              event.preventDefault();
                               setSidebarCollapsed(false);
                               setSettingsSubmenuExpanded(true);
                               return;
@@ -323,8 +325,13 @@ export function AppLayout() {
                         <Icon name={item.icon} size={17} />
                         <span className="app-nav-label">{item.label}</span>
                       </NavLink>
-                      {item.to === "/settings" && settingsSubmenuExpanded && (!sidebarCollapsed || mobileOpen) ? (
-                        <ul id="loadx-settings-submenu" className="app-settings-submenu" aria-label="Subseções de Configurações">
+                      {item.to === "/settings" ? (
+                        <ul
+                          id="loadx-settings-submenu"
+                          className="app-settings-submenu"
+                          aria-label="Subseções de Configurações"
+                          hidden={!settingsSubmenuExpanded || (sidebarCollapsed && !mobileOpen)}
+                        >
                           {SETTINGS_SECTIONS.map((section) => (
                             <li key={section.id}>
                               <Link
