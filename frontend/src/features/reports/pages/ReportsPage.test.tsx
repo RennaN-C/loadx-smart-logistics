@@ -147,8 +147,8 @@ describe("ReportsPage", () => {
     render(<ReportsPage />);
     await waitFor(() => expect(kpi("VOLUMES EM ABERTO")).toBe("19"));
     for (const table of screen.getAllByRole("table")) expect(within(table).getByText("19")).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: "Tabela de pedidos atrasados" })).toHaveAttribute("tabindex", "0");
-    expect(screen.getByRole("region", { name: "Tabela de indicadores por cliente" })).toHaveAttribute("tabindex", "0");
+    expect(screen.getByRole("region", { name: "Tabela de pedidos atrasados" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Tabela de indicadores por cliente" })).toBeInTheDocument();
     expect(screen.getByText(/até 1.000 pedidos/)).toBeInTheDocument();
   });
 

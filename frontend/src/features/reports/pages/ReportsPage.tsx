@@ -5,6 +5,7 @@ import { Icon } from "../../../components/Icon";
 import { StatusPill } from "../../../components/StatusPill";
 import { priorityLabel, STATUS_LABELS, statusTone } from "../../orders/components/orderLabels";
 import type { OrderStatus } from "../../orders/types";
+import { ReportTableViewport } from "../components/ReportTableViewport";
 import { DistributionBars } from "../components/DistributionBars";
 import { useOrderReport } from "../hooks/useOrderReport";
 import "./ReportsPage.css";
@@ -138,7 +139,7 @@ export function ReportsPage() {
                 </h2>
                 <p>Do mais antigo para o mais recente.</p>
               </div>
-              <div className="report-table-scroll" tabIndex={0} role="region" aria-label="Tabela de pedidos atrasados">
+              <ReportTableViewport label="Tabela de pedidos atrasados">
                 <table className="report-table">
                   <thead>
                     <tr>
@@ -169,8 +170,8 @@ export function ReportsPage() {
                     ))}
                   </tbody>
                 </table>
-              </div>
-              <p className="entity-form-help report-scroll-hint">Deslize a tabela ou use as setas do teclado para ver todas as colunas.</p>
+              </ReportTableViewport>
+              <p className="entity-form-help report-scroll-hint">Use os botões ou deslize a tabela para ver todas as colunas.</p>
             </section>
           ) : null}
 
@@ -183,7 +184,7 @@ export function ReportsPage() {
                 </h2>
                 <p>Ordenado pelo maior volume.</p>
               </div>
-              <div className="report-table-scroll" tabIndex={0} role="region" aria-label="Tabela de indicadores por cliente">
+              <ReportTableViewport label="Tabela de indicadores por cliente">
                 <table className="report-table">
                   <thead>
                     <tr>
@@ -220,8 +221,8 @@ export function ReportsPage() {
                     })}
                   </tbody>
                 </table>
-              </div>
-              <p className="entity-form-help report-scroll-hint">Deslize a tabela ou use as setas do teclado para ver todas as colunas.</p>
+              </ReportTableViewport>
+              <p className="entity-form-help report-scroll-hint">Use os botões ou deslize a tabela para ver todas as colunas.</p>
             </section>
           ) : (
             <p className="entity-form-help report-block">

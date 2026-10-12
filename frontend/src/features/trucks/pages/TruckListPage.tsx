@@ -2,13 +2,10 @@ import { ImportAction } from "../../registration-imports/components/ImportAction
 import { useMemo, useState } from "react";
 
 import { AlertBanner } from "../../../components/AlertBanner";
-import { Modal } from "../../../components/Modal";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { canManageLogistics } from "../../auth/permissions";
+import { TruckDialogs } from "../components/TruckDialogs";
 import { TruckCard } from "../components/TruckCard";
-import { DocumentsPanel } from "../components/DocumentsPanel";
-import { MaintenancePanel } from "../components/MaintenancePanel";
-import { TruckForm } from "../components/TruckForm";
 import { mapTruckErrorToMessage } from "../components/trucksErrorMessages";
 import { Pagination } from "../../../components/Pagination";
 import { useRegistryList } from "../../../hooks/useRegistryList";
@@ -40,7 +37,6 @@ export function TruckListPage({ embedded = false, active = true }: { readonly em
   const [isCreating, setIsCreating] = useState(false);
 
   const canManage = canManageLogistics(user?.role);
-  const isFormOpen = isCreating || editingTruck !== null;
 
   // A busca textual permanece local; o arquivamento é filtrado pelo servidor (OC105).
   const visibleTrucks = useMemo(() => {
@@ -131,23 +127,8 @@ export function TruckListPage({ embedded = false, active = true }: { readonly em
         <Pagination page={page} totalPages={totalPages} onChange={goToPage} label="caminhões" />
       ) : null}
 
-      {documentsTruck ? <Modal active={active} title={`Documentos — ${documentsTruck.plate}`} onClose={() => setDocumentsTruck(null)}>
-        <DocumentsPanel truck={documentsTruck} onChanged={refetch} />
-      </Modal> : null}
-      {maintenanceTruck ? <Modal active={active} title={`Manutenções — ${maintenanceTruck.plate}`} onClose={() => setMaintenanceTruck(null)}>
-        <MaintenancePanel truck={maintenanceTruck} onChanged={refetch} />
-      </Modal> : null}
+      <TruckDialogs active={active} documentsTruck={documentsTruck} maintenanceTruck={maintenanceTruck} editingTruck={editingTruck} isCreating={isCreating} onCloseDocuments={() => setDocumentsTruck(null)} onCloseMaintenance={() => setMaintenanceTruck(null)} onCloseForm={closeForm} onChanged={refetch} onSaved={handleSaved} />
 
-      {isFormOpen ? (
-        <Modal
-          active={active}
-          title={editingTruck ? "Editar caminhão" : "Novo caminhão"}
-          subtitle="Compartimento de carga"
-          onClose={closeForm}
-        >
-          <TruckForm truck={editingTruck ?? undefined} onSaved={handleSaved} onCancel={closeForm} />
-        </Modal>
-      ) : null}
     </div>
   );
 }
