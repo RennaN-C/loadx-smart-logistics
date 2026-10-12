@@ -186,12 +186,24 @@ body {
     padding: 2px 0 0;
   }
   .app-shell[data-sidebar-collapsed="true"] .app-brand-label,
-  .app-shell[data-sidebar-collapsed="true"] .app-nav-title,
+  .app-shell[data-sidebar-collapsed="true"] .app-nav-group:not([data-collapsible="true"]) .app-nav-title,
+  .app-shell[data-sidebar-collapsed="true"] .app-nav-group-title,
   .app-shell[data-sidebar-collapsed="true"] .app-nav-label,
   .app-shell[data-sidebar-collapsed="true"] .app-account-text {
     display: none;
   }
   .app-shell[data-sidebar-collapsed="true"] .app-nav { gap: 8px; }
+  .app-shell[data-sidebar-collapsed="true"] .app-nav-group[data-collapsible="true"] > ul {
+    display: none;
+  }
+  .app-shell[data-sidebar-collapsed="true"] .app-nav-group-toggle {
+    justify-content: center;
+    width: 100%;
+    padding: 11px;
+    min-height: 42px;
+    border-radius: 8px;
+  }
+  .app-shell[data-sidebar-collapsed="true"] .app-nav-chevron { display: none; }
   .app-shell[data-sidebar-collapsed="true"] .app-nav-group ul { gap: 4px; }
   .app-shell[data-sidebar-collapsed="true"] .app-nav a {
     justify-content: center;
@@ -260,6 +272,7 @@ body {
   padding: 0 10px;
 }
 
+.app-nav-group ul[hidden] { display: none; }
 .app-nav-group ul {
   list-style: none;
   margin: 0;
@@ -268,6 +281,40 @@ body {
   flex-direction: column;
   gap: 1px;
 }
+
+/* Botões para abrir e fechar grupos com mais de um destino. */
+.app-nav-group-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 36px;
+  margin: 0 0 6px;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+  text-align: left;
+  font-family: inherit;
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+}
+.app-nav-group-toggle > .icon { opacity: 0.7; }
+.app-nav-group-toggle:hover,
+.app-nav-group-toggle[data-active="true"] {
+  color: var(--ink);
+  background: var(--paper);
+}
+.app-nav-group-toggle[data-active="true"] > .icon { color: var(--accent-strong); opacity: 1; }
+.app-nav-group-toggle:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
+}
+.app-nav-chevron { margin-left: auto; font-size: 1rem; line-height: 1; transition: transform 0.15s ease; }
+.app-nav-group-toggle[aria-expanded="false"] .app-nav-chevron { transform: rotate(-90deg); }
 
 .app-nav a {
   display: flex;
@@ -471,6 +518,7 @@ body {
   }
   .app-nav { gap: 18px; }
   .app-nav-title { display: block; }
+  .app-nav-group-toggle { display: flex; min-height: 42px; }
   .app-nav a { padding: 10px; min-height: 42px; }
   .app-nav a .icon,
   .app-nav-label { display: inline; }
@@ -488,6 +536,7 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .app-shell { transition: none; }
   .app-sidebar { transition: none; }
+  .app-nav-chevron { transition: none; }
 }
 
 .session-loading {
