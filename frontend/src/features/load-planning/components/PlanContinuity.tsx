@@ -48,11 +48,6 @@ export function PlanContinuity({ planId, canManage }: {
     <h3>Próxima etapa</h3>
     <p className="entity-form-help">O plano está aprovado. Carregamento e viagem têm estados próprios; concluir a conferência libera o início da viagem.</p>
     <ContinuityActions data={data} planId={planId} canManage={canManage} refresh={() => { setData(null); setAttempt((value) => value + 1); }} />
-    {data.loading_session ? <Link className="btn-secondary" to={`/loading/${data.loading_session.id}`}>Abrir carregamento existente</Link>
-        : canManage && data.operational_ready ? <StartLoadingAction loadPlanId={planId} /> : null}
-      {canManage && data.trip ? <Link className="btn-primary" to={`/trips/${data.trip.id}`}>Abrir viagem existente</Link>
-        : canManage && data.operational_ready ? <CreateTripAction loadPlanId={planId} onExistingTrip={() => { setData(null); setAttempt((value) => value + 1); }} /> : null}
-    </div>
     {data.loading_session ? <p className="entity-form-help">Carregamento: {({ PENDING: "pendente", IN_PROGRESS: "em andamento", FINISHED: "concluído" })[data.loading_session.status]}.</p> : null}
     {data.trip ? <p className="entity-form-help">Viagem: {({ SCHEDULED: "programada", IN_ROUTE: "em rota", FINISHED: "concluída" })[data.trip.status]}.</p> : null}
     {!data.operational_ready ? <p className="entity-form-help">Este plano não está liberado para iniciar outra operação. As regras da distribuição são conferidas pelo servidor.</p> : null}
