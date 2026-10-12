@@ -1,56 +1,40 @@
 import { Link, useLocation } from "react-router-dom";
+import { Icon } from "../../../components/Icon";
 import { activeSettingsSection } from "../settingsSections";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { CompanyProfileForm } from "../components/CompanyProfileForm";
 import { IntegrationHealthPanel } from "../components/IntegrationHealthPanel";
+import { SettingsAccountPanel } from "../components/SettingsAccountPanel";
 import { SettingsSection } from "../components/SettingsSection";
 import "./SettingsPage.css";
-
-const UPCOMING_ACCOUNT_SECTIONS = [
-  { id: "users", title: "Gestão de usuários", description: "Cadastro e gestão de acesso dos usuários do LoadX." },
-] as const;
 
 export function SettingsPage() {
   const { user } = useAuth();
   const { hash } = useLocation();
-  const activeSection = activeSettingsSection(hash);
+  const activeId = activeSettingsSection(hash);
   if (!user) return null;
 
   return (
     <div className="entity-page settings-page">
-      <header className="entity-header">
-        <div>
-          <h1>Configurações</h1>
-          <p className="entity-lede">Administração da conta e configurações do LoadX.</p>
-        </div>
+      <header className="entity-header settings-header">
+        <div><p className="settings-eyebrow">Administração</p><h1>Configurações</h1>
+          <p className="entity-lede">Gerencie os dados da empresa e acompanhe os serviços do LoadX.</p></div>
+        <span className="settings-access"><Icon name="settings" size={16} />Acesso administrativo</span>
       </header>
-      {/* Seções escolhidas pela sidebar global; não criar um segundo menu. */}
-      <SettingsSection id="settings-account" title="Conta e administração" hidden={activeSection !== "settings-account"}>
-        <h3>Conta conectada</h3>
-        <dl className="settings-profile">
-          <div><dt>Nome</dt><dd>{user.name}</dd></div>
-          <div><dt>E-mail</dt><dd>{user.email}</dd></div>
-          <div><dt>Perfil</dt><dd>Administrador</dd></div>
-        </dl>
-        <p>Informações da sessão atual, somente para consulta.</p><Link className="settings-account-link" to="/account">Meu perfil, senha e sessões</Link>
-        <ul className="settings-upcoming">
-          {UPCOMING_ACCOUNT_SECTIONS.map((section) => (
-            <li key={section.id}>
-              <h3>{section.title}</h3>
-              <p>{section.description}</p>
-              <span className="settings-pending">Em preparação</span>
-            </li>
-          ))}
-        </ul>
-      </SettingsSection>
-      <SettingsSection id="settings-company" title="Dados da empresa" hidden={activeSection !== "settings-company"}><CompanyProfileForm /></SettingsSection>
-      <SettingsSection id="settings-integrations" title="Integrações e Saúde" hidden={activeSection !== "settings-integrations"}><IntegrationHealthPanel /></SettingsSection>
-      <SettingsSection id="settings-logistics" title="Configurações do LoadX" hidden={activeSection !== "settings-logistics"}>
-        <p>Esta seção reúne as configurações específicas do módulo logístico,
-          separadas da administração da conta e dos dados da empresa.</p>
-        <p>Não há configurações logísticas adicionais disponíveis nesta etapa.
-          Cadastros e operações continuam nos respectivos módulos do menu.</p>
-      </SettingsSection>
+      {/* Seções controladas pela sidebar global; sem navegação duplicada. */}
+      <div className="settings-content">
+          {/* Manter os painéis montados preserva o rascunho ao trocar de seção. */}
+          <SettingsSection id="settings-account" title="Conta e administração" description="Informações da sessão e acesso às configurações pessoais." hidden={activeId !== "settings-account"}><SettingsAccountPanel user={user} /></SettingsSection>
+          <SettingsSection id="settings-company" title="Dados da empresa" description="Identificação institucional, canais de contato e referência de marca." hidden={activeId !== "settings-company"}><CompanyProfileForm /></SettingsSection>
+          <SettingsSection id="settings-integrations" title="Integrações e Saúde" description="Consulte o estado real dos serviços e os limites de cada integração." hidden={activeId !== "settings-integrations"}><IntegrationHealthPanel /></SettingsSection>
+          <SettingsSection id="settings-logistics" title="Configurações do LoadX" description="Configurações próprias da operação, separadas dos dados da empresa." hidden={activeId !== "settings-logistics"}>
+            <div className="settings-operational-links">
+              <Link className="settings-operation-link" to="/fleet"><Icon name="truck" size={24} /><div><h3>Frota e disponibilidade</h3><p>Consulte veículos, motoristas e restrições da operação.</p><span>Consultar frota <Icon name="arrow-right" size={16} /></span></div></Link>
+              <Link className="settings-operation-link" to="/planning"><Icon name="planning" size={24} /><div><h3>Planejamento de cargas</h3><p>Acesse os pedidos e os recursos do planejamento.</p><span>Ir para planejamento <Icon name="arrow-right" size={16} /></span></div></Link>
+            </div>
+            <p className="settings-operational-note">Os parâmetros operacionais são gerenciados nos respectivos módulos. Não há configurações logísticas adicionais disponíveis nesta etapa.</p>
+          </SettingsSection>
+      </div>
     </div>
   );
 }

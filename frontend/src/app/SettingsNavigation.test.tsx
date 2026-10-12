@@ -167,4 +167,20 @@ describe("OC85: navegação e autorização na aplicação", () => {
     await screen.findByRole("heading", { name: "Configurações", level: 1 });
     expect(screen.getByRole("region", { name: "Conta e administração" })).toBeVisible();
   });
+
+  it("mantém componentes premium sem navegação interna duplicada", async () => {
+    render(<App />);
+    await screen.findByRole("heading", { name: "Configurações", level: 1 });
+    const sidebar = screen.getByRole("navigation", { name: "Navegação principal" });
+    expect(screen.queryByRole("navigation", { name: "Seções de configurações" })).not.toBeInTheDocument();
+    expect(screen.getByText("Perfil e segurança")).toBeInTheDocument();
+
+    fireEvent.click(within(sidebar).getByRole("link", { name: "Dados da empresa" }));
+    expect(await screen.findByRole("button", { name: "Cadastrar dados da empresa" })).toBeInTheDocument();
+    expect(screen.getByText("Identificação da empresa")).toBeInTheDocument();
+    fireEvent.click(within(sidebar).getByRole("link", { name: "Configurações do LoadX" }));
+    const op = screen.getByRole("region", { name: "Configurações do LoadX" });
+    expect(within(op).getByRole("link", { name: /Consultar frota/ })).toHaveAttribute("href", "/fleet");
+    expect(within(op).getByRole("link", { name: /Ir para planejamento/ })).toHaveAttribute("href", "/planning");
+  });
 });

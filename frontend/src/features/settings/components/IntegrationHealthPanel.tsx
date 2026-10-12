@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Icon, type IconName } from "../../../components/Icon";
 import { ApiError } from "../../../types/api";
 import { getIntegrationHealth, type ComponentHealth, type HealthComponent, type HealthReason, type HealthStatus, type IntegrationHealthReport } from "../api/integrationHealthApi";
 import "./IntegrationHealthPanel.css";
@@ -15,17 +16,18 @@ const STATUSES: Record<HealthStatus, string> = { AVAILABLE: "DISPONÍVEL", SIMUL
 const REASONS: Record<HealthReason, string> = {
   LIVE: "Liveness disponível.", READY: "Verificação disponível.", READINESS_FAILED: "Readiness indisponível; detalhes internos foram omitidos.", TIMEOUT: "A consulta excedeu o limite de espera.", MOCK_PROVIDER: "Provider local simulado, sem serviço externo.", PROVIDER_NOT_IMPLEMENTED: "Nenhum adapter externo aprovado está implementado nesta base.", OC83_PENDING: "Aguardando implementação da OC83.", OC84_PENDING: "Escopo interno atual limitado; OC84 ainda pendente.", NOT_CONFIGURED: "O componente não está configurado.", APPROVAL_REQUIRED: "Ativação real depende de aprovação.", PROVIDER_FAILED: "Não foi possível obter o sinal do componente.", INVALID_SIGNAL: "O componente retornou um sinal incompatível com a política aprovada.",
 };
+const COMPONENT_ICONS: Record<HealthComponent, IconName> = { api: "gauge", database: "orders", whatsapp: "users", ai: "planning", webhook: "settings", notifications: "report" };
 function HealthCard({ item }: { readonly item: ComponentHealth }) {
   const metadata = COMPONENTS[item.component];
   let configuration = "Não verificada";
   if (item.configured !== null) configuration = item.configured ? "Presente" : "Ausente";
   return <li className="integration-health-card">
-    <h3>{metadata.title}</h3>
-    <span className="integration-health-badge" data-status={item.status}>{STATUSES[item.status]}</span>
-    <p>{metadata.description}</p>
-    <dl><div><dt>Modo</dt><dd>{{ INTERNAL: "Interno", MOCK: "Simulado", REAL: "Real (sujeito à configuração e aprovação)" }[item.mode]}</dd></div><div><dt>Configuração</dt><dd>{configuration}</dd></div></dl>
-    <p>{REASONS[item.reason_code]}</p>
+    <div className="integration-health-card-header"><Icon name={COMPONENT_ICONS[item.component]} size={20} /><h3>{metadata.title}</h3><span className="integration-health-badge" data-status={item.status}>{STATUSES[item.status]}</span></div>
+    <p className="integration-health-context">{{ api: "Serviço da aplicação", database: "Persistência e integridade", whatsapp: "Mensagens operacionais", ai: "Apoio ao planejamento", webhook: "Entrada de eventos", notifications: "Comunicação interna" }[item.component]}</p>
+    <details className="integration-health-details"><summary>Escopo e limites</summary><p className="integration-health-reason">{REASONS[item.reason_code]}</p><dl><div><dt>Modo</dt><dd>{{ INTERNAL: "Interno", MOCK: "Simulado", REAL: "Real (sujeito à configuração e aprovação)" }[item.mode]}</dd></div><div><dt>Configuração</dt><dd>{configuration}</dd></div></dl>
+    <p>{metadata.description}</p></details>
   </li>;
+
 }
 function failureMessage(error_: unknown): string {
   if (error_ instanceof ApiError && error_.status === 403) return "A consulta de integrações é exclusiva do ADMIN.";
@@ -50,16 +52,14 @@ export function IntegrationHealthPanel() {
     return () => { active = false; };
   }, [refresh]);
   return <div className="integration-health-panel" aria-busy={loading}>
-    <p>Diagnóstico atual, somente para consulta. Atualizar não envia mensagens, executa prompts ou modifica configurações.</p>
-    <button type="button" className="btn-secondary" disabled={loading} onClick={() => setRefresh((value) => value + 1)}>{loading ? "Consultando…" : "Atualizar estados"}</button>
-    {loading && <output className="integration-health-feedback">Carregando integrações e saúde…</output>}
-    {error && <p role="alert">{error}</p>}
+    <div className="integration-health-toolbar"><p>Estado das integrações<span>Consulta somente leitura, sem executar ações nos serviços.</span></p><button type="button" className="btn-secondary" disabled={loading} onClick={() => setRefresh((value) => value + 1)}>{loading ? "Consultando…" : "Atualizar estados"}</button></div>
+    {loading && <output className="integration-health-feedback"><span className="spinner" aria-hidden="true" /><span>Carregando integrações e saúde…</span></output>}
+    {error && <p role="alert" className="integration-health-error">{error}</p>}
     {report && <>
-      {error && <p>Exibindo a última consulta bem-sucedida; os dados abaixo podem estar desatualizados.</p>}
-      <p><strong>{report.overall_status === "DEGRADED" ? "Saúde degradada: há falha ou timeout." : "Cobertura parcial: há componentes simulados, limitados ou pendentes."}</strong></p>
-      <p>Consulta em <time dateTime={report.checked_at}>{new Date(report.checked_at).toLocaleString("pt-BR")}</time></p>
-      {report.components.length ? <ul className="integration-health-grid">{report.components.map((item) => <HealthCard key={item.component} item={item} />)}</ul> : <p>Nenhum indicador foi disponibilizado nesta consulta.</p>}
-      <p className="integration-health-reference">Referência do diagnóstico: <code>{report.correlation_id}</code>. Falhas desta consulta podem ser correlacionadas aos eventos operacionais sanitizados. Histórico persistente de integrações não está disponível nesta etapa.</p>
+      {error && <p className="integration-health-stale">Exibindo a última consulta bem-sucedida; os dados abaixo podem estar desatualizados.</p>}
+      <div className="integration-health-summary" data-status={report.overall_status}><strong>{report.overall_status === "DEGRADED" ? "Saúde degradada: há falha ou timeout." : "Cobertura parcial: há componentes simulados, limitados ou pendentes."}</strong><p>Consulta em <time dateTime={report.checked_at}>{new Date(report.checked_at).toLocaleString("pt-BR")}</time></p></div>
+      {report.components.length ? <ul className="integration-health-grid">{report.components.map((item) => <HealthCard key={item.component} item={item} />)}</ul> : <p className="integration-health-empty">Nenhum indicador foi disponibilizado nesta consulta.</p>}
+      <details className="integration-health-reference"><summary>Referência do diagnóstico</summary><p><code>{report.correlation_id}</code>. Falhas desta consulta podem ser correlacionadas aos eventos operacionais sanitizados. Histórico persistente de integrações não está disponível nesta etapa.</p></details>
     </>}
   </div>;
 }
