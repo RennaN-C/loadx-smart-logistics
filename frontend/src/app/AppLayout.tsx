@@ -1,9 +1,11 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 
 import { Avatar } from "../components/Avatar";
 import { BrandMark, Icon, type IconName } from "../components/Icon";
 import type { Role } from "../features/auth/types";
 import { useAuth } from "../features/auth/hooks/useAuth";
+import { activeSettingsSection, SETTINGS_SECTIONS } from "../features/settings/settingsSections";
 
 interface NavItem {
   readonly to: string;
@@ -89,8 +91,85 @@ const NAV_GROUPS: readonly NavGroup[] = [
   },
 ];
 
+const SIDEBAR_PREFERENCE = "loadx.sidebar-collapsed";
+
+function initialSidebarCollapsed() {
+  try {
+    return window.localStorage.getItem(SIDEBAR_PREFERENCE) === "true";
+  } catch {
+    return false;
+  }
+}
+
 export function AppLayout() {
   const { user, logout } = useAuth();
+  const location = useLocation();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(initialSidebarCollapsed);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  // Grupos com vários links funcionam como menus sanfonados independentes.
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
+    cadastros: true,
+    operacao: true,
+  });
+  const [settingsSubmenuExpanded, setSettingsSubmenuExpanded] = useState(
+    () => location.pathname === "/settings",
+  );
+  const mobileTriggerRef = useRef<HTMLButtonElement>(null);
+  const mobileCloseRef = useRef<HTMLButtonElement>(null);
+  const sidebarRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(SIDEBAR_PREFERENCE, String(sidebarCollapsed));
+    } catch {
+      // Navegadores em modo restrito podem bloquear armazenamento; a navegação continua utilizável.
+    }
+  }, [sidebarCollapsed]);
+
+  useEffect(() => {
+    setMobileOpen(false);
+    setSettingsSubmenuExpanded(location.pathname === "/settings");
+  }, [location.pathname, location.search]);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    const mobileTrigger = mobileTriggerRef.current;
+    document.body.style.overflow = "hidden";
+    mobileCloseRef.current?.focus();
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setMobileOpen(false);
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const focusable = Array.from(sidebarRef.current?.querySelectorAll<HTMLElement>(
+        'a[href], button:not(:disabled), [tabindex]:not([tabindex="-1"])',
+      ) ?? []).filter((element) => {
+        const computed = window.getComputedStyle(element);
+        return computed.display !== "none" && computed.visibility !== "hidden";
+      });
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (!first || !last) return;
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = originalOverflow;
+      if (mobileTrigger?.isConnected) mobileTrigger.focus();
+    };
+  }, [mobileOpen]);
+
 
   // Esconder o link não substitui o backend, que continua barrando: evita só
   // oferecer um caminho que responderia 403. Grupo que esvazia some junto com o
@@ -101,42 +180,175 @@ export function AppLayout() {
   })).filter((group) => group.items.length > 0);
 
   return (
-    <div className="app-shell">
+    <div className="app-shell" data-sidebar-collapsed={sidebarCollapsed} data-mobile-open={mobileOpen}>
       {/* o menu vem antes do conteúdo no DOM; sem isto, quem navega por teclado
           atravessa a lista inteira em toda troca de tela */}
       <a className="skip-link" href="#conteudo">
         Pular para o conteúdo
       </a>
 
-      <aside className="app-sidebar">
-        <p className="app-brand">
-          <BrandMark size={27} />
-          <span>LOADX</span>
-        </p>
+      <header className="app-mobile-topbar">
+        <button
+          type="button"
+          ref={mobileTriggerRef}
+          className="app-mobile-menu-button"
+          aria-label="Abrir menu"
+          aria-controls="loadx-side-navigation"
+          aria-expanded={mobileOpen}
+          onClick={() => setMobileOpen(true)}
+        >
+          <span aria-hidden="true">☰</span>
+        </button>
+        <span className="app-mobile-brand"><BrandMark size={24} /> LOADX</span>
+      </header>
+
+      {mobileOpen ? (
+        <button
+          type="button"
+          className="app-sidebar-scrim"
+          aria-label="Fechar o menu ao clicar fora"
+          tabIndex={-1}
+          onClick={() => setMobileOpen(false)}
+        />
+      ) : null}
+
+      <aside ref={sidebarRef} className="app-sidebar" aria-label="Menu lateral">
+        <div className="app-sidebar-header">
+          <p className="app-brand">
+            <BrandMark size={27} />
+            <span className="app-brand-label">LOADX</span>
+          </p>
+          <button
+            type="button"
+            className="app-sidebar-collapse"
+            aria-controls="loadx-side-navigation"
+            aria-expanded={!sidebarCollapsed}
+            aria-label={sidebarCollapsed ? "Expandir menu lateral" : "Recolher menu lateral"}
+            title={sidebarCollapsed ? "Expandir menu lateral" : "Recolher menu lateral"}
+            onClick={() => setSidebarCollapsed((current) => !current)}
+          >
+            <span aria-hidden="true">{sidebarCollapsed ? "›" : "‹"}</span>
+          </button>
+          <button
+            type="button"
+            ref={mobileCloseRef}
+            className="app-sidebar-close"
+            aria-label="Fechar menu"
+            onClick={() => setMobileOpen(false)}
+          >
+            <span aria-hidden="true">×</span>
+          </button>
+        </div>
 
         {groups.length > 0 ? (
-          <nav className="app-nav" aria-label="Navegação principal">
-            {groups.map((group) => (
-              <div key={group.id} className="app-nav-group">
-                {group.title ? (
-                  <p className="app-nav-title" id={`nav-${group.id}`}>
-                    {group.title}
-                  </p>
+          <nav id="loadx-side-navigation" className="app-nav" aria-label="Navegação principal">
+            {groups.map((group) => {
+              const collapsible = group.items.length > 1;
+              const expanded = expandedGroups[group.id] ?? true;
+              const hasActivePage = group.items.some((item) =>
+                location.pathname === item.to || (
+                  item.to !== "/" && location.pathname.startsWith(`${item.to}/`)
+                ),
+              );
+              return (
+              <div key={group.id} className="app-nav-group" data-collapsible={collapsible}>
+                {group.title ? collapsible ? (
+                  <button
+                    type="button"
+                    className="app-nav-title app-nav-group-toggle"
+                    id={`nav-${group.id}`}
+                    aria-controls={`nav-group-items-${group.id}`}
+                    aria-expanded={expanded && (!sidebarCollapsed || mobileOpen)}
+                    data-active={hasActivePage}
+                    title={sidebarCollapsed ? group.title : undefined}
+                    onClick={() => {
+                      if (sidebarCollapsed && !mobileOpen) {
+                        setSidebarCollapsed(false);
+                        setExpandedGroups((current) => ({ ...current, [group.id]: true }));
+                      } else {
+                        setExpandedGroups((current) => ({
+                          ...current,
+                          [group.id]: !(current[group.id] ?? true),
+                        }));
+                      }
+                    }}
+                  >
+                    <Icon name={group.id === "cadastros" ? "package" : "planning"} size={16} />
+                    <span className="app-nav-group-title">{group.title}</span>
+                    <span className="app-nav-chevron" aria-hidden="true">⌄</span>
+                  </button>
+                ) : (
+                  <p className="app-nav-title" id={`nav-${group.id}`}>{group.title}</p>
                 ) : null}
-                <ul aria-labelledby={group.title ? `nav-${group.id}` : undefined}>
+                <ul
+                  id={collapsible ? `nav-group-items-${group.id}` : undefined}
+                  aria-labelledby={group.title ? `nav-${group.id}` : undefined}
+                  hidden={collapsible && (!expanded || (sidebarCollapsed && !mobileOpen))}
+                >
                   {group.items.map((item) => (
                     <li key={item.to}>
                       {/* `end` na raiz: sem isso o NavLink casa por prefixo e
                           "Início" ficaria marcado como ativo em todas as telas */}
-                      <NavLink to={item.to} end={item.to === "/"}>
+                      <NavLink
+                        to={item.to}
+                        end={item.to === "/"}
+                        aria-label={sidebarCollapsed ? item.label : undefined}
+                        title={sidebarCollapsed ? item.label : undefined}
+                        aria-expanded={item.to === "/settings" ? settingsSubmenuExpanded && (!sidebarCollapsed || mobileOpen) : undefined}
+                        aria-controls={item.to === "/settings" ? "loadx-settings-submenu" : undefined}
+                        onClick={(event) => {
+                          if (item.to === "/settings") {
+                            if (mobileOpen) {
+                              // No drawer, tocar no pai expande/recolhe, sem sair da página.
+                              event.preventDefault();
+                              setSettingsSubmenuExpanded((expanded) => !expanded);
+                              return;
+                            }
+                            if (sidebarCollapsed) {
+                              // Abrir o trilho não deve apagar a subseção atualmente selecionada.
+                              event.preventDefault();
+                              setSidebarCollapsed(false);
+                              setSettingsSubmenuExpanded(true);
+                              return;
+                            }
+                            if (location.pathname === "/settings") {
+                              // Alternar o submenu nunca remove o hash da seção atual.
+                              event.preventDefault();
+                            }
+                            setSettingsSubmenuExpanded((expanded) => !expanded);
+                          }
+                          setMobileOpen(false);
+                        }}
+                      >
                         <Icon name={item.icon} size={17} />
-                        <span>{item.label}</span>
+                        <span className="app-nav-label">{item.label}</span>
                       </NavLink>
+                      {item.to === "/settings" ? (
+                        <ul
+                          id="loadx-settings-submenu"
+                          className="app-settings-submenu"
+                          aria-label="Subseções de Configurações"
+                          hidden={!settingsSubmenuExpanded || (sidebarCollapsed && !mobileOpen)}
+                        >
+                          {SETTINGS_SECTIONS.map((section) => (
+                            <li key={section.id}>
+                              <Link
+                                to={`/settings#${section.id}`}
+                                aria-current={location.pathname === "/settings" && activeSettingsSection(location.hash) === section.id ? "location" : undefined}
+                                onClick={() => { setSettingsSubmenuExpanded(true); setMobileOpen(false); }}
+                              >
+                                {section.label}
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
                     </li>
                   ))}
                 </ul>
               </div>
-            ))}
+              );
+            })}
           </nav>
         ) : null}
 

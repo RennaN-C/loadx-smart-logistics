@@ -1,35 +1,5 @@
-.settings-navigation {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 24px 0;
-}
-
-.settings-navigation a {
-  display: inline-flex;
-  align-items: center;
-  min-height: 40px;
-  padding: 8px 14px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: var(--card);
-  color: var(--ink);
-  font-size: 0.88rem;
-  font-weight: 600;
-  line-height: 1.4;
-  text-decoration: none;
-}
-.settings-navigation a:hover {
-  color: var(--accent-strong);
-  background: var(--accent-bg);
-  border-color: var(--accent);
-}
-.settings-navigation a:focus-visible,
-.settings-account-link:focus-visible {
-  outline: 2px solid var(--accent-strong);
-  outline-offset: 3px;
-}
+.settings-section[hidden] { display: none; }
+.settings-account-link:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 3px; }
 
 .settings-account-link {
   display: inline-flex;
