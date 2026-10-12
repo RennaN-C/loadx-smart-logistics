@@ -80,7 +80,7 @@ body {
   position: fixed;
   top: 12px;
   left: 12px;
-  z-index: 20;
+  z-index: 60;
   background: var(--card);
   color: var(--ink);
   border: 1px solid var(--accent);
@@ -124,6 +124,103 @@ body {
   font-size: 1.18rem;
   font-weight: 800;
   letter-spacing: 0.13em;
+}
+
+/* Controle da navegação global: a mesma sidebar vira trilho compacto no desktop. */
+.app-sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
+}
+.app-sidebar-collapse,
+.app-sidebar-close,
+.app-mobile-menu-button {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-size: 1.45rem;
+  cursor: pointer;
+}
+.app-sidebar-collapse:hover,
+.app-sidebar-close:hover,
+.app-mobile-menu-button:hover {
+  color: var(--accent-strong);
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+.app-sidebar-collapse:focus-visible,
+.app-sidebar-close:focus-visible,
+.app-mobile-menu-button:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 3px;
+}
+.app-sidebar-close,
+.app-mobile-topbar,
+.app-sidebar-scrim { display: none; }
+
+@media (min-width: 901px) {
+  .app-shell { transition: grid-template-columns 0.18s ease; }
+  .app-shell[data-sidebar-collapsed="true"] {
+    grid-template-columns: 80px minmax(0, 1fr);
+  }
+  .app-shell[data-sidebar-collapsed="true"] .app-sidebar {
+    padding: 22px 8px;
+    gap: 16px;
+  }
+  .app-shell[data-sidebar-collapsed="true"] .app-sidebar-header {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .app-shell[data-sidebar-collapsed="true"] .app-brand {
+    justify-content: center;
+    padding: 2px 0 0;
+  }
+  .app-shell[data-sidebar-collapsed="true"] .app-brand-label,
+  .app-shell[data-sidebar-collapsed="true"] .app-nav-group:not([data-collapsible="true"]) .app-nav-title,
+  .app-shell[data-sidebar-collapsed="true"] .app-nav-group-title,
+  .app-shell[data-sidebar-collapsed="true"] .app-nav-label,
+  .app-shell[data-sidebar-collapsed="true"] .app-account-text {
+    display: none;
+  }
+  .app-shell[data-sidebar-collapsed="true"] .app-nav { gap: 8px; }
+  .app-shell[data-sidebar-collapsed="true"] .app-nav-group[data-collapsible="true"] > ul {
+    display: none;
+  }
+  .app-shell[data-sidebar-collapsed="true"] .app-nav-group-toggle {
+    justify-content: center;
+    width: 100%;
+    padding: 11px;
+    min-height: 42px;
+    border-radius: 8px;
+  }
+  .app-shell[data-sidebar-collapsed="true"] .app-nav-chevron { display: none; }
+  .app-shell[data-sidebar-collapsed="true"] .app-nav-group ul { gap: 4px; }
+  .app-shell[data-sidebar-collapsed="true"] .app-nav a {
+    justify-content: center;
+    padding: 11px;
+    min-height: 42px;
+    border-left: 0;
+    border-radius: 8px;
+  }
+  .app-shell[data-sidebar-collapsed="true"] .app-nav a[aria-current="page"] {
+    box-shadow: inset 3px 0 0 var(--accent);
+  }
+  .app-shell[data-sidebar-collapsed="true"] .app-account {
+    flex-direction: column;
+    align-items: center;
+    padding: 12px 0 0;
+    gap: 10px;
+  }
 }
 
 .app-nav {
@@ -175,6 +272,7 @@ body {
   padding: 0 10px;
 }
 
+.app-nav-group ul[hidden] { display: none; }
 .app-nav-group ul {
   list-style: none;
   margin: 0;
@@ -183,6 +281,40 @@ body {
   flex-direction: column;
   gap: 1px;
 }
+
+/* Botões para abrir e fechar grupos com mais de um destino. */
+.app-nav-group-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 36px;
+  margin: 0 0 6px;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+  text-align: left;
+  font-family: inherit;
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+}
+.app-nav-group-toggle > .icon { opacity: 0.7; }
+.app-nav-group-toggle:hover,
+.app-nav-group-toggle[data-active="true"] {
+  color: var(--ink);
+  background: var(--paper);
+}
+.app-nav-group-toggle[data-active="true"] > .icon { color: var(--accent-strong); opacity: 1; }
+.app-nav-group-toggle:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
+}
+.app-nav-chevron { margin-left: auto; font-size: 1rem; line-height: 1; transition: transform 0.15s ease; }
+.app-nav-group-toggle[aria-expanded="false"] .app-nav-chevron { transform: rotate(-90deg); }
 
 .app-nav a {
   display: flex;
@@ -222,6 +354,39 @@ body {
   outline: 2px solid var(--accent-strong);
   outline-offset: 2px;
   box-shadow: 0 0 0 3px rgba(201, 122, 34, 0.35);
+}
+
+/* Subseções pertencem ao menu global, sem segunda sidebar ou abas duplicadas. */
+.app-nav-group ul.app-settings-submenu {
+  margin: 5px 0 8px 14px;
+  padding: 2px 0 2px 10px;
+  border-left: 1px solid var(--line);
+  gap: 2px;
+}
+.app-nav .app-settings-submenu a {
+  display: block;
+  min-height: 36px;
+  padding: 9px 10px;
+  font-size: 0.79rem;
+  line-height: 1.4;
+  border-radius: 7px;
+  border-left: 2px solid transparent;
+  overflow-wrap: break-word;
+}
+.app-nav .app-settings-submenu a[aria-current="location"] {
+  color: var(--accent-strong);
+  background: var(--accent-bg);
+  border-left-color: var(--accent);
+  font-weight: 600;
+}
+.app-nav .app-settings-submenu a:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
+}
+@media (min-width: 901px) {
+  .app-shell[data-sidebar-collapsed="true"] .app-settings-submenu {
+    display: none;
+  }
 }
 
 .app-account {
@@ -279,78 +444,99 @@ body {
   box-shadow: 0 0 0 3px rgba(201, 122, 34, 0.35);
 }
 
-/* Sem largura para uma coluna fixa, a barra deita no topo. Vira faixa rolável
-   na horizontal em vez de gaveta: não precisa de estado, botão nem prender foco. */
+/* Em telas pequenas a navegação ocupa uma gaveta, não uma barra de links
+   que reduz a área útil e exige rolagem horizontal. */
 @media (max-width: 900px) {
   .app-shell {
-    grid-template-columns: minmax(0, 1fr);
+    display: block;
+    min-height: 100vh;
   }
-
-  .app-sidebar {
-    position: static;
-    height: auto;
-    flex-direction: row;
+  .app-mobile-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 25;
+    display: flex;
     align-items: center;
-    flex-wrap: wrap;
-    gap: 10px 16px;
-    padding: 12px 20px;
-    border-right: none;
+    gap: 14px;
+    min-height: 64px;
+    padding: 10px 20px;
     border-bottom: 1px solid var(--line);
+    background: var(--card);
   }
-
+  .app-mobile-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--ink);
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    font-size: 0.97rem;
+  }
+  .app-mobile-menu-button { display: inline-grid; }
+  .app-sidebar-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 35;
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    padding: 0;
+    background: rgba(0, 0, 0, 0.54);
+    cursor: pointer;
+  }
+  .app-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 40;
+    width: min(300px, 86vw);
+    height: 100vh;
+    height: 100dvh;
+    padding: 20px 16px;
+    border-right: 1px solid var(--line);
+    border-bottom: 0;
+    box-shadow: 10px 0 28px rgba(0, 0, 0, 0.18);
+    transform: translateX(-100%);
+    visibility: hidden;
+    pointer-events: none;
+    transition: transform 0.2s ease, visibility 0.2s;
+    overflow-y: auto;
+  }
+  .app-shell[data-mobile-open="true"] .app-sidebar {
+    transform: translateX(0);
+    visibility: visible;
+    pointer-events: auto;
+  }
+  .app-sidebar-close { display: inline-grid; }
+  .app-sidebar-collapse { display: none; }
+  .app-brand { font-size: 1rem; padding: 0; }
   .app-nav,
   .app-nav-group,
   .app-nav-group ul {
-    flex-direction: row;
-    gap: 4px;
+    flex-direction: column;
   }
-
-  /* Quebra em duas linhas: identidade e conta em cima, menu ocupando a largura
-     inteira embaixo. Espremido ao lado delas sobravam 130px de janela para
-     560px de links, o que exigiria arrastar a barra inteira para achar item. */
-  .app-nav {
-    order: 1;
-    flex-basis: 100%;
-    overflow-x: auto;
-  }
-
-  /* Deitado não sobra espaço para rótulo de grupo, e os itens se explicam. O
-     ícone sai pelo mesmo motivo: numa faixa rolável ele custa largura onde ela
-     falta, e quem carrega o significado é o rótulo. */
-  .app-nav-title,
-  .app-nav a .icon {
-    display: none;
-  }
-
-  .app-brand {
-    font-size: 1rem;
-    padding: 0;
-  }
-
-  .app-nav a {
-    white-space: nowrap;
-    border-left: none;
-    border-bottom: 2px solid transparent;
-    border-radius: 3px 3px 0 0;
-  }
-  .app-nav a[aria-current="page"] {
-    border-left-color: transparent;
-    border-bottom-color: var(--accent);
-  }
-
+  .app-nav { gap: 18px; }
+  .app-nav-title { display: block; }
+  .app-nav-group-toggle { display: flex; min-height: 42px; }
+  .app-nav a { padding: 10px; min-height: 42px; }
+  .app-nav a .icon,
+  .app-nav-label { display: inline; }
   .app-account {
-    margin-top: 0;
-    margin-left: auto;
+    margin-top: auto;
+    margin-left: 0;
     flex-direction: row;
     align-items: center;
-    gap: 10px;
-    padding: 0;
-    border-top: none;
+    padding: 12px 8px 0;
+    border-top: 1px solid var(--line);
   }
+  .app-account-role { display: inline; }
+}
 
-  .app-account-role {
-    display: none;
-  }
+@media (prefers-reduced-motion: reduce) {
+  .app-shell { transition: none; }
+  .app-sidebar { transition: none; }
+  .app-nav-chevron { transition: none; }
 }
 
 .session-loading {
