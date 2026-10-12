@@ -51,7 +51,7 @@ function distribution<Key extends string>(keys: readonly Key[]): Slice<Key>[] {
 export interface CustomerRow {
   readonly customerId: string;
   readonly orders: number;
-  readonly volumes: number;
+  readonly volumes: number | null;
   readonly late: number;
 }
 
@@ -60,7 +60,9 @@ export interface OrderReport {
   readonly open: number;
   readonly late: number;
   /** Volumes dos pedidos em aberto: é o que ainda precisa entrar em caminhão. */
-  readonly openVolumes: number;
+  readonly openVolumes: number | null;
+  readonly unknownVolumeOrders: number;
+  readonly closed: number;
   readonly byStatus: Slice<OrderStatus>[];
   readonly byPriority: Slice<OrderPriority>[];
   readonly byCustomer: CustomerRow[];
@@ -71,11 +73,11 @@ export function buildOrderReport(orders: readonly OrderListItem[], reference: Da
   const open = orders.filter((order) => !isClosed(order.status));
   const lateOrders = orders.filter((order) => isLate(order, reference));
 
-  const perCustomer = new Map<string, { orders: number; volumes: number; late: number }>();
+  const perCustomer = new Map<string, { orders: number; volumes: number | null; late: number }>();
   for (const order of orders) {
     const row = perCustomer.get(order.customerId) ?? { orders: 0, volumes: 0, late: 0 };
     row.orders += 1;
-    row.volumes += order.itemCount;
+    row.volumes = row.volumes === null || order.volumeCount === undefined ? null : row.volumes + order.volumeCount;
     if (isLate(order, reference)) row.late += 1;
     perCustomer.set(order.customerId, row);
   }
@@ -84,12 +86,14 @@ export function buildOrderReport(orders: readonly OrderListItem[], reference: Da
     total: orders.length,
     open: open.length,
     late: lateOrders.length,
-    openVolumes: open.reduce((sum, order) => sum + order.itemCount, 0),
+    openVolumes: open.some((order) => order.volumeCount === undefined) ? null : open.reduce((sum, order) => sum + (order.volumeCount ?? 0), 0),
+    unknownVolumeOrders: orders.filter((order) => order.volumeCount === undefined).length,
+    closed: orders.length - open.length,
     byStatus: distribution(orders.map((order) => order.status)),
     byPriority: distribution(orders.map((order) => order.priority)),
     byCustomer: [...perCustomer.entries()]
       .map(([customerId, row]) => ({ customerId, ...row }))
-      .sort((a, b) => b.volumes - a.volumes || b.orders - a.orders),
+      .sort((a, b) => (b.volumes ?? -1) - (a.volumes ?? -1) || b.orders - a.orders),
     lateOrders: [...lateOrders].sort((a, b) => {
       // mais atrasado primeiro: quem tem a previsão mais antiga
       const left = a.expectedDeliveryAt ?? "";

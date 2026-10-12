@@ -199,3 +199,13 @@
 
 .report-block-head { flex-wrap: wrap; }
 .report-columns > * { min-width: 0; }
+
+.report-kpi, .report-bars, .report-table-scroll { border-radius: 10px; }
+.report-kpi-label, .report-table th { font-family: inherit; font-size: .75rem; letter-spacing: .02em; }
+.report-kpi-value { font-family: inherit; font-weight: 600; }
+.report-kpi-note { line-height: 1.5; }
+.reports-page.entity-page { max-width: 1264px; }
+.reports-page .entity-header h1 { font-size: clamp(1.75rem, 2.5vw, 2rem); font-weight: 600; letter-spacing: -.04em; }
+.reports-page .btn-secondary { border-radius: 8px; }
+.report-table-who span:last-child { white-space: normal; overflow-wrap: anywhere; }
+.report-table-scroll:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
