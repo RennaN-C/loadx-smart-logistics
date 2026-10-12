@@ -1,13 +1,14 @@
 # Configurações — correção visual da PR #201
 
+`HISTÓRICO`: as imagens deste relatório foram capturadas antes da integração com a sidebar recolhível da PR #203. Elas documentam o acabamento dos componentes, mas não comprovam visualmente o submenu integrado, que requer nova inspeção.
+
 `CONFIRMADO`: revisão na branch `manutencao/ux-configuracoes-saas-v12`, vinculada
 à Issue #200 e PR #201. Capturas com Chromium real, aplicação e PostgreSQL locais,
 somente fixtures fictícias de teste. Sem merge ou deploy nesta entrega.
 
 ## Decisões e avaliação visual
 
-- Apenas a sidebar principal permanece. Quatro abas horizontais organizam Conta,
-  Empresa, Integrações e Operação, com indicador ativo e nomes legíveis no mobile.
+- Apenas a sidebar principal permanece; a versão integrada usa o submenu global para Conta, Empresa, Integrações e Operação, sem abas horizontais.
 - A conta usa uma superfície com identidade e linha de segurança; preparação de
   usuários tem destaque secundário. Nome, e-mail e perfil vêm da sessão real.
 - A empresa usa uma superfície de formulário, sem cards internos: grupos com
@@ -70,7 +71,7 @@ completa; a altura do viewport de notebook foi 720 px e do desktop 1080 px.
 
 `CONFIRMADO`: os contratos HTTP, permissões ADMIN, autenticação e regras de
 negócio foram preservados. Fragmentos existentes continuam abrindo as seções;
-rascunhos sobrevivem à troca de aba, cancelar restaura a consulta e salvar usa a
+rascunhos sobrevivem à troca de seção, cancelar restaura a consulta e salvar usa a
 API real. Histórico/auditoria e todos os detalhes de saúde continuam disponíveis.
 
 - ESLint, TypeScript/build e orçamento LoadViewer: aprovados.
