@@ -217,7 +217,13 @@ def list_load_plans(
         status=plan_status,
         truck_id=truck_id,
     )
-    return to_page_response(result, result.items)
+    return to_page_response(
+        result,
+        (
+            LoadPlanListRead.model_validate(item, from_attributes=True)
+            for item in result.items
+        ),
+    )
 
 
 @router.post(

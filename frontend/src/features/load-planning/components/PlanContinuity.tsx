@@ -45,7 +45,7 @@ export function PlanContinuity({ planId, canManage }: {
   </div>;
   if (!data) return <p className="entity-state" role="status">Consultando carregamento e viagem…</p>;
   return <section className="plan-continuity" aria-label="Continuidade da operação">
-    <h3>Próxima etapa</h3>
+    <h3>{data.trip?.status === "FINISHED" ? "Operação concluída" : "Próxima etapa"}</h3>
     <p className="entity-form-help">O plano está aprovado. Carregamento e viagem têm estados próprios; concluir a conferência libera o início da viagem.</p>
     <ContinuityActions data={data} planId={planId} canManage={canManage} refresh={() => { setData(null); setAttempt((value) => value + 1); }} />
     {data.loading_session ? <p className="entity-form-help">Carregamento: {({ PENDING: "pendente", IN_PROGRESS: "em andamento", FINISHED: "concluído" })[data.loading_session.status]}.</p> : null}

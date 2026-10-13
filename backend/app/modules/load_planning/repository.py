@@ -1,12 +1,30 @@
 import uuid
 from collections.abc import Sequence
+from dataclasses import dataclass
+from datetime import datetime
+from decimal import Decimal
 
 from sqlalchemy import asc, desc, func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.pagination import PageResult, PaginationParams
 from app.modules.load_planning.models import LoadPlan, LoadPlanItem, LoadPlanOrder
-from app.modules.load_planning.schemas import LoadPlanListRead
+
+
+@dataclass(frozen=True, slots=True)
+class LoadPlanSummary:
+    id: uuid.UUID
+    truck_id: uuid.UUID
+    truck_plate: str
+    truck_model: str
+    status: str
+    created_at: datetime
+    recalculated_from_id: uuid.UUID | None
+    loaded_count: int
+    unloaded_count: int
+    occupancy_percent: Decimal
+    total_weight_kg: Decimal
+    order_count: int
 
 
 class LoadPlanRepository:
@@ -19,7 +37,7 @@ class LoadPlanRepository:
         *,
         status: str | None = None,
         truck_id: uuid.UUID | None = None,
-    ) -> PageResult[LoadPlanListRead]:
+    ) -> PageResult[LoadPlanSummary]:
         filters = []
         if status is not None:
             filters.append(LoadPlan.status == status)
@@ -58,7 +76,7 @@ class LoadPlanRepository:
             .limit(pagination.page_size)
         )
         items = [
-            LoadPlanListRead.model_validate(dict(row))
+            LoadPlanSummary(**dict(row))
             for row in self.db.execute(statement).mappings()
         ]
         return PageResult.create(items, pagination, total)

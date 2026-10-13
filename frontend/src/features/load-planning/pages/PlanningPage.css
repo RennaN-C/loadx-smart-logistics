@@ -319,3 +319,8 @@
 .plan-history-row a:not(.btn-secondary) { color: var(--accent-strong); text-decoration: none; font-weight: 600; }
 .plan-history-row a:not(.btn-secondary):hover { text-decoration: underline; text-underline-offset: 3px; }
 .plan-history-row a:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 3px; }
+
+@media (max-width: 520px) {
+  .plan-continuity .entity-form-actions { gap: 12px; }
+  .plan-continuity .entity-form-actions > a, .plan-continuity .entity-form-actions > button { flex: 1 1 100%; justify-content: center; min-height: 44px; }
+}

@@ -36,12 +36,11 @@ from app.modules.load_planning.optimizer.engine import (
 )
 from app.modules.load_planning.optimizer.loading_sequence import SequencedPlacement
 from app.modules.load_planning.reference_service import LoadPlanReferenceService
-from app.modules.load_planning.repository import LoadPlanRepository
+from app.modules.load_planning.repository import LoadPlanRepository, LoadPlanSummary
 from app.modules.load_planning.schemas import (
     LoadingContinuityRead,
     LoadPlanContinuityRead,
     LoadPlanCreate,
-    LoadPlanListRead,
     TripContinuityRead,
     TruckComparisonCreate,
 )
@@ -150,7 +149,7 @@ class LoadPlanningService:
         requester_role: str,
         status: str | None = None,
         truck_id: uuid.UUID | None = None,
-    ) -> PageResult[LoadPlanListRead]:
+    ) -> PageResult[LoadPlanSummary]:
         # Apply the same object-level restriction as the detail BEFORE pagination.
         if requester_role == "CHECKER":
             if status is not None and status != "APPROVED":
