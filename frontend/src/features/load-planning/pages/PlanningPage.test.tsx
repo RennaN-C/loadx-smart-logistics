@@ -619,3 +619,16 @@ describe("PlanningPage — entrada e autorização da retomada", () => {
     expect(getLoadPlan).not.toHaveBeenCalled();
   });
 });
+
+
+it("permite retentar o detalhe persistido sem criar nem recalcular", async () => {
+  vi.resetAllMocks();
+  mockRole("LOGISTICS_MANAGER");
+  vi.mocked(getLoadPlan).mockRejectedValueOnce(new ApiError("NETWORK_ERROR", "Falha de rede")).mockResolvedValue(makePlan());
+  renderAt("/planning/lp1");
+  fireEvent.click(await screen.findByRole("button", { name: "Tentar novamente" }));
+  expect(await screen.findByText("Resultado do cálculo")).toBeInTheDocument();
+  expect(getLoadPlan).toHaveBeenCalledTimes(2);
+  expect(createLoadPlan).not.toHaveBeenCalled();
+  expect(recalculateLoadPlan).not.toHaveBeenCalled();
+});

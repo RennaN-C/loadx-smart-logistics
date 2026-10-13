@@ -314,3 +314,8 @@
 .plan-continuity h3 { margin: 0; font-size: 1rem; }
 @media (max-width: 900px) { .plan-history-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .plan-history-row > .btn-secondary { grid-column: 1 / -1; justify-self: start; } }
 @media (max-width: 520px) { .plan-history-row { grid-template-columns: minmax(0, 1fr); gap: 16px; padding: 18px; } .plan-workspace-nav a { padding: 12px; font-size: 0.9rem; } .plan-history-filters, .plan-history-filters label { width: 100%; } }
+.plan-history-toolbar > div:first-child { flex: 1 1 320px; }
+.plan-history-filters label:last-child select { min-width: 230px; }
+.plan-history-row a:not(.btn-secondary) { color: var(--accent-strong); text-decoration: none; font-weight: 600; }
+.plan-history-row a:not(.btn-secondary):hover { text-decoration: underline; text-underline-offset: 3px; }
+.plan-history-row a:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 3px; }
