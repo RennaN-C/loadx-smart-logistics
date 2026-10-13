@@ -20,8 +20,10 @@ from app.modules.auth.dependencies import (
     get_auth_service,
     get_current_session,
 )
+from app.modules.auth.identity_service import MfaChallengeResult
 from app.modules.auth.schemas import (
     AuthLogin,
+    MfaChallengeRead,
     OwnPasswordChange,
     OwnProfileUpdate,
     OwnSessionRead,
@@ -32,6 +34,7 @@ from app.modules.auth.service import (
 )
 from app.modules.auth.sessions import AuthSessionInvalidError, ResolvedAuthSession
 from app.modules.auth.throttling import AuthRateLimitedError
+from app.modules.auth.totp import IdentityUnavailableError
 from app.modules.users.models import User
 from app.modules.users.schemas import UserRead
 from app.modules.users.service import UserEmailAlreadyExistsError
@@ -41,18 +44,21 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.post(
     "/login",
-    response_model=UserRead,
-    responses=openapi_error_responses(401, 403, 422, 429),
+    response_model=UserRead | MfaChallengeRead,
+    responses=openapi_error_responses(401, 403, 422, 429, 503),
 )
 def login(
     request: Request,
     response: Response,
     data: AuthLogin,
     service: Annotated[AuthService, Depends(get_auth_service)],
-) -> User | JSONResponse:
+) -> User | MfaChallengeRead | JSONResponse:
     try:
         client_ip = request.client.host if request.client is not None else "unknown"
         result = service.login(data, client_ip)
+        if isinstance(result, MfaChallengeResult):
+            clear_session_cookie(response)
+            return MfaChallengeRead(**result.__dict__)
         response.set_cookie(
             key=settings.session_cookie_name,
             value=result.session.token,
@@ -64,6 +70,12 @@ def login(
         )
         response.headers[CSRF_HEADER_NAME] = result.session.csrf_token
         return result.user
+    except IdentityUnavailableError:
+        return error_response(
+            503,
+            "AUTH_IDENTITY_UNAVAILABLE",
+            "Autenticação indisponível. Contate o suporte.",
+        )
     except AuthInvalidCredentialsError:
         return error_response(
             status.HTTP_401_UNAUTHORIZED,

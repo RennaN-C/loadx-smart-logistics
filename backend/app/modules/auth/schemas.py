@@ -25,6 +25,8 @@ class AuthLogin(BaseModel):
 
 
 class OwnProfileUpdate(BaseModel):
+    current_password: str | None = Field(default=None, min_length=1, max_length=128)
+    second_factor: str | None = Field(default=None, min_length=6, max_length=64)
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     name: str = Field(min_length=1, max_length=120)
     email: str = Field(min_length=3, max_length=255, pattern=EMAIL_PATTERN)
@@ -55,3 +57,60 @@ class OwnSessionRead(BaseModel):
     idle_expires_at: datetime
     absolute_expires_at: datetime
     current: bool
+
+
+class RecoveryRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    email: str = Field(min_length=3, max_length=255, pattern=EMAIL_PATTERN)
+
+    @field_validator("email")
+    @classmethod
+    def normalize(cls, value: str) -> str:
+        return value.lower()
+
+
+class RecoveryConfirm(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    token: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(
+        min_length=PASSWORD_MIN_LENGTH, max_length=PASSWORD_MAX_LENGTH
+    )
+
+    @field_validator("new_password")
+    @classmethod
+    def policy(cls, value: str) -> str:
+        return validate_password_policy(value)
+
+
+class MfaChallengeRead(BaseModel):
+    challenge_token: str
+    purpose: str
+    expires_at: datetime
+
+
+class MfaChallengeInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    challenge_token: str = Field(min_length=1, max_length=128)
+
+
+class MfaVerify(MfaChallengeInput):
+    code: str = Field(min_length=6, max_length=64)
+
+
+class MfaReauth(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    password: str = Field(min_length=1, max_length=128)
+    code: str = Field(default="", max_length=64)
+
+
+class MfaStatusRead(BaseModel):
+    enabled: bool
+    required: bool
+
+
+class MfaProvisionRead(BaseModel):
+    provisioning_uri: str
+
+
+class RecoveryCodesRead(BaseModel):
+    recovery_codes: list[str]

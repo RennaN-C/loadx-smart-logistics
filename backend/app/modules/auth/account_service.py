@@ -51,8 +51,27 @@ class AccountService:
         self, current: ResolvedAuthSession, data: OwnProfileUpdate
     ) -> User:
         user = self._lock_account(current)
+        from app.modules.auth.identity_repository import IdentityRepository
+        from app.modules.auth.identity_service import IdentityService
+
+        factor = IdentityRepository(self.db).find_factor(user.id)
+        if data.email != user.email:
+            if factor and factor.enabled:
+                IdentityService(self.db).confirm_email_change(
+                    current,
+                    data.current_password or "",
+                    data.second_factor or "",
+                    "own-profile",
+                )
+            IdentityRepository(self.db).invalidate_resets(
+                user.id, self.sessions.now_provider()
+            )
         result = self.users.update_user(
-            user.id, UserUpdate(**data.model_dump()), actor_id=user.id
+            user.id,
+            UserUpdate(
+                **data.model_dump(exclude={"current_password", "second_factor"})
+            ),
+            actor_id=user.id,
         )
         emit_security_event(SecurityEvent.OWN_PROFILE_UPDATED, user_id=str(user.id))
         return result

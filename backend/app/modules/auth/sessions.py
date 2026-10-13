@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.security_events import SecurityEvent, emit_security_event
+from app.modules.auth.identity_repository import IdentityRepository
 from app.modules.auth.models import AuthSession
 from app.modules.auth.repository import AuthSessionRepository
 from app.modules.users.models import User
@@ -151,6 +152,7 @@ class AuthSessionService:
         return revoked_count
 
     def stage_revoke_all_for_user(self, user_id: uuid.UUID) -> int:
+        IdentityRepository(self.db).invalidate_challenges(user_id, self.now_provider())
         active_sessions = self.repository.list_active_for_user_for_update(user_id)
         revoked_at = self.now_provider()
         for auth_session in active_sessions:
