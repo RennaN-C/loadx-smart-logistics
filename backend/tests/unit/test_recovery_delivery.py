@@ -1,4 +1,5 @@
 import pytest
+
 from app.core.config import Settings
 from app.integrations.password_recovery.delivery import (
     SmtpRecoveryDelivery,
