@@ -11,6 +11,21 @@ def db_session(request: pytest.FixtureRequest) -> Generator[Session, None, None]
     """Provide an isolated SQLite session for service-level unit tests."""
 
     tables: Sequence[Table] = request.module.SQLITE_TABLES
+    if any(table.name == "auth_sessions" for table in tables):
+        from app.modules.auth.models import (
+            AuthChallenge,
+            AuthFactor,
+            AuthPasswordReset,
+            AuthRecoveryCode,
+        )
+
+        tables = (
+            *tables,
+            AuthFactor.__table__,
+            AuthChallenge.__table__,
+            AuthPasswordReset.__table__,
+            AuthRecoveryCode.__table__,
+        )
     engine = create_engine(
         "sqlite+pysqlite:///:memory:",
         connect_args={"check_same_thread": False},

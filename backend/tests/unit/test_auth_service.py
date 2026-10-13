@@ -50,6 +50,9 @@ def make_user_create(
 
 def test_login_returns_opaque_session_for_active_user(db_session: Session) -> None:
     UserService(db_session).create_user(make_user_create())
+    user = db_session.query(User).one()
+    user.role = "CHECKER"
+    db_session.commit()
     service = AuthService(db_session)
 
     result = service.login(
