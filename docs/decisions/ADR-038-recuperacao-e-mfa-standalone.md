@@ -76,3 +76,11 @@ novo login, F5 após autenticação restaura a sessão normal da OC92.
 quando identidade é alterada pelo service público users (inclusive edição ADMIN)
 e em revogação de sessões. Gestão do fator bloqueia usuário antes de seus
 contadores, preservando a mesma ordem quando chamada durante edição de perfil.
+
+`CONFIRMADO`: a revisão do algoritmo distingue HMAC-SHA-1 (RFC 4226/6238,
+compatível com autenticadores comuns) de hash SHA-1 independente. O cálculo
+usa `hmac.digest` da biblioteca padrão, com chave CSPRNG de 160 bits, truncamento
+RFC e janela/antirreplay/budget. Não usa SHA-1 para senha, token ou código de
+recuperação. Ataques de colisão a SHA-1 não permitem forjar esse MAC com chave
+secreta; vetores oficiais verificam a construção. Não há supressão do scanner
+ou alteração das regras de segurança para aceitar hash fraco.

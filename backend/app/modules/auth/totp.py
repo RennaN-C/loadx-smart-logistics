@@ -1,7 +1,6 @@
 """RFC 4226/6238 primitives; authenticated encryption uses cryptography."""
 
 import base64
-import hashlib
 import hmac
 import secrets
 import struct
@@ -39,9 +38,9 @@ def decrypt_secret(encrypted: str, key: str | None) -> str:
 
 
 def totp_code(secret: str, step: int, digits: int = 6) -> str:
-    digest = hmac.new(
-        base64.b32decode(secret), struct.pack(">Q", step), hashlib.sha1
-    ).digest()
+    # RFC 4226/6238 requires HMAC, not a standalone SHA-1 hash. SHA-1
+    # collision attacks do not permit forging this keyed authenticator.
+    digest = hmac.digest(base64.b32decode(secret), struct.pack(">Q", step), "sha1")
     offset = digest[-1] & 15
     number = struct.unpack(">I", digest[offset : offset + 4])[0] & 0x7FFFFFFF
     return str(number % (10**digits)).zfill(digits)
