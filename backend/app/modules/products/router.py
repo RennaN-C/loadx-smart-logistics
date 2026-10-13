@@ -1,16 +1,22 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.core.pagination import PageResponse, Pagination, to_page_response
 from app.core.responses import error_response, openapi_error_responses
+from app.core.search import SearchQuery
 from app.database.session import get_db
 from app.modules.auth.dependencies import require_roles
 from app.modules.products.models import Product
-from app.modules.products.schemas import ProductCreate, ProductRead, ProductUpdate
+from app.modules.products.schemas import (
+    ProductCreate,
+    ProductRead,
+    ProductRestriction,
+    ProductUpdate,
+)
 from app.modules.products.service import (
     ProductCodeAlreadyExistsError,
     ProductNotFoundError,
@@ -44,8 +50,15 @@ def list_products(
     _current_user: ProductReader,
     service: Annotated[ProductService, Depends(get_product_service)],
     archive_status: ArchiveFilter = "active",
+    search: SearchQuery = None,
+    restriction: Annotated[ProductRestriction | None, Query()] = None,
 ) -> PageResponse[ProductRead]:
-    result = service.list_products(pagination, active=active_filter(archive_status))
+    result = service.list_products(
+        pagination,
+        active=active_filter(archive_status),
+        search=search,
+        restriction=restriction,
+    )
     return to_page_response(
         result,
         (ProductRead.model_validate(product) for product in result.items),

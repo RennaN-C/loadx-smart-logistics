@@ -1,9 +1,10 @@
 import { ImportAction } from "../../registration-imports/components/ImportAction";
-import { useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 
 import { AlertBanner } from "../../../components/AlertBanner";
 import { StatusPill } from "../../../components/StatusPill";
 import { Modal } from "../../../components/Modal";
+import { MAX_SEARCH_LENGTH, type ListParams } from "../../../services/pagination";
 import { Pagination } from "../../../components/Pagination";
 import { useEditTarget } from "../../../hooks/useEditTarget";
 import { useRegistryList } from "../../../hooks/useRegistryList";
@@ -21,6 +22,11 @@ import { Icon } from "../../../components/Icon";
 
 export function CustomerPanel() {
   const { user } = useAuth();
+  const [search, setSearch] = useState("");
+  const filteredLoad = useCallback((params: ListParams) => listCustomers({
+    ...params,
+    search,
+  }), [search]);
   const {
     status,
     items: customers,
@@ -32,25 +38,13 @@ export function CustomerPanel() {
     goToPage,
     archiveStatus,
     setArchiveStatus,
-  } = useRegistryList(listCustomers);
+  } = useRegistryList(filteredLoad);
   const edit = useEditTarget<Customer>(getCustomer);
   const [addressCustomer, setAddressCustomer] = useState<CustomerListItem | null>(null);
-  const [search, setSearch] = useState("");
   const [isCreating, setIsCreating] = useState(false);
 
   const canManage = canManageLogistics(user?.role);
   const isFormOpen = isCreating || edit.target !== null;
-
-  // Só nome e cidade: a listagem não traz documento nem endereço.
-  const visibleCustomers = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    if (term === "") return customers;
-
-    return customers.filter(
-      (customer) =>
-        customer.name.toLowerCase().includes(term) || customer.city.toLowerCase().includes(term),
-    );
-  }, [customers, search]);
 
   function closeForm() {
     setIsCreating(false);
@@ -72,7 +66,8 @@ export function CustomerPanel() {
           aria-label="Buscar cliente por nome ou cidade"
           placeholder="Buscar por nome ou cidade"
           value={search}
-          onChange={(event) => setSearch(event.target.value)}
+          onChange={(event) => { goToPage(1); setSearch(event.target.value); }}
+          maxLength={MAX_SEARCH_LENGTH}
         />
         {canManage ? (
           <button type="button" className="btn-primary" onClick={() => setIsCreating(true)}>
@@ -84,7 +79,7 @@ export function CustomerPanel() {
 
       {status === "success" && total > 0 ? (
         <p className="entity-summary">
-          Exibindo {customers.length} de {total} clientes. A busca atua nesta página.
+          Exibindo {customers.length} de {total} clientes. Busca e filtros consideram toda a lista.
         </p>
       ) : null}
 
@@ -98,17 +93,17 @@ export function CustomerPanel() {
       {status === "error" && error ? <AlertBanner>{mapCustomerErrorToMessage(error)}</AlertBanner> : null}
       {edit.error ? <AlertBanner>{mapCustomerErrorToMessage(edit.error)}</AlertBanner> : null}
 
-      {status === "success" && visibleCustomers.length === 0 ? (
+      {status === "success" && customers.length === 0 ? (
         <p className="entity-state">
-          {customers.length === 0
+          {search.trim() === "" && archiveStatus === "active" && total === 0
             ? "Nenhum cliente cadastrado ainda."
             : "Nenhum cliente encontrado com essa busca."}
         </p>
       ) : null}
 
-      {visibleCustomers.length > 0 ? (
+      {customers.length > 0 ? (
         <div className="entity-grid">
-          {visibleCustomers.map((customer) => (
+          {customers.map((customer) => (
             <article key={customer.id} className="contact-card">
               <div className="contact-card-head">
                 <p className="contact-card-name">{customer.name}</p>

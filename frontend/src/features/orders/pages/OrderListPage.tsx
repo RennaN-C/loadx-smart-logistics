@@ -1,5 +1,5 @@
 import { AttachmentPanel } from "../../attachments/components/AttachmentPanel";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { OrderDetail } from "../components/OrderDetail";
 
@@ -7,7 +7,7 @@ import { AlertBanner } from "../../../components/AlertBanner";
 import { Modal } from "../../../components/Modal";
 import { Pagination } from "../../../components/Pagination";
 import { useEditTarget } from "../../../hooks/useEditTarget";
-import type { ListParams } from "../../../services/pagination";
+import { MAX_SEARCH_LENGTH, type ListParams } from "../../../services/pagination";
 import { useResourceList } from "../../../hooks/useResourceList";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { canManageLogistics } from "../../auth/permissions";
@@ -28,6 +28,13 @@ const listHistoricalCustomers = (params: ListParams) => listCustomers({ ...param
 
 export function OrderListPage() {
   const { user } = useAuth();
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const filteredLoad = useCallback((params: ListParams) => listOrders({
+    ...params,
+    search,
+    status: statusFilter === "all" ? undefined : statusFilter,
+  }), [search, statusFilter]);
   const [searchParams, setSearchParams] = useSearchParams();
   const detailId = searchParams.get("order");
   function closeDetail() {
@@ -44,7 +51,7 @@ export function OrderListPage() {
     total,
     totalPages,
     goToPage,
-  } = useResourceList(listOrders);
+  } = useResourceList(filteredLoad);
   // O pedido só traz customer_id: a listagem de clientes resolve o nome. Ela é
   // paginada, então nomes fora da primeira página podem não resolver — por isso
   // o fallback explícito no lugar de um espaço vazio.
@@ -53,8 +60,6 @@ export function OrderListPage() {
   const edit = useEditTarget<Order>(getOrder);
 
   const [attachmentOrderId, setAttachmentOrderId] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [isCreating, setIsCreating] = useState(false);
 
   const canManage = canManageLogistics(user?.role);
@@ -65,18 +70,6 @@ export function OrderListPage() {
     () => new Map(customers.map((customer) => [customer.id, customer.name])),
     [customers],
   );
-
-  const visibleOrders = useMemo(() => {
-    const term = search.trim().toLowerCase();
-
-    return orders.filter((order) => {
-      const name = customerNames.get(order.customerId) ?? "";
-      const matchesTerm = term === "" || name.toLowerCase().includes(term) || order.id.toLowerCase().includes(term) || order.customerId.toLowerCase().includes(term);
-      const matchesStatus = statusFilter === "all" || order.status === statusFilter;
-
-      return matchesTerm && matchesStatus;
-    });
-  }, [orders, search, statusFilter, customerNames]);
 
   function closeForm() {
     setIsCreating(false);
@@ -109,12 +102,13 @@ export function OrderListPage() {
           aria-label={canReadCustomers ? "Buscar por cliente ou referência" : "Buscar por referência"}
           placeholder={canReadCustomers ? "Buscar por cliente ou referência" : "Buscar por referência"}
           value={search}
-          onChange={(event) => setSearch(event.target.value)}
+          onChange={(event) => { goToPage(1); setSearch(event.target.value); }}
+          maxLength={MAX_SEARCH_LENGTH}
         />
         <select
           aria-label="Filtrar por situação"
           value={statusFilter}
-          onChange={(event) => setStatusFilter(event.target.value as StatusFilter)}
+          onChange={(event) => { goToPage(1); setStatusFilter(event.target.value as StatusFilter); }}
         >
           <option value="all">Todas as situações</option>
           {ORDER_STATUSES.map((value) => (
@@ -127,7 +121,7 @@ export function OrderListPage() {
 
       {status === "success" && total > 0 ? (
         <p className="entity-summary">
-          Exibindo {orders.length} de {total} pedidos. Busca e filtro atuam nesta página.
+          Exibindo {orders.length} de {total} pedidos. Busca e filtros consideram toda a lista.
         </p>
       ) : null}
 
@@ -141,17 +135,17 @@ export function OrderListPage() {
       {status === "error" && error ? <AlertBanner>{mapOrderErrorToMessage(error)}</AlertBanner> : null}
       {edit.error ? <AlertBanner>{mapOrderErrorToMessage(edit.error)}</AlertBanner> : null}
 
-      {status === "success" && visibleOrders.length === 0 ? (
+      {status === "success" && orders.length === 0 ? (
         <p className="entity-state">
-          {orders.length === 0
+          {search.trim() === "" && statusFilter === "all" && total === 0
             ? "Nenhum pedido cadastrado ainda."
             : "Nenhum pedido encontrado com esses filtros."}
         </p>
       ) : null}
 
-      {visibleOrders.length > 0 ? (
+      {orders.length > 0 ? (
         <div className="entity-grid">
-          {visibleOrders.map((order) => (
+          {orders.map((order) => (
             <OrderCard
               key={order.id}
               order={order}

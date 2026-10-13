@@ -47,7 +47,7 @@ pessoais. ADMIN e LOGISTICS_MANAGER criam e editam.
 
 ## Fora de escopo
 
-Busca e filtro server-side (D12): atuam só na página carregada. Exclusão não existe rota; desativar é
+Exclusão física não existe no contrato; arquivar é
 `active: false` via PATCH.
 
 `CONFIRMADO`: o vínculo `users.driver_id` existe no backend, é administrado por
@@ -58,7 +58,7 @@ sem vínculo permanece sem acesso operacional, conforme `ADR-022`.
 
 `CONFIRMADO`: a tela inicia em somente ativos, permite consultar arquivados ou
 ambos pelo filtro `archive_status` no servidor, reiniciando na página 1. A busca
-textual e as restrições continuam locais à página. Cards mostram Ativo/Arquivado.
+textual e as restrições aprovadas passaram ao servidor na OC95. Cards mostram Ativo/Arquivado.
 ADMIN e LOGISTICS_MANAGER veem ações Arquivar/Reativar, que usam o PATCH existente, exibem
 loading/erro e atualizam a listagem somente após sucesso. Os demais perfis
 preservam as permissões de leitura e não recebem botões de gestão.
@@ -75,3 +75,13 @@ veículo ou exigência legal. Novo tipo não ativa política automaticamente.
 Loading/erro/vazio/paginação são tratados; erro de catálogo não supõe política
 desligada. Seleção de viagem explica bloqueio documental recebido do backend.
 Sem upload/storage/notificação externa.
+
+## OC95 — pesquisa na coleção
+
+`CONFIRMADO`: a tela envia `search` por name.
+Combina com archive_status; documento, telefone e license_number/CNH são proibidos.
+Mudança de busca/filtro volta à página 1; navegação/refetch preservam critérios.
+A API usa SearchListParams e tipos específicos somente onde necessário; o
+loader estável não refiltra items localmente. O total vem do conjunto filtrado.
+Busca limitada a 120 caracteres; vazio/erro/loading permanecem tratados.
+Nenhum campo pessoal proibido pela ADR-017 foi incluído no resumo ou na busca.

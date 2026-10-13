@@ -102,19 +102,23 @@ describe("TruckListPage", () => {
     expect(actions.contains(card?.querySelector(".truck-card-weight") ?? null)).toBe(false);
   });
 
-  it("filtra por placa ou modelo sem chamar o backend de novo", async () => {
+  it("filtra por placa ou modelo consultando o servidor", async () => {
     vi.mocked(listTrucks).mockResolvedValue(makePage(TRUCKS));
 
     render(<TruckListPage />);
     await screen.findByText("ABC1D23");
 
+    vi.mocked(listTrucks).mockResolvedValue(makePage([TRUCKS[1]]));
     fireEvent.change(screen.getByLabelText("Buscar por placa ou modelo"), {
       target: { value: "reforçado" },
     });
 
+    await waitFor(() => expect(listTrucks).toHaveBeenLastCalledWith(expect.objectContaining({ search: "reforçado" })));
+    await screen.findByText("QRT2B88");
+
     expect(screen.queryByText("ABC1D23")).not.toBeInTheDocument();
     expect(screen.getByText("QRT2B88")).toBeInTheDocument();
-    expect(listTrucks).toHaveBeenCalledOnce();
+    expect(listTrucks).toHaveBeenLastCalledWith(expect.objectContaining({ search: "reforçado", page: 1 }));
   });
 
   it("filtra por status", async () => {
@@ -126,7 +130,7 @@ describe("TruckListPage", () => {
     vi.mocked(listTrucks).mockResolvedValue(makePage([TRUCKS[1]]));
     fireEvent.change(screen.getByLabelText("Filtrar cadastros por arquivamento"), { target: { value: "archived" } });
 
-    await waitFor(() => expect(listTrucks).toHaveBeenLastCalledWith({ page: 1, pageSize: 20, archiveStatus: "archived" }));
+    await waitFor(() => expect(listTrucks).toHaveBeenLastCalledWith({ page: 1, pageSize: 20, archiveStatus: "archived", search: "" }));
     expect(await screen.findByText("QRT2B88")).toBeInTheDocument();
     expect(screen.queryByText("ABC1D23")).not.toBeInTheDocument();
   });
@@ -186,6 +190,6 @@ describe("TruckListPage", () => {
 
     expect(await screen.findByText("QRT2B88")).toBeInTheDocument();
     expect(screen.getByText("Página 2 de 2")).toBeInTheDocument();
-    expect(listTrucks).toHaveBeenLastCalledWith({ page: 2, pageSize: 20, archiveStatus: "active" });
+    expect(listTrucks).toHaveBeenLastCalledWith({ page: 2, pageSize: 20, archiveStatus: "active", search: "" });
   });
 });

@@ -1,5 +1,5 @@
 import { api } from "../../../services/api";
-import { mapPageFromDto, toPageQuery, type ListParams, type PageDto } from "../../../services/pagination";
+import { mapPageFromDto, toPageQuery, toSearchQuery, type SearchListParams, type ListParams, type PageDto } from "../../../services/pagination";
 import type { Page } from "../../../types/api";
 import type {
   Truck,
@@ -59,8 +59,8 @@ export function mapTruckPageFromDto(dto: PageDto<TruckDto>): Page<Truck> {
   return mapPageFromDto(dto, mapTruckFromDto);
 }
 
-export async function listTrucks(params: ListParams = {}): Promise<Page<Truck>> {
-  const { data } = await api.get<PageDto<TruckDto>>("/trucks", { params: { ...toPageQuery(params), ...(params.archiveStatus ? { archive_status: params.archiveStatus } : {}) } });
+export async function listTrucks(params: SearchListParams = {}): Promise<Page<Truck>> {
+  const { data } = await api.get<PageDto<TruckDto>>("/trucks", { params: { ...toPageQuery(params), ...toSearchQuery(params), ...(params.archiveStatus ? { archive_status: params.archiveStatus } : {}) } });
 
   return mapTruckPageFromDto(data);
 }

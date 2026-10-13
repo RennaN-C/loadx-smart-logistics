@@ -1,11 +1,13 @@
 import uuid
 from collections.abc import Sequence
 
-from sqlalchemy import asc, desc, func, select
+from sqlalchemy import asc, desc, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.core.pagination import PageResult, PaginationParams
 from app.modules.products.models import Product
+from app.modules.products.schemas import ProductRestriction
+from app.shared.search import search_pattern
 
 
 class ProductRepository:
@@ -13,10 +15,39 @@ class ProductRepository:
         self.db = db
 
     def list(
-        self, pagination: PaginationParams, *, active: bool | None = None
+        self,
+        pagination: PaginationParams,
+        *,
+        active: bool | None = None,
+        search: str | None = None,
+        restriction: ProductRestriction | None = None,
     ) -> PageResult[Product]:
         direction = asc if pagination.sort_order == "asc" else desc
-        filters = () if active is None else (Product.active.is_(active),)
+        filters = [] if active is None else [Product.active.is_(active)]
+        pattern = search_pattern(search)
+        if pattern is not None:
+            filters.append(
+                or_(
+                    Product.code.ilike(pattern, escape="\\"),
+                    Product.name.ilike(pattern, escape="\\"),
+                )
+            )
+        if restriction == "restricted":
+            filters.append(
+                or_(
+                    Product.fragile.is_(True),
+                    Product.stackable.is_(False),
+                    Product.rotation_allowed.is_(False),
+                )
+            )
+        elif restriction == "free":
+            filters.extend(
+                (
+                    Product.fragile.is_(False),
+                    Product.stackable.is_(True),
+                    Product.rotation_allowed.is_(True),
+                )
+            )
         total = (
             self.db.scalar(select(func.count()).select_from(Product).where(*filters))
             or 0

@@ -155,21 +155,28 @@ describe("OrderListPage", () => {
     render(<MemoryRouter><OrderListPage /></MemoryRouter>);
     await screen.findByText("Distribuidora Aurora");
 
+    vi.mocked(listOrders).mockResolvedValue(makePage([ORDERS[1]]));
     fireEvent.change(screen.getByLabelText("Filtrar por situação"), { target: { value: "DELIVERED" } });
 
+    await waitFor(() => expect(listOrders).toHaveBeenLastCalledWith(expect.objectContaining({ status: "DELIVERED", page: 1 })));
+    await screen.findByText("Cliente não encontrado");
     expect(screen.queryByText("Distribuidora Aurora")).not.toBeInTheDocument();
     expect(screen.getByText("Cliente não encontrado")).toBeInTheDocument();
   });
 
-  it("busca por cliente sem chamar o backend de novo", async () => {
+  it("busca por cliente consultando o servidor", async () => {
     render(<MemoryRouter><OrderListPage /></MemoryRouter>);
     await screen.findByText("Distribuidora Aurora");
 
+    vi.mocked(listOrders).mockResolvedValue(makePage([ORDERS[0]]));
     fireEvent.change(screen.getByLabelText("Buscar por cliente ou referência"), { target: { value: "aurora" } });
+
+    await waitFor(() => expect(listOrders).toHaveBeenLastCalledWith(expect.objectContaining({ search: "aurora" })));
+    await screen.findByText("Distribuidora Aurora");
 
     expect(screen.getByText("Distribuidora Aurora")).toBeInTheDocument();
     expect(screen.queryByText("Cliente não encontrado")).not.toBeInTheDocument();
-    expect(listOrders).toHaveBeenCalledOnce();
+    expect(listOrders).toHaveBeenLastCalledWith(expect.objectContaining({ search: "aurora", page: 1 }));
   });
 
   it("esconde as ações de gestão para quem só tem leitura", async () => {

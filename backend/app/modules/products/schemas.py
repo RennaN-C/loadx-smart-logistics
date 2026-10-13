@@ -1,9 +1,12 @@
 import uuid
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.core.json_decimal import JsonDecimal
+
+ProductRestriction = Literal["restricted", "free"]
 
 
 class ProductBase(BaseModel):
