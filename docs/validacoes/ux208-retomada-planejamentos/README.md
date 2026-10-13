@@ -16,7 +16,7 @@ Filtro por caminhão utiliza o UUID real ao clicar na placa; limpar, F5 e
 navegação anterior/próxima do navegador foram conferidos contra a API.
 Os resultados estruturados estão em [results.json](results.json) e [states.json](states.json).
 
-`CONFIRMADO`: frontend completo: 741 testes/87 arquivos, ESLint, TypeScript e
+`CONFIRMADO`: frontend completo: 742 testes/87 arquivos, ESLint, TypeScript e
 build aprovados; npm audit sem vulnerabilidades. Resultados finais de backend: 2.176 testes aprovados, cobertura 94%, Ruff e Alembic aprovados.
 Segurança e SonarCloud ficam na PR para corresponder ao SHA validado.
 
@@ -50,3 +50,10 @@ liberação operacional de partes multi-caminhão continua sujeita à OC90.
 5. Filtrar situação/ordenar/paginar; abrir um plano aprovado com vínculos reais.
 6. Conferir acesso de CHECKER e bloqueio de DRIVER; simular falha GET e tentar novamente.
 7. Executar lint/build/testes frontend e Ruff/Alembic/Pytest com PostgreSQL 16 dedicado.
+
+## Observação da suíte local
+
+`RISCO IDENTIFICADO`: houve uma falha isolada de espera pela tela em um teste
+preexistente do alias `/operations`. A repetição focada (14 testes) e a suíte
+completa (742 testes) passaram sem alterar esse teste. Investigar caso volte
+a ocorrer; não houve exclusão, aumento de timeout ou relaxamento de asserções.

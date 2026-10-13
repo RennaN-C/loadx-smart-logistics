@@ -40,7 +40,7 @@ export function PlanContinuity({ planId, canManage }: {
   }, [planId, canManage, attempt]);
 
   if (failed) return <div className="plan-continuity">
-    <AlertBanner>Não foi possível consultar a continuidade deste plano. Nenhuma operação foi criada.</AlertBanner>
+    <AlertBanner>Não foi possível consultar a continuidade deste plano. Tente novamente antes de continuar.</AlertBanner>
     <button className="btn-secondary" type="button" onClick={() => setAttempt((value) => value + 1)}>Tentar novamente</button>
   </div>;
   if (!data) return <output className="entity-state">Consultando carregamento e viagem…</output>;

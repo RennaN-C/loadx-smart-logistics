@@ -11,7 +11,7 @@ import { PLAN_STATUS_LABELS, planStatusTone } from "./loadPlanLabels";
 
 const date = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" });
 
-function PlanHistoryRow({ plan }: { readonly plan: LoadPlanListItem }) {
+function PlanHistoryRow({ plan, canReadOrigin }: { readonly plan: LoadPlanListItem; readonly canReadOrigin: boolean }) {
   return <li className="plan-history-row">
     <div className="plan-history-identification">
       <Link className="plan-history-plate" to={`/planning?truck=${plan.truckId}`} aria-label={`Filtrar planos do caminhão ${plan.truckPlate}`}>{plan.truckPlate}</Link>
@@ -23,14 +23,15 @@ function PlanHistoryRow({ plan }: { readonly plan: LoadPlanListItem }) {
       <StatusPill tone={planStatusTone(plan.status)}>{PLAN_STATUS_LABELS[plan.status]}</StatusPill>
       <p>{plan.orderCount} pedido(s) · {plan.loadedCount} volumes aceitos · {plan.unloadedCount} recusados</p>
       <p>{plan.occupancyPercent.toLocaleString("pt-BR")}% de ocupação · {plan.totalWeightKg.toLocaleString("pt-BR")} kg</p>
-      {plan.recalculatedFromId ? <Link to={`/planning/${plan.recalculatedFromId}`}>Ver plano de origem</Link> : null}
+      {plan.recalculatedFromId && canReadOrigin ? <Link to={`/planning/${plan.recalculatedFromId}`}>Ver plano de origem</Link> : null}
     </div>
     <Link className="btn-secondary" to={`/planning/${plan.id}`} aria-label={`Abrir plano ${plan.id.slice(0, 8)}`}>Abrir planejamento</Link>
   </li>;
 }
 
-function PlanHistoryContent({ failed, result, page, retry, onPage }: {
+function PlanHistoryContent({ failed, result, page, retry, onPage, checker }: {
   readonly failed: boolean;
+  readonly checker: boolean;
   readonly result: Page<LoadPlanListItem> | null;
   readonly page: number;
   readonly retry: () => void;
@@ -44,7 +45,7 @@ function PlanHistoryContent({ failed, result, page, retry, onPage }: {
   return <>
           <p className="entity-form-help">{result.total} plano(s) encontrado(s) · página {result.page}</p>
           {result.items.length === 0 ? <div className="plan-history-empty"><h3>Nenhum plano nesta consulta</h3><p>Altere os filtros ou a página. Um novo planejamento só será salvo após calcular.</p></div>
-            : <ul className="plan-history-list">{result.items.map((plan) => <PlanHistoryRow key={plan.id} plan={plan} />)}</ul>}
+            : <ul className="plan-history-list">{result.items.map((plan) => <PlanHistoryRow key={plan.id} plan={plan} canReadOrigin={!checker} />)}</ul>}
           {result.items.length === 0 && page > 1 ? <button className="btn-secondary" type="button" onClick={() => onPage(1)}>Voltar à primeira página</button> : null}
           <Pagination page={result.page} totalPages={result.totalPages} onChange={onPage} label="planos" />
         </>;
@@ -91,7 +92,7 @@ export function PlanHistory({ checker }: { readonly checker: boolean }) {
       </div>
     </div>
     {truckId ? <p className="entity-form-help">Filtro de caminhão ativo. <button type="button" className="btn-secondary" onClick={() => change("truck", "")}>Limpar filtro de caminhão</button></p> : null}
-    <PlanHistoryContent failed={failed} result={result} page={page}
+    <PlanHistoryContent checker={checker} failed={failed} result={result} page={page}
       retry={() => setAttempt((value) => value + 1)} onPage={(value) => change("page", String(value))} />
   </section>;
 }

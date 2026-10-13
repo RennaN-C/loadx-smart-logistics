@@ -83,3 +83,11 @@ it("filtra planos pelo caminhao identificado na linha e permite limpar", async (
   fireEvent.click(await screen.findByRole("button", { name: "Limpar filtro de caminhão" }));
   await waitFor(() => expect(listLoadPlans).toHaveBeenLastCalledWith({ page: 1, status: undefined, sortOrder: "desc" }));
 });
+
+
+it("conferente nao recebe link de origem cuja aprovacao nao foi confirmada", async () => {
+  vi.mocked(listLoadPlans).mockResolvedValue(makePage([{ ...item, status: "APPROVED", recalculatedFromId: "p0" }]));
+  setup("/planning", true);
+  await screen.findByRole("link", { name: "Abrir plano abcd1234" });
+  expect(screen.queryByRole("link", { name: "Ver plano de origem" })).not.toBeInTheDocument();
+});
