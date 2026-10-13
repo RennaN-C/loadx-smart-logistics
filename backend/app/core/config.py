@@ -43,6 +43,7 @@ class Settings(BaseSettings):
         env_file=".env",
         extra="ignore",
         populate_by_name=True,
+        hide_input_in_errors=True,
     )
 
     @field_validator("database_url")
@@ -57,6 +58,11 @@ class Settings(BaseSettings):
                 "DATABASE_URL must use postgresql+psycopg and name a database."
             )
         return value
+
+    @field_validator("mfa_encryption_key", "smtp_password", mode="before")
+    @classmethod
+    def optional_secret(cls, value: object) -> object:
+        return None if value == "" else value
 
     @field_validator("password_blocklist_path", mode="before")
     @classmethod

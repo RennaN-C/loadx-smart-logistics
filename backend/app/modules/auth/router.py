@@ -134,6 +134,12 @@ T = TypeVar("T")
 def account_operation(operation: Callable[[], T]) -> T:
     try:
         return operation()
+    except IdentityUnavailableError:
+        raise ApiError(
+            503,
+            "AUTH_IDENTITY_UNAVAILABLE",
+            "Serviço de identidade indisponível. Contate o suporte.",
+        ) from None
     except AuthSessionInvalidError:
         raise ApiError(
             401, "AUTH_INVALID_TOKEN", "Sessão ausente ou inválida."
@@ -172,7 +178,7 @@ def clear_session_cookie(response: Response) -> None:
 @router.patch(
     "/me",
     response_model=UserRead,
-    responses=openapi_error_responses(401, 403, 409, 422),
+    responses=openapi_error_responses(400, 401, 403, 409, 422, 429, 503),
 )
 def update_me(
     data: OwnProfileUpdate,

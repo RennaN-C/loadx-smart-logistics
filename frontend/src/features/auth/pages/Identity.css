@@ -16,3 +16,5 @@
 .identity-status.is-enabled { color: var(--ink); border: 1px solid var(--accent); }
 .login-recovery-link { text-align: center; color: var(--ink); font-weight: 600; text-decoration-color: var(--accent); text-underline-offset: 4px; }
 .identity-card [role="alert"] { color: var(--danger, #d24545); }
+.identity-card .identity-field input, .account-form.identity-management .identity-field input { border-radius: 10px; min-height: 48px; padding: 12px 14px; font-size: .95rem; }
+.identity-card .btn-primary, .identity-card .btn-secondary, .identity-management .btn-primary { border-radius: 10px; min-height: 46px; }

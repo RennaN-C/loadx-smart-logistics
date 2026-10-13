@@ -1,5 +1,6 @@
 import logging
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from sqlalchemy.orm import Session
 
@@ -18,6 +19,9 @@ from app.modules.auth.throttling import LoginThrottleService
 from app.modules.users.models import User
 from app.modules.users.schemas import UserCreate
 from app.modules.users.service import UserService
+
+if TYPE_CHECKING:
+    from app.modules.auth.identity_service import MfaChallengeResult
 
 
 class AuthInvalidCredentialsError(Exception):
@@ -57,7 +61,9 @@ class AuthService:
             )
         )
 
-    def login(self, data: AuthLogin, client_ip: str = "unknown"):
+    def login(
+        self, data: AuthLogin, client_ip: str = "unknown"
+    ) -> "LoginResult | MfaChallengeResult":
         # Local import preserves public auth/users service boundaries without cycles.
         from app.modules.auth.identity_service import IdentityService
 

@@ -175,12 +175,14 @@ class IdentityService:
             factor.enabled = True
             codes = self._codes(user)
             self._audit(user, "mfa_enabled")
-            emit_security_event(SecurityEvent.MFA_CONFIGURED, user_id=str(user.id))
+
         challenge.consumed_at = self.now()
         # create_session commits consumption + factor/recovery + session atomically.
         session = self.sessions.create_session(
             user.id, expected_password_hash=user.password_hash
         )
+        if codes:
+            emit_security_event(SecurityEvent.MFA_CONFIGURED, user_id=str(user.id))
         emit_security_event(SecurityEvent.MFA_VALIDATED, user_id=str(user.id))
         return MfaCompletion(user, session, codes)
 

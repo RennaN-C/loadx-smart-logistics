@@ -1,4 +1,5 @@
-from typing import Annotated
+from collections.abc import Callable
+from typing import Annotated, TypeVar
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Request, Response
 from sqlalchemy.orm import Session
@@ -39,7 +40,10 @@ Db = Annotated[Session, Depends(get_db)]
 Current = Annotated[ResolvedAuthSession, Depends(get_current_session)]
 
 
-def identity_operation(operation):
+T = TypeVar("T")
+
+
+def identity_operation(operation: Callable[[], T]) -> T:
     try:
         return account_operation(operation)
     except IdentityUnavailableError:
