@@ -167,6 +167,8 @@ class UserService:
 
         def persist_user_revoke_sessions_and_audit() -> User:
             updated_user = self.repository.update(user)
+            if "email" in changed_fields:
+                self.auth_sessions.stage_invalidate_access_credentials(user.id)
             if (
                 password_changed
                 or role_changed

@@ -152,12 +152,18 @@ class AuthSessionService:
         return revoked_count
 
     def stage_revoke_all_for_user(self, user_id: uuid.UUID) -> int:
-        IdentityRepository(self.db).invalidate_challenges(user_id, self.now_provider())
+        self.stage_invalidate_access_credentials(user_id)
         active_sessions = self.repository.list_active_for_user_for_update(user_id)
         revoked_at = self.now_provider()
         for auth_session in active_sessions:
             self.repository.revoke(auth_session, revoked_at)
         return len(active_sessions)
+
+    def stage_invalidate_access_credentials(self, user_id: uuid.UUID) -> None:
+        """Caller owns the account lock; participate in its transaction."""
+        repository = IdentityRepository(self.db)
+        repository.invalidate_challenges(user_id, self.now_provider())
+        repository.invalidate_resets(user_id, self.now_provider())
 
     def validate_csrf_token(self, token: str, csrf_token: str) -> bool:
         return hmac.compare_digest(self.csrf_token_for(token), csrf_token)

@@ -475,3 +475,13 @@ def test_voluntary_enrollment_ends_old_full_session(client, session_factory):
         ).status_code
         == 200
     )
+
+
+@pytest.mark.parametrize('change',[{'password':NEW_PASSWORD},{'email':'changed@example.test'}])
+def test_account_identity_change_invalidates_existing_reset(session_factory,change):
+    user=account(session_factory)
+    with session_factory() as db:
+        recovery=PasswordRecoveryService(db,now_provider=lambda:NOW)
+        _,token=recovery.request(user.email,'identity-change')
+        UserService(db).update_user(user.id,UserUpdate(**change))
+        with pytest.raises(ApiError): recovery.confirm(token,NEW_PASSWORD,'identity-change')

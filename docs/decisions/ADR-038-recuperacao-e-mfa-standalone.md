@@ -71,3 +71,8 @@ Não há envio simulado em produção nem alegação de entrega garantida. Provi
 MFA_ENCRYPTION_KEY antes da integração: sem ela login sensível falha fechado.
 URI/códigos/desafios ficam somente em memória no navegador; F5 no desafio exige
 novo login, F5 após autenticação restaura a sessão normal da OC92.
+
+`CONFIRMADO`: revisão técnica também invalida recuperação/desafios pendentes
+quando identidade é alterada pelo service público users (inclusive edição ADMIN)
+e em revogação de sessões. Gestão do fator bloqueia usuário antes de seus
+contadores, preservando a mesma ordem quando chamada durante edição de perfil.

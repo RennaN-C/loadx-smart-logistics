@@ -124,6 +124,7 @@ class AccountService:
         if session is None:
             raise OwnSessionNotFoundError
         if session.revoked_at is None:
+            self.sessions.stage_invalidate_access_credentials(current.user.id)
             self.sessions.repository.revoke(session, self.sessions.now_provider())
         self.db.commit()
         emit_security_event(
@@ -135,6 +136,7 @@ class AccountService:
 
     def revoke_other_sessions(self, current: ResolvedAuthSession) -> None:
         self._lock_account(current)
+        self.sessions.stage_invalidate_access_credentials(current.user.id)
         others = self.sessions.repository.list_active_for_user_for_update(
             current.user.id
         )

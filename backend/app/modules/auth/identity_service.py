@@ -222,10 +222,12 @@ class IdentityService:
     def _reauth(
         self, current: ResolvedAuthSession, password: str, code: str, client_ip: str
     ) -> tuple[User, AuthFactor]:
+        # Management mutations always use user -> throttles -> factor/session.
+        # Profile changes may already hold the user lock; never reverse that order.
+        user = AccountService(self.db)._lock_account(current)
         self.throttle.ensure_login_allowed(
             "mfa-manage:" + str(current.user.id), "mfa-manage:" + client_ip
         )
-        user = AccountService(self.db)._lock_account(current)
         factor = self.repo.factor(user.id)
         if not verify_password(password, user.password_hash) or (
             factor.enabled and not self._verify(factor, user, code)
@@ -274,6 +276,7 @@ class IdentityService:
     def enroll_own(
         self, current: ResolvedAuthSession, password: str, client_ip: str
     ) -> MfaChallengeResult:
+        cipher(self.key)
         user, factor = self._reauth(current, password, "", client_ip)
         if factor.enabled:
             self._invalid()
