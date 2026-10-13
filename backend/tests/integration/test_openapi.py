@@ -381,6 +381,7 @@ EXPECTED_ERROR_STATUSES = {
 for distribution_path, methods in {
     "/api/v1/load-distributions": ("post",),
     "/api/v1/load-distributions/preflight": ("post",),
+    "/api/v1/load-distributions/optimize": ("post",),
     "/api/v1/load-distributions/{distribution_id}": ("get",),
     "/api/v1/load-distributions/{distribution_id}/approve": ("post",),
     "/api/v1/load-distributions/{distribution_id}/cancel": ("post",),

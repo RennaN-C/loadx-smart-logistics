@@ -36,6 +36,7 @@ from app.modules.products.models import Product
 from app.modules.status_history.models import StatusHistory
 from app.modules.status_history.service import StatusHistoryService
 from app.modules.trucks.models import Truck
+from app.modules.trucks.service import TruckService
 from app.modules.users.models import User
 from tests.integration.test_load_planning_api import (
     create_authenticated_user,
@@ -719,4 +720,220 @@ def test_nonexistent_sources_and_part_scope_are_rejected(distribution_scenario):
         == 404
     )
     assert s.post(f"/{result['id']}/parts/{uuid.uuid4()}/approve").status_code == 404
+    assert s.order_status() == "READY"
+
+
+def _oc88_set_truck_widths(
+    scenario: DistributionScenario,
+    width_cm: int,
+) -> None:
+    with scenario.factory() as db:
+        trucks = tuple(db.get(Truck, identifier) for identifier in scenario.truck_ids)
+        for truck in trucks:
+            truck.internal_width_cm = width_cm
+        db.commit()
+
+
+def _oc88_optimize(
+    scenario: DistributionScenario,
+):
+    return scenario.post(
+        "/optimize",
+        {"order_ids": [str(scenario.source.order_id)]},
+    )
+
+
+def test_oc88_optimize_prefers_one_complete_truck(
+    distribution_scenario,
+):
+    s = distribution_scenario
+
+    response = _oc88_optimize(s)
+
+    assert response.status_code == 201, response.text
+    result = response.json()
+    assert result["truck_count"] == 1
+    assert result["volume_count"] == 3
+    assert result["status"] == "PROPOSED"
+    assert result["parts"][0]["load_plan"]["unloaded_count"] == 0
+    assert s.order_status() == "READY"
+
+
+@pytest.mark.parametrize(
+    ("truck_width_cm", "expected_truck_count"),
+    [
+        (20, 2),
+        (10, 3),
+    ],
+)
+def test_oc88_optimize_expands_fleet_only_when_needed(
+    distribution_scenario,
+    truck_width_cm,
+    expected_truck_count,
+):
+    s = distribution_scenario
+    _oc88_set_truck_widths(s, truck_width_cm)
+
+    response = _oc88_optimize(s)
+
+    assert response.status_code == 201, response.text
+    result = response.json()
+    assert result["truck_count"] == expected_truck_count
+    assert result["volume_count"] == 3
+    assert all(part["load_plan"]["unloaded_count"] == 0 for part in result["parts"])
+
+    identities = {
+        (
+            volume["order_item_id"],
+            volume["volume_index"],
+        )
+        for volume in result["volumes"]
+    }
+    assert identities == {(str(s.source.order_item_id), index) for index in (1, 2, 3)}
+
+
+def test_oc88_optimize_does_not_select_inactive_truck(
+    distribution_scenario,
+):
+    s = distribution_scenario
+    _oc88_set_truck_widths(s, 20)
+
+    inactive_id = s.truck_ids[0]
+    with s.factory() as db:
+        truck = db.get(Truck, inactive_id)
+        truck.active = False
+        db.commit()
+
+    response = _oc88_optimize(s)
+
+    assert response.status_code == 201, response.text
+    result = response.json()
+    assert result["truck_count"] == 2
+    assert str(inactive_id) not in {
+        part["load_plan"]["truck_id"] for part in result["parts"]
+    }
+
+
+def test_oc88_optimize_does_not_select_truck_with_operation_conflict(
+    distribution_scenario,
+    monkeypatch,
+):
+    s = distribution_scenario
+    _oc88_set_truck_widths(s, 20)
+
+    blocked_id = s.truck_ids[0]
+    original = TruckService.has_operation_conflict
+
+    def has_operation_conflict(
+        service,
+        truck_id,
+        exclude_load_plan_id=None,
+    ):
+        if truck_id == blocked_id:
+            return True
+        return original(
+            service,
+            truck_id,
+            exclude_load_plan_id=exclude_load_plan_id,
+        )
+
+    monkeypatch.setattr(
+        TruckService,
+        "has_operation_conflict",
+        has_operation_conflict,
+    )
+
+    response = _oc88_optimize(s)
+
+    assert response.status_code == 201, response.text
+    result = response.json()
+    assert result["truck_count"] == 2
+    assert str(blocked_id) not in {
+        part["load_plan"]["truck_id"] for part in result["parts"]
+    }
+
+
+def test_oc88_optimize_requires_authentication_and_manager_role(
+    distribution_scenario,
+):
+    s = distribution_scenario
+    path = "/api/v1/load-distributions/optimize"
+    payload = {
+        "order_ids": [str(s.source.order_id)],
+    }
+
+    unauthenticated = s.client.post(path, json=payload)
+    assert unauthenticated.status_code == 401
+    assert unauthenticated.json()["code"] == "AUTH_INVALID_TOKEN"
+
+    for role in ("CHECKER", "DRIVER"):
+        user = create_authenticated_user(s.factory, role)
+        try:
+            response = s.client.post(
+                path,
+                json=payload,
+                headers=user.headers,
+            )
+            assert response.status_code == 403
+            assert response.json()["code"] == "AUTH_FORBIDDEN"
+        finally:
+            with s.factory() as db:
+                db.execute(delete(AuthSession).where(AuthSession.user_id == user.id))
+                db.execute(delete(User).where(User.id == user.id))
+                db.commit()
+
+
+def test_oc88_optimize_allows_admin(
+    distribution_scenario,
+):
+    s = distribution_scenario
+
+    with s.factory() as db:
+        db.get(User, s.user.id).role = "ADMIN"
+        db.commit()
+
+    try:
+        response = _oc88_optimize(s)
+
+        assert response.status_code == 201, response.text
+        assert response.json()["status"] == "PROPOSED"
+        assert response.json()["truck_count"] == 1
+    finally:
+        with s.factory() as db:
+            db.get(User, s.user.id).role = "LOGISTICS_MANAGER"
+            db.commit()
+
+
+def test_oc88_insufficient_fleet_is_explainable_and_does_not_persist_partial_plan(
+    distribution_scenario,
+):
+    s = distribution_scenario
+    _oc88_set_truck_widths(s, 10)
+
+    with s.factory() as db:
+        for identifier in s.truck_ids[1:]:
+            db.get(Truck, identifier).active = False
+        db.commit()
+
+    response = _oc88_optimize(s)
+
+    assert response.status_code == 422, response.text
+    payload = response.json()
+    assert payload["code"] == "DISTRIBUTION_CAPACITY_INSUFFICIENT"
+    assert payload["details"]
+    assert payload["details"][0]["remaining_volumes"]
+    assert payload["details"][0]["attempt_count"] > 0
+    assert len(payload["details"][0]["ineligible_trucks"]) == 2
+
+    with s.factory() as db:
+        persisted_plans = db.scalar(
+            select(func.count())
+            .select_from(LoadPlanOrder)
+            .where(LoadPlanOrder.order_id == s.source.order_id)
+        )
+        assert persisted_plans == 0
+        assert not LoadDistributionService(db).repository.has_active_orders(
+            [s.source.order_id]
+        )
+
     assert s.order_status() == "READY"
