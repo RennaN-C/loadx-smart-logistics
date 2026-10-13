@@ -9,6 +9,26 @@ necessidade, partição, estados, aprovação e reprocessamento estão em
 Planos legados e suas visualizações preservam schemas e endpoints. A liberação
 operacional de múltiplas partes depende da OC90; uma só parte usa o fluxo atual.
 
+
+## OC88 — otimização automática multi-caminhão
+
+`CONFIRMADO`: `POST /api/v1/load-distributions/optimize` é operação protegida
+para `ADMIN` e `LOGISTICS_MANAGER`; `CHECKER` e `DRIVER` não podem criar
+propostas automáticas. O endpoint recebe
+`DistributionNeedRequest` (`order_ids`). Em sucesso retorna `201` com
+`DistributionRead`, persistido pelo mesmo agregado multi-caminhão da OC87.
+
+A seleção tenta uma solução completa com menor quantidade de caminhões antes
+de ampliar a frota. Somente caminhões elegíveis do preflight participam da
+busca. O resultado físico de cada subconjunto é calculado pela engine
+`heuristic-v1`; não existe segunda implementação de peso, dimensões, rotação,
+colisão ou apoio.
+
+Frota insuficiente retorna `422 DISTRIBUTION_CAPACITY_INSUFFICIENT` e não
+persiste distribuição ou `LoadPlan` parcial. O detalhe informa volumes
+restantes, motivos observados, frota inelegível e número de avaliações da
+engine. Os contratos manuais da OC87 permanecem compatíveis.
+
 ## Evidências de entrega — OC80
 
 `CONFIRMADO`: contrato aditivo `/api/v1/deliveries/{delivery_id}/evidences`:

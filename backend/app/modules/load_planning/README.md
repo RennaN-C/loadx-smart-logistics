@@ -114,6 +114,21 @@ Estado da OC22: concluída.
 aprovação por partes, claims de identidade e API para OC88/OC89/OC90.
 O caminho de um caminhão e a engine física permanecem compatíveis.
 
+## OC88 — otimização automática multi-caminhão
+
+`CONFIRMADO`: `optimizer/multi_truck.py` seleciona e particiona a frota
+elegível sem banco ou HTTP. A busca é feita por quantidade crescente de
+caminhões e cada avaliação delega o packing físico para
+`calculate_volume_load_plan`.
+
+`CONFIRMADO`: `POST /api/v1/load-distributions/optimize` executa preflight,
+otimização e, somente quando existe cobertura completa, persiste a proposta
+pelo `LoadDistributionService.create` da OC87.
+
+`CONFIRMADO`: caminhões inativos, ocupados, em manutenção ou documentalmente
+inelegíveis ficam fora da busca. Falta de capacidade retorna
+`DISTRIBUTION_CAPACITY_INSUFFICIENT` sem distribuição parcial.
+
 ## Recuperação de planejamentos — #208
 
 `CONFIRMADO`: GET /load-plans utiliza PageResponse, filtros status/truck_id e
