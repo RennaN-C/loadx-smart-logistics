@@ -16,17 +16,24 @@ export interface ListParams {
   sortOrder?: "asc" | "desc";
 }
 
+export interface SearchListParams extends ListParams {
+  search?: string;
+}
+
+export const MAX_SEARCH_LENGTH = 120;
+
+/** Busca comum da OC95; filtros específicos permanecem nos adapters de cada recurso. */
+export function toSearchQuery({ search }: SearchListParams = {}): Record<string, string> {
+  const term = search?.trim();
+  return term ? { search: term } : {};
+}
+
 export const DEFAULT_PAGE_SIZE = 20;
 
 /** Teto do backend (`MAX_PAGE_SIZE` em core/pagination.py): pedir mais dá 422. */
 export const MAX_PAGE_SIZE = 100;
 
-/**
- * Query params das coleções: `page` 1-based, `page_size` (máx. 100) e
- * `sort_order`. Não existe `sort_by`, busca livre nem filtro server-side — D12
- * mantém isso fora do contrato, então busca e filtro do frontend valem apenas
- * para a página carregada.
- */
+/** Paginação compartilhada da ADR-017; filtros pertencem à whitelist de cada recurso. */
 export function toPageQuery({
   page = 1,
   pageSize = DEFAULT_PAGE_SIZE,

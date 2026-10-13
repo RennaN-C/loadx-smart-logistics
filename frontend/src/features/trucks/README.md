@@ -6,7 +6,7 @@ Consome `GET/POST/PATCH /trucks` e `GET /trucks/operational-status`.
 ## O que existe hoje
 
 - `pages/TruckListPage.tsx` (+ `.css`): grid paginado de cards, busca e filtro de
-  arquivamento no servidor e busca **client-side na página atual**, estados de carregando/vazio/erro e o
+  arquivamento no servidor antes da paginação (OC95), estados de carregando/vazio/erro e o
   modal de cadastro.
 - `components/TruckCard.tsx`: placa, modelo, status, desenho técnico e specs de um caminhão.
 - `components/TruckForm.tsx`: criação e edição, com pré-visualização do desenho e do volume interno
@@ -49,9 +49,10 @@ numa operação —, e nesse caso os dois aparecem. Quando o backend recusa sem
 apontar motivo que esta tela conheça, ela diz "Indisponível" e para: inventar
 causa seria pior que não explicar.
 
-Os contadores valem para a **página carregada**, e a frase na tela diz isso. D12
-mantém filtro e agregação server-side fora do contrato, e "3 de 6 disponíveis"
-sem a ressalva passaria por total da frota.
+`RISCO IDENTIFICADO` (OC95): os contadores e available/unavailable permanecem
+na **página carregada**, com aviso explícito. A fronteira pública calcula por ID
+depois de paginar; movê-los exige evolução arquitetural sem duplicar regras
+de conflito, documento ou manutenção e sem carregar toda a frota em memória.
 
 `CONFIRMADO`: na manutenção #206, a disponibilidade integra **Caminhões e frota**
 em Cadastros, com as abas Veículos e Disponibilidade. O item separado Frota foi
@@ -62,19 +63,19 @@ removido; a mudança de organização não altera a fonte dos estados operaciona
 `ADMIN`, `CHECKER` e `LOGISTICS_MANAGER` leem a lista. `ADMIN` e `LOGISTICS_MANAGER` criam e editam — a UI
 esconde "Novo caminhão" e "Editar" para os demais, mas quem barra de verdade é o backend.
 
-`CONFIRMADO`: a listagem consome o envelope e os parâmetros da ADR-017. Busca e
-filtros server-side continuam fora do contrato por D12.
+`CONFIRMADO`: a listagem consome o envelope e parâmetros da ADR-017, com
+busca server-side adicionada pela whitelist da OC95.
 
 ## Fora de escopo nesta ocorrência
 
-Busca server-side e exclusão física (não existe rota; desativar é
+Exclusão física (não existe rota; arquivar é
 `active: false` via PATCH).
 
 ## OC105 — ciclo de vida
 
 `CONFIRMADO`: a tela inicia em somente ativos, permite consultar arquivados ou
 ambos pelo filtro `archive_status` no servidor, reiniciando na página 1. A busca
-textual e as restrições continuam locais à página. Cards mostram Ativo/Arquivado.
+textual e as restrições aprovadas passaram ao servidor na OC95. Cards mostram Ativo/Arquivado.
 ADMIN e LOGISTICS_MANAGER veem ações Arquivar/Reativar, que usam o PATCH existente, exibem
 loading/erro e atualizam a listagem somente após sucesso. Os demais perfis
 preservam as permissões de leitura e não recebem botões de gestão.
@@ -107,3 +108,13 @@ oculto libera foco/rolagem e retoma seu rascunho quando a aba é reaberta. Ao sa
 da página/F5, consultas e estado temporário são reconstruídos a partir da API.
 `available` nunca é recalculado. Filtros e contadores de disponibilidade seguem
 restritos à página carregada, com aviso explícito.
+
+## OC95 — pesquisa na coleção
+
+`CONFIRMADO`: a tela envia `search` por plate e model.
+Combina com `archive_status=active|archived|all`.
+Mudança de busca/filtro volta à página 1; navegação/refetch preservam critérios.
+A API usa SearchListParams e tipos específicos somente onde necessário; o
+loader estável não refiltra items localmente. O total vem do conjunto filtrado.
+Busca limitada a 120 caracteres; vazio/erro/loading permanecem tratados.
+Nenhum campo pessoal proibido pela ADR-017 foi incluído no resumo ou na busca.

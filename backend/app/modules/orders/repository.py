@@ -1,22 +1,46 @@
 import uuid
 from collections.abc import Sequence
 
-from sqlalchemy import asc, desc, func, select
+from sqlalchemy import Select, String, asc, cast, desc, func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.pagination import PageResult, PaginationParams
 from app.modules.orders.models import Order, OrderItem
+from app.modules.orders.schemas import OrderStatus
+from app.shared.search import search_pattern
 
 
 class OrderRepository:
     def __init__(self, db: Session) -> None:
         self.db = db
 
-    def list(self, pagination: PaginationParams) -> PageResult[Order]:
+    def list(
+        self,
+        pagination: PaginationParams,
+        *,
+        search: str | None = None,
+        status: OrderStatus | None = None,
+        customer_name_ids: Select[tuple[uuid.UUID]] | None = None,
+    ) -> PageResult[Order]:
         direction = asc if pagination.sort_order == "asc" else desc
-        total = self.db.scalar(select(func.count()).select_from(Order)) or 0
+        filters = []
+        pattern = search_pattern(search)
+        if pattern is not None:
+            reference_filters = [
+                cast(Order.id, String).ilike(pattern, escape="\\"),
+                cast(Order.customer_id, String).ilike(pattern, escape="\\"),
+            ]
+            if customer_name_ids is not None:
+                reference_filters.append(Order.customer_id.in_(customer_name_ids))
+            filters.append(or_(*reference_filters))
+        if status is not None:
+            filters.append(Order.status == status)
+        total = (
+            self.db.scalar(select(func.count()).select_from(Order).where(*filters)) or 0
+        )
         statement = (
             select(Order)
+            .where(*filters)
             .options(selectinload(Order.items))
             .order_by(direction(Order.created_at), direction(Order.id))
             .offset(pagination.offset)

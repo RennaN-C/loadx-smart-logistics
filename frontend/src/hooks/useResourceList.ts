@@ -31,9 +31,8 @@ const EMPTY = {
  * Carga paginada de uma coleção, com os três estados que toda tela de cadastro
  * precisa. Segue o envelope da ADR-017 (`items`/`page`/`total`/`total_pages`).
  *
- * Busca e filtro continuam no cliente e valem só para a página carregada: D12
- * mantém filtro server-side fora do contrato. Quem usa este hook deve deixar
- * isso explícito na tela, senão o usuário acha que buscou na base inteira.
+ * A função estável pode combinar filtros server-side da OC95. Ao alterar
+ * critérios, a tela reinicia a página antes da nova consulta.
  *
  * `load` precisa ser uma referência estável — passar a função exportada do
  * módulo de API (`listTrucks`, `listProducts`, …) já satisfaz isso.

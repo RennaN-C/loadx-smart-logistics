@@ -9,6 +9,7 @@ from app.modules.deliveries.models import Trip
 from app.modules.load_planning.models import LoadPlan
 from app.modules.loading.models import LoadingSession
 from app.modules.trucks.models import Truck
+from app.shared.search import search_pattern
 
 
 class TruckRepository:
@@ -16,10 +17,22 @@ class TruckRepository:
         self.db = db
 
     def list(
-        self, pagination: PaginationParams, *, active: bool | None = None
+        self,
+        pagination: PaginationParams,
+        *,
+        active: bool | None = None,
+        search: str | None = None,
     ) -> PageResult[Truck]:
         direction = asc if pagination.sort_order == "asc" else desc
-        filters = () if active is None else (Truck.active.is_(active),)
+        filters = [] if active is None else [Truck.active.is_(active)]
+        pattern = search_pattern(search)
+        if pattern is not None:
+            filters.append(
+                or_(
+                    Truck.plate.ilike(pattern, escape="\\"),
+                    Truck.model.ilike(pattern, escape="\\"),
+                )
+            )
         total = (
             self.db.scalar(select(func.count()).select_from(Truck).where(*filters)) or 0
         )

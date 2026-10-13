@@ -38,3 +38,11 @@ a faixa dizia "Documento é inválido (Value error, Informe um CPF válido.)".
 códigos que não pertencem a domínio nenhum (rede, sessão, permissão, excesso de requisições), por
 último o texto que o backend mandou. Cada feature continua dona dos códigos dela — quem sabe
 explicar `TRUCK_PLATE_ALREADY_EXISTS` é a tela de caminhões.
+
+## Paginação e busca OC95
+
+`CONFIRMADO`: toPageQuery preserva a paginação da ADR-017. toSearchQuery envia
+search após trim e omite vazio; SearchListParams estende ListParams sem filtros
+específicos. OrderListParams acrescenta status e ProductListParams restriction.
+Archive_status mantém o envio existente. API/repositories possuem whitelist
+explícita; nenhuma busca por documento, telefone, CNH, e-mail, endereço ou notes.

@@ -38,9 +38,13 @@ class TruckService:
         self.repository = TruckRepository(db)
 
     def list_trucks(
-        self, pagination: PaginationParams, *, active: bool | None = None
+        self,
+        pagination: PaginationParams,
+        *,
+        active: bool | None = None,
+        search: str | None = None,
     ) -> PageResult[Truck]:
-        return self.repository.list(pagination, active=active)
+        return self.repository.list(pagination, active=active, search=search)
 
     def list_all_trucks(self) -> Sequence[Truck]:
         return self.repository.list_all()

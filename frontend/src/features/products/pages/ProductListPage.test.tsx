@@ -88,19 +88,23 @@ describe("ProductListPage", () => {
     expect(screen.getByText("Sem rotação")).toBeInTheDocument();
   });
 
-  it("filtra por código ou nome sem chamar o backend de novo", async () => {
+  it("filtra por código ou nome consultando o servidor", async () => {
     vi.mocked(listProducts).mockResolvedValue(makePage(PRODUCTS));
 
     render(<ProductListPage />);
     await screen.findByText("CX-100");
 
+    vi.mocked(listProducts).mockResolvedValue(makePage([PRODUCTS[1]]));
     fireEvent.change(screen.getByLabelText("Buscar por código ou nome"), {
       target: { value: "vidro" },
     });
 
+    await waitFor(() => expect(listProducts).toHaveBeenLastCalledWith(expect.objectContaining({ search: "vidro" })));
+    await screen.findByText("VD-200");
+
     expect(screen.queryByText("CX-100")).not.toBeInTheDocument();
     expect(screen.getByText("VD-200")).toBeInTheDocument();
-    expect(listProducts).toHaveBeenCalledOnce();
+    expect(listProducts).toHaveBeenLastCalledWith(expect.objectContaining({ search: "vidro", page: 1 }));
   });
 
   it("filtra por restrição", async () => {
@@ -109,10 +113,13 @@ describe("ProductListPage", () => {
     render(<ProductListPage />);
     await screen.findByText("CX-100");
 
+    vi.mocked(listProducts).mockResolvedValue(makePage([PRODUCTS[1]]));
     fireEvent.change(screen.getByLabelText("Filtrar por restrição"), {
       target: { value: "restricted" },
     });
 
+    await waitFor(() => expect(listProducts).toHaveBeenLastCalledWith(expect.objectContaining({ restriction: "restricted", page: 1 })));
+    await screen.findByText("VD-200");
     expect(screen.queryByText("CX-100")).not.toBeInTheDocument();
     expect(screen.getByText("VD-200")).toBeInTheDocument();
   });

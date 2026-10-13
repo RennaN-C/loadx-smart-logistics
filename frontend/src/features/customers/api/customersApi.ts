@@ -1,6 +1,6 @@
 import { onlyDigits } from "../../../components/masks";
 import { api } from "../../../services/api";
-import { mapPageFromDto, toPageQuery, type ListParams, type PageDto } from "../../../services/pagination";
+import { mapPageFromDto, toPageQuery, toSearchQuery, type SearchListParams, type PageDto } from "../../../services/pagination";
 import type { Page } from "../../../types/api";
 import type {
   CepAddress,
@@ -63,9 +63,9 @@ function mapCustomerToDto(input: CustomerUpdateInput): Partial<CustomerDto> {
   return dto;
 }
 
-export async function listCustomers(params: ListParams = {}): Promise<Page<CustomerListItem>> {
+export async function listCustomers(params: SearchListParams = {}): Promise<Page<CustomerListItem>> {
   const { data } = await api.get<PageDto<CustomerListDto>>("/customers", {
-    params: { ...toPageQuery(params), ...(params.archiveStatus ? { archive_status: params.archiveStatus } : {}) },
+    params: { ...toPageQuery(params), ...toSearchQuery(params), ...(params.archiveStatus ? { archive_status: params.archiveStatus } : {}) },
   });
 
   return mapPageFromDto(data, mapCustomerListItemFromDto);

@@ -775,3 +775,38 @@ def test_driver_documents_preserve_oc101_schema_names():
     ]["201"]["content"]["application/json"]["schema"] == {
         "$ref": "#/components/schemas/DriverDocumentRead"
     }
+
+
+def test_oc95_explicit_filter_whitelist_preserves_privacy() -> None:
+    schema = create_app(Settings(app_env="local")).openapi()
+    expected = {
+        "orders": {"search", "status"},
+        "trucks": {"search", "archive_status"},
+        "products": {"search", "restriction", "archive_status"},
+        "customers": {"search", "archive_status"},
+        "drivers": {"search", "archive_status"},
+    }
+    for resource, filters in expected.items():
+        parameters = schema["paths"][f"/api/v1/{resource}"]["get"]["parameters"]
+        query = {p["name"]: p for p in parameters if p["in"] == "query"}
+        assert set(query) == {"page", "page_size", "sort_order"} | filters
+        assert query["search"]["schema"]["anyOf"][0]["maxLength"] == 120
+        if resource == "orders":
+            assert set(query["status"]["schema"]["anyOf"][0]["enum"]) == {
+                "DRAFT",
+                "READY",
+                "PLANNED",
+                "IN_TRANSIT",
+                "DELIVERED",
+                "CANCELED",
+            }
+        if resource == "products":
+            assert set(query["restriction"]["schema"]["anyOf"][0]["enum"]) == {
+                "restricted",
+                "free",
+            }
+    for resource in ("trucks", "drivers"):
+        parameters = schema["paths"][f"/api/v1/{resource}/operational-status"]["get"][
+            "parameters"
+        ]
+        assert {p["name"] for p in parameters} == {"page", "page_size", "sort_order"}

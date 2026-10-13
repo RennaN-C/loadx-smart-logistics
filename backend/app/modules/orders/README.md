@@ -72,3 +72,27 @@ uma nova cópia, e texto explícito remove a proveniência. Alterar cliente exig
 um desses dois campos. Origem inválida/outro cliente recebe 422; origem
 arquivada recebe 409. FK composta protege pertencimento fora do service.
 Alterações cadastrais posteriores não modificam destinos contratados.
+
+## OC95 — busca e filtros antes da paginação
+
+`CONFIRMADO`: GET da coleção aceita `search` opcional. ADMIN e LOGISTICS_MANAGER
+pesquisam por nome do cliente, UUID do pedido e UUID do cliente. CHECKER pesquisa
+somente UUID do pedido e UUID do cliente; um termo que só corresponde ao nome
+retorna 200 com coleção filtrada vazia. DRIVER continua recebendo 403.
+Trim no servidor; vazio equivale à ausência. Substring case-insensitive de até
+120 caracteres após trim; `%`, `_` e `\` literais via SQLAlchemy parametrizado.
+`status` aceita apenas o catálogo público ORDER_STATUS_VALUES; combina por AND com search.
+COUNT e SELECT usam os mesmos predicados antes de OFFSET/LIMIT; ordenação
+created_at/id na mesma direção. Envelope, RBAC e schemas detalhados/resumidos
+permanecem preservados, sem novos dados pessoais.
+Contrato completo: [docs/05](../../../../docs/05-contratos-api.md).
+
+`CONFIRMADO`: CustomerService.matching_name_ids fornece a projeção SQL pública
+composta pelo repository de customers, sem executar consulta ou materializar
+clientes. O router deriva allow_customer_name_search do papel autenticado;
+o service só constrói a consulta de nomes quando essa capacidade é verdadeira
+e existe termo. A capacidade é interna, com default false, e não é query param.
+CHECKER não constrói essa subconsulta: nomes não participam de SELECT ou COUNT.
+Isso preserva o RBAC dos endpoints e impede consulta indireta ao cadastro de
+clientes. OrderRepository usa IN com subconsulta, sem JOIN multiplicador;
+selectinload de items continua restrito à página. O frontend não é fonte da busca.

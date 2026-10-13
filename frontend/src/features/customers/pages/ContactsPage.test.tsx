@@ -152,7 +152,7 @@ describe("ContactsPage", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("busca cliente por cidade sem chamar o backend de novo", async () => {
+  it("busca cliente por cidade consultando o servidor", async () => {
     vi.mocked(listCustomers).mockResolvedValue(
       makePage([CUSTOMER_ITEM, { ...CUSTOMER_ITEM, id: "c2", name: "Mercado Central", city: "Sorocaba" }]),
     );
@@ -160,13 +160,17 @@ describe("ContactsPage", () => {
     render(<MemoryRouter><ContactsPage /></MemoryRouter>);
     await screen.findByText("Distribuidora Aurora");
 
+    vi.mocked(listCustomers).mockResolvedValue(makePage([{ ...CUSTOMER_ITEM, id: "c2", name: "Mercado Central", city: "Sorocaba" }]));
     fireEvent.change(screen.getByLabelText("Buscar cliente por nome ou cidade"), {
       target: { value: "sorocaba" },
     });
 
+    await waitFor(() => expect(listCustomers).toHaveBeenLastCalledWith(expect.objectContaining({ search: "sorocaba" })));
+    await screen.findByText("Mercado Central");
+
     expect(screen.queryByText("Distribuidora Aurora")).not.toBeInTheDocument();
     expect(screen.getByText("Mercado Central")).toBeInTheDocument();
-    expect(listCustomers).toHaveBeenCalledOnce();
+    expect(listCustomers).toHaveBeenLastCalledWith(expect.objectContaining({ search: "sorocaba", page: 1 }));
   });
 
   it("filtra motoristas por status", async () => {
@@ -183,7 +187,7 @@ describe("ContactsPage", () => {
       target: { value: "archived" },
     });
 
-    await waitFor(() => expect(listDrivers).toHaveBeenLastCalledWith({ page: 1, pageSize: 20, archiveStatus: "archived" }));
+    await waitFor(() => expect(listDrivers).toHaveBeenLastCalledWith({ page: 1, pageSize: 20, archiveStatus: "archived", search: "" }));
     await screen.findByText("Rita Alves");
     expect(screen.queryByText("Carlos Pereira")).not.toBeInTheDocument();
     expect(screen.getByText("Rita Alves")).toBeInTheDocument();

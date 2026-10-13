@@ -104,3 +104,14 @@ política inicialmente desligada. Constraints/locks/auditoria/rollback preservam
 identidade, unicidade CNH e histórico. Sem DELETE/storage/DETRAN/notificação.
 ADMIN/LOGISTICS_MANAGER consultam e gerenciam; CHECKER/DRIVER continuam negados.
 ADR-032, head 20261009_0020.
+
+## OC95 — busca e filtros antes da paginação
+
+`CONFIRMADO`: GET da coleção aceita `search` opcional por name.
+Trim no servidor; vazio equivale à ausência. Substring case-insensitive de até
+120 caracteres após trim; `%`, `_` e `\` literais via SQLAlchemy parametrizado.
+Combina com archive_status; documento, telefone e license_number/CNH são proibidos.
+COUNT e SELECT usam os mesmos predicados antes de OFFSET/LIMIT; ordenação
+created_at/id na mesma direção. Envelope, RBAC e schemas detalhados/resumidos
+permanecem preservados, sem novos dados pessoais.
+Contrato completo: [docs/05](../../../../docs/05-contratos-api.md).
