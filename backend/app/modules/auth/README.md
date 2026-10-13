@@ -78,3 +78,58 @@ Crie somente os arquivos necessários para a ocorrência atual.
 `CONFIRMADO`: mutações bloqueiam usuário antes de sessões e revalidam a sessão sob lock. Consulta autenticada segue a mesma ordem para evitar deadlocks. Troca de hash, revogação e auditoria compartilham commit/rollback. A emissão ao final do login compara o hash verificado com o atual sob lock de usuário, impedindo criar uma sessão com credenciais invalidadas por troca concorrente. Nenhuma migration: `users`, `auth_sessions` e `audit_events` atuais suportam o contrato; head `20261009_0023`.
 
 `CONFIRMADO`: frontend restaura os dados por `/auth/me` após F5; lista sessões pela API, oferece confirmação e reconsulta após revogação. Não grava dados de sessão em Web Storage nem inventa dispositivos/localização. Conta é separada de configurações administrativas e logísticas. Password/sessions ficam concentrados no módulo auth e nos adapters da feature de conta, para futura delegação central, sem SSO, MFA, recuperação ou administração de terceiros nesta OC.
+
+## OC98 — recuperação de senha e MFA
+
+`CONFIRMADO`: ADR-038 complementa ADR-020. Login de ADMIN/LOGISTICS_MANAGER (ou
+conta com MFA voluntário) retorna `MfaChallengeRead` em vez de `UserRead`:
+`challenge_token`, `purpose=ENROLL|LOGIN`, `expires_at`. Nenhum cookie autenticado
+é emitido antes de `POST /auth/mfa/verify`. Login CHECKER/DRIVER sem MFA preserva
+UserRead/cookie/CSRF. Consumidores devem discriminar pela presença de
+`challenge_token`; frontend mantém a credencial intermediária somente em memória.
+
+| Método/caminho | Entrada / retorno |
+|---|---|
+| POST /auth/password-recovery | email / 202 neutro; 503 se infraestrutura ausente para qualquer conta |
+| POST /auth/password-recovery/confirm | token, new_password / 204, encerra todas as sessões, sem login automático |
+| POST /auth/mfa/setup | challenge_token ENROLL / provisioning_uri, somente configuração autorizada |
+| POST /auth/mfa/verify | challenge_token, code (TOTP ou recuperação em LOGIN) / user, recovery_codes; cookie/CSRF normal somente após validação |
+| GET /auth/me/mfa | sessão própria / enabled, required; nunca segredo ou códigos |
+| POST /auth/me/mfa/enroll | password / desafio ENROLL, revoga sessões anteriores; somente conta ainda sem MFA |
+| POST /auth/me/mfa/recovery-codes | password, code / códigos novos, anteriores invalidados |
+| POST /auth/me/mfa/disable | password, code / 204, revoga todas as sessões; perfil sensível exige novo cadastro no login |
+
+Todos os caminhos usam `/api/v1`. Endpoints intermediários exigem Origin e
+credencial restrita; os de conta preservam também cookie/CSRF e ownership. 400
+indica verificação inválida/expirada, 429 orçamento durável excedido, 503 chave
+ou infraestrutura indisponível. Schemas extras são proibidos. Edição de e-mail
+em conta com MFA exige `current_password` + `second_factor`, invalida links
+pendentes e consome segundo fator na transação da edição. ADMIN não possui
+reset de MFA de terceiros.
+
+Tokens usam SHA-256 e alta entropia; códigos TOTP não são persistidos. Segredo
+TOTP é cifrado com Fernet; `cryptography` é a única dependência nova, justificada
+pela criptografia autenticada. RFC 6238 testada com vetores oficiais. A mesma
+ordem de locks de OC92 serializa consumo/replay/revogação. Falha de auditoria
+reverte hash, token, fator e sessão. Migration 20261013_0024 sucede 0023 e revoga
+sessões sensíveis anteriores; downgrade bloqueia dados OC98, sem apagá-los.
+
+### Configuração de produção
+
+- MFA_ENCRYPTION_KEY: chave Fernet independente, via cofre/secrets; nunca usar
+  SECRET_KEY nem chave de teste. Provisionar antes de aplicar OC98.
+- PASSWORD_RECOVERY_PROVIDER=smtp, PASSWORD_RECOVERY_URL=https://dominio-aprovado/password-reset.
+- SMTP_HOST, SMTP_PORT (465 por padrão), SMTP_USERNAME, SMTP_PASSWORD e SMTP_SENDER.
+- SMTP usa TLS verificado, autenticação e timeout de cinco segundos. Link usa
+  fragmento; o frontend o remove do histórico imediatamente após montagem.
+- Sem configuração, falha fechada e não afirma entrega. 202 aceita solicitação,
+  não comprova recebimento SMTP. BackgroundTasks separa entrega da resposta;
+  falha emite somente evento seguro; queda do processo exige reenvio. Não há
+  promessa de fila durável ou SLA de e-mail nesta OC.
+- Sincronização UTC/NTP, backup/restauração da chave, retenção dos eventos e
+  recuperação assistida com duplo controle são responsabilidades operacionais.
+
+`RISCO IDENTIFICADO`: não trocar/perder MFA_ENCRYPTION_KEY sem recriptografar
+segredos existentes. Sem dispositivo e códigos, acesso permanece bloqueado;
+contingência assistida não possui endpoint de bypass. SMTP real requer
+infraestrutura aprovada e não é acionado por testes/fake de navegador.
