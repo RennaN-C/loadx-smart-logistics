@@ -31,7 +31,7 @@ def test_alembic_has_current_revision_head() -> None:
     config = Config(str(BACKEND_ROOT / "alembic.ini"))
     script = ScriptDirectory.from_config(config)
 
-    assert script.get_heads() == ["20261009_0023"]
+    assert script.get_heads() == ["20261013_0024"]
     assert script.get_revision("20261009_0023").down_revision == "20261009_0022"
     assert script.get_revision("20261009_0022").down_revision == "20261009_0021"
     assert script.get_revision("20261009_0021").down_revision == "20261009_0020"
@@ -94,3 +94,8 @@ def test_initial_migration_renders_expected_check_constraint_names() -> None:
     assert "ck_users__ck_users" not in result.stdout
     assert "ck_trucks__ck_trucks" not in result.stdout
     assert "ck_products__ck_products" not in result.stdout
+
+
+def test_oc98_revision_chains_real_head():
+    script = ScriptDirectory.from_config(Config("alembic.ini"))
+    assert script.get_revision("20261013_0024").down_revision == "20261009_0023"

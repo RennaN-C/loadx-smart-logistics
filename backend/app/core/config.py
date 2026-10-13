@@ -3,7 +3,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.engine import make_url
 from sqlalchemy.exc import ArgumentError
@@ -30,11 +30,20 @@ class Settings(BaseSettings):
     operational_log_level: Literal["INFO", "WARNING", "ERROR"] = "INFO"
     operational_request_logs: bool = True
     evidence_storage_dir: Path | None = None
+    mfa_encryption_key: SecretStr | None = None
+    password_recovery_provider: Literal["none", "smtp"] = "none"
+    password_recovery_url: str | None = None
+    smtp_host: str | None = None
+    smtp_port: int = Field(default=465, ge=1, le=65535)
+    smtp_username: str | None = None
+    smtp_password: SecretStr | None = None
+    smtp_sender: str | None = None
 
     model_config = SettingsConfigDict(
         env_file=".env",
         extra="ignore",
         populate_by_name=True,
+        hide_input_in_errors=True,
     )
 
     @field_validator("database_url")
@@ -50,6 +59,11 @@ class Settings(BaseSettings):
             )
         return value
 
+    @field_validator("mfa_encryption_key", "smtp_password", mode="before")
+    @classmethod
+    def optional_secret(cls, value: object) -> object:
+        return None if value == "" else value
+
     @field_validator("password_blocklist_path", mode="before")
     @classmethod
     def normalize_optional_blocklist_path(cls, value: object) -> object:
@@ -62,6 +76,17 @@ class Settings(BaseSettings):
             and not self.password_blocklist_path.is_file()
         ):
             raise ValueError("PASSWORD_BLOCKLIST_PATH must point to a readable file.")
+        if self.mfa_encryption_key is not None:
+            from cryptography.fernet import Fernet
+
+            try:
+                Fernet(self.mfa_encryption_key.get_secret_value().encode("ascii"))
+            except ValueError:
+                raise ValueError(
+                    "MFA_ENCRYPTION_KEY must be a valid Fernet key."
+                ) from None
+            if self.mfa_encryption_key.get_secret_value() == self.secret_key:
+                raise ValueError("MFA encryption requires a dedicated key.")
         if self.app_env != "production":
             return self
         if len(self.secret_key) < 32 or self.secret_key in INSECURE_SECRET_KEYS:

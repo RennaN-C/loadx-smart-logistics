@@ -36,3 +36,20 @@ cookie `HttpOnly`; o frontend não lê nem persiste credenciais. O
 `CONFIRMADO`: atualização bem-sucedida sincroniza o usuário no AuthProvider. Troca de senha ou encerramento da atual limpa CSRF/estado autenticado pelo contexto central e exige login; mensagem de sucesso permanece somente em memória. Expiração e revogação remotas preservam a reação central existente. Revogar outra sessão reconsulta a lista. Falha transitória conserva a lista anterior com aviso explícito; não declara revogação concluída quando a API falha.
 
 `CONFIRMADO`: a conta standalone é visualmente separada de preferências logísticas futuras. Sem OC86/OC98/OC112, MFA/recuperação/SSO ou nova dependência. Layout de uma coluna em telas pequenas e duas em telas largas, controles sem sobreposição e labels ligados aos inputs.
+
+## OC98 — recuperação e MFA
+
+`CONFIRMADO`: /password-recovery solicita link neutro; /password-reset lê token
+do fragmento, limpa URL e exige nova senha/confirmar, sem autenticar. Login
+recebe desafio ENROLL/LOGIN em memória no AuthProvider e apresenta
+MfaChallengePanel. Senha correta não atualiza usuário autenticado nessa etapa.
+Setup exibe URI autorizada, verifica posse e mostra códigos uma vez; confirmação
+pelo usuário limpa os códigos. F5 no desafio exige novo login. Depois de concluir,
+F5 usa /auth/me e a sessão normal da OC92.
+
+OwnMfaPanel consulta estado real e exige senha + fator para regenerar/trocar;
+ativação voluntária encerra a sessão e retorna ao desafio. Nenhum segredo usa
+Web Storage. Mudança de e-mail em conta com MFA exige confirmação reforçada.
+Origin/CSRF e cliente HTTP existentes permanecem. Telas usam componentes/tokens
+locais, temas por prefers-color-scheme, labels e mensagens reais. CoreFlow/SSO
+não implementados. Requisitos de infraestrutura e contingência: ADR-038.

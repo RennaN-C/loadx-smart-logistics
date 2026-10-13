@@ -1,3 +1,4 @@
+import { MemoryRouter } from "react-router-dom";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
@@ -63,7 +64,7 @@ describe("LoginForm", () => {
     );
     vi.mocked(useAuth).mockReturnValue({ status: "unauthenticated", user: null, login, updateUser: vi.fn(), logout: vi.fn() });
 
-    render(<LoginForm />);
+    render(<MemoryRouter><LoginForm /></MemoryRouter>);
 
     fireEvent.change(screen.getByLabelText("E-MAIL"), { target: { value: "admin@example.test" } });
     fireEvent.change(screen.getByLabelText("SENHA"), { target: { value: "senha-local" } });
@@ -82,7 +83,7 @@ describe("LoginForm", () => {
       .mockRejectedValue(new ApiError("AUTH_INVALID_CREDENTIALS", "E-mail ou senha inválidos."));
     vi.mocked(useAuth).mockReturnValue({ status: "unauthenticated", user: null, login, updateUser: vi.fn(), logout: vi.fn() });
 
-    render(<LoginForm />);
+    render(<MemoryRouter><LoginForm /></MemoryRouter>);
 
     fireEvent.change(screen.getByLabelText("E-MAIL"), { target: { value: "admin@example.test" } });
     fireEvent.change(screen.getByLabelText("SENHA"), { target: { value: "senha-errada" } });

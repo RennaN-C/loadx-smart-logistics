@@ -165,29 +165,19 @@ class UserService:
         for field_name, value in update_data.items():
             setattr(user, field_name, value)
 
+        security_state_changed = (
+            password_changed or role_changed or user_deactivated or driver_link_changed
+        )
+
         def persist_user_revoke_sessions_and_audit() -> User:
             updated_user = self.repository.update(user)
-            if (
-                password_changed
-                or role_changed
-                or user_deactivated
-                or driver_link_changed
-            ):
-                self.auth_sessions.stage_revoke_all_for_user(user.id)
-            if actor_id is not None and changed_fields:
-                self.audit_service.stage_administrative_event(
-                    AuditEventCreate(
-                        event_type="USER_UPDATED",
-                        entity_type="USER",
-                        entity_id=user.id,
-                        actor_id=actor_id,
-                        changed_fields=changed_fields,
-                    )
-                )
+            self._stage_updated_user_security(
+                user, changed_fields, actor_id, security_state_changed
+            )
             return updated_user
 
         updated_user = self._persist(persist_user_revoke_sessions_and_audit)
-        if password_changed or role_changed or user_deactivated or driver_link_changed:
+        if security_state_changed:
             emit_security_event(
                 SecurityEvent.USER_SECURITY_STATE_CHANGED,
                 alert=role_changed or user_deactivated,
@@ -198,6 +188,29 @@ class UserService:
                 driver_link_changed=driver_link_changed,
             )
         return updated_user
+
+    def _stage_updated_user_security(
+        self,
+        user: User,
+        changed_fields: list[str],
+        actor_id: uuid.UUID | None,
+        revoke_sessions: bool,
+    ) -> None:
+        """Stage OC92/OC98 revocation and audit in the caller's transaction."""
+        if "email" in changed_fields:
+            self.auth_sessions.stage_invalidate_access_credentials(user.id)
+        if revoke_sessions:
+            self.auth_sessions.stage_revoke_all_for_user(user.id)
+        if actor_id is not None and changed_fields:
+            self.audit_service.stage_administrative_event(
+                AuditEventCreate(
+                    event_type="USER_UPDATED",
+                    entity_type="USER",
+                    entity_id=user.id,
+                    actor_id=actor_id,
+                    changed_fields=changed_fields,
+                )
+            )
 
     def _ensure_driver_link_is_valid(
         self,

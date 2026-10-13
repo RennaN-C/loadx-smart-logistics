@@ -2,6 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import { AuthProvider } from "../features/auth/components/AuthProvider";
 import { RequireAuth } from "../features/auth/components/RequireAuth";
+import { PasswordRecoveryPage } from "../features/auth/pages/PasswordRecoveryPage";
 import { LoginPage } from "../features/auth/pages/LoginPage";
 import { AuditPage } from "../features/audit/pages/AuditPage";
 import { ContactsPage } from "../features/customers/pages/ContactsPage";
@@ -25,6 +26,8 @@ export function App() {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/password-recovery" element={<PasswordRecoveryPage />} />
+          <Route path="/password-reset" element={<PasswordRecoveryPage reset />} />
           <Route element={<RequireAuth />}>
             <Route element={<AppLayout />}>
               <Route index element={<DashboardPage />} />

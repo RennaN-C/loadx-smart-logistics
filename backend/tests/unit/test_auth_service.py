@@ -50,6 +50,9 @@ def make_user_create(
 
 def test_login_returns_opaque_session_for_active_user(db_session: Session) -> None:
     UserService(db_session).create_user(make_user_create())
+    user = db_session.query(User).one()
+    user.role = "CHECKER"
+    db_session.commit()
     service = AuthService(db_session)
 
     result = service.login(
@@ -141,3 +144,17 @@ def test_login_rejects_inactive_user(db_session: Session) -> None:
         service.login(
             AuthLogin(email="admin@example.test", password="senha-local-segura")
         )
+
+
+def test_own_profile_preserves_password_spaces_during_reauthentication():
+    from app.modules.auth.schemas import OwnProfileUpdate
+
+    value = OwnProfileUpdate(
+        name=" Nome ",
+        email=" A@example.test ",
+        current_password=" senha-com-espacos ",
+        second_factor="123456",
+    )
+    assert value.name == "Nome"
+    assert value.email == "a@example.test"
+    assert value.current_password == " senha-com-espacos "

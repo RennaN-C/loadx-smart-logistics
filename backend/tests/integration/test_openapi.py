@@ -6,7 +6,29 @@ from app.core.config import Settings
 from app.main import create_app
 
 EXPECTED_ERROR_STATUSES = {
-    ("/api/v1/auth/me", "patch"): {"401", "403", "409", "422", "500"},
+    **{
+        (path, method): {"400", "401", "403", "422", "429", "503", "500"}
+        for path, method in [
+            ("/api/v1/auth/password-recovery", "post"),
+            ("/api/v1/auth/password-recovery/confirm", "post"),
+            ("/api/v1/auth/mfa/setup", "post"),
+            ("/api/v1/auth/mfa/verify", "post"),
+            ("/api/v1/auth/me/mfa", "get"),
+            ("/api/v1/auth/me/mfa/enroll", "post"),
+            ("/api/v1/auth/me/mfa/recovery-codes", "post"),
+            ("/api/v1/auth/me/mfa/disable", "post"),
+        ]
+    },
+    ("/api/v1/auth/me", "patch"): {
+        "400",
+        "401",
+        "403",
+        "409",
+        "422",
+        "429",
+        "503",
+        "500",
+    },
     ("/api/v1/auth/me/password", "post"): {"400", "401", "403", "422", "429", "500"},
     ("/api/v1/auth/me/sessions", "get"): {"401", "403", "422", "500"},
     ("/api/v1/auth/me/sessions/{session_id}", "delete"): {
@@ -22,7 +44,7 @@ EXPECTED_ERROR_STATUSES = {
     ("/api/v1/company-profile", "put"): {"401", "403", "422", "500"},
     ("/health", "get"): {"500"},
     ("/ready", "get"): {"500", "503"},
-    ("/api/v1/auth/login", "post"): {"401", "403", "422", "429", "500"},
+    ("/api/v1/auth/login", "post"): {"401", "403", "422", "429", "500", "503"},
     ("/api/v1/auth/me", "get"): {"401", "403", "422", "500"},
     ("/api/v1/auth/logout", "post"): {"401", "403", "422", "500"},
     ("/api/v1/audit", "get"): {"401", "403", "422", "500"},
@@ -476,6 +498,10 @@ PUBLIC_OPERATIONS = frozenset(
         ("/health", "get"),
         ("/ready", "get"),
         ("/api/v1/auth/login", "post"),
+        ("/api/v1/auth/password-recovery", "post"),
+        ("/api/v1/auth/password-recovery/confirm", "post"),
+        ("/api/v1/auth/mfa/setup", "post"),
+        ("/api/v1/auth/mfa/verify", "post"),
     }
 )
 PROTECTED_OPERATIONS = frozenset(EXPECTED_ERROR_STATUSES).difference(PUBLIC_OPERATIONS)

@@ -1,5 +1,6 @@
 import logging
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from sqlalchemy.orm import Session
 
@@ -18,6 +19,9 @@ from app.modules.auth.throttling import LoginThrottleService
 from app.modules.users.models import User
 from app.modules.users.schemas import UserCreate
 from app.modules.users.service import UserService
+
+if TYPE_CHECKING:
+    from app.modules.auth.identity_service import MfaChallengeResult
 
 
 class AuthInvalidCredentialsError(Exception):
@@ -57,13 +61,19 @@ class AuthService:
             )
         )
 
-    def login(self, data: AuthLogin, client_ip: str = "unknown") -> LoginResult:
+    def login(
+        self, data: AuthLogin, client_ip: str = "unknown"
+    ) -> "LoginResult | MfaChallengeResult":
+        # Local import preserves public auth/users service boundaries without cycles.
+        from app.modules.auth.identity_service import IdentityService
+
         self.login_throttle.ensure_login_allowed(data.email, client_ip)
         user = self.user_service.get_user_by_email(data.email)
         if user is None:
             verify_and_update_password(data.password, _DUMMY_PASSWORD_HASH)
             self._reject_failed_login(data.email, client_ip, known_account=False)
             raise AuthInvalidCredentialsError
+        expected_hash = user.password_hash
         password_verified, updated_hash = verify_and_update_password(
             data.password,
             user.password_hash,
@@ -84,12 +94,19 @@ class AuthService:
                 privileged_account=user.role in {"ADMIN", "LOGISTICS_MANAGER"},
             )
             raise AuthInvalidCredentialsError
+        user = self.user_service.lock_account(user.id)
+        if not user.active or user.password_hash != expected_hash:
+            raise AuthInvalidCredentialsError
         if updated_hash is not None:
             user = self.user_service.upgrade_password_hash(user, updated_hash)
+        verified_hash = updated_hash or expected_hash
+        identity = IdentityService(self.auth_sessions.db)
+        if identity.required(user):
+            return identity.begin(user, expected_hash=verified_hash)
         self.login_throttle.reset_after_success(data.email, client_ip)
         try:
             issued_session = self.auth_sessions.create_session(
-                user.id, expected_password_hash=user.password_hash
+                user.id, expected_password_hash=verified_hash, password_only=True
             )
         except AuthSessionInvalidError:
             raise AuthInvalidCredentialsError from None

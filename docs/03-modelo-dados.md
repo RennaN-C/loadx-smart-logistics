@@ -779,3 +779,20 @@ UUID local fixo `00000000-0000-0000-0000-000000000091`, PK e CHECK singleton;
 opcionais, `created_at`/`updated_at` UTC. Não representa tenant e não possui
 vínculos dos agregados logísticos. Eventos COMPANY_PROFILE_CREATED/UPDATED
 registram somente nomes de campos e ator, na mesma transação.
+
+## OC98 — identidade standalone
+
+`CONFIRMADO`: ADR-038 acrescenta tabelas do módulo auth, sem campos em users:
+- auth_password_resets: UUID, user_id (CASCADE), token_hash único, created_at,
+  expires_at e consumed_at; CHECK prazo positivo; índice por usuário.
+- auth_factors: UUID, user_id único (CASCADE), encrypted_secret opcional,
+  enabled, last_totp_step e security_version não negativos; nenhum segredo puro.
+- auth_challenges: UUID, user_id (CASCADE), token_hash único, purpose LOGIN/ENROLL,
+  password_fingerprint, role, security_version, created_at, expires_at,
+  consumed_at e failed_count 0–5; índice por usuário e CHECKs de prazo/escopo.
+- auth_recovery_codes: UUID, user_id (CASCADE), code_hash único, consumed_at;
+  índice por usuário. Código aleatório é apresentado somente na emissão.
+
+Todas as operações concorrentes serializam por lock users antes das tabelas auth.
+A migration 20261013_0024 sucede o head confirmado 20261009_0023; revoga sessões
+antigas de ADMIN/LOGISTICS_MANAGER para exigir o bootstrap MFA seguro.
