@@ -16,12 +16,14 @@ from app.modules.orders.schemas import (
     ORDER_STATUS_VALUES,
     OrderCreate,
     OrderItemCreate,
+    OrderStatus,
     OrderUpdate,
 )
 from app.modules.products.service import ProductNotFoundError, ProductService
 from app.modules.status_history.schemas import StatusHistoryCreate
 from app.modules.status_history.service import StatusHistoryService
 from app.shared.record_lifecycle import ensure_record_active
+from app.shared.search import normalize_search
 
 MANUAL_ORDER_STATUS_TRANSITIONS = {
     "DRAFT": frozenset({"READY", "CANCELED"}),
@@ -71,8 +73,23 @@ class OrderService:
         self.product_service = ProductService(db)
         self.status_history_service = StatusHistoryService(db)
 
-    def list_orders(self, pagination: PaginationParams) -> PageResult[Order]:
-        return self.repository.list(pagination)
+    def list_orders(
+        self,
+        pagination: PaginationParams,
+        *,
+        search: str | None = None,
+        status: OrderStatus | None = None,
+        allow_customer_name_search: bool = False,
+    ) -> PageResult[Order]:
+        term = normalize_search(search)
+        customer_name_ids = (
+            self.customer_service.matching_name_ids(term)
+            if term and allow_customer_name_search
+            else None
+        )
+        return self.repository.list(
+            pagination, search=term, status=status, customer_name_ids=customer_name_ids
+        )
 
     def get_order(self, order_id: uuid.UUID) -> Order:
         order = self.repository.get(order_id)

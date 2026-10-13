@@ -1,10 +1,11 @@
 import uuid
 
-from sqlalchemy import asc, desc, func, select
+from sqlalchemy import Select, asc, desc, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.core.pagination import PageResult, PaginationParams
 from app.modules.customers.models import Customer
+from app.shared.search import search_pattern
 
 
 class CustomerRepository:
@@ -12,10 +13,22 @@ class CustomerRepository:
         self.db = db
 
     def list(
-        self, pagination: PaginationParams, *, active: bool | None = None
+        self,
+        pagination: PaginationParams,
+        *,
+        active: bool | None = None,
+        search: str | None = None,
     ) -> PageResult[Customer]:
         direction = asc if pagination.sort_order == "asc" else desc
-        filters = () if active is None else (Customer.active.is_(active),)
+        filters = [] if active is None else [Customer.active.is_(active)]
+        pattern = search_pattern(search)
+        if pattern is not None:
+            filters.append(
+                or_(
+                    Customer.name.ilike(pattern, escape="\\"),
+                    Customer.city.ilike(pattern, escape="\\"),
+                )
+            )
         total = (
             self.db.scalar(select(func.count()).select_from(Customer).where(*filters))
             or 0
@@ -31,6 +44,12 @@ class CustomerRepository:
             self.db.scalars(statement).all(),
             pagination,
             total,
+        )
+
+    def matching_name_ids(self, search: str) -> Select[tuple[uuid.UUID]]:
+        """Composable SQL projection; never materialize the customer collection."""
+        return select(Customer.id).where(
+            Customer.name.ilike(search_pattern(search), escape="\\")
         )
 
     def get(self, customer_id: uuid.UUID) -> Customer | None:

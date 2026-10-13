@@ -1,10 +1,11 @@
 import uuid
 
-from sqlalchemy import asc, desc, func, select
+from sqlalchemy import asc, desc, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.core.pagination import PageResult, PaginationParams
 from app.modules.drivers.models import Driver
+from app.shared.search import search_pattern
 
 
 class DriverRepository:
@@ -12,10 +13,17 @@ class DriverRepository:
         self.db = db
 
     def list(
-        self, pagination: PaginationParams, *, active: bool | None = None
+        self,
+        pagination: PaginationParams,
+        *,
+        active: bool | None = None,
+        search: str | None = None,
     ) -> PageResult[Driver]:
         direction = asc if pagination.sort_order == "asc" else desc
-        filters = () if active is None else (Driver.active.is_(active),)
+        filters = [] if active is None else [Driver.active.is_(active)]
+        pattern = search_pattern(search)
+        if pattern is not None:
+            filters.append(or_(Driver.name.ilike(pattern, escape="\\")))
         total = (
             self.db.scalar(select(func.count()).select_from(Driver).where(*filters))
             or 0

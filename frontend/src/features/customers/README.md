@@ -22,7 +22,7 @@ detalhe antes de editar.
 telefone, endereço e observações não saem na listagem** — dado pessoal só no detalhe. Consequências:
 
 - o card mostra apenas nome e cidade/UF;
-- a busca client-side cobre nome e cidade, não documento;
+- a busca server-side cobre nome e cidade, sem documento;
 - editar exige `GET /customers/{id}` antes de abrir o formulário, senão o PATCH iria sem os campos que
   o usuário não viu. O botão vira "Abrindo…" enquanto isso.
 
@@ -101,13 +101,23 @@ Criar e editar continua exclusivo do `LOGISTICS_MANAGER`.
 
 ## Fora de escopo
 
-Busca e filtro server-side (D12): a busca atua só na página carregada. Exclusão não existe rota.
+Exclusão física não existe no contrato. Busca server-side é implementada na OC95.
 
 ## OC105 — ciclo de vida
 
 `CONFIRMADO`: a tela inicia em somente ativos, permite consultar arquivados ou
 ambos pelo filtro `archive_status` no servidor, reiniciando na página 1. A busca
-textual e as restrições continuam locais à página. Cards mostram Ativo/Arquivado.
+textual e as restrições aprovadas passaram ao servidor na OC95. Cards mostram Ativo/Arquivado.
 LOGISTICS_MANAGER vê ações Arquivar/Reativar, que usam o PATCH existente, exibem
 loading/erro e atualizam a listagem somente após sucesso. Os demais perfis
 preservam as permissões de leitura e não recebem botões de gestão.
+
+## OC95 — pesquisa na coleção
+
+`CONFIRMADO`: a tela envia `search` por name e city.
+Combina com archive_status; documento, telefone, endereço e notes são proibidos.
+Mudança de busca/filtro volta à página 1; navegação/refetch preservam critérios.
+A API usa SearchListParams e tipos específicos somente onde necessário; o
+loader estável não refiltra items localmente. O total vem do conjunto filtrado.
+Busca limitada a 120 caracteres; vazio/erro/loading permanecem tratados.
+Nenhum campo pessoal proibido pela ADR-017 foi incluído no resumo ou na busca.

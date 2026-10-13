@@ -47,3 +47,14 @@ na mesma transação; repetições não criam eventos duplicados.
 `active`, filtrado no PostgreSQL antes da paginação. Consulta por ID não esconde
 arquivados. Os contratos de disponibilidade mantêm a visão de cadastro e
 conflito separados; operações existentes preservam histórico e RBAC.
+
+## OC95 — busca e filtros antes da paginação
+
+`CONFIRMADO`: GET da coleção aceita `search` opcional por code e name.
+Trim no servidor; vazio equivale à ausência. Substring case-insensitive de até
+120 caracteres após trim; `%`, `_` e `\` literais via SQLAlchemy parametrizado.
+`restriction=restricted|free` combina com archive_status. Restricted: fragile OR NOT stackable OR NOT rotation_allowed; free: NOT fragile AND stackable AND rotation_allowed.
+COUNT e SELECT usam os mesmos predicados antes de OFFSET/LIMIT; ordenação
+created_at/id na mesma direção. Envelope, RBAC e schemas detalhados/resumidos
+permanecem preservados, sem novos dados pessoais.
+Contrato completo: [docs/05](../../../../docs/05-contratos-api.md).

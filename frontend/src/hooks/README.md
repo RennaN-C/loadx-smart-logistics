@@ -13,9 +13,16 @@ Hooks usados por mais de uma feature. Hook de uma feature só permanece dentro d
   API (`listTrucks`, `listCustomers`, …) já resolve. Uma arrow inline recriada a cada render faria o
   `useEffect` disparar em laço.
 
-  Busca e filtro continuam no cliente e valem só para a página carregada: D12 mantém filtro
-  server-side fora do contrato. Quem usa o hook deve dizer isso na tela (`.entity-summary`), senão o
-  usuário acha que buscou na base inteira e conclui que o registro não existe.
+  `CONFIRMADO` (OC95): buscas das cinco coleções e filtros de status/restrição
+  são enviados ao servidor. A tela passa um `useCallback` estável que combina
+  critérios com a paginação; mudanças de critérios chamam `goToPage(1)` no mesmo
+  evento. Próximas páginas/refetch preservam critérios. Respostas antigas são
+  descartadas por sequência de requisição; não se refiltram os items no cliente.
+  O mapa local de nomes em pedidos é apenas apresentação, com fallback existente.
+
+- `useRegistryList.ts`: combina archive_status da OC105 com o loader estável;
+  arquivamento também reinicia página 1, preservando search/restriction da OC95.
+  A whitelist e os tipos específicos pertencem às APIs de cada feature.
 
 - `useEditTarget.ts`: busca o registro **completo** por id antes de abrir o formulário de edição.
   As listagens de clientes, motoristas e pedidos devolvem um resumo — dado pessoal e itens só saem no

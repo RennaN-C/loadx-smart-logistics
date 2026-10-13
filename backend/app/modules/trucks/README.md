@@ -148,3 +148,20 @@ inícios. ensure_not_in_maintenance permanece compatível como consulta específ
 Índice único parcial e locks no caminhão protegem renovação; audit atômico.
 Referência de arquivo UUID é somente metadado, sem storage interno público.
 RBAC atual, histórico em arquivados, ADR-031 e migration 0019.
+
+## OC95 — busca e filtros antes da paginação
+
+`CONFIRMADO`: GET da coleção aceita `search` opcional por plate e model.
+Trim no servidor; vazio equivale à ausência. Substring case-insensitive de até
+120 caracteres após trim; `%`, `_` e `\` literais via SQLAlchemy parametrizado.
+Combina com `archive_status=active|archived|all`.
+COUNT e SELECT usam os mesmos predicados antes de OFFSET/LIMIT; ordenação
+created_at/id na mesma direção. Envelope, RBAC e schemas detalhados/resumidos
+permanecem preservados, sem novos dados pessoais.
+Contrato completo: [docs/05](../../../../docs/05-contratos-api.md).
+
+`RISCO IDENTIFICADO`: available/unavailable permanece fora da whitelist.
+FleetAvailabilityService só expõe consulta por ID; list_statuses pagina antes
+de calcular. Filtrar globalmente exige evolução dessa fronteira sem duplicar
+OC64/OC67/OC100/OC101, nem carregar toda a frota. Contadores/filtro locais da
+FleetStatusPage continuam explícitos por página; resumo existente não é alterado.

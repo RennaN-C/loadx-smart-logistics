@@ -65,6 +65,48 @@ Este documento é o contrato combinado entre backend, frontend, algoritmo e inte
   OC59. Todo filtro futuro usa query param em snake_case e whitelist documentada.
 - `CONFIRMADO`: em atualizações parciais, campos omitidos permanecem inalterados; `null` só é aceito para campos anuláveis no modelo de dados.
 
+### Evolução OC95 — busca e filtros de coleção
+
+`CONFIRMADO`: OC95 sucede OC59 sem revogar a ADR-017. A whitelist abaixo é
+aplicada no PostgreSQL antes de COUNT/OFFSET/LIMIT; `total` e `total_pages`
+representam a coleção filtrada. Paginação 1-based, limites, envelope,
+`sort_order`, desempate por `created_at, id`, RBAC e schemas são preservados.
+
+| Endpoint GET `/api/v1` | `search` (campos permitidos) | Outros filtros |
+| --- | --- | --- |
+| `/orders` | ADMIN/LOGISTICS_MANAGER: nome do cliente e UUIDs do pedido/cliente; CHECKER: somente UUIDs do pedido/cliente | `status`: DRAFT, READY, PLANNED, IN_TRANSIT, DELIVERED, CANCELED |
+| `/trucks` | plate, model | `archive_status` existente |
+| `/products` | code, name | `restriction`: restricted ou free; `archive_status` existente |
+| `/customers` | name, city | `archive_status` existente |
+| `/drivers` | name | `archive_status` existente |
+
+`search` é opcional, recebe trim no servidor e vazio/whitespace equivale à
+ausência. Limite: 120 caracteres após trim; excesso retorna 422 no envelope
+padrão. Busca substring case-insensitive parametrizada, com `%`, `_` e `\`
+literais. Filtros diferentes combinam por AND; campos da busca combinam por OR.
+Status inválido e restriction inválida retornam 422. Ausência de status ou
+restriction inclui todos os valores. Não existe `priority`, busca por e-mail,
+documento, telefone, CNH, endereço, notes ou qualquer outro campo pessoal.
+
+`restricted` significa fragile=true OR stackable=false OR rotation_allowed=false;
+`free` significa fragile=false AND stackable=true AND rotation_allowed=true.
+A busca de pedidos por nome é exclusiva de ADMIN e LOGISTICS_MANAGER e usa
+consulta de nomes pertencente a customers, sem carregar clientes em memória
+nem duplicar pedidos/total. CHECKER mantém 200 na listagem, mas busca somente
+UUID do pedido e UUID do cliente: termo que só corresponde ao nome retorna
+coleção filtrada vazia. Nenhuma subconsulta de nome é construída para CHECKER;
+DRIVER continua 403. A capacidade vem do papel autenticado, nunca de query param.
+O RBAC dos endpoints é preservado, evitando que pedidos sejam um canal indireto
+de consulta de nomes por quem não pode ler clientes. Não acrescenta nome ou dados
+pessoais ao resumo. UUID é a referência identificadora já existente; nenhum
+novo campo de referência foi criado.
+
+`RISCO IDENTIFICADO`: available/unavailable de `/trucks/operational-status`
+permanece fora desta whitelist. A fronteira FleetAvailabilityService calcula
+disponibilidade individualmente após paginar. Aplicar filtro antes da paginação
+exige evolução arquitetural que reutilize OC64/OC67/OC100/OC101 sem carregar toda
+a frota nem duplicar regras. A UI mantém o aviso de filtro/contadores por página.
+
 ## Autenticação
 
 Endpoint público de negócio:

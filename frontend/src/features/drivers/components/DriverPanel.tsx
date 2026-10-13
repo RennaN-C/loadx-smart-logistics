@@ -1,8 +1,9 @@
 import { ImportAction } from "../../registration-imports/components/ImportAction";
-import { useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 
 import { AlertBanner } from "../../../components/AlertBanner";
 import { Modal } from "../../../components/Modal";
+import { MAX_SEARCH_LENGTH, type ListParams } from "../../../services/pagination";
 import { Pagination } from "../../../components/Pagination";
 import { StatusPill } from "../../../components/StatusPill";
 import { useEditTarget } from "../../../hooks/useEditTarget";
@@ -20,6 +21,11 @@ import { Icon } from "../../../components/Icon";
 
 export function DriverPanel() {
   const { user } = useAuth();
+  const [search, setSearch] = useState("");
+  const filteredLoad = useCallback((params: ListParams) => listDrivers({
+    ...params,
+    search,
+  }), [search]);
   const {
     status,
     items: drivers,
@@ -31,24 +37,13 @@ export function DriverPanel() {
     goToPage,
     archiveStatus,
     setArchiveStatus,
-  } = useRegistryList(listDrivers);
+  } = useRegistryList(filteredLoad);
   const edit = useEditTarget<Driver>(getDriver);
   const [documentsDriver, setDocumentsDriver] = useState<DriverListItem | null>(null);
-  const [search, setSearch] = useState("");
   const [isCreating, setIsCreating] = useState(false);
 
   const canManage = canManageLogistics(user?.role);
   const isFormOpen = isCreating || edit.target !== null;
-
-  // Só nome: a listagem não traz documento nem CNH.
-  const visibleDrivers = useMemo(() => {
-    const term = search.trim().toLowerCase();
-
-    return drivers.filter(
-      (driver) =>
-        (term === "" || driver.name.toLowerCase().includes(term)),
-    );
-  }, [drivers, search]);
 
   function closeForm() {
     setIsCreating(false);
@@ -70,7 +65,8 @@ export function DriverPanel() {
           aria-label="Buscar motorista por nome"
           placeholder="Buscar por nome"
           value={search}
-          onChange={(event) => setSearch(event.target.value)}
+          onChange={(event) => { goToPage(1); setSearch(event.target.value); }}
+          maxLength={MAX_SEARCH_LENGTH}
         />
 
         {canManage ? (
@@ -83,7 +79,7 @@ export function DriverPanel() {
 
       {status === "success" && total > 0 ? (
         <p className="entity-summary">
-          Exibindo {drivers.length} de {total} motoristas. A busca atua nesta página; arquivamento filtra toda a lista.
+          Exibindo {drivers.length} de {total} motoristas. Busca e filtros consideram toda a lista.
         </p>
       ) : null}
 
@@ -97,17 +93,17 @@ export function DriverPanel() {
       {status === "error" && error ? <AlertBanner>{mapDriverErrorToMessage(error)}</AlertBanner> : null}
       {edit.error ? <AlertBanner>{mapDriverErrorToMessage(edit.error)}</AlertBanner> : null}
 
-      {status === "success" && visibleDrivers.length === 0 ? (
+      {status === "success" && drivers.length === 0 ? (
         <p className="entity-state">
-          {drivers.length === 0
+          {search.trim() === "" && archiveStatus === "active" && total === 0
             ? "Nenhum motorista cadastrado ainda."
             : "Nenhum motorista encontrado com esses filtros."}
         </p>
       ) : null}
 
-      {visibleDrivers.length > 0 ? (
+      {drivers.length > 0 ? (
         <div className="entity-grid">
-          {visibleDrivers.map((driver) => (
+          {drivers.map((driver) => (
             <article key={driver.id} className="contact-card">
               <div className="contact-card-head">
                 <p className="contact-card-name">{driver.name}</p>

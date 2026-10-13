@@ -41,9 +41,13 @@ class DriverService:
         self.repository = DriverRepository(db)
 
     def list_drivers(
-        self, pagination: PaginationParams, *, active: bool | None = None
+        self,
+        pagination: PaginationParams,
+        *,
+        active: bool | None = None,
+        search: str | None = None,
     ) -> PageResult[Driver]:
-        return self.repository.list(pagination, active=active)
+        return self.repository.list(pagination, active=active, search=search)
 
     def get_driver(self, driver_id: uuid.UUID) -> Driver:
         driver = self.repository.get(driver_id)

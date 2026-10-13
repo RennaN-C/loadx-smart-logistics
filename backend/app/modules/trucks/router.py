@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.pagination import PageResponse, Pagination, to_page_response
 from app.core.responses import error_response, openapi_error_responses
+from app.core.search import SearchQuery
 from app.database.session import get_db
 from app.modules.auth.dependencies import require_roles
 from app.modules.trucks.models import Truck
@@ -56,8 +57,11 @@ def list_trucks(
     _current_user: TruckReader,
     service: Annotated[TruckService, Depends(get_truck_service)],
     archive_status: ArchiveFilter = "active",
+    search: SearchQuery = None,
 ) -> PageResponse[TruckRead]:
-    result = service.list_trucks(pagination, active=active_filter(archive_status))
+    result = service.list_trucks(
+        pagination, active=active_filter(archive_status), search=search
+    )
     return to_page_response(
         result,
         (TruckRead.model_validate(truck) for truck in result.items),

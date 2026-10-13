@@ -1,6 +1,7 @@
 import uuid
 from collections.abc import Callable
 
+from sqlalchemy import Select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -27,9 +28,17 @@ class CustomerService:
         self.repository = CustomerRepository(db)
 
     def list_customers(
-        self, pagination: PaginationParams, *, active: bool | None = None
+        self,
+        pagination: PaginationParams,
+        *,
+        active: bool | None = None,
+        search: str | None = None,
     ) -> PageResult[Customer]:
-        return self.repository.list(pagination, active=active)
+        return self.repository.list(pagination, active=active, search=search)
+
+    def matching_name_ids(self, search: str) -> Select[tuple[uuid.UUID]]:
+        """Public query projection consumed by orders without exposing customer PII."""
+        return self.repository.matching_name_ids(search)
 
     def get_customer(
         self, customer_id: uuid.UUID, *, for_update: bool = False
