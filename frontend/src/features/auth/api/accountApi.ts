@@ -9,8 +9,8 @@ export interface OwnSession {
   absolute_expires_at: string;
   current: boolean;
 }
-export async function updateOwnProfile(name: string, email: string) {
-  const { data } = await api.patch<UserDto>("/auth/me", { name, email });
+export async function updateOwnProfile(name: string, email: string, identity?: { current_password: string; second_factor: string }) {
+  const { data } = await api.patch<UserDto>("/auth/me", { name, email, ...identity });
   return mapUserFromDto(data);
 }
 export async function changeOwnPassword(current_password: string, new_password: string): Promise<void> {

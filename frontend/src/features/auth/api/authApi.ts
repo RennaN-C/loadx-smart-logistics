@@ -1,3 +1,4 @@
+import { MfaRequired, type MfaChallenge } from "../mfaTypes";
 import { api } from "../../../services/api";
 import type { AuthenticatedUser, Role } from "../types";
 
@@ -22,8 +23,9 @@ export function mapUserFromDto(dto: UserDto): AuthenticatedUser {
 }
 
 export async function login(email: string, password: string): Promise<AuthenticatedUser> {
-  const { data } = await api.post<UserDto>("/auth/login", { email, password });
+  const { data } = await api.post<UserDto | MfaChallenge>("/auth/login", { email, password });
 
+  if ("challenge_token" in data) throw new MfaRequired(data);
   return mapUserFromDto(data);
 }
 

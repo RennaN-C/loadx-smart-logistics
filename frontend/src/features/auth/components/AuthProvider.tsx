@@ -4,11 +4,13 @@ import { setSessionInvalidatedHandler } from "../../../services/api";
 import { clearCsrfToken } from "../../../services/csrfToken";
 import { getCurrentUser, login as loginRequest, logout as logoutRequest } from "../api/authApi";
 import type { AuthContextValue, AuthenticatedUser, AuthStatus } from "../types";
+import type { MfaChallenge } from "../mfaTypes";
 import { AuthContext } from "./AuthContext";
 
 interface AuthState {
   status: AuthStatus;
   user: AuthenticatedUser | null;
+  pendingMfa?: MfaChallenge;
   accountNotice?: "password-changed" | "session-revoked";
 }
 
@@ -68,6 +70,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setState({ status: user ? "authenticated" : "unauthenticated", user, accountNotice });
   }, []);
 
+  const beginMfa = useCallback((pendingMfa: MfaChallenge | undefined) => {
+    clearCsrfToken();
+    setState({ status: "unauthenticated", user: null, pendingMfa });
+  }, []);
+
   const value = useMemo<AuthContextValue>(
     () => ({
       status: state.status,
@@ -76,8 +83,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       logout,
       updateUser,
       accountNotice: state.accountNotice,
+      pendingMfa: state.pendingMfa,
+      beginMfa,
     }),
-    [state.status, state.user, state.accountNotice, login, logout, updateUser],
+    [state.status, state.user, state.accountNotice, state.pendingMfa, beginMfa, login, logout, updateUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
