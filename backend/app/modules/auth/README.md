@@ -133,3 +133,12 @@ sessões sensíveis anteriores; downgrade bloqueia dados OC98, sem apagá-los.
 segredos existentes. Sem dispositivo e códigos, acesso permanece bloqueado;
 contingência assistida não possui endpoint de bypass. SMTP real requer
 infraestrutura aprovada e não é acionado por testes/fake de navegador.
+
+`CONFIRMADO`: revisão de concorrência revalida o estado MFA/papel no próprio gate
+sob lock de conta/fator antes de emitir sessão por senha e conserva o hash
+verificado mesmo após commit/expiração ORM. Promoção de perfil, ativação do fator
+ou troca de senha concorrentes abortam esse login. Ativação invalida sessões por
+senha criadas durante cadastro voluntário. Consumo de código de recuperação é
+registrado somente depois do commit, inclusive na edição de e-mail. Limites de
+login só são limpos após comprovar o segundo fator. Testes específicos cobrem
+essas janelas e a ausência de evento de consumo em rollback.

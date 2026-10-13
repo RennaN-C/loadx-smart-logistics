@@ -22,7 +22,9 @@ a chave antiga; perda da chave impede validação, não autoriza bypass.
 Desafios guardam somente SHA-256 da credencial, fingerprint do hash da senha,
 papel e versão de segurança. Cinco falhas os consomem. Throttling durável por
 conta/origem permanece independente da emissão de novos desafios. Locks seguem
-usuário → fatores/desafios/códigos → sessões; revogação integral invalida
+usuário primeiro. Consumo/emissão bloqueia fatores/desafios/códigos antes das
+sessões; gestão revalida a sessão própria sob o mesmo lock de usuário antes
+de verificar fatores. Nenhum desses fluxos obtém conta alheia. Revogação integral invalida
 simultaneamente todos os desafios. Emissão de sessão e consumo do desafio
 compartilham transação. Mudança concorrente de senha, papel, atividade ou sessão
 invalida a autorização intermediária.
@@ -94,3 +96,7 @@ de usuário. O hash comparado é o hash efetivamente verificado, não um atribut
 ORM recarregado após commit. Promoção para perfil obrigatório, ativação MFA ou
 mudança de senha concorrentes impedem emissão sem segundo fator. Testes injetam
 essas mudanças exatamente após liberar locks dos contadores e antes da emissão.
+
+`CONFIRMADO`: ativação MFA revoga também sessões por senha emitidas enquanto o
+cadastro voluntário estava pendente. O gate de sessão bloqueia a linha do fator
+e recarrega seu estado, além da conta, antes de emitir sessão por senha.
