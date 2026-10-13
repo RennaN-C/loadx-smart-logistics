@@ -38,7 +38,7 @@ describe("verificação multifator", () => {
     vi.mocked(identity.regenerateCodes).mockResolvedValue(["novo-codigo"]);
     const storage = vi.spyOn(Storage.prototype, "setItem");
     render(<OwnMfaPanel />); await screen.findByText("Ativa");
-    fireEvent.change(screen.getByLabelText("Senha atual"), { target: { value: "senha-segura-local" } });
+    fireEvent.change(screen.getByLabelText("Senha atual para gerenciar MFA"), { target: { value: "senha-segura-local" } });
     fireEvent.change(screen.getByLabelText("Código do autenticador ou recuperação"), { target: { value: "123456" } });
     fireEvent.click(screen.getByRole("button", { name: "Confirmar ação de segurança" }));
     await screen.findByText("novo-codigo"); expect(identity.regenerateCodes).toHaveBeenCalledWith("senha-segura-local", "123456"); expect(storage).not.toHaveBeenCalled(); storage.mockRestore();

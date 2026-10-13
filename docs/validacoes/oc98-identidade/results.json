@@ -304,7 +304,8 @@
     "one-time recovery codes shown",
     "authenticated session restored after F5",
     "MFA invalid code rejected",
-    "recovery code completed second login"
+    "recovery code completed second login",
+    "SPA return to login clears cached authentication after reset"
   ],
   "delivery": "fake local adapter, no real email sent",
   "data": "fictitious isolated PostgreSQL database"

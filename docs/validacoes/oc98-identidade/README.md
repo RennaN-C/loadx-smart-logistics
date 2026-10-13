@@ -21,3 +21,8 @@ API e PostgreSQL. Não há Web Storage de credenciais ou bypass administrativo.
 de chave, retenção dos eventos e contingência assistida exigem infraestrutura.
 Adapter SMTP possui teste de contrato com transporte fake verificando TLS,
 timeout e fragmento. ADR-038 e README auth descrevem configuração e limites.
+
+`CONFIRMADO`: revisão adicional no Chromium validou retorno SPA ao login após
+reset iniciado com sessão já autenticada: estado cached é limpo, sem redirecionar
+indevidamente para o dashboard. Capturas da gestão MFA foram atualizadas após
+refinar labels para diferenciar senha de conta e confirmação de MFA.

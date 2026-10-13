@@ -1,3 +1,4 @@
+import { getMfaStatus } from "../api/identityApi";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "../../../app/App";
@@ -7,10 +8,11 @@ import { changeOwnPassword, listOwnSessions, revokeOtherSessions, revokeOwnSessi
 import type { Role } from "../types";
 vi.mock("../api/authApi");
 vi.mock("../api/accountApi");
+vi.mock("../api/identityApi");
 vi.mock("../../dashboard/pages/DashboardPage", () => ({ DashboardPage: () => <h1>Início da operação</h1> }));
 const USER = { id: "u1", name: "Conta Fictícia", email: "conta@example.test", role: "ADMIN" as Role, active: true, createdAt: "2026-10-10T00:00:00Z" };
 const SESSION: OwnSession = { id: "session-current", current: true, created_at: "2026-10-10T00:00:00Z", last_seen_at: "2026-10-10T00:01:00Z", idle_expires_at: "2026-10-10T00:31:00Z", absolute_expires_at: "2026-10-10T08:00:00Z" };
-beforeEach(() => { vi.resetAllMocks(); window.history.replaceState({}, "", "/account"); vi.mocked(getCurrentUser).mockResolvedValue(USER); vi.mocked(listOwnSessions).mockResolvedValue([SESSION, { ...SESSION, id: "session-other", current: false }]); });
+beforeEach(() => { vi.resetAllMocks(); vi.mocked(getMfaStatus).mockResolvedValue({ enabled: true, required: true }); window.history.replaceState({}, "", "/account"); vi.mocked(getCurrentUser).mockResolvedValue(USER); vi.mocked(listOwnSessions).mockResolvedValue([SESSION, { ...SESSION, id: "session-other", current: false }]); });
 async function show() { render(<App />); await screen.findByRole("heading", { name: "Meu perfil", level: 1 }); await screen.findByRole("heading", { name: "Sessão atual" }); }
 function fillPassword(confirm = "Nova-senha-ficticia-2026") {
   fireEvent.change(screen.getByLabelText("Senha atual"), { target: { value: "Senha-atual-ficticia" } });
