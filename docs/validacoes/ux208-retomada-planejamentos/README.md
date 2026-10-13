@@ -12,11 +12,13 @@ A viagem vinculada abriu pelo plano sem oferecer criação duplicada. CHECKER
 consultou somente aprovados e recuperou carregamento existente; DRIVER teve
 acesso negado à área. Erro de rede apresentou retry; filtro REJECTED retornou
 vazio real; página além do fim ofereceu retorno à primeira página.
+Filtro por caminhão utiliza o UUID real ao clicar na placa; limpar, F5 e
+navegação anterior/próxima do navegador foram conferidos contra a API.
 Os resultados estruturados estão em [results.json](results.json) e [states.json](states.json).
 
-`CONFIRMADO`: frontend completo: 740 testes/87 arquivos, ESLint, TypeScript e
-build aprovados; npm audit sem vulnerabilidades. Resultados finais de backend,
-coverage, segurança e SonarCloud ficam na PR para corresponder ao SHA validado.
+`CONFIRMADO`: frontend completo: 741 testes/87 arquivos, ESLint, TypeScript e
+build aprovados; npm audit sem vulnerabilidades. Resultados finais de backend: 2.176 testes aprovados, cobertura 94%, Ruff e Alembic aprovados.
+Segurança e SonarCloud ficam na PR para corresponder ao SHA validado.
 
 `PENDENTE DE DEFINIÇÃO`: salvar seleções anteriores ao cálculo exige contrato
 próprio (usuário, autorização, validade, minimização de dados). Nesta entrega,
