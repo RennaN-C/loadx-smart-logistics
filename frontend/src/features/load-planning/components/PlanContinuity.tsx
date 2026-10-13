@@ -37,13 +37,13 @@ export function PlanContinuity({ planId, canManage }: {
       if (active) setData(result);
     }).catch(() => { if (active) setFailed(true); });
     return () => { active = false; };
-  }, [planId, attempt]);
+  }, [planId, canManage, attempt]);
 
   if (failed) return <div className="plan-continuity">
     <AlertBanner>Não foi possível consultar a continuidade deste plano. Nenhuma operação foi criada.</AlertBanner>
     <button className="btn-secondary" type="button" onClick={() => setAttempt((value) => value + 1)}>Tentar novamente</button>
   </div>;
-  if (!data) return <p className="entity-state" role="status">Consultando carregamento e viagem…</p>;
+  if (!data) return <output className="entity-state">Consultando carregamento e viagem…</output>;
   return <section className="plan-continuity" aria-label="Continuidade da operação">
     <h3>{data.trip?.status === "FINISHED" ? "Operação concluída" : "Próxima etapa"}</h3>
     <p className="entity-form-help">O plano está aprovado. Carregamento e viagem têm estados próprios; concluir a conferência libera o início da viagem.</p>

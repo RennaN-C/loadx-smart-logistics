@@ -29,6 +29,27 @@ function PlanHistoryRow({ plan }: { readonly plan: LoadPlanListItem }) {
   </li>;
 }
 
+function PlanHistoryContent({ failed, result, page, retry, onPage }: {
+  readonly failed: boolean;
+  readonly result: Page<LoadPlanListItem> | null;
+  readonly page: number;
+  readonly retry: () => void;
+  readonly onPage: (page: number) => void;
+}) {
+  if (failed) return <div className="plan-builder-feedback">
+    <AlertBanner>Não foi possível consultar os planos. Seus registros persistidos continuam no servidor.</AlertBanner>
+    <button className="btn-secondary" type="button" onClick={retry}>Tentar novamente</button>
+  </div>;
+  if (!result) return <output className="entity-state"><span className="spinner" aria-hidden="true" />Carregando planos…</output>;
+  return <>
+          <p className="entity-form-help">{result.total} plano(s) encontrado(s) · página {result.page}</p>
+          {result.items.length === 0 ? <div className="plan-history-empty"><h3>Nenhum plano nesta consulta</h3><p>Altere os filtros ou a página. Um novo planejamento só será salvo após calcular.</p></div>
+            : <ul className="plan-history-list">{result.items.map((plan) => <PlanHistoryRow key={plan.id} plan={plan} />)}</ul>}
+          {result.items.length === 0 && page > 1 ? <button className="btn-secondary" type="button" onClick={() => onPage(1)}>Voltar à primeira página</button> : null}
+          <Pagination page={result.page} totalPages={result.totalPages} onChange={onPage} label="planos" />
+        </>;
+}
+
 export function PlanHistory({ checker }: { readonly checker: boolean }) {
   const [params, setParams] = useSearchParams();
   const rawPage = Number(params.get("page") ?? 1);
@@ -68,14 +89,7 @@ export function PlanHistory({ checker }: { readonly checker: boolean }) {
         </select></label>
       </div>
     </div>
-    {failed ? <div className="plan-builder-feedback"><AlertBanner>Não foi possível consultar os planos. Seus registros persistidos continuam no servidor.</AlertBanner><button className="btn-secondary" type="button" onClick={() => setAttempt((value) => value + 1)}>Tentar novamente</button></div>
-      : !result ? <p className="entity-state" role="status"><span className="spinner" aria-hidden="true" />Carregando planos…</p>
-        : <>
-          <p className="entity-form-help">{result.total} plano(s) encontrado(s) · página {result.page}</p>
-          {result.items.length === 0 ? <div className="plan-history-empty"><h3>Nenhum plano nesta consulta</h3><p>Altere os filtros ou a página. Um novo planejamento só será salvo após calcular.</p></div>
-            : <ul className="plan-history-list">{result.items.map((plan) => <PlanHistoryRow key={plan.id} plan={plan} />)}</ul>}
-          {result.items.length === 0 && page > 1 ? <button className="btn-secondary" type="button" onClick={() => change("page", "1")}>Voltar à primeira página</button> : null}
-          <Pagination page={result.page} totalPages={result.totalPages} onChange={(value) => change("page", String(value))} label="planos" />
-        </>}
+    <PlanHistoryContent failed={failed} result={result} page={page}
+      retry={() => setAttempt((value) => value + 1)} onPage={(value) => change("page", String(value))} />
   </section>;
 }

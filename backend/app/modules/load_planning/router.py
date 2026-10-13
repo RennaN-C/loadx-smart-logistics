@@ -201,7 +201,6 @@ def _calculation_error_response(error: Exception) -> JSONResponse | None:
 
 @router.get(
     "",
-    response_model=PageResponse[LoadPlanListRead],
     responses=openapi_error_responses(401, 403, 422),
 )
 def list_load_plans(

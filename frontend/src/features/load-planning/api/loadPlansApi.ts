@@ -1,9 +1,10 @@
 import { mapPageFromDto, toPageQuery, type ListParams, type PageDto } from "../../../services/pagination";
 import type { Page } from "../../../types/api";
-import type { LoadPlanListItem, LoadPlanContinuity } from "../types";
 import { api } from "../../../services/api";
 import type {
   LoadPlan,
+  LoadPlanListItem,
+  LoadPlanContinuity,
   LoadPlanInput,
   LoadPlanItem,
   LoadPlanStatus,

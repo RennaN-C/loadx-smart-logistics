@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { type ComponentProps, lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { AlertBanner } from "../../../components/AlertBanner";
@@ -34,13 +34,80 @@ const PLAN_TABS: readonly TabItem<PlanTab>[] = [
   { id: "scene", label: "Visualização 3D" },
 ];
 
+function PlanningHeader({ plan, canManage, canDownload }: {
+  readonly plan: LoadPlan | null;
+  readonly canManage: boolean;
+  readonly canDownload: boolean;
+}) {
+  return <header className="entity-header">
+    <div><h1>Planejamento de carga</h1><p className="entity-lede">Retome planos salvos ou prepare uma nova carga.</p></div>
+    {plan ? <div className="entity-toolbar">
+      {canDownload ? <ReportDownloadButton label="Relatório de carregamento"
+        filename={`relatorio-carregamento-${plan.id}.pdf`} download={() => downloadLoadingReport(plan.id)} /> : null}
+      {canManage ? <Link className="btn-secondary" to="/planning?tab=new">Novo plano</Link> : null}
+    </div> : null}
+  </header>;
+}
+
+function PlanningFeedback({ error, loading, hasPlanId, hasPlan, retry }: {
+  readonly error: string | null;
+  readonly loading: boolean;
+  readonly hasPlanId: boolean;
+  readonly hasPlan: boolean;
+  readonly retry: () => void;
+}) {
+  return <>
+    {error ? <AlertBanner>{error}</AlertBanner> : null}
+    {error && hasPlanId && !hasPlan && !loading ? <button className="btn-secondary" type="button" onClick={retry}>Tentar novamente</button> : null}
+    {loading ? <output className="entity-state"><span className="spinner" aria-hidden="true" /><span>Carregando plano…</span></output> : null}
+  </>;
+}
+
+function PlanningWorkspace({ isNew, canManage, checker, onCalculated }: {
+  readonly isNew: boolean;
+  readonly canManage: boolean;
+  readonly checker: boolean;
+  readonly onCalculated: (plan: LoadPlan) => void;
+}) {
+  const showBuilder = isNew && canManage;
+  return <>
+    <nav className="plan-workspace-nav" aria-label="Área de planejamento">
+      <Link to="/planning" aria-current={!showBuilder ? "page" : undefined}>Planos existentes</Link>
+      {canManage ? <Link to="/planning?tab=new" aria-current={showBuilder ? "page" : undefined}>Novo planejamento</Link> : null}
+    </nav>
+    {showBuilder ? <><p className="entity-form-help">Seleções ainda não calculadas são rascunhos desta tela. O plano será salvo somente ao calcular (até 200 volumes).</p><PlanBuilder onCalculated={onCalculated} /></>
+      : <PlanHistory checker={checker} />}
+  </>;
+}
+
+interface PlanningResultProps extends ComponentProps<typeof PlanSummary> {
+  readonly tab: PlanTab;
+  readonly onTabChange: (tab: PlanTab) => void;
+}
+
+function PlanningResult({ plan, canManage, isWorking, onApprove, onRecalculate, tab, onTabChange }: PlanningResultProps) {
+  return <>
+    <p className="entity-form-help">Plano {plan.id.slice(0, 8)} salvo. <Link to={`/planning/${plan.id}`}>Abrir este plano</Link> ou reencontre em <Link to="/planning">Planos existentes</Link>.</p>
+    <PlanSummary plan={plan} canManage={canManage} isWorking={isWorking} onApprove={onApprove} onRecalculate={onRecalculate} />
+    <Tabs items={PLAN_TABS} active={tab} onChange={onTabChange} label="Formato do resultado" />
+    <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
+      {tab === "summary" ? <PlanItemsTable items={plan.items} /> :
+        <Suspense fallback={<p className="entity-state"><span className="spinner" aria-hidden="true" /><span>Carregando visualização 3D…</span></p>}>
+          <LoadViewer planId={plan.id} plan={plan} />
+        </Suspense>}
+    </div>
+    {canManage ? <AuditTrail entityType="LOAD_PLAN" entityId={plan.id} title="Histórico do plano" /> : null}
+  </>;
+}
+
 export function PlanningPage() {
   const { planId } = useParams<{ planId: string }>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const isNew = searchParams.get("tab") === "new";
   const { user } = useAuth();
-  const podeBaixarRelatorio = canReadReports(user?.role);
+  const canDownload = canReadReports(user?.role);
+  const canRead = user?.active === true && ["ADMIN", "LOGISTICS_MANAGER", "CHECKER"].includes(user.role);
 
   const [storedPlan, setPlan] = useState<LoadPlan | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -71,7 +138,7 @@ export function PlanningPage() {
     setPlan(null);
     setIsWorking(false);
     setErrorMessage(null);
-    if (!planId || !user?.active || !["ADMIN", "LOGISTICS_MANAGER", "CHECKER"].includes(user.role)) {
+    if (!planId || !canRead) {
       setIsLoading(false);
       return;
     }
@@ -94,7 +161,7 @@ export function PlanningPage() {
     return () => {
       active = false;
     };
-  }, [planId, user?.role, user?.active, loadAttempt]);
+  }, [planId, canRead, user?.role, loadAttempt]);
 
   const handleCalculated = useCallback(
     (created: LoadPlan) => {
@@ -127,90 +194,19 @@ export function PlanningPage() {
     }
   }
 
-  if (!user?.active || !["ADMIN", "LOGISTICS_MANAGER", "CHECKER"].includes(user.role)) {
+  if (!canRead) {
     return <div className="entity-page"><h1>Planejamento de carga</h1><AlertBanner>Seu perfil não tem acesso ao planejamento.</AlertBanner><Link to="/">Voltar ao início</Link></div>;
   }
 
-  return (
-    <div className="entity-page">
-      <nav className="entity-toolbar entity-page-nav" aria-label="Caminhos do planejamento">
-        <Link to="/">Voltar ao início</Link>
-        {user?.role !== "DRIVER" ? <Link to="/orders">Voltar aos pedidos</Link> : null}
-        {planId && user?.role !== "DRIVER" ? <Link to="/planning">Voltar ao planejamento</Link> : null}
-      </nav>
-      <header className="entity-header">
-        <div>
-          <h1>Planejamento de carga</h1>
-          <p className="entity-lede">Retome planos salvos ou prepare uma nova carga.</p>
-        </div>
-        {plan ? (
-          <div className="entity-toolbar">
-            {podeBaixarRelatorio ? (
-              <ReportDownloadButton
-                label="Relatório de carregamento"
-                filename={`relatorio-carregamento-${plan.id}.pdf`}
-                download={() => downloadLoadingReport(plan.id)}
-              />
-            ) : null}
-            {canManage ? <button type="button" className="btn-secondary" onClick={() => navigate("/planning?tab=new")}>Novo plano</button> : null}
-          </div>
-        ) : null}
-      </header>
-
-      {errorMessage ? <AlertBanner>{errorMessage}</AlertBanner> : null}
-      {errorMessage && planId && !plan && !isLoading ? <button className="btn-secondary" type="button" onClick={() => setLoadAttempt((value) => value + 1)}>Tentar novamente</button> : null}
-
-      {isLoading ? (
-        <p className="entity-state">
-          <span className="spinner" aria-hidden="true" />
-          <span>Carregando plano…</span>
-        </p>
-      ) : null}
-
-      {!planId && !isLoading ? <>
-        <nav className="plan-workspace-nav" aria-label="Área de planejamento">
-          <Link to="/planning" aria-current={!isNew ? "page" : undefined}>Planos existentes</Link>
-          {canManage ? <Link to="/planning?tab=new" aria-current={isNew ? "page" : undefined}>Novo planejamento</Link> : null}
-        </nav>
-        {isNew && canManage ? <><p className="entity-form-help">Seleções ainda não calculadas são rascunhos desta tela. O plano será salvo somente ao calcular (até 200 volumes).</p><PlanBuilder onCalculated={handleCalculated} /></>
-          : <PlanHistory checker={user?.role === "CHECKER"} />}
-      </> : null}
-
-      {plan && !isLoading ? (
-        <>
-          <p className="entity-form-help">Plano {plan.id.slice(0, 8)} salvo. <Link to={`/planning/${plan.id}`}>Abrir este plano</Link> ou reencontre em <Link to="/planning">Planos existentes</Link>.</p>
-          <PlanSummary
-            plan={plan}
-            canManage={canManage}
-            isWorking={isWorking}
-            onApprove={() => void runAction(approveLoadPlan)}
-            onRecalculate={() => void runAction(recalculateLoadPlan)}
-          />
-
-          <Tabs items={PLAN_TABS} active={tab} onChange={setTab} label="Formato do resultado" />
-
-          <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
-            {tab === "summary" ? (
-              <PlanItemsTable items={plan.items} />
-            ) : (
-              <Suspense
-                fallback={
-                  <p className="entity-state">
-                    <span className="spinner" aria-hidden="true" />
-                    <span>Carregando visualização 3D…</span>
-                  </p>
-                }
-              >
-                <LoadViewer planId={plan.id} plan={plan} />
-              </Suspense>
-            )}
-          </div>
-
-          {user?.role === "ADMIN" || user?.role === "LOGISTICS_MANAGER" ? (
-            <AuditTrail entityType="LOAD_PLAN" entityId={plan.id} title="Histórico do plano" />
-          ) : null}
-        </>
-      ) : null}
-    </div>
-  );
+  return <div className="entity-page">
+    <nav className="entity-toolbar entity-page-nav" aria-label="Caminhos do planejamento">
+      <Link to="/">Voltar ao início</Link><Link to="/orders">Voltar aos pedidos</Link>
+      {planId ? <Link to="/planning">Voltar ao planejamento</Link> : null}
+    </nav>
+    <PlanningHeader plan={plan} canManage={canManage} canDownload={canDownload} />
+    <PlanningFeedback error={errorMessage} loading={isLoading} hasPlanId={Boolean(planId)} hasPlan={Boolean(plan)} retry={() => setLoadAttempt((value) => value + 1)} />
+    {!planId && !isLoading ? <PlanningWorkspace isNew={isNew} canManage={canManage} checker={user?.role === "CHECKER"} onCalculated={handleCalculated} /> : null}
+    {plan && !isLoading ? <PlanningResult plan={plan} canManage={canManage} isWorking={isWorking}
+      onApprove={() => void runAction(approveLoadPlan)} onRecalculate={() => void runAction(recalculateLoadPlan)} tab={tab} onTabChange={setTab} /> : null}
+  </div>;
 }
