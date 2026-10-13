@@ -84,3 +84,7 @@ RFC e janela/antirreplay/budget. Não usa SHA-1 para senha, token ou código de
 recuperação. Ataques de colisão a SHA-1 não permitem forjar esse MAC com chave
 secreta; vetores oficiais verificam a construção. Não há supressão do scanner
 ou alteração das regras de segurança para aceitar hash fraco.
+
+`CONFIRMADO`: o evento de consumo de código de recuperação só é emitido após
+commit. Falha/rollback de auditoria ou atualização não declara consumo que não
+ocorreu; testes verificam simultaneamente estado PostgreSQL e logs.

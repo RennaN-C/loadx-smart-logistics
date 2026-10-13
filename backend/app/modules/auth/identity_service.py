@@ -69,6 +69,7 @@ class IdentityService:
         default_key = configured_key.get_secret_value() if configured_key else None
         self.key = key if key is not None else default_key
         self.now = now_provider or (lambda: datetime.now(UTC))
+        self.recovery_used: str | None = None
         self.repo = IdentityRepository(db)
         self.users = UserService(db)
         self.sessions = AuthSessionService(db, now_provider=self.now)
@@ -178,12 +179,14 @@ class IdentityService:
         )
         if codes:
             emit_security_event(SecurityEvent.MFA_CONFIGURED, user_id=str(user.id))
+        self.emit_committed_security_events()
         emit_security_event(SecurityEvent.MFA_VALIDATED, user_id=str(user.id))
         return MfaCompletion(user, session, codes)
 
     def _verify(
         self, factor: AuthFactor, user: User, code: str, *, allow_recovery: bool = True
     ) -> bool:
+        self.recovery_used = None
         if factor.encrypted_secret:
             secret = decrypt_secret(factor.encrypted_secret, self.key)
             step = matching_step(
@@ -196,9 +199,7 @@ class IdentityService:
             recovery = self.repo.recovery(user.id, digest(code))
             if recovery is not None and recovery.consumed_at is None:
                 recovery.consumed_at = self.now()
-                emit_security_event(
-                    SecurityEvent.MFA_RECOVERY_USED, alert=True, user_id=str(user.id)
-                )
+                self.recovery_used = str(user.id)
                 return True
         return False
 
@@ -219,7 +220,7 @@ class IdentityService:
     ) -> tuple[User, AuthFactor]:
         # Management mutations always use user -> throttles -> factor/session.
         # Profile changes may already hold the user lock; never reverse that order.
-        user = AccountService(self.db)._lock_account(current)
+        user = AccountService(self.db, now_provider=self.now)._lock_account(current)
         self.throttle.ensure_login_allowed(
             MANAGE_SCOPE + str(current.user.id), MANAGE_SCOPE + client_ip
         )
@@ -250,6 +251,7 @@ class IdentityService:
             codes = self._codes(user)
             self._audit(user, "mfa_recovery_codes")
             self.db.commit()
+            self.emit_committed_security_events()
             emit_security_event(
                 SecurityEvent.MFA_CODES_REGENERATED, user_id=str(user.id)
             )
@@ -262,6 +264,7 @@ class IdentityService:
             self.sessions.stage_revoke_all_for_user(user.id)
             self._audit(user, "mfa_disabled")
             self.db.commit()
+            self.emit_committed_security_events()
             emit_security_event(
                 SecurityEvent.MFA_DISABLED, alert=True, user_id=str(user.id)
             )
@@ -286,6 +289,14 @@ class IdentityService:
         self._reauth(current, password, code, client_ip)
         self.repo.invalidate_resets(current.user.id, self.now())
         # Caller commits factor replay protection and profile change together.
+
+    def emit_committed_security_events(self) -> None:
+        """Emit recovery consumption only after its owning transaction commits."""
+        if self.recovery_used is not None:
+            emit_security_event(
+                SecurityEvent.MFA_RECOVERY_USED, alert=True, user_id=self.recovery_used
+            )
+            self.recovery_used = None
 
     def _audit(self, user: User, field: str) -> None:
         AuditService(self.db).stage_administrative_event(

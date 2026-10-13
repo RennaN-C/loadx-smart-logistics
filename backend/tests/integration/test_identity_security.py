@@ -482,3 +482,30 @@ def test_account_identity_change_invalidates_existing_reset(session_factory, cha
         UserService(db).update_user(user.id, UserUpdate(**change))
         with pytest.raises(ApiError):
             recovery.confirm(token, NEW_PASSWORD, "identity-change")
+
+
+def test_recovery_code_audit_does_not_claim_consumption_on_rollback(
+    session_factory, monkeypatch, caplog
+):
+    from app.modules.status_history.service import AuditService
+
+    user = account(session_factory)
+    _, first = enrollment(session_factory, user)
+    with session_factory() as db:
+        service = IdentityService(db, now_provider=lambda: NOW)
+        current = service.sessions.resolve_session(first.session.token)
+
+        def fail(*args, **kwargs):
+            raise RuntimeError("audit unavailable")
+
+        monkeypatch.setattr(AuditService, "stage_administrative_event", fail)
+        caplog.clear()
+        with pytest.raises(RuntimeError):
+            service.manage(
+                current, PASSWORD, first.recovery_codes[0], "regenerate", "origin"
+            )
+        db.rollback()
+        assert all(
+            code.consumed_at is None for code in db.scalars(select(AuthRecoveryCode))
+        )
+        assert "AUTH_MFA_RECOVERY_USED" not in caplog.text

@@ -1,5 +1,7 @@
 import logging
 import uuid
+from collections.abc import Callable
+from datetime import datetime
 
 from sqlalchemy.orm import Session
 
@@ -26,11 +28,13 @@ class OwnSessionNotFoundError(Exception):
 
 
 class AccountService:
-    def __init__(self, db: Session) -> None:
+    def __init__(
+        self, db: Session, *, now_provider: Callable[[], datetime] | None = None
+    ) -> None:
         self.db = db
         self.users = UserService(db)
-        self.sessions = AuthSessionService(db)
-        self.throttle = LoginThrottleService(db)
+        self.sessions = AuthSessionService(db, now_provider=now_provider)
+        self.throttle = LoginThrottleService(db, now_provider=now_provider)
 
     def _lock_account(self, current: ResolvedAuthSession) -> User:
         user = self.users.lock_account(current.user.id)
@@ -54,10 +58,11 @@ class AccountService:
         from app.modules.auth.identity_repository import IdentityRepository
         from app.modules.auth.identity_service import IdentityService
 
+        identity = IdentityService(self.db)
         factor = IdentityRepository(self.db).find_factor(user.id)
         if data.email != user.email:
             if factor and factor.enabled:
-                IdentityService(self.db).confirm_email_change(
+                identity.confirm_email_change(
                     current,
                     data.current_password or "",
                     data.second_factor or "",
@@ -73,6 +78,7 @@ class AccountService:
             ),
             actor_id=user.id,
         )
+        identity.emit_committed_security_events()
         emit_security_event(SecurityEvent.OWN_PROFILE_UPDATED, user_id=str(user.id))
         return result
 
