@@ -148,6 +148,14 @@ EXPECTED_ERROR_STATUSES = {
         "422",
         "500",
     },
+    ("/api/v1/load-plans", "get"): {"401", "403", "422", "500"},
+    ("/api/v1/load-plans/{load_plan_id}/continuity", "get"): {
+        "401",
+        "403",
+        "404",
+        "422",
+        "500",
+    },
     ("/api/v1/load-plans", "post"): {
         "401",
         "403",
@@ -522,6 +530,7 @@ def test_openapi_declares_all_public_decimal_fields_as_numbers() -> None:
         "PlacedLoadPlanItemRead": ("weight_kg",),
         "UnloadedLoadPlanItemRead": ("weight_kg",),
         "LoadPlanRead": ("occupancy_percent", "total_weight_kg"),
+        "LoadPlanListRead": ("occupancy_percent", "total_weight_kg"),
         "TruckComparisonRead": ("occupancy_percent", "total_weight_kg"),
         "TruckSnapshotRead": ("max_weight_kg",),
     }

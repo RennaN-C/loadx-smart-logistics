@@ -1,6 +1,5 @@
 import { StatusPill } from "../../../components/StatusPill";
-import { CreateTripAction } from "../../deliveries/components/CreateTripAction";
-import { StartLoadingAction } from "../../loading-operation/components/StartLoadingAction";
+import { PlanContinuity } from "./PlanContinuity";
 import type { LoadPlan } from "../types";
 import { PLAN_STATUS_LABELS, planStatusTone } from "./loadPlanLabels";
 
@@ -63,16 +62,7 @@ export function PlanSummary({ plan, canManage, isWorking, onApprove, onRecalcula
         <div className="plan-occupancy-fill" style={{ width: `${Math.min(plan.occupancyPercent, 100)}%` }} />
       </div>
 
-      {canManage && plan.status === "APPROVED" ? (
-        <div className="entity-form-actions">
-          {/* O plano aprovado e a unica porta de entrada para as duas etapas
-              seguintes: conferir o carregamento (OC32/OC75) e criar a viagem
-              (OC34). A viagem so sai depois do carregamento concluido, e o
-              backend confere esse vinculo. */}
-          <StartLoadingAction loadPlanId={plan.id} />
-          <CreateTripAction loadPlanId={plan.id} />
-        </div>
-      ) : null}
+      {plan.status === "APPROVED" ? <PlanContinuity key={plan.id} planId={plan.id} canManage={canManage} /> : null}
 
       {canManage && plan.status !== "APPROVED" ? (
         <div className="entity-form-actions">

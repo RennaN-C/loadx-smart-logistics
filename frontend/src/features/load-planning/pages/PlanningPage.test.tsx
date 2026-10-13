@@ -8,7 +8,7 @@ import { useAuth } from "../../auth/hooks/useAuth";
 import { listCustomers } from "../../customers/api/customersApi";
 import { listOrders } from "../../orders/api/ordersApi";
 import { listTruckOperationalStatus, listTrucks } from "../../trucks/api/trucksApi";
-import { approveLoadPlan, createLoadPlan, getLoadPlan, recalculateLoadPlan } from "../api/loadPlansApi";
+import { approveLoadPlan, createLoadPlan, getLoadPlan, getLoadPlanContinuity, listLoadPlans, recalculateLoadPlan } from "../api/loadPlansApi";
 import type { LoadPlan, LoadPlanItem } from "../types";
 import { PlanningPage } from "./PlanningPage";
 
@@ -92,7 +92,7 @@ function makePlan(overrides: Partial<LoadPlan> = {}): LoadPlan {
   };
 }
 
-function mockRole(role: "LOGISTICS_MANAGER" | "CHECKER") {
+function mockRole(role: "ADMIN" | "LOGISTICS_MANAGER" | "CHECKER" | "DRIVER") {
   vi.mocked(useAuth).mockReturnValue({
     status: "authenticated",
     user: {
@@ -111,7 +111,7 @@ function mockRole(role: "LOGISTICS_MANAGER" | "CHECKER") {
 
 function renderAt(path: string) {
   return render(
-    <MemoryRouter initialEntries={[path]}>
+    <MemoryRouter initialEntries={[path === "/planning" ? "/planning?tab=new" : path]}>
       <Routes>
         <Route path="/planning" element={<PlanningPage />} />
         <Route path="/planning/:planId" element={<PlanningPage />} />
@@ -124,6 +124,8 @@ describe("PlanningPage", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     mockRole("LOGISTICS_MANAGER");
+    vi.mocked(listLoadPlans).mockResolvedValue(makePage([]));
+    vi.mocked(getLoadPlanContinuity).mockResolvedValue({ loading_session: null, trip: null, operational_ready: true });
     vi.mocked(listTrucks).mockResolvedValue(
       makePage([
         {
@@ -475,10 +477,10 @@ describe("PlanningPage", () => {
 
   it("esconde as ações para quem só lê", async () => {
     mockRole("CHECKER");
-    vi.mocked(getLoadPlan).mockResolvedValue(makePlan());
+    vi.mocked(getLoadPlan).mockResolvedValue(makePlan({ status: "APPROVED" }));
 
     renderAt("/planning/lp1");
-    await screen.findByText("Calculado");
+    await screen.findByText("Aprovado");
 
     expect(screen.queryByRole("button", { name: "Aprovar plano" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Recalcular" })).not.toBeInTheDocument();
@@ -561,7 +563,7 @@ describe("PlanningPage", () => {
   it("cálculo concluído após sair não força reentrada no planejamento", async () => {
     let complete!: (plan: LoadPlan) => void;
     vi.mocked(createLoadPlan).mockImplementation(() => new Promise((resolve) => { complete = resolve; }));
-    render(<MemoryRouter initialEntries={["/planning"]}>
+    render(<MemoryRouter initialEntries={["/planning?tab=new"]}>
       <Link to="/orders">Sair da operação</Link>
       <Routes>
         <Route path="/planning" element={<PlanningPage />} />
@@ -592,4 +594,41 @@ it("OC100 remove caminhão em manutenção da seleção de planejamento", async 
   renderAt("/planning");
   await screen.findByLabelText("CAMINHÃO");
   expect(screen.queryByRole("option", { name: /ABC1D23/ })).not.toBeInTheDocument();
+});
+
+
+describe("PlanningPage — entrada e autorização da retomada", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    vi.mocked(listLoadPlans).mockResolvedValue(makePage([]));
+  });
+  it.each(["ADMIN", "LOGISTICS_MANAGER", "CHECKER"] as const)("%s entra na listagem sem criar plano", async (role) => {
+    mockRole(role);
+    render(<MemoryRouter initialEntries={["/planning"]}><PlanningPage /></MemoryRouter>);
+    await screen.findByText("Nenhum plano nesta consulta");
+    expect(createLoadPlan).not.toHaveBeenCalled();
+    expect(listTrucks).not.toHaveBeenCalled();
+    expect(screen.queryByLabelText("CAMINHÃO")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Novo planejamento" }) !== null).toBe(role !== "CHECKER");
+  });
+  it("DRIVER não consulta lista global nem detalhe mesmo por URL", () => {
+    mockRole("DRIVER");
+    renderAt("/planning/lp1");
+    expect(screen.getByRole("alert")).toHaveTextContent("não tem acesso");
+    expect(listLoadPlans).not.toHaveBeenCalled();
+    expect(getLoadPlan).not.toHaveBeenCalled();
+  });
+});
+
+
+it("permite retentar o detalhe persistido sem criar nem recalcular", async () => {
+  vi.resetAllMocks();
+  mockRole("LOGISTICS_MANAGER");
+  vi.mocked(getLoadPlan).mockRejectedValueOnce(new ApiError("NETWORK_ERROR", "Falha de rede")).mockResolvedValue(makePlan());
+  renderAt("/planning/lp1");
+  fireEvent.click(await screen.findByRole("button", { name: "Tentar novamente" }));
+  expect(await screen.findByText("Resultado do cálculo")).toBeInTheDocument();
+  expect(getLoadPlan).toHaveBeenCalledTimes(2);
+  expect(createLoadPlan).not.toHaveBeenCalled();
+  expect(recalculateLoadPlan).not.toHaveBeenCalled();
 });

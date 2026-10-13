@@ -113,3 +113,14 @@ Estado da OC22: concluída.
 `CONFIRMADO`: [contrato de distribuição](distributions.md), necessidade completa,
 aprovação por partes, claims de identidade e API para OC88/OC89/OC90.
 O caminho de um caminhão e a engine física permanecem compatíveis.
+
+## Recuperação de planejamentos — #208
+
+`CONFIRMADO`: GET /load-plans utiliza PageResponse, filtros status/truck_id e
+ordenação created_at/id. Repository projeta somente colunas necessárias e
+contagem de pedidos, sem carregar volumes. Service aplica o recorte APPROVED
+para CHECKER antes da paginação; router mantém a autorização de leitura atual.
+GET /{id}/continuity consulta interfaces públicas de carregamento/entrega e
+compatibilidade operacional, sem escrita ou exposição de viagem ao conferente.
+Contratos detalhados em docs/05-contratos-api.md. Sem alteração de schema,
+engine, snapshots, aprovação, histórico ou estados. Head permanece 20261009_0023.
