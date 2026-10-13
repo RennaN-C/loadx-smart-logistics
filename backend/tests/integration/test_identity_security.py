@@ -342,11 +342,13 @@ def test_concurrent_consumption_has_exactly_one_winner(postgres_engine, kind):
     from sqlalchemy import delete
     from sqlalchemy.orm import Session
 
+    from app.modules.auth.models import AuthLoginThrottle
     from app.modules.auth.throttling import AuthRateLimitedError
     from app.modules.status_history.models import AuditEvent
     from app.modules.users.models import User
 
     with Session(postgres_engine) as db:
+        prior_throttle_ids = set(db.scalars(select(AuthLoginThrottle.id)))
         user = UserService(db).create_user(
             UserCreate(
                 name="Concorrência fictícia",
@@ -401,6 +403,11 @@ def test_concurrent_consumption_has_exactly_one_winner(postgres_engine, kind):
         with Session(postgres_engine) as db:
             db.execute(delete(AuditEvent).where(AuditEvent.entity_id == user_id))
             db.execute(delete(User).where(User.id == user_id))
+            db.execute(
+                delete(AuthLoginThrottle).where(
+                    AuthLoginThrottle.id.not_in(prior_throttle_ids)
+                )
+            )
             db.commit()
 
 
@@ -518,13 +525,28 @@ def test_only_completed_mfa_resets_authentication_failure_budgets(session_factor
     user = account(session_factory)
     with session_factory() as db:
         throttle = LoginThrottleService(db, now_provider=lambda: NOW)
+        subjects = [
+            throttle.hash_subject("ACCOUNT", user.email),
+            throttle.hash_subject("IP", "origin"),
+        ]
+        unrelated = [
+            throttle.hash_subject("ACCOUNT", "other-budget@example.test"),
+            throttle.hash_subject("IP", "other-budget-origin"),
+        ]
+        throttle.record_failed_login("other-budget@example.test", "other-budget-origin")
         for _ in range(4):
             throttle.record_failed_login(user.email, "origin")
         identity = IdentityService(db, now_provider=lambda: NOW)
         challenge = identity.begin(user, expected_hash=user.password_hash)
-        assert all(
-            row.failed_count == 4 for row in db.scalars(select(AuthLoginThrottle))
+        rows = list(
+            db.scalars(
+                select(AuthLoginThrottle).where(
+                    AuthLoginThrottle.subject_hash.in_(subjects)
+                )
+            )
         )
+        assert len(rows) == 2
+        assert all(row.failed_count == 4 for row in rows)
         uri = identity.setup(challenge.challenge_token, "origin")
         secret = parse_qs(urlsplit(uri).query)["secret"][0]
         identity.complete(
@@ -532,4 +554,22 @@ def test_only_completed_mfa_resets_authentication_failure_budgets(session_factor
             totp_code(secret, int(NOW.timestamp()) // 30),
             "origin",
         )
-        assert list(db.scalars(select(AuthLoginThrottle))) == []
+        assert (
+            list(
+                db.scalars(
+                    select(AuthLoginThrottle).where(
+                        AuthLoginThrottle.subject_hash.in_(subjects)
+                    )
+                )
+            )
+            == []
+        )
+        foreign_rows = list(
+            db.scalars(
+                select(AuthLoginThrottle).where(
+                    AuthLoginThrottle.subject_hash.in_(unrelated)
+                )
+            )
+        )
+        assert len(foreign_rows) == 2
+        assert all(row.failed_count == 1 for row in foreign_rows)
