@@ -49,6 +49,8 @@ def totp_code(secret: str, step: int, digits: int = 6) -> str:
 def matching_step(
     secret: str, code: str, timestamp: float, last_step: int
 ) -> int | None:
+    if not code.isascii():
+        return None
     step = int(timestamp) // 30
     for candidate in (step, step - 1, step + 1):
         if (

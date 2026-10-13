@@ -35,6 +35,7 @@ def test_controlled_window_and_replay():
     assert matching_step(SECRET, code, 3030, 100) is None
     assert matching_step(SECRET, code, 3090, 99) is None
     assert matching_step(SECRET, "wrong!", 3000, -1) is None
+    assert matching_step(SECRET, "código inválido", 3000, -1) is None
 
 
 def test_authenticated_encryption_has_no_plaintext_fallback():

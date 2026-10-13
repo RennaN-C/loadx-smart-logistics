@@ -195,6 +195,8 @@ class IdentityService:
         self, factor: AuthFactor, user: User, code: str, *, allow_recovery: bool = True
     ) -> bool:
         self.recovery_used = None
+        if not code.isascii():
+            return False
         if factor.encrypted_secret:
             secret = decrypt_secret(factor.encrypted_secret, self.key)
             step = matching_step(
