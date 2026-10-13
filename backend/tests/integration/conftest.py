@@ -5,15 +5,16 @@ from collections.abc import Callable, Generator
 from pathlib import Path
 
 import pytest
-from app.core.config import settings
-from app.database.readiness import DatabaseReadinessChecker
-from app.database.session import get_db
-from app.main import app, get_readiness_checker
 from fastapi.testclient import TestClient
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.engine import URL, make_url
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import NullPool
+
+from app.core.config import settings
+from app.database.readiness import DatabaseReadinessChecker
+from app.database.session import get_db
+from app.main import app, get_readiness_checker
 
 SessionFactory = Callable[[], Session]
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
