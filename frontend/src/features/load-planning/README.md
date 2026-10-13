@@ -16,7 +16,8 @@ Tela de planejamento de carga (OC30). Consome `POST /load-plans`,
 ## Recuperação de planos (#208)
 
 `CONFIRMADO`: `/planning` abre **Planos existentes**, com resumos paginados do
-servidor, situação e ordenação. Query params `page`, `status`, `sort` preservam
+servidor, situação e ordenação. Clicar na placa filtra o caminhão no servidor, com ação para limpar o filtro.
+Query params `page`, `status`, `sort`, `truck` preservam
 consulta na navegação anterior/próxima e após F5. O detalhe permanece em
 `/planning/:planId`. O plano salvo é reencontrável após sair para Produtos ou
 entrar novamente; clicar no menu nunca calcula nem cria viagem.

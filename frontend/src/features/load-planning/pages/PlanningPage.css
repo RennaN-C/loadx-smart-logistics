@@ -324,3 +324,6 @@
   .plan-continuity .entity-form-actions { gap: 12px; }
   .plan-continuity .entity-form-actions > a, .plan-continuity .entity-form-actions > button { flex: 1 1 100%; justify-content: center; min-height: 44px; }
 }
+
+.plan-history-row a.plan-history-plate { color: var(--ink); font-weight: 700; }
+.plan-history-row a.plan-history-plate:hover { color: var(--accent-strong); }

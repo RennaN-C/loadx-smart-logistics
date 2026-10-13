@@ -73,3 +73,13 @@ describe("PlanHistory", () => {
     await waitFor(() => expect(screen.queryByText("STALE")).not.toBeInTheDocument());
   });
 });
+
+
+it("filtra planos pelo caminhao identificado na linha e permite limpar", async () => {
+  vi.mocked(listLoadPlans).mockResolvedValue(makePage([item]));
+  setup();
+  fireEvent.click(await screen.findByRole("link", { name: "Filtrar planos do caminhão ABC1D23" }));
+  await waitFor(() => expect(listLoadPlans).toHaveBeenLastCalledWith({ page: 1, status: undefined, sortOrder: "desc", truckId: "t1" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Limpar filtro de caminhão" }));
+  await waitFor(() => expect(listLoadPlans).toHaveBeenLastCalledWith({ page: 1, status: undefined, sortOrder: "desc" }));
+});

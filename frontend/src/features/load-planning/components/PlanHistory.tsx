@@ -14,7 +14,7 @@ const date = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "
 function PlanHistoryRow({ plan }: { readonly plan: LoadPlanListItem }) {
   return <li className="plan-history-row">
     <div className="plan-history-identification">
-      <span className="plan-history-plate">{plan.truckPlate}</span>
+      <Link className="plan-history-plate" to={`/planning?truck=${plan.truckId}`} aria-label={`Filtrar planos do caminhão ${plan.truckPlate}`}>{plan.truckPlate}</Link>
       <h3><Link to={`/planning/${plan.id}`}>Plano {plan.id.slice(0, 8)}</Link></h3>
       <p>{plan.truckModel}</p>
       <time dateTime={plan.createdAt}>{date.format(new Date(plan.createdAt))}</time>
@@ -54,6 +54,7 @@ export function PlanHistory({ checker }: { readonly checker: boolean }) {
   const [params, setParams] = useSearchParams();
   const rawPage = Number(params.get("page") ?? 1);
   const page = Number.isSafeInteger(rawPage) && rawPage > 0 ? rawPage : 1;
+  const truckId = params.get("truck") || undefined;
   const rawStatus = params.get("status");
   const status = ["CALCULATED", "APPROVED", "REJECTED"].includes(rawStatus ?? "") ? rawStatus as LoadPlanStatus : undefined;
   const sortOrder = params.get("sort") === "asc" ? "asc" : "desc";
@@ -64,11 +65,11 @@ export function PlanHistory({ checker }: { readonly checker: boolean }) {
     let active = true;
     setResult(null);
     setFailed(false);
-    listLoadPlans({ page, status, sortOrder }).then((data) => {
+    listLoadPlans({ page, status, sortOrder, ...(truckId ? { truckId } : {}) }).then((data) => {
       if (active) setResult(data);
     }).catch(() => { if (active) setFailed(true); });
     return () => { active = false; };
-  }, [page, status, sortOrder, checker, attempt]);
+  }, [page, status, sortOrder, truckId, checker, attempt]);
 
   function change(key: string, value: string) {
     const next = new URLSearchParams(params);
@@ -89,6 +90,7 @@ export function PlanHistory({ checker }: { readonly checker: boolean }) {
         </select></label>
       </div>
     </div>
+    {truckId ? <p className="entity-form-help">Filtro de caminhão ativo. <button type="button" className="btn-secondary" onClick={() => change("truck", "")}>Limpar filtro de caminhão</button></p> : null}
     <PlanHistoryContent failed={failed} result={result} page={page}
       retry={() => setAttempt((value) => value + 1)} onPage={(value) => change("page", String(value))} />
   </section>;
