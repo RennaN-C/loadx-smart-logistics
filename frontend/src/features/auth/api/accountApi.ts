@@ -10,7 +10,10 @@ export interface OwnSession {
   current: boolean;
 }
 export async function updateOwnProfile(name: string, email: string, identity?: { current_password: string; second_factor: string }) {
-  const { data } = await api.patch<UserDto>("/auth/me", { name, email, ...identity });
+  const confirmation: { current_password?: string; second_factor?: string } = {};
+  if (identity?.current_password) confirmation.current_password = identity.current_password;
+  if (identity?.second_factor) confirmation.second_factor = identity.second_factor;
+  const { data } = await api.patch<UserDto>("/auth/me", { name, email, ...confirmation });
   return mapUserFromDto(data);
 }
 export async function changeOwnPassword(current_password: string, new_password: string): Promise<void> {

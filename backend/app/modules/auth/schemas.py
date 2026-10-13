@@ -29,9 +29,14 @@ class AuthLogin(BaseModel):
 class OwnProfileUpdate(BaseModel):
     current_password: str | None = Field(default=None, min_length=1, max_length=128)
     second_factor: str | None = Field(default=None, min_length=6, max_length=64)
-    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    model_config = ConfigDict(extra="forbid")
     name: str = Field(min_length=1, max_length=120)
     email: str = Field(min_length=3, max_length=255, pattern=EMAIL_PATTERN)
+
+    @field_validator("name", "email", mode="before")
+    @classmethod
+    def trim_identity(cls, value: object) -> object:
+        return value.strip() if isinstance(value, str) else value
 
     @field_validator("email")
     @classmethod

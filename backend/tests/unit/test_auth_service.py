@@ -144,3 +144,17 @@ def test_login_rejects_inactive_user(db_session: Session) -> None:
         service.login(
             AuthLogin(email="admin@example.test", password="senha-local-segura")
         )
+
+
+def test_own_profile_preserves_password_spaces_during_reauthentication():
+    from app.modules.auth.schemas import OwnProfileUpdate
+
+    value = OwnProfileUpdate(
+        name=" Nome ",
+        email=" A@example.test ",
+        current_password=" senha-com-espacos ",
+        second_factor="123456",
+    )
+    assert value.name == "Nome"
+    assert value.email == "a@example.test"
+    assert value.current_password == " senha-com-espacos "
