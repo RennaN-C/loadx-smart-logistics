@@ -177,6 +177,12 @@ class IdentityService:
         session = self.sessions.create_session(
             user.id, expected_password_hash=user.password_hash
         )
+        # A password-only challenge cannot clear budgets. Clear them only after
+        # the full authentication commits, without reversing login's lock order.
+        self.throttle.reset_after_success(user.email, client_ip)
+        self.throttle.reset_after_success(
+            "mfa-account:" + str(user.id), "mfa:" + client_ip
+        )
         if codes:
             emit_security_event(SecurityEvent.MFA_CONFIGURED, user_id=str(user.id))
         self.emit_committed_security_events()

@@ -509,3 +509,27 @@ def test_recovery_code_audit_does_not_claim_consumption_on_rollback(
             code.consumed_at is None for code in db.scalars(select(AuthRecoveryCode))
         )
         assert "AUTH_MFA_RECOVERY_USED" not in caplog.text
+
+
+def test_only_completed_mfa_resets_authentication_failure_budgets(session_factory):
+    from app.modules.auth.models import AuthLoginThrottle
+    from app.modules.auth.throttling import LoginThrottleService
+
+    user = account(session_factory)
+    with session_factory() as db:
+        throttle = LoginThrottleService(db, now_provider=lambda: NOW)
+        for _ in range(4):
+            throttle.record_failed_login(user.email, "origin")
+        identity = IdentityService(db, now_provider=lambda: NOW)
+        challenge = identity.begin(user, expected_hash=user.password_hash)
+        assert all(
+            row.failed_count == 4 for row in db.scalars(select(AuthLoginThrottle))
+        )
+        uri = identity.setup(challenge.challenge_token, "origin")
+        secret = parse_qs(urlsplit(uri).query)["secret"][0]
+        identity.complete(
+            challenge.challenge_token,
+            totp_code(secret, int(NOW.timestamp()) // 30),
+            "origin",
+        )
+        assert list(db.scalars(select(AuthLoginThrottle))) == []
