@@ -211,7 +211,7 @@ há recuperação simulada por localStorage nem uma central operacional paralela
 | Clientes e motoristas | Menu Cadastros; `/contacts` e `/contacts?tab=drivers` | A aba fica na URL, incluindo F5 e anterior/próxima; o contador Motoristas abre a aba correta. |
 | Caminhões e produtos | Menu e cards dos respectivos cadastros | Listagens paginadas, filtros explícitos e edição contextual existentes. |
 | Pedidos | Dashboard/listagem `/orders`; card ou vínculo em plano/viagem → `/orders?order=<id>` | Detalhe somente leitura com endereço registrado, itens, histórico autorizado, erro/carregamento e retorno à lista; URL reabre com F5/acesso direto. |
-| Planejamento | Menu `/planning`; resultado da criação → `/planning/:planId` | Link permanente, retorno aos pedidos/planejamento/início; volumes vinculam ao pedido. Plano aprovado reabre pela URL. |
+| Planejamento | Menu `/planning` → Planos existentes ou Novo planejamento; resultado/listagem → `/planning/:planId` | Consulta paginada recupera planos após navegação/F5/login; detalhe mantém aprovação/recálculo autorizados e vínculos reais de carregamento/viagem. |
 | Carregamento | Ação existente no plano aprovado → `/loading/:sessionId` | Link permanente, retorno ao plano/início; conclusão orienta a gestão a criar viagem no plano. |
 | Viagem e entregas | Criação no plano; motorista encontra suas viagens no Dashboard → `/trips/:tripId` | Retorno às próprias viagens para DRIVER; gestão retorna ao plano e consulta pedidos das entregas. Histórico contextual para ADMIN/LOGISTICS_MANAGER. |
 | Relatórios e auditoria | Menu e contexto de plano/viagem | Downloads e filtros existentes; histórico respeita a autorização da API. |
@@ -234,20 +234,18 @@ menu, botões, abas e campos mantêm contorno sólido visível ao receber foco.
 
 ### Bloqueios que permanecem
 
-- `RISCO IDENTIFICADO`: sem listagem geral de planos na API, quem perde a URL
-  não consegue localizar todos os planos anteriores na tela `/planning`.
-  Links permanentes mitigam o problema; não o resolvem integralmente. Se a
-  requisição de cálculo terminar após sair da tela, o registro persistido
-  também exige a futura listagem para ser localizado sem conhecer a URL.
-- `PENDENTE DE DEFINIÇÃO`: busca/listagem geral de planos exige Issue própria,
-  contrato backend aprovado, documentação de RBAC e testes; não foi criada
-  API neste trabalho. A OC93 não é autorização implícita para esse contrato.
+- `CONFIRMADO`: #208 resolve a recuperação de planos persistidos com consulta
+  paginada e contextualiza carregamento/viagem por plano, sem guardar IDs no navegador.
+- `PENDENTE DE DEFINIÇÃO`: persistência de seleções anteriores ao cálculo exige
+  contrato próprio (usuário, autorização, expiração e minimização de dados).
+  Por enquanto são memória React; sair da tela descarta essa seleção, sem
+  apagar planos calculados. Nenhum rascunho é simulado em localStorage.
 - `CONFIRMADO`: a central geral de carregamentos, viagens e entregas pertence
   à OC93 (#138), dependente da OC90 (#133) e OC94 (#139). A API ainda não lista
   sessões de carregamento. Não foram adicionados menu/central/listagens que
   dupliquem essa OC, nem modelos de exceção ou multi-caminhão antecipados.
-- `RISCO IDENTIFICADO`: gestão/conferência ainda dependem da URL ou do contexto
-  do plano para reencontrar sessões e da origem para viagens. DRIVER já dispõe
+- `RISCO IDENTIFICADO`: gestão/conferência reencontram sessões pelo plano. A
+  listagem geral independente de sessões/viagens ainda depende da OC93. DRIVER já dispõe
   da listagem de suas viagens. A recuperação geral permanece incompleta.
 - `RECOMENDAÇÃO`: aprovar os contratos faltantes e concluir as dependências da
   OC93 antes de declarar o fluxo operacional integralmente reencontrável.
