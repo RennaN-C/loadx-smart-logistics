@@ -34,6 +34,7 @@ from app.modules.status_history.service import AuditService
 from app.modules.users.models import User
 from app.modules.users.service import UserService
 
+MANAGE_SCOPE = "mfa-manage:"
 REQUIRED_ROLES = frozenset({"ADMIN", "LOGISTICS_MANAGER"})
 
 
@@ -64,15 +65,9 @@ class IdentityService:
         now_provider: Callable[[], datetime] | None = None,
     ) -> None:
         self.db = db
-        self.key = (
-            key
-            if key is not None
-            else (
-                settings.mfa_encryption_key.get_secret_value()
-                if settings.mfa_encryption_key
-                else None
-            )
-        )
+        configured_key = settings.mfa_encryption_key
+        default_key = configured_key.get_secret_value() if configured_key else None
+        self.key = key if key is not None else default_key
         self.now = now_provider or (lambda: datetime.now(UTC))
         self.repo = IdentityRepository(db)
         self.users = UserService(db)
@@ -226,7 +221,7 @@ class IdentityService:
         # Profile changes may already hold the user lock; never reverse that order.
         user = AccountService(self.db)._lock_account(current)
         self.throttle.ensure_login_allowed(
-            "mfa-manage:" + str(current.user.id), "mfa-manage:" + client_ip
+            MANAGE_SCOPE + str(current.user.id), MANAGE_SCOPE + client_ip
         )
         factor = self.repo.factor(user.id)
         if not verify_password(password, user.password_hash) or (
@@ -234,7 +229,7 @@ class IdentityService:
         ):
             self.db.rollback()
             self.throttle.record_failed_login(
-                "mfa-manage:" + str(user.id), "mfa-manage:" + client_ip
+                MANAGE_SCOPE + str(user.id), MANAGE_SCOPE + client_ip
             )
             emit_security_event(
                 SecurityEvent.MFA_REJECTED, alert=True, user_id=str(user.id)

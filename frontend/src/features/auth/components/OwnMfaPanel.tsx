@@ -24,9 +24,10 @@ export function OwnMfaPanel() {
   if (loading) return <output>Consultando verificação em duas etapas…</output>;
   if (!status) return <div><p role="alert">{error}</p><button className="btn-secondary" onClick={() => void load()}>Tentar novamente</button></div>;
   if (codes.length) return <RecoveryCodes codes={codes} onDone={() => setCodes([])} />;
+  const actionLabel = status.enabled ? "Confirmar ação de segurança" : "Configurar autenticador";
   return <form className="account-form identity-management" onSubmit={submit} aria-label="Autenticação multifator" aria-busy={busy}><header><h3>Verificação em duas etapas</h3><span className={`identity-status ${status.enabled ? "is-enabled" : ""}`}>{status.enabled ? "Ativa" : "Não configurada"}</span></header><p>{status.required ? "Obrigatória para seu perfil. Trocar o autenticador encerra as sessões e exige nova configuração antes de liberar o acesso." : "Proteja sua conta com um aplicativo autenticador."}</p>
     {status.enabled && <label className="identity-field" htmlFor="mfa-action">Ação<select id="mfa-action" value={action} disabled={busy} onChange={e => setAction(e.target.value)}><option value="regenerate">Regenerar códigos de recuperação</option><option value="disable">{status.required ? "Trocar autenticador e encerrar sessões" : "Desativar e encerrar sessões"}</option></select></label>}
     <div className="account-fields"><label className="identity-field" htmlFor="mfa-password">Senha atual<input id="mfa-password" type="password" autoComplete="current-password" required maxLength={128} value={password} disabled={busy} onChange={e => setPassword(e.target.value)} /></label>{status.enabled && <label className="identity-field" htmlFor="mfa-management-code">Código do autenticador ou recuperação<input id="mfa-management-code" autoComplete="one-time-code" required minLength={6} maxLength={64} value={code} disabled={busy} onChange={e => setCode(e.target.value)} /></label>}</div>
-    {error && <p role="alert">{error}</p>}<button className="btn-primary" disabled={busy} type="submit">{busy ? "Validando…" : (status.enabled ? "Confirmar ação de segurança" : "Configurar autenticador")}</button>
+    {error && <p role="alert">{error}</p>}<button className="btn-primary" disabled={busy} type="submit">{busy ? "Validando…" : actionLabel}</button>
   </form>;
 }

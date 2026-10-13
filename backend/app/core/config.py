@@ -81,7 +81,7 @@ class Settings(BaseSettings):
 
             try:
                 Fernet(self.mfa_encryption_key.get_secret_value().encode("ascii"))
-            except (ValueError, UnicodeError):
+            except ValueError:
                 raise ValueError(
                     "MFA_ENCRYPTION_KEY must be a valid Fernet key."
                 ) from None

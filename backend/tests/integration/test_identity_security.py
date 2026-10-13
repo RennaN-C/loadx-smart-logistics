@@ -164,12 +164,9 @@ def test_mfa_replay_recovery_and_exhaustion(session_factory):
     with session_factory() as db:
         service = IdentityService(db, now_provider=lambda: NOW)
         challenge = service.begin(user, expected_hash=user.password_hash)
+        reused_code = totp_code(secret, int(NOW.timestamp()) // 30)
         with pytest.raises(ApiError):
-            service.complete(
-                challenge.challenge_token,
-                totp_code(secret, int(NOW.timestamp()) // 30),
-                "origin",
-            )
+            service.complete(challenge.challenge_token, reused_code, "origin")
         second = service.complete(
             challenge.challenge_token, first.recovery_codes[0], "origin"
         )
@@ -321,12 +318,9 @@ def test_recovery_and_mfa_roll_back_when_audit_fails(session_factory, monkeypatc
         recovery = PasswordRecoveryService(db, now_provider=lambda: NOW)
         _, token = recovery.request(user.email, "rollback")
         monkeypatch.setattr(AuditService, "stage_administrative_event", fail)
+        valid_code = totp_code(secret, int(NOW.timestamp()) // 30)
         with pytest.raises(RuntimeError):
-            identity.complete(
-                challenge.challenge_token,
-                totp_code(secret, int(NOW.timestamp()) // 30),
-                "origin",
-            )
+            identity.complete(challenge.challenge_token, valid_code, "origin")
         db.rollback()
         assert not db.scalar(select(AuthFactor)).enabled
         assert db.scalar(select(AuthChallenge)).consumed_at is None
@@ -477,11 +471,14 @@ def test_voluntary_enrollment_ends_old_full_session(client, session_factory):
     )
 
 
-@pytest.mark.parametrize('change',[{'password':NEW_PASSWORD},{'email':'changed@example.test'}])
-def test_account_identity_change_invalidates_existing_reset(session_factory,change):
-    user=account(session_factory)
+@pytest.mark.parametrize(
+    "change", [{"password": NEW_PASSWORD}, {"email": "changed@example.test"}]
+)
+def test_account_identity_change_invalidates_existing_reset(session_factory, change):
+    user = account(session_factory)
     with session_factory() as db:
-        recovery=PasswordRecoveryService(db,now_provider=lambda:NOW)
-        _,token=recovery.request(user.email,'identity-change')
-        UserService(db).update_user(user.id,UserUpdate(**change))
-        with pytest.raises(ApiError): recovery.confirm(token,NEW_PASSWORD,'identity-change')
+        recovery = PasswordRecoveryService(db, now_provider=lambda: NOW)
+        _, token = recovery.request(user.email, "identity-change")
+        UserService(db).update_user(user.id, UserUpdate(**change))
+        with pytest.raises(ApiError):
+            recovery.confirm(token, NEW_PASSWORD, "identity-change")

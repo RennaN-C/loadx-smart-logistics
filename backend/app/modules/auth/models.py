@@ -17,6 +17,8 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database.base import Base
 
+USERS_FK = "users.id"
+
 
 class AuthLoginThrottle(Base):
     __tablename__ = "auth_login_throttles"
@@ -70,7 +72,7 @@ class AuthSession(Base):
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(
         Uuid,
-        ForeignKey("users.id", ondelete="CASCADE"),
+        ForeignKey(USERS_FK, ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
@@ -109,7 +111,7 @@ class AuthPasswordReset(Base):
     )
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"), index=True
+        ForeignKey(USERS_FK, ondelete="CASCADE"), index=True
     )
     token_hash: Mapped[str] = mapped_column(String(64), unique=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
@@ -129,7 +131,7 @@ class AuthFactor(Base):
     )
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"), unique=True
+        ForeignKey(USERS_FK, ondelete="CASCADE"), unique=True
     )
     encrypted_secret: Mapped[str | None] = mapped_column(String(512))
     enabled: Mapped[bool] = mapped_column(
@@ -153,7 +155,7 @@ class AuthChallenge(Base):
     )
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"), index=True
+        ForeignKey(USERS_FK, ondelete="CASCADE"), index=True
     )
     token_hash: Mapped[str] = mapped_column(String(64), unique=True)
     purpose: Mapped[str] = mapped_column(String(16))
@@ -170,7 +172,7 @@ class AuthRecoveryCode(Base):
     __tablename__ = "auth_recovery_codes"
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"), index=True
+        ForeignKey(USERS_FK, ondelete="CASCADE"), index=True
     )
     code_hash: Mapped[str] = mapped_column(String(64), unique=True)
     consumed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

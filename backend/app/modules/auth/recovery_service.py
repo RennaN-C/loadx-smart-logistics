@@ -17,6 +17,9 @@ from app.modules.status_history.service import AuditService
 from app.modules.users.password_policy import validate_password_policy
 from app.modules.users.service import UserService
 
+REQUEST_SCOPE = "recovery-request:"
+CONFIRM_SCOPE = "recovery-confirm:"
+
 
 class PasswordRecoveryService:
     def __init__(
@@ -31,10 +34,10 @@ class PasswordRecoveryService:
 
     def request(self, email: str, client_ip: str) -> tuple[str, str] | None:
         self.throttle.ensure_login_allowed(
-            "recovery-request:" + email, "recovery-request:" + client_ip
+            REQUEST_SCOPE + email, REQUEST_SCOPE + client_ip
         )
         self.throttle.record_failed_login(
-            "recovery-request:" + email, "recovery-request:" + client_ip
+            REQUEST_SCOPE + email, REQUEST_SCOPE + client_ip
         )
         # Equal cryptographic work regardless of account existence.
         token = secrets.token_urlsafe(32)
@@ -62,7 +65,7 @@ class PasswordRecoveryService:
     def confirm(self, token: str, new_password: str, client_ip: str) -> None:
         validated_password = validate_password_policy(new_password)
         self.throttle.ensure_login_allowed(
-            "recovery-confirm:" + digest(token), "recovery-confirm:" + client_ip
+            CONFIRM_SCOPE + digest(token), CONFIRM_SCOPE + client_ip
         )
         # Account-independent expensive work avoids validity-dependent hash timing.
         password_hash = hash_password(validated_password)
@@ -70,7 +73,7 @@ class PasswordRecoveryService:
         if user_id is None:
             self._reject(token, client_ip)
         self.throttle.ensure_login_allowed(
-            "recovery-account:" + str(user_id), "recovery-confirm:" + client_ip
+            "recovery-account:" + str(user_id), CONFIRM_SCOPE + client_ip
         )
         user = self.users.lock_account(user_id)
         reset = self.repo.reset(digest(token))
@@ -82,7 +85,7 @@ class PasswordRecoveryService:
         ):
             self.db.rollback()
             self.throttle.record_failed_login(
-                "recovery-account:" + str(user_id), "recovery-confirm:" + client_ip
+                "recovery-account:" + str(user_id), CONFIRM_SCOPE + client_ip
             )
             self._reject(token, client_ip)
         user.password_hash = password_hash
@@ -104,7 +107,7 @@ class PasswordRecoveryService:
 
     def _reject(self, token: str, client_ip: str) -> None:
         self.throttle.record_failed_login(
-            "recovery-confirm:" + digest(token), "recovery-confirm:" + client_ip
+            CONFIRM_SCOPE + digest(token), CONFIRM_SCOPE + client_ip
         )
         emit_security_event(SecurityEvent.RECOVERY_REJECTED)
         raise ApiError(

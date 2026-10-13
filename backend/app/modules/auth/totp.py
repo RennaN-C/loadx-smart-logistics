@@ -19,7 +19,7 @@ def cipher(key: str | None) -> Fernet:
         if not key:
             raise ValueError
         return Fernet(key.encode("ascii"))
-    except (ValueError, UnicodeError):
+    except ValueError:
         raise IdentityUnavailableError from None
 
 
