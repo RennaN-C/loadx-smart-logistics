@@ -181,11 +181,18 @@ def clear_session_cookie(response: Response) -> None:
     responses=openapi_error_responses(400, 401, 403, 409, 422, 429, 503),
 )
 def update_me(
+    request: Request,
     data: OwnProfileUpdate,
     current: Annotated[ResolvedAuthSession, Depends(get_current_session)],
     service: Annotated[AccountService, Depends(get_account_service)],
 ) -> User:
-    return account_operation(lambda: service.update_profile(current, data))
+    return account_operation(
+        lambda: service.update_profile(
+            current,
+            data,
+            client_ip=request.client.host if request.client else "unknown",
+        )
+    )
 
 
 @router.post(

@@ -24,7 +24,7 @@ export function OwnProfileForm() {
     catch (error_) { setError(accountError(error_)); }
     finally { setSaving(false); }
   }
-  function cancel() { setName(user?.name ?? ""); setEmail(user?.email ?? ""); setError(null); setSuccess(false); }
+  function cancel() { setCurrentPassword(""); setSecondFactor(""); setName(user?.name ?? ""); setEmail(user?.email ?? ""); setError(null); setSuccess(false); }
   return <form className="entity-form account-form" onSubmit={save} aria-label="Dados pessoais" aria-busy={saving}>
     <div className="account-fields">
       <FormField id="account-name" label="Nome"><input id="account-name" autoComplete="name" value={name} required maxLength={120} disabled={saving} onChange={(e) => setName(e.target.value)} /></FormField>

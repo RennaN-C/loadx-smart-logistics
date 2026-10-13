@@ -52,7 +52,11 @@ class AccountService:
         return user
 
     def update_profile(
-        self, current: ResolvedAuthSession, data: OwnProfileUpdate
+        self,
+        current: ResolvedAuthSession,
+        data: OwnProfileUpdate,
+        *,
+        client_ip: str = "unknown",
     ) -> User:
         user = self._lock_account(current)
         from app.modules.auth.identity_repository import IdentityRepository
@@ -66,7 +70,7 @@ class AccountService:
                     current,
                     data.current_password or "",
                     data.second_factor or "",
-                    "own-profile",
+                    client_ip,
                 )
             IdentityRepository(self.db).invalidate_resets(
                 user.id, self.sessions.now_provider()
