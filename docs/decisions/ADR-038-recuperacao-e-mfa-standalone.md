@@ -88,3 +88,9 @@ ou alteração das regras de segurança para aceitar hash fraco.
 `CONFIRMADO`: o evento de consumo de código de recuperação só é emitido após
 commit. Falha/rollback de auditoria ou atualização não declara consumo que não
 ocorreu; testes verificam simultaneamente estado PostgreSQL e logs.
+
+`CONFIRMADO`: emissão de sessão por senha também revalida papel/fator sob lock
+de usuário. O hash comparado é o hash efetivamente verificado, não um atributo
+ORM recarregado após commit. Promoção para perfil obrigatório, ativação MFA ou
+mudança de senha concorrentes impedem emissão sem segundo fator. Testes injetam
+essas mudanças exatamente após liberar locks dos contadores e antes da emissão.

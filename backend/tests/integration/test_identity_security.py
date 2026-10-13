@@ -573,3 +573,72 @@ def test_only_completed_mfa_resets_authentication_failure_budgets(session_factor
         )
         assert len(foreign_rows) == 2
         assert all(row.failed_count == 1 for row in foreign_rows)
+
+
+@pytest.mark.parametrize("change", ["role", "factor", "password"])
+def test_password_only_login_rechecks_security_state_after_concurrent_change(
+    session_factory, monkeypatch, change
+):
+    from app.modules.auth.identity_repository import IdentityRepository
+    from app.modules.auth.schemas import AuthLogin
+    from app.modules.auth.service import AuthInvalidCredentialsError, AuthService
+    from app.modules.auth.totp import encrypt_secret, new_secret
+
+    user = account(session_factory, "CHECKER")
+    with session_factory() as db:
+        service = AuthService(db)
+        original_reset = service.login_throttle.reset_after_success
+
+        def reset_and_change(email, origin):
+            original_reset(email, origin)
+            if change == "role":
+                UserService(db).update_user(user.id, UserUpdate(role="ADMIN"))
+            elif change == "password":
+                UserService(db).update_user(user.id, UserUpdate(password=NEW_PASSWORD))
+            else:
+                factor = IdentityRepository(db).factor(user.id)
+                factor.encrypted_secret = encrypt_secret(
+                    new_secret(), settings.mfa_encryption_key.get_secret_value()
+                )
+                factor.enabled = True
+                db.commit()
+
+        monkeypatch.setattr(
+            service.login_throttle, "reset_after_success", reset_and_change
+        )
+        with pytest.raises(AuthInvalidCredentialsError):
+            service.login(AuthLogin(email=user.email, password=PASSWORD), "origin")
+        assert (
+            list(db.scalars(select(AuthSession).where(AuthSession.user_id == user.id)))
+            == []
+        )
+
+
+def test_activation_revokes_password_session_created_during_enrollment(session_factory):
+    from app.modules.auth.sessions import AuthSessionInvalidError
+
+    user = account(session_factory, "CHECKER")
+    with session_factory() as db:
+        identity = IdentityService(db, now_provider=lambda: NOW)
+        challenge = identity.begin(user, expected_hash=user.password_hash)
+        uri = identity.setup(challenge.challenge_token, "origin")
+        password_session = identity.sessions.create_session(
+            user.id, expected_password_hash=user.password_hash, password_only=True
+        )
+        secret = parse_qs(urlsplit(uri).query)["secret"][0]
+        completed = identity.complete(
+            challenge.challenge_token,
+            totp_code(secret, int(NOW.timestamp()) // 30),
+            "origin",
+        )
+        with pytest.raises(AuthSessionInvalidError):
+            identity.sessions.resolve_session(password_session.token)
+        assert (
+            identity.sessions.resolve_session(completed.session.token).user.id
+            == user.id
+        )
+        sessions = list(
+            db.scalars(select(AuthSession).where(AuthSession.user_id == user.id))
+        )
+        assert len(sessions) == 2
+        assert sum(session.revoked_at is None for session in sessions) == 1

@@ -14,6 +14,7 @@ from app.core.security_events import SecurityEvent, emit_security_event
 from app.modules.auth.identity_repository import IdentityRepository
 from app.modules.auth.models import AuthSession
 from app.modules.auth.repository import AuthSessionRepository
+from app.modules.auth.schemas import MFA_REQUIRED_ROLES
 from app.modules.users.models import User
 
 SESSION_TOKEN_BYTES = 32
@@ -58,8 +59,14 @@ class AuthSessionService:
         self.now_provider = now_provider or (lambda: datetime.now(UTC))
 
     def create_session(
-        self, user_id: uuid.UUID, *, expected_password_hash: str | None = None
+        self,
+        user_id: uuid.UUID,
+        *,
+        expected_password_hash: str | None = None,
+        password_only: bool = False,
     ) -> IssuedAuthSession:
+        if password_only and expected_password_hash is None:
+            raise AuthSessionInvalidError
         if expected_password_hash is not None:
             user = self.repository.lock_session_user(user_id)
             if (
@@ -68,6 +75,14 @@ class AuthSessionService:
                 or user.password_hash != expected_password_hash
             ):
                 raise AuthSessionInvalidError
+            if password_only:
+                factor = IdentityRepository(self.db).find_factor(
+                    user.id, for_update=True
+                )
+                if user.role in MFA_REQUIRED_ROLES or (
+                    factor is not None and factor.enabled
+                ):
+                    raise AuthSessionInvalidError
         now = self.now_provider()
         token = secrets.token_urlsafe(SESSION_TOKEN_BYTES)
         auth_session = self.repository.add(

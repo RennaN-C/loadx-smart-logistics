@@ -15,6 +15,7 @@ from app.core.security_events import SecurityEvent, emit_security_event
 from app.modules.auth.account_service import AccountService
 from app.modules.auth.identity_repository import IdentityRepository
 from app.modules.auth.models import AuthChallenge, AuthFactor
+from app.modules.auth.schemas import MFA_REQUIRED_ROLES
 from app.modules.auth.sessions import (
     AuthSessionService,
     IssuedAuthSession,
@@ -35,7 +36,6 @@ from app.modules.users.models import User
 from app.modules.users.service import UserService
 
 MANAGE_SCOPE = "mfa-manage:"
-REQUIRED_ROLES = frozenset({"ADMIN", "LOGISTICS_MANAGER"})
 
 
 def digest(value: str) -> str:
@@ -77,7 +77,7 @@ class IdentityService:
 
     def required(self, user: User) -> bool:
         factor = self.repo.find_factor(user.id)
-        return user.role in REQUIRED_ROLES or bool(factor and factor.enabled)
+        return user.role in MFA_REQUIRED_ROLES or bool(factor and factor.enabled)
 
     def begin(self, user: User, *, expected_hash: str) -> MfaChallengeResult:
         cipher(self.key)
@@ -168,6 +168,8 @@ class IdentityService:
             self._invalid()
         codes = []
         if challenge.purpose == "ENROLL":
+            # Revoke password sessions created while optional enrollment was pending.
+            self.sessions.stage_revoke_all_for_user(user.id)
             factor.enabled = True
             codes = self._codes(user)
             self._audit(user, "mfa_enabled")
@@ -218,7 +220,7 @@ class IdentityService:
         factor = self.repo.find_factor(current.user.id)
         return {
             "enabled": bool(factor and factor.enabled),
-            "required": current.user.role in REQUIRED_ROLES,
+            "required": current.user.role in MFA_REQUIRED_ROLES,
         }
 
     def _reauth(

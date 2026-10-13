@@ -10,6 +10,8 @@ from app.modules.users.password_policy import (
 )
 from app.modules.users.schemas import EMAIL_PATTERN, normalize_email
 
+MFA_REQUIRED_ROLES = frozenset({"ADMIN", "LOGISTICS_MANAGER"})
+
 
 class AuthLogin(BaseModel):
     email: str = Field(min_length=3, max_length=255, pattern=EMAIL_PATTERN)

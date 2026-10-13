@@ -32,8 +32,15 @@ class IdentityRepository:
         )
         return factor if factor is not None else self.add(AuthFactor(user_id=user_id))
 
-    def find_factor(self, user_id: uuid.UUID) -> AuthFactor | None:
-        return self.db.scalar(select(AuthFactor).where(AuthFactor.user_id == user_id))
+    def find_factor(
+        self, user_id: uuid.UUID, *, for_update: bool = False
+    ) -> AuthFactor | None:
+        statement = select(AuthFactor).where(AuthFactor.user_id == user_id)
+        if for_update:
+            statement = statement.with_for_update().execution_options(
+                populate_existing=True
+            )
+        return self.db.scalar(statement)
 
     def challenge_user(self, digest: str) -> uuid.UUID | None:
         return self.db.scalar(

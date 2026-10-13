@@ -99,13 +99,14 @@ class AuthService:
             raise AuthInvalidCredentialsError
         if updated_hash is not None:
             user = self.user_service.upgrade_password_hash(user, updated_hash)
+        verified_hash = updated_hash or expected_hash
         identity = IdentityService(self.auth_sessions.db)
         if identity.required(user):
-            return identity.begin(user, expected_hash=user.password_hash)
+            return identity.begin(user, expected_hash=verified_hash)
         self.login_throttle.reset_after_success(data.email, client_ip)
         try:
             issued_session = self.auth_sessions.create_session(
-                user.id, expected_password_hash=user.password_hash
+                user.id, expected_password_hash=verified_hash, password_only=True
             )
         except AuthSessionInvalidError:
             raise AuthInvalidCredentialsError from None
