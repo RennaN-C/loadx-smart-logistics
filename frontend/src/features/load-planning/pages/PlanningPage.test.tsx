@@ -477,10 +477,10 @@ describe("PlanningPage", () => {
 
   it("esconde as ações para quem só lê", async () => {
     mockRole("CHECKER");
-    vi.mocked(getLoadPlan).mockResolvedValue(makePlan());
+    vi.mocked(getLoadPlan).mockResolvedValue(makePlan({ status: "APPROVED" }));
 
     renderAt("/planning/lp1");
-    await screen.findByText("Calculado");
+    await screen.findByText("Aprovado");
 
     expect(screen.queryByRole("button", { name: "Aprovar plano" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Recalcular" })).not.toBeInTheDocument();
