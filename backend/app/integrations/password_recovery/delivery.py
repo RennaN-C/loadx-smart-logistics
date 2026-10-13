@@ -51,11 +51,15 @@ class SmtpRecoveryDelivery:
             + "#token="
             + token
         )
+        tls_context = ssl.create_default_context()
+        tls_context.verify_mode = ssl.CERT_REQUIRED
+        tls_context.check_hostname = True
+        tls_context.minimum_version = ssl.TLSVersion.TLSv1_2
         with smtplib.SMTP_SSL(
             self.config.smtp_host,
             self.config.smtp_port,
             timeout=5,
-            context=ssl.create_default_context(),
+            context=tls_context,
         ) as smtp:
             smtp.login(
                 self.config.smtp_username, self.config.smtp_password.get_secret_value()
@@ -70,7 +74,7 @@ def get_recovery_delivery() -> RecoveryDelivery:
 def dispatch_recovery(delivery: RecoveryDelivery, email: str, token: str) -> None:
     try:
         delivery.deliver(email, token)
-    except (OSError, smtplib.SMTPException):
+    except OSError:
         # Do not include SMTP responses, destination, token, or exception payload.
         emit_security_event(
             SecurityEvent.RECOVERY_DELIVERY_FAILED, level=logging.ERROR, alert=True
