@@ -36,6 +36,7 @@ from app.modules.users.models import User
 from app.modules.users.service import UserService
 
 MANAGE_SCOPE = "mfa-manage:"
+MFA_ACCOUNT_SCOPE = "mfa-account:"
 
 
 def digest(value: str) -> str:
@@ -150,7 +151,7 @@ class IdentityService:
         user, factor, challenge = self._challenge(token, client_ip)
         # Durable account/origin budget remains across replacement challenges.
         self.throttle.ensure_login_allowed(
-            "mfa-account:" + str(user.id), "mfa:" + client_ip
+            MFA_ACCOUNT_SCOPE + str(user.id), "mfa:" + client_ip
         )
         if not self._verify(
             factor, user, code, allow_recovery=challenge.purpose == "LOGIN"
@@ -160,7 +161,7 @@ class IdentityService:
                 challenge.consumed_at = self.now()
             self.db.commit()
             self.throttle.record_failed_login(
-                "mfa-account:" + str(user.id), "mfa:" + client_ip
+                MFA_ACCOUNT_SCOPE + str(user.id), "mfa:" + client_ip
             )
             emit_security_event(
                 SecurityEvent.MFA_REJECTED, alert=True, user_id=str(user.id)
@@ -183,7 +184,7 @@ class IdentityService:
         # the full authentication commits, without reversing login's lock order.
         self.throttle.reset_after_success(user.email, client_ip)
         self.throttle.reset_after_success(
-            "mfa-account:" + str(user.id), "mfa:" + client_ip
+            MFA_ACCOUNT_SCOPE + str(user.id), "mfa:" + client_ip
         )
         if codes:
             emit_security_event(SecurityEvent.MFA_CONFIGURED, user_id=str(user.id))

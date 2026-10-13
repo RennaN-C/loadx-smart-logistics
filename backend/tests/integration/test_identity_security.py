@@ -606,8 +606,9 @@ def test_password_only_login_rechecks_security_state_after_concurrent_change(
         monkeypatch.setattr(
             service.login_throttle, "reset_after_success", reset_and_change
         )
+        credentials = AuthLogin(email=user.email, password=PASSWORD)
         with pytest.raises(AuthInvalidCredentialsError):
-            service.login(AuthLogin(email=user.email, password=PASSWORD), "origin")
+            service.login(credentials, "origin")
         assert (
             list(db.scalars(select(AuthSession).where(AuthSession.user_id == user.id)))
             == []
