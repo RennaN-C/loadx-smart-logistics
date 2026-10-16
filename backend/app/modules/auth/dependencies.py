@@ -78,7 +78,16 @@ def get_current_session(
 
 def get_current_user(
     current_session: Annotated[ResolvedAuthSession, Depends(get_current_session)],
+    db: Annotated[Session, Depends(get_db)],
 ) -> User:
+    if current_session.user.role == "CUSTOM":
+        from app.modules.users.service import UserService
+
+        user = UserService(db).get_user_for_authorization(current_session.user.id)
+        db.refresh(current_session.auth_session)
+        if current_session.auth_session.revoked_at is not None:
+            raise ApiError(401, "AUTH_INVALID_TOKEN", "Sessão ausente ou inválida.")
+        return user
     return current_session.user
 
 
@@ -104,3 +113,37 @@ def require_roles(*allowed_roles: str) -> Callable[[User], User]:
         return current_user
 
     return role_dependency
+
+
+def require_permission(permission):
+    from app.modules.access_profiles.catalog import Permission, has_permission
+
+    code = Permission(permission)
+
+    def permission_dependency(
+        current_user: Annotated[User, Depends(get_current_user)],
+    ) -> User:
+        if not has_permission(current_user, code):
+            raise ApiError(
+                403, "AUTH_FORBIDDEN", "Usuário sem permissão para esta ação."
+            )
+        return current_user
+
+    return permission_dependency
+
+
+def require_any_permission(*permissions):
+    from app.modules.access_profiles.catalog import Permission, has_permission
+
+    codes = tuple(Permission(code) for code in permissions)
+
+    def permission_dependency(
+        current_user: Annotated[User, Depends(get_current_user)],
+    ) -> User:
+        if not any(has_permission(current_user, code) for code in codes):
+            raise ApiError(
+                403, "AUTH_FORBIDDEN", "Usuário sem permissão para esta ação."
+            )
+        return current_user
+
+    return permission_dependency
