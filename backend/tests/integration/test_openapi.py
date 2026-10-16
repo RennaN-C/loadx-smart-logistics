@@ -785,3 +785,32 @@ def test_oc95_explicit_filter_whitelist_preserves_privacy() -> None:
             "parameters"
         ]
         assert {p["name"] for p in parameters} == {"page", "page_size", "sort_order"}
+
+
+def test_oc86_admin_list_documents_identity_fields_and_safe_filters() -> None:
+    schema = get_openapi_schema()
+    operation = schema["paths"]["/api/v1/users"]["get"]
+    query = {
+        item["name"]: item for item in operation["parameters"] if item["in"] == "query"
+    }
+    assert set(query) == {"page", "page_size", "sort_order", "search", "role", "active"}
+    assert query["search"]["schema"]["anyOf"][0]["maxLength"] == 120
+    assert set(query["role"]["schema"]["anyOf"][0]["enum"]) == {
+        "ADMIN",
+        "LOGISTICS_MANAGER",
+        "CHECKER",
+        "DRIVER",
+    }
+    assert operation["security"] == [{"SessionCookie": []}]
+    fields = schema["components"]["schemas"]["UserListRead"]["properties"]
+    assert set(fields) == {
+        "id",
+        "name",
+        "email",
+        "role",
+        "active",
+        "driver_id",
+        "driver_name",
+        "created_at",
+    }
+    assert "password_hash" not in fields
