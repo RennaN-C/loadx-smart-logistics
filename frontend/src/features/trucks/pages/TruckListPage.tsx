@@ -70,7 +70,7 @@ export function TruckListPage({ embedded = false, active = true }: { readonly em
       </header>
 
       <div className="entity-toolbar">
-        {hasPermission(user, "loadx.imports.manage") ? <ImportAction entity="trucks" onImported={refetch} /> : null}
+        <ImportAction enabled={hasPermission(user, "loadx.imports.manage")} entity="trucks" onImported={refetch} />
         <ArchiveFilter value={archiveStatus} onChange={setArchiveStatus} />
         <input
           type="search"

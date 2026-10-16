@@ -60,7 +60,7 @@ export function CustomerPanel() {
   return (
     <>
       <div className="entity-toolbar">
-        {hasPermission(user, "loadx.imports.manage") ? <ImportAction entity="customers" onImported={refetch} /> : null}
+        <ImportAction enabled={hasPermission(user, "loadx.imports.manage")} entity="customers" onImported={refetch} />
         <ArchiveFilter value={archiveStatus} onChange={setArchiveStatus} />
         <input
           type="search"

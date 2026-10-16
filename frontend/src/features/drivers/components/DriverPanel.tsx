@@ -59,7 +59,7 @@ export function DriverPanel() {
   return (
     <>
       <div className="entity-toolbar">
-        {hasPermission(user, "loadx.imports.manage") ? <ImportAction entity="drivers" onImported={refetch} /> : null}
+        <ImportAction enabled={hasPermission(user, "loadx.imports.manage")} entity="drivers" onImported={refetch} />
         <ArchiveFilter value={archiveStatus} onChange={setArchiveStatus} />
         <input
           type="search"

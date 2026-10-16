@@ -23,7 +23,8 @@ const ALLOWED_CATEGORIES: Record<Role, readonly string[]> = {
 /** Defesa de apresentação; não substitui o RBAC e o escopo de vínculo da API. */
 export function visibleResults(items: SearchResult[], user: PermissionSubject) {
   const role = typeof user === "string" ? user : user?.role;
-  const allowed = role === "CUSTOM" ? ALL_CATEGORIES.filter((category) => hasPermission(user, `loadx.${({ order: "orders", customer: "customers", truck: "trucks", driver: "drivers", trip: "trips" } as Record<string, string>)[category]}.read`)) : role ? ALLOWED_CATEGORIES[role] : [];
+  let allowed = role ? ALLOWED_CATEGORIES[role] : [];
+  if (role === "CUSTOM") allowed = ALL_CATEGORIES.filter((category) => hasPermission(user, `loadx.${({ order: "orders", customer: "customers", truck: "trucks", driver: "drivers", trip: "trips" } as Record<string, string>)[category]}.read`));
   return items.filter((item) => allowed.includes(item.category) && item.href.startsWith(CATEGORIES[item.category].path))
     .sort((a, b) => ALL_CATEGORIES.indexOf(a.category) - ALL_CATEGORIES.indexOf(b.category));
 }

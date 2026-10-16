@@ -65,12 +65,6 @@ export function TripPage() {
   const { user } = useAuth();
   const { trip, isLoading, isWorking, errorMessage, run } = useTripPage(tripId);
 
-  // Motorista opera a própria viagem; o backend confere o vínculo users.driver_id.
-  const canOperate = canOperateTrip(user);
-  const canDeliver = hasPermission(user, "loadx.deliveries.manage") || hasPermission(user, "loadx.trips.own");
-  const nextTripStatus = trip ? TRIP_TRANSITIONS[trip.status] : undefined;
-  const pendingDeliveries = trip?.deliveries.filter((d) => d.status !== "DELIVERED").length ?? 0;
-  const canFinish = trip?.status !== "IN_ROUTE" || pendingDeliveries === 0;
 
   return (
     <div className="entity-page">
@@ -108,7 +102,20 @@ export function TripPage() {
         </p>
       ) : null}
 
-      {trip && !isLoading ? (
+      {trip && !isLoading ? <TripOperations trip={trip} user={user} isWorking={isWorking} run={run} /> : null}
+    </div>
+  );
+}
+
+function TripOperations({ trip, user, isWorking, run }: { readonly trip: Trip; readonly user: ReturnType<typeof useAuth>["user"]; readonly isWorking: boolean; readonly run: ReturnType<typeof useTripPage>["run"] }) {
+  // Motorista opera a própria viagem; o backend confere o vínculo users.driver_id.
+  const canOperate = canOperateTrip(user);
+  const canDeliver = hasPermission(user, "loadx.deliveries.manage") || hasPermission(user, "loadx.trips.own");
+  const nextTripStatus = TRIP_TRANSITIONS[trip.status];
+  const pendingDeliveries = trip.deliveries.filter((d) => d.status !== "DELIVERED").length;
+  const canFinish = trip.status !== "IN_ROUTE" || pendingDeliveries === 0;
+
+  return (
         <>
           <section className="trip-head">
             <TripSummary trip={trip} pendingDeliveries={pendingDeliveries} />
@@ -147,8 +154,5 @@ export function TripPage() {
           {hasPermission(user, "loadx.audit.read") ? (
             <AuditTrail entityType="TRIP" entityId={trip.id} title="Histórico da viagem" />
           ) : null}
-        </>
-      ) : null}
-    </div>
-  );
+        </>);
 }

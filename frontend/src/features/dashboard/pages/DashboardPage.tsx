@@ -80,8 +80,7 @@ export function DashboardPage() {
         ) : null}
       </header>
 
-      {hasPermission(user, "loadx.reports.read") && (user?.role !== "CUSTOM" || hasPermission(user, "loadx.trucks.read")) && <OperationsDashboardPage embedded />}
-      {user?.role === "CUSTOM" && hasPermission(user, "loadx.trips.read") ? <section className="dash-block"><h2>Viagens autorizadas</h2><DriverTrips /></section> : null}
+      <AuthorizedOperationalOverview user={user} />
 
       {status === "loading" ? (
         <p className="entity-state">
@@ -143,4 +142,9 @@ export function DashboardPage() {
       )}
     </div>
   );
+}
+
+function AuthorizedOperationalOverview({ user }: { readonly user: ReturnType<typeof useAuth>["user"] }) {
+  return <>      {hasPermission(user, "loadx.reports.read") && (user?.role !== "CUSTOM" || hasPermission(user, "loadx.trucks.read")) && <OperationsDashboardPage embedded />}
+      {user?.role === "CUSTOM" && hasPermission(user, "loadx.trips.read") ? <section className="dash-block"><h2>Viagens autorizadas</h2><DriverTrips /></section> : null}</>;
 }
