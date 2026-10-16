@@ -20,6 +20,8 @@ class ProfileService:
 
     def resolve(self, user, *, lock: bool = False) -> None:
         if user.role != "CUSTOM":
+            user._effective_permissions = ()
+            user._custom_profile_name = None
             return
         profile = self.repository.get(user.custom_profile_id, shared=lock)
         user._effective_permissions = ()

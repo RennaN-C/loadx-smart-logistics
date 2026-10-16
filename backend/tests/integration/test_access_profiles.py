@@ -267,14 +267,15 @@ def test_inactive_in_use_uniqueness_and_last_admin(client, administrator):
         ).status_code
         == 409
     )
-    assert (
-        client.patch(
-            f"/api/v1/users/{account['id']}",
-            headers=administrator,
-            json={"role": "CHECKER", "custom_profile_id": None},
-        ).status_code
-        == 200
+    converted = client.patch(
+        f"/api/v1/users/{account['id']}",
+        headers=administrator,
+        json={"role": "CHECKER", "custom_profile_id": None},
     )
+    assert converted.status_code == 200
+    assert converted.json()["custom_profile_id"] is None
+    assert converted.json()["custom_profile_name"] is None
+
     assert (
         client.patch(
             f"/api/v1/access-profiles/{profile['id']}",
