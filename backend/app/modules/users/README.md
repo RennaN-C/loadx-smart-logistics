@@ -35,7 +35,8 @@ pelo esquema cookie `SessionCookie` no OpenAPI.
 - `email` é normalizado para minúsculas.
 - `email` deve ser único.
 - `role` é normalizado para maiúsculas.
-- `role` aceita `ADMIN`, `CHECKER`, `DRIVER` e `LOGISTICS_MANAGER`.
+- `role` aceita `ADMIN`, `CHECKER`, `DRIVER`, `LOGISTICS_MANAGER` e, na OC112,
+  `CUSTOM` com `custom_profile_id` obrigatório; papéis fixos exigem perfil nulo.
 - `driver_id` é opcional, único e referencia `drivers.id` com exclusão restrita.
 - `driver_id` preenchido exige papel `DRIVER` e motorista existente; o mesmo
   motorista não pode pertencer a dois usuários.
@@ -88,3 +89,10 @@ a UI esclarece que viagens próprias exigem vínculo ativo. Motorista arquivado
 pode continuar identificado no vínculo sem liberar elegibilidade operacional.
 A criação/edição de identidade permanece isolada do domínio logístico, por UUID.
 Nenhuma integração CoreFlow, recuperação, MFA ou OC112 é antecipada.
+
+## OC112 — Associação de perfil
+
+`CONFIRMADO`: associação, projeção de permissões e revogação em lote são
+detalhadas em [access_profiles](../access_profiles/README.md). Mudanças de perfil
+protegem a ordem de locks do último ADMIN; sessões são revogadas por consulta
+em lote, sem N+1 por membro. Login/me recebem grants resolvidos no banco.

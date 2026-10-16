@@ -155,23 +155,9 @@ class UserService:
         *,
         actor_id: uuid.UUID | None = None,
     ) -> User:
-        user = self.get_user(user_id)
-        if (
-            user.role == "CUSTOM"
-            or data.role == "CUSTOM"
-            or "custom_profile_id" in data.model_fields_set
-        ):
-            from app.modules.access_profiles.service import ProfileService
-
-            ProfileService(self.db).serialize_mutations()
-            user = self.repository.get_for_update(user_id)
+        user = self._lock_update_target(user_id, data)
         update_data = data.model_dump(exclude_unset=True)
-
-        new_email = update_data.get("email")
-        if new_email is not None and new_email != user.email:
-            existing_user = self.repository.get_by_email(new_email)
-            if existing_user is not None and existing_user.id != user.id:
-                raise UserEmailAlreadyExistsError
+        self._ensure_updated_email_available(user, update_data.get("email"))
 
         self._ensure_active_admin_remains(user.id, update_data)
 
@@ -208,18 +194,22 @@ class UserService:
             "driver_id" in update_data and update_data["driver_id"] != user.driver_id
         )
 
+        security_changed = any(
+            (
+                password_changed,
+                role_changed,
+                user_deactivated,
+                driver_link_changed,
+                profile_changed,
+            )
+        )
+
         for field_name, value in update_data.items():
             setattr(user, field_name, value)
 
         def persist_user_revoke_sessions_and_audit() -> User:
             updated_user = self.repository.update(user)
-            if (
-                password_changed
-                or role_changed
-                or user_deactivated
-                or driver_link_changed
-                or profile_changed
-            ):
+            if security_changed:
                 self.auth_sessions.stage_revoke_all_for_user(user.id)
             if actor_id is not None and changed_fields:
                 self.audit_service.stage_administrative_event(
@@ -234,13 +224,7 @@ class UserService:
             return updated_user
 
         updated_user = self._persist(persist_user_revoke_sessions_and_audit)
-        if (
-            password_changed
-            or role_changed
-            or user_deactivated
-            or driver_link_changed
-            or profile_changed
-        ):
+        if security_changed:
             emit_security_event(
                 SecurityEvent.USER_SECURITY_STATE_CHANGED,
                 alert=role_changed or user_deactivated,
@@ -251,6 +235,29 @@ class UserService:
                 driver_link_changed=driver_link_changed,
             )
         return updated_user
+
+    def _lock_update_target(self, user_id: uuid.UUID, data: UserUpdate) -> User:
+        user = self.get_user(user_id)
+        if (
+            user.role == "CUSTOM"
+            or data.role == "CUSTOM"
+            or "custom_profile_id" in data.model_fields_set
+        ):
+            from app.modules.access_profiles.service import ProfileService
+
+            ProfileService(self.db).serialize_mutations()
+            self._ensure_active_admin_remains(
+                user.id, data.model_dump(exclude_unset=True)
+            )
+            user = self.repository.get_for_update(user_id)
+        return user
+
+    def _ensure_updated_email_available(self, user: User, email: str | None) -> None:
+        if email is None or email == user.email:
+            return
+        existing = self.repository.get_by_email(email)
+        if existing is not None and existing.id != user.id:
+            raise UserEmailAlreadyExistsError
 
     def _ensure_driver_link_is_valid(
         self,
@@ -316,5 +323,4 @@ class UserService:
         return self.repository.lock_profile_members(identity)
 
     def revoke_profile_members(self, members):
-        for member in members:
-            self.auth_sessions.stage_revoke_all_for_user(member.id)
+        self.auth_sessions.stage_revoke_all_for_users([member.id for member in members])

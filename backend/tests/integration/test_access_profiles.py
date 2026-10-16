@@ -16,7 +16,7 @@ from app.modules.auth.models import AuthSession
 from app.modules.status_history.models import AuditEvent
 from app.modules.status_history.service import AuditService
 from app.modules.users.models import User
-from app.modules.users.schemas import UserCreate
+from app.modules.users.schemas import UserCreate, UserUpdate
 from app.modules.users.service import UserService
 from tests.integration.auth_helpers import issue_session_headers
 
@@ -321,12 +321,14 @@ def concurrent_profiles(postgres_engine):
             ProfileWrite(**proposal(name=f"Concorrência {uuid.uuid4()}")),
             actor_id=admin_id,
         )
+    user_ids = [admin_id]
     try:
-        yield factory, admin_id, profile
+        yield factory, admin_id, profile, user_ids
     finally:
         with factory() as db:
-            db.execute(delete(AuditEvent).where(AuditEvent.actor_id == admin_id))
-            db.execute(delete(AuthSession).where(AuthSession.user_id == admin_id))
+            db.execute(delete(AuditEvent).where(AuditEvent.actor_id.in_(user_ids)))
+            db.execute(delete(AuthSession).where(AuthSession.user_id.in_(user_ids)))
+            db.execute(delete(User).where(User.id.in_(user_ids)))
             db.execute(
                 delete(ProfilePermission).where(
                     ProfilePermission.profile_id == profile.id
@@ -338,7 +340,7 @@ def concurrent_profiles(postgres_engine):
 
 
 def test_concurrent_edits_use_version_and_preserve_single_solution(concurrent_profiles):
-    factory, admin_id, profile = concurrent_profiles
+    factory, admin_id, profile, _user_ids = concurrent_profiles
     barrier = Barrier(2)
 
     def update(name):
@@ -426,9 +428,12 @@ def test_database_normalized_unique_names_and_user_association(
         with pytest.raises(IntegrityError):
             db.commit()
         db.rollback()
+        statement = text(
+            "UPDATE users SET custom_profile_id=:profile WHERE role='ADMIN'"
+        )
         with pytest.raises(IntegrityError):
             db.execute(
-                text("UPDATE users SET custom_profile_id=:profile WHERE role='ADMIN'"),
+                statement,
                 {"profile": profile["id"]},
             )
         db.rollback()
@@ -508,3 +513,101 @@ def test_custom_profile_cannot_impersonate_driver_or_assign_reserved_role(
         ).status_code
         == 403
     )
+
+
+def test_concurrent_admin_demotion_and_custom_assignment_preserve_last_admin(
+    concurrent_profiles,
+):
+    factory, admin_id, profile, user_ids = concurrent_profiles
+    with factory() as db:
+        another = UserService(db).create_user(
+            UserCreate(
+                name="Outro admin",
+                email=f"{uuid.uuid4()}@example.test",
+                password=PASSWORD,
+                role="ADMIN",
+            )
+        )
+        user_ids.append(another.id)
+    barrier = Barrier(2)
+
+    def change(identity):
+        data = (
+            UserUpdate(role="CUSTOM", custom_profile_id=profile.id)
+            if identity == admin_id
+            else UserUpdate(role="CHECKER")
+        )
+        with factory() as db:
+            barrier.wait(timeout=10)
+            try:
+                UserService(db).update_user(identity, data, actor_id=admin_id)
+                return "updated"
+            except Exception as error:
+                from app.modules.users.service import UserLastActiveAdminRequiredError
+
+                if isinstance(error, UserLastActiveAdminRequiredError):
+                    return "protected"
+                raise
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        results = sorted(pool.map(change, user_ids))
+    assert results == ["protected", "updated"]
+    with factory() as db:
+        assert (
+            db.scalar(
+                select(text("count(*)"))
+                .select_from(User)
+                .where(User.role == "ADMIN", User.active.is_(True))
+            )
+            == 1
+        )
+
+
+def test_grant_change_revokes_all_members_with_one_session_query(
+    client, administrator, session_factory
+):
+    from sqlalchemy import event
+
+    profile = create_profile(client, administrator)
+    headers = []
+    for index in range(3):
+        response = client.post(
+            "/api/v1/users",
+            headers=administrator,
+            json={
+                "name": f"Membro {index}",
+                "email": f"membro{index}@example.test",
+                "password": PASSWORD,
+                "role": "CUSTOM",
+                "custom_profile_id": profile["id"],
+            },
+        )
+        assert response.status_code == 201
+        headers.append(
+            issue_session_headers(session_factory, uuid.UUID(response.json()["id"]))
+        )
+    statements = []
+
+    def capture(_connection, _cursor, statement, _parameters, _context, _many):
+        if "auth_sessions.user_id IN" in statement and statement.lstrip().startswith(
+            "SELECT"
+        ):
+            statements.append(statement)
+
+    with session_factory() as db:
+        connection = db.get_bind()
+        event.listen(connection, "before_cursor_execute", capture)
+        try:
+            response = client.patch(
+                f"/api/v1/access-profiles/{profile['id']}",
+                headers=administrator,
+                json={**proposal(permissions=["loadx.products.read"]), "version": 1},
+            )
+        finally:
+            event.remove(connection, "before_cursor_execute", capture)
+    assert response.status_code == 200
+    assert len(statements) == 1
+    assert [
+        client.get("/api/v1/auth/me", headers=member_headers).status_code
+        for member_headers in headers
+    ] == [401, 401, 401]
