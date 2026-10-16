@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.core.pagination import PageResult, PaginationParams
 from app.database.integrity import get_integrity_constraint_name
+from app.modules.access_profiles.catalog import Permission, has_permission
 from app.modules.customers.service import CustomerDocumentAlreadyExistsError
 from app.modules.drivers.service import (
     DriverDocumentAlreadyExistsError,
@@ -78,7 +79,7 @@ class ImportService:
 
     def _authorize(self, current_user: User) -> User:
         actor = UserService(self.db).get_user_for_authorization(current_user.id)
-        if not actor.active or actor.role not in {"ADMIN", "LOGISTICS_MANAGER"}:
+        if not has_permission(actor, Permission.IMPORTS_MANAGE):
             raise ImportForbiddenError
         return actor
 

@@ -20,6 +20,7 @@ from app.modules.load_planning.distribution_service import (
     LoadDistributionService,
 )
 from app.modules.load_planning.router import (
+    LoadPlanApprover,
     LoadPlanManager,
     LoadPlanReader,
     _calculation_error_response,
@@ -134,7 +135,7 @@ def get(
 def approve(
     distribution_id: uuid.UUID,
     payload: DistributionAction,
-    user: LoadPlanManager,
+    user: LoadPlanApprover,
     service: Service,
 ) -> DistributionRead | JSONResponse:
     try:
@@ -147,7 +148,7 @@ def approve(
 def cancel(
     distribution_id: uuid.UUID,
     payload: DistributionAction,
-    user: LoadPlanManager,
+    user: LoadPlanApprover,
     service: Service,
 ) -> DistributionRead | JSONResponse:
     try:
@@ -163,7 +164,7 @@ def approve_part(
     distribution_id: uuid.UUID,
     part_id: uuid.UUID,
     payload: DistributionAction,
-    user: LoadPlanManager,
+    user: LoadPlanApprover,
     service: Service,
 ) -> DistributionRead | JSONResponse:
     try:
@@ -179,7 +180,7 @@ def cancel_part(
     distribution_id: uuid.UUID,
     part_id: uuid.UUID,
     payload: DistributionAction,
-    user: LoadPlanManager,
+    user: LoadPlanApprover,
     service: Service,
 ) -> DistributionRead | JSONResponse:
     try:

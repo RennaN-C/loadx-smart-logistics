@@ -9,17 +9,14 @@ from sqlalchemy.orm import Session
 from app.core.pagination import PageResponse, Pagination, to_page_response
 from app.core.responses import error_response, openapi_error_responses
 from app.database.session import get_db
-from app.modules.auth.dependencies import require_roles
+from app.modules.auth.dependencies import require_permission
 from app.modules.status_history.schemas import AuditEntryRead
 from app.modules.status_history.service import AuditInvalidPeriodError, AuditService
 from app.modules.users.models import User
 
 router = APIRouter(prefix="/audit", tags=["audit"])
 
-AuditReader = Annotated[
-    User,
-    Depends(require_roles("ADMIN", "LOGISTICS_MANAGER")),
-]
+AuditReader = Annotated[User, Depends(require_permission("loadx.audit.read"))]
 AuditEntityType = Literal[
     "ORDER", "LOAD_PLAN", "TRIP", "DELIVERY", "USER", "COMPANY_PROFILE"
 ]

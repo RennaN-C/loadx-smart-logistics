@@ -20,7 +20,7 @@ from app.integrations.viacep import (
     ViaCEPUnavailableError,
     normalize_cep,
 )
-from app.modules.auth.dependencies import require_roles
+from app.modules.auth.dependencies import require_permission
 from app.modules.customers.models import Customer
 from app.modules.customers.schemas import (
     CustomerCreate,
@@ -37,14 +37,8 @@ from app.modules.users.models import User
 from app.shared.record_lifecycle import ArchiveFilter, active_filter
 
 router = APIRouter(prefix="/customers", tags=["customers"])
-CustomerReader = Annotated[
-    User,
-    Depends(require_roles("ADMIN", "LOGISTICS_MANAGER")),
-]
-CustomerManager = Annotated[
-    User,
-    Depends(require_roles("ADMIN", "LOGISTICS_MANAGER")),
-]
+CustomerReader = Annotated[User, Depends(require_permission("loadx.customers.read"))]
+CustomerManager = Annotated[User, Depends(require_permission("loadx.customers.manage"))]
 
 
 def get_customer_service(db: Annotated[Session, Depends(get_db)]) -> CustomerService:

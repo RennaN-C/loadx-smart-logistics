@@ -29,7 +29,7 @@ from app.modules.deliveries.evidence_service import (
 )
 from app.modules.deliveries.router import (
     TRIP_SERVICE_ERRORS,
-    TripOperator,
+    DeliveryOperator,
     TripReader,
     _trip_error_response,
 )
@@ -113,7 +113,7 @@ def _evidence_error(error: Exception) -> JSONResponse:
 def register_evidence(
     delivery_id: uuid.UUID,
     payload: DeliveryEvidenceCreate,
-    current_user: TripOperator,
+    current_user: DeliveryOperator,
     service: EvidenceService,
 ):
     try:
@@ -189,7 +189,7 @@ def revoke_evidence(
     delivery_id: uuid.UUID,
     evidence_id: uuid.UUID,
     _payload: DeliveryEvidenceRevoke,
-    current_user: TripOperator,
+    current_user: DeliveryOperator,
     service: EvidenceService,
 ):
     try:

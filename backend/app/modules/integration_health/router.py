@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Request
 
 from app.core.observability import request_id_context
 from app.core.responses import openapi_error_responses
-from app.modules.auth.dependencies import require_roles
+from app.modules.auth.dependencies import require_permission
 from app.modules.integration_health.schemas import IntegrationHealthReport
 from app.modules.integration_health.service import IntegrationHealthService
 from app.modules.users.models import User
@@ -27,7 +27,7 @@ def get_service(request: Request) -> IntegrationHealthService:
 
 @router.get("")
 async def read_integration_health(
-    _admin: Annotated[User, Depends(require_roles("ADMIN"))],
+    _admin: Annotated[User, Depends(require_permission("loadx.integrations.read"))],
     service: Annotated[IntegrationHealthService, Depends(get_service)],
 ) -> IntegrationHealthReport:
     return await service.report(
