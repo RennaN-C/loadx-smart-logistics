@@ -15,6 +15,7 @@ target_metadata = Base.metadata
 
 
 def import_models() -> None:
+    from app.modules.access_profiles import models as profiles_models  # noqa: F401
     from app.modules.attachments import models as attachments_models  # noqa: F401
     from app.modules.auth import models as auth_models  # noqa: F401
     from app.modules.company_profile import (
