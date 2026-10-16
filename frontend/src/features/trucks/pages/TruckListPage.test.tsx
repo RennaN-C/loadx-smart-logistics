@@ -1,4 +1,5 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
+import { fireEvent, render as renderView, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ApiError } from "../../../types/api";
@@ -7,6 +8,8 @@ import { useAuth } from "../../auth/hooks/useAuth";
 import { listTrucks } from "../api/trucksApi";
 import type { Truck } from "../types";
 import { TruckListPage } from "./TruckListPage";
+
+function render(ui: React.ReactElement) { return renderView(<MemoryRouter>{ui}</MemoryRouter>); }
 
 vi.mock("../api/trucksApi");
 vi.mock("../../auth/hooks/useAuth");
