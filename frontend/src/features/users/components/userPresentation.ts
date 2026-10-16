@@ -26,3 +26,13 @@ export function accountChanges(original: UserAccount | undefined, draft: UserInp
   return changes;
 }
 export function revokesSessions(changes: Partial<UserInput>) { return changes.password !== undefined || changes.role !== undefined || changes.driverId !== undefined || changes.active === false; }
+
+export interface PasswordDraft { enabled: boolean; password: string; confirmation: string }
+export function validateDraft(draft: UserInput, security: PasswordDraft): string | null {
+  if (!draft.name) return "Informe o nome da pessoa.";
+  if (!security.enabled) return null;
+  const length = Array.from(security.password.normalize("NFC")).length;
+  if (length < 15 || length > 128) return "A senha deve ter de 15 a 128 caracteres.";
+  if (security.password !== security.confirmation) return "A confirmação deve ser igual à senha informada.";
+  return null;
+}

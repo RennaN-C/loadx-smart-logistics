@@ -47,12 +47,12 @@ export function UserManagementPanel() {
     {list.status === "success" && list.items.length === 0 ? <p className="user-list-message">Nenhum usuário encontrado com estes filtros.</p> : null}
     {list.status === "success" && list.items.length > 0 ? <>
       <p className="user-muted">Exibindo {list.items.length} de {list.total} usuários.</p>
-      <div className="user-list" role="list" aria-label="Contas de usuários">{list.items.map((account) => <article className="user-row" role="listitem" key={account.id}>
+      <ul className="user-list" aria-label="Contas de usuários">{list.items.map((account) => <li className="user-row" key={account.id}>
         <div className="user-row-identity"><h3>{account.name}{account.id === user.id ? <span className="user-own">Sua conta</span> : null}</h3><p>{account.email}</p></div>
         <div className="user-row-access"><span>{ROLE_LABELS[account.role]}</span><StatusPill tone={account.active ? "good" : "neutral"}>{account.active ? "Ativo" : "Inativo"}</StatusPill></div>
         <p className="user-row-link">{account.driverId ? account.driverName ?? "Motorista vinculado" : "Sem vínculo de motorista"}</p>
         <button type="button" className="btn-secondary" disabled={edit.loadingId !== null} aria-label={`Editar ${account.name}`} onClick={() => { setNotice(""); void edit.open(account.id); }}>{edit.loadingId === account.id ? "Abrindo…" : "Editar conta"}</button>
-      </article>)}</div>
+      </li>)}</ul>
       <Pagination page={list.page} totalPages={list.totalPages} onChange={list.goToPage} label="usuários" />
     </> : null}
     {creating || edit.target ? <UserEditor key={edit.target?.id ?? "new"} account={edit.target ?? undefined} ownId={user.id} onClose={close} onSaved={saved} /> : null}

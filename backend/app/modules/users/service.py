@@ -61,7 +61,7 @@ class UserService:
 
     def driver_names(self, users: Sequence[User]) -> dict[uuid.UUID, str]:
         identities = tuple(
-            {user.driver_id for user in users if user.driver_id is not None}
+            user.driver_id for user in users if user.driver_id is not None
         )
         return self.driver_service.names_for_ids(identities)
 
