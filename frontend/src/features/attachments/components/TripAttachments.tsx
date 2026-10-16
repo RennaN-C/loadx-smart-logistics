@@ -38,7 +38,7 @@ export function TripAttachments({ trip, canManage, access }: { readonly trip: Tr
       <label>Recurso do anexo <select value={selection} onChange={(event) => setSelection(event.target.value)}>
         <AttachmentResourceOptions trip={trip} occurrences={occurrences} readDeliveries={readDeliveries} readOccurrences={readOccurrences} />
       </select></label>
-      {readOccurrences && loading ? <p role="status">Carregando ocorrências…</p> : null}
+      {readOccurrences && loading ? <output>Carregando ocorrências…</output> : null}
       {readOccurrences && error ? <AlertBanner>{error}</AlertBanner> : null}
       <AttachmentPanel key={selection} resource={resource} resourceId={resourceId} canManage={writes[resource]} />
     </Modal> : null}
