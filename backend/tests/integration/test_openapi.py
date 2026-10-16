@@ -6,6 +6,7 @@ from app.core.config import Settings
 from app.main import create_app
 
 EXPECTED_ERROR_STATUSES = {
+    ("/api/v1/search", "get"): {"401", "403", "422", "500"},
     ("/api/v1/auth/me", "patch"): {"401", "403", "409", "422", "500"},
     ("/api/v1/auth/me/password", "post"): {"400", "401", "403", "422", "429", "500"},
     ("/api/v1/auth/me/sessions", "get"): {"401", "403", "422", "500"},
@@ -145,6 +146,14 @@ EXPECTED_ERROR_STATUSES = {
         "403",
         "404",
         "409",
+        "422",
+        "500",
+    },
+    ("/api/v1/load-plans", "get"): {"401", "403", "422", "500"},
+    ("/api/v1/load-plans/{load_plan_id}/continuity", "get"): {
+        "401",
+        "403",
+        "404",
         "422",
         "500",
     },
@@ -373,6 +382,7 @@ EXPECTED_ERROR_STATUSES = {
 for distribution_path, methods in {
     "/api/v1/load-distributions": ("post",),
     "/api/v1/load-distributions/preflight": ("post",),
+    "/api/v1/load-distributions/optimize": ("post",),
     "/api/v1/load-distributions/{distribution_id}": ("get",),
     "/api/v1/load-distributions/{distribution_id}/approve": ("post",),
     "/api/v1/load-distributions/{distribution_id}/cancel": ("post",),
@@ -522,6 +532,7 @@ def test_openapi_declares_all_public_decimal_fields_as_numbers() -> None:
         "PlacedLoadPlanItemRead": ("weight_kg",),
         "UnloadedLoadPlanItemRead": ("weight_kg",),
         "LoadPlanRead": ("occupancy_percent", "total_weight_kg"),
+        "LoadPlanListRead": ("occupancy_percent", "total_weight_kg"),
         "TruckComparisonRead": ("occupancy_percent", "total_weight_kg"),
         "TruckSnapshotRead": ("max_weight_kg",),
     }
@@ -739,3 +750,38 @@ def test_driver_documents_preserve_oc101_schema_names():
     ]["201"]["content"]["application/json"]["schema"] == {
         "$ref": "#/components/schemas/DriverDocumentRead"
     }
+
+
+def test_oc95_explicit_filter_whitelist_preserves_privacy() -> None:
+    schema = create_app(Settings(app_env="local")).openapi()
+    expected = {
+        "orders": {"search", "status"},
+        "trucks": {"search", "archive_status"},
+        "products": {"search", "restriction", "archive_status"},
+        "customers": {"search", "archive_status"},
+        "drivers": {"search", "archive_status"},
+    }
+    for resource, filters in expected.items():
+        parameters = schema["paths"][f"/api/v1/{resource}"]["get"]["parameters"]
+        query = {p["name"]: p for p in parameters if p["in"] == "query"}
+        assert set(query) == {"page", "page_size", "sort_order"} | filters
+        assert query["search"]["schema"]["anyOf"][0]["maxLength"] == 120
+        if resource == "orders":
+            assert set(query["status"]["schema"]["anyOf"][0]["enum"]) == {
+                "DRAFT",
+                "READY",
+                "PLANNED",
+                "IN_TRANSIT",
+                "DELIVERED",
+                "CANCELED",
+            }
+        if resource == "products":
+            assert set(query["restriction"]["schema"]["anyOf"][0]["enum"]) == {
+                "restricted",
+                "free",
+            }
+    for resource in ("trucks", "drivers"):
+        parameters = schema["paths"][f"/api/v1/{resource}/operational-status"]["get"][
+            "parameters"
+        ]
+        assert {p["name"] for p in parameters} == {"page", "page_size", "sort_order"}

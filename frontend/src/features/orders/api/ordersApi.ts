@@ -1,5 +1,5 @@
 import { api } from "../../../services/api";
-import { mapPageFromDto, toPageQuery, type ListParams, type PageDto } from "../../../services/pagination";
+import { mapPageFromDto, toPageQuery, toSearchQuery, type SearchListParams, type PageDto } from "../../../services/pagination";
 import type { Page } from "../../../types/api";
 import type {
   Order,
@@ -101,8 +101,12 @@ function mapOrderToDto(input: OrderUpdateInput): Record<string, unknown> {
   return dto;
 }
 
-export async function listOrders(params: ListParams = {}): Promise<Page<OrderListItem>> {
-  const { data } = await api.get<PageDto<OrderListDto>>("/orders", { params: toPageQuery(params) });
+export interface OrderListParams extends SearchListParams {
+  status?: OrderStatus;
+}
+
+export async function listOrders(params: OrderListParams = {}): Promise<Page<OrderListItem>> {
+  const { data } = await api.get<PageDto<OrderListDto>>("/orders", { params: { ...toPageQuery(params), ...toSearchQuery(params), ...(params.status ? { status: params.status } : {}) } });
 
   return mapPageFromDto(data, mapOrderListItemFromDto);
 }

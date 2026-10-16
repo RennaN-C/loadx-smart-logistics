@@ -30,7 +30,7 @@ export interface BackdropPalette {
 
 /**
  * Duas paletas, seguindo os tokens do app (`--paper`, `--line`, `--muted`).
- * O tema do LoadX é decidido só por `prefers-color-scheme`, sem alternador.
+ * O tema do LoadX segue a preferência global de aparência, inclusive o modo automático.
  */
 const DARK: BackdropPalette = {
   zenith: "#0c1014",

@@ -25,6 +25,42 @@ duplicação, omissão ou rejeição física desfaz tudo. DISTRIBUTION_CAPACITY_
 (422) informa truck_id, identidades e motivos da engine em details; não persiste
 plano parcial inválido. OC88 pode tentar outra partição usando o mesmo contrato.
 
+
+## OC88 — otimização automática multi-caminhão
+
+`CONFIRMADO`: `POST /api/v1/load-distributions/optimize` recebe somente
+`order_ids` e reutiliza o `preflight` da OC87 para materializar os volumes e
+obter a fotografia atual da frota elegível. O algoritmo puro fica em
+`optimizer/multi_truck.py`; ele não acessa banco, HTTP ou FastAPI.
+
+A busca tenta completar a necessidade com um caminhão antes de ampliar para
+dois, três e assim sucessivamente, até o limite de dez partes definido pela
+OC87. Cada tentativa usa exclusivamente `calculate_volume_load_plan`; portanto,
+dimensões, peso, rotações, colisão, apoio, fragilidade, profundidade e sequência
+continuam pertencendo à engine física existente.
+
+O desempate entre soluções completas com a mesma quantidade de veículos é
+determinístico: menor capacidade volumétrica total da frota escolhida, menor
+capacidade total de peso, UUIDs dos caminhões e, por fim, identidades dos
+volumes atribuídos. A ordem recebida do banco ou do payload não define o
+resultado.
+
+Para controlar custo síncrono, estados parciais equivalentes são deduplicados
+e a fronteira de busca é limitada deterministicamente. A estratégia continua
+sendo uma heurística sobre `heuristic-v1`, e não um solver global exato de
+bin-packing 3D.
+
+Uma solução só é persistida quando cobre todos os volumes. Depois da escolha,
+o service converte o resultado em `DistributionCreate` e chama o mesmo
+`LoadDistributionService.create`, que bloqueia/revalida a frota e recalcula
+cada subconjunto antes do commit. Mudança de disponibilidade entre preflight e
+persistência continua produzindo o erro operacional existente.
+
+Se nenhuma combinação pesquisada completar a necessidade, a API retorna
+`DISTRIBUTION_CAPACITY_INSUFFICIENT` (422), com volumes restantes, motivos
+físicos observados, caminhões inelegíveis no preflight e quantidade de
+tentativas da busca. Nenhum plano parcial é persistido.
+
 ## OC89 — HTTP e consulta
 
 `CONFIRMADO`: prefixo `/api/v1/load-distributions`:
@@ -32,6 +68,7 @@ plano parcial inválido. OC88 pode tentar outra partição usando o mesmo contra
 | Método/caminho | Contrato |
 |---|---|
 | POST /preflight | DistributionNeedRequest -> DistributionNeedRead, 200, sem escrita |
+| POST /optimize | DistributionNeedRequest -> DistributionRead, 201, seleção automática OC88 |
 | POST prefixo | DistributionCreate -> DistributionRead, 201, proposta completa |
 | GET /{distribution_id} | DistributionRead, 200 |
 | POST /{distribution_id}/approve | corpo `{}`, aprova todas as partes, 200 |

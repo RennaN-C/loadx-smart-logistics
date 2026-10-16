@@ -1599,3 +1599,236 @@ def test_explain_load_plan_does_not_hide_invalid_persisted_plan_with_fallback(
     assert response.status_code == 409
     assert response.json()["code"] == "LOAD_PLAN_EXPLANATION_INVALID_PLAN"
     assert provider.calls == []
+
+
+def test_list_plans_is_compact_filtered_and_deterministic(
+    client: TestClient,
+    session_factory: SessionFactory,
+    manager: AuthenticatedUser,
+) -> None:
+    from datetime import UTC, datetime
+
+    scenario = seed_planning_scenario(session_factory)
+    plans = [create_load_plan(client, scenario, manager) for _ in range(3)]
+    with session_factory() as db:
+        for plan in plans:
+            db.get(LoadPlan, uuid.UUID(plan["id"])).created_at = datetime(
+                2026, 10, 12, tzinfo=UTC
+            )
+        db.commit()
+    params = {"truck_id": str(scenario.truck_id), "page_size": 1, "sort_order": "asc"}
+    ids = []
+    for page in (1, 2, 3):
+        response = client.get(
+            "/api/v1/load-plans",
+            params={**params, "page": page},
+            headers=manager.headers,
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["total"] == 3
+        assert payload["total_pages"] == 3
+        item = payload["items"][0]
+        assert item["truck_plate"] == scenario.truck_plate
+        assert item["order_count"] == 1
+        assert item["loaded_count"] == 1
+        assert (
+            not {"items", "order_ids", "password_hash", "delivery_address"}
+            & item.keys()
+        )
+        ids.append(item["id"])
+    assert ids == sorted(plan["id"] for plan in plans)
+    reverse = client.get(
+        "/api/v1/load-plans",
+        params={**params, "sort_order": "desc"},
+        headers=manager.headers,
+    )
+    assert reverse.json()["items"][0]["id"] == ids[-1]
+    beyond = client.get(
+        "/api/v1/load-plans", params={**params, "page": 4}, headers=manager.headers
+    )
+    assert beyond.json()["items"] == []
+    missing = client.get(
+        "/api/v1/load-plans",
+        params={"truck_id": str(uuid.uuid4())},
+        headers=manager.headers,
+    )
+    assert missing.json()["total"] == 0
+
+
+@pytest.mark.parametrize(
+    "role,expected",
+    [("ADMIN", 200), ("LOGISTICS_MANAGER", 200), ("CHECKER", 200), ("DRIVER", 403)],
+)
+def test_list_plans_applies_role_scope_before_pagination(
+    client: TestClient,
+    session_factory: SessionFactory,
+    manager: AuthenticatedUser,
+    role: str,
+    expected: int,
+) -> None:
+    scenario = seed_planning_scenario(session_factory)
+    created = create_load_plan(client, scenario, manager)
+    requester = create_authenticated_user(session_factory, role)
+    params = {"truck_id": str(scenario.truck_id)}
+    response = client.get(
+        "/api/v1/load-plans", params=params, headers=requester.headers
+    )
+    assert response.status_code == expected
+    if expected != 200:
+        return
+    assert response.json()["total"] == (0 if role == "CHECKER" else 1)
+    approved = client.post(
+        f"/api/v1/load-plans/{created['id']}/approve", headers=manager.headers
+    )
+    assert approved.status_code == 200
+    response = client.get(
+        "/api/v1/load-plans", params=params, headers=requester.headers
+    )
+    assert response.json()["total"] == 1
+    assert response.json()["items"][0]["status"] == "APPROVED"
+    filtered = client.get(
+        "/api/v1/load-plans",
+        params={**params, "status": "CALCULATED"},
+        headers=requester.headers,
+    )
+    assert filtered.json()["total"] == 0
+
+
+@pytest.mark.parametrize(
+    "params",
+    [
+        {"page": 0},
+        {"page_size": 101},
+        {"status": "DRAFT"},
+        {"sort_order": "random"},
+        {"truck_id": "invalid"},
+    ],
+)
+def test_list_plans_rejects_invalid_query(
+    client: TestClient, manager: AuthenticatedUser, params: dict[str, Any]
+) -> None:
+    assert (
+        client.get(
+            "/api/v1/load-plans", params=params, headers=manager.headers
+        ).status_code
+        == 422
+    )
+
+
+def test_plan_collection_and_continuity_require_session(client: TestClient) -> None:
+    assert client.get("/api/v1/load-plans").status_code == 401
+    assert (
+        client.get(f"/api/v1/load-plans/{uuid.uuid4()}/continuity").status_code == 401
+    )
+
+
+def test_continuity_reports_actual_loading_and_trip_without_writing(
+    client: TestClient,
+    session_factory: SessionFactory,
+    manager: AuthenticatedUser,
+) -> None:
+    from app.modules.deliveries.models import Trip
+    from app.modules.drivers.models import Driver
+
+    scenario = seed_planning_scenario(session_factory)
+    created = create_load_plan(client, scenario, manager)
+    endpoint = f"/api/v1/load-plans/{created['id']}/continuity"
+    before = client.get(endpoint, headers=manager.headers).json()
+    assert before == {"loading_session": None, "trip": None, "operational_ready": False}
+    checker = create_authenticated_user(session_factory, "CHECKER")
+    driver_user = create_authenticated_user(session_factory, "DRIVER")
+    assert client.get(endpoint, headers=checker.headers).status_code == 403
+    assert client.get(endpoint, headers=driver_user.headers).status_code == 403
+    assert (
+        client.post(
+            f"/api/v1/load-plans/{created['id']}/approve", headers=manager.headers
+        ).status_code
+        == 200
+    )
+    loading = client.post(
+        "/api/v1/loading-sessions",
+        json={"load_plan_id": created["id"]},
+        headers=manager.headers,
+    )
+    assert loading.status_code == 201
+    with session_factory() as db:
+        driver = Driver(
+            name="Motorista fictício",
+            phone="11900000000",
+            document=uuid.uuid4().hex,
+            license_number=uuid.uuid4().hex,
+            active=True,
+        )
+        db.add(driver)
+        db.flush()
+        trip = Trip(
+            load_plan_id=uuid.UUID(created["id"]),
+            driver_id=driver.id,
+            status="SCHEDULED",
+        )
+        db.add(trip)
+        db.commit()
+        trip_id = str(trip.id)
+    for _ in range(2):
+        payload = client.get(endpoint, headers=manager.headers).json()
+        assert payload["trip"] == {"id": trip_id, "status": "SCHEDULED"}
+        assert payload["loading_session"] == {
+            "id": loading.json()["id"],
+            "status": "PENDING",
+        }
+        assert payload["operational_ready"] is True
+    payload = client.get(endpoint, headers=checker.headers).json()
+    assert payload["trip"] is None  # CHECKER has no trip permission.
+    assert payload["loading_session"]["id"] == loading.json()["id"]
+    assert (
+        client.get(
+            f"/api/v1/load-plans/{uuid.uuid4()}/continuity", headers=manager.headers
+        ).status_code
+        == 404
+    )
+
+
+def test_plan_list_does_not_query_volume_collections(
+    client: TestClient,
+    session_factory: SessionFactory,
+    manager: AuthenticatedUser,
+) -> None:
+    from sqlalchemy import event
+
+    scenario = seed_planning_scenario(session_factory, quantity=2)
+    create_load_plan(client, scenario, manager)
+    statements: list[str] = []
+    with session_factory() as db:
+        engine = db.get_bind()
+
+    def capture(
+        _conn: Any,
+        _cursor: Any,
+        statement: str,
+        _params: Any,
+        _context: Any,
+        _many: Any,
+    ) -> None:
+        statements.append(statement.lower())
+
+    event.listen(engine, "before_cursor_execute", capture)
+    try:
+        response = client.get("/api/v1/load-plans", headers=manager.headers)
+        assert response.status_code == 200
+    finally:
+        event.remove(engine, "before_cursor_execute", capture)
+    assert not any("load_plan_items" in statement for statement in statements)
+    assert any(
+        "limit" in statement and "offset" in statement for statement in statements
+    )
+
+
+def test_plan_collection_openapi_documents_filters_and_errors() -> None:
+    operations = app.openapi()["paths"]
+    collection = operations["/api/v1/load-plans"]["get"]
+    assert {"401", "403", "422"} <= collection["responses"].keys()
+    assert {"page", "page_size", "sort_order", "status", "truck_id"} <= {
+        parameter["name"] for parameter in collection["parameters"]
+    }
+    assert "get" in operations["/api/v1/load-plans/{load_plan_id}/continuity"]

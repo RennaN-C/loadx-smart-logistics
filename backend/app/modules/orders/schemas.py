@@ -1,7 +1,12 @@
 import uuid
 from datetime import datetime, timezone
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+OrderStatus = Literal[
+    "DRAFT", "READY", "PLANNED", "IN_TRANSIT", "DELIVERED", "CANCELED"
+]
 
 ORDER_STATUS_VALUES = {
     "DRAFT",

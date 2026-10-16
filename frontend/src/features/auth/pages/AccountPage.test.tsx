@@ -20,6 +20,7 @@ function fillPassword(confirm = "Nova-senha-ficticia-2026") {
 describe("OC92 Meu perfil", () => {
   it.each<Role>(["ADMIN", "LOGISTICS_MANAGER", "CHECKER", "DRIVER"])("%s acessa sua conta por URL e menu sem novos privilégios", async (role) => {
     vi.mocked(getCurrentUser).mockResolvedValue({ ...USER, role }); await show();
+    expect(screen.getByRole("radio", { name: /Automático/ })).toBeInTheDocument();
     expect(screen.getByLabelText("Nome")).toHaveValue(USER.name);
     expect(screen.getByRole("form", { name: "Dados pessoais" })).toHaveTextContent({ ADMIN: "Administrador", LOGISTICS_MANAGER: "Gestor de logística", CHECKER: "Conferente", DRIVER: "Motorista" }[role]);
     expect(screen.queryByLabelText("Perfil de acesso")).not.toBeInTheDocument();

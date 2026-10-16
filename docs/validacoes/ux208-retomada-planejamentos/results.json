@@ -1,0 +1,310 @@
+{
+  "newPlan": "0aabe794-a1d2-4755-8380-7b169cf0bcfb",
+  "recovered": true,
+  "reload": true,
+  "newLogin": true,
+  "existingTrip": true,
+  "checkerScope": true,
+  "driverDenied": true,
+  "results": [
+    {
+      "label": "dark_375_plans",
+      "role": "LOGISTICS_MANAGER",
+      "width": 375,
+      "scroll": 360,
+      "title": "Planejamento de carga",
+      "overflows": []
+    },
+    {
+      "label": "dark_375_new",
+      "role": "LOGISTICS_MANAGER",
+      "width": 375,
+      "scroll": 360,
+      "title": "Planejamento de carga",
+      "overflows": []
+    },
+    {
+      "label": "dark_375_calculated",
+      "role": "LOGISTICS_MANAGER",
+      "width": 375,
+      "scroll": 360,
+      "title": "Planejamento de carga",
+      "overflows": []
+    },
+    {
+      "label": "dark_375_continuity",
+      "role": "LOGISTICS_MANAGER",
+      "width": 375,
+      "scroll": 360,
+      "title": "Planejamento de carga",
+      "overflows": []
+    },
+    {
+      "label": "dark_768_plans",
+      "role": "LOGISTICS_MANAGER",
+      "width": 768,
+      "scroll": 753,
+      "title": "Planejamento de carga",
+      "overflows": []
+    },
+    {
+      "label": "dark_768_new",
+      "role": "LOGISTICS_MANAGER",
+      "width": 768,
+      "scroll": 768,
+      "title": "Planejamento de carga",
+      "overflows": []
+    },
+    {
+      "label": "dark_768_calculated",
+      "role": "LOGISTICS_MANAGER",
+      "width": 768,
+      "scroll": 753,
+      "title": "Planejamento de carga",
+      "overflows": []
+    },
+    {
+      "label": "dark_768_continuity",
+      "role": "LOGISTICS_MANAGER",
+      "width": 768,
+      "scroll": 753,
+      "title": "Planejamento de carga",
+      "overflows": []
+    },
+    {
+      "label": "dark_1280_plans",
+      "role": "LOGISTICS_MANAGER",
+      "width": 1280,
+      "scroll": 1265,
+      "title": "Planejamento de carga",
+      "overflows": []
+    },
+    {
+      "label": "dark_1280_new",
+      "role": "LOGISTICS_MANAGER",
+      "width": 1280,
+      "scroll": 1265,
+      "title": "Planejamento de carga",
+      "overflows": []
+    },
+    {
+      "label": "dark_1280_calculated",
+      "role": "LOGISTICS_MANAGER",
+      "width": 1280,
+      "scroll": 1265,
+      "title": "Planejamento de carga",
+      "overflows": []
+    },
+    {
+      "label": "dark_1280_continuity",
+      "role": "LOGISTICS_MANAGER",
+      "width": 1280,
+      "scroll": 1265,
+      "title": "Planejamento de carga",
+      "overflows": []
+    },
+    {
+      "label": "dark_1920_plans",
+      "role": "LOGISTICS_MANAGER",
+      "width": 1920,
+      "scroll": 1920,
+      "title": "Planejamento de carga",
+      "overflows": []
+    },
+    {
+      "label": "dark_1920_new",
+      "role": "LOGISTICS_MANAGER",
+      "width": 1920,
+      "scroll": 1920,
+      "title": "Planejamento de carga",
+      "overflows": []
+    },
+    {
+      "label": "dark_1920_calculated",
+      "role": "LOGISTICS_MANAGER",
+      "width": 1920,
+      "scroll": 1905,
+      "title": "Planejamento de carga",
+      "overflows": []
+    },
+    {
+      "label": "dark_1920_continuity",
+      "role": "LOGISTICS_MANAGER",
+      "width": 1920,
+      "scroll": 1905,
+      "title": "Planejamento de carga",
+      "overflows": []
+    },
+    {
+      "label": "light_375_plans",
+      "role": "LOGISTICS_MANAGER",
+      "width": 375,
+      "scroll": 360,
+      "title": "Planejamento de carga",
+      "overflows": []
+    },
+    {
+      "label": "light_375_new",
+      "role": "LOGISTICS_MANAGER",
+      "width": 375,
+      "scroll": 360,
+      "title": "Planejamento de carga",
+      "overflows": []
+    },
+    {
+      "label": "light_375_calculated",
+      "role": "LOGISTICS_MANAGER",
+      "width": 375,
+      "scroll": 360,
+      "title": "Planejamento de carga",
+      "overflows": []
+    },
+    {
+      "label": "light_375_continuity",
+      "role": "LOGISTICS_MANAGER",
+      "width": 375,
+      "scroll": 360,
+      "title": "Planejamento de carga",
+      "overflows": []
+    },
+    {
+      "label": "light_768_plans",
+      "role": "LOGISTICS_MANAGER",
+      "width": 768,
+      "scroll": 753,
+      "title": "Planejamento de carga",
+      "overflows": []
+    },
+    {
+      "label": "light_768_new",
+      "role": "LOGISTICS_MANAGER",
+      "width": 768,
+      "scroll": 768,
+      "title": "Planejamento de carga",
+      "overflows": []
+    },
+    {
+      "label": "light_768_calculated",
+      "role": "LOGISTICS_MANAGER",
+      "width": 768,
+      "scroll": 753,
+      "title": "Planejamento de carga",
+      "overflows": []
+    },
+    {
+      "label": "light_768_continuity",
+      "role": "LOGISTICS_MANAGER",
+      "width": 768,
+      "scroll": 753,
+      "title": "Planejamento de carga",
+      "overflows": []
+    },
+    {
+      "label": "light_1280_plans",
+      "role": "LOGISTICS_MANAGER",
+      "width": 1280,
+      "scroll": 1265,
+      "title": "Planejamento de carga",
+      "overflows": []
+    },
+    {
+      "label": "light_1280_new",
+      "role": "LOGISTICS_MANAGER",
+      "width": 1280,
+      "scroll": 1265,
+      "title": "Planejamento de carga",
+      "overflows": []
+    },
+    {
+      "label": "light_1280_calculated",
+      "role": "LOGISTICS_MANAGER",
+      "width": 1280,
+      "scroll": 1265,
+      "title": "Planejamento de carga",
+      "overflows": []
+    },
+    {
+      "label": "light_1280_continuity",
+      "role": "LOGISTICS_MANAGER",
+      "width": 1280,
+      "scroll": 1265,
+      "title": "Planejamento de carga",
+      "overflows": []
+    },
+    {
+      "label": "light_1920_plans",
+      "role": "LOGISTICS_MANAGER",
+      "width": 1920,
+      "scroll": 1920,
+      "title": "Planejamento de carga",
+      "overflows": []
+    },
+    {
+      "label": "light_1920_new",
+      "role": "LOGISTICS_MANAGER",
+      "width": 1920,
+      "scroll": 1920,
+      "title": "Planejamento de carga",
+      "overflows": []
+    },
+    {
+      "label": "light_1920_calculated",
+      "role": "LOGISTICS_MANAGER",
+      "width": 1920,
+      "scroll": 1905,
+      "title": "Planejamento de carga",
+      "overflows": []
+    },
+    {
+      "label": "light_1920_continuity",
+      "role": "LOGISTICS_MANAGER",
+      "width": 1920,
+      "scroll": 1905,
+      "title": "Planejamento de carga",
+      "overflows": []
+    }
+  ],
+  "errors": [
+    {
+      "role": "ADMIN",
+      "url": "http://127.0.0.1:18793/api/v1/auth/me",
+      "status": 401
+    },
+    {
+      "role": "ADMIN",
+      "url": "http://127.0.0.1:18793/api/v1/auth/me",
+      "status": 401
+    },
+    {
+      "role": "LOGISTICS_MANAGER",
+      "url": "http://127.0.0.1:18793/api/v1/auth/me",
+      "status": 401
+    },
+    {
+      "role": "LOGISTICS_MANAGER",
+      "url": "http://127.0.0.1:18793/api/v1/auth/me",
+      "status": 401
+    },
+    {
+      "role": "CHECKER",
+      "url": "http://127.0.0.1:18793/api/v1/auth/me",
+      "status": 401
+    },
+    {
+      "role": "CHECKER",
+      "url": "http://127.0.0.1:18793/api/v1/auth/me",
+      "status": 401
+    },
+    {
+      "role": "DRIVER",
+      "url": "http://127.0.0.1:18793/api/v1/auth/me",
+      "status": 401
+    },
+    {
+      "role": "DRIVER",
+      "url": "http://127.0.0.1:18793/api/v1/auth/me",
+      "status": 401
+    }
+  ],
+  "finalCaptures": true
+}

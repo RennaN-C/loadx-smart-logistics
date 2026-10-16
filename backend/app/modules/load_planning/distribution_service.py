@@ -16,17 +16,27 @@ from app.modules.load_planning.distribution_schemas import (
     DistributionCreate,
     DistributionNeedRead,
     DistributionNeedRequest,
+    DistributionPartCreate,
     DistributionPartRead,
     DistributionPartReprocess,
     DistributionRead,
     DistributionVolumeRead,
     IneligibleTruckRead,
     NeedVolumeRead,
+    VolumeReference,
 )
-from app.modules.load_planning.optimizer.contracts import VolumeIdentity
+from app.modules.load_planning.optimizer.capacity import TruckCapacityInput
+from app.modules.load_planning.optimizer.contracts import (
+    IndividualVolume,
+    VolumeIdentity,
+)
 from app.modules.load_planning.optimizer.engine import (
     MAX_VOLUMES,
     LoadPlanVolumeLimitExceededError,
+)
+from app.modules.load_planning.optimizer.multi_truck import (
+    MultiTruckCandidate,
+    optimize_multi_truck,
 )
 from app.modules.load_planning.optimizer.volumes import expand_order_items
 from app.modules.load_planning.schemas import TruckSnapshotRead, map_load_plan_read
@@ -164,6 +174,112 @@ class LoadDistributionService:
             eligible_trucks=eligible,
             ineligible_trucks=ineligible,
         )
+
+    def optimize(
+        self,
+        data: DistributionNeedRequest,
+        *,
+        changed_by: uuid.UUID,
+    ) -> DistributionRead:
+        need = self.preflight(data)
+
+        candidates = tuple(
+            MultiTruckCandidate(
+                truck_id=truck.id,
+                capacity=TruckCapacityInput(
+                    internal_width_cm=truck.width_cm,
+                    internal_height_cm=truck.height_cm,
+                    internal_length_cm=truck.length_cm,
+                    max_weight_kg=truck.max_weight_kg,
+                ),
+            )
+            for truck in need.eligible_trucks
+        )
+        volumes = tuple(
+            IndividualVolume(
+                identity=VolumeIdentity(
+                    volume.order_item_id,
+                    volume.volume_index,
+                ),
+                order_id=volume.order_id,
+                product_id=volume.product_id,
+                product_name=None,
+                delivery_sequence=volume.delivery_sequence,
+                original_width_cm=volume.width_cm,
+                original_height_cm=volume.height_cm,
+                original_length_cm=volume.length_cm,
+                volume_cm3=(volume.width_cm * volume.height_cm * volume.length_cm),
+                weight_kg=volume.weight_kg,
+                fragile=volume.fragile,
+                stackable=volume.stackable,
+                rotation_allowed=volume.rotation_allowed,
+            )
+            for volume in need.volumes
+        )
+
+        result = optimize_multi_truck(candidates, volumes)
+
+        if not result.complete:
+            failures = {
+                (
+                    failure.identity.order_item_id,
+                    failure.identity.volume_index,
+                ): failure.reasons
+                for failure in result.failures
+            }
+            raise DistributionError(
+                "DISTRIBUTION_CAPACITY_INSUFFICIENT",
+                status=422,
+                details=[
+                    {
+                        "remaining_volumes": [
+                            {
+                                "order_item_id": str(volume.order_item_id),
+                                "volume_index": volume.volume_index,
+                                "reasons": list(
+                                    failures.get(
+                                        (
+                                            volume.order_item_id,
+                                            volume.volume_index,
+                                        ),
+                                        (),
+                                    )
+                                ),
+                            }
+                            for volume in result.remaining_volumes
+                        ],
+                        "ineligible_trucks": [
+                            {
+                                "truck_id": str(truck.truck_id),
+                                "reason": truck.reason,
+                            }
+                            for truck in sorted(
+                                need.ineligible_trucks,
+                                key=lambda truck: truck.truck_id.int,
+                            )
+                        ],
+                        "attempt_count": result.attempt_count,
+                    }
+                ],
+            )
+
+        proposal = DistributionCreate(
+            order_ids=list(need.order_ids),
+            parts=[
+                DistributionPartCreate(
+                    truck_id=part.truck_id,
+                    volumes=[
+                        VolumeReference(
+                            order_item_id=volume.order_item_id,
+                            volume_index=volume.volume_index,
+                        )
+                        for volume in part.volumes
+                    ],
+                )
+                for part in result.parts
+            ],
+        )
+        return self.create(proposal, changed_by=changed_by)
 
     def _lock_trucks(self, identifiers):
         trucks = {}

@@ -33,9 +33,9 @@ function atendeFiltro(truck: TruckOperationalStatus, filtro: Filtro): boolean {
  * agrupa e explica. Inventar estado aqui faria a frota parecer uma coisa na
  * tela e outra no planejamento.
  *
- * Os contadores valem para a PÁGINA carregada, não para a frota inteira: D12
- * mantém filtro e agregação server-side fora do contrato, e deixar isso
- * implícito faria alguém concluir que só existem três caminhões disponíveis.
+ * OC95: contadores e filtro de disponibilidade permanecem por página. A
+ * fronteira atual calcula por ID após paginar; filtragem global depende de
+ * evolução arquitetural sem duplicar regras operacionais. O aviso é explícito.
  */
 export function FleetStatusPage({ embedded = false }: { readonly embedded?: boolean }) {
   const { status, items, error, refetch, page, total, totalPages, goToPage } = useResourceList(

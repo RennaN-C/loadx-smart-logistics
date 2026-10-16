@@ -8,7 +8,11 @@ from app.core.pagination import PageResult, PaginationParams
 from app.database.integrity import get_integrity_constraint_name
 from app.modules.products.models import Product
 from app.modules.products.repository import ProductRepository
-from app.modules.products.schemas import ProductCreate, ProductUpdate
+from app.modules.products.schemas import (
+    ProductCreate,
+    ProductRestriction,
+    ProductUpdate,
+)
 from app.shared.record_lifecycle import stage_lifecycle_event, validate_reactivation
 
 
@@ -26,9 +30,16 @@ class ProductService:
         self.repository = ProductRepository(db)
 
     def list_products(
-        self, pagination: PaginationParams, *, active: bool | None = None
+        self,
+        pagination: PaginationParams,
+        *,
+        active: bool | None = None,
+        search: str | None = None,
+        restriction: ProductRestriction | None = None,
     ) -> PageResult[Product]:
-        return self.repository.list(pagination, active=active)
+        return self.repository.list(
+            pagination, active=active, search=search, restriction=restriction
+        )
 
     def get_product(
         self, product_id: uuid.UUID, *, for_update: bool = False

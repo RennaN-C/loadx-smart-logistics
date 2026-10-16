@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.pagination import PageResponse, Pagination, to_page_response
 from app.core.responses import error_response, openapi_error_responses
+from app.core.search import SearchQuery
 from app.database.session import get_db
 from app.modules.auth.dependencies import require_roles
 from app.modules.drivers.models import Driver
@@ -60,8 +61,11 @@ def list_drivers(
     _current_user: DriverReader,
     service: Annotated[DriverService, Depends(get_driver_service)],
     archive_status: ArchiveFilter = "active",
+    search: SearchQuery = None,
 ) -> PageResponse[DriverListRead]:
-    result = service.list_drivers(pagination, active=active_filter(archive_status))
+    result = service.list_drivers(
+        pagination, active=active_filter(archive_status), search=search
+    )
     return to_page_response(
         result,
         (DriverListRead.model_validate(driver) for driver in result.items),

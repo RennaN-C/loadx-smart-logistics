@@ -1,8 +1,9 @@
 import { ImportAction } from "../../registration-imports/components/ImportAction";
-import { useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 
 import { AlertBanner } from "../../../components/AlertBanner";
 import { Modal } from "../../../components/Modal";
+import { MAX_SEARCH_LENGTH, type ListParams } from "../../../services/pagination";
 import { Pagination } from "../../../components/Pagination";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { canManageLogistics } from "../../auth/permissions";
@@ -19,15 +20,15 @@ import { Icon } from "../../../components/Icon";
 
 type RestrictionFilter = "all" | "restricted" | "free";
 
-function matchesRestriction(product: Product, filter: RestrictionFilter): boolean {
-  const hasRestriction = product.fragile || !product.stackable || !product.rotationAllowed;
-  if (filter === "restricted") return hasRestriction;
-  if (filter === "free") return !hasRestriction;
-  return true;
-}
-
 export function ProductListPage() {
   const { user } = useAuth();
+  const [search, setSearch] = useState("");
+  const [restrictionFilter, setRestrictionFilter] = useState<RestrictionFilter>("all");
+  const filteredLoad = useCallback((params: ListParams) => listProducts({
+    ...params,
+    search,
+    restriction: restrictionFilter === "all" ? undefined : restrictionFilter,
+  }), [search, restrictionFilter]);
   const {
     status,
     items: products,
@@ -39,28 +40,12 @@ export function ProductListPage() {
     goToPage,
     archiveStatus,
     setArchiveStatus,
-  } = useRegistryList(listProducts);
-  const [search, setSearch] = useState("");
-  const [restrictionFilter, setRestrictionFilter] = useState<RestrictionFilter>("all");
+  } = useRegistryList(filteredLoad);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
   const canManage = canManageLogistics(user?.role);
   const isFormOpen = isCreating || editingProduct !== null;
-
-  // Busca e restrições são locais; o arquivamento é filtrado pelo servidor (OC105).
-  const visibleProducts = useMemo(() => {
-    const term = search.trim().toLowerCase();
-
-    return products.filter((product) => {
-      const matchesTerm =
-        term === "" ||
-        product.code.toLowerCase().includes(term) ||
-        product.name.toLowerCase().includes(term);
-
-      return matchesTerm && matchesRestriction(product, restrictionFilter);
-    });
-  }, [products, search, restrictionFilter]);
 
   function closeForm() {
     setIsCreating(false);
@@ -95,12 +80,13 @@ export function ProductListPage() {
           aria-label="Buscar por código ou nome"
           placeholder="Buscar por código ou nome"
           value={search}
-          onChange={(event) => setSearch(event.target.value)}
+          onChange={(event) => { goToPage(1); setSearch(event.target.value); }}
+          maxLength={MAX_SEARCH_LENGTH}
         />
         <select
           aria-label="Filtrar por restrição"
           value={restrictionFilter}
-          onChange={(event) => setRestrictionFilter(event.target.value as RestrictionFilter)}
+          onChange={(event) => { goToPage(1); setRestrictionFilter(event.target.value as RestrictionFilter); }}
         >
           <option value="all">Todas as restrições</option>
           <option value="restricted">Com restrição</option>
@@ -110,7 +96,7 @@ export function ProductListPage() {
 
       {status === "success" && total > 0 ? (
         <p className="entity-summary">
-          Exibindo {products.length} de {total} produtos. A busca atua nesta página; arquivamento filtra toda a lista.
+          Exibindo {products.length} de {total} produtos. Busca e filtros consideram toda a lista.
         </p>
       ) : null}
 
@@ -123,17 +109,17 @@ export function ProductListPage() {
 
       {status === "error" && error ? <AlertBanner>{mapProductErrorToMessage(error)}</AlertBanner> : null}
 
-      {status === "success" && visibleProducts.length === 0 ? (
+      {status === "success" && products.length === 0 ? (
         <p className="entity-state">
-          {products.length === 0
+          {search.trim() === "" && restrictionFilter === "all" && archiveStatus === "active" && total === 0
             ? "Nenhum produto cadastrado ainda."
             : "Nenhum produto encontrado com esses filtros."}
         </p>
       ) : null}
 
-      {visibleProducts.length > 0 ? (
+      {products.length > 0 ? (
         <div className="entity-grid">
-          {visibleProducts.map((product) => (
+          {products.map((product) => (
             <ProductCard
               key={product.id}
               product={product}

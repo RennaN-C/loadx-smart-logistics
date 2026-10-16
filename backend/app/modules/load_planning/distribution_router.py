@@ -93,6 +93,18 @@ def preflight(
         return _error(error)
 
 
+@router.post("/optimize", response_model=DistributionRead, status_code=201)
+def optimize(
+    data: DistributionNeedRequest,
+    user: LoadPlanManager,
+    service: Service,
+) -> DistributionRead | JSONResponse:
+    try:
+        return service.optimize(data, changed_by=user.id)
+    except ERRORS as error:
+        return _error(error)
+
+
 @router.post("", response_model=DistributionRead, status_code=201)
 def create(
     data: DistributionCreate, user: LoadPlanManager, service: Service

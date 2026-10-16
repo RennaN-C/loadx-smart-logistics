@@ -1,5 +1,6 @@
+import { useUrlSearch } from "../../../hooks/useUrlSearch";
 import { ImportAction } from "../../registration-imports/components/ImportAction";
-import { useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 
 import { AlertBanner } from "../../../components/AlertBanner";
 import { useAuth } from "../../auth/hooks/useAuth";
@@ -7,6 +8,7 @@ import { canManageLogistics } from "../../auth/permissions";
 import { TruckDialogs } from "../components/TruckDialogs";
 import { TruckCard } from "../components/TruckCard";
 import { mapTruckErrorToMessage } from "../components/trucksErrorMessages";
+import { MAX_SEARCH_LENGTH, type ListParams } from "../../../services/pagination";
 import { Pagination } from "../../../components/Pagination";
 import { useRegistryList } from "../../../hooks/useRegistryList";
 import { ArchiveFilter } from "../../../components/ArchiveFilter";
@@ -18,6 +20,11 @@ import { Icon } from "../../../components/Icon";
 
 export function TruckListPage({ embedded = false, active = true }: { readonly embedded?: boolean; readonly active?: boolean }) {
   const { user } = useAuth();
+  const [search, setSearch] = useUrlSearch();
+  const filteredLoad = useCallback((params: ListParams) => listTrucks({
+    ...params,
+    search,
+  }), [search]);
   const {
     status,
     items: trucks,
@@ -29,28 +36,13 @@ export function TruckListPage({ embedded = false, active = true }: { readonly em
     goToPage,
     archiveStatus,
     setArchiveStatus,
-  } = useRegistryList(listTrucks);
+  } = useRegistryList(filteredLoad);
   const [documentsTruck, setDocumentsTruck] = useState<Truck | null>(null);
   const [maintenanceTruck, setMaintenanceTruck] = useState<Truck | null>(null);
-  const [search, setSearch] = useState("");
   const [editingTruck, setEditingTruck] = useState<Truck | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
   const canManage = canManageLogistics(user?.role);
-
-  // A busca textual permanece local; o arquivamento é filtrado pelo servidor (OC105).
-  const visibleTrucks = useMemo(() => {
-    const term = search.trim().toLowerCase();
-
-    return trucks.filter((truck) => {
-      const matchesTerm =
-        term === "" ||
-        truck.plate.toLowerCase().includes(term) ||
-        truck.model.toLowerCase().includes(term);
-
-      return matchesTerm;
-    });
-  }, [trucks, search]);
 
   function closeForm() {
     setIsCreating(false);
@@ -85,14 +77,15 @@ export function TruckListPage({ embedded = false, active = true }: { readonly em
           aria-label="Buscar por placa ou modelo"
           placeholder="Buscar por placa ou modelo"
           value={search}
-          onChange={(event) => setSearch(event.target.value)}
+          onChange={(event) => { goToPage(1); setSearch(event.target.value); }}
+          maxLength={MAX_SEARCH_LENGTH}
         />
 
       </div>
 
       {status === "success" && total > 0 ? (
         <p className="entity-summary">
-          Exibindo {trucks.length} de {total} caminhões. A busca atua nesta página; arquivamento filtra toda a lista.
+          Exibindo {trucks.length} de {total} caminhões. Busca e filtros consideram toda a lista.
         </p>
       ) : null}
 
@@ -107,17 +100,17 @@ export function TruckListPage({ embedded = false, active = true }: { readonly em
         <><AlertBanner>{mapTruckErrorToMessage(error)}</AlertBanner><button type="button" className="btn-secondary" onClick={() => void refetch()}>Tentar novamente</button></>
       ) : null}
 
-      {status === "success" && visibleTrucks.length === 0 ? (
+      {status === "success" && trucks.length === 0 ? (
         <p className="entity-state">
-          {trucks.length === 0
+          {search.trim() === "" && archiveStatus === "active" && total === 0
             ? "Nenhum caminhão cadastrado ainda."
             : "Nenhum caminhão encontrado com esses filtros."}
         </p>
       ) : null}
 
-      {visibleTrucks.length > 0 ? (
+      {trucks.length > 0 ? (
         <div className="entity-grid">
-          {visibleTrucks.map((truck) => (
+          {trucks.map((truck) => (
             <TruckCard key={truck.id} truck={truck} canManage={canManage} onEdit={setEditingTruck} onChanged={refetch} onMaintenance={setMaintenanceTruck} onDocuments={setDocumentsTruck} />
           ))}
         </div>

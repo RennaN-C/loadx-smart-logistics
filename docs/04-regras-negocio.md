@@ -768,3 +768,23 @@ não é CNPJ/e-mail e não é tenant. Alteração e auditoria são atômicas; hi
 registra nomes dos campos sem valores. Logotipo é referência HTTPS, sem upload
 ou leitura externa automática. OC86, OC92 e integração CoreFlow não integram
 este escopo. Contrato e concorrência: ADR-035 e `docs/05-contratos-api.md`.
+
+## OC88 — otimização automática multi-caminhão
+
+`CONFIRMADO`: a necessidade multi-caminhão é otimizada somente com veículos
+elegíveis retornados pelo preflight da OC87. A função objetivo prioriza uma
+solução completa e, depois, a menor quantidade de caminhões.
+
+`CONFIRMADO`: toda atribuição de volumes é novamente submetida à engine física
+existente. Uma proposta com qualquer rejeição física não é persistida como
+solução parcial.
+
+`CONFIRMADO`: para a mesma necessidade e fotografia da frota, seleção,
+desempates e partição são determinísticos. A ordem de entrada não decide o
+vencedor.
+
+`CONFIRMADO`: ausência de capacidade completa retorna erro explicável e mantém
+pedidos, planos e claims sem alterações.
+
+`RISCO IDENTIFICADO`: a busca é uma heurística síncrona com fronteira limitada;
+não representa prova matemática de ótimo global de bin-packing 3D.

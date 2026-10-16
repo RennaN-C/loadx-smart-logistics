@@ -83,3 +83,14 @@ ViaCEP atual auxilia o formulário sem impedir preenchimento manual.
 impede dois principais e CHECK exige principal ativo. A projeção legada e
 auditoria fazem parte da mesma transação. `select_for_order` é o serviço público
 para orders; valida origem/estado e fornece uma cópia independente do endereço.
+
+## OC95 — busca e filtros antes da paginação
+
+`CONFIRMADO`: GET da coleção aceita `search` opcional por name e city.
+Trim no servidor; vazio equivale à ausência. Substring case-insensitive de até
+120 caracteres após trim; `%`, `_` e `\` literais via SQLAlchemy parametrizado.
+Combina com archive_status; documento, telefone, endereço e notes são proibidos.
+COUNT e SELECT usam os mesmos predicados antes de OFFSET/LIMIT; ordenação
+created_at/id na mesma direção. Envelope, RBAC e schemas detalhados/resumidos
+permanecem preservados, sem novos dados pessoais.
+Contrato completo: [docs/05](../../../../docs/05-contratos-api.md).

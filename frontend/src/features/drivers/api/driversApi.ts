@@ -1,5 +1,5 @@
 import { api } from "../../../services/api";
-import { mapPageFromDto, toPageQuery, type ListParams, type PageDto } from "../../../services/pagination";
+import { mapPageFromDto, toPageQuery, toSearchQuery, type SearchListParams, type ListParams, type PageDto } from "../../../services/pagination";
 import type { Page } from "../../../types/api";
 import type { Driver, DriverInput, DriverListItem, DriverOperationalStatus, DriverUpdateInput } from "../types";
 
@@ -77,8 +77,8 @@ function mapDriverToDto(input: DriverUpdateInput): Partial<DriverDto> {
   return dto;
 }
 
-export async function listDrivers(params: ListParams = {}): Promise<Page<DriverListItem>> {
-  const { data } = await api.get<PageDto<DriverListDto>>("/drivers", { params: { ...toPageQuery(params), ...(params.archiveStatus ? { archive_status: params.archiveStatus } : {}) } });
+export async function listDrivers(params: SearchListParams = {}): Promise<Page<DriverListItem>> {
+  const { data } = await api.get<PageDto<DriverListDto>>("/drivers", { params: { ...toPageQuery(params), ...toSearchQuery(params), ...(params.archiveStatus ? { archive_status: params.archiveStatus } : {}) } });
 
   return mapPageFromDto(data, mapDriverListItemFromDto);
 }

@@ -23,6 +23,7 @@ export function ContactsPage() {
   function setActiveTab(tab: ContactTab) {
     const next = new URLSearchParams(params);
     next.set("tab", tab);
+    next.delete("search");
     setParams(next);
   }
 

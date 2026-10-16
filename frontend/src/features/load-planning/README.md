@@ -13,14 +13,31 @@ Tela de planejamento de carga (OC30). Consome `POST /load-plans`,
 - `components/loadPlansErrorMessages.ts`: tradução dos 10 códigos de erro do módulo.
 - `api/loadPlansApi.ts`: mapeamento snake_case ↔ camelCase, incluindo a visualização.
 
-## O plano vive na URL
+## Recuperação de planos (#208)
 
-**O backend não tem listagem de planos** — só `POST` para criar e `GET /{id}`. Se o resultado ficasse
-só no estado do React, recarregar a página perderia o plano sem nenhuma forma de recuperá-lo. Por isso
-a rota é `/planning/:planId`, e a página carrega pelo id.
+`CONFIRMADO`: `/planning` abre **Planos existentes**, com resumos paginados do
+servidor, situação e ordenação. Clicar na placa filtra o caminhão no servidor, com ação para limpar o filtro.
+Query params `page`, `status`, `sort`, `truck` preservam
+consulta na navegação anterior/próxima e após F5. O detalhe permanece em
+`/planning/:planId`. O plano salvo é reencontrável após sair para Produtos ou
+entrar novamente; clicar no menu nunca calcula nem cria viagem.
 
-Recalcular gera um plano **novo**, com id diferente. Nesse caso a página apenas navega para o id novo
-e deixa o efeito carregar — não existem duas fontes de verdade para o mesmo plano na tela.
+`/planning?tab=new` abre o builder existente somente para gestores/ADMIN.
+Seleções não calculadas continuam na memória desta tela e se perdem ao sair;
+salvar rascunhos exige um contrato separado. O teto de 200 volumes físicos e
+validações atuais não mudam. Recálculo cria outro ID e mantém a origem histórica.
+
+`CONFIRMADO`: `PlanHistory` consulta `GET /load-plans` com resumos sem itens.
+`PlanContinuity` consulta `GET /load-plans/{id}/continuity` antes de oferecer
+criação: vínculos existentes viram links para carregamento/viagem, inclusive
+finalizados. Falha de consulta bloqueia criação e oferece retry. Concorrência
+continua protegida por lock/constraints no backend; conflito de viagem já
+atribuída atualiza os vínculos na tela.
+
+CHECKER vê somente aprovados e pode abrir sessão existente, sem criar ou acessar
+viagem. DRIVER não monta a lista nem consulta planos por URL; suas viagens
+permanecem no início próprio. Distribuições bloqueadas pela fronteira da OC90
+não recebem ações de criação; não há central global nova nesta manutenção.
 
 ## Regras que a tela reflete
 
@@ -52,7 +69,7 @@ caminhão, outra a quem resolve pendência. Uma tabela só, com coluna de situa�
 
 ## Fora de escopo
 
-`CONFIRMADO`: não há listagem/histórico público de planos. A API já implementa
+`CONFIRMADO`: a listagem de planos usa o contrato da #208. A API já implementa
 comparação entre caminhões (`OC21`) e explicação por `AIProvider` com fallback
 (`OC22`); `loadPlansApi.ts` e a tela atual ainda não consomem essas operações.
 A visualização 3D está integrada em `features/load-visualization` (`OC31`).
@@ -62,7 +79,7 @@ A visualização 3D está integrada em `features/load-visualization` (`OC31`).
 `CONFIRMADO`: planos persistidos exibem seu link permanente e retorno aos
 pedidos, planejamento e início. Volumes aceitos e recusados vinculam à leitura
 do pedido em `/orders?order=<id>`. Troca de ID e recálculo assíncrono não
-reaproveitam o plano anterior. A listagem geral continua sem contrato aprovado;
+reaproveitam o plano anterior. A recuperação paginada está disponível pela #208;
 ver limites no [fluxo operacional](../../../../docs/06-fluxo-operacional.md).
 
 

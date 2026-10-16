@@ -9,6 +9,26 @@ necessidade, partição, estados, aprovação e reprocessamento estão em
 Planos legados e suas visualizações preservam schemas e endpoints. A liberação
 operacional de múltiplas partes depende da OC90; uma só parte usa o fluxo atual.
 
+
+## OC88 — otimização automática multi-caminhão
+
+`CONFIRMADO`: `POST /api/v1/load-distributions/optimize` é operação protegida
+para `ADMIN` e `LOGISTICS_MANAGER`; `CHECKER` e `DRIVER` não podem criar
+propostas automáticas. O endpoint recebe
+`DistributionNeedRequest` (`order_ids`). Em sucesso retorna `201` com
+`DistributionRead`, persistido pelo mesmo agregado multi-caminhão da OC87.
+
+A seleção tenta uma solução completa com menor quantidade de caminhões antes
+de ampliar a frota. Somente caminhões elegíveis do preflight participam da
+busca. O resultado físico de cada subconjunto é calculado pela engine
+`heuristic-v1`; não existe segunda implementação de peso, dimensões, rotação,
+colisão ou apoio.
+
+Frota insuficiente retorna `422 DISTRIBUTION_CAPACITY_INSUFFICIENT` e não
+persiste distribuição ou `LoadPlan` parcial. O detalhe informa volumes
+restantes, motivos observados, frota inelegível e número de avaliações da
+engine. Os contratos manuais da OC87 permanecem compatíveis.
+
 ## Evidências de entrega — OC80
 
 `CONFIRMADO`: contrato aditivo `/api/v1/deliveries/{delivery_id}/evidences`:
@@ -44,6 +64,48 @@ Este documento é o contrato combinado entre backend, frontend, algoritmo e inte
 - `CONFIRMADO`: não há `sort_by`, busca livre ou filtros por dados pessoais na
   OC59. Todo filtro futuro usa query param em snake_case e whitelist documentada.
 - `CONFIRMADO`: em atualizações parciais, campos omitidos permanecem inalterados; `null` só é aceito para campos anuláveis no modelo de dados.
+
+### Evolução OC95 — busca e filtros de coleção
+
+`CONFIRMADO`: OC95 sucede OC59 sem revogar a ADR-017. A whitelist abaixo é
+aplicada no PostgreSQL antes de COUNT/OFFSET/LIMIT; `total` e `total_pages`
+representam a coleção filtrada. Paginação 1-based, limites, envelope,
+`sort_order`, desempate por `created_at, id`, RBAC e schemas são preservados.
+
+| Endpoint GET `/api/v1` | `search` (campos permitidos) | Outros filtros |
+| --- | --- | --- |
+| `/orders` | ADMIN/LOGISTICS_MANAGER: nome do cliente e UUIDs do pedido/cliente; CHECKER: somente UUIDs do pedido/cliente | `status`: DRAFT, READY, PLANNED, IN_TRANSIT, DELIVERED, CANCELED |
+| `/trucks` | plate, model | `archive_status` existente |
+| `/products` | code, name | `restriction`: restricted ou free; `archive_status` existente |
+| `/customers` | name, city | `archive_status` existente |
+| `/drivers` | name | `archive_status` existente |
+
+`search` é opcional, recebe trim no servidor e vazio/whitespace equivale à
+ausência. Limite: 120 caracteres após trim; excesso retorna 422 no envelope
+padrão. Busca substring case-insensitive parametrizada, com `%`, `_` e `\`
+literais. Filtros diferentes combinam por AND; campos da busca combinam por OR.
+Status inválido e restriction inválida retornam 422. Ausência de status ou
+restriction inclui todos os valores. Não existe `priority`, busca por e-mail,
+documento, telefone, CNH, endereço, notes ou qualquer outro campo pessoal.
+
+`restricted` significa fragile=true OR stackable=false OR rotation_allowed=false;
+`free` significa fragile=false AND stackable=true AND rotation_allowed=true.
+A busca de pedidos por nome é exclusiva de ADMIN e LOGISTICS_MANAGER e usa
+consulta de nomes pertencente a customers, sem carregar clientes em memória
+nem duplicar pedidos/total. CHECKER mantém 200 na listagem, mas busca somente
+UUID do pedido e UUID do cliente: termo que só corresponde ao nome retorna
+coleção filtrada vazia. Nenhuma subconsulta de nome é construída para CHECKER;
+DRIVER continua 403. A capacidade vem do papel autenticado, nunca de query param.
+O RBAC dos endpoints é preservado, evitando que pedidos sejam um canal indireto
+de consulta de nomes por quem não pode ler clientes. Não acrescenta nome ou dados
+pessoais ao resumo. UUID é a referência identificadora já existente; nenhum
+novo campo de referência foi criado.
+
+`RISCO IDENTIFICADO`: available/unavailable de `/trucks/operational-status`
+permanece fora desta whitelist. A fronteira FleetAvailabilityService calcula
+disponibilidade individualmente após paginar. Aplicar filtro antes da paginação
+exige evolução arquitetural que reutilize OC64/OC67/OC100/OC101 sem carregar toda
+a frota nem duplicar regras. A UI mantém o aviso de filtro/contadores por página.
 
 ## Autenticação
 
@@ -453,6 +515,49 @@ Regras de autorização:
 - `CHECKER` consulta e solicita explicação somente de plano `APPROVED`.
 - `DRIVER` não acessa os endpoints de plano de carga; a viagem usa internamente o
   plano atribuído.
+
+### GET `/load-plans` — recuperação de planejamentos (#208)
+
+`CONFIRMADO`: consulta somente leitura, paginada no PostgreSQL. Usa `page=1`,
+`page_size=20` (1–100) e `sort_order=desc` (`asc`/`desc`). Ordena por
+`created_at, id` na mesma direção. Filtros opcionais aprovados nesta manutenção:
+`status` (`CALCULATED`, `APPROVED`, `REJECTED`) e `truck_id` UUID, aplicados antes
+do COUNT/LIMIT/OFFSET. Não há busca livre, `sort_by` ou filtro por dados pessoais.
+
+Envelope: `items`, `page`, `page_size`, `total`, `total_pages`. Cada item contém
+`id`, `truck_id`, `truck_plate`, `truck_model`, `status`, `created_at`,
+`recalculated_from_id`, `loaded_count`, `unloaded_count`, `occupancy_percent`,
+`total_weight_kg`, `order_count`. Placa/modelo vêm do snapshot histórico, não do
+cadastro atual. Não carrega entidades/coleções de volumes, coordenadas, pedidos
+completos nem dados pessoais; contagem de pedidos é uma subconsulta agregada.
+
+ADMIN e LOGISTICS_MANAGER consultam todos os planos. CHECKER recebe somente
+APPROVED, inclusive no total e nas páginas; solicitar outro status retorna
+coleção vazia. DRIVER recebe 403, sessão ausente 401, parâmetros inválidos 422.
+Página além do fim retorna items vazio; nenhum GET calcula ou cria operação.
+
+### GET `/load-plans/{id}/continuity`
+
+`CONFIRMADO`: consulta contextual dos vínculos persistidos, sem central global
+ou varredura de `GET /trips`. Retorna `loading_session: {id, status} | null`,
+`trip: {id, status} | null` e `operational_ready: boolean`. Reutiliza interfaces
+públicas dos módulos de carregamento/entrega e a fronteira operacional dos planos.
+Inclui viagens finalizadas para preservar a recuperação histórica.
+
+Mesma autorização do detalhe: ADMIN/LOGISTICS_MANAGER leem; CHECKER somente
+APPROVED e recebe `trip=null`, pois não pode consultar viagens; DRIVER 403,
+sessão ausente 401, plano inexistente 404, UUID inválido 422. `operational_ready`
+exige plano aprovado e compatibilidade da distribuição com a operação atual;
+não representa reserva ou garantia de disponibilidade. Escritas continuam
+validando conflitos, identidade, aprovação, pedidos, motorista e documentação.
+Uma viagem pode ser programada antes de concluir o carregamento, conforme
+ADR-022; somente seu início exige carregamento FINISHED.
+
+`CONFIRMADO`: vínculo único `uq_trips__load_plan_id` e lock do plano na criação
+já protegem contra viagens duplicadas. A consulta não elimina a necessidade da
+validação transacional. Falha ao consultar continuidade não significa ausência.
+A UI não oferece criar enquanto os vínculos não forem confirmados; conflito
+TRIP_LOAD_PLAN_ALREADY_ASSIGNED reconsulta a continuidade.
 
 ### POST `/load-plans`
 
@@ -1372,3 +1477,21 @@ de produto. Trata-se de campo aditivo, sem expor `items` completos ou endereço
 no resumo. O contrato do cálculo `POST /load-plans` permanece inalterado:
 máximo de 200 volumes e erro 422 com `volume_count` e `max_volumes` nos
 detalhes quando o limite é superado.
+
+## OC107 — Busca global
+
+`CONFIRMADO`: `GET /api/v1/search` exige sessão e `search` obrigatório (2–120
+caracteres após trim). `limit_per_category`: 1–10, default 5. Resposta 200:
+`{"results":[{"category":"order","id":"UUID","title":"Pedido UUID","href":"/orders?order=UUID"}]}`.
+Categorias `order/customer/truck/driver/trip`; sem totais de sugestões omitidas.
+Reuso da semântica literal/case-insensitive da OC95, acentos preservados. Cadastros
+ativos; ordenação created_at/id descendente por categoria. Limite, não paginação
+global; ver [ADR-039](decisions/ADR-039-busca-global-limitada.md).
+
+ADMIN/LOGISTICS_MANAGER: todos os cinco tipos; CHECKER: somente pedidos (sem
+nomes de clientes na pesquisa/título) e caminhões; DRIVER: somente UUID das
+próprias viagens, com vínculo ativo validado pelo TripService. Nenhum dado,
+contagem ou categoria restrita é retornado. 401 sem sessão, 403 vínculo de DRIVER
+inválido/inativo, 422 parâmetros inválidos. URLs de cadastros abrem listagens com
+`search` e `tab` apropriados; pedidos/viagens usam detalhes existentes.
+Campos e limites completos em [global_search](../backend/app/modules/global_search/README.md).

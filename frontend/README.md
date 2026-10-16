@@ -130,3 +130,24 @@ preserva início por perfil. Caminhões e frota reúne Veículos/Disponibilidade
 Relatórios e indicadores apura pedidos e volumes físicos com limite explícito.
 Aliases `/operations` e `/fleet` continuam protegidos e navegáveis. Sidebar,
 acordeões e submenu de Configurações da base #201/#203/#205 são preservados.
+
+## Preferência de aparência — #212
+
+`CONFIRMADO`: Meu perfil → Aparência está disponível aos quatro perfis. Claro e
+Escuro têm prioridade sobre o sistema; Automático é o padrão e acompanha mudanças
+de `prefers-color-scheme`. A escolha é local por navegador/origem, compartilhada
+entre contas nesse navegador, sem API, credenciais ou migração.
+
+`CONFIRMADO`: `public/theme.js` é carregado antes da aplicação por script externo
+compatível com a CSP existente. Resolve `data-theme` antes da montagem do React;
+`app/theme/useAppearance.ts` conecta os controles e a cena 3D ao mesmo estado.
+Os tokens e `color-scheme` ficam centralizados em `app/styles.css`. A chave
+`loadx.appearance` admite `light`, `dark` e `system`; valores inválidos usam o
+sistema. Falhas no armazenamento mantêm o controle funcional em memória, sem
+garantir persistência após recarregar. Alterações e limpeza em outra aba são
+sincronizadas; logout não apaga a preferência.
+
+`CONFIRMADO`: a validação visual em Chromium está em
+[docs/evidencias/issue-212](../docs/evidencias/issue-212/README.md).
+`PENDENTE DE DEFINIÇÃO`: validação conjunta das telas MFA/recuperação da PR #211
+após sua integração; nenhum código da OC98 foi incorporado nesta manutenção.

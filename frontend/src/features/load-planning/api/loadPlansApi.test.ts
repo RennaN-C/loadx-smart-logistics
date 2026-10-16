@@ -1,6 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { api } from "../../../services/api";
+import { describe, expect, it, vi } from "vitest";
 
-import { mapLoadPlanFromDto, mapVisualizationFromDto } from "./loadPlansApi";
+import { listLoadPlans, getLoadPlanContinuity, mapLoadPlanFromDto, mapVisualizationFromDto } from "./loadPlansApi";
 
 const ITEM_DTO = {
   id: "li1",
@@ -147,5 +148,34 @@ describe("mapVisualizationFromDto", () => {
     });
     expect(view.items[0]).toMatchObject({ xCm: 10, zCm: 20, rotationCode: "XZY", loadingSequence: 3 });
     expect(view.unloadedItems[0].rejectionReason).toBe("COLLISION");
+  });
+});
+
+
+describe("consultas de recuperacao", () => {
+  it("mapeia o resumo compacto e os filtros sem solicitar volumes", async () => {
+    const request = vi.spyOn(api, "get").mockResolvedValueOnce({ data: {
+      page: 2, page_size: 10, total: 11, total_pages: 2,
+      items: [{ id: "p1", truck_id: "t1", truck_plate: "ABC1D23", truck_model: "Baú",
+        status: "APPROVED", created_at: "2026-10-12T12:00:00Z", recalculated_from_id: "p0",
+        loaded_count: 10, unloaded_count: 0, occupancy_percent: 35, total_weight_kg: 100, order_count: 2 }],
+    } });
+    try {
+      const result = await listLoadPlans({ page: 2, pageSize: 10, sortOrder: "asc", status: "APPROVED", truckId: "t1" });
+      expect(request).toHaveBeenCalledWith("/load-plans", { params: {
+        page: 2, page_size: 10, sort_order: "asc", status: "APPROVED", truck_id: "t1",
+      } });
+      expect(result.items[0]).toMatchObject({ truckPlate: "ABC1D23", recalculatedFromId: "p0", orderCount: 2 });
+      expect(result.totalPages).toBe(2);
+      expect(result.items[0]).not.toHaveProperty("items");
+    } finally { request.mockRestore(); }
+  });
+  it("consulta vinculo exato sem criar ou varrer viagens", async () => {
+    const payload = { loading_session: null, trip: { id: "v1", status: "FINISHED" }, operational_ready: true };
+    const request = vi.spyOn(api, "get").mockResolvedValueOnce({ data: payload });
+    try {
+      expect(await getLoadPlanContinuity("p1")).toEqual(payload);
+      expect(request).toHaveBeenCalledWith("/load-plans/p1/continuity");
+    } finally { request.mockRestore(); }
   });
 });

@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.pagination import PageResponse, Pagination, to_page_response
 from app.core.responses import error_response, openapi_error_responses
+from app.core.search import SearchQuery
 from app.database.session import get_db
 from app.integrations.viacep import (
     HTTPViaCEPProvider,
@@ -97,8 +98,11 @@ def list_customers(
     _current_user: CustomerReader,
     service: Annotated[CustomerService, Depends(get_customer_service)],
     archive_status: ArchiveFilter = "active",
+    search: SearchQuery = None,
 ) -> PageResponse[CustomerListRead]:
-    result = service.list_customers(pagination, active=active_filter(archive_status))
+    result = service.list_customers(
+        pagination, active=active_filter(archive_status), search=search
+    )
     return to_page_response(
         result,
         (CustomerListRead.model_validate(customer) for customer in result.items),
