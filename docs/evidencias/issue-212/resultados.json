@@ -1,0 +1,57 @@
+{
+  "fixture": "API interceptada no Chromium com conta fictícia ADMIN; sem alteração no backend.",
+  "results": [
+    {
+      "width": 375,
+      "theme": "light",
+      "scheme": "light",
+      "overflow": false
+    },
+    {
+      "width": 375,
+      "theme": "dark",
+      "scheme": "dark",
+      "overflow": false
+    },
+    {
+      "width": 768,
+      "theme": "light",
+      "scheme": "light",
+      "overflow": false
+    },
+    {
+      "width": 768,
+      "theme": "dark",
+      "scheme": "dark",
+      "overflow": false
+    },
+    {
+      "width": 1280,
+      "theme": "light",
+      "scheme": "light",
+      "overflow": false
+    },
+    {
+      "width": 1280,
+      "theme": "dark",
+      "scheme": "dark",
+      "overflow": false
+    },
+    {
+      "width": 1920,
+      "theme": "light",
+      "scheme": "light",
+      "overflow": false
+    },
+    {
+      "width": 1920,
+      "theme": "dark",
+      "scheme": "dark",
+      "overflow": false
+    }
+  ],
+  "automaticChanges": true,
+  "keyboardArrow": true,
+  "reload": true,
+  "errors": []
+}
