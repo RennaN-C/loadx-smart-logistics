@@ -29,10 +29,13 @@ RECORD_ENTITY_TYPES = frozenset(
         "ATTACHMENT",
         "REGISTRATION_IMPORT",
         "COMPANY_PROFILE",
+        "ACCESS_PROFILE",
     }
 )
 ADMINISTRATIVE_EVENT_TYPES = frozenset(
     {
+        "PROFILE_CREATED",
+        "PROFILE_UPDATED",
         "USER_CREATED",
         "USER_UPDATED",
         "RECORD_ARCHIVED",

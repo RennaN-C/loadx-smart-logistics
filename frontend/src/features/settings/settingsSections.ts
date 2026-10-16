@@ -2,6 +2,7 @@
 export const SETTINGS_SECTIONS = [
   { id: "settings-account", label: "Conta e administração" },
   { id: "settings-users", label: "Gestão de usuários" },
+  { id: "settings-profiles", label: "Perfis e permissões" },
   { id: "settings-company", label: "Dados da empresa" },
   { id: "settings-integrations", label: "Integrações e Saúde" },
   { id: "settings-logistics", label: "Configurações do LoadX" },

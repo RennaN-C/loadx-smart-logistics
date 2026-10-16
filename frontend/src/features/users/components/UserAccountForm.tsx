@@ -1,3 +1,4 @@
+import { ProfileAssignment } from "../../access-profiles/components/ProfileAssignment";
 import type { FormEvent } from "react";
 import { FormField } from "../../../components/FormField";
 import type { Role } from "../../auth/types";
@@ -21,9 +22,10 @@ export function UserAccountForm({ account, draft, onDraft, security, onSecurity,
     <fieldset className="user-form-group" disabled={saving}><legend>Identificação da conta</legend><div className="user-form-grid">
       <FormField id="user-name" label="Nome"><input id="user-name" value={draft.name} required maxLength={120} autoComplete="off" onChange={(event) => onDraft({ ...draft, name: event.target.value })} /></FormField>
       <FormField id="user-email" label="E-mail"><input id="user-email" type="email" value={draft.email} required maxLength={255} autoComplete="off" onChange={(event) => onDraft({ ...draft, email: event.target.value })} /></FormField>
-      <FormField id="user-role" label="Perfil de acesso"><select id="user-role" value={draft.role} onChange={(event) => { const role = event.target.value as Role; onDraft({ ...draft, role, driverId: role === "DRIVER" ? draft.driverId : null }); }}>{Object.entries(ROLE_LABELS).map(([role, label]) => <option value={role} key={role}>{label}</option>)}</select></FormField>
+      <FormField id="user-role" label="Perfil de acesso"><select id="user-role" value={draft.role} onChange={(event) => { const role = event.target.value as Role; onDraft({ ...draft, role, driverId: role === "DRIVER" ? draft.driverId : null, customProfileId: role === "CUSTOM" ? draft.customProfileId : null }); }}>{Object.entries(ROLE_LABELS).map(([role, label]) => <option value={role} key={role}>{label}</option>)}</select></FormField>
       <FormField id="user-active" label="Estado da conta"><select id="user-active" value={String(draft.active)} onChange={(event) => onDraft({ ...draft, active: event.target.value === "true" })}><option value="true">Ativo</option><option value="false">Inativo</option></select></FormField>
     </div><p className="user-muted">Mudar o perfil para outro tipo remove o vínculo de motorista. O último administrador ativo é protegido pelo servidor.</p></fieldset>
+    {draft.role === "CUSTOM" ? <ProfileAssignment value={draft.customProfileId ?? null} onChange={(customProfileId) => onDraft({ ...draft, customProfileId })} disabled={saving} /> : null}
     {draft.role === "DRIVER" ? <DriverLinkField value={draft.driverId} onChange={(driverId) => onDraft({ ...draft, driverId })} disabled={saving} /> : null}
     <fieldset className="user-form-group" disabled={saving}><legend>Segurança</legend>
       {account ? <label className="user-checkbox"><input type="checkbox" checked={security.enabled} onChange={(event) => onSecurity({ enabled: event.target.checked, password: "", confirmation: "" })} />Redefinir senha administrativamente</label> : null}

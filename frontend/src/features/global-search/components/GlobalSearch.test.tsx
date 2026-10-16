@@ -68,7 +68,7 @@ describe("OC107 busca global", () => {
     expect(screen.queryByText("Cliente fictício")).not.toBeInTheDocument(); expect(screen.getAllByRole("option")).toHaveLength(1);
   });
   it.each<Role>(["ADMIN", "LOGISTICS_MANAGER", "CHECKER", "DRIVER"])("%s apresenta somente categorias permitidas", async (role) => {
-    const input = show(role); await type(input); const count = { ADMIN: 5, LOGISTICS_MANAGER: 5, CHECKER: 2, DRIVER: 1 }[role];
+    const input = show(role); await type(input); const count = { CUSTOM: 0, ADMIN: 5, LOGISTICS_MANAGER: 5, CHECKER: 2, DRIVER: 1 }[role];
     expect(screen.getAllByRole("option")).toHaveLength(count);
     if (role === "CHECKER" || role === "DRIVER") expect(screen.queryByText("Cliente fictício")).not.toBeInTheDocument();
   });

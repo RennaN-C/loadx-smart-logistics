@@ -12,7 +12,7 @@ import { useRegistryList } from "../../../hooks/useRegistryList";
 import { ArchiveFilter } from "../../../components/ArchiveFilter";
 import { RecordLifecycleAction } from "../../../components/RecordLifecycleAction";
 import { useAuth } from "../../auth/hooks/useAuth";
-import { canManageLogistics } from "../../auth/permissions";
+import { canManageLogistics, hasPermission } from "../../auth/permissions";
 import { getCustomer, listCustomers } from "../api/customersApi";
 import { CustomerAddressPanel } from "./CustomerAddressPanel";
 import type { CustomerListItem } from "../types";
@@ -44,7 +44,7 @@ export function CustomerPanel() {
   const [addressCustomer, setAddressCustomer] = useState<CustomerListItem | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
-  const canManage = canManageLogistics(user?.role);
+  const canManage = canManageLogistics(user, "customers");
   const isFormOpen = isCreating || edit.target !== null;
 
   function closeForm() {
@@ -60,7 +60,7 @@ export function CustomerPanel() {
   return (
     <>
       <div className="entity-toolbar">
-        {canManage ? <ImportAction entity="customers" onImported={refetch} /> : null}
+        <ImportAction enabled={hasPermission(user, "loadx.imports.manage")} entity="customers" onImported={refetch} />
         <ArchiveFilter value={archiveStatus} onChange={setArchiveStatus} />
         <input
           type="search"

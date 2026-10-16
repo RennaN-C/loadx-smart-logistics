@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.pagination import PaginationParams
 from app.core.security import verify_password
+from app.modules.access_profiles.models import AccessProfile
 from app.modules.auth.models import AuthLoginThrottle, AuthSession
 from app.modules.auth.schemas import AuthLogin
 from app.modules.auth.service import (
@@ -29,6 +30,7 @@ SQLITE_TABLES = (
     DriverDocumentType.__table__,
     DriverDocument.__table__,
     DriverDocumentPolicy.__table__,
+    AccessProfile.__table__,
     User.__table__,
     AuthLoginThrottle.__table__,
     AuthSession.__table__,

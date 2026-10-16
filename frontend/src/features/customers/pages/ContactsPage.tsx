@@ -1,3 +1,6 @@
+import { useAuth } from "../../auth/hooks/useAuth";
+import { hasPermission } from "../../auth/permissions";
+import { AlertBanner } from "../../../components/AlertBanner";
 import { useSearchParams } from "react-router-dom";
 
 import { Tabs, type TabItem } from "../../../components/Tabs";
@@ -18,8 +21,10 @@ const TABS: readonly TabItem<ContactTab>[] = [
  * para `drivers`: é composição de tela, não regra de negócio compartilhada.
  */
 export function ContactsPage() {
+  const { user } = useAuth();
+  const tabs = TABS.filter((tab) => hasPermission(user, `loadx.${tab.id}.read`));
   const [params, setParams] = useSearchParams();
-  const activeTab: ContactTab = params.get("tab") === "drivers" ? "drivers" : "customers";
+  const activeTab: ContactTab = params.get("tab") === "drivers" && tabs.some((tab) => tab.id === "drivers") ? "drivers" : tabs[0]?.id ?? "customers";
   function setActiveTab(tab: ContactTab) {
     const next = new URLSearchParams(params);
     next.set("tab", tab);
@@ -27,6 +32,7 @@ export function ContactsPage() {
     setParams(next);
   }
 
+  if (!tabs.length) return <AlertBanner>Seu perfil não tem permissão para consultar estes cadastros.</AlertBanner>;
   return (
     <div className="entity-page">
       <header className="entity-header">
@@ -36,7 +42,7 @@ export function ContactsPage() {
         </div>
       </header>
 
-      <Tabs items={TABS} active={activeTab} onChange={setActiveTab} label="Tipo de cadastro" />
+      <Tabs items={tabs} active={activeTab} onChange={setActiveTab} label="Tipo de cadastro" />
 
       <div
         role="tabpanel"

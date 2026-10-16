@@ -19,6 +19,7 @@ from app.modules.auth.dependencies import (
     CSRF_HEADER_NAME,
     get_auth_service,
     get_current_session,
+    get_current_user,
 )
 from app.modules.auth.schemas import (
     AuthLogin,
@@ -63,6 +64,9 @@ def login(
             samesite="lax",
         )
         response.headers[CSRF_HEADER_NAME] = result.session.csrf_token
+        from app.modules.access_profiles.service import ProfileService
+
+        ProfileService(service.user_service.db).resolve(result.user)
         return result.user
     except AuthInvalidCredentialsError:
         return error_response(
@@ -86,10 +90,11 @@ def login(
 )
 def get_me(
     response: Response,
+    current_user: Annotated[User, Depends(get_current_user)],
     current_session: Annotated[ResolvedAuthSession, Depends(get_current_session)],
 ) -> User:
     response.headers[CSRF_HEADER_NAME] = current_session.csrf_token
-    return current_session.user
+    return current_user
 
 
 @router.post(

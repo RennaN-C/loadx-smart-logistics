@@ -8,7 +8,7 @@ import { accountChanges, revokesSessions, userError, validateDraft, type Passwor
 
 interface Props { readonly account?: UserAccount; readonly ownId: string; readonly onClose: () => void; readonly onSaved: (account: UserAccount, revoked: boolean) => void }
 export function UserEditor({ account, ownId, onClose, onSaved }: Props) {
-  const [draft, setDraft] = useState<UserInput>({ name: account?.name ?? "", email: account?.email ?? "", role: account?.role ?? "CHECKER", active: account?.active ?? true, driverId: account?.driverId ?? null });
+  const [draft, setDraft] = useState<UserInput>({ name: account?.name ?? "", email: account?.email ?? "", role: account?.role ?? "CHECKER", active: account?.active ?? true, customProfileId: account?.customProfileId ?? null, driverId: account?.driverId ?? null });
   const [security, setSecurity] = useState<PasswordDraft>({ enabled: !account, password: "", confirmation: "" });
   const [confirming, setConfirming] = useState(false);
   const [saving, setSaving] = useState(false);

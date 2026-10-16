@@ -1,3 +1,4 @@
+import { hasPermission } from "../features/auth/permissions";
 import { GlobalSearch } from "../features/global-search/components/GlobalSearch";
 import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
@@ -29,10 +30,10 @@ const PERSONAL_DATA_READERS: readonly Role[] = ["ADMIN", "LOGISTICS_MANAGER"];
 /** Visão consolidada da operação inteira; o backend restringe a ADMIN e LOGISTICS_MANAGER. */
 const OPERATION_OVERVIEW_READERS: readonly Role[] = ["ADMIN", "LOGISTICS_MANAGER"];
 
-const ALL_ROLES: readonly Role[] = ["ADMIN", "CHECKER", "LOGISTICS_MANAGER", "DRIVER"];
+const ALL_ROLES: readonly Role[] = ["ADMIN", "CHECKER", "LOGISTICS_MANAGER", "DRIVER", "CUSTOM"];
 
 const ROLE_LABELS: Record<Role, string> = {
-  ADMIN: "Administrador",
+  CUSTOM: "Personalizado", ADMIN: "Administrador",
   LOGISTICS_MANAGER: "Gestor de logística",
   CHECKER: "Conferente",
   DRIVER: "Motorista",
@@ -85,6 +86,7 @@ const NAV_GROUPS: readonly NavGroup[] = [
   },
 ];
 
+const CUSTOM_NAV: Record<string, string[]> = { "/": ["loadx.customers.read", "loadx.products.read", "loadx.trucks.read", "loadx.drivers.read", "loadx.orders.read", "loadx.planning.read", "loadx.loading.read", "loadx.trips.read", "loadx.reports.read"], "/account": ["account"], "/trucks": ["loadx.trucks.read"], "/products": ["loadx.products.read"], "/contacts": ["loadx.customers.read", "loadx.drivers.read"], "/orders": ["loadx.orders.read"], "/planning": ["loadx.planning.read"], "/reports": ["loadx.orders.read", "loadx.reports.read"] };
 const SIDEBAR_PREFERENCE = "loadx.sidebar-collapsed";
 
 function initialSidebarCollapsed() {
@@ -171,7 +173,7 @@ export function AppLayout() {
   // título — o conferente não pode ver "Cadastros" sobre lugar nenhum.
   const groups = NAV_GROUPS.map((group) => ({
     ...group,
-    items: group.items.filter((item) => user !== null && item.roles.includes(user.role)),
+    items: group.items.filter((item) => user !== null && (user.role === "CUSTOM" ? (item.to === "/account" || (CUSTOM_NAV[item.to] ?? []).some((code) => hasPermission(user, code))) : item.roles.includes(user.role))),
   })).filter((group) => group.items.length > 0);
 
   return (
@@ -370,7 +372,7 @@ export function AppLayout() {
       </aside>
 
       <main id="conteudo">
-        <header className="app-search-header"><GlobalSearch key={`${user?.id}:${user?.role}`} /></header>
+        <header className="app-search-header"><GlobalSearch key={`${user?.id}:${user?.role}:${user?.permissions?.join(",")}`} /></header>
         <Outlet />
       </main>
     </div>

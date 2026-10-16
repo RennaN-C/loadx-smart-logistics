@@ -9,7 +9,7 @@ from app.core.pagination import PageResponse, Pagination, to_page_response
 from app.core.responses import error_response, openapi_error_responses
 from app.core.search import SearchQuery
 from app.database.session import get_db
-from app.modules.auth.dependencies import require_roles
+from app.modules.auth.dependencies import require_permission
 from app.modules.users.models import User
 from app.modules.users.schemas import (
     UserCreate,
@@ -29,7 +29,7 @@ from app.modules.users.service import (
 )
 
 router = APIRouter(prefix="/users", tags=["users"])
-AdminUser = Annotated[User, Depends(require_roles("ADMIN"))]
+AdminUser = Annotated[User, Depends(require_permission("loadx.users.manage"))]
 
 
 def get_user_service(db: Annotated[Session, Depends(get_db)]) -> UserService:
