@@ -1,5 +1,5 @@
 import uuid
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -49,8 +49,21 @@ class UserService:
         self.driver_service = DriverService(db)
         self.audit_service = AuditService(db)
 
-    def list_users(self, pagination: PaginationParams) -> PageResult[User]:
-        return self.repository.list(pagination)
+    def list_users(
+        self,
+        pagination: PaginationParams,
+        *,
+        search: str | None = None,
+        role: str | None = None,
+        active: bool | None = None,
+    ) -> PageResult[User]:
+        return self.repository.list(pagination, search=search, role=role, active=active)
+
+    def driver_names(self, users: Sequence[User]) -> dict[uuid.UUID, str]:
+        identities = tuple(
+            user.driver_id for user in users if user.driver_id is not None
+        )
+        return self.driver_service.names_for_ids(identities)
 
     def has_users(self) -> bool:
         return self.repository.has_any()

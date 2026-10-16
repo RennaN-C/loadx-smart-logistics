@@ -1,5 +1,5 @@
 import uuid
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from datetime import UTC, datetime
 
 from sqlalchemy.exc import IntegrityError
@@ -39,6 +39,10 @@ class DriverService:
     def __init__(self, db: Session) -> None:
         self.db = db
         self.repository = DriverRepository(db)
+
+    def names_for_ids(self, driver_ids: Sequence[uuid.UUID]) -> dict[uuid.UUID, str]:
+        """Bounded identity labels for the ADMIN-only account page."""
+        return self.repository.names_for_ids(driver_ids)
 
     def list_drivers(
         self,

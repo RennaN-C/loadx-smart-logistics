@@ -1,16 +1,23 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.core.pagination import PageResponse, Pagination, to_page_response
 from app.core.responses import error_response, openapi_error_responses
+from app.core.search import SearchQuery
 from app.database.session import get_db
 from app.modules.auth.dependencies import require_roles
 from app.modules.users.models import User
-from app.modules.users.schemas import UserCreate, UserListRead, UserRead, UserUpdate
+from app.modules.users.schemas import (
+    UserCreate,
+    UserListRead,
+    UserRead,
+    UserRole,
+    UserUpdate,
+)
 from app.modules.users.service import (
     UserDriverAlreadyLinkedError,
     UserDriverNotFoundError,
@@ -38,11 +45,20 @@ def list_users(
     pagination: Pagination,
     _current_admin: AdminUser,
     service: Annotated[UserService, Depends(get_user_service)],
+    search: SearchQuery = None,
+    role: Annotated[UserRole | None, Query()] = None,
+    active: Annotated[bool | None, Query()] = None,
 ) -> PageResponse[UserListRead]:
-    result = service.list_users(pagination)
+    result = service.list_users(pagination, search=search, role=role, active=active)
+    names = service.driver_names(result.items)
     return to_page_response(
         result,
-        (UserListRead.model_validate(user) for user in result.items),
+        (
+            UserListRead.model_validate(user).model_copy(
+                update={"driver_name": names.get(user.driver_id)}
+            )
+            for user in result.items
+        ),
     )
 
 

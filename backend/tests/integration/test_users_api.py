@@ -125,8 +125,18 @@ def test_list_users_returns_created_items(
     assert body["total"] >= 2
     assert body["total_pages"] == 1
     created_user = next(user for user in body["items"] if user["id"] == created_id)
-    assert set(created_user) == {"id", "name", "role", "active", "created_at"}
-    assert "email" not in created_user
+    assert set(created_user) == {
+        "id",
+        "name",
+        "email",
+        "driver_id",
+        "driver_name",
+        "role",
+        "active",
+        "created_at",
+    }
+    assert created_user["email"] == "user@example.test"
+    assert created_user["driver_id"] is None
 
 
 def test_list_users_paginates_and_rejects_page_size_above_limit(
@@ -545,3 +555,149 @@ def test_patch_allows_removing_admin_when_another_active_admin_exists(
     assert response.status_code == 200
     assert response.json()["role"] == "CHECKER"
     assert response.json()["active"] is False
+
+
+def test_admin_user_list_filters_before_pagination_and_omits_credentials(
+    client: TestClient, session_factory: SessionFactory, admin_headers: dict[str, str]
+) -> None:
+    from datetime import UTC, datetime
+
+    stamp = datetime(2026, 10, 1, tzinfo=UTC)
+    ids = [uuid.UUID(int=8600 + index) for index in range(24)]
+    with session_factory() as db:
+        for index, identity in enumerate(ids):
+            db.add(
+                User(
+                    id=identity,
+                    name=f"Pessoa São Luís %_\\ {index}",
+                    email=f"list-{index}@example.test",
+                    role="CHECKER",
+                    active=index != 23,
+                    password_hash="NEVER-RETURN-THIS",
+                    created_at=stamp,
+                )
+            )
+        db.commit()
+    params = {
+        "search": " SÃO LUÍS %_\\ ",
+        "role": "CHECKER",
+        "active": True,
+        "page_size": 2,
+    }
+    first = client.get("/api/v1/users", params=params, headers=admin_headers)
+    second = client.get(
+        "/api/v1/users", params={**params, "page": 2}, headers=admin_headers
+    )
+    assert first.status_code == second.status_code == 200
+    assert first.json()["total"] == 23
+    assert [row["id"] for row in first.json()["items"]] == [str(ids[22]), str(ids[21])]
+    assert [row["id"] for row in second.json()["items"]] == [str(ids[20]), str(ids[19])]
+    assert first.json()["items"][0]["email"] == "list-22@example.test"
+    assert "NEVER-RETURN-THIS" not in first.text
+    assert "password" not in first.text
+    assert (
+        client.get(
+            "/api/v1/users",
+            params={"search": "list-22@example.test"},
+            headers=admin_headers,
+        ).json()["total"]
+        == 0
+    )
+    assert (
+        client.get(
+            "/api/v1/users",
+            params={"search": "Pessoa", "role": "ADMIN"},
+            headers=admin_headers,
+        ).json()["total"]
+        == 0
+    )
+    assert (
+        client.get(
+            "/api/v1/users", params={"search": "'; OR TRUE--"}, headers=admin_headers
+        ).json()["total"]
+        == 0
+    )
+
+
+@pytest.mark.parametrize(
+    "params", [{"role": "SUPERADMIN"}, {"active": "invalid"}, {"search": "x" * 121}]
+)
+def test_admin_user_filters_validate_public_contract(client, admin_headers, params):
+    assert (
+        client.get("/api/v1/users", params=params, headers=admin_headers).status_code
+        == 422
+    )
+
+
+def test_user_list_resolves_driver_names_in_one_bounded_query(
+    client, session_factory, admin_headers
+):
+    from sqlalchemy import event
+
+    from app.modules.drivers.models import Driver
+
+    with session_factory() as db:
+        for index in range(2):
+            driver = Driver(
+                name=f"Motorista resumido {index}",
+                document=f"PRIVATE-DOC-{index}",
+                phone="PRIVATE-PHONE",
+                license_number=f"PRIVATE-CNH-{index}",
+                license_category="D",
+                active=True,
+            )
+            db.add(driver)
+            db.flush()
+            db.add(
+                User(
+                    name=f"Conta motorista {index}",
+                    email=f"driver-list-{index}@example.test",
+                    password_hash="PRIVATE-HASH",
+                    role="DRIVER",
+                    driver_id=driver.id,
+                    active=True,
+                )
+            )
+        db.commit()
+    statements = []
+    connection = session_factory.kw["bind"]
+
+    def capture(_connection, _cursor, statement, _parameters, _context, _many):
+        if "FROM drivers" in statement:
+            statements.append(statement)
+
+    event.listen(connection, "before_cursor_execute", capture)
+    try:
+        response = client.get(
+            "/api/v1/users", params={"role": "DRIVER"}, headers=admin_headers
+        )
+    finally:
+        event.remove(connection, "before_cursor_execute", capture)
+    assert response.status_code == 200
+    assert {item["driver_name"] for item in response.json()["items"]} == {
+        "Motorista resumido 0",
+        "Motorista resumido 1",
+    }
+    assert len(statements) == 1
+    assert "drivers.document" not in statements[0]
+    assert "PRIVATE-" not in response.text
+
+
+def test_driver_link_and_unlink_revoke_sessions_on_postgresql(
+    client, session_factory, admin_headers
+):
+    driver = create_driver_in_db(session_factory)
+    target = create_user_in_db(
+        session_factory, "driver-renew@example.test", role="DRIVER"
+    )
+    for identity in (str(driver.id), None):
+        session = authorization_headers(session_factory, target)
+        assert client.get("/api/v1/auth/me", headers=session).status_code == 200
+        response = client.patch(
+            f"/api/v1/users/{target.id}",
+            json={"driver_id": identity},
+            headers=admin_headers,
+        )
+        assert response.status_code == 200
+        assert response.json()["driver_id"] == identity
+        assert client.get("/api/v1/auth/me", headers=session).status_code == 401

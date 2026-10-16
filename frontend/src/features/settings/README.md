@@ -87,14 +87,14 @@ regras da OC108. WhatsApp continua identificado como simulado.
 
 `CONFIRMADO`: a conta apresenta identidade real da sessão e ação de segurança em uma
 única superfície com separadores, sem cards aninhados, e link para `/account`.
-Gestão de usuários continua preparação discreta da OC86. Configurações do LoadX
+Gestão de usuários da OC86 possui entrada própria e atalho nesta seção. Configurações do LoadX
 não cria controles para parâmetros inexistentes: oferece contexto e dois atalhos independentes para
 as rotas existentes `/fleet` e `/planning`. ADMIN continua sendo o único perfil
 com acesso a Configurações, incluindo os serviços administrativos no backend.
 
 ### Validação de interface
 
-1. Entrar como ADMIN e abrir Configurações; alternar as quatro seções.
+1. Entrar como ADMIN e abrir Configurações; alternar as cinco seções.
 2. Abrir `/settings#settings-company` diretamente e recarregar a página.
 3. Editar dados, alternar para Integrações e voltar; verificar o rascunho.
 4. Cancelar; editar/salvar e verificar persistência após F5.
@@ -105,3 +105,11 @@ com acesso a Configurações, incluindo os serviços administrativos no backend.
 
 `CONFIRMADO`: manutenção exclusivamente de frontend, sem migration, dependência
 nova, alteração de RBAC ou contrato HTTP. Backend permanece fonte de verdade.
+
+## OC86 — Usuários
+
+`CONFIRMADO`: `/settings#settings-users` integra a navegação única da sidebar e
+RequireSettingsAdmin. Apenas a seção ativa monta UserManagementPanel, evitando
+consultas administrativas em outras seções e descartando senhas ao sair. Não
+altera o estado dos formulários institucionais existentes nem Meu perfil/tema.
+O atalho Gerenciar usuários substitui o aviso de preparação em Conta.
