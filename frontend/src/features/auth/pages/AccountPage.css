@@ -11,3 +11,13 @@
 .account-page .account-session-list dd { margin: 0; }
 .account-page button { justify-self: start; max-width: 100%; white-space: normal; }
 @media (max-width: 768px) { .account-page .account-fields, .account-page .account-session-list { grid-template-columns: minmax(0, 1fr); } }
+
+.appearance-options { border: 0; padding: 0; margin: 20px 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.appearance-option { display: flex; align-items: start; gap: 12px; padding: 18px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); cursor: pointer; }
+.appearance-option:has(:checked) { border-color: var(--accent-strong); background: var(--accent-bg); }
+.appearance-option:focus-within { outline: 2px solid var(--accent-strong); outline-offset: 3px; }
+.appearance-option:hover { border-color: var(--accent-strong); }
+.appearance-option input { accent-color: var(--accent-strong); margin: 4px 0 0; flex-shrink: 0; }
+.appearance-option strong, .appearance-option small { display: block; }
+.appearance-option small, .appearance-note { color: var(--muted); font-size: .875rem; line-height: 1.6; }
+@media (max-width: 768px) { .appearance-options { grid-template-columns: minmax(0, 1fr); } }
