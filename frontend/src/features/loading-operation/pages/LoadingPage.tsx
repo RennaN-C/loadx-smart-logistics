@@ -4,7 +4,7 @@ import { AlertBanner } from "../../../components/AlertBanner";
 import { StatusPill } from "../../../components/StatusPill";
 import { ApiError } from "../../../types/api";
 import { useAuth } from "../../auth/hooks/useAuth";
-import { canCheckLoading } from "../../auth/permissions";
+import { canCheckLoading, hasPermission } from "../../auth/permissions";
 import { changeLoadingStatus, checkLoadingItem, scanLoadingItem } from "../api/loadingApi";
 import { LoadingChecklist } from "../components/LoadingChecklist";
 import { mapLoadingErrorToMessage } from "../components/loadingErrorMessages";
@@ -51,7 +51,7 @@ export function LoadingPage() {
   const { session, rows, pendingCount, isLoading, isWorking, errorMessage, run, reload } =
     useLoadingSession(sessionId);
 
-  const isChecker = canCheckLoading(user?.role);
+  const isChecker = canCheckLoading(user);
   const inProgress = session?.status === "IN_PROGRESS";
   const nextStatus = session ? LOADING_TRANSITIONS[session.status] : undefined;
   const canFinish = session?.status !== "IN_PROGRESS" || pendingCount === 0;
@@ -141,7 +141,7 @@ export function LoadingPage() {
       {session && !isLoading ? (
         <>
           <p className="entity-form-help">Link permanente: <Link to={`/loading/${session.id}`}>Abrir este carregamento</Link>. Guarde o endereço; a listagem de carregamentos ainda não está disponível.</p>
-          {session.status === "FINISHED" && (user?.role === "ADMIN" || user?.role === "LOGISTICS_MANAGER") ? <p><Link to={`/planning/${session.loadPlanId}`}>Carregamento concluído: voltar ao plano para criar a viagem</Link></p> : null}
+          {session.status === "FINISHED" && hasPermission(user, "loadx.planning.read") ? <p><Link to={`/planning/${session.loadPlanId}`}>Carregamento concluído: voltar ao plano para criar a viagem</Link></p> : null}
           <section className="loading-head">
             <dl className="loading-metrics">
               <div>

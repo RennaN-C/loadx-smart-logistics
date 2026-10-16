@@ -12,7 +12,7 @@ export function GlobalSearch() {
   const [term, setTerm] = useState("");
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
-  const { results, status, retry } = useSearchResults(term.trim(), user?.role);
+  const { results, status, retry } = useSearchResults(term.trim(), user);
   const input = useRef<HTMLInputElement>(null);
   const id = useId();
   const navigate = useNavigate();

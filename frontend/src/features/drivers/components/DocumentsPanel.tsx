@@ -14,7 +14,7 @@ import { DocumentForm } from "./DocumentForm";
 import { DocumentPolicies } from "./DocumentPolicies";
 function date(value: string | null) { return value ? new Date(value).toLocaleString("pt-BR") : "não informada"; }
 export function DocumentsPanel({ driver, onChanged }: { readonly driver: DriverListItem; readonly onChanged: () => Promise<void> }) {
-  const { user } = useAuth(); const canManage = canManageLogistics(user?.role) && driver.active;
+  const { user } = useAuth(); const canManage = canManageLogistics(user, "drivers") && driver.active;
   const load = useCallback((params: ListParams) => listDocuments(driver.id, params), [driver.id]);
   const { items, status, error, refetch, page, totalPages, goToPage } = useResourceList(load);
   const [types, setTypes] = useState<DocumentType[]>([]); const [policies, setPolicies] = useState<DocumentPolicy[]>([]);

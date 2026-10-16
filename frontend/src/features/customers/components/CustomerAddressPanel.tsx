@@ -14,7 +14,7 @@ import { CustomerAddressForm } from "./CustomerAddressForm";
 
 export function CustomerAddressPanel({ customerId, onChanged }: { readonly customerId: string; readonly onChanged: () => Promise<void> }) {
   const { user } = useAuth();
-  const canManage = canManageLogistics(user?.role);
+  const canManage = canManageLogistics(user, "customers");
   const load = useCallback((params: ListParams) => listCustomerAddresses(customerId, params), [customerId]);
   const { items, status, error, archiveStatus, setArchiveStatus, refetch, page, totalPages, goToPage } = useRegistryList(load);
   const [editing, setEditing] = useState<CustomerAddress | null>(null);

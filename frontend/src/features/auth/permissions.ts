@@ -1,18 +1,87 @@
-import type { Role } from "./types";
+import type { AuthenticatedUser, Role } from "./types";
 
-/**
- * Política fixa da v1.2.0: ADMIN inclui poderes operacionais do gerente.
- * A OC112 evoluirá estas verificações para permissões logísticas efetivas.
- * Esta projeção de UI não substitui autorização e vínculos no backend.
- */
-export function canManageLogistics(role: Role | undefined): boolean {
-  return role === "ADMIN" || role === "LOGISTICS_MANAGER";
+/** UI projection only. Server authorization and resource scope remain authoritative. */
+const SYSTEM_PERMISSIONS: Partial<Record<Role, readonly string[]>> = {
+  "ADMIN": [
+    "loadx.audit.read",
+    "loadx.customers.manage",
+    "loadx.customers.read",
+    "loadx.deliveries.manage",
+    "loadx.deliveries.read",
+    "loadx.drivers.manage",
+    "loadx.drivers.read",
+    "loadx.imports.manage",
+    "loadx.integrations.read",
+    "loadx.loading.create",
+    "loadx.loading.operate",
+    "loadx.loading.read",
+    "loadx.messages.manage",
+    "loadx.occurrences.manage",
+    "loadx.occurrences.read",
+    "loadx.orders.manage",
+    "loadx.orders.read",
+    "loadx.planning.approve",
+    "loadx.planning.create",
+    "loadx.planning.read",
+    "loadx.products.manage",
+    "loadx.products.read",
+    "loadx.profiles.manage",
+    "loadx.reports.read",
+    "loadx.settings.manage",
+    "loadx.trips.manage",
+    "loadx.trips.read",
+    "loadx.trucks.manage",
+    "loadx.trucks.read",
+    "loadx.users.manage"
+  ],
+  "LOGISTICS_MANAGER": [
+    "loadx.audit.read",
+    "loadx.customers.manage",
+    "loadx.customers.read",
+    "loadx.deliveries.manage",
+    "loadx.deliveries.read",
+    "loadx.drivers.manage",
+    "loadx.drivers.read",
+    "loadx.imports.manage",
+    "loadx.loading.create",
+    "loadx.loading.read",
+    "loadx.messages.manage",
+    "loadx.occurrences.manage",
+    "loadx.occurrences.read",
+    "loadx.orders.manage",
+    "loadx.orders.read",
+    "loadx.planning.approve",
+    "loadx.planning.create",
+    "loadx.planning.read",
+    "loadx.products.manage",
+    "loadx.products.read",
+    "loadx.reports.read",
+    "loadx.trips.manage",
+    "loadx.trips.read",
+    "loadx.trucks.manage",
+    "loadx.trucks.read"
+  ],
+  "CHECKER": [
+    "loadx.loading.operate",
+    "loadx.loading.read",
+    "loadx.orders.read",
+    "loadx.planning.read",
+    "loadx.products.read",
+    "loadx.trucks.read"
+  ],
+  "DRIVER": [
+    "loadx.trips.own"
+  ]
+};
+export type PermissionSubject = AuthenticatedUser | Role | null | undefined;
+export function hasPermission(subject: PermissionSubject, code: string): boolean {
+  if (!subject || (typeof subject !== "string" && !subject.active)) return false;
+  const role = typeof subject === "string" ? subject : subject.role;
+  const permissions = typeof subject === "string" ? undefined : subject.permissions;
+  return (permissions ?? SYSTEM_PERMISSIONS[role] ?? []).includes(code);
 }
-
-export function canCheckLoading(role: Role | undefined): boolean {
-  return role === "ADMIN" || role === "CHECKER";
+export function canManageLogistics(subject: PermissionSubject, resource = "customers"): boolean {
+  return hasPermission(subject, `loadx.${resource}.manage`);
 }
-
-export function canOperateTrip(role: Role | undefined): boolean {
-  return canManageLogistics(role) || role === "DRIVER";
-}
+export function canCheckLoading(subject: PermissionSubject): boolean { return hasPermission(subject, "loadx.loading.operate"); }
+export function canOperateTrip(subject: PermissionSubject): boolean { return hasPermission(subject, "loadx.trips.manage") || hasPermission(subject, "loadx.trips.own"); }

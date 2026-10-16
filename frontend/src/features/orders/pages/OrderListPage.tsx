@@ -10,7 +10,7 @@ import { useEditTarget } from "../../../hooks/useEditTarget";
 import { MAX_SEARCH_LENGTH, type ListParams } from "../../../services/pagination";
 import { useResourceList } from "../../../hooks/useResourceList";
 import { useAuth } from "../../auth/hooks/useAuth";
-import { canManageLogistics } from "../../auth/permissions";
+import { canManageLogistics, hasPermission } from "../../auth/permissions";
 import { listCustomers } from "../../customers/api/customersApi";
 import { listProducts } from "../../products/api/productsApi";
 import { getOrder, listOrders } from "../api/ordersApi";
@@ -55,15 +55,15 @@ export function OrderListPage() {
   // O pedido só traz customer_id: a listagem de clientes resolve o nome. Ela é
   // paginada, então nomes fora da primeira página podem não resolver — por isso
   // o fallback explícito no lugar de um espaço vazio.
-  const { items: customers } = useResourceList(listHistoricalCustomers, user?.role === "ADMIN" || user?.role === "LOGISTICS_MANAGER");
-  const { items: products } = useResourceList(listProducts);
+  const { items: customers } = useResourceList(listHistoricalCustomers, hasPermission(user, "loadx.customers.read"));
+  const { items: products } = useResourceList(listProducts, hasPermission(user, "loadx.products.read"));
   const edit = useEditTarget<Order>(getOrder);
 
   const [attachmentOrderId, setAttachmentOrderId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
-  const canManage = canManageLogistics(user?.role);
-  const canReadCustomers = canManage;
+  const canManage = canManageLogistics(user, "orders");
+  const canReadCustomers = hasPermission(user, "loadx.customers.read");
   const isFormOpen = isCreating || edit.target !== null;
 
   const customerNames = useMemo(
@@ -163,7 +163,7 @@ export function OrderListPage() {
         <Pagination page={page} totalPages={totalPages} onChange={goToPage} label="pedidos" />
       ) : null}
 
-      {detailId ? <Modal title="Detalhes do pedido" onClose={closeDetail}><OrderDetail key={detailId} orderId={detailId} products={products} canReadHistory={canManage} onClose={closeDetail} /></Modal> : null}
+      {detailId ? <Modal title="Detalhes do pedido" onClose={closeDetail}><OrderDetail key={detailId} orderId={detailId} products={products} canReadHistory={hasPermission(user, "loadx.audit.read")} onClose={closeDetail} /></Modal> : null}
 
       {attachmentOrderId ? <Modal title="Anexos do pedido" onClose={() => setAttachmentOrderId(null)}><AttachmentPanel key={attachmentOrderId} resource="orders" resourceId={attachmentOrderId} canManage={canManage} /></Modal> : null}
 

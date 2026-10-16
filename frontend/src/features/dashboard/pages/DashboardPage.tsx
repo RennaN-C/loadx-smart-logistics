@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 
 import { StatusPill } from "../../../components/StatusPill";
 import { useAuth } from "../../auth/hooks/useAuth";
-import { canManageLogistics } from "../../auth/permissions";
+import { hasPermission } from "../../auth/permissions";
 import type { ListParams } from "../../../services/pagination";
 import { useResourceList } from "../../../hooks/useResourceList";
 import { listCustomers } from "../../customers/api/customersApi";
@@ -33,12 +33,12 @@ const listHistoricalCustomers = (params: ListParams) => listCustomers({ ...param
 
 export function DashboardPage() {
   const { user } = useAuth();
-  const { status, totals, recentOrders, unavailable, reload } = useDashboardTotals(user?.role);
-  const readsPersonalData = user?.role === "ADMIN" || user?.role === "LOGISTICS_MANAGER";
+  const { status, totals, recentOrders, unavailable, reload } = useDashboardTotals(user);
+  const readsPersonalData = hasPermission(user, "loadx.customers.read");
   const { items: customers } = useResourceList(listHistoricalCustomers, readsPersonalData);
 
   const customerNames = new Map((readsPersonalData ? customers : []).map((customer) => [customer.id, customer.name]));
-  const canPlan = canManageLogistics(user?.role);
+  const canPlan = hasPermission(user, "loadx.planning.create");
 
   /**
    * O motorista não lê caminhões, produtos, pedidos nem clientes: TODOS os
@@ -80,7 +80,8 @@ export function DashboardPage() {
         ) : null}
       </header>
 
-      {canPlan && <OperationsDashboardPage embedded />}
+      {hasPermission(user, "loadx.reports.read") && (user?.role !== "CUSTOM" || hasPermission(user, "loadx.trucks.read")) && <OperationsDashboardPage embedded />}
+      {user?.role === "CUSTOM" && hasPermission(user, "loadx.trips.read") ? <section className="dash-block"><h2>Viagens autorizadas</h2><DriverTrips /></section> : null}
 
       {status === "loading" ? (
         <p className="entity-state">
@@ -90,15 +91,15 @@ export function DashboardPage() {
       ) : (
         <>
           <div className="kpi-grid">
-            {!canPlan && <Counter label="CAMINHÕES" value={totals.trucks} to="/trucks" />}
-            <Counter label="PRODUTOS" value={totals.products} to="/products" />
+            {!canPlan && hasPermission(user, "loadx.trucks.read") && <Counter label="CAMINHÕES" value={totals.trucks} to="/trucks" />}
+            {hasPermission(user, "loadx.products.read") && <Counter label="PRODUTOS" value={totals.products} to="/products" />}
             {readsPersonalData ? (
               <>
                 <Counter label="CLIENTES" value={totals.customers} to="/contacts" />
-                <Counter label="MOTORISTAS" value={totals.drivers} to="/contacts?tab=drivers" />
+                {hasPermission(user, "loadx.drivers.read") && <Counter label="MOTORISTAS" value={totals.drivers} to="/contacts?tab=drivers" />}
               </>
             ) : null}
-            <Counter label="PEDIDOS" value={totals.orders} to="/orders" />
+            {hasPermission(user, "loadx.orders.read") && <Counter label="PEDIDOS" value={totals.orders} to="/orders" />}
           </div>
 
           {unavailable.length > 0 ? (
@@ -108,7 +109,7 @@ export function DashboardPage() {
             </p><button className="btn-secondary" onClick={reload} type="button">Tentar novamente o resumo</button></div>
           ) : null}
 
-          <section className="dash-block">
+          {hasPermission(user, "loadx.orders.read") && <section className="dash-block">
             <div className="dash-block-head">
               <h2>Pedidos mais recentes</h2>
               <Link className="btn-link" to="/orders">
@@ -137,7 +138,7 @@ export function DashboardPage() {
                 ))}
               </ul>
             )}
-          </section>
+          </section>}
         </>
       )}
     </div>

@@ -5,7 +5,7 @@ import { listDrivers } from "../../drivers/api/driversApi";
 import { listOrders } from "../../orders/api/ordersApi";
 import { listProducts } from "../../products/api/productsApi";
 import { listTrucks } from "../../trucks/api/trucksApi";
-import type { Role } from "../../auth/types";
+import { hasPermission, type PermissionSubject } from "../../auth/permissions";
 import type { OrderListItem } from "../../orders/types";
 
 export interface DashboardTotals {
@@ -41,13 +41,13 @@ const EMPTY: DashboardTotals = {
  * Cada recurso é buscado de forma independente: `CHECKER` não lê clientes nem
  * motoristas, e um 403 ali não pode derrubar o resto do painel.
  */
-export function useDashboardTotals(role: Role | undefined): UseDashboardResult {
+export function useDashboardTotals(user: PermissionSubject): UseDashboardResult {
   const [status, setStatus] = useState<"loading" | "ready">("loading");
   const [totals, setTotals] = useState<DashboardTotals>(EMPTY);
   const [recentOrders, setRecentOrders] = useState<OrderListItem[]>([]);
   const [unavailable, setUnavailable] = useState<string[]>([]);
 
-  const readsPersonalData = role === "ADMIN" || role === "LOGISTICS_MANAGER";
+  const role = typeof user === "string" ? user : user?.role;
 
   const load = useCallback(async () => {
     if (role === "DRIVER" || !role) return;
@@ -67,18 +67,18 @@ export function useDashboardTotals(role: Role | undefined): UseDashboardResult {
     };
 
     // page_size maior só nos pedidos: além do total, a tela lista os mais recentes
-    const ordersPromise = listOrders({ pageSize: 5 })
+    const ordersPromise = hasPermission(user, "loadx.orders.read") ? listOrders({ pageSize: 5 })
       .then((page) => page)
       .catch(() => {
         missing.push("orders");
         return null;
-      });
+      }) : Promise.resolve(null);
 
     const [trucks, products, customers, drivers, orders] = await Promise.all([
-      role === "CHECKER" ? countOf("trucks", listTrucks) : Promise.resolve(null),
-      countOf("products", listProducts),
-      readsPersonalData ? countOf("customers", listCustomers) : Promise.resolve(null),
-      readsPersonalData ? countOf("drivers", listDrivers) : Promise.resolve(null),
+      (role === "CHECKER" || role === "CUSTOM") && hasPermission(user, "loadx.trucks.read") ? countOf("trucks", listTrucks) : Promise.resolve(null),
+      hasPermission(user, "loadx.products.read") ? countOf("products", listProducts) : Promise.resolve(null),
+      hasPermission(user, "loadx.customers.read") ? countOf("customers", listCustomers) : Promise.resolve(null),
+      hasPermission(user, "loadx.drivers.read") ? countOf("drivers", listDrivers) : Promise.resolve(null),
       ordersPromise,
     ]);
 
@@ -86,7 +86,7 @@ export function useDashboardTotals(role: Role | undefined): UseDashboardResult {
     setRecentOrders(orders?.items ?? []);
     setUnavailable(missing);
     setStatus("ready");
-  }, [readsPersonalData, role]);
+  }, [user, role]);
 
   useEffect(() => {
     void load();

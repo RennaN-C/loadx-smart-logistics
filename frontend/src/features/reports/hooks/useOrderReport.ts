@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { useAuth } from "../../auth/hooks/useAuth";
-import { canManageLogistics } from "../../auth/permissions";
+import { hasPermission } from "../../auth/permissions";
 import { MAX_PAGE_SIZE } from "../../../services/pagination";
 import { listCustomers } from "../../customers/api/customersApi";
 import { listOrders } from "../../orders/api/ordersApi";
@@ -61,7 +61,7 @@ async function fetchCustomerNames(): Promise<Map<string, string>> {
 
 export function useOrderReport(): UseOrderReportResult {
   const { user } = useAuth();
-  const readsCustomers = canManageLogistics(user?.role);
+  const readsCustomers = hasPermission(user, "loadx.customers.read");
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [report, setReport] = useState<OrderReport | null>(null);
   const [customerNames, setCustomerNames] = useState(new Map<string, string>());

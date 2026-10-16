@@ -14,7 +14,7 @@ import { documentKinds, documentStatuses } from "./documentLabels";
 
 function date(value: string | null) { return value ? new Date(value).toLocaleString("pt-BR") : "não informada"; }
 export function DocumentsPanel({ truck, onChanged }: { readonly truck: Truck; readonly onChanged: () => Promise<void> }) {
-  const { user } = useAuth(); const canManage = canManageLogistics(user?.role) && truck.active;
+  const { user } = useAuth(); const canManage = canManageLogistics(user, "trucks") && truck.active;
   const load = useCallback((params: ListParams) => listDocuments(truck.id, params), [truck.id]);
   const { items, status, error, refetch, page, totalPages, goToPage } = useResourceList(load);
   const [policies, setPolicies] = useState<DocumentPolicy[]>([]);

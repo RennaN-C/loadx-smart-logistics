@@ -4,7 +4,7 @@ import { Link, useParams } from "react-router-dom";
 import { AlertBanner } from "../../../components/AlertBanner";
 import { StatusPill } from "../../../components/StatusPill";
 import { useAuth } from "../../auth/hooks/useAuth";
-import { canOperateTrip } from "../../auth/permissions";
+import { canOperateTrip, hasPermission } from "../../auth/permissions";
 import { AuditTrail } from "../../audit/components/AuditTrail";
 import { downloadTripReport } from "../../reports/api/reportsApi";
 import { ReportDownloadButton } from "../../reports/components/ReportDownloadButton";
@@ -66,7 +66,8 @@ export function TripPage() {
   const { trip, isLoading, isWorking, errorMessage, run } = useTripPage(tripId);
 
   // Motorista opera a própria viagem; o backend confere o vínculo users.driver_id.
-  const canOperate = canOperateTrip(user?.role);
+  const canOperate = canOperateTrip(user);
+  const canDeliver = hasPermission(user, "loadx.deliveries.manage") || hasPermission(user, "loadx.trips.own");
   const nextTripStatus = trip ? TRIP_TRANSITIONS[trip.status] : undefined;
   const pendingDeliveries = trip?.deliveries.filter((d) => d.status !== "DELIVERED").length ?? 0;
   const canFinish = trip?.status !== "IN_ROUTE" || pendingDeliveries === 0;
@@ -75,7 +76,7 @@ export function TripPage() {
     <div className="entity-page">
       <nav className="entity-toolbar entity-page-nav" aria-label="Caminhos da viagem">
         <Link to="/">{user?.role === "DRIVER" ? "Voltar às minhas viagens" : "Voltar ao início"}</Link>
-        {trip && (user?.role === "ADMIN" || user?.role === "LOGISTICS_MANAGER") ? <Link to={`/planning/${trip.loadPlanId}`}>Voltar ao plano de origem</Link> : null}
+        {trip && hasPermission(user, "loadx.planning.read") ? <Link to={`/planning/${trip.loadPlanId}`}>Voltar ao plano de origem</Link> : null}
       </nav>
       <header className="entity-header">
         <div>
@@ -84,7 +85,7 @@ export function TripPage() {
         </div>
         {trip ? (
           <div className="entity-toolbar">
-            {canReadReports(user?.role) ? (
+            {canReadReports(user) ? (
               <ReportDownloadButton
                 label="Relatório de viagem"
                 filename={`relatorio-viagem-${trip.id}.pdf`}
@@ -130,20 +131,20 @@ export function TripPage() {
 
           <TripAttachments trip={trip} canManage={canOperate} />
 
-          {user?.role === "ADMIN" || user?.role === "LOGISTICS_MANAGER" ? <nav className="entity-toolbar" aria-label="Pedidos desta viagem">
+          {hasPermission(user, "loadx.orders.read") ? <nav className="entity-toolbar" aria-label="Pedidos desta viagem">
             {[...new Set(trip.deliveries.map((delivery) => delivery.orderId))].map((orderId) => <Link key={orderId} to={`/orders?order=${encodeURIComponent(orderId)}`}>Ver pedido {orderId}</Link>)}
           </nav> : null}
 
           <TripStops
             trip={trip}
-            canOperate={canOperate}
+            canOperate={canDeliver}
             isWorking={isWorking}
             onAdvance={(delivery, next) =>
               void run(() => changeDeliveryStatus(delivery.id, next))
             }
           />
 
-          {user?.role === "ADMIN" || user?.role === "LOGISTICS_MANAGER" ? (
+          {hasPermission(user, "loadx.audit.read") ? (
             <AuditTrail entityType="TRIP" entityId={trip.id} title="Histórico da viagem" />
           ) : null}
         </>

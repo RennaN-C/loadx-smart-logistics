@@ -4,7 +4,7 @@ import { useCallback, useState } from "react";
 
 import { AlertBanner } from "../../../components/AlertBanner";
 import { useAuth } from "../../auth/hooks/useAuth";
-import { canManageLogistics } from "../../auth/permissions";
+import { canManageLogistics, hasPermission } from "../../auth/permissions";
 import { TruckDialogs } from "../components/TruckDialogs";
 import { TruckCard } from "../components/TruckCard";
 import { mapTruckErrorToMessage } from "../components/trucksErrorMessages";
@@ -42,7 +42,7 @@ export function TruckListPage({ embedded = false, active = true }: { readonly em
   const [editingTruck, setEditingTruck] = useState<Truck | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
-  const canManage = canManageLogistics(user?.role);
+  const canManage = canManageLogistics(user, "trucks");
 
   function closeForm() {
     setIsCreating(false);
@@ -70,7 +70,7 @@ export function TruckListPage({ embedded = false, active = true }: { readonly em
       </header>
 
       <div className="entity-toolbar">
-        {canManage ? <ImportAction entity="trucks" onImported={refetch} /> : null}
+        {hasPermission(user, "loadx.imports.manage") ? <ImportAction entity="trucks" onImported={refetch} /> : null}
         <ArchiveFilter value={archiveStatus} onChange={setArchiveStatus} />
         <input
           type="search"

@@ -6,7 +6,7 @@ import { Modal } from "../../../components/Modal";
 import { MAX_SEARCH_LENGTH, type ListParams } from "../../../services/pagination";
 import { Pagination } from "../../../components/Pagination";
 import { useAuth } from "../../auth/hooks/useAuth";
-import { canManageLogistics } from "../../auth/permissions";
+import { canManageLogistics, hasPermission } from "../../auth/permissions";
 import { ProductCard } from "../components/ProductCard";
 import { ProductForm } from "../components/ProductForm";
 import { mapProductErrorToMessage } from "../components/productsErrorMessages";
@@ -44,7 +44,7 @@ export function ProductListPage() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
-  const canManage = canManageLogistics(user?.role);
+  const canManage = canManageLogistics(user, "products");
   const isFormOpen = isCreating || editingProduct !== null;
 
   function closeForm() {
@@ -73,7 +73,7 @@ export function ProductListPage() {
       </header>
 
       <div className="entity-toolbar">
-        {canManage ? <ImportAction entity="products" onImported={refetch} /> : null}
+        {hasPermission(user, "loadx.imports.manage") ? <ImportAction entity="products" onImported={refetch} /> : null}
         <ArchiveFilter value={archiveStatus} onChange={setArchiveStatus} />
         <input
           type="search"
