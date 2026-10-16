@@ -1,3 +1,4 @@
+import { useUrlSearch } from "../../../hooks/useUrlSearch";
 import { ImportAction } from "../../registration-imports/components/ImportAction";
 import { useCallback, useState } from "react";
 
@@ -19,7 +20,7 @@ import { Icon } from "../../../components/Icon";
 
 export function TruckListPage({ embedded = false, active = true }: { readonly embedded?: boolean; readonly active?: boolean }) {
   const { user } = useAuth();
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useUrlSearch();
   const filteredLoad = useCallback((params: ListParams) => listTrucks({
     ...params,
     search,

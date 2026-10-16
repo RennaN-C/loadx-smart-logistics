@@ -1,3 +1,4 @@
+import { GlobalSearch } from "../features/global-search/components/GlobalSearch";
 import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 
@@ -369,6 +370,7 @@ export function AppLayout() {
       </aside>
 
       <main id="conteudo">
+        <header className="app-search-header"><GlobalSearch key={`${user?.id}:${user?.role}`} /></header>
         <Outlet />
       </main>
     </div>

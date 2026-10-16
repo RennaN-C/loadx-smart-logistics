@@ -6,6 +6,7 @@ from app.core.config import Settings
 from app.main import create_app
 
 EXPECTED_ERROR_STATUSES = {
+    ("/api/v1/search", "get"): {"401", "403", "422", "500"},
     ("/api/v1/auth/me", "patch"): {"401", "403", "409", "422", "500"},
     ("/api/v1/auth/me/password", "post"): {"400", "401", "403", "422", "429", "500"},
     ("/api/v1/auth/me/sessions", "get"): {"401", "403", "422", "500"},

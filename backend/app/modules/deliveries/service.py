@@ -153,9 +153,10 @@ class TripService:
         pagination: PaginationParams,
         *,
         current_user: User,
+        search: str | None = None,
     ) -> PageResult[TripListItem]:
         if current_user.role in {"ADMIN", "LOGISTICS_MANAGER"}:
-            return self.repository.list(pagination)
+            return self.repository.list(pagination, search=search)
         if current_user.role != "DRIVER" or current_user.driver_id is None:
             raise TripAccessForbiddenError
         try:
@@ -164,7 +165,7 @@ class TripService:
             raise TripAccessForbiddenError from exc
         if not driver.active:
             raise TripAccessForbiddenError
-        return self.repository.list(pagination, driver_id=driver.id)
+        return self.repository.list(pagination, driver_id=driver.id, search=search)
 
     def create_trip(self, data: TripCreate, *, changed_by: uuid.UUID) -> Trip:
         try:

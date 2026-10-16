@@ -1,3 +1,4 @@
+import { useUrlSearch } from "../../../hooks/useUrlSearch";
 import { ImportAction } from "../../registration-imports/components/ImportAction";
 import { useCallback, useState } from "react";
 
@@ -22,7 +23,7 @@ import { Icon } from "../../../components/Icon";
 
 export function CustomerPanel() {
   const { user } = useAuth();
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useUrlSearch();
   const filteredLoad = useCallback((params: ListParams) => listCustomers({
     ...params,
     search,
