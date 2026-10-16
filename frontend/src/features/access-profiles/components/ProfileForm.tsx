@@ -27,7 +27,7 @@ export function ProfileForm({ draft, onDraft, catalog, saving, userCount, onSubm
 function permissionNote(item: PermissionDefinition) {
   if (item.classification === "identity") return "Exige identidade e vínculo próprio; não delegável";
   if (!item.delegable) return "Protegida pelo sistema; não delegável";
-  if (item.classification === "operational") return "Ação registrada com a identidade real do operador";
+  if (item.classification === "operational") return "Exige operador autenticado; preserva as regras de conferência";
   return "Delegável neste perfil";
 }
 function PermissionGroups({ catalog, selected, saving, onToggle }: { readonly catalog: PermissionDefinition[]; readonly selected: string[]; readonly saving: boolean; readonly onToggle: (code: string) => void }) {

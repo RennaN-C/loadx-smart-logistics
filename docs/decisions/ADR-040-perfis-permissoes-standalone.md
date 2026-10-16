@@ -27,7 +27,8 @@ indiscriminada de papéis.
   de DRIVER. Perfis do sistema são projeções imutáveis, não editáveis via API.
 - Permissões reservadas de identidade, configuração, integrações administrativas
   e auditoria não são delegáveis. Ações próprias DRIVER também não são
-  delegáveis. Carregamento delegado registra o ator real, sem personificação.
+  delegáveis. Carregamento delegado exige operador autenticado e preserva as regras de
+  conferência, sem personificação. A auditoria existente não é ampliada nesta OC.
 - Grants desconhecidos/reservados são recusados pelo service e por FK composta
   do catálogo no PostgreSQL. Ausência de permissão nega por padrão com 403.
 - Permissão de gestão não implica leitura: ambas devem ser selecionadas quando

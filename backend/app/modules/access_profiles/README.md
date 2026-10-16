@@ -119,5 +119,5 @@ identidade ou ignora regras operacionais.
 `CONFIRMADO`: reserved significa não concedível a perfil personalizado; a
 projeção legada do gerente preserva auditoria. Imports é não delegável nesta OC
 porque envolve múltiplos cadastros/validações. trips.own é exclusivo da identidade
-DRIVER, com vínculo real. loading.operate é delegável com ator real, sem atribuir
-o nome ou a identidade CHECKER. Poder de plataforma não existe no catálogo.
+DRIVER, com vínculo real. loading.operate é delegável a operador autenticado,
+sem atribuir o nome ou a identidade CHECKER nem ampliar a auditoria existente. Poder de plataforma não existe no catálogo.
