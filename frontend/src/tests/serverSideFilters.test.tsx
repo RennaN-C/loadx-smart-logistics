@@ -15,7 +15,7 @@ vi.mock("../features/products/api/productsApi", () => ({ listProducts: mocks.pro
 vi.mock("../features/trucks/api/trucksApi", () => ({ listTrucks: mocks.trucks }));
 vi.mock("../features/customers/api/customersApi", () => ({ listCustomers: mocks.customers, getCustomer: vi.fn() }));
 vi.mock("../features/drivers/api/driversApi", () => ({ listDrivers: mocks.drivers, getDriver: vi.fn() }));
-vi.mock("../features/auth/hooks/useAuth", () => ({ useAuth: () => ({ user: { role: "LOGISTICS_MANAGER" } }) }));
+vi.mock("../features/auth/hooks/useAuth", () => ({ useAuth: () => ({ user: { active: true, role: "LOGISTICS_MANAGER" } }) }));
 
 const RECORDS = {
   orders: { id: "o1", customerId: "outside-customer-page", status: "DRAFT", priority: "NORMAL", expectedDeliveryAt: null, createdAt: "2026-10-01T00:00:00Z", itemCount: 1 },

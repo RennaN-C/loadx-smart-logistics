@@ -1,3 +1,4 @@
+import { listProfiles } from "../../access-profiles/api/profilesApi";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -9,6 +10,7 @@ import { getDriver, listDrivers } from "../../drivers/api/driversApi";
 import { createUser, getUser, listUsers, updateUser, type UserAccount } from "../api/usersApi";
 import { UserManagementPanel } from "./UserManagementPanel";
 vi.mock("../api/usersApi");
+vi.mock("../../access-profiles/api/profilesApi");
 vi.mock("../../auth/hooks/useAuth");
 vi.mock("../../drivers/api/driversApi");
 const ADMIN: UserAccount = { id: "u1", name: "Admin fictício", email: "admin@example.test", role: "ADMIN", active: true, driverId: null, createdAt: "2026-10-16T00:00:00Z" };
@@ -34,7 +36,7 @@ describe("OC86 gestão de usuários", () => {
   });
   it("cria conta e limpa campos secretos após salvar", async () => {
     const dialog = await creating(); fireEvent.click(within(dialog).getByRole("button", { name: "Salvar usuário" }));
-    await screen.findByText("Usuário criado com sucesso."); expect(createUser).toHaveBeenCalledWith({ name: "Pessoa nova", email: "nova@example.test", role: "CHECKER", active: true, driverId: null, password: "Frase de senha ficticia 2026!" });
+    await screen.findByText("Usuário criado com sucesso."); expect(createUser).toHaveBeenCalledWith({ name: "Pessoa nova", email: "nova@example.test", role: "CHECKER", active: true, driverId: null, customProfileId: null, password: "Frase de senha ficticia 2026!" });
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument(); expect(screen.queryByDisplayValue("Frase de senha ficticia 2026!")).not.toBeInTheDocument(); expect(listUsers).toHaveBeenCalledTimes(2);
   });
   it("valida tamanho e confirmação antes de enviar", async () => {
@@ -88,5 +90,21 @@ describe("OC86 gestão de usuários", () => {
   });
   it.each<Role>(["LOGISTICS_MANAGER", "CHECKER", "DRIVER"])("%s não acessa URL administrativa nem consulta usuários", async (profile) => {
     role(profile); render(<MemoryRouter initialEntries={["/settings#settings-users"]}><Routes><Route element={<RequireSettingsAdmin />}><Route path="settings" element={<UserManagementPanel />} /></Route></Routes></MemoryRouter>); expect(await screen.findByRole("heading", { name: "Acesso negado" })).toBeInTheDocument(); expect(listUsers).not.toHaveBeenCalled();
+  });
+});
+
+
+describe("OC112 associação de perfil personalizado", () => {
+  it("seleciona perfil real e envia a associação no contrato existente", async () => {
+    vi.resetAllMocks(); role();
+    vi.mocked(listUsers).mockResolvedValue(page([ADMIN]));
+    vi.mocked(listProfiles).mockResolvedValue({ items: [{ id: "p1", name: "Consulta de frota", description: "", active: true, version: 1, permissions: ["loadx.trucks.read"], user_count: 0, system_role: null }], page: 1, pageSize: 20, total: 1, totalPages: 1 });
+    vi.mocked(createUser).mockResolvedValue({ ...TARGET, role: "CUSTOM", customProfileId: "p1" });
+    const dialog = await creating();
+    fireEvent.change(within(dialog).getByLabelText("Perfil de acesso"), { target: { value: "CUSTOM" } });
+    fireEvent.change(await within(dialog).findByLabelText("Permissões de acesso"), { target: { value: "p1" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Salvar usuário" }));
+    await screen.findByText("Usuário criado com sucesso.");
+    expect(createUser).toHaveBeenCalledWith(expect.objectContaining({ role: "CUSTOM", customProfileId: "p1", driverId: null }));
   });
 });
