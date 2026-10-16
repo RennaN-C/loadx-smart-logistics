@@ -2,11 +2,12 @@ import uuid
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from sqlalchemy import asc, desc, func, select
+from sqlalchemy import String, asc, cast, desc, func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.pagination import PageResult, PaginationParams
 from app.modules.deliveries.models import Delivery, Trip
+from app.shared.search import search_pattern
 
 
 @dataclass(frozen=True, slots=True)
@@ -32,9 +33,13 @@ class TripRepository:
         pagination: PaginationParams,
         *,
         driver_id: uuid.UUID | None = None,
+        search: str | None = None,
     ) -> PageResult[TripListItem]:
         direction = asc if pagination.sort_order == "asc" else desc
-        filters = (Trip.driver_id == driver_id,) if driver_id is not None else ()
+        filters = [Trip.driver_id == driver_id] if driver_id is not None else []
+        pattern = search_pattern(search)
+        if pattern is not None:
+            filters.append(cast(Trip.id, String).ilike(pattern, escape="\\"))
         total = (
             self.db.scalar(select(func.count()).select_from(Trip).where(*filters)) or 0
         )

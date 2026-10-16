@@ -13,6 +13,7 @@ from app.modules.drivers.document_router import (
     type_router as driver_document_types_router,
 )
 from app.modules.drivers.router import router as drivers_router
+from app.modules.global_search.router import router as global_search_router
 from app.modules.integration_health.router import router as integration_health_router
 from app.modules.load_planning.distribution_router import router as distribution_router
 from app.modules.load_planning.router import router as load_planning_router
@@ -64,3 +65,5 @@ api_router.include_router(distribution_router)
 api_router.include_router(attachments_router)
 
 api_router.include_router(registration_imports_router)
+
+api_router.include_router(global_search_router)
