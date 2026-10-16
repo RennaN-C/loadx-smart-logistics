@@ -31,24 +31,22 @@
   background: var(--paper);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
+:root[data-theme="dark"] {
+  color-scheme: dark;
 
-    --ink: #edeae1;
-    --paper: #171b20;
-    --card: #1f252c;
-    --line: rgba(255, 255, 255, 0.12);
-    --muted: #a09b8f;
-    --accent: #e2a24a;
-    --danger: #e0685a;
-    --danger-bg: rgba(224, 104, 90, 0.14);
-    --danger-line: rgba(224, 104, 90, 0.4);
-    --good: #7fb98c;
-    --good-bg: rgba(127, 185, 140, 0.14);
-    --accent-strong: #e2a24a;
-    --accent-bg: rgba(226, 162, 74, 0.16);
-  }
+  --ink: #edeae1;
+  --paper: #171b20;
+  --card: #1f252c;
+  --line: rgba(255, 255, 255, 0.12);
+  --muted: #a09b8f;
+  --accent: #e2a24a;
+  --danger: #e0685a;
+  --danger-bg: rgba(224, 104, 90, 0.14);
+  --danger-line: rgba(224, 104, 90, 0.4);
+  --good: #7fb98c;
+  --good-bg: rgba(127, 185, 140, 0.14);
+  --accent-strong: #e2a24a;
+  --accent-bg: rgba(226, 162, 74, 0.16);
 }
 
 *,
