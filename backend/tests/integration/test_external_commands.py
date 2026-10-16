@@ -183,9 +183,7 @@ def test_valid_command_uses_domain_and_replay_preserves_receipt_and_history(
         )
 
 
-@pytest.mark.parametrize(
-    "actor", ("admin", "checker", "inactive", "unlinked", "other_driver")
-)
+@pytest.mark.parametrize("actor", ("checker", "inactive", "unlinked", "other_driver"))
 def test_actor_rbac_and_object_binding_cannot_be_bypassed(scenario, actor):
     body = scenario.body()
     before = scenario.counts()
@@ -435,3 +433,11 @@ def test_database_enforces_event_identity_independently_of_service(scenario):
             db.commit()
         db.rollback()
     assert scenario.counts()[2] == 1
+
+
+def test_admin_executes_manager_command_without_impersonating_driver(scenario):
+    body = scenario.body()
+    receipt = scenario.service("admin").process(body, sign(body))
+    assert receipt.duplicate is False
+    with scenario.factory() as db:
+        assert db.get(Delivery, scenario.delivery_id).status == "DELIVERED"

@@ -6,6 +6,32 @@ from app.core.config import Settings
 from app.main import create_app
 
 EXPECTED_ERROR_STATUSES = {
+    ("/api/v1/access-profiles", "get"): {"401", "403", "404", "409", "422", "500"},
+    ("/api/v1/access-profiles", "post"): {"401", "403", "404", "409", "422", "500"},
+    ("/api/v1/access-profiles/permissions", "get"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
+    ("/api/v1/access-profiles/{profile_id}", "get"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
+    ("/api/v1/access-profiles/{profile_id}", "patch"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
     ("/api/v1/search", "get"): {"401", "403", "422", "500"},
     ("/api/v1/auth/me", "patch"): {"401", "403", "409", "422", "500"},
     ("/api/v1/auth/me/password", "post"): {"400", "401", "403", "422", "429", "500"},
@@ -800,6 +826,7 @@ def test_oc86_admin_list_documents_identity_fields_and_safe_filters() -> None:
         "LOGISTICS_MANAGER",
         "CHECKER",
         "DRIVER",
+        "CUSTOM",
     }
     assert operation["security"] == [{"SessionCookie": []}]
     fields = schema["components"]["schemas"]["UserListRead"]["properties"]
@@ -811,6 +838,8 @@ def test_oc86_admin_list_documents_identity_fields_and_safe_filters() -> None:
         "active",
         "driver_id",
         "driver_name",
+        "custom_profile_id",
+        "custom_profile_name",
         "created_at",
     }
     assert "password_hash" not in fields
