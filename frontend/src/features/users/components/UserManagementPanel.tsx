@@ -33,7 +33,7 @@ export function UserManagementPanel() {
   }
   if (!user?.active || user.role !== "ADMIN") return null;
   return <div className="user-management">
-    <div className="user-toolbar"><p className="user-muted">Contas de acesso ao LoadX. Os perfis mantêm as permissões definidas pelo sistema.</p><button type="button" className="btn-primary" onClick={() => { setNotice(""); setCreating(true); }}><Icon name="plus" size={18} />Criar usuário</button></div>
+    <div className="user-toolbar"><p className="user-muted">Contas de acesso ao LoadX. Os perfis mantêm as permissões definidas pelo sistema.</p><button type="button" className="btn-primary" disabled={edit.loadingId !== null} onClick={() => { setNotice(""); setCreating(true); }}><Icon name="plus" size={18} />Criar usuário</button></div>
     <div className="user-filters">
       <label>Buscar por nome<input type="search" maxLength={120} value={filters.search} placeholder="Nome da pessoa" onChange={(event) => filter({ ...filters, search: event.target.value })} /></label>
       <label>Filtrar perfil<select value={filters.role} onChange={(event) => filter({ ...filters, role: event.target.value })}><option value="all">Todos os perfis</option>{Object.entries(ROLE_LABELS).map(([role, label]) => <option key={role} value={role}>{label}</option>)}</select></label>

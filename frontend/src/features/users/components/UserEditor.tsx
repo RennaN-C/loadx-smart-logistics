@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { AlertBanner } from "../../../components/AlertBanner";
 import { Modal } from "../../../components/Modal";
 import { createUser, updateUser, type UserAccount, type UserInput } from "../api/usersApi";
@@ -16,6 +16,9 @@ export function UserEditor({ account, ownId, onClose, onSaved }: Props) {
   const normalized = { ...draft, name: draft.name.trim(), email: draft.email.trim().toLowerCase() };
   const changes = accountChanges(account, normalized, security.enabled ? security.password : undefined);
   const revoking = revokesSessions(changes);
+  useEffect(() => {
+    document.getElementById(confirming ? "user-confirm-action" : "user-name")?.focus();
+  }, [confirming]);
   function submit(event: FormEvent) {
     event.preventDefault();
     if (saving) { return; }

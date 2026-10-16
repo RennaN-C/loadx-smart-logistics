@@ -47,8 +47,8 @@ describe("OC86 gestão de usuários", () => {
   });
   it("confirma perfil antes de enviar somente os campos alterados", async () => {
     const dialog = await edit(); fireEvent.change(within(dialog).getByLabelText("Perfil de acesso"), { target: { value: "LOGISTICS_MANAGER" } }); fireEvent.click(within(dialog).getByRole("button", { name: "Salvar usuário" }));
-    expect(screen.getByRole("heading", { name: "Confirmar alterações sensíveis" })).toBeInTheDocument(); expect(updateUser).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole("button", { name: "Voltar ao formulário" })); expect(screen.getByLabelText("Perfil de acesso")).toHaveValue("LOGISTICS_MANAGER");
+    expect(screen.getByRole("button", { name: "Confirmar alterações" })).toHaveFocus(); expect(updateUser).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Voltar ao formulário" })); expect(screen.getByLabelText("Perfil de acesso")).toHaveValue("LOGISTICS_MANAGER"); expect(screen.getByLabelText("Nome")).toHaveFocus();
     fireEvent.click(screen.getByRole("button", { name: "Salvar usuário" })); fireEvent.click(screen.getByRole("button", { name: "Confirmar alterações" })); await screen.findByText("Usuário atualizado com sucesso.");
     expect(updateUser).toHaveBeenCalledWith(TARGET.id, { role: "LOGISTICS_MANAGER" });
   });
@@ -73,6 +73,12 @@ describe("OC86 gestão de usuários", () => {
   });
   it("encerra contexto após redefinir a própria senha", async () => {
     vi.mocked(updateUser).mockResolvedValue(ADMIN); const dialog = await edit(ADMIN); fireEvent.click(within(dialog).getByLabelText("Redefinir senha administrativamente")); passwords(dialog); fireEvent.click(screen.getByRole("button", { name: "Salvar usuário" })); expect(screen.queryByDisplayValue("Frase de senha ficticia 2026!")).not.toBeInTheDocument(); fireEvent.click(screen.getByRole("button", { name: "Confirmar alterações" })); await waitFor(() => expect(updateSession).toHaveBeenCalledWith(null, "session-revoked")); expect(listUsers).toHaveBeenCalledTimes(1);
+  });
+  it("bloqueia abertura de outra operação enquanto busca o detalhe", async () => {
+    vi.mocked(getUser).mockReturnValue(new Promise(() => {})); show();
+    fireEvent.click(await screen.findByRole("button", { name: `Editar ${TARGET.name}` }));
+    expect(screen.getByRole("button", { name: "Criar usuário" })).toBeDisabled();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
   it("não duplica submissão nem fecha enquanto salva", async () => {
     vi.mocked(createUser).mockReturnValue(new Promise(() => {})); const dialog = await creating(); fireEvent.click(within(dialog).getByRole("button", { name: "Salvar usuário" })); fireEvent.submit(screen.getByRole("form", { name: "Criar usuário" })); fireEvent.keyDown(document, { key: "Escape" }); expect(createUser).toHaveBeenCalledOnce(); expect(screen.getByRole("dialog")).toBeInTheDocument(); expect(screen.getByRole("button", { name: "Salvando…" })).toBeDisabled();
