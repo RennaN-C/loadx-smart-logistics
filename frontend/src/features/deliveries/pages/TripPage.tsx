@@ -136,7 +136,7 @@ function TripOperations({ trip, user, isWorking, run }: { readonly trip: Trip; r
             </p>
           ) : null}
 
-          <TripAttachments trip={trip} canManage={canOperate} />
+          <TripAttachments trip={trip} canManage={canOperate} access={tripAttachmentAccess(user)} />
 
           {hasPermission(user, "loadx.orders.read") ? <nav className="entity-toolbar" aria-label="Pedidos desta viagem">
             {[...new Set(trip.deliveries.map((delivery) => delivery.orderId))].map((orderId) => <Link key={orderId} to={`/orders?order=${encodeURIComponent(orderId)}`}>Ver pedido {orderId}</Link>)}
@@ -155,4 +155,9 @@ function TripOperations({ trip, user, isWorking, run }: { readonly trip: Trip; r
             <AuditTrail entityType="TRIP" entityId={trip.id} title="Histórico da viagem" />
           ) : null}
         </>);
+}
+
+function tripAttachmentAccess(user: ReturnType<typeof useAuth>["user"]) {
+  const own = hasPermission(user, "loadx.trips.own");
+  return { readDeliveries: own || hasPermission(user, "loadx.deliveries.read"), readOccurrences: own || hasPermission(user, "loadx.occurrences.read"), manageDeliveries: own || hasPermission(user, "loadx.deliveries.manage"), manageOccurrences: own || hasPermission(user, "loadx.occurrences.manage") };
 }
