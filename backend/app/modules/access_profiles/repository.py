@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import delete, func, select, text
+from sqlalchemy import asc, delete, desc, func, select, text
 from sqlalchemy.orm import Session
 
 from app.modules.access_profiles.models import AccessProfile, ProfilePermission
@@ -23,10 +23,11 @@ class ProfileRepository:
             query = query.with_for_update(read=shared)
         return self.db.scalar(query)
 
-    def list(self, offset: int, limit: int):
+    def list(self, offset: int, limit: int, sort_order: str = "desc"):
+        direction = asc if sort_order == "asc" else desc
         return self.db.scalars(
             select(AccessProfile)
-            .order_by(AccessProfile.created_at.desc(), AccessProfile.id)
+            .order_by(direction(AccessProfile.created_at), direction(AccessProfile.id))
             .offset(offset)
             .limit(limit)
         ).all()

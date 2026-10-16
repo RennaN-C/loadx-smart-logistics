@@ -9,6 +9,7 @@ from app.core.pagination import PageResponse, Pagination, to_page_response
 from app.core.responses import error_response, openapi_error_responses
 from app.database.session import get_db
 from app.integrations.whatsapp import WhatsAppProvider, get_whatsapp_provider
+from app.modules.access_profiles.catalog import Permission
 from app.modules.auth.dependencies import require_any_permission
 from app.modules.deliveries.models import Delivery, Trip
 from app.modules.deliveries.schemas import (
@@ -50,10 +51,10 @@ from app.modules.users.models import User
 router = APIRouter(tags=["trips"])
 ManagerUser = Annotated[User, Depends(require_any_permission("loadx.trips.manage"))]
 TripReader = Annotated[
-    User, Depends(require_any_permission("loadx.trips.read", "loadx.trips.own"))
+    User, Depends(require_any_permission("loadx.trips.read", Permission.TRIPS_OWN))
 ]
 TripOperator = Annotated[
-    User, Depends(require_any_permission("loadx.trips.manage", "loadx.trips.own"))
+    User, Depends(require_any_permission("loadx.trips.manage", Permission.TRIPS_OWN))
 ]
 TRIP_SERVICE_ERRORS = (
     DeliveryNotFoundError,
@@ -80,12 +81,13 @@ TRIP_SERVICE_ERRORS = (
 
 
 DeliveryOperator = Annotated[
-    User, Depends(require_any_permission("loadx.deliveries.manage", "loadx.trips.own"))
+    User,
+    Depends(require_any_permission("loadx.deliveries.manage", Permission.TRIPS_OWN)),
 ]
 
 
 DeliveryReader = Annotated[
-    User, Depends(require_any_permission("loadx.deliveries.read", "loadx.trips.own"))
+    User, Depends(require_any_permission("loadx.deliveries.read", Permission.TRIPS_OWN))
 ]
 
 

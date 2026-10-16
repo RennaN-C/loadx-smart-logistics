@@ -58,6 +58,7 @@ class ProfileService:
         profiles = self.repository.list(
             max(0, pagination.offset - fixed_count),
             pagination.page_size - fixed_in_page,
+            pagination.sort_order,
         )
         grants = self.repository.grants([profile.id for profile in profiles])
         results = [
@@ -120,26 +121,7 @@ class ProfileService:
                 if identity
                 else AccessProfile()
             )
-            if profile is None:
-                raise ApiError(
-                    404, "PROFILE_NOT_FOUND", "Perfil personalizado não encontrado."
-                )
-            if (
-                identity
-                and isinstance(data, ProfileUpdate)
-                and data.version != profile.version
-            ):
-                raise ApiError(
-                    409,
-                    "PROFILE_VERSION_CONFLICT",
-                    "Este perfil foi alterado. Reabra o formulário antes de salvar.",
-                )
-            if not data.active and members:
-                raise ApiError(
-                    409,
-                    "PROFILE_IN_USE",
-                    "Remova os usuários associados antes de desativar este perfil.",
-                )
+            self._validate_update(profile, data, identity, members)
             changed = [
                 field
                 for field in ("name", "description", "active")
@@ -151,14 +133,6 @@ class ProfileService:
             if old_grants != data.permissions:
                 changed.append("permissions")
             profile.name, profile.name_key = data.name, data.name.lower()
-            if profile.name_key in {name.lower() for name in SYSTEM_LABELS.values()} | {
-                role.lower() for role in SYSTEM_LABELS
-            }:
-                raise ApiError(
-                    409,
-                    "PROFILE_NAME_RESERVED",
-                    "Este nome identifica um perfil protegido do sistema.",
-                )
             profile.description, profile.active = data.description, data.active
             profile.version = profile.version + 1 if identity else 1
             self.db.add(profile)
@@ -188,6 +162,38 @@ class ProfileService:
         except Exception:
             self.db.rollback()
             raise
+
+    @staticmethod
+    def _validate_update(profile, data, identity, members):
+        if profile is None:
+            raise ApiError(
+                404, "PROFILE_NOT_FOUND", "Perfil personalizado não encontrado."
+            )
+        if (
+            identity
+            and isinstance(data, ProfileUpdate)
+            and data.version != profile.version
+        ):
+            raise ApiError(
+                409,
+                "PROFILE_VERSION_CONFLICT",
+                "Este perfil foi alterado. Reabra o formulário antes de salvar.",
+            )
+        if not data.active and members:
+            raise ApiError(
+                409,
+                "PROFILE_IN_USE",
+                "Remova os usuários associados antes de desativar este perfil.",
+            )
+        reserved = {name.lower() for name in SYSTEM_LABELS.values()} | {
+            role.lower() for role in SYSTEM_LABELS
+        }
+        if data.name.lower() in reserved:
+            raise ApiError(
+                409,
+                "PROFILE_NAME_RESERVED",
+                "Este nome identifica um perfil protegido do sistema.",
+            )
 
     @staticmethod
     def _read(profile, permissions, count):

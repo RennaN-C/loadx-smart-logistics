@@ -23,8 +23,8 @@ Nome único sem distinção de caixa/normalização PostgreSQL. Nome fixo é res
 UUID é a identidade técnica; nome, e-mail e CNPJ não identificam organização.
 
 A paginação mantém quatro projeções fixas primeiro, na ordem ADMIN, gerente,
-conferente e motorista, e perfis personalizados por created_at/id descendentes.
-Não há ordenação configurável nesta primeira interface. page/page_size usam
+conferente e motorista, e perfis personalizados por created_at/id (sort_order asc/desc, default desc).
+A interface usa a ordem padrão. page/page_size usam
 limites centrais; dados/grants de perfis são carregados somente para a página.
 Não há listagem de usuários por perfil: `user_count` é contagem real; associação
 é consultada/editada na OC86. Perfis fixos são consultáveis na coleção, sem

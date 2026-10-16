@@ -67,12 +67,7 @@ class AttachmentService:
                 raise AttachmentForbiddenError
             OrderService(self.db).get_order(resource_id)
         elif resource_type == "trips":
-            if operate and not (
-                has_permission(actor, Permission.TRIPS_MANAGE)
-                or has_permission(actor, Permission.TRIPS_OWN)
-            ):
-                raise AttachmentForbiddenError
-            TripService(self.db).get_trip(resource_id, current_user=actor)
+            self._authorize_trip_attachment(actor, resource_id, operate=operate)
         elif resource_type == "deliveries":
             TripService(self.db).get_delivery_for_access(
                 resource_id, current_user=actor, operate=operate
@@ -94,6 +89,16 @@ class AttachmentService:
         else:
             raise AttachmentNotFoundError
         return actor
+
+    def _authorize_trip_attachment(
+        self, actor: User, identity: uuid.UUID, *, operate: bool
+    ):
+        if operate and not (
+            has_permission(actor, Permission.TRIPS_MANAGE)
+            or has_permission(actor, Permission.TRIPS_OWN)
+        ):
+            raise AttachmentForbiddenError
+        TripService(self.db).get_trip(identity, current_user=actor)
 
     def register(
         self,
