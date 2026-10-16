@@ -1,4 +1,6 @@
 {
+  "productionBuild": true,
+  "loginScreenshots": 2,
   "fixture": "API interceptada no Chromium com conta fictícia ADMIN; sem alteração no backend.",
   "results": [
     {
