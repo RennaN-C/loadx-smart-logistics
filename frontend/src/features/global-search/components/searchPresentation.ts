@@ -10,10 +10,17 @@ export const CATEGORIES: Record<SearchCategory, { label: string; icon: IconName;
   trip: { label: "Viagens", icon: "truck", path: "/trips/" },
 };
 
+const ALL_CATEGORIES = Object.keys(CATEGORIES);
+const ALLOWED_CATEGORIES: Record<Role, readonly string[]> = {
+  ADMIN: ALL_CATEGORIES,
+  LOGISTICS_MANAGER: ALL_CATEGORIES,
+  CHECKER: ["order", "truck"],
+  DRIVER: ["trip"],
+};
+
 /** Defesa de apresentação; não substitui o RBAC e o escopo de vínculo da API. */
 export function visibleResults(items: SearchResult[], role: Role | undefined) {
-  const categories = Object.keys(CATEGORIES);
-  const allowed = role === "DRIVER" ? ["trip"] : role === "CHECKER" ? ["order", "truck"] : role ? categories : [];
+  const allowed = role ? ALLOWED_CATEGORIES[role] : [];
   return items.filter((item) => allowed.includes(item.category) && item.href.startsWith(CATEGORIES[item.category].path))
-    .sort((a, b) => categories.indexOf(a.category) - categories.indexOf(b.category));
+    .sort((a, b) => ALL_CATEGORIES.indexOf(a.category) - ALL_CATEGORIES.indexOf(b.category));
 }

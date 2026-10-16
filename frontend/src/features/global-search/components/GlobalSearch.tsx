@@ -28,7 +28,10 @@ export function GlobalSearch() {
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       event.preventDefault(); setOpen(true);
       const delta = event.key === "ArrowDown" ? 1 : -1;
-      if (results.length) setActive((index) => index < 0 ? (delta === 1 ? 0 : results.length - 1) : (index + delta + results.length) % results.length);
+      if (results.length) setActive((index) => {
+        if (index < 0) return delta === 1 ? 0 : results.length - 1;
+        return (index + delta + results.length) % results.length;
+      });
     }
     if (event.key === "Enter" && results.length && open) { event.preventDefault(); choose(results[Math.min(Math.max(active, 0), results.length - 1)]); }
   }

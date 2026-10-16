@@ -30,9 +30,7 @@ def get_search_service(db: Annotated[Session, Depends(get_db)]) -> GlobalSearchS
     return GlobalSearchService(db)
 
 
-@router.get(
-    "", response_model=SearchResponse, responses=openapi_error_responses(401, 403, 422)
-)
+@router.get("", responses=openapi_error_responses(401, 403, 422))
 def search_records(
     search: SearchTerm,
     current_user: Annotated[

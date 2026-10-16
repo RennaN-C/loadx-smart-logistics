@@ -6,7 +6,12 @@ import type { SearchStatus } from "./useSearchResults";
 const STATUS_TEXT = { idle: "Digite pelo menos 2 caracteres.", loading: "Buscando registros…", error: "Não foi possível pesquisar. Tente novamente." };
 interface Props { id: string; results: SearchResult[]; status: SearchStatus; active: number; onActive: (index: number) => void; onChoose: (result: SearchResult) => void; onRetry: () => void }
 export function SearchResultsPanel({ id, results, status, active, onActive, onChoose, onRetry }: Readonly<Props>) {
-  const feedback = status === "ready" ? (results.length ? `${results.length} resultado(s). Use as setas e Enter para abrir.` : "Nenhum registro encontrado.") : STATUS_TEXT[status];
+  let feedback: string;
+  if (status === "ready") {
+    feedback = results.length ? `${results.length} resultado(s). Use as setas e Enter para abrir.` : "Nenhum registro encontrado.";
+  } else {
+    feedback = STATUS_TEXT[status];
+  }
   return <div className="global-search-panel">
     <div className="global-search-feedback" role="status" aria-live="polite">{feedback}</div>
     {status === "error" ? <button className="global-search-retry" type="button" onClick={onRetry}>Tentar novamente</button> : null}
