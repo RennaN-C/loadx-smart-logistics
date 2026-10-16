@@ -23,7 +23,7 @@ class AccessProfile(Base):
     __table_args__ = (
         CheckConstraint("version > 0", name="positive_version"),
         CheckConstraint(
-            "name_key = lower(btrim(name)) AND length(name_key) > 0",
+            "name_key = lower(trim(name)) AND length(name_key) > 0",
             name="normalized_name",
         ),
     )

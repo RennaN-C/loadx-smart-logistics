@@ -27,6 +27,9 @@ class ProfileWrite(BaseModel):
 
 
 class ProfileUpdate(ProfileWrite):
+    description: str = Field(max_length=500)
+    active: bool
+    permissions: list[str] = Field(max_length=64)
     version: int = Field(gt=0)
 
 

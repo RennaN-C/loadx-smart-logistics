@@ -84,6 +84,11 @@ DeliveryOperator = Annotated[
 ]
 
 
+DeliveryReader = Annotated[
+    User, Depends(require_any_permission("loadx.deliveries.read", "loadx.trips.own"))
+]
+
+
 def get_trip_service(
     db: Annotated[Session, Depends(get_db)],
     provider: Annotated[WhatsAppProvider, Depends(get_whatsapp_provider)],
@@ -225,7 +230,7 @@ def register_delivery_receipt(
 )
 def get_delivery_receipt(
     delivery_id: uuid.UUID,
-    current_user: TripReader,
+    current_user: DeliveryReader,
     service: Annotated[TripService, Depends(get_trip_service)],
 ) -> DeliveryReceiptRead | JSONResponse:
     try:

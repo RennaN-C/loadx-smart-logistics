@@ -327,7 +327,10 @@ class TripService:
         delivery = self.repository.get_delivery(delivery_id)
         if delivery is None:
             raise DeliveryNotFoundError
-        trip = self.get_trip(delivery.trip_id, current_user=current_user)
+        trip = self.repository.get(delivery.trip_id)
+        if trip is None:
+            raise TripNotFoundError
+        self._ensure_can_read_delivery(current_user, trip)
         return self._build_delivery_receipt(delivery, trip)
 
     def _build_delivery_receipt(
@@ -417,7 +420,7 @@ class TripService:
         if operate:
             self._ensure_can_operate(current_user, trip, Permission.DELIVERIES_MANAGE)
         else:
-            self._ensure_can_read(current_user, trip)
+            self._ensure_can_read_delivery(current_user, trip)
         return delivery
 
     def _stage_trip_start(
@@ -525,6 +528,11 @@ class TripService:
 
     def _ensure_can_read(self, current_user: User, trip: Trip) -> None:
         if has_permission(current_user, Permission.TRIPS_READ):
+            return
+        self._ensure_linked_driver(current_user, trip)
+
+    def _ensure_can_read_delivery(self, current_user: User, trip: Trip) -> None:
+        if has_permission(current_user, Permission.DELIVERIES_READ):
             return
         self._ensure_linked_driver(current_user, trip)
 

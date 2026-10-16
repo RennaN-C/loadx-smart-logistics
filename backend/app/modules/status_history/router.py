@@ -18,10 +18,18 @@ router = APIRouter(prefix="/audit", tags=["audit"])
 
 AuditReader = Annotated[User, Depends(require_permission("loadx.audit.read"))]
 AuditEntityType = Literal[
-    "ORDER", "LOAD_PLAN", "TRIP", "DELIVERY", "USER", "COMPANY_PROFILE"
+    "ORDER",
+    "LOAD_PLAN",
+    "TRIP",
+    "DELIVERY",
+    "USER",
+    "COMPANY_PROFILE",
+    "ACCESS_PROFILE",
 ]
 AuditEventType = Literal[
     "STATUS_CHANGED",
+    "PROFILE_CREATED",
+    "PROFILE_UPDATED",
     "USER_CREATED",
     "USER_UPDATED",
     "COMPANY_PROFILE_CREATED",
@@ -50,8 +58,14 @@ def list_audit_entries(
     end_at: Annotated[datetime | None, Query()] = None,
 ) -> PageResponse[AuditEntryRead] | JSONResponse:
     if current_user.role != "ADMIN" and (
-        entity_type == "COMPANY_PROFILE"
-        or event_type in {"COMPANY_PROFILE_CREATED", "COMPANY_PROFILE_UPDATED"}
+        entity_type in {"COMPANY_PROFILE", "ACCESS_PROFILE"}
+        or event_type
+        in {
+            "COMPANY_PROFILE_CREATED",
+            "COMPANY_PROFILE_UPDATED",
+            "PROFILE_CREATED",
+            "PROFILE_UPDATED",
+        }
     ):
         return error_response(
             403, "AUTH_FORBIDDEN", "Acesso restrito ao administrador."
