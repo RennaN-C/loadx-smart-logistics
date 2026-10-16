@@ -54,3 +54,5 @@ Proposta para revisão:
 
 - `ADR-039`: sugestões globais limitadas e RBAC antes da consulta (OC107).
   ADR-038 reservada pela PR #211/OC98, não incorporada nesta base.
+
+- [ADR-040 — Perfis e permissões standalone](ADR-040-perfis-permissoes-standalone.md) — OC112, proposta implementada para revisão.
