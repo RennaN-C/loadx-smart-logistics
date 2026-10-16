@@ -1477,3 +1477,21 @@ de produto. Trata-se de campo aditivo, sem expor `items` completos ou endereço
 no resumo. O contrato do cálculo `POST /load-plans` permanece inalterado:
 máximo de 200 volumes e erro 422 com `volume_count` e `max_volumes` nos
 detalhes quando o limite é superado.
+
+## OC107 — Busca global
+
+`CONFIRMADO`: `GET /api/v1/search` exige sessão e `search` obrigatório (2–120
+caracteres após trim). `limit_per_category`: 1–10, default 5. Resposta 200:
+`{"results":[{"category":"order","id":"UUID","title":"Pedido UUID","href":"/orders?order=UUID"}]}`.
+Categorias `order/customer/truck/driver/trip`; sem totais de sugestões omitidas.
+Reuso da semântica literal/case-insensitive da OC95, acentos preservados. Cadastros
+ativos; ordenação created_at/id descendente por categoria. Limite, não paginação
+global; ver [ADR-039](decisions/ADR-039-busca-global-limitada.md).
+
+ADMIN/LOGISTICS_MANAGER: todos os cinco tipos; CHECKER: somente pedidos (sem
+nomes de clientes na pesquisa/título) e caminhões; DRIVER: somente UUID das
+próprias viagens, com vínculo ativo validado pelo TripService. Nenhum dado,
+contagem ou categoria restrita é retornado. 401 sem sessão, 403 vínculo de DRIVER
+inválido/inativo, 422 parâmetros inválidos. URLs de cadastros abrem listagens com
+`search` e `tab` apropriados; pedidos/viagens usam detalhes existentes.
+Campos e limites completos em [global_search](../backend/app/modules/global_search/README.md).
