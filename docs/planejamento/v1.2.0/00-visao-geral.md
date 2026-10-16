@@ -64,7 +64,7 @@ auditoria e identidade do motorista.
 | OC83 | #126 | Marcelo | Integração / webhook e mídia | OC79, OC80 e OC82 |
 | OC84 | #127 | Marcelo | Integração / notificações | OC79 e OC82 |
 | OC85 | #128 | Rennan | Frontend / configurações | Nenhuma OC anterior |
-| OC86 | #129 | Marlon | Frontend / usuários | OC85 |
+| OC86 | #129 | Rennan | Frontend / usuários | OC85 |
 | OC87 | #130 | Rennan | Domínio / multi-caminhão | Exige ADR |
 | OC88 | #131 | João | Algoritmo / multi-caminhão | OC87 |
 | OC89 | #132 | Marlon | Frontend / multi-caminhão | OC87 e OC88 |

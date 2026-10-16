@@ -115,7 +115,7 @@ describe("OC85: navegação e autorização na aplicação", () => {
     expect(screen.queryByText(USER.email)).not.toBeInTheDocument();
   });
 
-  it("separa regiões acessíveis e não oferece links para OCs futuras", async () => {
+  it("separa regiões acessíveis e oferece entrada real para gestão de usuários", async () => {
     render(<App />);
     await screen.findByRole("heading", { name: "Configurações", level: 1 });
     const menu = screen.getByRole("navigation", { name: "Navegação principal" });
@@ -124,7 +124,7 @@ describe("OC85: navegação e autorização na aplicação", () => {
     expect(within(menu).getByRole("link", { name: "Integrações e Saúde" })).toHaveAttribute("href", "/settings#settings-integrations");
     for (const label of ["Gestão de usuários"]) {
       expect(within(account()).getByRole("heading", { name: label, level: 3 })).toBeInTheDocument();
-      expect(screen.queryByRole("link", { name: label })).not.toBeInTheDocument();
+      expect(within(menu).getByRole("link", { name: label })).toHaveAttribute("href", "/settings#settings-users");
     }
     expect(within(account()).getByRole("link", { name: "Meu perfil, senha e sessões" })).toHaveAttribute("href", "/account");
     expect(within(account()).getByRole("link", { name: "Meu perfil, senha e sessões" })).toHaveClass("settings-account-link");

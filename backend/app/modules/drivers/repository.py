@@ -1,4 +1,5 @@
 import uuid
+from collections.abc import Sequence
 
 from sqlalchemy import asc, desc, func, or_, select
 from sqlalchemy.orm import Session
@@ -39,6 +40,15 @@ class DriverRepository:
             self.db.scalars(statement).all(),
             pagination,
             total,
+        )
+
+    def names_for_ids(self, driver_ids: Sequence[uuid.UUID]) -> dict[uuid.UUID, str]:
+        if not driver_ids:
+            return {}
+        return dict(
+            self.db.execute(
+                select(Driver.id, Driver.name).where(Driver.id.in_(driver_ids))
+            ).all()
         )
 
     def get(self, driver_id: uuid.UUID) -> Driver | None:

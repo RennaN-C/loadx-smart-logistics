@@ -1495,3 +1495,18 @@ contagem ou categoria restrita é retornado. 401 sem sessão, 403 vínculo de DR
 inválido/inativo, 422 parâmetros inválidos. URLs de cadastros abrem listagens com
 `search` e `tab` apropriados; pedidos/viagens usam detalhes existentes.
 Campos e limites completos em [global_search](../backend/app/modules/global_search/README.md).
+
+## OC86 — Gestão administrativa de usuários
+
+`CONFIRMADO`: reutiliza GET/POST /api/v1/users e GET/PATCH /api/v1/users/{id},
+sempre ADMIN-only. GET da coleção mantém o envelope paginado e os campos
+existentes; acrescenta `email`, `driver_id` e `driver_name` (vínculo/nome nullable), conforme extensão da
+ADR-017. Aceita `search` opcional por nome (trim, até 120 caracteres, substring
+literal case-insensitive, acentos preservados), `role` do catálogo existente e
+`active` booleano. Combinam por AND antes da paginação determinística; parâmetros
+inválidos recebem 422. Nenhuma nova rota, migration ou mecanismo de autenticação.
+
+`CONFIRMADO`: escritas mantêm contratos, códigos de erro, último ADMIN ativo,
+e-mail/vínculo únicos, política de senha, auditoria e revogação transacional de
+sessões. DRIVER pode existir sem vínculo conforme API atual; sem vínculo ativo
+não acessa viagens próprias. UI informa esse limite e não cria exigência adicional.

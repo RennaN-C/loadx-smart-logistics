@@ -115,3 +115,7 @@ COUNT e SELECT usam os mesmos predicados antes de OFFSET/LIMIT; ordenação
 created_at/id na mesma direção. Envelope, RBAC e schemas detalhados/resumidos
 permanecem preservados, sem novos dados pessoais.
 Contrato completo: [docs/05](../../../../docs/05-contratos-api.md).
+
+`CONFIRMADO` (OC86): `names_for_ids` é projeção pública de IDs/nomes de uma
+página de vínculos, usada pelo UserService na gestão ADMIN-only. Não retorna
+telefone/documentos/CNH, não materializa a tabela e não adiciona endpoint.

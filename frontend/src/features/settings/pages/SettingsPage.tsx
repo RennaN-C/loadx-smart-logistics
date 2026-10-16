@@ -1,3 +1,4 @@
+import { UserManagementPanel } from "../../users/components/UserManagementPanel";
 import { Link, useLocation } from "react-router-dom";
 import { Icon } from "../../../components/Icon";
 import { activeSettingsSection } from "../settingsSections";
@@ -25,6 +26,7 @@ export function SettingsPage() {
       <div className="settings-content">
           {/* Manter os painéis montados preserva o rascunho ao trocar de seção. */}
           <SettingsSection id="settings-account" title="Conta e administração" description="Informações da sessão e acesso às configurações pessoais." hidden={activeId !== "settings-account"}><SettingsAccountPanel user={user} /></SettingsSection>
+          <SettingsSection id="settings-users" title="Gestão de usuários" description="Administre contas, perfis e vínculos de acesso ao LoadX." hidden={activeId !== "settings-users"}>{activeId === "settings-users" ? <UserManagementPanel /> : null}</SettingsSection>
           <SettingsSection id="settings-company" title="Dados da empresa" description="Identificação institucional, canais de contato e referência de marca." hidden={activeId !== "settings-company"}><CompanyProfileForm /></SettingsSection>
           <SettingsSection id="settings-integrations" title="Integrações e Saúde" description="Consulte o estado real dos serviços e os limites de cada integração." hidden={activeId !== "settings-integrations"}><IntegrationHealthPanel /></SettingsSection>
           <SettingsSection id="settings-logistics" title="Configurações do LoadX" description="Configurações próprias da operação, separadas dos dados da empresa." hidden={activeId !== "settings-logistics"}>
