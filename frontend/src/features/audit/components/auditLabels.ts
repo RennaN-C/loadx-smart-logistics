@@ -1,6 +1,7 @@
 import type { AuditEntityType, AuditEventType } from "../types";
 
 export const AUDIT_ENTITY_LABELS: Record<AuditEntityType, string> = {
+  ACCESS_PROFILE: "Perfil de acesso",
   COMPANY_PROFILE: "Dados da empresa",
   ORDER: "Pedido",
   LOAD_PLAN: "Plano de carga",
@@ -25,6 +26,8 @@ export const AUDIT_ENTITY_LABELS: Record<AuditEntityType, string> = {
 };
 
 export const AUDIT_EVENT_LABELS: Record<AuditEventType, string> = {
+  PROFILE_CREATED: "Perfil criado",
+  PROFILE_UPDATED: "Permissões do perfil atualizadas",
   COMPANY_PROFILE_CREATED: "Dados da empresa cadastrados",
   COMPANY_PROFILE_UPDATED: "Dados da empresa atualizados",
   STATUS_CHANGED: "Situação alterada",
@@ -58,6 +61,9 @@ const FIELD_LABELS: Readonly<Record<string, string>> = {
   cnpj: "CNPJ",
   phone: "telefone",
   logo_reference: "referência de logotipo",
+  permissions: "permissões",
+  custom_profile_id: "perfil personalizado",
+  description: "descrição",
   active: "ativo",
   odometer_km: "quilometragem",
   next_service_at: "data da revisão",

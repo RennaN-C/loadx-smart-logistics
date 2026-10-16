@@ -1,8 +1,10 @@
 import { ApiError } from "../../../types/api";
 import type { Role } from "../../auth/types";
 import type { UserAccount, UserInput } from "../api/usersApi";
-export const ROLE_LABELS: Record<Role, string> = { ADMIN: "Administrador", LOGISTICS_MANAGER: "Gestor de logística", CHECKER: "Conferente", DRIVER: "Motorista" };
+export const ROLE_LABELS: Record<Role, string> = { CUSTOM: "Personalizado", ADMIN: "Administrador", LOGISTICS_MANAGER: "Gestor de logística", CHECKER: "Conferente", DRIVER: "Motorista" };
 const ERRORS: Record<string, string> = {
+  USER_PROFILE_INVALID: "Selecione um perfil personalizado válido.",
+  USER_PROFILE_INACTIVE: "O perfil selecionado está inativo ou não existe mais.",
   USER_EMAIL_ALREADY_EXISTS: "Este e-mail já está cadastrado em outra conta.",
   USER_LAST_ACTIVE_ADMIN_REQUIRED: "O último administrador ativo não pode ser desativado ou ter seu perfil alterado.",
   USER_DRIVER_NOT_FOUND: "O motorista selecionado não foi encontrado. Atualize a seleção.",
@@ -19,13 +21,14 @@ export function accountChanges(original: UserAccount | undefined, draft: UserInp
   const changes: Partial<UserInput> = {};
   if (draft.name !== original.name) changes.name = draft.name;
   if (draft.email !== original.email) changes.email = draft.email;
+  if ((draft.customProfileId ?? null) !== (original.customProfileId ?? null)) changes.customProfileId = draft.customProfileId ?? null;
   if (draft.role !== original.role) changes.role = draft.role;
   if (draft.active !== original.active) changes.active = draft.active;
   if (draft.driverId !== original.driverId) changes.driverId = draft.driverId;
   if (password !== undefined) changes.password = password;
   return changes;
 }
-export function revokesSessions(changes: Partial<UserInput>) { return changes.password !== undefined || changes.role !== undefined || changes.driverId !== undefined || changes.active === false; }
+export function revokesSessions(changes: Partial<UserInput>) { return changes.customProfileId !== undefined || changes.password !== undefined || changes.role !== undefined || changes.driverId !== undefined || changes.active === false; }
 
 export interface PasswordDraft { enabled: boolean; password: string; confirmation: string }
 export function validateDraft(draft: UserInput, security: PasswordDraft): string | null {
