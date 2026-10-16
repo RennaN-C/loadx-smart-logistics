@@ -11,8 +11,8 @@ export function AppearancePreferences() {
         ["light", "Claro", "Bege, com leitura confortável."],
         ["dark", "Escuro", "Grafite, com detalhes em âmbar."],
         ["system", "Automático", "Seguir a aparência do sistema."],
-      ] as const).map(([value, label, description]) => <label key={value} className="appearance-option">
-        <input type="radio" name="appearance" value={value} checked={preference === value} onChange={() => setPreference(value)} />
+      ] as const).map(([value, label, description]) => <label key={value} className="appearance-option" htmlFor={`appearance-${value}`}>
+        <input id={`appearance-${value}`} type="radio" name="appearance" value={value} checked={preference === value} onChange={() => setPreference(value)} />
         <span><strong>{label}</strong><small>{description}</small></span>
       </label>)}
     </fieldset>
