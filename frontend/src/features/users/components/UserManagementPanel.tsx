@@ -13,11 +13,11 @@ import { UserEditor } from "./UserEditor";
 import { ROLE_LABELS, userError } from "./userPresentation";
 import "./UserManagement.css";
 
-export function UserManagementPanel() {
+export function UserManagementPanel({ active = true, onManageProfiles }: { readonly active?: boolean; readonly onManageProfiles?: () => void }) {
   const { user, updateUser: updateSession } = useAuth();
   const [filters, setFilters] = useState({ search: "", role: "all", active: "all", sortOrder: "desc" as "asc" | "desc" });
   const load = useCallback((params: ListParams) => listUsers({ ...params, search: filters.search, sortOrder: filters.sortOrder, ...(filters.role !== "all" ? { role: filters.role as Role } : {}), ...(filters.active !== "all" ? { active: filters.active === "true" } : {}) }), [filters]);
-  const list = useResourceList(load, user?.role === "ADMIN" && user.active);
+  const list = useResourceList(load, user?.role === "ADMIN" && user.active && active);
   const edit = useEditTarget(getUser);
   const [creating, setCreating] = useState(false); const [notice, setNotice] = useState("");
   function filter(next: typeof filters) { setFilters(next); list.goToPage(1); }
@@ -33,7 +33,7 @@ export function UserManagementPanel() {
   }
   if (!user?.active || user.role !== "ADMIN") return null;
   return <div className="user-management">
-    <div className="user-toolbar"><p className="user-muted">Contas de acesso ao LoadX. Os perfis mantêm as permissões definidas pelo sistema.</p><button type="button" className="btn-primary" disabled={edit.loadingId !== null} onClick={() => { setNotice(""); setCreating(true); }}><Icon name="plus" size={18} />Criar usuário</button></div>
+    <div className="user-toolbar"><p className="user-muted">Administre as pessoas da operação e atribua o acesso adequado a cada conta.</p><button type="button" className="btn-primary" disabled={edit.loadingId !== null} onClick={() => { setNotice(""); setCreating(true); }}><Icon name="plus" size={18} />Criar usuário</button></div>
     <div className="user-filters">
       <label>Buscar por nome<input type="search" maxLength={120} value={filters.search} placeholder="Nome da pessoa" onChange={(event) => filter({ ...filters, search: event.target.value })} /></label>
       <label>Filtrar perfil<select value={filters.role} onChange={(event) => filter({ ...filters, role: event.target.value })}><option value="all">Todos os perfis</option>{Object.entries(ROLE_LABELS).map(([role, label]) => <option key={role} value={role}>{label}</option>)}</select></label>
@@ -55,6 +55,6 @@ export function UserManagementPanel() {
       </li>)}</ul>
       <Pagination page={list.page} totalPages={list.totalPages} onChange={list.goToPage} label="usuários" />
     </> : null}
-    {creating || edit.target ? <UserEditor key={edit.target?.id ?? "new"} account={edit.target ?? undefined} ownId={user.id} onClose={close} onSaved={saved} /> : null}
+    {creating || edit.target ? <UserEditor active={active} onManageProfiles={onManageProfiles} key={edit.target?.id ?? "new"} account={edit.target ?? undefined} ownId={user.id} onClose={close} onSaved={saved} /> : null}
   </div>;
 }

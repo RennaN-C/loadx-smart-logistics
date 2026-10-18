@@ -6,8 +6,8 @@ import { UserAccountForm } from "./UserAccountForm";
 import { UserChangeConfirmation } from "./UserChangeConfirmation";
 import { accountChanges, revokesSessions, userError, validateDraft, type PasswordDraft } from "./userPresentation";
 
-interface Props { readonly account?: UserAccount; readonly ownId: string; readonly onClose: () => void; readonly onSaved: (account: UserAccount, revoked: boolean) => void }
-export function UserEditor({ account, ownId, onClose, onSaved }: Props) {
+interface Props { readonly active?: boolean; readonly onManageProfiles?: () => void; readonly account?: UserAccount; readonly ownId: string; readonly onClose: () => void; readonly onSaved: (account: UserAccount, revoked: boolean) => void }
+export function UserEditor({ account, ownId, onClose, onSaved, active = true, onManageProfiles }: Props) {
   const [draft, setDraft] = useState<UserInput>({ name: account?.name ?? "", email: account?.email ?? "", role: account?.role ?? "CHECKER", active: account?.active ?? true, customProfileId: account?.customProfileId ?? null, driverId: account?.driverId ?? null });
   const [security, setSecurity] = useState<PasswordDraft>({ enabled: !account, password: "", confirmation: "" });
   const [confirming, setConfirming] = useState(false);
@@ -17,8 +17,9 @@ export function UserEditor({ account, ownId, onClose, onSaved }: Props) {
   const changes = accountChanges(account, normalized, security.enabled ? security.password : undefined);
   const revoking = revokesSessions(changes);
   useEffect(() => {
-    document.getElementById(confirming ? "user-confirm-action" : "user-name")?.focus();
-  }, [confirming]);
+    if (active) document.getElementById(confirming ? "user-confirm-action" : "user-name")?.focus();
+  }, [confirming, active]);
+  useEffect(() => { if (!active) setSecurity((current) => ({ ...current, password: "", confirmation: "" })); }, [active]);
   function submit(event: FormEvent) {
     event.preventDefault();
     if (saving) { return; }
@@ -43,10 +44,11 @@ export function UserEditor({ account, ownId, onClose, onSaved }: Props) {
       clearPasswords();
     } finally { setSaving(false); }
   }
-  return <Modal title={account ? "Editar conta" : "Criar usuário"} subtitle="Administração de identidade do LoadX standalone" onClose={() => { if (!saving) onClose(); }}>
+  if (!active) return null;
+  return <Modal title={account ? "Editar conta" : "Criar usuário"} subtitle="Dados da conta, acesso e segurança" onClose={() => { if (!saving) onClose(); }}>
     <div className="user-editor">
       {error ? <AlertBanner>{error}</AlertBanner> : null}
-      {confirming ? <UserChangeConfirmation name={account?.name ?? draft.name} draft={draft} passwordChanged={security.enabled} revoking={revoking} ownAccount={account?.id === ownId} saving={saving} onConfirm={() => void save()} onBack={() => setConfirming(false)} /> : <UserAccountForm account={account} draft={draft} onDraft={setDraft} security={security} onSecurity={setSecurity} saving={saving} canSave={!account || Object.keys(changes).length > 0} onSubmit={submit} onClose={onClose} />}
+      {confirming ? <UserChangeConfirmation name={account?.name ?? draft.name} draft={draft} passwordChanged={security.enabled} revoking={revoking} ownAccount={account?.id === ownId} saving={saving} onConfirm={() => void save()} onBack={() => setConfirming(false)} /> : <UserAccountForm onManageProfiles={onManageProfiles} account={account} draft={draft} onDraft={setDraft} security={security} onSecurity={setSecurity} saving={saving} canSave={!account || Object.keys(changes).length > 0} onSubmit={submit} onClose={onClose} />}
     </div>
   </Modal>;
 }

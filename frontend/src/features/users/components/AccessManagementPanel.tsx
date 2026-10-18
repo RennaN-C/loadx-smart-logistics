@@ -1,0 +1,38 @@
+import { useLocation, useNavigate } from "react-router-dom";
+import { useEffect, useRef, type KeyboardEvent } from "react";
+import { ProfilesPanel } from "../../access-profiles/components/ProfilesPanel";
+import { UserManagementPanel } from "./UserManagementPanel";
+import "./UserManagement.css";
+
+const TABS = [
+  { id: "users", label: "Usuários", hash: "#settings-users" },
+  { id: "profiles", label: "Perfis de acesso", hash: "#settings-users-profiles" },
+] as const;
+
+export function AccessManagementPanel() {
+  const { hash } = useLocation();
+  const navigate = useNavigate();
+  const profiles = hash !== TABS[0].hash;
+  const tabs = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (hash === "#settings-profiles") navigate({ hash: TABS[1].hash }, { replace: true });
+  }, [hash, navigate]);
+  function keyDown(event: KeyboardEvent) {
+    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    const index = event.key === "Home" ? 0 : event.key === "End" ? 1 : Number(!profiles);
+    navigate({ hash: TABS[index].hash });
+    tabs.current?.querySelectorAll<HTMLButtonElement>("button")[index]?.focus();
+  }
+  return <div className="access-management">
+    <div className="access-tabs" role="tablist" aria-label="Gestão de acessos" ref={tabs} onKeyDown={keyDown}>
+      {TABS.map((tab, index) => <button key={tab.id} id={`access-tab-${tab.id}`} role="tab" type="button" aria-selected={profiles === Boolean(index)} aria-controls={`access-panel-${tab.id}`} tabIndex={profiles === Boolean(index) ? 0 : -1} onClick={() => navigate({ hash: tab.hash })}>{tab.label}</button>)}
+    </div>
+    <div id="access-panel-users" role="tabpanel" aria-labelledby="access-tab-users" hidden={profiles}>
+      <UserManagementPanel active={!profiles} onManageProfiles={() => navigate({ hash: TABS[1].hash })} />
+    </div>
+    <div id="access-panel-profiles" role="tabpanel" aria-labelledby="access-tab-profiles" hidden={!profiles}>
+      <ProfilesPanel active={profiles} />
+    </div>
+  </div>;
+}
