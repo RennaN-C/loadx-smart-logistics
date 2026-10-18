@@ -1,3 +1,5 @@
+import { useAuth } from "../../auth/hooks/useAuth";
+import { hasPermission } from "../../auth/permissions";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -7,19 +9,24 @@ import { StartLoadingAction } from "../../loading-operation/components/StartLoad
 import { getLoadPlanContinuity } from "../api/loadPlansApi";
 import type { LoadPlanContinuity } from "../types";
 
-function ContinuityActions({ data, planId, canManage, refresh }: {
+function ContinuityActions({ data, planId, refresh }: {
   readonly data: LoadPlanContinuity;
   readonly planId: string;
   readonly canManage: boolean;
   readonly refresh: () => void;
 }) {
+  const { user } = useAuth();
+  const canStartLoading = hasPermission(user, "loadx.loading.create");
+  const canReadLoading = hasPermission(user, "loadx.loading.read");
+  const canReadTrips = hasPermission(user, "loadx.trips.read");
+  const canCreateTrips = hasPermission(user, "loadx.trips.manage") && hasPermission(user, "loadx.drivers.read");
   const loadingAction = data.loading_session
-    ? <Link className="btn-secondary" to={`/loading/${data.loading_session.id}`}>Abrir carregamento existente</Link>
-    : canManage && data.operational_ready && <StartLoadingAction loadPlanId={planId} />;
+    ? canReadLoading && <Link className="btn-secondary" to={`/loading/${data.loading_session.id}`}>Abrir carregamento existente</Link>
+    : canStartLoading && data.operational_ready && <StartLoadingAction loadPlanId={planId} />;
   const tripAction = data.trip
-    ? <Link className="btn-primary" to={`/trips/${data.trip.id}`}>Abrir viagem existente</Link>
-    : data.operational_ready && <CreateTripAction loadPlanId={planId} onExistingTrip={refresh} />;
-  return <div className="entity-form-actions">{loadingAction}{canManage ? tripAction : null}</div>;
+    ? canReadTrips && <Link className="btn-primary" to={`/trips/${data.trip.id}`}>Abrir viagem existente</Link>
+    : canCreateTrips && data.operational_ready && <CreateTripAction loadPlanId={planId} onExistingTrip={refresh} />;
+  return <div className="entity-form-actions">{loadingAction}{tripAction}</div>;
 }
 
 /** Read persisted links before offering creation; failure never means absence. */

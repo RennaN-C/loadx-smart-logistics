@@ -31,7 +31,7 @@ export function OwnProfileForm() {
       <FormField id="account-email" label="E-mail"><input id="account-email" type="email" autoComplete="email" value={email} required maxLength={255} disabled={saving} onChange={(e) => setEmail(e.target.value)} /></FormField>
     </div>
     {email !== user?.email && <div className="account-fields"><FormField id="profile-password" label="Senha atual para confirmar novo e-mail"><input id="profile-password" type="password" autoComplete="current-password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} /></FormField><FormField id="profile-factor" label="Código MFA, quando ativo"><input id="profile-factor" autoComplete="one-time-code" value={secondFactor} onChange={e => setSecondFactor(e.target.value)} /></FormField></div>}
-    <p>Perfil de acesso: <strong>{user ? { ADMIN: "Administrador", LOGISTICS_MANAGER: "Gestor de logística", CHECKER: "Conferente", DRIVER: "Motorista" }[user.role] : ""}</strong> (somente leitura).</p>
+    <p>Perfil de acesso: <strong>{user ? { CUSTOM: "Personalizado", ADMIN: "Administrador", LOGISTICS_MANAGER: "Gestor de logística", CHECKER: "Conferente", DRIVER: "Motorista" }[user.role] : ""}</strong> (somente leitura).</p>
     {error && <p role="alert">{error}</p>}{success && <output>Dados pessoais salvos com sucesso.</output>}
     <div className="account-actions"><button className="btn-primary" disabled={saving} type="submit">{saving ? "Salvando…" : "Salvar dados pessoais"}</button><button className="btn-secondary" disabled={saving} type="button" onClick={cancel}>Cancelar</button></div>
   </form>;

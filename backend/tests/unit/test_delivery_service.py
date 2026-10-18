@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.pagination import PaginationParams
+from app.modules.access_profiles.models import AccessProfile
 from app.modules.customers.models import Customer, CustomerAddress
 from app.modules.deliveries.models import Delivery, Trip
 from app.modules.deliveries.repository import TripRepository
@@ -55,6 +56,7 @@ SQLITE_TABLES = (
     DriverDocumentType.__table__,
     DriverDocument.__table__,
     DriverDocumentPolicy.__table__,
+    AccessProfile.__table__,
     User.__table__,
     Customer.__table__,
     CustomerAddress.__table__,

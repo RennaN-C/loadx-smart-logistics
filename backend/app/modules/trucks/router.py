@@ -9,7 +9,7 @@ from app.core.pagination import PageResponse, Pagination, to_page_response
 from app.core.responses import error_response, openapi_error_responses
 from app.core.search import SearchQuery
 from app.database.session import get_db
-from app.modules.auth.dependencies import require_roles
+from app.modules.auth.dependencies import require_permission
 from app.modules.trucks.models import Truck
 from app.modules.trucks.operational_status_service import TruckOperationalStatusService
 from app.modules.trucks.schemas import (
@@ -27,14 +27,8 @@ from app.modules.users.models import User
 from app.shared.record_lifecycle import ArchiveFilter, active_filter
 
 router = APIRouter(prefix="/trucks", tags=["trucks"])
-TruckReader = Annotated[
-    User,
-    Depends(require_roles("ADMIN", "CHECKER", "LOGISTICS_MANAGER")),
-]
-TruckManager = Annotated[
-    User,
-    Depends(require_roles("ADMIN", "LOGISTICS_MANAGER")),
-]
+TruckReader = Annotated[User, Depends(require_permission("loadx.trucks.read"))]
+TruckManager = Annotated[User, Depends(require_permission("loadx.trucks.manage"))]
 
 
 def get_truck_service(db: Annotated[Session, Depends(get_db)]) -> TruckService:

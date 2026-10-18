@@ -7,6 +7,11 @@ import type { AuthenticatedUser, Role } from "../features/auth/types";
 import { notifyIfSessionInvalidated } from "../services/api";
 import { ApiError } from "../types/api";
 import { App } from "./App";
+import { listUsers } from "../features/users/api/usersApi";
+import { listProfiles, permissionCatalog } from "../features/access-profiles/api/profilesApi";
+import { makePage } from "../tests/makePage";
+vi.mock("../features/users/api/usersApi");
+vi.mock("../features/access-profiles/api/profilesApi");
 
 vi.mock("../features/auth/api/authApi");
 vi.mock("../features/settings/api/integrationHealthApi", () => ({ getIntegrationHealth: vi.fn(async () => ({ checked_at: "2026-10-10T00:00:00Z", correlation_id: "00000000-0000-0000-0000-000000000108", overall_status: "PARTIAL", components: [] })) }));
@@ -115,7 +120,7 @@ describe("OC85: navegação e autorização na aplicação", () => {
     expect(screen.queryByText(USER.email)).not.toBeInTheDocument();
   });
 
-  it("separa regiões acessíveis e não oferece links para OCs futuras", async () => {
+  it("separa regiões acessíveis e oferece entrada real para gestão de usuários", async () => {
     render(<App />);
     await screen.findByRole("heading", { name: "Configurações", level: 1 });
     const menu = screen.getByRole("navigation", { name: "Navegação principal" });
@@ -124,7 +129,7 @@ describe("OC85: navegação e autorização na aplicação", () => {
     expect(within(menu).getByRole("link", { name: "Integrações e Saúde" })).toHaveAttribute("href", "/settings#settings-integrations");
     for (const label of ["Gestão de usuários"]) {
       expect(within(account()).getByRole("heading", { name: label, level: 3 })).toBeInTheDocument();
-      expect(screen.queryByRole("link", { name: label })).not.toBeInTheDocument();
+      expect(within(menu).getByRole("link", { name: label })).toHaveAttribute("href", "/settings#settings-users");
     }
     expect(within(account()).getByRole("link", { name: "Meu perfil, senha e sessões" })).toHaveAttribute("href", "/account");
     expect(within(account()).getByRole("link", { name: "Meu perfil, senha e sessões" })).toHaveClass("settings-account-link");
@@ -183,4 +188,23 @@ describe("OC85: navegação e autorização na aplicação", () => {
     expect(within(op).getByRole("link", { name: /Consultar frota/ })).toHaveAttribute("href", "/fleet");
     expect(within(op).getByRole("link", { name: /Ir para planejamento/ })).toHaveAttribute("href", "/planning");
   });
+});
+
+
+it("OC112 integra o link antigo na gestão de usuários e remove a entrada duplicada", async () => {
+  vi.mocked(listUsers).mockResolvedValue(makePage([]));
+  vi.mocked(listProfiles).mockResolvedValue(makePage([]));
+  vi.mocked(permissionCatalog).mockResolvedValue([]);
+  window.history.replaceState({}, "", "/settings#settings-profiles");
+  render(<App />);
+  await screen.findByRole("tab", { name: "Perfis de acesso" });
+  await waitFor(() => expect(window.location.hash).toBe("#settings-users-profiles"));
+  const menu = screen.getByRole("navigation", { name: "Navegação principal" });
+  expect(within(menu).queryByRole("link", { name: "Perfis e permissões" })).not.toBeInTheDocument();
+  expect(within(menu).getByRole("link", { name: "Gestão de usuários" })).toHaveAttribute("aria-current", "location");
+  expect(screen.getByRole("tab", { name: "Perfis de acesso" })).toHaveAttribute("aria-selected", "true");
+  expect(listUsers).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("tab", { name: "Usuários" }));
+  await screen.findByText("Nenhum usuário encontrado com estes filtros.");
+  expect(window.location.hash).toBe("#settings-users");
 });

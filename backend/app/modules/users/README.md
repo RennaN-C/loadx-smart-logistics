@@ -20,7 +20,7 @@ Crie somente os arquivos necessários para a ocorrência atual.
 ## Endpoints
 
 - `GET /api/v1/users`: lista paginada com `id`, `name`, `role`, `active` e
-  `created_at`; omite `email`.
+  `created_at`, `email`, `driver_id` e `driver_name` (nullable), conforme OC86/ADR-017.
 - `POST /api/v1/users`: cria usuário.
 - `GET /api/v1/users/{id}`: consulta usuário por ID.
 - `PATCH /api/v1/users/{id}`: atualiza campos enviados.
@@ -35,7 +35,8 @@ pelo esquema cookie `SessionCookie` no OpenAPI.
 - `email` é normalizado para minúsculas.
 - `email` deve ser único.
 - `role` é normalizado para maiúsculas.
-- `role` aceita `ADMIN`, `CHECKER`, `DRIVER` e `LOGISTICS_MANAGER`.
+- `role` aceita `ADMIN`, `CHECKER`, `DRIVER`, `LOGISTICS_MANAGER` e, na OC112,
+  `CUSTOM` com `custom_profile_id` obrigatório; papéis fixos exigem perfil nulo.
 - `driver_id` é opcional, único e referencia `drivers.id` com exclusão restrita.
 - `driver_id` preenchido exige papel `DRIVER` e motorista existente; o mesmo
   motorista não pode pertencer a dois usuários.
@@ -66,3 +67,32 @@ pelo esquema cookie `SessionCookie` no OpenAPI.
 
 - `PENDENTE DE DEFINIÇÃO`: recuperação de senha pertence a uma ocorrência
   futura.
+
+## OC86 — Gestão de contas pelo ADMIN
+
+`CONFIRMADO`: GET da coleção aceita `search` opcional somente por nome
+(semântica literal da OC95), `role` do catálogo fixo e `active` booleano,
+combinados por AND antes de COUNT/LIMIT/OFFSET. Ordenação created_at/id e
+envelope existentes preservados. A lista ADMIN-only inclui e-mail e vínculo;
+nomes dos motoristas vêm de projeção pública do DriverService em uma consulta
+limitada aos IDs da página, sem N+1 nem dados de documento/telefone/CNH.
+
+`CONFIRMADO`: frontend em Configurações → Gestão de usuários reutiliza as quatro
+rotas existentes. Alterações sensíveis exigem confirmação; PATCH envia somente
+campos alterados. Não há DELETE, novas permissões, tenant ou autenticação paralela.
+Senha fica somente na memória do formulário, é limpa após resposta/fechamento e
+não aparece na confirmação, listagem, logs ou auditoria. Último ADMIN e unicidade
+continuam validados transacionalmente no backend.
+
+`CONFIRMADO`: DRIVER sem vínculo continua permitido pelo contrato standalone;
+a UI esclarece que viagens próprias exigem vínculo ativo. Motorista arquivado
+pode continuar identificado no vínculo sem liberar elegibilidade operacional.
+A criação/edição de identidade permanece isolada do domínio logístico, por UUID.
+Nenhuma integração CoreFlow, recuperação, MFA ou OC112 é antecipada.
+
+## OC112 — Associação de perfil
+
+`CONFIRMADO`: associação, projeção de permissões e revogação em lote são
+detalhadas em [access_profiles](../access_profiles/README.md). Mudanças de perfil
+protegem a ordem de locks do último ADMIN; sessões são revogadas por consulta
+em lote, sem N+1 por membro. Login/me recebem grants resolvidos no banco.

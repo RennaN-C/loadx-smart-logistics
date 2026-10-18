@@ -10,7 +10,8 @@ from app.core.pagination import PageResponse, Pagination, to_page_response
 from app.core.responses import error_response, openapi_error_responses
 from app.database.session import get_db
 from app.integrations.ai import AIProvider, get_ai_provider
-from app.modules.auth.dependencies import require_roles
+from app.modules.access_profiles.catalog import Permission, has_permission
+from app.modules.auth.dependencies import require_permission
 from app.modules.load_planning.explanation_service import (
     LoadPlanExplanationForbiddenError,
     LoadPlanExplanationInvalidPlanError,
@@ -49,17 +50,13 @@ from app.modules.load_planning.service import (
 from app.modules.users.models import User
 
 router = APIRouter(prefix="/load-plans", tags=["load-plans"])
-LoadPlanReader = Annotated[
-    User,
-    Depends(require_roles("ADMIN", "CHECKER", "LOGISTICS_MANAGER")),
-]
-LoadPlanManager = Annotated[
-    User,
-    Depends(require_roles("ADMIN", "LOGISTICS_MANAGER")),
-]
-LoadPlanExplainer = Annotated[
-    User,
-    Depends(require_roles("ADMIN", "CHECKER", "LOGISTICS_MANAGER")),
+LoadPlanReader = Annotated[User, Depends(require_permission("loadx.planning.read"))]
+LoadPlanManager = Annotated[User, Depends(require_permission("loadx.planning.create"))]
+LoadPlanExplainer = Annotated[User, Depends(require_permission("loadx.planning.read"))]
+
+
+LoadPlanApprover = Annotated[
+    User, Depends(require_permission("loadx.planning.approve"))
 ]
 
 
@@ -320,7 +317,11 @@ def get_load_plan_continuity(
     forbidden = _ensure_read_access(plan, current_user)
     if forbidden is not None:
         return forbidden
-    return service.get_continuity(plan, requester_role=current_user.role)
+    return service.get_continuity(
+        plan,
+        requester_role=current_user.role,
+        can_read_trips=has_permission(current_user, Permission.TRIPS_READ),
+    )
 
 
 @router.get(
@@ -391,7 +392,7 @@ def explain_load_plan(
 )
 def approve_load_plan(
     load_plan_id: uuid.UUID,
-    current_user: LoadPlanManager,
+    current_user: LoadPlanApprover,
     service: Annotated[LoadPlanningService, Depends(get_load_planning_service)],
 ) -> LoadPlanRead | JSONResponse:
     try:

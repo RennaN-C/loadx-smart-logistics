@@ -1,0 +1,59 @@
+{
+  "fixture": "API e PostgreSQL 16 locais reais, dados fictícios, ADMIN; sem mocks de consulta.",
+  "results": [
+    {
+      "width": 375,
+      "theme": "light",
+      "overflow": false,
+      "options": 17
+    },
+    {
+      "width": 375,
+      "theme": "dark",
+      "overflow": false,
+      "options": 17
+    },
+    {
+      "width": 768,
+      "theme": "light",
+      "overflow": false,
+      "options": 17
+    },
+    {
+      "width": 768,
+      "theme": "dark",
+      "overflow": false,
+      "options": 17
+    },
+    {
+      "width": 1280,
+      "theme": "light",
+      "overflow": false,
+      "options": 17
+    },
+    {
+      "width": 1280,
+      "theme": "dark",
+      "overflow": false,
+      "options": 17
+    },
+    {
+      "width": 1920,
+      "theme": "light",
+      "overflow": false,
+      "options": 17
+    },
+    {
+      "width": 1920,
+      "theme": "dark",
+      "overflow": false,
+      "options": 17
+    }
+  ],
+  "customerTarget": "/contacts?tab=customers&search=alvo",
+  "reload": true,
+  "keyboardEnter": true,
+  "historyBack": true,
+  "escape": true,
+  "errors": []
+}

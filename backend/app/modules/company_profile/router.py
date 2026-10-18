@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.core.responses import openapi_error_responses
 from app.database.session import get_db
-from app.modules.auth.dependencies import require_roles
+from app.modules.auth.dependencies import require_permission
 from app.modules.company_profile.models import CompanyProfile
 from app.modules.company_profile.schemas import CompanyProfileInput, CompanyProfileRead
 from app.modules.company_profile.service import CompanyProfileService
@@ -16,7 +16,7 @@ router = APIRouter(
     tags=["company-profile"],
     responses=openapi_error_responses(401, 403, 422),
 )
-Admin = Annotated[User, Depends(require_roles("ADMIN"))]
+Admin = Annotated[User, Depends(require_permission("loadx.settings.manage"))]
 
 
 def get_service(db: Annotated[Session, Depends(get_db)]) -> CompanyProfileService:

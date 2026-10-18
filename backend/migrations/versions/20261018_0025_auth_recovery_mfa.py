@@ -1,7 +1,7 @@
 """auth_recovery_mfa
 
-Revision ID: 20261013_0024
-Revises: 20261009_0023
+Revision ID: 20261018_0025
+Revises: 20261016_0024
 Create Date: 2026-10-13 11:46:34.232564
 """
 
@@ -10,8 +10,8 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "20261013_0024"
-down_revision: str | None = "20261009_0023"
+revision: str = "20261018_0025"
+down_revision: str | None = "20261016_0024"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

@@ -17,10 +17,10 @@ const AUTHENTICATED_USER = {
   createdAt: "2026-08-01T00:00:00Z",
 };
 
-function signedInAs(role: Role, logout = vi.fn()) {
+function signedInAs(role: Role, logout = vi.fn(), permissions?: string[]) {
   vi.mocked(useAuth).mockReturnValue({
     status: "authenticated",
-    user: { ...AUTHENTICATED_USER, role },
+    user: { ...AUTHENTICATED_USER, role, ...(permissions ? { permissions } : {}) },
     login: vi.fn(),
     logout,
     updateUser: vi.fn(),
@@ -96,6 +96,27 @@ describe("AppLayout", () => {
     renderLayout();
     fireEvent.click(screen.getByRole("button", { name: "Cadastros" }));
     expect(screen.getByRole("link", { name: "Caminhões e frota" })).toBeInTheDocument();
+  });
+
+  it("CUSTOM somente clientes e pedidos não vê relatórios nem módulo motorista no menu", () => {
+    signedInAs("CUSTOM", vi.fn(), ["loadx.customers.read", "loadx.orders.read"]);
+    renderLayout();
+    expect(within(menu()).getByRole("link", { name: "Clientes" })).toHaveAttribute("href", "/contacts");
+    expect(within(menu()).queryByRole("link", { name: "Clientes e motoristas" })).not.toBeInTheDocument();
+    expect(within(menu()).queryByRole("link", { name: "Relatórios e indicadores" })).not.toBeInTheDocument();
+  });
+
+  it("CUSTOM somente motorista tem rótulo próprio e relatório exige ambos os grants", () => {
+    signedInAs("CUSTOM", vi.fn(), ["loadx.drivers.read", "loadx.reports.read"]);
+    const rendered = renderLayout();
+    expect(within(menu()).getByRole("link", { name: "Motoristas" })).toHaveAttribute("href", "/contacts");
+    expect(within(menu()).queryByRole("link", { name: "Relatórios e indicadores" })).not.toBeInTheDocument();
+
+    rendered.unmount();
+    signedInAs("CUSTOM", vi.fn(), ["loadx.orders.read", "loadx.reports.read"]);
+    renderLayout();
+    fireEvent.click(screen.getByRole("button", { name: "Operação" }));
+    expect(within(menu()).getByRole("link", { name: "Relatórios e indicadores" })).toHaveAttribute("href", "/reports");
   });
 
   it("motorista não recebe links para cadastros nem relatórios globais", () => {

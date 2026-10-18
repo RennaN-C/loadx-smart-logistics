@@ -51,3 +51,14 @@ contrato único antes da implementação da OC59.
   ainda funcionem como sinal de enumeração.
 - Novas coleções devem adotar o mesmo contrato ou registrar uma decisão que
   justifique a divergência.
+
+## Extensão aprovada no escopo da OC86 — gestão ADMIN-only
+
+`CONFIRMADO`: a OC86 (#129) exige exibir e-mail e vínculo de motorista na gestão
+de contas. UserListRead acrescenta `email`, `driver_id` e `driver_name`, apenas em GET /users
+protegido por ADMIN. Isso evita consultas de detalhe por linha para montar a
+listagem; hashes/senhas continuam proibidos e os demais perfis continuam negados.
+A busca opcional pesquisa somente `name`, pela semântica literal da OC95; não
+existe filtro por e-mail, documento ou credenciais. Filtros `role` e `active`
+combinam por AND antes de COUNT/LIMIT/OFFSET. Esta exceção não altera os resumos
+de outros módulos nem a busca global OC107, que continua sem usuários.

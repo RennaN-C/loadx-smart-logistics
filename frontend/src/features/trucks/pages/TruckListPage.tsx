@@ -1,9 +1,10 @@
+import { useUrlSearch } from "../../../hooks/useUrlSearch";
 import { ImportAction } from "../../registration-imports/components/ImportAction";
 import { useCallback, useState } from "react";
 
 import { AlertBanner } from "../../../components/AlertBanner";
 import { useAuth } from "../../auth/hooks/useAuth";
-import { canManageLogistics } from "../../auth/permissions";
+import { canManageLogistics, hasPermission } from "../../auth/permissions";
 import { TruckDialogs } from "../components/TruckDialogs";
 import { TruckCard } from "../components/TruckCard";
 import { mapTruckErrorToMessage } from "../components/trucksErrorMessages";
@@ -19,7 +20,7 @@ import { Icon } from "../../../components/Icon";
 
 export function TruckListPage({ embedded = false, active = true }: { readonly embedded?: boolean; readonly active?: boolean }) {
   const { user } = useAuth();
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useUrlSearch();
   const filteredLoad = useCallback((params: ListParams) => listTrucks({
     ...params,
     search,
@@ -41,7 +42,7 @@ export function TruckListPage({ embedded = false, active = true }: { readonly em
   const [editingTruck, setEditingTruck] = useState<Truck | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
-  const canManage = canManageLogistics(user?.role);
+  const canManage = canManageLogistics(user, "trucks");
 
   function closeForm() {
     setIsCreating(false);
@@ -69,7 +70,7 @@ export function TruckListPage({ embedded = false, active = true }: { readonly em
       </header>
 
       <div className="entity-toolbar">
-        {canManage ? <ImportAction entity="trucks" onImported={refetch} /> : null}
+        <ImportAction enabled={hasPermission(user, "loadx.imports.manage")} entity="trucks" onImported={refetch} />
         <ArchiveFilter value={archiveStatus} onChange={setArchiveStatus} />
         <input
           type="search"

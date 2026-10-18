@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.core.observability import OperationalEvent, emit_operational_event
 from app.core.pagination import PageResult, PaginationParams
 from app.database.integrity import get_integrity_constraint_name
+from app.modules.access_profiles.catalog import Permission, has_permission
 from app.modules.deliveries.models import (
     DELIVERY_STATUS_VALUES,
     TRIP_STATUS_VALUES,
@@ -153,9 +154,10 @@ class TripService:
         pagination: PaginationParams,
         *,
         current_user: User,
+        search: str | None = None,
     ) -> PageResult[TripListItem]:
-        if current_user.role in {"ADMIN", "LOGISTICS_MANAGER"}:
-            return self.repository.list(pagination)
+        if has_permission(current_user, Permission.TRIPS_READ):
+            return self.repository.list(pagination, search=search)
         if current_user.role != "DRIVER" or current_user.driver_id is None:
             raise TripAccessForbiddenError
         try:
@@ -164,7 +166,7 @@ class TripService:
             raise TripAccessForbiddenError from exc
         if not driver.active:
             raise TripAccessForbiddenError
-        return self.repository.list(pagination, driver_id=driver.id)
+        return self.repository.list(pagination, driver_id=driver.id, search=search)
 
     def create_trip(self, data: TripCreate, *, changed_by: uuid.UUID) -> Trip:
         try:
@@ -325,7 +327,10 @@ class TripService:
         delivery = self.repository.get_delivery(delivery_id)
         if delivery is None:
             raise DeliveryNotFoundError
-        trip = self.get_trip(delivery.trip_id, current_user=current_user)
+        trip = self.repository.get(delivery.trip_id)
+        if trip is None:
+            raise TripNotFoundError
+        self._ensure_can_read_delivery(current_user, trip)
         return self._build_delivery_receipt(delivery, trip)
 
     def _build_delivery_receipt(
@@ -413,9 +418,9 @@ class TripService:
         if delivery is None:
             raise DeliveryNotFoundError
         if operate:
-            self._ensure_can_operate(current_user, trip)
+            self._ensure_can_operate(current_user, trip, Permission.DELIVERIES_MANAGE)
         else:
-            self._ensure_can_read(current_user, trip)
+            self._ensure_can_read_delivery(current_user, trip)
         return delivery
 
     def _stage_trip_start(
@@ -522,12 +527,22 @@ class TripService:
         ]
 
     def _ensure_can_read(self, current_user: User, trip: Trip) -> None:
-        if current_user.role in {"ADMIN", "LOGISTICS_MANAGER"}:
+        if has_permission(current_user, Permission.TRIPS_READ):
             return
         self._ensure_linked_driver(current_user, trip)
 
-    def _ensure_can_operate(self, current_user: User, trip: Trip) -> None:
-        if current_user.role in {"ADMIN", "LOGISTICS_MANAGER"}:
+    def _ensure_can_read_delivery(self, current_user: User, trip: Trip) -> None:
+        if has_permission(current_user, Permission.DELIVERIES_READ):
+            return
+        self._ensure_linked_driver(current_user, trip)
+
+    def _ensure_can_operate(
+        self,
+        current_user: User,
+        trip: Trip,
+        permission: Permission = Permission.TRIPS_MANAGE,
+    ) -> None:
+        if has_permission(current_user, permission):
             return
         self._ensure_linked_driver(current_user, trip)
 

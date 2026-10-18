@@ -5,13 +5,14 @@ interface SettingsSectionProps {
   readonly title: string;
   readonly description?: string;
   readonly hidden?: boolean;
+  readonly headingHidden?: boolean;
   readonly children: ReactNode;
 }
 
-export function SettingsSection({ id, title, description, hidden, children }: SettingsSectionProps) {
+export function SettingsSection({ id, title, description, hidden, headingHidden = false, children }: SettingsSectionProps) {
   return (
     <section id={id} className="settings-section" aria-labelledby={`${id}-title`} hidden={hidden}>
-      <header className="settings-section-header"><h2 id={`${id}-title`}>{title}</h2>{description && <p>{description}</p>}</header>
+      <header className={`settings-section-header${headingHidden ? " sr-only" : ""}`}><h2 id={`${id}-title`}>{title}</h2>{description && <p>{description}</p>}</header>
       <div className="settings-section-body">{children}</div>
     </section>
   );

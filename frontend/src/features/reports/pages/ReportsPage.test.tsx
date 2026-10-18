@@ -9,7 +9,7 @@ import type { OrderListItem } from "../../orders/types";
 import { ReportsPage } from "./ReportsPage";
 
 let profileRole = "LOGISTICS_MANAGER";
-vi.mock("../../auth/hooks/useAuth", () => ({ useAuth: () => ({ user: { role: profileRole } }) }));
+vi.mock("../../auth/hooks/useAuth", () => ({ useAuth: () => ({ user: { active: true, role: profileRole } }) }));
 vi.mock("../../orders/api/ordersApi");
 vi.mock("../../customers/api/customersApi");
 

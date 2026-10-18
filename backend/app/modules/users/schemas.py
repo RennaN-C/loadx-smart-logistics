@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from typing import Literal, get_args
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -9,7 +10,9 @@ from app.modules.users.password_policy import (
     validate_password_policy,
 )
 
-USER_ROLE_VALUES = {"ADMIN", "CHECKER", "DRIVER", "LOGISTICS_MANAGER"}
+UserRole = Literal["ADMIN", "CHECKER", "DRIVER", "LOGISTICS_MANAGER", "CUSTOM"]
+
+USER_ROLE_VALUES = set(get_args(UserRole))
 EMAIL_PATTERN = r"^[^@\s]+@[^@\s]+\.[^@\s]+$"
 
 
@@ -35,6 +38,7 @@ class UserBase(BaseModel):
     role: str = Field(min_length=1, max_length=32)
     active: bool = True
     driver_id: uuid.UUID | None = None
+    custom_profile_id: uuid.UUID | None = None
 
     model_config = ConfigDict()
 
@@ -85,6 +89,7 @@ class UserUpdate(BaseModel):
     role: str | None = Field(default=None, min_length=1, max_length=32)
     active: bool | None = None
     driver_id: uuid.UUID | None = None
+    custom_profile_id: uuid.UUID | None = None
 
     model_config = ConfigDict()
 
@@ -117,6 +122,8 @@ class UserUpdate(BaseModel):
 
 
 class UserRead(UserBase):
+    permissions: list[str] = Field(default_factory=list)
+    custom_profile_name: str | None = None
     id: uuid.UUID
     created_at: datetime
 
@@ -124,8 +131,13 @@ class UserRead(UserBase):
 
 
 class UserListRead(BaseModel):
+    driver_name: str | None = None
+    custom_profile_id: uuid.UUID | None = None
+    custom_profile_name: str | None = None
     id: uuid.UUID
     name: str
+    email: str
+    driver_id: uuid.UUID | None
     role: str
     active: bool
     created_at: datetime

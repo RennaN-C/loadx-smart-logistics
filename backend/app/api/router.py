@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from app.core.responses import openapi_error_responses
+from app.modules.access_profiles.router import router as profiles_router
 from app.modules.attachments.router import router as attachments_router
 from app.modules.auth.identity_router import router as identity_router
 from app.modules.auth.router import router as auth_router
@@ -14,6 +15,7 @@ from app.modules.drivers.document_router import (
     type_router as driver_document_types_router,
 )
 from app.modules.drivers.router import router as drivers_router
+from app.modules.global_search.router import router as global_search_router
 from app.modules.integration_health.router import router as integration_health_router
 from app.modules.load_planning.distribution_router import router as distribution_router
 from app.modules.load_planning.router import router as load_planning_router
@@ -66,3 +68,7 @@ api_router.include_router(distribution_router)
 api_router.include_router(attachments_router)
 
 api_router.include_router(registration_imports_router)
+
+api_router.include_router(global_search_router)
+
+api_router.include_router(profiles_router)

@@ -1486,3 +1486,55 @@ MfaChallengeRead sem sessão. `POST /auth/mfa/verify` é a única conclusão des
 desafio. Recuperação tem solicitação neutra e confirmação 204 sem autenticação.
 Rotas próprias de MFA exigem cookie/CSRF/ownership e reautenticação reforçada.
 Nenhuma mudança nos contratos logísticos, planos, snapshots, OC88 ou OC93.
+
+## OC107 — Busca global
+
+`CONFIRMADO`: `GET /api/v1/search` exige sessão e `search` obrigatório (2–120
+caracteres após trim). `limit_per_category`: 1–10, default 5. Resposta 200:
+`{"results":[{"category":"order","id":"UUID","title":"Pedido UUID","href":"/orders?order=UUID"}]}`.
+Categorias `order/customer/truck/driver/trip`; sem totais de sugestões omitidas.
+Reuso da semântica literal/case-insensitive da OC95, acentos preservados. Cadastros
+ativos; ordenação created_at/id descendente por categoria. Limite, não paginação
+global; ver [ADR-039](decisions/ADR-039-busca-global-limitada.md).
+
+ADMIN/LOGISTICS_MANAGER: todos os cinco tipos; CHECKER: somente pedidos (sem
+nomes de clientes na pesquisa/título) e caminhões; DRIVER: somente UUID das
+próprias viagens, com vínculo ativo validado pelo TripService. Nenhum dado,
+contagem ou categoria restrita é retornado. 401 sem sessão, 403 vínculo de DRIVER
+inválido/inativo, 422 parâmetros inválidos. URLs de cadastros abrem listagens com
+`search` e `tab` apropriados; pedidos/viagens usam detalhes existentes.
+Campos e limites completos em [global_search](../backend/app/modules/global_search/README.md).
+
+## OC86 — Gestão administrativa de usuários
+
+`CONFIRMADO`: reutiliza GET/POST /api/v1/users e GET/PATCH /api/v1/users/{id},
+sempre ADMIN-only. GET da coleção mantém o envelope paginado e os campos
+existentes; acrescenta `email`, `driver_id` e `driver_name` (vínculo/nome nullable), conforme extensão da
+ADR-017. Aceita `search` opcional por nome (trim, até 120 caracteres, substring
+literal case-insensitive, acentos preservados), `role` do catálogo existente e
+`active` booleano. Combinam por AND antes da paginação determinística; parâmetros
+inválidos recebem 422. Nenhuma nova rota, migration ou mecanismo de autenticação.
+
+`CONFIRMADO`: escritas mantêm contratos, códigos de erro, último ADMIN ativo,
+e-mail/vínculo únicos, política de senha, auditoria e revogação transacional de
+sessões. DRIVER pode existir sem vínculo conforme API atual; sem vínculo ativo
+não acessa viagens próprias. UI informa esse limite e não cria exigência adicional.
+
+
+## OC112 — Perfis e permissões efetivas
+
+`CONFIRMADO`: /access-profiles adiciona GET/POST da coleção, GET /permissions e
+GET/PATCH /{id}, exclusivamente ADMIN. Contrato completo, limites, matriz de
+permissões, erros e estratégia transacional em
+[access_profiles](../backend/app/modules/access_profiles/README.md).
+
+UserCreate/UserUpdate aceitam role=CUSTOM + custom_profile_id; papéis fixos
+preservados e perfil nulo obrigatório. UserRead/login/me acrescentam permissions
+e rótulo/UUID do perfil; coleção de usuários acrescenta somente rótulo/UUID do
+perfil. Não há endpoints de exclusão ou permissões declaradas pelo cliente usadas
+para autorizar. Cookies/CSRF e regras de vínculo permanecem vigentes.
+
+Auditoria ADMIN admite filtros ACCESS_PROFILE e PROFILE_CREATED/PROFILE_UPDATED.
+Esses eventos permanecem ocultos ao gerente antes de paginação; escopo legado de
+usuários do gerente não é ampliado. ADR-040 substitui o RBAC exclusivamente fixo
+onde a ação foi migrada. OC98/tenant/CoreFlow não são incorporados.

@@ -111,7 +111,7 @@ Tokens usam SHA-256 e alta entropia; códigos TOTP não são persistidos. Segred
 TOTP é cifrado com Fernet; `cryptography` é a única dependência nova, justificada
 pela criptografia autenticada. RFC 6238 testada com vetores oficiais. A mesma
 ordem de locks de OC92 serializa consumo/replay/revogação. Falha de auditoria
-reverte hash, token, fator e sessão. Migration 20261013_0024 sucede 0023 e revoga
+reverte hash, token, fator e sessão. Migration 20261018_0025 sucede 20261016_0024 (OC112) e revoga
 sessões sensíveis anteriores; downgrade bloqueia dados OC98, sem apagá-los.
 
 ### Configuração de produção

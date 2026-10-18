@@ -19,16 +19,34 @@ EXPECTED_ERROR_STATUSES = {
             ("/api/v1/auth/me/mfa/disable", "post"),
         ]
     },
-    ("/api/v1/auth/me", "patch"): {
-        "400",
+    ("/api/v1/access-profiles", "get"): {"401", "403", "404", "409", "422", "500"},
+    ("/api/v1/access-profiles", "post"): {"401", "403", "404", "409", "422", "500"},
+    ("/api/v1/access-profiles/permissions", "get"): {
         "401",
         "403",
+        "404",
         "409",
         "422",
-        "429",
-        "503",
         "500",
     },
+    ("/api/v1/access-profiles/{profile_id}", "get"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
+    ("/api/v1/access-profiles/{profile_id}", "patch"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
+    ("/api/v1/search", "get"): {"401", "403", "422", "500"},
+    ("/api/v1/auth/me", "patch"): {"400", "401", "403", "409", "422", "429", "503", "500"},
     ("/api/v1/auth/me/password", "post"): {"400", "401", "403", "422", "429", "500"},
     ("/api/v1/auth/me/sessions", "get"): {"401", "403", "422", "500"},
     ("/api/v1/auth/me/sessions/{session_id}", "delete"): {
@@ -810,3 +828,35 @@ def test_oc95_explicit_filter_whitelist_preserves_privacy() -> None:
             "parameters"
         ]
         assert {p["name"] for p in parameters} == {"page", "page_size", "sort_order"}
+
+
+def test_oc86_admin_list_documents_identity_fields_and_safe_filters() -> None:
+    schema = get_openapi_schema()
+    operation = schema["paths"]["/api/v1/users"]["get"]
+    query = {
+        item["name"]: item for item in operation["parameters"] if item["in"] == "query"
+    }
+    assert set(query) == {"page", "page_size", "sort_order", "search", "role", "active"}
+    assert query["search"]["schema"]["anyOf"][0]["maxLength"] == 120
+    assert set(query["role"]["schema"]["anyOf"][0]["enum"]) == {
+        "ADMIN",
+        "LOGISTICS_MANAGER",
+        "CHECKER",
+        "DRIVER",
+        "CUSTOM",
+    }
+    assert operation["security"] == [{"SessionCookie": []}]
+    fields = schema["components"]["schemas"]["UserListRead"]["properties"]
+    assert set(fields) == {
+        "id",
+        "name",
+        "email",
+        "role",
+        "active",
+        "driver_id",
+        "driver_name",
+        "custom_profile_id",
+        "custom_profile_name",
+        "created_at",
+    }
+    assert "password_hash" not in fields

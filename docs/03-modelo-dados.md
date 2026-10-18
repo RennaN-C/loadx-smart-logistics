@@ -794,5 +794,23 @@ registram somente nomes de campos e ator, na mesma transação.
   índice por usuário. Código aleatório é apresentado somente na emissão.
 
 Todas as operações concorrentes serializam por lock users antes das tabelas auth.
-A migration 20261013_0024 sucede o head confirmado 20261009_0023; revoga sessões
+A migration 20261018_0025 sucede o head da OC112 20261016_0024; revoga sessões
 antigas de ADMIN/LOGISTICS_MANAGER para exigir o bootstrap MFA seguro.
+
+## OC112 — Perfis locais e permissões
+
+`CONFIRMADO`: migration `20261016_0024` sobre `20261009_0023`:
+
+- `access_profiles`: UUID, nome/nome normalizado único, descrição, active, versão
+  positiva e created_at UTC. Nome normalizado é validado também no PostgreSQL.
+- `access_permissions`: catálogo fechado, PK code e unique(code, delegable).
+- `access_profile_permissions`: PK(profile_id, permission_code), FKs restritivas,
+  delegable=true com CHECK e FK composta; não admite permissão reservada.
+- `users.custom_profile_id`: FK opcional/indexada/restritiva. CHECK exige
+  exatamente role=CUSTOM com perfil preenchido, ou papel fixo com perfil nulo.
+  Usuários existentes mantêm papel, UUID e acesso, sem reclassificação.
+- Auditoria inclui ACCESS_PROFILE e PROFILE_CREATED/PROFILE_UPDATED, somente
+  nomes de campos. Não existe exclusão HTTP de perfis.
+
+`CONFIRMADO`: rollback estrutural é recusado enquanto usuários CUSTOM ou eventos
+históricos de perfil existirem, para evitar perda silenciosa de acesso/histórico.

@@ -20,7 +20,7 @@ function maintenanceLabel(record: TruckMaintenance): string {
 }
 export function MaintenancePanel({ truck: initial, onChanged }: { readonly truck: Truck; readonly onChanged: () => Promise<void> }) {
   const [truck, setTruck] = useState(initial);
-  const { user } = useAuth(); const canManage = canManageLogistics(user?.role);
+  const { user } = useAuth(); const canManage = canManageLogistics(user, "trucks");
   const load = useCallback((params: ListParams) => listMaintenances(initial.id, params), [initial.id]);
   const { items, status, error, refetch, page, totalPages, goToPage } = useResourceList(load);
   const [creating, setCreating] = useState(false); const [closing, setClosing] = useState<TruckMaintenance | undefined>();

@@ -9,6 +9,9 @@ export interface UserDto {
   role: Role;
   active: boolean;
   created_at: string;
+  permissions?: string[];
+  custom_profile_id?: string | null;
+  custom_profile_name?: string | null;
 }
 
 export function mapUserFromDto(dto: UserDto): AuthenticatedUser {
@@ -19,6 +22,9 @@ export function mapUserFromDto(dto: UserDto): AuthenticatedUser {
     role: dto.role,
     active: dto.active,
     createdAt: dto.created_at,
+    ...(dto.permissions !== undefined ? { permissions: dto.permissions } : {}),
+    ...(dto.custom_profile_id !== undefined ? { customProfileId: dto.custom_profile_id } : {}),
+    ...(dto.custom_profile_name !== undefined ? { customProfileName: dto.custom_profile_name } : {}),
   };
 }
 

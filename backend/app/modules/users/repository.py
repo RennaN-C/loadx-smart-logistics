@@ -6,17 +6,36 @@ from sqlalchemy.orm import Session
 
 from app.core.pagination import PageResult, PaginationParams
 from app.modules.users.models import User
+from app.shared.search import search_pattern
 
 
 class UserRepository:
     def __init__(self, db: Session) -> None:
         self.db = db
 
-    def list(self, pagination: PaginationParams) -> PageResult[User]:
+    def list(
+        self,
+        pagination: PaginationParams,
+        *,
+        search: str | None = None,
+        role: str | None = None,
+        active: bool | None = None,
+    ) -> PageResult[User]:
         direction = asc if pagination.sort_order == "asc" else desc
-        total = self.db.scalar(select(func.count()).select_from(User)) or 0
+        filters = []
+        pattern = search_pattern(search)
+        if pattern is not None:
+            filters.append(User.name.ilike(pattern, escape="\\"))
+        if role is not None:
+            filters.append(User.role == role)
+        if active is not None:
+            filters.append(User.active.is_(active))
+        total = (
+            self.db.scalar(select(func.count()).select_from(User).where(*filters)) or 0
+        )
         statement = (
             select(User)
+            .where(*filters)
             .order_by(direction(User.created_at), direction(User.id))
             .offset(pagination.offset)
             .limit(pagination.page_size)
@@ -81,3 +100,21 @@ class UserRepository:
         self.db.flush()
         self.db.refresh(user)
         return user
+
+    def profile_counts(self):
+        return {
+            identity or role: count
+            for identity, role, count in self.db.execute(
+                select(User.custom_profile_id, User.role, func.count()).group_by(
+                    User.custom_profile_id, User.role
+                )
+            )
+        }
+
+    def lock_profile_members(self, identity):
+        return self.db.scalars(
+            select(User)
+            .where(User.custom_profile_id == identity)
+            .order_by(User.id)
+            .with_for_update()
+        ).all()

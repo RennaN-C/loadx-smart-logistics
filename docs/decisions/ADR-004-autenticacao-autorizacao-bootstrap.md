@@ -30,3 +30,13 @@ O backend possui autenticação JWT, mas os cadastros ainda aceitam acesso anôn
 - A remoção de `/auth/register` é uma alteração intencional de contrato.
 - O bootstrap não usa endpoint HTTP, seed com credencial real nem senha exposta em argumento ou log.
 - Duração do token, refresh token, bloqueio de login e recuperação de senha continuam pendentes em `D18`.
+
+
+## Evolução OC112
+
+`CONFIRMADO`: a OC112 (#159) preserva os papéis fixos e evolui a autorização por
+permissões efetivas, conforme ADR-040 e catálogo de access_profiles. CUSTOM não
+herda acesso do gerente; poderes reservados/identidade não são delegáveis. ADMIN
+é superconjunto gerencial dentro do LoadX, preservando estados, vínculos e ator
+real. Nenhum entitlement, tenant ou SUPERADMIN é criado. Demais invariantes e
+proteção do último administrador continuam aplicáveis.

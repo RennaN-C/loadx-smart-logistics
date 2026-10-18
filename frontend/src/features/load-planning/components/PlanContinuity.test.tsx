@@ -4,10 +4,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getLoadPlanContinuity } from "../api/loadPlansApi";
 import { PlanContinuity } from "./PlanContinuity";
+let accessRole = "ADMIN";
+vi.mock("../../auth/hooks/useAuth", () => ({ useAuth: () => ({ user: { active: true, role: accessRole } }) }));
 vi.mock("../api/loadPlansApi");
 vi.mock("../../deliveries/components/CreateTripAction", () => ({ CreateTripAction: ({ onExistingTrip }: { onExistingTrip: () => void }) => <button onClick={onExistingTrip}>Criar viagem</button> }));
 vi.mock("../../loading-operation/components/StartLoadingAction", () => ({ StartLoadingAction: () => <button>Conferir carregamento</button> }));
-function setup(canManage = true) { return render(<MemoryRouter><PlanContinuity planId="p1" canManage={canManage} /></MemoryRouter>); }
+function setup(canManage = true) { accessRole = canManage ? "ADMIN" : "CHECKER"; return render(<MemoryRouter><PlanContinuity planId="p1" canManage={canManage} /></MemoryRouter>); }
 describe("PlanContinuity", () => {
   beforeEach(() => { vi.resetAllMocks(); });
   it("abre viagem e carregamento existentes, incluindo viagem concluida", async () => {
