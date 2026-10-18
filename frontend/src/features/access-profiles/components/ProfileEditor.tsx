@@ -5,7 +5,7 @@ import { Modal } from "../../../components/Modal";
 import { permissionCatalog, saveProfile, type AccessProfile, type PermissionDefinition, type ProfileInput } from "../api/profilesApi";
 import { profileError } from "./profilePresentation";
 
-export function ProfileEditor({ profile, onClose, onSaved }: { readonly profile?: AccessProfile; readonly onClose: () => void; readonly onSaved: () => void }) {
+export function ProfileEditor({ profile, onClose, onSaved, active = true }: { readonly active?: boolean; readonly profile?: AccessProfile; readonly onClose: () => void; readonly onSaved: () => void }) {
   const [draft, setDraft] = useState<ProfileInput>({ name: profile?.name ?? "", description: profile?.description ?? "", active: profile?.active ?? true, permissions: profile?.permissions ?? [] });
   const [catalog, setCatalog] = useState<PermissionDefinition[] | null>(null);
   const [failed, setFailed] = useState(false);
@@ -14,7 +14,7 @@ export function ProfileEditor({ profile, onClose, onSaved }: { readonly profile?
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => { let current = true; setFailed(false); permissionCatalog().then((items) => { if (current) setCatalog(items); }).catch(() => { if (current) setFailed(true); }); return () => { current = false; }; }, [attempt]);
-  useEffect(() => { document.getElementById(confirm ? "profile-confirm" : "profile-name")?.focus(); }, [confirm, catalog]);
+  useEffect(() => { if (active) document.getElementById(confirm ? "profile-confirm" : "profile-name")?.focus(); }, [confirm, catalog, active]);
   function submit(event: FormEvent) { event.preventDefault(); if (!saving && draft.name.trim()) setConfirm(true); }
   async function save() {
     if (saving) return;
@@ -23,6 +23,7 @@ export function ProfileEditor({ profile, onClose, onSaved }: { readonly profile?
     catch (error_) { setError(profileError(error_)); setConfirm(false); }
     finally { setSaving(false); }
   }
+  if (!active) return null;
   return <Modal title={profile ? "Editar perfil" : "Criar perfil personalizado"} subtitle="Permissões locais do LoadX" onClose={() => { if (!saving) onClose(); }}>
     {error ? <AlertBanner>{error}</AlertBanner> : null}
     {failed ? <div><AlertBanner>Não foi possível consultar o catálogo de permissões.</AlertBanner><button className="btn-secondary" type="button" onClick={() => setAttempt((value) => value + 1)}>Tentar novamente</button></div> : null}

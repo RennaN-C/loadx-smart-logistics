@@ -1,4 +1,6 @@
 import type { Dispatch, FormEvent, SetStateAction } from "react";
+import { PermissionDetails } from "./PermissionDetails";
+import { MODULE_LABELS, permissionGroups } from "./profilePresentation";
 import type { PermissionDefinition, ProfileInput } from "../api/profilesApi";
 
 interface Props {
@@ -20,7 +22,9 @@ export function ProfileForm({ draft, onDraft, catalog, saving, userCount, onSubm
     {userCount > 0 ? <p className="user-muted">{userCount} usuário(s) associado(s). Remova as associações antes de desativar.</p> : null}</fieldset>
     <div className="profile-permissions-head"><h3>Permissões por módulo</h3><output>{draft.permissions.length} selecionadas</output></div>
     <p className="user-muted">Selecione somente as ações necessárias. Gestão não concede consulta automaticamente; inclua ambas para um fluxo completo.</p>
-    <PermissionGroups catalog={catalog} selected={draft.permissions} saving={saving} onToggle={toggle} />
+    {draft.permissions.length ? <PermissionDetails permissions={draft.permissions} catalog={catalog} /> : null}
+    <PermissionGroups catalog={catalog.filter((item) => item.delegable)} selected={draft.permissions} saving={saving} onToggle={toggle} />
+    <details className="profile-reserved"><summary>Permissões protegidas pelo sistema</summary><p className="user-muted">Estas ações são consultáveis e não podem ser atribuídas a perfis personalizados.</p><PermissionGroups catalog={catalog.filter((item) => !item.delegable)} selected={draft.permissions} saving={saving} onToggle={toggle} /></details>
     <div className="user-actions"><button className="btn-primary" type="submit" disabled={saving}>Revisar e salvar</button><button className="btn-secondary" type="button" disabled={saving} onClick={onClose}>Cancelar</button></div>
   </form>;
 }
@@ -31,8 +35,5 @@ function permissionNote(item: PermissionDefinition) {
   return "Delegável neste perfil";
 }
 function PermissionGroups({ catalog, selected, saving, onToggle }: { readonly catalog: PermissionDefinition[]; readonly selected: string[]; readonly saving: boolean; readonly onToggle: (code: string) => void }) {
-  const groups = new Map<string, PermissionDefinition[]>();
-  for (const item of catalog) groups.set(item.module, [...(groups.get(item.module) ?? []), item]);
-  return <div className="profile-permissions">{[...groups].map(([module, items]) => <fieldset key={module} className="profile-permission-group"><legend>{MODULE_LABELS[module] ?? module}</legend>{items.map((item) => <label htmlFor={`permission-${item.code}`} key={item.code} className="profile-permission-option"><input id={`permission-${item.code}`} type="checkbox" aria-label={item.label} disabled={!item.delegable || saving} checked={selected.includes(item.code)} onChange={() => onToggle(item.code)} /><span><strong>{item.label}</strong><small>{permissionNote(item)}</small></span></label>)}</fieldset>)}</div>;
+  return <div className="profile-permissions">{permissionGroups(catalog).map(([module, items]) => <details key={module} className="profile-permission-module"><summary><span>{MODULE_LABELS[module] ?? "Outras ações"}</span><span>{items.filter((item) => selected.includes(item.code)).length} / {items.length}</span></summary><fieldset className="profile-permission-group" aria-label={MODULE_LABELS[module] ?? "Outras ações"}>{items.map((item) => <label htmlFor={`permission-${item.code}`} key={item.code} className="profile-permission-option"><input id={`permission-${item.code}`} type="checkbox" aria-label={item.label} disabled={!item.delegable || saving} checked={selected.includes(item.code)} onChange={() => onToggle(item.code)} /><span><strong>{item.label}</strong><small>{permissionNote(item)}</small></span></label>)}</fieldset></details>)}</div>;
 }
-const MODULE_LABELS: Record<string, string> = { customers: "Clientes", products: "Produtos", trucks: "Caminhões", drivers: "Motoristas", orders: "Pedidos", planning: "Planejamento", loading: "Carregamento", trips: "Viagens", deliveries: "Entregas", occurrences: "Ocorrências", reports: "Relatórios", messages: "Comunicação", audit: "Auditoria", users: "Usuários", profiles: "Perfis", settings: "Configurações", integrations: "Integrações", imports: "Importações" };
