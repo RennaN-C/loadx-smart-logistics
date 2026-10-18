@@ -59,6 +59,7 @@ describe("gestão unificada da OC112", () => {
     fireEvent.click(within(form).getByRole("button", { name: "Gerenciar perfis de acesso →" }));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Perfis de acesso" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: "Perfis de acesso" })).toHaveFocus();
     fireEvent.click(screen.getByRole("tab", { name: "Usuários" }));
     expect(screen.getByLabelText("Nome")).toHaveValue("Rascunho da pessoa");
     expect(screen.getByLabelText("Senha inicial")).toHaveValue("");

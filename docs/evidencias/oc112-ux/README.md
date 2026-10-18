@@ -1,6 +1,6 @@
 # OC112 — Gestão unificada de usuários e perfis
 
-`CONFIRMADO`: 34 capturas reais do Chromium 151 com API FastAPI e PostgreSQL 16
+`CONFIRMADO`: 35 capturas reais do Chromium 151 com API FastAPI e PostgreSQL 16
 locais isolados; sem interceptação de respostas, imagens simuladas ou dados
 pessoais reais. Usuários/perfis de exemplo são fixtures fictícias. Nenhuma senha,
 cookie ou token é registrado nas imagens ou em resultados.json.
@@ -14,9 +14,10 @@ cookie ou token é registrado nas imagens ou em resultados.json.
 - [Editor compacto — desktop](editor-1280-dark.png), [mobile claro](editor-375-light.png).
 - [Consulta protegida e rótulos legíveis](consulta-protegido-1280-dark.png).
 - [Confirmação de alteração](confirmacao-1280-dark.png).
+- [Foco após o atalho de gerenciamento](atalho-foco-1280-dark.png).
 
 `CONFIRMADO`: usuários, perfis, atribuição e edição capturados em 375, 768, 1280
-e 1920 px nos temas claro/escuro (32 imagens), mais consulta e confirmação. A
+e 1920 px nos temas claro/escuro (32 imagens), mais consulta, confirmação e foco do atalho. A
 captura de atribuição mostra a seção Acesso e permissões no formulário rolado;
 o editor usa somente a rolagem externa do modal. Rodapé alcançável em todas as
 larguras; sem overflow horizontal. Temas forçados com sistema oposto.
@@ -32,7 +33,9 @@ repetição visual de títulos. Capturas anteriores à correção foram substitu
 `CONFIRMADO`: login ADMIN; link antigo; criação de perfil, confirmação e
 associação na criação de usuário; nome real na listagem; F5 com dados
 persistidos; atalho para gerenciar perfis e retorno com campos preservados e
-senha limpa; teclado nas abas; perfis fixos somente consulta; reservadas
+senha limpa; teclado nas abas; Enter no atalho leva o foco à aba de perfis e voltar por seta
+restaura o foco no nome do formulário, preservando o rascunho e limpando a senha;
+perfis fixos somente consulta; reservadas
 desabilitadas; perfil em uso não pode ser inativado.
 
 `CONFIRMADO`: login CUSTOM em contexto separado, projeção efetiva real e 403
