@@ -46,7 +46,7 @@ const DRIVER_FULL = {
   licenseNumber: "01234567890",
 };
 
-function mockRole(role: "LOGISTICS_MANAGER" | "ADMIN") {
+function mockRole(role: "LOGISTICS_MANAGER" | "ADMIN" | "CUSTOM", permissions?: string[]) {
   vi.mocked(useAuth).mockReturnValue({
     status: "authenticated",
     user: {
@@ -54,6 +54,7 @@ function mockRole(role: "LOGISTICS_MANAGER" | "ADMIN") {
       name: "Ana Souza",
       email: "ana@example.test",
       role,
+      ...(permissions ? { permissions } : {}),
       active: true,
       createdAt: "2026-08-01T00:00:00Z",
     },
@@ -191,6 +192,28 @@ describe("ContactsPage", () => {
     await screen.findByText("Rita Alves");
     expect(screen.queryByText("Carlos Pereira")).not.toBeInTheDocument();
     expect(screen.getByText("Rita Alves")).toBeInTheDocument();
+  });
+
+  it("CUSTOM somente clientes mostra título específico sem aba e ações de motoristas", async () => {
+    mockRole("CUSTOM", ["loadx.customers.read"]);
+    render(<MemoryRouter><ContactsPage /></MemoryRouter>);
+    expect(screen.getByRole("heading", { name: "Clientes" })).toBeInTheDocument();
+    expect(screen.getByText("Quem recebe a carga.")).toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "Motoristas" })).not.toBeInTheDocument();
+    expect(await screen.findByText("Distribuidora Aurora")).toBeInTheDocument();
+    expect(listDrivers).not.toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: "Novo cliente" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Editar" })).not.toBeInTheDocument();
+  });
+
+  it("CUSTOM somente motoristas mostra título específico e aba autorizada", async () => {
+    mockRole("CUSTOM", ["loadx.drivers.read"]);
+    render(<MemoryRouter initialEntries={["/contacts?tab=drivers"]}><ContactsPage /></MemoryRouter>);
+    expect(screen.getByRole("heading", { name: "Motoristas" })).toBeInTheDocument();
+    expect(screen.getByText("Quem leva a carga.")).toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "Clientes" })).not.toBeInTheDocument();
+    expect(await screen.findByText("Carlos Pereira")).toBeInTheDocument();
+    expect(listCustomers).not.toHaveBeenCalled();
   });
 
   it("permite ao ADMIN gerenciar clientes e motoristas", async () => {

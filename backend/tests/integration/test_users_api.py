@@ -131,6 +131,8 @@ def test_list_users_returns_created_items(
         "email",
         "driver_id",
         "driver_name",
+        "custom_profile_id",
+        "custom_profile_name",
         "role",
         "active",
         "created_at",

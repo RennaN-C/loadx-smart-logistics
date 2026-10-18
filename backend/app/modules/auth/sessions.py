@@ -150,6 +150,14 @@ class AuthSessionService:
         )
         return revoked_count
 
+    def stage_revoke_all_for_users(self, user_ids: list[uuid.UUID]) -> int:
+        sessions = self.repository.list_active_for_users_for_update(user_ids)
+        revoked_at = self.now_provider()
+        for auth_session in sessions:
+            self.repository.revoke(auth_session, revoked_at)
+        self.db.flush()
+        return len(sessions)
+
     def stage_revoke_all_for_user(self, user_id: uuid.UUID) -> int:
         active_sessions = self.repository.list_active_for_user_for_update(user_id)
         revoked_at = self.now_provider()

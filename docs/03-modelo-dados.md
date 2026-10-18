@@ -779,3 +779,21 @@ UUID local fixo `00000000-0000-0000-0000-000000000091`, PK e CHECK singleton;
 opcionais, `created_at`/`updated_at` UTC. Não representa tenant e não possui
 vínculos dos agregados logísticos. Eventos COMPANY_PROFILE_CREATED/UPDATED
 registram somente nomes de campos e ator, na mesma transação.
+
+## OC112 — Perfis locais e permissões
+
+`CONFIRMADO`: migration `20261016_0024` sobre `20261009_0023`:
+
+- `access_profiles`: UUID, nome/nome normalizado único, descrição, active, versão
+  positiva e created_at UTC. Nome normalizado é validado também no PostgreSQL.
+- `access_permissions`: catálogo fechado, PK code e unique(code, delegable).
+- `access_profile_permissions`: PK(profile_id, permission_code), FKs restritivas,
+  delegable=true com CHECK e FK composta; não admite permissão reservada.
+- `users.custom_profile_id`: FK opcional/indexada/restritiva. CHECK exige
+  exatamente role=CUSTOM com perfil preenchido, ou papel fixo com perfil nulo.
+  Usuários existentes mantêm papel, UUID e acesso, sem reclassificação.
+- Auditoria inclui ACCESS_PROFILE e PROFILE_CREATED/PROFILE_UPDATED, somente
+  nomes de campos. Não existe exclusão HTTP de perfis.
+
+`CONFIRMADO`: rollback estrutural é recusado enquanto usuários CUSTOM ou eventos
+históricos de perfil existirem, para evitar perda silenciosa de acesso/histórico.

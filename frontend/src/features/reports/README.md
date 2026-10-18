@@ -40,6 +40,13 @@ um número truncado como se fosse o total.
 
 ## Perfis
 
+`CONFIRMADO` (OC112): a página de indicadores `/reports` exige
+**`loadx.reports.read` e `loadx.orders.read`**. Os gráficos dependem da
+listagem de pedidos e não existe endpoint agregado próprio; apenas conceder
+uma dessas permissões não deve abrir a tela. Menu e rota seguem a mesma regra.
+`CHECKER` mantém consulta de pedidos, mas não recebe automaticamente a
+permissão de relatórios no catálogo da OC112.
+
 Pedidos são lidos por `ADMIN`, `CHECKER` e `LOGISTICS_MANAGER`. Clientes, não: o conferente recebe
 403 em `/customers`. A consulta de clientes não é disparada para CHECKER. Falha na resolução de
 nomes dos perfis autorizados é isolada; o resto do relatório continua de pé.

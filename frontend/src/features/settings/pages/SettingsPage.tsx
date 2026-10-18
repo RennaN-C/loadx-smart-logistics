@@ -1,4 +1,4 @@
-import { UserManagementPanel } from "../../users/components/UserManagementPanel";
+import { AccessManagementPanel } from "../../users/components/AccessManagementPanel";
 import { Link, useLocation } from "react-router-dom";
 import { Icon } from "../../../components/Icon";
 import { activeSettingsSection } from "../settingsSections";
@@ -13,20 +13,21 @@ export function SettingsPage() {
   const { user } = useAuth();
   const { hash } = useLocation();
   const activeId = activeSettingsSection(hash);
+  const accessManagement = activeId === "settings-users";
   if (!user) return null;
 
   return (
     <div className="entity-page settings-page">
       <header className="entity-header settings-header">
-        <div><p className="settings-eyebrow">Administração</p><h1>Configurações</h1>
-          <p className="entity-lede">Gerencie os dados da empresa e acompanhe os serviços do LoadX.</p></div>
+        <div><p className="settings-eyebrow">Administração</p><h1>{accessManagement ? "Gestão de usuários" : "Configurações"}</h1>
+          <p className="entity-lede">{accessManagement ? "Pessoas, perfis e permissões em um único lugar." : "Gerencie os dados da empresa e acompanhe os serviços do LoadX."}</p></div>
         <span className="settings-access"><Icon name="settings" size={16} />Acesso administrativo</span>
       </header>
       {/* Seções controladas pela sidebar global; sem navegação duplicada. */}
       <div className="settings-content">
           {/* Manter os painéis montados preserva o rascunho ao trocar de seção. */}
           <SettingsSection id="settings-account" title="Conta e administração" description="Informações da sessão e acesso às configurações pessoais." hidden={activeId !== "settings-account"}><SettingsAccountPanel user={user} /></SettingsSection>
-          <SettingsSection id="settings-users" title="Gestão de usuários" description="Administre contas, perfis e vínculos de acesso ao LoadX." hidden={activeId !== "settings-users"}>{activeId === "settings-users" ? <UserManagementPanel /> : null}</SettingsSection>
+          <SettingsSection id="settings-users" title="Gestão de usuários" headingHidden hidden={!accessManagement}>{accessManagement ? <AccessManagementPanel /> : null}</SettingsSection>
           <SettingsSection id="settings-company" title="Dados da empresa" description="Identificação institucional, canais de contato e referência de marca." hidden={activeId !== "settings-company"}><CompanyProfileForm /></SettingsSection>
           <SettingsSection id="settings-integrations" title="Integrações e Saúde" description="Consulte o estado real dos serviços e os limites de cada integração." hidden={activeId !== "settings-integrations"}><IntegrationHealthPanel /></SettingsSection>
           <SettingsSection id="settings-logistics" title="Configurações do LoadX" description="Configurações próprias da operação, separadas dos dados da empresa." hidden={activeId !== "settings-logistics"}>

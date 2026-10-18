@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.core.responses import error_response, openapi_error_responses
 from app.database.session import get_db
 from app.integrations.whatsapp import WhatsAppProvider, get_whatsapp_provider
-from app.modules.auth.dependencies import require_roles
+from app.modules.auth.dependencies import require_any_permission
 from app.modules.notifications.service import OperationalNotificationService
 from app.modules.occurrences.models import Occurrence
 from app.modules.occurrences.schemas import OccurrenceCreate, OccurrenceRead
@@ -23,12 +23,10 @@ from app.modules.users.models import User
 
 router = APIRouter(tags=["occurrences"])
 OccurrenceOperator = Annotated[
-    User,
-    Depends(require_roles("ADMIN", "LOGISTICS_MANAGER", "DRIVER")),
+    User, Depends(require_any_permission("loadx.occurrences.manage", "loadx.trips.own"))
 ]
 OccurrenceReader = Annotated[
-    User,
-    Depends(require_roles("ADMIN", "LOGISTICS_MANAGER", "DRIVER")),
+    User, Depends(require_any_permission("loadx.occurrences.read", "loadx.trips.own"))
 ]
 OCCURRENCE_SERVICE_ERRORS = (
     OccurrenceAccessForbiddenError,

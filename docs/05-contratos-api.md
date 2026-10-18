@@ -1510,3 +1510,22 @@ inválidos recebem 422. Nenhuma nova rota, migration ou mecanismo de autenticaç
 e-mail/vínculo únicos, política de senha, auditoria e revogação transacional de
 sessões. DRIVER pode existir sem vínculo conforme API atual; sem vínculo ativo
 não acessa viagens próprias. UI informa esse limite e não cria exigência adicional.
+
+
+## OC112 — Perfis e permissões efetivas
+
+`CONFIRMADO`: /access-profiles adiciona GET/POST da coleção, GET /permissions e
+GET/PATCH /{id}, exclusivamente ADMIN. Contrato completo, limites, matriz de
+permissões, erros e estratégia transacional em
+[access_profiles](../backend/app/modules/access_profiles/README.md).
+
+UserCreate/UserUpdate aceitam role=CUSTOM + custom_profile_id; papéis fixos
+preservados e perfil nulo obrigatório. UserRead/login/me acrescentam permissions
+e rótulo/UUID do perfil; coleção de usuários acrescenta somente rótulo/UUID do
+perfil. Não há endpoints de exclusão ou permissões declaradas pelo cliente usadas
+para autorizar. Cookies/CSRF e regras de vínculo permanecem vigentes.
+
+Auditoria ADMIN admite filtros ACCESS_PROFILE e PROFILE_CREATED/PROFILE_UPDATED.
+Esses eventos permanecem ocultos ao gerente antes de paginação; escopo legado de
+usuários do gerente não é ampliado. ADR-040 substitui o RBAC exclusivamente fixo
+onde a ação foi migrada. OC98/tenant/CoreFlow não são incorporados.

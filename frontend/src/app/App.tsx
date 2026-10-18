@@ -34,10 +34,10 @@ export function App() {
               </Route>
               <Route path="trucks" element={<OperationalAccess><TruckWorkspacePage /></OperationalAccess>} />
               <Route path="fleet" element={<OperationalAccess><Navigate to="/trucks?tab=availability" replace /></OperationalAccess>} />
-              <Route path="products" element={<ProductListPage />} />
+              <Route path="products" element={<OperationalAccess permission="loadx.products.read"><ProductListPage /></OperationalAccess>} />
               <Route path="contacts" element={<ContactsPage />} />
-              <Route path="orders" element={<OrderListPage />} />
-              <Route path="reports" element={<OperationalAccess><ReportsPage /></OperationalAccess>} />
+              <Route path="orders" element={<OperationalAccess permission="loadx.orders.read"><OrderListPage /></OperationalAccess>} />
+              <Route path="reports" element={<OperationalAccess permissions={["loadx.reports.read", "loadx.orders.read"]}><ReportsPage /></OperationalAccess>} />
               <Route path="operations" element={<OperationalAccess overview><Navigate to="/" replace /></OperationalAccess>} />
               <Route path="audit" element={<AuditPage />} />
               <Route path="planning" element={<PlanningPage />} />

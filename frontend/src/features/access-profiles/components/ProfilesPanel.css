@@ -1,0 +1,67 @@
+.profile-permissions-head { display: flex; justify-content: space-between; gap: 16px; align-items: center; flex-wrap: wrap; }
+.profile-permissions-head h3 { font-size: 1.05rem; margin: 0; }
+.profile-permissions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 8px 16px; }
+.profile-permission-group { margin: 0; min-width: 0; padding: 0 12px 8px; border: 0; }
+.profile-permission-group legend { padding: 0 6px; font-weight: 600; }
+.profile-permission-option { display: flex; align-items: flex-start; gap: 10px; padding: 12px 0; cursor: pointer; }
+.profile-permission-option input { flex: 0 0 auto; width: 18px; height: 18px; margin-top: 3px; accent-color: var(--accent); }
+.profile-permission-option strong, .profile-permission-option small { display: block; }
+.profile-permission-option strong { font-size: .88rem; font-weight: 500; }
+.profile-permission-option small { font-size: .78rem; color: var(--muted); line-height: 1.5; margin-top: 5px; }
+.profile-permission-option:has(input:disabled) { cursor: default; }
+.profile-management textarea { min-height: 84px; resize: vertical; }
+@media (max-width: 600px) { .profile-permissions { grid-template-columns: minmax(0, 1fr); } }
+
+.profile-editor-form { display: grid; gap: 18px; }
+.profile-editor-form .user-form-group > label { margin-top: 20px; }
+.profile-editor-form label:not(.profile-permission-option) { display: grid; gap: 9px; min-width: 0; font-size: .85rem; font-weight: 500; color: var(--muted); }
+.profile-editor-form input:not([type=checkbox]), .profile-editor-form select, .profile-editor-form textarea { display: block; width: 100%; min-width: 0; min-height: 46px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--ink); font: inherit; font-size: .95rem; transition: border-color .15s ease; }
+.profile-editor-form :is(input, select, textarea):focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 3px; }
+.profile-permissions-head output { flex: 0 0 auto; white-space: nowrap; padding: 5px 10px; border-radius: 6px; font-size: .8rem; color: var(--accent-strong); background: var(--accent-bg); }
+
+.access-profile-list { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+.access-profile-row { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(150px, 1fr) auto; gap: 12px 24px; padding: 20px 24px; align-items: center; }
+.access-profile-row + .access-profile-row { border-top: 1px solid var(--line); }
+.access-profile-identity { min-width: 0; }
+.access-profile-title { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.access-profile-title h3 { margin: 0; font-size: .95rem; font-weight: 600; overflow-wrap: anywhere; }
+.access-profile-kind { font-size: .7rem; color: var(--muted); padding: 3px 7px; background: var(--bg); border: 1px solid var(--line); border-radius: 5px; }
+.access-profile-identity p { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; margin: 6px 0 0; color: var(--muted); font-size: .82rem; overflow-wrap: anywhere; line-height: 1.5; }
+.access-profile-meta { display: flex; align-items: center; gap: 8px 16px; flex-wrap: wrap; font-size: .8rem; color: var(--muted); }
+.access-profile-actions { justify-self: end; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.access-profile-actions .btn-secondary { min-height: 38px; padding: 8px 12px; }
+.access-permission-details { min-width: 0; }
+.access-permission-details > summary { color: var(--accent-strong); font-size: .8rem; width: fit-content; }
+.access-permission-details summary, .profile-permission-module > summary { cursor: pointer; min-height: 36px; align-content: center; border-radius: 6px; }
+.access-permission-details summary span { margin-left: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.access-permission-details summary:focus-visible, .profile-permission-module > summary:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 3px; }
+.access-permission-modules { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 24px; padding: 12px 0 0; }
+.access-permission-modules > details { border-top: 1px solid var(--line); min-width: 0; }
+.access-permission-modules summary { font-size: .85rem; font-weight: 500; }
+.access-permission-modules ul { padding-left: 20px; font-size: .82rem; line-height: 1.8; color: var(--muted); }
+.access-summary { margin-top: 18px; padding: 16px 18px; border-left: 3px solid var(--accent); background: var(--bg); border-radius: 0 8px 8px 0; }
+.access-summary-heading { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; font-size: .9rem; }
+.access-summary-heading > span { font-size: .78rem; color: var(--muted); }
+.access-summary p { margin: 8px 0; font-size: .82rem; color: var(--muted); line-height: 1.6; }
+.access-module-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0; }
+.access-module-tags span { font-size: .73rem; color: var(--muted); padding: 4px 8px; border: 1px solid var(--line); border-radius: 5px; }
+.profile-permission-module { border: 1px solid var(--line); border-radius: 8px; min-width: 0; }
+.profile-permission-module > summary { padding: 10px 12px; font-size: .83rem; font-weight: 500; }
+.profile-permission-module > summary > span + span { float: right; font-size: .75rem; color: var(--muted); margin-left: 8px; }
+.profile-permission-module[open] > summary { background: var(--bg); border-bottom: 1px solid var(--line); }
+.profile-editor-form .access-permission-details { border-bottom: 1px solid var(--line); padding-bottom: 12px; }
+.access-catalog-error { padding: 16px 0; font-size: .85rem; }
+@media (max-width: 1050px) { .access-profile-row { grid-template-columns: minmax(0, 1fr) auto; gap: 10px 16px; } .access-profile-meta { grid-row: 2; } .access-profile-actions { grid-column: 2; grid-row: 1 / 3; } }
+@media (max-width: 600px) { .access-profile-row { display: flex; flex-direction: column; align-items: stretch; padding: 18px; gap: 12px; } .access-profile-actions { align-self: start; } .access-permission-modules { grid-template-columns: minmax(0, 1fr); } .access-profile-detail { margin-top: -4px; } }
+
+.access-view-button { border: 0; background: none; padding: 8px 0; min-height: 38px; color: var(--accent-strong); font: inherit; font-size: .8rem; cursor: pointer; }
+.access-view-button:disabled { color: var(--muted); cursor: wait; }
+.access-view-button:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 3px; }
+
+.profile-editor-form .user-form-group { padding-bottom: 18px; }
+.profile-editor-form .user-form-group legend { margin-bottom: 12px; }
+.profile-editor-form > .user-muted { margin: 0; }
+.profile-reserved { border-top: 1px solid var(--line); padding-top: 12px; }
+.profile-reserved > summary { cursor: pointer; color: var(--muted); font-size: .8rem; min-height: 36px; align-content: center; }
+.profile-reserved > summary:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 3px; }
+@media (min-width: 1000px) { .profile-permissions { grid-template-columns: repeat(3, minmax(0, 1fr)); } }

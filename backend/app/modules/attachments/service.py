@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.core.pagination import PageResult, PaginationParams
 from app.integrations.evidence_storage import EvidenceStorage, EvidenceStorageError
+from app.modules.access_profiles.catalog import Permission, has_permission
 from app.modules.attachments.models import RESOURCE_COLUMNS, OperationalAttachment
 from app.modules.attachments.repository import AttachmentRepository
 from app.modules.attachments.schemas import (
@@ -61,27 +62,43 @@ class AttachmentService:
         if not actor.active:
             raise AttachmentForbiddenError
         if resource_type == "orders":
-            roles = (
-                {"ADMIN", "LOGISTICS_MANAGER"}
-                if operate
-                else {"ADMIN", "LOGISTICS_MANAGER", "CHECKER"}
-            )
-            if actor.role not in roles:
+            permission = Permission.ORDERS_MANAGE if operate else Permission.ORDERS_READ
+            if not has_permission(actor, permission):
                 raise AttachmentForbiddenError
             OrderService(self.db).get_order(resource_id)
         elif resource_type == "trips":
-            TripService(self.db).get_trip(resource_id, current_user=actor)
+            self._authorize_trip_attachment(actor, resource_id, operate=operate)
         elif resource_type == "deliveries":
             TripService(self.db).get_delivery_for_access(
                 resource_id, current_user=actor, operate=operate
             )
         elif resource_type == "occurrences":
+            permission = (
+                Permission.OCCURRENCES_MANAGE
+                if operate
+                else Permission.OCCURRENCES_READ
+            )
+            if not (
+                has_permission(actor, permission)
+                or has_permission(actor, Permission.TRIPS_OWN)
+            ):
+                raise AttachmentForbiddenError
             OccurrenceService(self.db).get_occurrence_for_access(
                 resource_id, current_user=actor
             )
         else:
             raise AttachmentNotFoundError
         return actor
+
+    def _authorize_trip_attachment(
+        self, actor: User, identity: uuid.UUID, *, operate: bool
+    ):
+        if operate and not (
+            has_permission(actor, Permission.TRIPS_MANAGE)
+            or has_permission(actor, Permission.TRIPS_OWN)
+        ):
+            raise AttachmentForbiddenError
+        TripService(self.db).get_trip(identity, current_user=actor)
 
     def register(
         self,

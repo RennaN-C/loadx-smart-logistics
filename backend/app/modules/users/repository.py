@@ -100,3 +100,21 @@ class UserRepository:
         self.db.flush()
         self.db.refresh(user)
         return user
+
+    def profile_counts(self):
+        return {
+            identity or role: count
+            for identity, role, count in self.db.execute(
+                select(User.custom_profile_id, User.role, func.count()).group_by(
+                    User.custom_profile_id, User.role
+                )
+            )
+        }
+
+    def lock_profile_members(self, identity):
+        return self.db.scalars(
+            select(User)
+            .where(User.custom_profile_id == identity)
+            .order_by(User.id)
+            .with_for_update()
+        ).all()

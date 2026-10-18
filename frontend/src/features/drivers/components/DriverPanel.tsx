@@ -12,7 +12,7 @@ import { useRegistryList } from "../../../hooks/useRegistryList";
 import { ArchiveFilter } from "../../../components/ArchiveFilter";
 import { RecordLifecycleAction } from "../../../components/RecordLifecycleAction";
 import { useAuth } from "../../auth/hooks/useAuth";
-import { canManageLogistics } from "../../auth/permissions";
+import { canManageLogistics, hasPermission } from "../../auth/permissions";
 import { getDriver, listDrivers } from "../api/driversApi";
 import type { DriverListItem, Driver } from "../types";
 import { DocumentsPanel } from "./DocumentsPanel";
@@ -43,7 +43,7 @@ export function DriverPanel() {
   const [documentsDriver, setDocumentsDriver] = useState<DriverListItem | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
-  const canManage = canManageLogistics(user?.role);
+  const canManage = canManageLogistics(user, "drivers");
   const isFormOpen = isCreating || edit.target !== null;
 
   function closeForm() {
@@ -59,7 +59,7 @@ export function DriverPanel() {
   return (
     <>
       <div className="entity-toolbar">
-        {canManage ? <ImportAction entity="drivers" onImported={refetch} /> : null}
+        <ImportAction enabled={hasPermission(user, "loadx.imports.manage")} entity="drivers" onImported={refetch} />
         <ArchiveFilter value={archiveStatus} onChange={setArchiveStatus} />
         <input
           type="search"

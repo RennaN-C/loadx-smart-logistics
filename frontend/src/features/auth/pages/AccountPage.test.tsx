@@ -22,7 +22,7 @@ describe("OC92 Meu perfil", () => {
     vi.mocked(getCurrentUser).mockResolvedValue({ ...USER, role }); await show();
     expect(screen.getByRole("radio", { name: /Automático/ })).toBeInTheDocument();
     expect(screen.getByLabelText("Nome")).toHaveValue(USER.name);
-    expect(screen.getByRole("form", { name: "Dados pessoais" })).toHaveTextContent({ ADMIN: "Administrador", LOGISTICS_MANAGER: "Gestor de logística", CHECKER: "Conferente", DRIVER: "Motorista" }[role]);
+    expect(screen.getByRole("form", { name: "Dados pessoais" })).toHaveTextContent({ CUSTOM: "Personalizado", ADMIN: "Administrador", LOGISTICS_MANAGER: "Gestor de logística", CHECKER: "Conferente", DRIVER: "Motorista" }[role]);
     expect(screen.queryByLabelText("Perfil de acesso")).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Meu perfil" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("link", { name: "Voltar ao início" })).toHaveClass("entity-header-link");

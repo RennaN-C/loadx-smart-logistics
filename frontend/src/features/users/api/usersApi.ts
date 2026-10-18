@@ -5,10 +5,10 @@ import type { AuthenticatedUser, Role } from "../../auth/types";
 
 export interface UserAccount extends AuthenticatedUser { driverId: string | null; driverName?: string | null }
 interface AccountDto extends UserDto { driver_id: string | null; driver_name?: string | null }
-export interface UserInput { name: string; email: string; role: Role; active: boolean; driverId: string | null; password?: string }
+export interface UserInput { name: string; email: string; role: Role; active: boolean; driverId: string | null; customProfileId?: string | null; password?: string }
 export interface UserListParams extends SearchListParams { role?: Role; active?: boolean }
 function mapAccount(dto: AccountDto): UserAccount { return { ...mapUserFromDto(dto), driverId: dto.driver_id, driverName: dto.driver_name ?? null }; }
-function writeDto({ driverId, ...values }: Partial<UserInput>) { return { ...values, ...(driverId !== undefined ? { driver_id: driverId } : {}) }; }
+function writeDto({ driverId, customProfileId, ...values }: Partial<UserInput>) { return { ...values, ...(driverId !== undefined ? { driver_id: driverId } : {}), ...(customProfileId !== undefined ? { custom_profile_id: customProfileId } : {}) }; }
 export async function listUsers(params: UserListParams = {}) {
   const { data } = await api.get<PageDto<AccountDto>>("/users", { params: { ...toPageQuery(params), ...toSearchQuery(params), ...(params.role ? { role: params.role } : {}), ...(params.active !== undefined ? { active: params.active } : {}) } });
   return mapPageFromDto(data, mapAccount);

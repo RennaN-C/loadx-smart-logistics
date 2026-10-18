@@ -10,5 +10,6 @@ export const SETTINGS_SECTIONS = [
 export type SettingsSectionId = (typeof SETTINGS_SECTIONS)[number]["id"];
 
 export function activeSettingsSection(hash: string): SettingsSectionId {
+  if (["#settings-profiles", "#settings-users-profiles"].includes(hash)) return "settings-users";
   return SETTINGS_SECTIONS.find((section) => `#${section.id}` === hash)?.id ?? "settings-account";
 }

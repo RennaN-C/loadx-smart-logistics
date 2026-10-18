@@ -788,3 +788,13 @@ pedidos, planos e claims sem alterações.
 
 `RISCO IDENTIFICADO`: a busca é uma heurística síncrona com fronteira limitada;
 não representa prova matemática de ótimo global de bin-packing 3D.
+
+
+## Evolução OC112
+
+`CONFIRMADO`: a OC112 (#159) preserva os papéis fixos e evolui a autorização por
+permissões efetivas, conforme ADR-040 e catálogo de access_profiles. CUSTOM não
+herda acesso do gerente; poderes reservados/identidade não são delegáveis. ADMIN
+é superconjunto gerencial dentro do LoadX, preservando estados, vínculos e ator
+real. Nenhum entitlement, tenant ou SUPERADMIN é criado. Demais invariantes e
+proteção do último administrador continuam aplicáveis.
