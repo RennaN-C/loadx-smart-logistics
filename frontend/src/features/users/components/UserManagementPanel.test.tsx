@@ -1,4 +1,4 @@
-import { listProfiles } from "../../access-profiles/api/profilesApi";
+import { getProfile, listProfiles, permissionCatalog } from "../../access-profiles/api/profilesApi";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -23,7 +23,14 @@ function show() { return render(<UserManagementPanel />); }
 async function edit(account = TARGET) { vi.mocked(getUser).mockResolvedValue(account); show(); fireEvent.click(await screen.findByRole("button", { name: `Editar ${account.name}` })); return screen.findByRole("dialog", { name: "Editar conta" }); }
 function passwords(dialog: HTMLElement, value = "Frase de senha ficticia 2026!") { fireEvent.change(within(dialog).getByLabelText(/^(Senha inicial|Nova senha)$/), { target: { value } }); fireEvent.change(within(dialog).getByLabelText("Confirmar senha"), { target: { value } }); }
 async function creating() { show(); fireEvent.click(screen.getByRole("button", { name: "Criar usuário" })); const dialog = screen.getByRole("dialog"); fireEvent.change(within(dialog).getByLabelText("Nome"), { target: { value: "Pessoa nova" } }); fireEvent.change(within(dialog).getByLabelText("E-mail"), { target: { value: "nova@example.test" } }); passwords(dialog); return dialog; }
-beforeEach(() => { vi.resetAllMocks(); role(); vi.mocked(listUsers).mockResolvedValue(page()); vi.mocked(getUser).mockResolvedValue(TARGET); vi.mocked(createUser).mockResolvedValue({ ...TARGET, id: "u3" }); vi.mocked(updateUser).mockResolvedValue(TARGET); vi.mocked(listDrivers).mockResolvedValue({ ...page([]), items: [DRIVER] }); vi.mocked(getDriver).mockResolvedValue(DRIVER); });
+
+const ACCESS_PROFILE = { id: "p1", name: "Consulta de frota", description: "Consulta de veículos", active: true, version: 1, permissions: ["loadx.trucks.read"], user_count: 0, system_role: null };
+function accessMocks() {
+  vi.mocked(listProfiles).mockResolvedValue({ ...page([]), items: ["ADMIN", "LOGISTICS_MANAGER", "CHECKER", "DRIVER"].map((role) => ({ ...ACCESS_PROFILE, id: role, name: role === "CHECKER" ? "Conferente" : role, system_role: role })) });
+  vi.mocked(permissionCatalog).mockResolvedValue([{ code: "loadx.trucks.read", module: "trucks", label: "Consultar caminhões", delegable: true, classification: "delegable" }]);
+  vi.mocked(getProfile).mockResolvedValue(ACCESS_PROFILE);
+}
+beforeEach(() => { vi.resetAllMocks(); role(); accessMocks(); vi.mocked(listUsers).mockResolvedValue(page()); vi.mocked(getUser).mockResolvedValue(TARGET); vi.mocked(createUser).mockResolvedValue({ ...TARGET, id: "u3" }); vi.mocked(updateUser).mockResolvedValue(TARGET); vi.mocked(listDrivers).mockResolvedValue({ ...page([]), items: [DRIVER] }); vi.mocked(getDriver).mockResolvedValue(DRIVER); });
 describe("OC86 gestão de usuários", () => {
   it("lista identidade, estado, vínculo e paginação real", async () => {
     vi.mocked(listUsers).mockResolvedValueOnce(page([ADMIN, { ...TARGET, driverId: "d1" }], 1, 2)); show();
@@ -96,12 +103,12 @@ describe("OC86 gestão de usuários", () => {
 
 describe("OC112 associação de perfil personalizado", () => {
   it("seleciona perfil real e envia a associação no contrato existente", async () => {
-    vi.resetAllMocks(); role();
+    vi.resetAllMocks(); role(); accessMocks();
     vi.mocked(listUsers).mockResolvedValue(page([ADMIN]));
     vi.mocked(listProfiles).mockResolvedValue({ items: [{ id: "p1", name: "Consulta de frota", description: "", active: true, version: 1, permissions: ["loadx.trucks.read"], user_count: 0, system_role: null }], page: 1, pageSize: 20, total: 1, totalPages: 1 });
     vi.mocked(createUser).mockResolvedValue({ ...TARGET, role: "CUSTOM", customProfileId: "p1" });
     const dialog = await creating();
-    fireEvent.change(within(dialog).getByLabelText("Perfil de acesso"), { target: { value: "CUSTOM" } });
+    fireEvent.click(within(dialog).getByRole("radio", { name: /Perfil personalizado/ }));
     fireEvent.change(await within(dialog).findByLabelText("Permissões de acesso"), { target: { value: "p1" } });
     fireEvent.click(within(dialog).getByRole("button", { name: "Salvar usuário" }));
     await screen.findByText("Usuário criado com sucesso.");
