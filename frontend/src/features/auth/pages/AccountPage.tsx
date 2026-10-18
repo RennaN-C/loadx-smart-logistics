@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { OwnProfileForm } from "../components/OwnProfileForm";
 import { OwnMfaPanel } from "../components/OwnMfaPanel";
-import { OwnMfaPanel } from "../components/OwnMfaPanel";
+
 import { OwnPasswordForm } from "../components/OwnPasswordForm";
 import { OwnSessionsPanel } from "../components/OwnSessionsPanel";
 import "./AccountPage.css";

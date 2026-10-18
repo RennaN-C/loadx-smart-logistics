@@ -13,8 +13,8 @@ from app.integrations.password_recovery.delivery import (
     get_recovery_delivery,
 )
 from app.modules.auth.dependencies import CSRF_HEADER_NAME, get_current_session
-from app.modules.auth.identity_service import IdentityService
 from app.modules.access_profiles.service import ProfileService
+from app.modules.auth.identity_service import IdentityService
 from app.modules.auth.recovery_service import PasswordRecoveryService
 from app.modules.auth.router import account_operation, clear_session_cookie
 from app.modules.auth.schemas import (
