@@ -1,8 +1,7 @@
 # Perfis e permissões — OC112
 
-`CONFIRMADO`: Configurações → Perfis e permissões utiliza o submenu existente,
-sem outra navegação. Painel só é montado na seção ativa e só consulta API para
-ADMIN ativo. Não ADMIN continua bloqueado por RequireSettingsAdmin e pelo servidor.
+`CONFIRMADO`: Configurações → Gestão de usuários → Perfis de acesso reúne a administração
+na aba interna, sem entrada paralela na sidebar. Painel só consulta API quando sua aba está ativa e para ADMIN ativo. Não ADMIN continua bloqueado por RequireSettingsAdmin e pelo servidor.
 
 Perfis fixos são consultáveis/protegidos. Perfis personalizados têm nome,
 descrição, estado, seleção de grants reais agrupados e confirmação antes de
@@ -24,3 +23,21 @@ Testes: componente/API/integração OC86, negação por perfil, reservadas, vers
 loading/erro/vazio, confirmação, paginação e projeção. Evidências Chromium reais
 em docs/evidencias/oc112, com temas claro/escuro, sistema e teclado. Sem novas
 dependências, MFA, recuperação ou integração CoreFlow.
+
+## UX unificada da OC112
+
+`CONFIRMADO`: `#settings-users` abre Usuários; `#settings-users-profiles` abre
+Perfis de acesso. O fragmento antigo `#settings-profiles` é normalizado com
+replace, preservando links e o item ativo da sidebar. Anterior/próxima, F5 e
+teclado (setas/Home/End) restauram a aba. Não existe uma segunda página de perfis.
+
+`CONFIRMADO`: a listagem usa linhas compactas com nome, descrição, estado,
+contagem de permissões/usuários, proteção e ações. Ver permissões abre consulta
+somente leitura com módulos recolhidos. Rótulos vêm do catálogo da API; códigos
+não aparecem na interface. Falha de catálogo tem repetição explícita, sem
+substituir a resposta por permissões fictícias. Paginação continua no servidor.
+
+`CONFIRMADO`: o editor mantém versão/confirmar/salvar/conflito, resumo de seleção
+e grupos expansíveis. Ações protegidas ficam numa área recolhida com controles
+desabilitados. Inativação em uso continua bloqueada pela UI e pelo backend.
+Nenhum endpoint, regra de autorização, migration ou dependência foi alterado.
