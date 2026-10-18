@@ -26,7 +26,7 @@
 .access-profile-title { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .access-profile-title h3 { margin: 0; font-size: .95rem; font-weight: 600; overflow-wrap: anywhere; }
 .access-profile-kind { font-size: .7rem; color: var(--muted); padding: 3px 7px; background: var(--bg); border: 1px solid var(--line); border-radius: 5px; }
-.access-profile-identity p { margin: 6px 0 0; color: var(--muted); font-size: .82rem; overflow-wrap: anywhere; line-height: 1.5; }
+.access-profile-identity p { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; margin: 6px 0 0; color: var(--muted); font-size: .82rem; overflow-wrap: anywhere; line-height: 1.5; }
 .access-profile-meta { display: flex; align-items: center; gap: 8px 16px; flex-wrap: wrap; font-size: .8rem; color: var(--muted); }
 .access-profile-actions { justify-self: end; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
 .access-profile-actions .btn-secondary { min-height: 38px; padding: 8px 12px; }

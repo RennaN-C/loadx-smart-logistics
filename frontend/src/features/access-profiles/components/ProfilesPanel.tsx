@@ -3,7 +3,7 @@ import { AlertBanner } from "../../../components/AlertBanner";
 import { Pagination } from "../../../components/Pagination";
 import { Modal } from "../../../components/Modal";
 import { StatusPill } from "../../../components/StatusPill";
-import { useResourceList } from "../../../hooks/useResourceList";
+import { useResourceList, type ResourceStatus } from "../../../hooks/useResourceList";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { listProfiles, type AccessProfile, type PermissionDefinition } from "../api/profilesApi";
 import { PermissionDetails } from "./PermissionDetails";
@@ -24,9 +24,7 @@ export function ProfilesPanel({ active = true }: { readonly active?: boolean }) 
   return <div className="user-management profile-management">
     <div className="user-toolbar"><p className="user-muted">Crie acessos reutilizáveis para a equipe. Os quatro perfis do sistema permanecem protegidos.</p><button type="button" className="btn-primary" onClick={() => { setNotice(""); setEditing("new"); }}>Criar perfil</button></div>
     {notice ? <output className="user-success">{notice}</output> : null}
-    {list.status === "loading" ? <output>Carregando perfis…</output> : null}
-    {list.status === "error" ? <div><AlertBanner>Não foi possível consultar os perfis.</AlertBanner><button className="btn-secondary" type="button" onClick={() => void list.refetch()}>Tentar novamente</button></div> : null}
-    {list.status === "success" && !list.items.length ? <p>Nenhum perfil nesta página.</p> : null}
+    <ProfileListFeedback status={list.status} empty={list.items.length === 0} onRetry={() => void list.refetch()} />
     {list.status === "success" ? <ProfileRows items={list.items} catalogReady={catalog.status === "success"} onView={setViewing} onEdit={setEditing} /> : null}
     {catalog.status === "error" ? <div className="access-catalog-error" role="alert">Não foi possível consultar os nomes das permissões. <button className="btn-secondary" type="button" onClick={catalog.retry}>Consultar catálogo novamente</button></div> : null}
     {catalog.status === "loading" ? <output className="user-muted">Consultando catálogo de ações…</output> : null}
@@ -46,4 +44,11 @@ function ProfileRows({ items, catalogReady, onView, onEdit }: { readonly items: 
 
 function ProfileInspector({ profile, catalog, onClose }: { readonly profile: AccessProfile; readonly catalog: PermissionDefinition[]; readonly onClose: () => void }) {
   return <Modal title={profile.name} subtitle={profile.description || "Permissões do perfil"} onClose={onClose}><p className="user-muted">{profile.active ? "Ativo" : "Inativo"} · {profile.permissions.length} permissões · {profile.user_count} usuário(s) · {profile.system_role ? "Perfil protegido do sistema" : "Perfil personalizado"}</p><PermissionDetails expanded permissions={profile.permissions} catalog={catalog} /><div className="user-actions"><button type="button" className="btn-secondary" onClick={onClose}>Fechar consulta</button></div></Modal>;
+}
+
+function ProfileListFeedback({ status, empty, onRetry }: { readonly status: ResourceStatus; readonly empty: boolean; readonly onRetry: () => void }) {
+  if (status === "loading") return <output>Carregando perfis…</output>;
+  if (status === "error") return <div><AlertBanner>Não foi possível consultar os perfis.</AlertBanner><button className="btn-secondary" type="button" onClick={onRetry}>Tentar novamente</button></div>;
+  if (empty) return <p>Nenhum perfil nesta página.</p>;
+  return null;
 }
