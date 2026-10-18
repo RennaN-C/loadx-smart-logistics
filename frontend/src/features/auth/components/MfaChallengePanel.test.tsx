@@ -7,7 +7,7 @@ import { ApiError } from "../../../types/api";
 vi.mock("../api/identityApi");
 const updateUser = vi.fn(); const beginMfa = vi.fn();
 vi.mock("../hooks/useAuth", () => ({ useAuth: () => ({ updateUser, beginMfa }) }));
-const challenge = { challenge_token: "restricted", purpose: "ENROLL" as const, expires_at: "2026-10-13T12:05:00Z" };
+const challenge = { challenge_token: "restricted", purpose: "ENROLL" as const, expires_at: "2099-10-13T12:05:00Z" };
 const user = { id: "u", name: "Conta", email: "conta@example.test", role: "ADMIN" as const, active: true, createdAt: "2026-10-13" };
 describe("verificação multifator", () => {
   beforeEach(() => vi.clearAllMocks());
@@ -32,6 +32,26 @@ describe("verificação multifator", () => {
     fireEvent.click(screen.getByRole("button", { name: "Verificar e continuar" }));
     await screen.findByRole("alert"); expect(updateUser).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Voltar ao login" })); expect(beginMfa).toHaveBeenCalledWith(undefined);
+  });
+  it("preserva a chave em rerender e remove segredos ao expirar", async () => {
+    vi.mocked(identity.setupMfa).mockResolvedValue("otpauth://totp/LoadX?secret=JBSWY3DPEHPK3PXP");
+    const { rerender } = render(<MfaChallengePanel challenge={challenge} />);
+    fireEvent.click(screen.getByRole("button", { name: "Preparar autenticador" }));
+    await screen.findByTitle("QR Code para configurar o autenticador LoadX");
+    rerender(<MfaChallengePanel challenge={challenge} />);
+    expect(identity.setupMfa).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("button", { name: "Gerar outra chave" })).not.toBeInTheDocument();
+    rerender(<MfaChallengePanel challenge={{ ...challenge, expires_at: "2000-01-01T00:00:00Z" }} />);
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Esta etapa expirou"), { timeout: 2000 });
+    expect(screen.queryByTitle("QR Code para configurar o autenticador LoadX")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Verificar e continuar" })).toBeDisabled();
+  });
+  it("permite tentar preparar após falha", async () => {
+    vi.mocked(identity.setupMfa).mockRejectedValueOnce(new Error());
+    render(<MfaChallengePanel challenge={challenge} />);
+    fireEvent.click(screen.getByRole("button", { name: "Preparar autenticador" }));
+    await screen.findByRole("alert");
+    expect(screen.getByRole("button", { name: "Preparar autenticador" })).toBeEnabled();
   });
   it("gerencia códigos com senha e segundo fator, sem guardar em storage", async () => {
     vi.mocked(identity.getMfaStatus).mockResolvedValue({ enabled: true, required: true });
