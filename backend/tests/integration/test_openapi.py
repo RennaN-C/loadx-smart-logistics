@@ -46,7 +46,16 @@ EXPECTED_ERROR_STATUSES = {
         "500",
     },
     ("/api/v1/search", "get"): {"401", "403", "422", "500"},
-    ("/api/v1/auth/me", "patch"): {"400", "401", "403", "409", "422", "429", "503", "500"},
+    ("/api/v1/auth/me", "patch"): {
+        "400",
+        "401",
+        "403",
+        "409",
+        "422",
+        "429",
+        "503",
+        "500",
+    },
     ("/api/v1/auth/me/password", "post"): {"400", "401", "403", "422", "429", "500"},
     ("/api/v1/auth/me/sessions", "get"): {"401", "403", "422", "500"},
     ("/api/v1/auth/me/sessions/{session_id}", "delete"): {

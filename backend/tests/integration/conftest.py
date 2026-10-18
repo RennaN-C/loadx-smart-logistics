@@ -115,9 +115,24 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
     # OC98 downgrade alone must preserve OC112 access profiles.
     _run_alembic(test_url, "downgrade", "-1")
     with engine.connect() as connection:
-        assert connection.exec_driver_sql("SELECT version_num FROM alembic_version").scalar_one() == "20261016_0024"
-        assert connection.exec_driver_sql("SELECT to_regclass('public.auth_factors')").scalar_one() is None
-        assert connection.exec_driver_sql("SELECT to_regclass('public.access_profiles')").scalar_one() is not None
+        assert (
+            connection.exec_driver_sql(
+                "SELECT version_num FROM alembic_version"
+            ).scalar_one()
+            == "20261016_0024"
+        )
+        assert (
+            connection.exec_driver_sql(
+                "SELECT to_regclass('public.auth_factors')"
+            ).scalar_one()
+            is None
+        )
+        assert (
+            connection.exec_driver_sql(
+                "SELECT to_regclass('public.access_profiles')"
+            ).scalar_one()
+            is not None
+        )
     _run_alembic(test_url, "upgrade", "head")
 
     _run_alembic(test_url, "downgrade", "-1")
