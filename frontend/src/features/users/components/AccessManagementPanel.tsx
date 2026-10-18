@@ -20,12 +20,14 @@ export function AccessManagementPanel() {
   function keyDown(event: KeyboardEvent) {
     if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
     event.preventDefault();
-    const index = event.key === "Home" ? 0 : event.key === "End" ? 1 : Number(!profiles);
+    let index = Number(!profiles);
+    if (event.key === "Home") index = 0;
+    if (event.key === "End") index = 1;
     navigate({ hash: TABS[index].hash });
     tabs.current?.querySelectorAll<HTMLButtonElement>("button")[index]?.focus();
   }
   return <div className="access-management">
-    <div className="access-tabs" role="tablist" aria-label="Gestão de acessos" ref={tabs} onKeyDown={keyDown}>
+    <div className="access-tabs" role="tablist" tabIndex={-1} aria-label="Gestão de acessos" ref={tabs} onKeyDown={keyDown}>
       {TABS.map((tab, index) => <button key={tab.id} id={`access-tab-${tab.id}`} role="tab" type="button" aria-selected={profiles === Boolean(index)} aria-controls={`access-panel-${tab.id}`} tabIndex={profiles === Boolean(index) ? 0 : -1} onClick={() => navigate({ hash: tab.hash })}>{tab.label}</button>)}
     </div>
     <div id="access-panel-users" role="tabpanel" aria-labelledby="access-tab-users" hidden={profiles}>
