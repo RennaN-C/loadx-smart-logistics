@@ -100,3 +100,22 @@ essas mudanças exatamente após liberar locks dos contadores e antes da emissã
 `CONFIRMADO`: ativação MFA revoga também sessões por senha emitidas enquanto o
 cadastro voluntário estava pendente. O gate de sessão bloqueia a linha do fator
 e recarrega seu estado, além da conta, antes de emitir sessão por senha.
+
+## Complemento — QR local e SMTP de desenvolvimento
+
+`CONFIRMADO`: a URI de provisionamento já autorizada pelo servidor é renderizada
+como QR SVG no navegador por `qrcode.react`, sem rede, analytics ou persistência.
+Preparação é explícita e única por desafio na UI; rerender não rotaciona segredo.
+Chave manual/cópia permanece disponível, com fallback sem clipboard. Expiração
+remove credenciais da tela e permite novo login; servidor continua autoritativo.
+
+`CONFIRMADO`: SMTP de produção suporta TLS direto (465) ou STARTTLS obrigatório
+(587), ambos autenticados e com validação de certificado/hostname e TLS >=1.2.
+Não há downgrade. Exceção estritamente local: Mailpit opcional, sem TLS e sem
+credenciais, somente `APP_ENV=local` e host de loopback ou serviço `mailpit`.
+HTTP é aceito exclusivamente na URL exata
+`http://localhost:5173/password-reset`, somente local. Produção continua HTTPS.
+Mailbox e SMTP Docker são publicados apenas no loopback. Essa infraestrutura
+não é provedor externo nem confirmação de entrega real; não altera tokens,
+rate limiting, auditoria, sessions, MFA, OC112 ou schema. Configuração e roteiro
+estão no README auth; não se troca a chave de criptografia existente.

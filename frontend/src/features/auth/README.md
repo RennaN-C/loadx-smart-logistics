@@ -53,3 +53,10 @@ Web Storage. Mudança de e-mail em conta com MFA exige confirmação reforçada.
 Origin/CSRF e cliente HTTP existentes permanecem. Telas usam componentes/tokens
 locais, temas por prefers-color-scheme, labels e mensagens reais. CoreFlow/SSO
 não implementados. Requisitos de infraestrutura e contingência: ADR-038.
+
+`CONFIRMADO`: cadastro MFA mostra QR SVG gerado localmente por `qrcode.react`,
+com margem branca fixa para leitura em ambos os temas e layout fluido. Chave e
+URI manuais ficam em detalhes; clipboard bloqueado permite seleção manual.
+Preparação não é repetida por rerender e expiração apaga o provisionamento.
+Nenhum segredo vai para serviço de QR, Web Storage ou logs. Leia o
+[roteiro SMTP/Mailpit](../../../../backend/app/modules/auth/README.md#complemento-oc98--qr-local-e-transporte-de-e-mail).

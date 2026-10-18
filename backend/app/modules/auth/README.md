@@ -142,3 +142,81 @@ senha criadas durante cadastro voluntário. Consumo de código de recuperação 
 registrado somente depois do commit, inclusive na edição de e-mail. Limites de
 login só são limpos após comprovar o segundo fator. Testes específicos cobrem
 essas janelas e a ausência de evento de consumo em rollback.
+
+### Complemento OC98 — QR local e transporte de e-mail
+
+`CONFIRMADO`: na etapa de cadastro, **Preparar autenticador** obtém uma única
+URI por montagem/desafio. `qrcode.react` (MIT, versão fixada no lockfile) gera
+SVG local e escaneável, com margem branca em ambos os temas, sem chamadas a
+serviços externos. O segredo não muda em rerender. A alternativa expansível
+permite selecionar/copiar a chave Base32 e consultar a URI. Bloqueio da área
+de transferência mantém a cópia manual. O desafio expira pelo relógio informado
+pelo servidor; a interface remove o QR/chave e orienta novo login. A validação
+servidora continua sendo a autoridade (cinco minutos, antirreplay e throttling).
+Não publicar capturas de QR/chave/códigos reais em tickets ou logs.
+
+`CONFIRMADO`: produção usa `PASSWORD_RECOVERY_PROVIDER=smtp`,
+`PASSWORD_RECOVERY_URL=https://dominio-aprovado/password-reset`, `SMTP_HOST`,
+`SMTP_SENDER`, `SMTP_USERNAME` e `SMTP_PASSWORD` (cofre/ambiente, nunca git).
+Escolher explicitamente:
+
+- `SMTP_SECURITY=ssl`, `SMTP_PORT=465`: TLS desde a conexão (padrão).
+- `SMTP_SECURITY=starttls`, `SMTP_PORT=587`: EHLO, STARTTLS obrigatório, novo
+  EHLO, autenticação e envio. Falta/falha de STARTTLS aborta, sem fallback.
+
+Ambos verificam certificado/hostname, usam TLS mínimo 1.2 e timeout de cinco
+segundos. Erros SMTP/timeout emitem somente evento sanitizado, sem destinatário,
+credenciais, token ou resposta do servidor. 202 significa solicitação aceita,
+não entrega comprovada. Configuração ausente/inválida gera 503 neutro antes da
+consulta de conta. Tokens continuam com quinze minutos, uso único e substituição;
+reset revoga sessões e preserva MFA/permissões OC112.
+
+#### Caixa de entrada local opcional (sem serviço externo)
+
+`CONFIRMADO`: execute na raiz, sem reiniciar ou migrar o restante do ambiente:
+
+```sh
+docker compose -f compose.mailpit.yaml --profile mail up -d
+```
+
+A interface fica em `http://localhost:8025`; SMTP em `127.0.0.1:1025`.
+O profile não publica portas fora do loopback e não possui volume de mensagens.
+Use **somente dados fictícios**. O Mailpit armazena links de acesso: não exponha
+sua interface em túnel público. Para parar apenas esse serviço:
+
+```sh
+docker compose -f compose.mailpit.yaml --profile mail stop mailpit
+```
+
+Configure estas variáveis no processo local do backend (não é necessário
+alterar `.env` existente nem a chave MFA):
+
+```text
+APP_ENV=local
+PASSWORD_RECOVERY_PROVIDER=smtp
+PASSWORD_RECOVERY_URL=http://localhost:5173/password-reset
+SMTP_SECURITY=local
+SMTP_HOST=127.0.0.1
+SMTP_PORT=1025
+SMTP_SENDER=loadx@example.test
+SMTP_USERNAME=
+SMTP_PASSWORD=
+```
+
+`CONFIRMADO`: esse remetente `.test` é exclusivamente fictício para Mailpit,
+não uma credencial funcional de produção. Backend dentro do Compose pode usar
+`SMTP_HOST=mailpit` se ambos os arquivos Compose compartilharem a mesma rede;
+backend no host usa loopback. Transporte sem TLS/autenticação é aceito apenas
+com `APP_ENV=local`, host exato `localhost`, `127.0.0.1`, `::1` ou `mailpit` e
+sem credenciais. HTTP só aceita a URL exata acima: outra porta, host, caminho,
+query, fragmento ou credenciais são rejeitados. Produção exige HTTPS e transporte
+TLS autenticado. `MFA_ENCRYPTION_KEY` atual deve permanecer intacta.
+
+Teste manual: solicite **Esqueceu sua senha?**, abra o e-mail no Mailpit e o
+link em navegador na mesma máquina/origem `localhost:5173`; redefina a senha.
+Verifique que o fragmento desaparece, link repetido é recusado, sessão anterior
+é encerrada e a nova senha ainda exige MFA. Solicitar outro link invalida o
+anterior. Fluxo sem usuário elegível mantém a mesma resposta, sem e-mail.
+`RISCO IDENTIFICADO`: Mailpit não comprova entrega externa, reputação de domínio,
+SPF/DKIM/DMARC ou TLS do provedor. Validar produção separadamente com configuração
+aprovada. Não há fila durável/reenvio automático nesta OC.
