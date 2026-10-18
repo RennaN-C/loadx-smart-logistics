@@ -1,4 +1,5 @@
 import { hasPermission } from "../features/auth/permissions";
+import { canReadReports } from "../features/reports/permissions";
 import { GlobalSearch } from "../features/global-search/components/GlobalSearch";
 import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
@@ -86,7 +87,7 @@ const NAV_GROUPS: readonly NavGroup[] = [
   },
 ];
 
-const CUSTOM_NAV: Record<string, string[]> = { "/": ["loadx.customers.read", "loadx.products.read", "loadx.trucks.read", "loadx.drivers.read", "loadx.orders.read", "loadx.planning.read", "loadx.loading.read", "loadx.trips.read", "loadx.reports.read"], "/account": ["account"], "/trucks": ["loadx.trucks.read"], "/products": ["loadx.products.read"], "/contacts": ["loadx.customers.read", "loadx.drivers.read"], "/orders": ["loadx.orders.read"], "/planning": ["loadx.planning.read"], "/reports": ["loadx.orders.read", "loadx.reports.read"] };
+const CUSTOM_NAV: Record<string, string[]> = { "/": ["loadx.customers.read", "loadx.products.read", "loadx.trucks.read", "loadx.drivers.read", "loadx.orders.read", "loadx.planning.read", "loadx.loading.read", "loadx.trips.read", "loadx.reports.read"], "/account": ["account"], "/trucks": ["loadx.trucks.read"], "/products": ["loadx.products.read"], "/contacts": ["loadx.customers.read", "loadx.drivers.read"], "/orders": ["loadx.orders.read"], "/planning": ["loadx.planning.read"] };
 const SIDEBAR_PREFERENCE = "loadx.sidebar-collapsed";
 
 function initialSidebarCollapsed() {
@@ -173,7 +174,20 @@ export function AppLayout() {
   // título — o conferente não pode ver "Cadastros" sobre lugar nenhum.
   const groups = NAV_GROUPS.map((group) => ({
     ...group,
-    items: group.items.filter((item) => user !== null && (user.role === "CUSTOM" ? (item.to === "/account" || (CUSTOM_NAV[item.to] ?? []).some((code) => hasPermission(user, code))) : item.roles.includes(user.role))),
+    items: group.items
+      .filter((item) => user !== null && (
+        item.to === "/reports"
+          ? canReadReports(user)
+          : user.role === "CUSTOM"
+            ? item.to === "/account" || (CUSTOM_NAV[item.to] ?? []).some((code) => hasPermission(user, code))
+            : item.roles.includes(user.role)
+      ))
+      .map((item) => {
+        if (item.to !== "/contacts") return item;
+        const customers = hasPermission(user, "loadx.customers.read");
+        const drivers = hasPermission(user, "loadx.drivers.read");
+        return { ...item, label: customers && drivers ? item.label : customers ? "Clientes" : "Motoristas" };
+      }),
   })).filter((group) => group.items.length > 0);
 
   return (
