@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     mfa_encryption_key: SecretStr | None = None
     password_recovery_provider: Literal["none", "smtp"] = "none"
     password_recovery_url: str | None = None
+    smtp_security: Literal["ssl", "starttls", "local"] = "ssl"
     smtp_host: str | None = None
     smtp_port: int = Field(default=465, ge=1, le=65535)
     smtp_username: str | None = None
