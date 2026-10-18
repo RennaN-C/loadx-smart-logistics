@@ -32,7 +32,7 @@ export function LoginForm() {
     }
   }
 
-  if (pendingMfa) return <MfaChallengePanel challenge={pendingMfa} />;
+  if (pendingMfa) return <MfaChallengePanel key={pendingMfa.challenge_token} challenge={pendingMfa} />;
 
   return (
     <form className="login-card" onSubmit={handleSubmit}>

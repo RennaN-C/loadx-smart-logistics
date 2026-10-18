@@ -18,3 +18,13 @@
 .identity-card [role="alert"] { color: var(--danger, #d24545); }
 .identity-card .identity-field input, .account-form.identity-management .identity-field input { border-radius: 10px; min-height: 48px; padding: 12px 14px; font-size: .95rem; }
 .identity-card .btn-primary, .identity-card .btn-secondary, .identity-management .btn-primary { border-radius: 10px; min-height: 46px; }
+
+.identity-enrollment { display: grid; gap: 18px; min-width: 0; }
+.identity-qr { justify-self: center; max-width: 100%; padding: 8px; background: #fff; border-radius: 12px; line-height: 0; }
+.identity-qr svg { display: block; width: 224px; max-width: 100%; height: auto; }
+.identity-manual { border-top: 1px solid var(--line); padding-top: 16px; min-width: 0; }
+.identity-manual summary { color: var(--ink); font-weight: 600; cursor: pointer; line-height: 1.5; }
+.identity-manual summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 4px; }
+.identity-manual[open] > :not(summary) { margin-top: 16px; }
+.identity-provision input { width: 100%; min-width: 0; box-sizing: border-box; border: 1px solid var(--line); border-radius: 10px; padding: 12px; background: var(--paper); color: var(--ink); font: .85rem monospace; }
+.identity-provision input:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
