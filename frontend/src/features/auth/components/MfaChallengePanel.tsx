@@ -33,7 +33,9 @@ export function MfaChallengePanel({ challenge }: { readonly challenge: MfaChalle
     catch (e) { setError(accountError(e)); } finally { setBusy(false); }
   }
   async function verify(event: FormEvent) {
-    event.preventDefault(); if (expired || Date.now() >= Date.parse(challenge.expires_at)) return; setBusy(true); setError("");
+    event.preventDefault();
+    if (expired || Date.now() >= Date.parse(challenge.expires_at)) return;
+    setBusy(true); setError("");
     try { const result = await verifyMfa(challenge.challenge_token, code.trim()); setCode(""); setUri(""); if (result.codes.length) setCompletion(result); else updateUser(result.user); }
     catch (e) { setError(accountError(e)); } finally { setBusy(false); }
   }

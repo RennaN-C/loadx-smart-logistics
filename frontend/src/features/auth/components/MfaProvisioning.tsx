@@ -20,7 +20,7 @@ export function MfaProvisioning({ uri }: { readonly uri: string }) {
       <p>Escolha Inserir chave de configuração, nomeie a conta como LoadX e selecione Baseado no tempo.</p>
       <label className="identity-provision">Chave de configuração<input readOnly value={secret} onFocus={event => event.target.select()} /></label>
       <button type="button" className="btn-secondary" onClick={() => void copyKey()}>Copiar chave</button>
-      <p role="status">{copyStatus}</p>
+      <output className="identity-copy-status">{copyStatus}</output>
       <label className="identity-provision">URI de provisionamento<textarea readOnly value={uri} rows={4} /></label>
     </details>
     <p>Esta chave é secreta. Não compartilhe o QR Code nem capturas desta tela.</p>

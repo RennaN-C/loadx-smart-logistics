@@ -179,8 +179,9 @@ def test_starttls_failure_never_authenticates_or_sends(monkeypatch, caplog):
     ],
 )
 def test_url_validation_is_strict(url):
+    settings = config(password_recovery_url=url)
     with pytest.raises(IdentityUnavailableError):
-        SmtpRecoveryDelivery(config(password_recovery_url=url))
+        SmtpRecoveryDelivery(settings)
 
 
 @pytest.mark.parametrize(
@@ -207,5 +208,6 @@ def test_url_validation_is_strict(url):
     ],
 )
 def test_insecure_transport_configuration_fails_closed(overrides):
+    settings = config(**overrides)
     with pytest.raises(IdentityUnavailableError):
-        SmtpRecoveryDelivery(config(**overrides))
+        SmtpRecoveryDelivery(settings)

@@ -28,3 +28,5 @@
 .identity-manual[open] > :not(summary) { margin-top: 16px; }
 .identity-provision input { width: 100%; min-width: 0; box-sizing: border-box; border: 1px solid var(--line); border-radius: 10px; padding: 12px; background: var(--paper); color: var(--ink); font: .85rem monospace; }
 .identity-provision input:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+.identity-copy-status { display: block; color: var(--muted); font-size: .95rem; line-height: 1.6; }
