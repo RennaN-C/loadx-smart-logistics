@@ -26,6 +26,10 @@ class AuthSessionInvalidError(Exception):
     pass
 
 
+class AuthTrustedDeviceRequiredError(AuthSessionInvalidError):
+    pass
+
+
 class AuthSessionInactiveUserError(Exception):
     pass
 
@@ -64,7 +68,9 @@ class AuthSessionService:
         *,
         expected_password_hash: str | None = None,
         password_only: bool = False,
+        trusted_device_token: str | None = None,
     ) -> IssuedAuthSession:
+        trusted_device = None
         if password_only and expected_password_hash is None:
             raise AuthSessionInvalidError
         if expected_password_hash is not None:
@@ -82,7 +88,15 @@ class AuthSessionService:
                 if user.role in MFA_REQUIRED_ROLES or (
                     factor is not None and factor.enabled
                 ):
-                    raise AuthSessionInvalidError
+                    from app.modules.auth.trusted_device_service import (
+                        TrustedDeviceService,
+                    )
+
+                    trusted_device = TrustedDeviceService(
+                        self.db, now_provider=self.now_provider
+                    ).stage_authorize(user, factor, trusted_device_token)
+                    if trusted_device is None:
+                        raise AuthTrustedDeviceRequiredError
         now = self.now_provider()
         token = secrets.token_urlsafe(SESSION_TOKEN_BYTES)
         auth_session = self.repository.add(
@@ -102,6 +116,12 @@ class AuthSessionService:
             session_id=str(auth_session.id),
             user_id=str(user_id),
         )
+        if trusted_device is not None:
+            emit_security_event(
+                SecurityEvent.TRUSTED_DEVICE_USED,
+                user_id=str(user_id),
+                device_id=str(trusted_device.id),
+            )
         return IssuedAuthSession(
             token=token,
             csrf_token=self.csrf_token_for(token),
@@ -167,6 +187,8 @@ class AuthSessionService:
         return revoked_count
 
     def stage_revoke_all_for_users(self, user_ids: list[uuid.UUID]) -> int:
+        for user_id in user_ids:
+            self.stage_invalidate_access_credentials(user_id)
         sessions = self.repository.list_active_for_users_for_update(user_ids)
         revoked_at = self.now_provider()
         for auth_session in sessions:
@@ -187,6 +209,12 @@ class AuthSessionService:
         identity = IdentityRepository(self.db)
         identity.invalidate_challenges(user_id, self.now_provider())
         identity.invalidate_resets(user_id, self.now_provider())
+        self.stage_revoke_trusted_devices(user_id)
+
+    def stage_revoke_trusted_devices(self, user_id: uuid.UUID) -> None:
+        from app.modules.auth.trusted_device_repository import TrustedDeviceRepository
+
+        TrustedDeviceRepository(self.db).revoke(user_id, self.now_provider())
 
     def validate_csrf_token(self, token: str, csrf_token: str) -> bool:
         return hmac.compare_digest(self.csrf_token_for(token), csrf_token)

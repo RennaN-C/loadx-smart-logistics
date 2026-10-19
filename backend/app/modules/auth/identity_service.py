@@ -30,6 +30,10 @@ from app.modules.auth.totp import (
     new_secret,
     provisioning_uri,
 )
+from app.modules.auth.trusted_device_service import (
+    IssuedTrustedDevice,
+    TrustedDeviceService,
+)
 from app.modules.status_history.schemas import AuditEventCreate
 from app.modules.status_history.service import AuditService
 from app.modules.users.models import User
@@ -48,6 +52,7 @@ class MfaChallengeResult:
     challenge_token: str
     purpose: str
     expires_at: datetime
+    trusted_device_days: int | None = None
 
 
 @dataclass(frozen=True)
@@ -55,6 +60,7 @@ class MfaCompletion:
     user: User
     session: IssuedAuthSession
     recovery_codes: list[str]
+    trusted_device: IssuedTrustedDevice | None = None
 
 
 class IdentityService:
@@ -107,7 +113,14 @@ class IdentityService:
             )
         )
         self.db.commit()
-        return MfaChallengeResult(token, purpose, now + timedelta(minutes=5))
+        return MfaChallengeResult(
+            token,
+            purpose,
+            now + timedelta(minutes=5),
+            settings.trusted_device_days
+            if settings.trusted_devices_enabled and purpose == "LOGIN"
+            else None,
+        )
 
     def _challenge(
         self, token: str, client_ip: str
@@ -147,7 +160,15 @@ class IdentityService:
         self.db.commit()
         return provisioning_uri(secret, user.email)
 
-    def complete(self, token: str, code: str, client_ip: str) -> MfaCompletion:
+    def complete(
+        self,
+        token: str,
+        code: str,
+        client_ip: str,
+        *,
+        trust_device: bool = False,
+        previous_device_token: str | None = None,
+    ) -> MfaCompletion:
         user, factor, challenge = self._challenge(token, client_ip)
         # Durable account/origin budget remains across replacement challenges.
         self.throttle.ensure_login_allowed(
@@ -175,6 +196,16 @@ class IdentityService:
             codes = self._codes(user)
             self._audit(user, "mfa_enabled")
 
+        trusted_device = None
+        if (
+            trust_device
+            and settings.trusted_devices_enabled
+            and challenge.purpose == "LOGIN"
+            and self.recovery_used is None
+        ):
+            trusted_device = TrustedDeviceService(
+                self.db, now_provider=self.now
+            ).stage_issue(user, factor, previous_device_token)
         challenge.consumed_at = self.now()
         # create_session commits consumption + factor/recovery + session atomically.
         session = self.sessions.create_session(
@@ -190,7 +221,13 @@ class IdentityService:
             emit_security_event(SecurityEvent.MFA_CONFIGURED, user_id=str(user.id))
         self.emit_committed_security_events()
         emit_security_event(SecurityEvent.MFA_VALIDATED, user_id=str(user.id))
-        return MfaCompletion(user, session, codes)
+        if trusted_device is not None:
+            emit_security_event(
+                SecurityEvent.TRUSTED_DEVICE_CREATED,
+                user_id=str(user.id),
+                device_id=str(trusted_device.device.id),
+            )
+        return MfaCompletion(user, session, codes, trusted_device)
 
     def _verify(
         self, factor: AuthFactor, user: User, code: str, *, allow_recovery: bool = True
@@ -260,6 +297,7 @@ class IdentityService:
         user, factor = self._reauth(current, password, code, client_ip)
         if action == "regenerate" and factor.enabled:
             codes = self._codes(user)
+            self.sessions.stage_revoke_trusted_devices(user.id)
             self._audit(user, "mfa_recovery_codes")
             self.db.commit()
             self.emit_committed_security_events()

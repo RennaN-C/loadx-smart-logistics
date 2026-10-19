@@ -13,6 +13,7 @@ from app.modules.auth.schemas import AuthLogin
 from app.modules.auth.sessions import (
     AuthSessionInvalidError,
     AuthSessionService,
+    AuthTrustedDeviceRequiredError,
     IssuedAuthSession,
 )
 from app.modules.auth.throttling import LoginThrottleService
@@ -62,10 +63,14 @@ class AuthService:
         )
 
     def login(
-        self, data: AuthLogin, client_ip: str = "unknown"
+        self,
+        data: AuthLogin,
+        client_ip: str = "unknown",
+        *,
+        trusted_device_token: str | None = None,
     ) -> "LoginResult | MfaChallengeResult":
         # Local import preserves public auth/users service boundaries without cycles.
-        from app.modules.auth.identity_service import IdentityService
+        from app.modules.auth.identity_service import MfaChallengeResult
 
         self.login_throttle.ensure_login_allowed(data.email, client_ip)
         user = self.user_service.get_user_by_email(data.email)
@@ -100,16 +105,12 @@ class AuthService:
         if updated_hash is not None:
             user = self.user_service.upgrade_password_hash(user, updated_hash)
         verified_hash = updated_hash or expected_hash
-        identity = IdentityService(self.auth_sessions.db)
-        if identity.required(user):
-            return identity.begin(user, expected_hash=verified_hash)
-        self.login_throttle.reset_after_success(data.email, client_ip)
-        try:
-            issued_session = self.auth_sessions.create_session(
-                user.id, expected_password_hash=verified_hash, password_only=True
-            )
-        except AuthSessionInvalidError:
-            raise AuthInvalidCredentialsError from None
+        result = self._issue_verified_login(
+            user, verified_hash, data.email, client_ip, trusted_device_token
+        )
+        if isinstance(result, MfaChallengeResult):
+            return result
+        issued_session = result
         emit_security_event(
             SecurityEvent.LOGIN_SUCCEEDED,
             user_id=str(user.id),
@@ -120,6 +121,43 @@ class AuthService:
             user=user,
             session=issued_session,
         )
+
+    def _issue_verified_login(
+        self,
+        user: User,
+        verified_hash: str,
+        email: str,
+        client_ip: str,
+        trusted_device_token: str | None,
+    ) -> "IssuedAuthSession | MfaChallengeResult":
+        from app.modules.auth.identity_service import IdentityService
+
+        identity = IdentityService(self.auth_sessions.db)
+        if identity.required(user):
+            from app.modules.auth.totp import cipher
+
+            cipher(identity.key)
+            try:
+                issued_session = self.auth_sessions.create_session(
+                    user.id,
+                    expected_password_hash=verified_hash,
+                    password_only=True,
+                    trusted_device_token=trusted_device_token,
+                )
+            except AuthTrustedDeviceRequiredError:
+                return identity.begin(user, expected_hash=verified_hash)
+            except AuthSessionInvalidError:
+                raise AuthInvalidCredentialsError from None
+            self.login_throttle.reset_after_success(email, client_ip)
+        else:
+            self.login_throttle.reset_after_success(email, client_ip)
+            try:
+                issued_session = self.auth_sessions.create_session(
+                    user.id, expected_password_hash=verified_hash, password_only=True
+                )
+            except AuthSessionInvalidError:
+                raise AuthInvalidCredentialsError from None
+        return issued_session
 
     def _reject_failed_login(
         self,

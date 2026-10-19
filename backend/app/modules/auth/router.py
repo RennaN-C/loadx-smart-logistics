@@ -56,7 +56,13 @@ def login(
 ) -> User | MfaChallengeRead | JSONResponse:
     try:
         client_ip = request.client.host if request.client is not None else "unknown"
-        result = service.login(data, client_ip)
+        result = service.login(
+            data,
+            client_ip,
+            trusted_device_token=request.cookies.get(
+                settings.trusted_device_cookie_name
+            ),
+        )
         if isinstance(result, MfaChallengeResult):
             clear_session_cookie(response)
             return MfaChallengeRead(**result.__dict__)

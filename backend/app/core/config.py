@@ -30,6 +30,8 @@ class Settings(BaseSettings):
     operational_log_level: Literal["INFO", "WARNING", "ERROR"] = "INFO"
     operational_request_logs: bool = True
     evidence_storage_dir: Path | None = None
+    trusted_devices_enabled: bool = False
+    trusted_device_days: int = Field(default=30, ge=1, le=30)
     mfa_encryption_key: SecretStr | None = None
     password_recovery_provider: Literal["none", "smtp"] = "none"
     password_recovery_url: str | None = None
@@ -106,6 +108,14 @@ class Settings(BaseSettings):
             for origin in self.backend_cors_origins_raw.split(",")
             if origin.strip()
         ]
+
+    @property
+    def trusted_device_cookie_name(self) -> str:
+        return (
+            "__Host-loadx_trusted_device"
+            if self.app_env == "production"
+            else "loadx_trusted_device"
+        )
 
     @property
     def session_cookie_name(self) -> str:

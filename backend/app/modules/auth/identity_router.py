@@ -104,7 +104,13 @@ def verify_mfa(
 ) -> MfaLoginRead:
     result = identity_operation(
         lambda: IdentityService(db).complete(
-            data.challenge_token, data.code, client_ip(request)
+            data.challenge_token,
+            data.code,
+            client_ip(request),
+            trust_device=data.trust_device,
+            previous_device_token=request.cookies.get(
+                settings.trusted_device_cookie_name
+            ),
         )
     )
     response.set_cookie(
@@ -116,6 +122,17 @@ def verify_mfa(
         httponly=True,
         samesite="lax",
     )
+    if result.trusted_device is not None:
+        response.set_cookie(
+            key=settings.trusted_device_cookie_name,
+            value=result.trusted_device.token,
+            max_age=settings.trusted_device_days * 86400,
+            path="/",
+            expires=result.trusted_device.device.expires_at,
+            secure=settings.session_cookie_secure,
+            httponly=True,
+            samesite="lax",
+        )
     response.headers[CSRF_HEADER_NAME] = result.session.csrf_token
     ProfileService(db).resolve(result.user)
     return MfaLoginRead(

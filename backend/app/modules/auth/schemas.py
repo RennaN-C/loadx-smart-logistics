@@ -93,6 +93,7 @@ class MfaChallengeRead(BaseModel):
     challenge_token: str
     purpose: str
     expires_at: datetime
+    trusted_device_days: int | None = None
 
 
 class MfaChallengeInput(BaseModel):
@@ -101,6 +102,7 @@ class MfaChallengeInput(BaseModel):
 
 
 class MfaVerify(MfaChallengeInput):
+    trust_device: bool = Field(default=False, strict=True)
     code: str = Field(min_length=6, max_length=64)
 
 
@@ -121,3 +123,17 @@ class MfaProvisionRead(BaseModel):
 
 class RecoveryCodesRead(BaseModel):
     recovery_codes: list[str]
+
+
+class TrustedDeviceRead(BaseModel):
+    id: uuid.UUID
+    created_at: datetime
+    last_used_at: datetime
+    expires_at: datetime
+    current: bool
+
+
+class TrustedDeviceListRead(BaseModel):
+    enabled: bool
+    lifetime_days: int
+    items: list[TrustedDeviceRead]
