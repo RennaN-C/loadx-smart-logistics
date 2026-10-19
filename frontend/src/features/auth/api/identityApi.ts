@@ -9,8 +9,8 @@ export async function confirmRecovery(token: string, new_password: string): Prom
 export async function setupMfa(challenge_token: string): Promise<string> {
   const { data } = await api.post<{ provisioning_uri: string }>("/auth/mfa/setup", { challenge_token }); return data.provisioning_uri;
 }
-export async function verifyMfa(challenge_token: string, code: string) {
-  const { data } = await api.post<{ user: UserDto; recovery_codes: string[] }>("/auth/mfa/verify", { challenge_token, code });
+export async function verifyMfa(challenge_token: string, code: string, trust_device = false) {
+  const { data } = await api.post<{ user: UserDto; recovery_codes: string[] }>("/auth/mfa/verify", { challenge_token, code, trust_device });
   return { user: mapUserFromDto(data.user), codes: data.recovery_codes };
 }
 export async function getMfaStatus(): Promise<MfaStatus> { const { data } = await api.get<MfaStatus>("/auth/me/mfa"); return data; }

@@ -10,6 +10,7 @@ import "../pages/Identity.css";
 
 export function MfaChallengePanel({ challenge }: { readonly challenge: MfaChallenge }) {
   const { updateUser, beginMfa } = useAuth();
+  const [trustDevice, setTrustDevice] = useState(false);
   const [uri, setUri] = useState(""); const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false); const [error, setError] = useState("");
   const [completion, setCompletion] = useState<{ user: AuthenticatedUser; codes: string[] } | null>(null);
@@ -36,7 +37,7 @@ export function MfaChallengePanel({ challenge }: { readonly challenge: MfaChalle
     event.preventDefault();
     if (expired || Date.now() >= Date.parse(challenge.expires_at)) return;
     setBusy(true); setError("");
-    try { const result = await verifyMfa(challenge.challenge_token, code.trim()); setCode(""); setUri(""); if (result.codes.length) setCompletion(result); else updateUser(result.user); }
+    try { const result = await verifyMfa(challenge.challenge_token, code.trim(), trustDevice); setCode(""); setUri(""); if (result.codes.length) setCompletion(result); else updateUser(result.user); }
     catch (e) { setError(accountError(e)); } finally { setBusy(false); }
   }
   if (completion) return <div className="login-card identity-card"><RecoveryCodes codes={completion.codes} onDone={() => { updateUser(completion.user); setCompletion(null); }} /></div>;
@@ -49,6 +50,10 @@ export function MfaChallengePanel({ challenge }: { readonly challenge: MfaChalle
       {uri && <MfaProvisioning uri={uri} />}
     </>}
     <label className="identity-field" htmlFor="mfa-code">{challenge.purpose === "LOGIN" ? "Código do autenticador ou de recuperação" : "Código do autenticador"}<input id="mfa-code" autoComplete="one-time-code" required minLength={6} maxLength={64} value={code} disabled={busy || expired} onChange={e => setCode(e.target.value)} /></label>
+    {challenge.purpose === "LOGIN" && !!challenge.trusted_device_days && !expired && <div className="identity-trust-choice">
+      <label><input type="checkbox" checked={trustDevice} disabled={busy} onChange={e => setTrustDevice(e.target.checked)} aria-describedby="trusted-device-hint" />Confiar neste dispositivo por {challenge.trusted_device_days} dias</label>
+      <p id="trusted-device-hint">Use somente em um navegador pessoal. A senha continuará obrigatória. Apenas o código do autenticador cria confiança; códigos de recuperação não criam.</p>
+    </div>}
     {error && <p role="alert">{error}</p>}
     <button disabled={busy || expired || (challenge.purpose === "ENROLL" && !uri)} className="btn-primary" type="submit">{busy ? "Verificando…" : "Verificar e continuar"}</button>
     <button className="btn-secondary" disabled={busy} type="button" onClick={() => beginMfa?.(undefined)}>Voltar ao login</button>
