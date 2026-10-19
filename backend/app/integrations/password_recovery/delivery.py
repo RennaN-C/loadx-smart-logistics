@@ -7,8 +7,8 @@ from typing import Protocol
 from urllib.parse import urlsplit
 
 from app.core.config import Settings, settings
-from app.integrations.password_recovery.message import build_recovery_message
 from app.core.security_events import SecurityEvent, emit_security_event
+from app.integrations.password_recovery.message import build_recovery_message
 from app.modules.auth.totp import IdentityUnavailableError
 
 
