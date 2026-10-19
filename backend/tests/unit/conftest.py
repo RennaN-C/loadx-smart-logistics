@@ -33,8 +33,16 @@ def db_session(request: pytest.FixtureRequest) -> Generator[Session, None, None]
         # locally and keep an equivalent upper bound; official DDL/constraints
         # are exercised against PostgreSQL 16 in integration tests.
         metadata = MetaData()
-        tables = tuple(table.to_metadata(metadata) for table in tables)
-        for constraint in metadata.tables["auth_trusted_devices"].constraints:
+        for table in tables:
+            table.to_metadata(metadata)
+        trusted_table = metadata.tables["auth_trusted_devices"]
+        # Preserve conditional PostgreSQL-only DDL on all existing tables;
+        # to_metadata does not retain their ddl_if predicates.
+        tables = tuple(
+            trusted_table if table.name == "auth_trusted_devices" else table
+            for table in tables
+        )
+        for constraint in trusted_table.constraints:
             if isinstance(constraint, CheckConstraint) and "interval" in str(
                 constraint.sqltext
             ):
