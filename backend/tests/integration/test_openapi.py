@@ -365,6 +365,15 @@ EXPECTED_ERROR_STATUSES = {
         "422",
         "500",
     },
+    # Endpoint de simulação exclusivo da branch pentest-lab.
+    ("/api/v1/loading-sessions/{session_id}/check-all", "post"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
     ("/api/v1/loading-sessions/{session_id}/items/{item_id}", "patch"): {
         "401",
         "403",
