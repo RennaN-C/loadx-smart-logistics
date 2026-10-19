@@ -122,7 +122,8 @@ def test_opt_in_only_after_totp_login_and_token_not_persisted(session_factory, c
             )
             == 1
         )
-    assert issued.token not in caplog.text and secret not in caplog.text
+    assert issued.token not in caplog.text
+    assert secret not in caplog.text
 
 
 def test_recovery_code_cannot_create_trust(session_factory):
@@ -151,6 +152,7 @@ def test_recovery_code_cannot_create_trust(session_factory):
         "disabled-flag",
         "factor-disabled",
         "changed-binding",
+        "future-created",
     ],
 )
 def test_untrusted_context_requires_mfa(session_factory, monkeypatch, kind):
@@ -174,6 +176,11 @@ def test_untrusted_context_requires_mfa(session_factory, monkeypatch, kind):
             )
         if kind == "factor-disabled":
             db.scalar(select(AuthFactor)).enabled = False
+        if kind == "future-created":
+            device = db.get(AuthTrustedDevice, issued.device.id)
+            device.created_at = datetime.now(UTC) + timedelta(days=1)
+            device.last_used_at = device.created_at
+            device.expires_at = device.created_at + timedelta(days=30)
         if kind == "changed-binding":
             db.get(AuthTrustedDevice, issued.device.id).security_binding = "0" * 64
         db.commit()
@@ -186,9 +193,10 @@ def test_valid_cookie_never_bypasses_wrong_password_or_inactive_user(session_fac
     issued = trust(session_factory, user, secret)
     with session_factory() as db:
         service = AuthService(db)
+        invalid = AuthLogin(email=user.email, password="incorrect")
         with pytest.raises(AuthInvalidCredentialsError):
             service.login(
-                AuthLogin(email=user.email, password="incorrect"),
+                invalid,
                 "wrong",
                 trusted_device_token=issued.token,
             )
@@ -320,16 +328,13 @@ def test_login_cookie_lifecycle_management_origin_and_ownership(
     trusted_cookie = next(
         c for c in cookie if c.startswith(settings.trusted_device_cookie_name + "=")
     )
-    assert (
-        "HttpOnly" in trusted_cookie
-        and "SameSite=lax" in trusted_cookie
-        and "Path=/" in trusted_cookie
-        and "Max-Age=2592000" in trusted_cookie
-        and "Domain=" not in trusted_cookie
-    )
+    for flag in ("HttpOnly", "SameSite=lax", "Path=/", "Max-Age=2592000"):
+        assert flag in trusted_cookie
+    assert "Domain=" not in trusted_cookie
     csrf = response.headers["X-CSRF-Token"]
     devices = client.get(BASE + "/me/trusted-devices").json()
-    assert len(devices["items"]) == 1 and devices["items"][0]["current"]
+    assert len(devices["items"]) == 1
+    assert devices["items"][0]["current"]
     assert set(devices["items"][0]) == {
         "id",
         "created_at",
@@ -437,10 +442,11 @@ def test_audit_failure_rolls_back_factor_session_and_credential(
             raise RuntimeError("audit unavailable")
 
         monkeypatch.setattr(AuditService, "stage_administrative_event", fail)
+        code = totp_code(secret, int((NOW + timedelta(seconds=30)).timestamp()) // 30)
         with pytest.raises(RuntimeError):
             service.complete(
                 challenge.challenge_token,
-                totp_code(secret, int((NOW + timedelta(seconds=30)).timestamp()) // 30),
+                code,
                 "origin",
                 trust_device=True,
             )
@@ -601,8 +607,9 @@ def test_revocation_serializes_with_new_session(postgres_engine):
         assert staged.wait(10)
         with factory() as db:
             started.set()
+            service = AuthSessionService(db)
             with pytest.raises(AuthTrustedDeviceRequiredError):
-                AuthSessionService(db).create_session(
+                service.create_session(
                     user.id,
                     expected_password_hash=user.password_hash,
                     password_only=True,
@@ -779,12 +786,9 @@ def test_production_cookie_is_host_only_secure_and_opt_in_is_strict(
         for c in response.headers.get_list("set-cookie")
         if c.startswith("__Host-loadx_trusted_device=")
     )
-    assert (
-        "Secure" in cookie
-        and "HttpOnly" in cookie
-        and "Path=/" in cookie
-        and "Domain=" not in cookie
-    )
+    for flag in ("Secure", "HttpOnly", "Path=/"):
+        assert flag in cookie
+    assert "Domain=" not in cookie
 
 
 def test_shorter_lifetime_and_rotation_preserve_other_browser(

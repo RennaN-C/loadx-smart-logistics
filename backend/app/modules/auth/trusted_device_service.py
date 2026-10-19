@@ -5,6 +5,7 @@ import hmac
 import json
 import secrets
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
@@ -71,7 +72,9 @@ class IssuedTrustedDevice:
 
 
 class TrustedDeviceService:
-    def __init__(self, db: Session, *, now_provider=None) -> None:
+    def __init__(
+        self, db: Session, *, now_provider: Callable[[], datetime] | None = None
+    ) -> None:
         self.db = db
         self.repo = TrustedDeviceRepository(db)
         self.now = now_provider or (lambda: datetime.now(UTC))
@@ -123,6 +126,7 @@ class TrustedDeviceService:
             if (
                 device is None
                 or device.revoked_at is not None
+                or device.created_at > now
                 or device.expires_at <= now
                 or not hmac.compare_digest(
                     device.security_binding, security_binding(user, factor)

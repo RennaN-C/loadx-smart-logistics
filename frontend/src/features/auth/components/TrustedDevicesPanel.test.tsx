@@ -39,6 +39,7 @@ describe("dispositivos confiáveis próprios", () => {
     fireEvent.click(screen.getByRole("button", { name: "Revogar todos os dispositivos" }));
     fireEvent.click(screen.getByRole("button", { name: "Confirmar revogação de todos" }));
     await waitFor(() => expect(api.revokeAllTrustedDevices).toHaveBeenCalledOnce());
+    expect(screen.queryByRole("button", { name: "Confirmar revogação de todos" })).not.toBeInTheDocument();
   });
   it("trata falha de consulta e nova tentativa", async () => {
     vi.mocked(api.listTrustedDevices).mockRejectedValueOnce(new Error());

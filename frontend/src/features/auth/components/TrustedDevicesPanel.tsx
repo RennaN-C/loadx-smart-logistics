@@ -44,7 +44,7 @@ export function TrustedDevicesPanel() {
           <div><dt>Último uso</dt><dd>{formatDate(device.last_used_at)}</dd></div>
           <div><dt>Expira em</dt><dd>{formatDate(device.expires_at)}</dd></div>
         </dl></div>
-        <button type="button" className="btn-secondary" disabled={busy || loading} onClick={() => void revoke(() => device.current ? forgetCurrentDevice() : revokeTrustedDevice(device.id))} aria-label={`Remover ${device.current ? "este navegador" : `dispositivo ${device.id.slice(0, 8)}`}`}>{device.current ? "Esquecer este dispositivo" : "Remover dispositivo"}</button>
+        <button type="button" className="btn-secondary" disabled={busy || loading} onClick={() => void revoke(() => device.current ? forgetCurrentDevice() : revokeTrustedDevice(device.id))} aria-label={device.current ? "Remover este navegador" : `Remover dispositivo ${device.id.slice(0, 8)}`}>{device.current ? "Esquecer este dispositivo" : "Remover dispositivo"}</button>
       </li>)}</ul>
       {data.items.length > 0 && <div className="identity-device-actions">
         {confirmAll ? <><p>Remover a confiança de todos os navegadores desta conta?</p><button type="button" className="btn-primary" disabled={busy || loading} onClick={() => void revoke(revokeAllTrustedDevices)}>Confirmar revogação de todos</button><button type="button" className="btn-secondary" disabled={busy} onClick={() => setConfirmAll(false)}>Cancelar</button></> : <button type="button" className="btn-secondary" disabled={busy || loading} onClick={() => setConfirmAll(true)}>Revogar todos os dispositivos</button>}

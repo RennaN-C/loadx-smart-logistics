@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.security_events import SecurityEvent, emit_security_event
 from app.modules.auth.identity_repository import IdentityRepository
-from app.modules.auth.models import AuthSession
+from app.modules.auth.models import AuthSession, AuthTrustedDevice
 from app.modules.auth.repository import AuthSessionRepository
 from app.modules.auth.schemas import MFA_REQUIRED_ROLES
 from app.modules.users.models import User
@@ -82,21 +82,7 @@ class AuthSessionService:
             ):
                 raise AuthSessionInvalidError
             if password_only:
-                factor = IdentityRepository(self.db).find_factor(
-                    user.id, for_update=True
-                )
-                if user.role in MFA_REQUIRED_ROLES or (
-                    factor is not None and factor.enabled
-                ):
-                    from app.modules.auth.trusted_device_service import (
-                        TrustedDeviceService,
-                    )
-
-                    trusted_device = TrustedDeviceService(
-                        self.db, now_provider=self.now_provider
-                    ).stage_authorize(user, factor, trusted_device_token)
-                    if trusted_device is None:
-                        raise AuthTrustedDeviceRequiredError
+                trusted_device = self._validate_login_factor(user, trusted_device_token)
         now = self.now_provider()
         token = secrets.token_urlsafe(SESSION_TOKEN_BYTES)
         auth_session = self.repository.add(
@@ -127,6 +113,21 @@ class AuthSessionService:
             csrf_token=self.csrf_token_for(token),
             auth_session=auth_session,
         )
+
+    def _validate_login_factor(
+        self, user: User, token: str | None
+    ) -> AuthTrustedDevice | None:
+        from app.modules.auth.trusted_device_service import TrustedDeviceService
+
+        factor = IdentityRepository(self.db).find_factor(user.id, for_update=True)
+        if user.role not in MFA_REQUIRED_ROLES and not (factor and factor.enabled):
+            return None
+        device = TrustedDeviceService(
+            self.db, now_provider=self.now_provider
+        ).stage_authorize(user, factor, token)
+        if device is None:
+            raise AuthTrustedDeviceRequiredError
+        return device
 
     def resolve_session(self, token: str) -> ResolvedAuthSession:
         now = self.now_provider()
