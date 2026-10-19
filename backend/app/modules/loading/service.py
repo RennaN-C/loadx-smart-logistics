@@ -147,6 +147,25 @@ class LoadingService:
             session_id, item_id, "CHECKED", reject_checked=True
         )
 
+    def check_all_pending(self, session_id: uuid.UUID) -> LoadingSession:
+        """Pentest-only shortcut: check the pending volumes in one transaction.
+
+        Uses the same session lock and state restrictions as individual checks.
+        It does not finish the loading session or change another session.
+        """
+        session = self.repository.get_for_update(session_id)
+        if session is None:
+            raise LoadingSessionNotFoundError
+        if session.status != "IN_PROGRESS":
+            raise LoadingStatusTransitionError
+
+        pending = [item for item in session.items if item.status == "PENDING"]
+        if pending:
+            for item in pending:
+                item.status = "CHECKED"
+            self.db.commit()
+        return self._get_session(session.id)
+
     def _get_session(self, session_id: uuid.UUID) -> LoadingSession:
         session = self.repository.get(session_id)
         if session is None:

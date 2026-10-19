@@ -5,7 +5,7 @@ import { StatusPill } from "../../../components/StatusPill";
 import { ApiError } from "../../../types/api";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { canCheckLoading, hasPermission } from "../../auth/permissions";
-import { changeLoadingStatus, checkLoadingItem, scanLoadingItem } from "../api/loadingApi";
+import { changeLoadingStatus, checkAllLoadingItems, checkLoadingItem, scanLoadingItem } from "../api/loadingApi";
 import { LoadingChecklist } from "../components/LoadingChecklist";
 import { mapLoadingErrorToMessage } from "../components/loadingErrorMessages";
 import { ScanField, type ScanOutcome } from "../components/ScanField";
@@ -78,6 +78,15 @@ export function LoadingPage() {
     return restantes === 0
       ? `${conferido} Era o último — o checklist está completo.`
       : `${conferido} Faltam ${restantes}.`;
+  }
+
+  function handleCheckAll() {
+    if (!session || !isChecker || !inProgress || pendingCount === 0 || isWorking) return;
+    const confirmed = window.confirm(
+      `Homologação: conferir os ${pendingCount} volumes pendentes sem leitura do QR Code? ` +
+      "Isso registra a conferência no banco, mas não finaliza o carregamento.",
+    );
+    if (confirmed) void run(() => checkAllLoadingItems(session.id));
   }
 
   async function handleScan(code: string): Promise<ScanOutcome> {
@@ -156,6 +165,17 @@ export function LoadingPage() {
               </div>
             </dl>
 
+            {isChecker && inProgress && pendingCount > 0 ? (
+              <button
+                type="button"
+                className="btn-secondary"
+                disabled={isWorking}
+                onClick={handleCheckAll}
+              >
+                {isWorking ? "Conferindo…" : `Conferir todos os pendentes (teste) · ${pendingCount}`}
+              </button>
+            ) : null}
+
             {isChecker && nextStatus ? (
               <button
                 type="button"
@@ -178,9 +198,11 @@ export function LoadingPage() {
 
           {isChecker ? (
             <ScanField
-              disabled={!inProgress}
+              disabled={!inProgress || isWorking}
               disabledReason={
-                session.status === "PENDING"
+                isWorking
+                  ? "Aguarde a operação atual."
+                  : session.status === "PENDING"
                   ? "Inicie a conferência para começar a ler os códigos."
                   : "Este carregamento já foi concluído."
               }
@@ -191,6 +213,13 @@ export function LoadingPage() {
               Somente o conferente registra a conferência. Aqui você acompanha o checklist.
             </p>
           )}
+
+          {isChecker && inProgress ? (
+            <p className="entity-form-help">
+              Homologação: a conferência em lote dispensa o leitor para testes.
+              O encerramento do carregamento continua sendo uma ação separada.
+            </p>
+          ) : null}
 
           <LoadingChecklist
             rows={rows}
