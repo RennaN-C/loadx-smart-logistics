@@ -53,6 +53,21 @@ describe("verificação multifator", () => {
     await screen.findByRole("alert");
     expect(screen.getByRole("button", { name: "Preparar autenticador" })).toBeEnabled();
   });
+  it.each([false, true])("envia opt-in explícito %s somente em LOGIN", async checked => {
+    vi.mocked(identity.verifyMfa).mockResolvedValue({ user, codes: [] });
+    render(<MfaChallengePanel challenge={{ ...challenge, purpose: "LOGIN", trusted_device_days: 30 }} />);
+    const checkbox = screen.getByRole("checkbox", { name: "Confiar neste dispositivo por 30 dias" });
+    expect(checkbox).not.toBeChecked();
+    expect(checkbox).toHaveAccessibleDescription(/Apenas o código do autenticador cria confiança/);
+    if (checked) fireEvent.click(checkbox);
+    fireEvent.change(screen.getByLabelText("Código do autenticador ou de recuperação"), { target: { value: "123456" } });
+    fireEvent.click(screen.getByRole("button", { name: "Verificar e continuar" }));
+    await waitFor(() => expect(identity.verifyMfa).toHaveBeenCalledWith(challenge.challenge_token, "123456", checked));
+  });
+  it.each(["ENROLL", "LOGIN"] as const)("não oferece confiança quando inelegível em %s", purpose => {
+    render(<MfaChallengePanel challenge={{ ...challenge, purpose, trusted_device_days: purpose === "ENROLL" ? 30 : null }} />);
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+  });
   it("gerencia códigos com senha e segundo fator, sem guardar em storage", async () => {
     vi.mocked(identity.getMfaStatus).mockResolvedValue({ enabled: true, required: true });
     vi.mocked(identity.regenerateCodes).mockResolvedValue(["novo-codigo"]);
