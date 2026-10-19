@@ -49,8 +49,13 @@ def test_smtp_uses_verified_tls_timeout_and_fragment(monkeypatch):
     assert captured["context"].check_hostname
     assert captured["timeout"] == 5
     assert captured["port"] == 465
-    assert "#token=random-test-token" in captured["message"].get_content()
-    assert "fictitious-only" not in captured["message"].get_content()
+    plain = captured["message"].get_body(preferencelist=("plain",)).get_content()
+    html = captured["message"].get_body(preferencelist=("html",)).get_content()
+    assert "#token=random-test-token" in plain
+    assert "Redefinir minha senha" in html
+    assert "#token=random-test-token" in html
+    assert "fictitious-only" not in plain
+    assert "fictitious-only" not in html
 
 
 @pytest.mark.parametrize(

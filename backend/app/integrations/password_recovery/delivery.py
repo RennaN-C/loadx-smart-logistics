@@ -3,11 +3,11 @@
 import logging
 import smtplib
 import ssl
-from email.message import EmailMessage
 from typing import Protocol
 from urllib.parse import urlsplit
 
 from app.core.config import Settings, settings
+from app.integrations.password_recovery.message import build_recovery_message
 from app.core.security_events import SecurityEvent, emit_security_event
 from app.modules.auth.totp import IdentityUnavailableError
 
@@ -69,15 +69,8 @@ class SmtpRecoveryDelivery:
             raise IdentityUnavailableError
 
     def deliver(self, email: str, token: str) -> None:
-        message = EmailMessage()
-        message["Subject"] = "LoadX — recuperação de acesso"
-        message["From"] = self.config.smtp_sender
-        message["To"] = email
-        message.set_content(
-            "Uma recuperação de senha foi solicitada. O link expira em 15 minutos. Se não foi você, ignore esta mensagem.\n\n"
-            + str(self.config.password_recovery_url)
-            + "#token="
-            + token
+        message = build_recovery_message(
+            email, token, self.config.smtp_sender, self.config.password_recovery_url
         )
         tls_context = ssl.create_default_context()
         tls_context.verify_mode = ssl.CERT_REQUIRED
