@@ -60,3 +60,13 @@ URI manuais ficam em detalhes; clipboard bloqueado permite seleção manual.
 Preparação não é repetida por rerender e expiração apaga o provisionamento.
 Nenhum segredo vai para serviço de QR, Web Storage ou logs. Leia o
 [roteiro SMTP/Mailpit](../../../../backend/app/modules/auth/README.md#complemento-oc98--qr-local-e-transporte-de-e-mail).
+
+`CONFIRMADO`: Issue #222 adiciona opt-in de dispositivo confiável apenas na
+etapa LOGIN quando o servidor informa `trusted_device_days`. Checkbox inicia
+desmarcado; a explicação distingue TOTP de recuperação e alerta sobre navegador
+compartilhado. A API recebe booleano explícito, sem armazenamento de credenciais
+no JavaScript. Meu perfil → Segurança apresenta listagem real com datas, estado
+vazio/loading/erro, remoção própria e confirmação para revogar todos. Identificação
+usa UUID parcial; não inventa nome de hardware. Cookie HttpOnly é controlado
+pelo backend. Falhas mantêm a lista e oferecem nova consulta. Temas e layout
+responsivo usam tokens atuais; sessões e reautenticação sensível preservadas.

@@ -220,3 +220,51 @@ anterior. Fluxo sem usuário elegível mantém a mesma resposta, sem e-mail.
 `RISCO IDENTIFICADO`: Mailpit não comprova entrega externa, reputação de domínio,
 SPF/DKIM/DMARC ou TLS do provedor. Validar produção separadamente com configuração
 aprovada. Não há fila durável/reenvio automático nesta OC.
+
+### Dispositivos confiáveis — Issue #222
+
+`CONFIRMADO`: ADR-038 define confiança opcional por 30 dias sem prolongar sessão.
+Aplicar migration `20261019_0026` (anterior `20261018_0025`) e configurar
+`TRUSTED_DEVICES_ENABLED=true` somente no ambiente aprovado. Padrão false;
+`TRUSTED_DEVICE_DAYS=30`, aceitos 1–30. Não alterar chave MFA existente.
+
+- `MfaChallengeRead` adiciona `trusted_device_days` (null quando indisponível ou
+  ENROLL); clientes antigos continuam compatíveis.
+- `POST /auth/mfa/verify` aceita `trust_device: boolean=false` estrito. Somente
+  LOGIN + TOTP + opt-in + flag habilitada cria cookie; ENROLL/recuperação ignoram
+  opt-in. JSON de resposta continua sem token de dispositivo.
+- Cookie `__Host-loadx_trusted_device` em produção, `loadx_trusted_device` local;
+  HttpOnly, SameSite=Lax, Path=/, sem Domain e Secure em produção, Max-Age/Expires
+  absoluto de até 30 dias. Nenhum segredo em Web Storage, URLs ou logs.
+- `POST /auth/login` primeiro valida senha/throttling. Cookie válido somente
+  dispensa TOTP; sem validade, devolve desafio normal. Continua UserRead/cookie
+  da sessão de 8h com idle de 30min. Não autentica diretamente pelo dispositivo.
+
+| Método/caminho em `/api/v1/auth/me/trusted-devices` | Retorno |
+|---|---|
+| GET vazio | enabled, lifetime_days, items com id/created_at/last_used_at/expires_at/current |
+| DELETE /current | 204, esquece o navegador próprio e limpa cookie |
+| DELETE /{device_id} | 204 idempotente, UUID alheio/inexistente não revela existência; limpa cookie se correspondente |
+| POST /revoke-all | 204 idempotente, revoga confiança da conta e limpa cookie |
+
+Sessão própria exige autenticação e mutações exigem Origin/CSRF, para todos os
+perfis, inclusive CUSTOM. Não concede permissão de gestão de terceiros. Erros
+seguem envelope existente (401/403/422; storage indisponível 503 sanitizado).
+Datas UTC e listagem determinística; máximo vinte dispositivos ativos. Não
+retorna hash, vínculo de segurança, IP, User-Agent ou token. Apenas credenciais
+vigentes e compatíveis com conta/fator aparecem; revogadas permanecem no banco.
+
+`CONFIRMADO`: Meu perfil → Segurança lista dados reais e permite esquecer,
+remover e revogar todos com confirmação. A sessão atual permanece ativa.
+Alterações de segurança revogam confiança na mesma transação, incluindo
+permissões CUSTOM, reset/troca de senha, conta inativa e códigos regenerados.
+Criação/uso/remoção têm auditoria; detalhes e limites estão na ADR-038.
+
+Roteiro manual: cadastrar autenticador (sem checkbox) → sair → autenticar por
+senha + TOTP marcando confiança → sair → entrar só com senha → repetir após
+expiração da sessão → confirmar exigência de MFA em outro navegador → esquecer
+no perfil → sair → confirmar MFA obrigatório novamente. Código de recuperação
+com opt-in não cria cookie. Trocar senha/fator ou revogar confiança invalida
+imediatamente o bypass; operações sensíveis ainda pedem fator real.
+`RISCO IDENTIFICADO`: habilitar flags/deploy e teste manual final permanecem
+fora desta entrega. Nunca confiar em navegador público/compartilhado.

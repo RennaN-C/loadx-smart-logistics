@@ -119,3 +119,60 @@ Mailbox e SMTP Docker são publicados apenas no loopback. Essa infraestrutura
 não é provedor externo nem confirmação de entrega real; não altera tokens,
 rate limiting, auditoria, sessions, MFA, OC112 ou schema. Configuração e roteiro
 estão no README auth; não se troca a chave de criptografia existente.
+
+## Dispositivo confiável — Issue #222
+
+`CONFIRMADO`: recurso opt-in, desabilitado por padrão (`TRUSTED_DEVICES_ENABLED`).
+Quando habilitado, a etapa LOGIN oferece confiança por 30 dias (configuração
+`TRUSTED_DEVICE_DAYS`, intervalo 1–30). ENROLL e código de recuperação nunca
+criam confiança, mesmo se o cliente enviar opt-in. Somente TOTP válido, sem
+replay, cria a credencial na mesma transação de consumo do desafio e emissão da
+sessão. Não existe isenção no primeiro cadastro obrigatório. A senha continua
+obrigatória em toda nova autenticação, antes da consulta de confiança. Sessão
+normal preserva idle de 30 minutos e limite absoluto de 8 horas.
+
+Credencial CSPRNG de 256 bits em cookie próprio HttpOnly, SameSite=Lax, Path=/,
+sem Domain, Secure em produção e prefixo `__Host-`. Local HTTP usa nome sem
+prefixo. Expiração absoluta e Max-Age seguem o prazo configurado; uso nunca
+renova esse prazo. Proxy same-origin `/api` não modifica Path/Domain. PostgreSQL
+guarda apenas SHA-256 do token e um vínculo SHA-256 com hash da senha, papel,
+perfil CUSTOM e segredo cifrado/estado atual do fator. Não usa IP/User-Agent
+como identidade, nem persiste TOTP, senha, recuperação ou token em claro.
+A `security_version` do desafio atual muda a cada login e não é versão durável
+adequada à confiança: conserva-se seu comportamento, sem revogar outro navegador
+por um login comum. A vinculação à credencial/fator é reforçada por revogação
+transacional em toda mudança de segurança, inclusive reversões.
+
+Troca/reset de senha, alteração de e-mail/papel/perfil, desativação da conta,
+alteração de permissões do perfil CUSTOM, troca/desativação do fator, regeneração
+de códigos e revogação explícita de sessões invalidam a confiança. Logout comum
+preserva o cookie e não amplia sessão. A confiança não substitui senha/TOTP na
+reautenticação de operações sensíveis. Sem cookie válido, fator ativo, storage
+ou chave MFA, não se emite sessão por confiança. Desabilitar a flag impede
+emissão e uso imediatamente; gestão/revogação continua acessível.
+
+Locks seguem a conta antes de fator/dispositivo/sessão; o gate de emissão
+revalida senha, conta, fator e dispositivo sob esses locks. Último uso, auditoria
+e sessão compartilham commit; falha não deixa confiança/sessão parcial. Emissão
+substitui a credencial anterior própria após TOTP e mantém no máximo vinte
+ativas por conta, revogando as mais antigas deterministicamente. Não altera o
+cookie de outra conta até opt-in válido da conta atual. Listagem expõe somente
+UUID, criação, último uso, expiração e indicador do navegador atual. Identificação
+visual usa UUID parcial, sem inferir marca de aparelho/localização.
+
+Gestão própria exige sessão, Origin e CSRF. Remoção individual/todos/atual é
+idempotente e sempre limitada ao usuário da sessão; UUID alheio equivale a
+inexistente. Remover confiança não encerra a sessão atual: invalida o próximo
+bypass imediatamente. Auditoria de criação/uso/remoção explícita registra
+USER_UPDATED sem valores secretos; invalidações derivadas compartilham a
+transação/auditoria da mudança de segurança que as causou. Eventos JSON próprios
+são emitidos somente após commit, com UUIDs e contagens. Histórico revogado é
+preservado; downgrade bloqueia tabela populada. Sem nova dependência externa.
+
+`RISCO IDENTIFICADO`: cookie roubado junto da senha pode substituir o fator até
+revogação/expiração. Não usar em navegador compartilhado; logout sozinho não
+remove a confiança. Não há identificação por hardware, proteção contra cópia do
+cookie ou sincronização automática entre dispositivos. Ativação em homologação
+requer aplicar migration e configurar a flag no ambiente aprovado, fora desta
+entrega sem deploy. Bases legadas precisam reconciliação preservadora antes de
+upgrade; não fazer stamp/reset.
