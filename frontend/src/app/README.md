@@ -12,7 +12,9 @@ entre **Cadastros** (o que se cadastra uma vez) e **Operação** (o que se movim
 
 `NAV_GROUPS` declara os perfis que leem cada item, espelhando o `require_roles` do backend.
 Esconder o link não substitui o backend, que continua barrando — evita só oferecer um caminho
-que responderia 403. **Grupo que fica sem itens some junto com o título**, senão o conferente
+que responderia 403. Na OC112, o rótulo de Clientes/Motoristas reflete apenas
+os cadastros consultáveis; Relatórios e indicadores exige ambos os grants
+`loadx.reports.read` e `loadx.orders.read`, pois a página consulta pedidos. **Grupo que fica sem itens some junto com o título**, senão o conferente
 veria "Cadastros" sobre lugar nenhum.
 
 Até 900px, o menu global é uma gaveta sobreposta, acionada pela barra compacta.

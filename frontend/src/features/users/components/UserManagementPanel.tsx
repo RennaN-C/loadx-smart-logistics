@@ -13,11 +13,11 @@ import { UserEditor } from "./UserEditor";
 import { ROLE_LABELS, userError } from "./userPresentation";
 import "./UserManagement.css";
 
-export function UserManagementPanel() {
+export function UserManagementPanel({ active = true, onManageProfiles }: { readonly active?: boolean; readonly onManageProfiles?: () => void }) {
   const { user, updateUser: updateSession } = useAuth();
   const [filters, setFilters] = useState({ search: "", role: "all", active: "all", sortOrder: "desc" as "asc" | "desc" });
   const load = useCallback((params: ListParams) => listUsers({ ...params, search: filters.search, sortOrder: filters.sortOrder, ...(filters.role !== "all" ? { role: filters.role as Role } : {}), ...(filters.active !== "all" ? { active: filters.active === "true" } : {}) }), [filters]);
-  const list = useResourceList(load, user?.role === "ADMIN" && user.active);
+  const list = useResourceList(load, user?.role === "ADMIN" && user.active && active);
   const edit = useEditTarget(getUser);
   const [creating, setCreating] = useState(false); const [notice, setNotice] = useState("");
   function filter(next: typeof filters) { setFilters(next); list.goToPage(1); }
@@ -26,14 +26,14 @@ export function UserManagementPanel() {
     const wasCreating = creating; close();
     if (account.id === user?.id) {
       if (revoked) { updateSession(null, "session-revoked"); return; }
-      const { id, name, email, role, active, createdAt } = account;
-      updateSession({ id, name, email, role, active, createdAt });
+      const { id, name, email, role, active, createdAt, permissions, customProfileId, customProfileName } = account;
+      updateSession({ id, name, email, role, active, createdAt, permissions, customProfileId, customProfileName });
     }
     setNotice(wasCreating ? "Usuário criado com sucesso." : "Usuário atualizado com sucesso."); void list.refetch();
   }
   if (!user?.active || user.role !== "ADMIN") return null;
   return <div className="user-management">
-    <div className="user-toolbar"><p className="user-muted">Contas de acesso ao LoadX. Os perfis mantêm as permissões definidas pelo sistema.</p><button type="button" className="btn-primary" disabled={edit.loadingId !== null} onClick={() => { setNotice(""); setCreating(true); }}><Icon name="plus" size={18} />Criar usuário</button></div>
+    <div className="user-toolbar"><p className="user-muted">Administre as pessoas da operação e atribua o acesso adequado a cada conta.</p><button type="button" className="btn-primary" disabled={edit.loadingId !== null} onClick={() => { setNotice(""); setCreating(true); }}><Icon name="plus" size={18} />Criar usuário</button></div>
     <div className="user-filters">
       <label>Buscar por nome<input type="search" maxLength={120} value={filters.search} placeholder="Nome da pessoa" onChange={(event) => filter({ ...filters, search: event.target.value })} /></label>
       <label>Filtrar perfil<select value={filters.role} onChange={(event) => filter({ ...filters, role: event.target.value })}><option value="all">Todos os perfis</option>{Object.entries(ROLE_LABELS).map(([role, label]) => <option key={role} value={role}>{label}</option>)}</select></label>
@@ -49,12 +49,12 @@ export function UserManagementPanel() {
       <p className="user-muted">Exibindo {list.items.length} de {list.total} usuários.</p>
       <ul className="user-list" aria-label="Contas de usuários">{list.items.map((account) => <li className="user-row" key={account.id}>
         <div className="user-row-identity"><h3>{account.name}{account.id === user.id ? <span className="user-own">Sua conta</span> : null}</h3><p>{account.email}</p></div>
-        <div className="user-row-access"><span>{ROLE_LABELS[account.role]}</span><StatusPill tone={account.active ? "good" : "neutral"}>{account.active ? "Ativo" : "Inativo"}</StatusPill></div>
+        <div className="user-row-access"><span>{account.customProfileName ?? ROLE_LABELS[account.role]}</span><StatusPill tone={account.active ? "good" : "neutral"}>{account.active ? "Ativo" : "Inativo"}</StatusPill></div>
         <p className="user-row-link">{account.driverId ? account.driverName ?? "Motorista vinculado" : "Sem vínculo de motorista"}</p>
         <button type="button" className="btn-secondary" disabled={edit.loadingId !== null} aria-label={`Editar ${account.name}`} onClick={() => { setNotice(""); void edit.open(account.id); }}>{edit.loadingId === account.id ? "Abrindo…" : "Editar conta"}</button>
       </li>)}</ul>
       <Pagination page={list.page} totalPages={list.totalPages} onChange={list.goToPage} label="usuários" />
     </> : null}
-    {creating || edit.target ? <UserEditor key={edit.target?.id ?? "new"} account={edit.target ?? undefined} ownId={user.id} onClose={close} onSaved={saved} /> : null}
+    {creating || edit.target ? <UserEditor active={active} onManageProfiles={onManageProfiles} key={edit.target?.id ?? "new"} account={edit.target ?? undefined} ownId={user.id} onClose={close} onSaved={saved} /> : null}
   </div>;
 }

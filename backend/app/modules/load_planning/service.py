@@ -124,12 +124,14 @@ class LoadPlanningService:
         self.status_history_service = StatusHistoryService(db)
 
     def get_continuity(
-        self, plan: LoadPlan, *, requester_role: str
+        self, plan: LoadPlan, *, requester_role: str, can_read_trips: bool | None = None
     ) -> LoadPlanContinuityRead:
         loading = LoadingReferenceService(self.db).get_by_load_plan_id(plan.id)
+        if can_read_trips is None:
+            can_read_trips = requester_role in {"ADMIN", "LOGISTICS_MANAGER"}
         trip = (
             DeliveryReferenceService(self.db).get_trip_for_load_plan(plan.id)
-            if requester_role in {"ADMIN", "LOGISTICS_MANAGER"}
+            if can_read_trips
             else None
         )
         operational = LoadPlanReferenceService(self.db).get_operational_plan(plan.id)

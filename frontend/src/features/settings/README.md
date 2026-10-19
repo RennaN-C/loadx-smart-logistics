@@ -13,7 +13,7 @@ SettingsSection compõe seções identificadas/rotuladas semanticamente; conta e
 administração ficam separadas das configurações próprias do módulo LoadX.
 Layout, navegação, alertas e tokens visuais existentes são reutilizados.
 
-`PENDENTE DE DEFINIÇÃO`: gestão de usuários OC86 permanece informativa, sem chamadas ou rotas fictícias. Segurança da própria conta (OC92) usa a rota autenticada `/account`, disponível a todos os perfis; Configurações continua ADMIN. Configurações logísticas permanecem no módulo e futuras funções de conta podem ser delegadas sem alterar páginas operacionais.
+`CONFIRMADO`: gestão de usuários OC86/OC112 é funcional na seção administrativa, com abas Usuários e Perfis de acesso. Segurança da própria conta (OC92) usa a rota autenticada `/account`, disponível a todos os perfis; Configurações continua ADMIN. Configurações logísticas permanecem no módulo e futuras funções de conta podem ser delegadas sem alterar páginas operacionais.
 CoreFlow, SSO, tenant e licenciamento não são implementados nem dependências.
 
 `CONFIRMADO`: não persiste preferências críticas no navegador. Nenhum cadastro
@@ -53,11 +53,11 @@ regiões/labels existentes e loading em output sem alteração das guardas OC85/
 Sem storage local. Não implementa OC83, OC84, OC103 ou provider externo de IA.
 
 
-`CONFIRMADO` (OC92): Conta e administração agora oferece link funcional para `/account` (Meu perfil, senha e sessões). Gestão de usuários permanece em preparação na OC86. A conta pessoal está disponível para todos os perfis via Minha conta, sem liberar Configurações aos demais. Dados da empresa e Integrações e Saúde preservados.
+`CONFIRMADO` (OC92): Conta e administração agora oferece link funcional para `/account` (Meu perfil, senha e sessões). Gestão de usuários possui seção própria com atribuição e consulta de perfis. A conta pessoal está disponível para todos os perfis via Minha conta, sem liberar Configurações aos demais. Dados da empresa e Integrações e Saúde preservados.
 
 ## Experiência de Configurações — manutenção #200
 
-`CONFIRMADO`: a página usa quatro subseções na sidebar global, sem abas horizontais nem outro menu. A sidebar é recolhível no desktop e abre em gaveta no celular; clicar no pai Configurações expande ou recolhe as opções. Os links nativos preservam `aria-current`, foco e navegação por teclado. Somente uma seção fica visível e disponível à
+`CONFIRMADO`: a página usa subseções na sidebar global, sem abas horizontais nem outro menu. A sidebar é recolhível no desktop e abre em gaveta no celular; clicar no pai Configurações expande ou recolhe as opções. Os links nativos preservam `aria-current`, foco e navegação por teclado. Somente uma seção fica visível e disponível à
 tecnologia assistiva por vez. Os fragmentos existentes (`#settings-account`,
 `#settings-company`, `#settings-integrations`, `#settings-logistics`) abrem a
 seção correspondente após F5 ou acesso direto. Anterior/próxima do navegador
@@ -109,7 +109,9 @@ nova, alteração de RBAC ou contrato HTTP. Backend permanece fonte de verdade.
 ## OC86 — Usuários
 
 `CONFIRMADO`: `/settings#settings-users` integra a navegação única da sidebar e
-RequireSettingsAdmin. Apenas a seção ativa monta UserManagementPanel, evitando
-consultas administrativas em outras seções e descartando senhas ao sair. Não
+RequireSettingsAdmin. Apenas a seção ativa monta AccessManagementPanel, com abas internas para
+UserManagementPanel e ProfilesPanel. Consultas administrativas só ocorrem na aba
+ativa; sair da seção descarta senhas e rascunhos. O fragmento antigo
+#settings-profiles redireciona para #settings-users-profiles, sem menu duplicado. Não
 altera o estado dos formulários institucionais existentes nem Meu perfil/tema.
 O atalho Gerenciar usuários substitui o aviso de preparação em Conta.

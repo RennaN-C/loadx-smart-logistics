@@ -5,7 +5,7 @@ import { AlertBanner } from "../../../components/AlertBanner";
 import { Tabs, type TabItem } from "../../../components/Tabs";
 import { ApiError } from "../../../types/api";
 import { useAuth } from "../../auth/hooks/useAuth";
-import { canManageLogistics } from "../../auth/permissions";
+import { hasPermission } from "../../auth/permissions";
 import { AuditTrail } from "../../audit/components/AuditTrail";
 import { downloadLoadingReport } from "../../reports/api/reportsApi";
 import { ReportDownloadButton } from "../../reports/components/ReportDownloadButton";
@@ -85,10 +85,11 @@ interface PlanningResultProps extends ComponentProps<typeof PlanSummary> {
   readonly onTabChange: (tab: PlanTab) => void;
 }
 
-function PlanningResult({ plan, canManage, isWorking, onApprove, onRecalculate, tab, onTabChange }: PlanningResultProps) {
+function PlanningResult({ plan, canManage, approvalAllowed, isWorking, onApprove, onRecalculate, tab, onTabChange }: PlanningResultProps) {
+  const { user } = useAuth();
   return <>
     <p className="entity-form-help">Plano {plan.id.slice(0, 8)} salvo. <Link to={`/planning/${plan.id}`}>Abrir este plano</Link> ou reencontre em <Link to="/planning">Planos existentes</Link>.</p>
-    <PlanSummary plan={plan} canManage={canManage} isWorking={isWorking} onApprove={onApprove} onRecalculate={onRecalculate} />
+    <PlanSummary plan={plan} canManage={canManage} approvalAllowed={approvalAllowed} isWorking={isWorking} onApprove={onApprove} onRecalculate={onRecalculate} />
     <Tabs items={PLAN_TABS} active={tab} onChange={onTabChange} label="Formato do resultado" />
     <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
       {tab === "summary" ? <PlanItemsTable items={plan.items} /> :
@@ -96,7 +97,7 @@ function PlanningResult({ plan, canManage, isWorking, onApprove, onRecalculate, 
           <LoadViewer planId={plan.id} plan={plan} />
         </Suspense>}
     </div>
-    {canManage ? <AuditTrail entityType="LOAD_PLAN" entityId={plan.id} title="Histórico do plano" /> : null}
+    {hasPermission(user, "loadx.audit.read") ? <AuditTrail entityType="LOAD_PLAN" entityId={plan.id} title="Histórico do plano" /> : null}
   </>;
 }
 
@@ -106,8 +107,8 @@ export function PlanningPage() {
   const [searchParams] = useSearchParams();
   const isNew = searchParams.get("tab") === "new";
   const { user } = useAuth();
-  const canDownload = canReadReports(user?.role);
-  const canRead = user?.active === true && ["ADMIN", "LOGISTICS_MANAGER", "CHECKER"].includes(user.role);
+  const canDownload = canReadReports(user);
+  const canRead = hasPermission(user, "loadx.planning.read");
 
   const [storedPlan, setPlan] = useState<LoadPlan | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -127,7 +128,7 @@ export function PlanningPage() {
   const readablePlan = user?.role !== "CHECKER" || storedPlan?.status === "APPROVED";
   const plan = storedPlan?.id === planId && readablePlan ? storedPlan : null;
 
-  const canManage = canManageLogistics(user?.role);
+  const canManage = hasPermission(user, "loadx.planning.create");
 
   const toMessage = (error: unknown) =>
     mapLoadPlanErrorToMessage(
@@ -206,7 +207,7 @@ export function PlanningPage() {
     <PlanningHeader plan={plan} canManage={canManage} canDownload={canDownload} />
     <PlanningFeedback error={errorMessage} loading={isLoading} hasPlanId={Boolean(planId)} hasPlan={Boolean(plan)} retry={() => setLoadAttempt((value) => value + 1)} />
     {!planId && !isLoading ? <PlanningWorkspace isNew={isNew} canManage={canManage} checker={user?.role === "CHECKER"} onCalculated={handleCalculated} /> : null}
-    {plan && !isLoading ? <PlanningResult plan={plan} canManage={canManage} isWorking={isWorking}
+    {plan && !isLoading ? <PlanningResult plan={plan} canManage={canManage} approvalAllowed={hasPermission(user, "loadx.planning.approve")} isWorking={isWorking}
       onApprove={() => void runAction(approveLoadPlan)} onRecalculate={() => void runAction(recalculateLoadPlan)} tab={tab} onTabChange={setTab} /> : null}
   </div>;
 }

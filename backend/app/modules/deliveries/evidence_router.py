@@ -29,8 +29,8 @@ from app.modules.deliveries.evidence_service import (
 )
 from app.modules.deliveries.router import (
     TRIP_SERVICE_ERRORS,
-    TripOperator,
-    TripReader,
+    DeliveryOperator,
+    DeliveryReader,
     _trip_error_response,
 )
 
@@ -113,7 +113,7 @@ def _evidence_error(error: Exception) -> JSONResponse:
 def register_evidence(
     delivery_id: uuid.UUID,
     payload: DeliveryEvidenceCreate,
-    current_user: TripOperator,
+    current_user: DeliveryOperator,
     service: EvidenceService,
 ):
     try:
@@ -125,7 +125,7 @@ def register_evidence(
 @router.get("", response_model=PageResponse[DeliveryEvidenceRead])
 def list_evidences(
     delivery_id: uuid.UUID,
-    current_user: TripReader,
+    current_user: DeliveryReader,
     service: EvidenceService,
     pagination: Pagination,
 ):
@@ -140,7 +140,7 @@ def list_evidences(
 def get_evidence(
     delivery_id: uuid.UUID,
     evidence_id: uuid.UUID,
-    current_user: TripReader,
+    current_user: DeliveryReader,
     service: EvidenceService,
 ):
     try:
@@ -164,7 +164,7 @@ def get_evidence(
 def download_evidence(
     delivery_id: uuid.UUID,
     evidence_id: uuid.UUID,
-    current_user: TripReader,
+    current_user: DeliveryReader,
     service: EvidenceService,
 ):
     try:
@@ -189,7 +189,7 @@ def revoke_evidence(
     delivery_id: uuid.UUID,
     evidence_id: uuid.UUID,
     _payload: DeliveryEvidenceRevoke,
-    current_user: TripOperator,
+    current_user: DeliveryOperator,
     service: EvidenceService,
 ):
     try:

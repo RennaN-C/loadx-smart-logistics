@@ -11,9 +11,9 @@ vi.mock("../features/trucks/pages/TruckWorkspacePage", () => ({ TruckWorkspacePa
 vi.mock("../features/reports/pages/ReportsPage", () => ({ ReportsPage: () => { pages.reports(); return <h1>Relatórios e indicadores</h1>; } }));
 const ROLES: readonly Role[] = ["ADMIN", "LOGISTICS_MANAGER", "CHECKER", "DRIVER"];
 beforeEach(() => vi.clearAllMocks());
-function open(role: Role, path: string) {
+function open(role: Role, path: string, permissions?: string[]) {
   window.history.replaceState({}, "", path);
-  vi.mocked(getCurrentUser).mockResolvedValue({ id: "user", name: "Conta de teste", email: "account@example.test", role, active: true, createdAt: "2026-01-01T00:00:00Z" });
+  vi.mocked(getCurrentUser).mockResolvedValue({ id: "user", name: "Conta de teste", email: "account@example.test", role, active: true, createdAt: "2026-01-01T00:00:00Z", ...(permissions ? { permissions } : {}) });
   return render(<App />);
 }
 describe("Consolidação e compatibilidade de rotas", () => {
@@ -35,6 +35,17 @@ describe("Consolidação e compatibilidade de rotas", () => {
     await screen.findByRole("heading", { name: "Caminhões e frota" });
     await waitFor(() => expect(window.location.pathname + window.location.search).toBe("/trucks?tab=availability"));
   });
+  it.each([
+    [["loadx.orders.read"], false],
+    [["loadx.reports.read"], false],
+    [["loadx.orders.read", "loadx.reports.read"], true],
+  ] as const)("CUSTOM em /reports com %j: acesso permitido = %s", async (permissions, allowed) => {
+    open("CUSTOM", "/reports", [...permissions]);
+    await screen.findByRole("heading", { name: allowed ? "Relatórios e indicadores" : "Acesso negado" });
+    if (allowed) expect(pages.reports).toHaveBeenCalledOnce();
+    else expect(pages.reports).not.toHaveBeenCalled();
+  });
+
   it.each(["/fleet", "/trucks", "/reports"])("DRIVER não monta consultas protegidas em %s", async (path) => {
     open("DRIVER", path);
     await screen.findByRole("heading", { name: "Acesso negado" });

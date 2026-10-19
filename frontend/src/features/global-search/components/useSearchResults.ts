@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import type { Role } from "../../auth/types";
+import type { PermissionSubject } from "../../auth/permissions";
 import { searchRecords, type SearchResult } from "../api/searchApi";
 import { visibleResults } from "./searchPresentation";
 
 export type SearchStatus = "idle" | "loading" | "ready" | "error";
-export function useSearchResults(query: string, role: Role | undefined) {
+export function useSearchResults(query: string, role: PermissionSubject) {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [status, setStatus] = useState<SearchStatus>("idle");
   const [attempt, setAttempt] = useState(0);

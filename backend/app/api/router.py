@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from app.core.responses import openapi_error_responses
+from app.modules.access_profiles.router import router as profiles_router
 from app.modules.attachments.router import router as attachments_router
 from app.modules.auth.router import router as auth_router
 from app.modules.company_profile.router import router as company_profile_router
@@ -67,3 +68,5 @@ api_router.include_router(attachments_router)
 api_router.include_router(registration_imports_router)
 
 api_router.include_router(global_search_router)
+
+api_router.include_router(profiles_router)

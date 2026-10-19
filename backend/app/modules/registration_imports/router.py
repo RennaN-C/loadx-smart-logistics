@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.core.pagination import PageResponse, Pagination, to_page_response
 from app.core.responses import error_response, openapi_error_responses
 from app.database.session import get_db
-from app.modules.auth.dependencies import require_roles
+from app.modules.auth.dependencies import require_permission
 from app.modules.registration_imports.schemas import (
     ImportConfirm,
     ImportEntity,
@@ -32,7 +32,7 @@ router = APIRouter(
     tags=["registration-imports"],
     responses=openapi_error_responses(401, 403, 404, 409, 422),
 )
-Actor = Annotated[User, Depends(require_roles("ADMIN", "LOGISTICS_MANAGER"))]
+Actor = Annotated[User, Depends(require_permission("loadx.imports.manage"))]
 
 
 def get_import_service(db: Annotated[Session, Depends(get_db)]) -> ImportService:

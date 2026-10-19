@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.responses import error_response, openapi_error_responses
 from app.database.session import get_db
-from app.modules.auth.dependencies import require_roles
+from app.modules.auth.dependencies import require_permission
 from app.modules.loading.models import LoadingSession
 from app.modules.loading.schemas import (
     LoadingItemScan,
@@ -31,11 +31,9 @@ from app.modules.users.models import User
 
 router = APIRouter(prefix="/loading-sessions", tags=["loading"])
 LOADING_SESSION_NOT_FOUND_MESSAGE = "Sessão de carregamento não encontrada."
-Creator = Annotated[User, Depends(require_roles("ADMIN", "LOGISTICS_MANAGER"))]
-Checker = Annotated[User, Depends(require_roles("ADMIN", "CHECKER"))]
-Reader = Annotated[
-    User, Depends(require_roles("ADMIN", "CHECKER", "LOGISTICS_MANAGER"))
-]
+Creator = Annotated[User, Depends(require_permission("loadx.loading.create"))]
+Checker = Annotated[User, Depends(require_permission("loadx.loading.operate"))]
+Reader = Annotated[User, Depends(require_permission("loadx.loading.read"))]
 
 
 def get_loading_service(db: Annotated[Session, Depends(get_db)]) -> LoadingService:

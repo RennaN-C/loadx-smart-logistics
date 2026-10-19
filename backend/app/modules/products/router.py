@@ -9,7 +9,7 @@ from app.core.pagination import PageResponse, Pagination, to_page_response
 from app.core.responses import error_response, openapi_error_responses
 from app.core.search import SearchQuery
 from app.database.session import get_db
-from app.modules.auth.dependencies import require_roles
+from app.modules.auth.dependencies import require_permission
 from app.modules.products.models import Product
 from app.modules.products.schemas import (
     ProductCreate,
@@ -26,14 +26,8 @@ from app.modules.users.models import User
 from app.shared.record_lifecycle import ArchiveFilter, active_filter
 
 router = APIRouter(prefix="/products", tags=["products"])
-ProductReader = Annotated[
-    User,
-    Depends(require_roles("ADMIN", "CHECKER", "LOGISTICS_MANAGER")),
-]
-ProductManager = Annotated[
-    User,
-    Depends(require_roles("ADMIN", "LOGISTICS_MANAGER")),
-]
+ProductReader = Annotated[User, Depends(require_permission("loadx.products.read"))]
+ProductManager = Annotated[User, Depends(require_permission("loadx.products.manage"))]
 
 
 def get_product_service(db: Annotated[Session, Depends(get_db)]) -> ProductService:

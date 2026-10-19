@@ -9,7 +9,8 @@ from app.core.pagination import PageResponse, Pagination, to_page_response
 from app.core.responses import error_response, openapi_error_responses
 from app.core.search import SearchQuery
 from app.database.session import get_db
-from app.modules.auth.dependencies import require_roles
+from app.modules.access_profiles.catalog import Permission, has_permission
+from app.modules.auth.dependencies import require_permission
 from app.modules.orders.models import Order
 from app.modules.orders.schemas import (
     OrderCreate,
@@ -31,14 +32,8 @@ from app.modules.orders.service import (
 from app.modules.users.models import User
 
 router = APIRouter(prefix="/orders", tags=["orders"])
-OrderReader = Annotated[
-    User,
-    Depends(require_roles("ADMIN", "CHECKER", "LOGISTICS_MANAGER")),
-]
-OrderManager = Annotated[
-    User,
-    Depends(require_roles("ADMIN", "LOGISTICS_MANAGER")),
-]
+OrderReader = Annotated[User, Depends(require_permission("loadx.orders.read"))]
+OrderManager = Annotated[User, Depends(require_permission("loadx.orders.manage"))]
 
 
 def get_order_service(db: Annotated[Session, Depends(get_db)]) -> OrderService:
@@ -61,7 +56,9 @@ def list_orders(
         pagination,
         search=search,
         status=status,
-        allow_customer_name_search=current_user.role in {"ADMIN", "LOGISTICS_MANAGER"},
+        allow_customer_name_search=has_permission(
+            current_user, Permission.CUSTOMERS_READ
+        ),
     )
     return to_page_response(
         result,

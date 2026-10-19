@@ -94,6 +94,18 @@ class AuthSessionRepository:
         )
         return self.db.scalars(statement).all()
 
+    def list_active_for_users_for_update(
+        self, user_ids: Sequence[uuid.UUID]
+    ) -> Sequence[AuthSession]:
+        if not user_ids:
+            return []
+        return self.db.scalars(
+            select(AuthSession)
+            .where(AuthSession.user_id.in_(user_ids), AuthSession.revoked_at.is_(None))
+            .order_by(AuthSession.user_id, AuthSession.id)
+            .with_for_update()
+        ).all()
+
     def list_live_for_user(
         self, user_id: uuid.UUID, now: datetime
     ) -> Sequence[AuthSession]:

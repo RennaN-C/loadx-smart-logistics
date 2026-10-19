@@ -3,6 +3,7 @@ from urllib.parse import urlencode
 from sqlalchemy.orm import Session
 
 from app.core.pagination import PaginationParams
+from app.modules.access_profiles.catalog import Permission, has_permission
 from app.modules.customers.service import CustomerService
 from app.modules.deliveries.service import TripService
 from app.modules.drivers.service import DriverService
@@ -21,9 +22,9 @@ class GlobalSearchService:
     def search(self, term: str, limit: int, *, current_user: User) -> SearchResponse:
         page = PaginationParams(page=1, page_size=limit, sort_order="desc")
         results: list[SearchResult] = []
-        manager = current_user.role in {"ADMIN", "LOGISTICS_MANAGER"}
+        manager = has_permission(current_user, Permission.CUSTOMERS_READ)
         query = urlencode({"search": term})
-        if manager or current_user.role == "CHECKER":
+        if has_permission(current_user, Permission.ORDERS_READ):
             orders = OrderService(self.db).list_orders(
                 page, search=term, allow_customer_name_search=manager
             )
@@ -36,6 +37,7 @@ class GlobalSearchService:
                 )
                 for item in orders.items
             )
+        if has_permission(current_user, Permission.TRUCKS_READ):
             trucks = TruckService(self.db).list_trucks(page, active=True, search=term)
             results.extend(
                 SearchResult(
@@ -46,7 +48,7 @@ class GlobalSearchService:
                 )
                 for item in trucks.items
             )
-        if manager:
+        if has_permission(current_user, Permission.CUSTOMERS_READ):
             customers = CustomerService(self.db).list_customers(
                 page, active=True, search=term
             )
@@ -59,6 +61,7 @@ class GlobalSearchService:
                 )
                 for item in customers.items
             )
+        if has_permission(current_user, Permission.DRIVERS_READ):
             drivers = DriverService(self.db).list_drivers(
                 page, active=True, search=term
             )
@@ -71,7 +74,9 @@ class GlobalSearchService:
                 )
                 for item in drivers.items
             )
-        if manager or current_user.role == "DRIVER":
+        if has_permission(current_user, Permission.TRIPS_READ) or has_permission(
+            current_user, Permission.TRIPS_OWN
+        ):
             trips = TripService(self.db).list_trips(
                 page, current_user=current_user, search=term
             )

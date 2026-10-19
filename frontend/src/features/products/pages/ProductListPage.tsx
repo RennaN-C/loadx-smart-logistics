@@ -6,7 +6,7 @@ import { Modal } from "../../../components/Modal";
 import { MAX_SEARCH_LENGTH, type ListParams } from "../../../services/pagination";
 import { Pagination } from "../../../components/Pagination";
 import { useAuth } from "../../auth/hooks/useAuth";
-import { canManageLogistics } from "../../auth/permissions";
+import { canManageLogistics, hasPermission } from "../../auth/permissions";
 import { ProductCard } from "../components/ProductCard";
 import { ProductForm } from "../components/ProductForm";
 import { mapProductErrorToMessage } from "../components/productsErrorMessages";
@@ -44,7 +44,7 @@ export function ProductListPage() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
-  const canManage = canManageLogistics(user?.role);
+  const canManage = canManageLogistics(user, "products");
   const isFormOpen = isCreating || editingProduct !== null;
 
   function closeForm() {
@@ -57,6 +57,7 @@ export function ProductListPage() {
     await refetch();
   }
 
+  const unfilteredEmpty = search.trim() === "" && restrictionFilter === "all" && archiveStatus === "active" && total === 0;
   return (
     <div className="entity-page">
       <header className="entity-header">
@@ -73,7 +74,7 @@ export function ProductListPage() {
       </header>
 
       <div className="entity-toolbar">
-        {canManage ? <ImportAction entity="products" onImported={refetch} /> : null}
+        <ImportAction enabled={hasPermission(user, "loadx.imports.manage")} entity="products" onImported={refetch} />
         <ArchiveFilter value={archiveStatus} onChange={setArchiveStatus} />
         <input
           type="search"
@@ -109,13 +110,7 @@ export function ProductListPage() {
 
       {status === "error" && error ? <AlertBanner>{mapProductErrorToMessage(error)}</AlertBanner> : null}
 
-      {status === "success" && products.length === 0 ? (
-        <p className="entity-state">
-          {search.trim() === "" && restrictionFilter === "all" && archiveStatus === "active" && total === 0
-            ? "Nenhum produto cadastrado ainda."
-            : "Nenhum produto encontrado com esses filtros."}
-        </p>
-      ) : null}
+      <ProductEmptyState show={status === "success" && products.length === 0} unfiltered={unfilteredEmpty} />
 
       {products.length > 0 ? (
         <div className="entity-grid">
@@ -150,4 +145,9 @@ export function ProductListPage() {
       ) : null}
     </div>
   );
+}
+
+function ProductEmptyState({ show, unfiltered }: { readonly show: boolean; readonly unfiltered: boolean }) {
+  if (!show) return null;
+  return <p className="entity-state">{unfiltered ? "Nenhum produto cadastrado ainda." : "Nenhum produto encontrado com esses filtros."}</p>;
 }

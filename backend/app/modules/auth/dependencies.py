@@ -19,6 +19,8 @@ from app.modules.auth.sessions import (
 from app.modules.users.models import User
 from app.modules.users.schemas import USER_ROLE_VALUES
 
+AUTH_FORBIDDEN_MESSAGE = "Usuário sem permissão para esta ação."
+INVALID_SESSION_MESSAGE = "Sessão ausente ou inválida."
 CSRF_HEADER_NAME = "X-CSRF-Token"
 session_cookie_scheme = APIKeyCookie(
     name=settings.session_cookie_name,
@@ -46,7 +48,7 @@ def get_current_session(
         raise ApiError(
             status.HTTP_401_UNAUTHORIZED,
             "AUTH_INVALID_TOKEN",
-            "Sessão ausente ou inválida.",
+            INVALID_SESSION_MESSAGE,
         )
 
     try:
@@ -55,7 +57,7 @@ def get_current_session(
         raise ApiError(
             status.HTTP_401_UNAUTHORIZED,
             "AUTH_INVALID_TOKEN",
-            "Sessão ausente ou inválida.",
+            INVALID_SESSION_MESSAGE,
         ) from None
     except AuthSessionInactiveUserError:
         raise ApiError(
@@ -78,7 +80,16 @@ def get_current_session(
 
 def get_current_user(
     current_session: Annotated[ResolvedAuthSession, Depends(get_current_session)],
+    db: Annotated[Session, Depends(get_db)],
 ) -> User:
+    if current_session.user.role == "CUSTOM":
+        from app.modules.users.service import UserService
+
+        user = UserService(db).get_user_for_authorization(current_session.user.id)
+        db.refresh(current_session.auth_session)
+        if current_session.auth_session.revoked_at is not None:
+            raise ApiError(401, "AUTH_INVALID_TOKEN", INVALID_SESSION_MESSAGE)
+        return user
     return current_session.user
 
 
@@ -99,8 +110,27 @@ def require_roles(*allowed_roles: str) -> Callable[[User], User]:
             raise ApiError(
                 status.HTTP_403_FORBIDDEN,
                 "AUTH_FORBIDDEN",
-                "Usuário sem permissão para esta ação.",
+                AUTH_FORBIDDEN_MESSAGE,
             )
         return current_user
 
     return role_dependency
+
+
+def require_permission(permission):
+    return require_any_permission(permission)
+
+
+def require_any_permission(*permissions):
+    from app.modules.access_profiles.catalog import Permission, has_permission
+
+    codes = tuple(Permission(code) for code in permissions)
+
+    def permission_dependency(
+        current_user: Annotated[User, Depends(get_current_user)],
+    ) -> User:
+        if not any(has_permission(current_user, code) for code in codes):
+            raise ApiError(403, "AUTH_FORBIDDEN", AUTH_FORBIDDEN_MESSAGE)
+        return current_user
+
+    return permission_dependency

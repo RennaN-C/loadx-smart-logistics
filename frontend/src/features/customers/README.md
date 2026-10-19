@@ -4,9 +4,10 @@ Cadastro de clientes (OC28). Consome `GET/POST/PATCH /customers`.
 
 ## O que existe hoje
 
-- `pages/ContactsPage.tsx` (+ `.css`): a tela `/contacts` inteira, com as abas **Clientes** e
-  **Motoristas**. A OC28 pede uma tela só para os dois cadastros, então esta página compõe o painel
-  desta feature com o de `drivers`.
+- `pages/ContactsPage.tsx` (+ `.css`): a tela `/contacts` inteira, com abas
+  **Clientes** e **Motoristas** somente quando permitidas. A OC28 compõe os
+  painéis de clientes e motoristas; na OC112, título e descrição refletem a única
+  aba disponível para o perfil, sem conceder acesso à outra categoria.
 - `components/CustomerPanel.tsx`: busca, grade paginada e modal de clientes.
 - `components/CustomerForm.tsx`: criação e edição.
 - `components/CepLookupField.tsx`: consulta de endereço por CEP (OC70).

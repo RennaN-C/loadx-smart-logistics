@@ -4,6 +4,7 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from sqlalchemy.orm import Session
 
+from app.modules.access_profiles.models import AccessProfile
 from app.modules.auth.models import AuthSession
 from app.modules.auth.sessions import (
     AuthSessionInactiveUserError,
@@ -15,7 +16,12 @@ from app.modules.drivers.models import (
 )
 from app.modules.users.models import User
 
-SQLITE_TABLES = (Driver.__table__, User.__table__, AuthSession.__table__)
+SQLITE_TABLES = (
+    Driver.__table__,
+    AccessProfile.__table__,
+    User.__table__,
+    AuthSession.__table__,
+)
 
 
 class Clock:

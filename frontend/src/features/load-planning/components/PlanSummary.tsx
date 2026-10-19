@@ -10,14 +10,15 @@ const volume = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 });
 interface PlanSummaryProps {
   readonly plan: LoadPlan;
   readonly canManage: boolean;
+  readonly approvalAllowed?: boolean;
   readonly isWorking: boolean;
   readonly onApprove: () => void;
   readonly onRecalculate: () => void;
 }
 
-export function PlanSummary({ plan, canManage, isWorking, onApprove, onRecalculate }: PlanSummaryProps) {
+export function PlanSummary({ plan, canManage, approvalAllowed = canManage, isWorking, onApprove, onRecalculate }: PlanSummaryProps) {
   const hasRejections = plan.unloadedCount > 0;
-  const canApprove = canManage && plan.status === "CALCULATED" && !hasRejections;
+  const canApprove = approvalAllowed && plan.status === "CALCULATED" && !hasRejections;
 
   return (
     <section className="plan-summary">
@@ -64,11 +65,11 @@ export function PlanSummary({ plan, canManage, isWorking, onApprove, onRecalcula
 
       {plan.status === "APPROVED" ? <PlanContinuity key={plan.id} planId={plan.id} canManage={canManage} /> : null}
 
-      {canManage && plan.status !== "APPROVED" ? (
+      {(canManage || approvalAllowed) && plan.status !== "APPROVED" ? (
         <div className="entity-form-actions">
-          <button type="button" className="btn-secondary" disabled={isWorking} onClick={onRecalculate}>
+          {canManage && <button type="button" className="btn-secondary" disabled={isWorking} onClick={onRecalculate}>
             Recalcular
-          </button>
+          </button>}
           <button
             type="button"
             className="btn-primary"

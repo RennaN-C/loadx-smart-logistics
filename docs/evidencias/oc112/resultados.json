@@ -1,0 +1,136 @@
+{
+  "profilePersistsAfterReload": true,
+  "apiProfile": {
+    "id": "eecea3f3-edbe-4e40-a752-5b45085c552c",
+    "permissions": [
+      "loadx.trucks.read"
+    ]
+  },
+  "userCreated": true,
+  "deactivateInUseDisabled": true,
+  "effectivePermissions": [
+    "loadx.trucks.read"
+  ],
+  "manageHidden": true,
+  "apiDenials": [
+    {
+      "path": "/api/v1/products",
+      "status": 403
+    },
+    {
+      "path": "/api/v1/users",
+      "status": 403
+    },
+    {
+      "path": "/api/v1/access-profiles",
+      "status": 403
+    }
+  ],
+  "adminRouteDenied": true,
+  "captures": [
+    {
+      "prefix": "perfis",
+      "width": 375,
+      "theme": "light",
+      "overflow": false
+    },
+    {
+      "prefix": "perfis",
+      "width": 375,
+      "theme": "dark",
+      "overflow": false
+    },
+    {
+      "prefix": "perfis",
+      "width": 768,
+      "theme": "light",
+      "overflow": false
+    },
+    {
+      "prefix": "perfis",
+      "width": 768,
+      "theme": "dark",
+      "overflow": false
+    },
+    {
+      "prefix": "perfis",
+      "width": 1280,
+      "theme": "light",
+      "overflow": false
+    },
+    {
+      "prefix": "perfis",
+      "width": 1280,
+      "theme": "dark",
+      "overflow": false
+    },
+    {
+      "prefix": "perfis",
+      "width": 1920,
+      "theme": "light",
+      "overflow": false
+    },
+    {
+      "prefix": "perfis",
+      "width": 1920,
+      "theme": "dark",
+      "overflow": false
+    },
+    {
+      "prefix": "editor",
+      "width": 375,
+      "theme": "light",
+      "overflow": false
+    },
+    {
+      "prefix": "editor",
+      "width": 375,
+      "theme": "dark",
+      "overflow": false
+    },
+    {
+      "prefix": "editor",
+      "width": 768,
+      "theme": "light",
+      "overflow": false
+    },
+    {
+      "prefix": "editor",
+      "width": 768,
+      "theme": "dark",
+      "overflow": false
+    },
+    {
+      "prefix": "editor",
+      "width": 1280,
+      "theme": "light",
+      "overflow": false
+    },
+    {
+      "prefix": "editor",
+      "width": 1280,
+      "theme": "dark",
+      "overflow": false
+    },
+    {
+      "prefix": "editor",
+      "width": 1920,
+      "theme": "light",
+      "overflow": false
+    },
+    {
+      "prefix": "editor",
+      "width": 1920,
+      "theme": "dark",
+      "overflow": false
+    }
+  ],
+  "exceptions": [],
+  "localStorageKeys": [
+    "loadx.appearance",
+    "loadx.sidebar-collapsed"
+  ],
+  "focusTrap": true,
+  "escapeFocusReturn": true,
+  "systemTheme": true
+}

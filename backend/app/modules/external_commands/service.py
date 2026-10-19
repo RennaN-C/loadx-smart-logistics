@@ -173,7 +173,11 @@ class ExternalCommandService:
 
     @staticmethod
     def _authorize_actor(db: Session, actor: User) -> None:
-        if not actor.active or actor.role not in {"LOGISTICS_MANAGER", "DRIVER"}:
+        if not actor.active or actor.role not in {
+            "ADMIN",
+            "LOGISTICS_MANAGER",
+            "DRIVER",
+        }:
             raise ExternalCommandError(ExternalCommandErrorCode.FORBIDDEN)
         if actor.role == "DRIVER":
             if actor.driver_id is None:
