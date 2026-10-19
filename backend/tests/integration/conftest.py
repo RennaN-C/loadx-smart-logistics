@@ -110,7 +110,31 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
         head_revision = connection.exec_driver_sql(
             "SELECT version_num FROM alembic_version"
         ).scalar_one()
-        assert head_revision == "20261018_0025"
+        assert head_revision == "20261019_0026"
+
+    # The additive trusted-device migration rolls back without touching OC98.
+    _run_alembic(test_url, "downgrade", "-1")
+    with engine.connect() as connection:
+        assert (
+            connection.exec_driver_sql(
+                "SELECT version_num FROM alembic_version"
+            ).scalar_one()
+            == "20261018_0025"
+        )
+        assert (
+            connection.exec_driver_sql(
+                "SELECT to_regclass('public.auth_trusted_devices')"
+            ).scalar_one()
+            is None
+        )
+        assert (
+            connection.exec_driver_sql(
+                "SELECT to_regclass('public.auth_factors')"
+            ).scalar_one()
+            is not None
+        )
+    _run_alembic(test_url, "upgrade", "head")
+    _run_alembic(test_url, "downgrade", "20261018_0025")
 
     # OC98 downgrade alone must preserve OC112 access profiles.
     _run_alembic(test_url, "downgrade", "-1")
@@ -135,8 +159,7 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
         )
     _run_alembic(test_url, "upgrade", "head")
 
-    _run_alembic(test_url, "downgrade", "-1")
-    _run_alembic(test_url, "downgrade", "-1")
+    _run_alembic(test_url, "downgrade", "20261009_0023")
     with engine.connect() as connection:
         assert (
             connection.exec_driver_sql(

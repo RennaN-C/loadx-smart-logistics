@@ -814,3 +814,17 @@ antigas de ADMIN/LOGISTICS_MANAGER para exigir o bootstrap MFA seguro.
 
 `CONFIRMADO`: rollback estrutural é recusado enquanto usuários CUSTOM ou eventos
 históricos de perfil existirem, para evitar perda silenciosa de acesso/histórico.
+
+### auth_trusted_devices — OC98 / Issue #222
+
+`CONFIRMADO`: credencial opaca de dispositivo, distinta de `auth_sessions`.
+UUID `id`, FK `user_id` → users (CASCADE), `token_hash` SHA-256 único,
+`security_binding` SHA-256 da credencial/fator/papel/perfil atuais, UTC
+`created_at`, `last_used_at`, `expires_at`, `revoked_at` opcional. Índices por
+usuário e expiração. Constraints limitam vida absoluta a 30 dias e ordenam
+uso/revogação após criação. Não guarda senha, TOTP, recuperação, IP ou User-Agent.
+Token CSPRNG só no cookie HttpOnly; consultas retornam UUID/datas/current.
+No máximo vinte dispositivos ativos por conta; novo opt-in substitui o cookie
+anterior próprio e revoga os mais antigos quando necessário. Histórico revogado
+permanece. Migration aditiva `20261019_0026` sucede `20261018_0025`; downgrade
+bloqueia registros existentes, preservando credenciais e histórico.

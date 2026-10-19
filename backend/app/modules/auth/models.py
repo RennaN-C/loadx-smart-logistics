@@ -176,3 +176,30 @@ class AuthRecoveryCode(Base):
     )
     code_hash: Mapped[str] = mapped_column(String(64), unique=True)
     consumed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class AuthTrustedDevice(Base):
+    __tablename__ = "auth_trusted_devices"
+    __table_args__ = (
+        CheckConstraint(
+            "expires_at > created_at AND expires_at <= created_at + interval '30 days'",
+            name="lifetime_valid",
+        ),
+        CheckConstraint(
+            "last_used_at >= created_at AND last_used_at < expires_at",
+            name="usage_valid",
+        ),
+        CheckConstraint(
+            "revoked_at IS NULL OR revoked_at >= created_at", name="revocation_valid"
+        ),
+    )
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey(USERS_FK, ondelete="CASCADE"), index=True
+    )
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    security_binding: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    last_used_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

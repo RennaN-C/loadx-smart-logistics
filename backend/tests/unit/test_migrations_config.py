@@ -31,7 +31,7 @@ def test_alembic_has_current_revision_head() -> None:
     config = Config(str(BACKEND_ROOT / "alembic.ini"))
     script = ScriptDirectory.from_config(config)
 
-    assert script.get_heads() == ["20261018_0025"]
+    assert script.get_heads() == ["20261019_0026"]
     assert script.get_revision("20261016_0024").down_revision == "20261009_0023"
     assert script.get_revision("20261009_0023").down_revision == "20261009_0022"
     assert script.get_revision("20261009_0022").down_revision == "20261009_0021"
@@ -100,3 +100,8 @@ def test_initial_migration_renders_expected_check_constraint_names() -> None:
 def test_oc98_revision_chains_real_head():
     script = ScriptDirectory.from_config(Config("alembic.ini"))
     assert script.get_revision("20261018_0025").down_revision == "20261016_0024"
+
+
+def test_trusted_devices_revision_extends_oc98():
+    script = ScriptDirectory.from_config(Config("alembic.ini"))
+    assert script.get_revision("20261019_0026").down_revision == "20261018_0025"
