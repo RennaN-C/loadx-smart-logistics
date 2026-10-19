@@ -305,8 +305,9 @@ def test_security_mutations_revoke_devices(session_factory, change):
         assert db.get(AuthTrustedDevice, issued.device.id).revoked_at is not None
 
 
+@pytest.mark.parametrize("forget_by_id", [False, True])
 def test_login_cookie_lifecycle_management_origin_and_ownership(
-    client, session_factory
+    client, session_factory, forget_by_id
 ):
     user = create_account(session_factory)
     secret, _ = enroll(session_factory, user)
@@ -360,9 +361,10 @@ def test_login_cookie_lifecycle_management_origin_and_ownership(
     )
     assert "challenge_token" not in response.json()
     csrf = response.headers["X-CSRF-Token"]
+    forget_path = device_id if forget_by_id else "current"
     assert (
         client.delete(
-            BASE + "/me/trusted-devices/current", headers={"X-CSRF-Token": csrf}
+            BASE + "/me/trusted-devices/" + forget_path, headers={"X-CSRF-Token": csrf}
         ).status_code
         == 204
     )

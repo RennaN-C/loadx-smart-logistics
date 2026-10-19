@@ -47,6 +47,7 @@ describe("dispositivos confiáveis próprios", () => {
     await screen.findByRole("alert");
     fireEvent.click(screen.getByRole("button", { name: "Consultar novamente" }));
     await screen.findByText("Este navegador");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
   it("mantém registro após falha ao revogar e bloqueia envio duplicado", async () => {
     vi.mocked(api.forgetCurrentDevice).mockRejectedValueOnce(new Error());
