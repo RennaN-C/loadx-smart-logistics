@@ -148,6 +148,31 @@ def change_status(
         )
 
 
+@router.post(
+    "/{session_id}/check-all",
+    response_model=LoadingSessionRead,
+    responses=openapi_error_responses(401, 403, 404, 409, 422),
+)
+def check_all_pending_items(
+    session_id: uuid.UUID,
+    _user: Checker,
+    service: Annotated[LoadingService, Depends(get_loading_service)],
+) -> LoadingSession | JSONResponse:
+    """Pentest-lab only: speed up manual verification of simulated loads."""
+    try:
+        return service.check_all_pending(session_id)
+    except LoadingSessionNotFoundError:
+        return error_response(
+            404, "LOADING_SESSION_NOT_FOUND", LOADING_SESSION_NOT_FOUND_MESSAGE
+        )
+    except LoadingStatusTransitionError:
+        return error_response(
+            409,
+            "LOADING_STATUS_TRANSITION_NOT_ALLOWED",
+            "Transição de carregamento não permitida.",
+        )
+
+
 @router.patch(
     "/{session_id}/items/{item_id}",
     response_model=LoadingSessionRead,

@@ -86,6 +86,15 @@ export async function changeLoadingStatus(
   return mapSession(data);
 }
 
+/** Homologação somente (pentest-lab): confere todos os volumes ainda pendentes. */
+export async function checkAllLoadingItems(sessionId: string): Promise<LoadingSession> {
+  const { data } = await api.post<LoadingSessionDto>(
+    `/loading-sessions/${sessionId}/check-all`,
+  );
+
+  return mapSession(data);
+}
+
 /** Conferência manual de um item. Somente `CHECKER`. */
 export async function checkLoadingItem(
   sessionId: string,

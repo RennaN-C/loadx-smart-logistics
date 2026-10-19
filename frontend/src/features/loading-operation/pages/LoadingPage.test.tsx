@@ -10,6 +10,7 @@ import type { LoadPlan, LoadPlanItem } from "../../load-planning/types";
 import {
   changeLoadingStatus,
   checkLoadingItem,
+  checkAllLoadingItems,
   getLoadingSession,
   scanLoadingItem,
 } from "../api/loadingApi";
@@ -103,6 +104,7 @@ beforeEach(() => {
   } as unknown as LoadPlan);
   vi.mocked(scanLoadingItem).mockReset();
   vi.mocked(checkLoadingItem).mockReset();
+  vi.mocked(checkAllLoadingItems).mockReset();
   vi.mocked(changeLoadingStatus).mockReset();
 });
 
@@ -296,6 +298,74 @@ describe("LoadingPage — leitura de código (OC75)", () => {
 
     expect(await screen.findByLabelText("LER CÓDIGO DO VOLUME")).toBeDisabled();
     expect(screen.getByText(/Inicie a conferência/)).toBeInTheDocument();
+  });
+});
+
+describe("LoadingPage — atalho de homologação (apenas pentest-lab)", () => {
+  it("confere todos os pendentes com uma única requisição, depois da confirmação", async () => {
+    mockRole("CHECKER");
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
+    vi.mocked(checkAllLoadingItems).mockResolvedValue(
+      sessao({
+        items: [
+          { id: "i1", loadPlanItemId: "pi1", status: "CHECKED", code: CODIGO_1 },
+          { id: "i2", loadPlanItemId: "pi2", status: "CHECKED", code: CODIGO_2 },
+        ],
+      }),
+    );
+    renderPage();
+    await screen.findByText("Televisor 50");
+    fireEvent.click(screen.getByRole("button", { name: /Conferir todos os pendentes \(teste\)/ }));
+
+    await waitFor(() => expect(checkAllLoadingItems).toHaveBeenCalledExactlyOnceWith("ls1"));
+    expect(confirm).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(screen.getByText("0")).toBeInTheDocument());
+    expect(screen.getByRole("button", { name: "Finalizar carregamento" })).toBeEnabled();
+    expect(checkLoadingItem).not.toHaveBeenCalled();
+    expect(changeLoadingStatus).not.toHaveBeenCalled();
+    confirm.mockRestore();
+  });
+
+  it("não registra nada se o usuário cancelar a confirmação", async () => {
+    mockRole("CHECKER");
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    renderPage();
+    await screen.findByText("Televisor 50");
+    fireEvent.click(screen.getByRole("button", { name: /Conferir todos os pendentes \(teste\)/ }));
+    expect(checkAllLoadingItems).not.toHaveBeenCalled();
+    confirm.mockRestore();
+  });
+
+  it("não oferece lote antes do início, após conclusão ou sem pendentes", async () => {
+    mockRole("ADMIN");
+    vi.mocked(getLoadingSession).mockResolvedValue(sessao({ status: "PENDING" }));
+    const { unmount } = renderPage();
+    await screen.findByText("Televisor 50");
+    expect(screen.queryByRole("button", { name: /Conferir todos os pendentes/ })).not.toBeInTheDocument();
+    unmount();
+
+    vi.mocked(getLoadingSession).mockResolvedValue(sessao({ status: "FINISHED" }));
+    const finished = renderPage();
+    await screen.findByText("Televisor 50");
+    expect(screen.queryByRole("button", { name: /Conferir todos os pendentes/ })).not.toBeInTheDocument();
+    finished.unmount();
+
+    vi.mocked(getLoadingSession).mockResolvedValue(sessao({
+      items: [
+        { id: "i1", loadPlanItemId: "pi1", status: "CHECKED", code: CODIGO_1 },
+        { id: "i2", loadPlanItemId: "pi2", status: "CHECKED", code: CODIGO_2 },
+      ],
+    }));
+    renderPage();
+    await screen.findByText("Televisor 50");
+    expect(screen.queryByRole("button", { name: /Conferir todos os pendentes/ })).not.toBeInTheDocument();
+  });
+
+  it("não oferece a conferência em lote ao gestor", async () => {
+    mockRole("LOGISTICS_MANAGER");
+    renderPage();
+    await screen.findByText("Televisor 50");
+    expect(screen.queryByRole("button", { name: /Conferir todos os pendentes/ })).not.toBeInTheDocument();
   });
 });
 

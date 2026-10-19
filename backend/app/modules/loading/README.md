@@ -52,3 +52,19 @@ Crie somente os arquivos necessários para a ocorrência atual.
 Formato, erros e integração OC75 estão em `docs/05-contratos-api.md`.
 A operação reutiliza `change_item_status`, incluindo bloqueios de sessão/item,
 com rejeição explícita de duplicatas. Código é identidade, não autorização.
+
+## Atalho exclusivo de homologação (pentest-lab)
+
+Esta branch possui `POST /api/v1/loading-sessions/{id}/check-all` para
+simular a conferência de **todos os volumes pendentes** sem leitor de QR/barra.
+O botão `Conferir todos os pendentes (teste)` aparece somente após iniciar
+a conferência, com pelo menos um volume pendente, para usuários com permissão
+`loadx.loading.operate` (ADMIN, CHECKER ou perfil personalizado autorizado).
+
+A ação pede confirmação, usa o mesmo bloqueio da sessão e uma transação única,
+preserva volumes já conferidos, mantém `IN_PROGRESS` e **não finaliza** o
+carregamento. Finalizar continua dependendo da ação normal. Com acesso negado,
+a API responde 403 antes de ler a sessão; estados inválidos retornam 409.
+
+**Não integrar esse atalho a `desenvolvimento` ou `main`.** A conferência
+real permanece por código QR/barra ou manual, volume por volume.
