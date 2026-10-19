@@ -88,7 +88,7 @@ class TrustedDeviceService:
             if previous_token
             else None
         )
-        if previous is not None:
+        if previous is not None and previous.revoked_at is None:
             previous.revoked_at = now
             self.db.flush()
         live = self.repo.list_live(user.id, now)

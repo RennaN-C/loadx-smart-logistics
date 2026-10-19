@@ -805,7 +805,19 @@ def test_shorter_lifetime_and_rotation_preserve_other_browser(
         session_factory, user, secret, NOW + timedelta(seconds=90), previous=first.token
     )
     assert third.device.expires_at - third.device.created_at == timedelta(days=7)
+    # A stale cookie used after another valid TOTP must not rewrite revocation history.
+    trust(
+        session_factory,
+        user,
+        secret,
+        NOW + timedelta(seconds=120),
+        previous=first.token,
+    )
     with session_factory() as db:
+        assert (
+            db.get(AuthTrustedDevice, first.device.id).revoked_at
+            == third.device.created_at
+        )
         assert db.get(AuthTrustedDevice, first.device.id).revoked_at is not None
         assert db.get(AuthTrustedDevice, second.device.id).revoked_at is None
     assert not isinstance(
