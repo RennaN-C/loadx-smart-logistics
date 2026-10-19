@@ -23,15 +23,14 @@ T = TypeVar("T")
 
 
 def operation(db: Db, action: Callable[[], T]) -> T:
-    try:
-        return identity_operation(action)
-    except SQLAlchemyError:
-        db.rollback()
-        return identity_operation(lambda: unavailable())
+    def guarded() -> T:
+        try:
+            return action()
+        except SQLAlchemyError:
+            db.rollback()
+            raise IdentityUnavailableError from None
 
-
-def unavailable() -> None:
-    raise IdentityUnavailableError
+    return identity_operation(guarded)
 
 
 def clear_device_cookie(response: Response) -> None:
