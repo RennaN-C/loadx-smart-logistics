@@ -1,7 +1,7 @@
 from collections.abc import Generator, Sequence
 
 import pytest
-from sqlalchemy import Table, create_engine, event
+from sqlalchemy import CheckConstraint, MetaData, Table, create_engine, event, text
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
@@ -17,6 +17,7 @@ def db_session(request: pytest.FixtureRequest) -> Generator[Session, None, None]
             AuthFactor,
             AuthPasswordReset,
             AuthRecoveryCode,
+            AuthTrustedDevice,
         )
 
         tables = (
@@ -25,7 +26,21 @@ def db_session(request: pytest.FixtureRequest) -> Generator[Session, None, None]
             AuthChallenge.__table__,
             AuthPasswordReset.__table__,
             AuthRecoveryCode.__table__,
+            AuthTrustedDevice.__table__,
         )
+    if any(table.name == "auth_trusted_devices" for table in tables):
+        # Unit SQLite cannot compile PostgreSQL interval syntax. Clone metadata
+        # locally and keep an equivalent upper bound; official DDL/constraints
+        # are exercised against PostgreSQL 16 in integration tests.
+        metadata = MetaData()
+        tables = tuple(table.to_metadata(metadata) for table in tables)
+        for constraint in metadata.tables["auth_trusted_devices"].constraints:
+            if isinstance(constraint, CheckConstraint) and "interval" in str(
+                constraint.sqltext
+            ):
+                constraint.sqltext = text(
+                    "expires_at > created_at AND julianday(expires_at) <= julianday(created_at) + 30"
+                )
     engine = create_engine(
         "sqlite+pysqlite:///:memory:",
         connect_args={"check_same_thread": False},
