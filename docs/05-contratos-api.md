@@ -1529,3 +1529,13 @@ Auditoria ADMIN admite filtros ACCESS_PROFILE e PROFILE_CREATED/PROFILE_UPDATED.
 Esses eventos permanecem ocultos ao gerente antes de paginação; escopo legado de
 usuários do gerente não é ampliado. ADR-040 substitui o RBAC exclusivamente fixo
 onde a ação foi migrada. OC98/tenant/CoreFlow não são incorporados.
+
+## Webhook controlado — OC83
+
+`CONFIRMADO`: `POST /api/v1/webhooks/controlled-events`, assinatura HMAC dos bytes
+originais no header `X-LoadX-Signature`, sem sessão/cookie. Reutiliza envelope v1,
+capabilities, bindings e idempotência PostgreSQL da OC79. Contrato HTTP, erros,
+limites, configuração opt-in e mídia desabilitada em
+[messages/inbound](../backend/app/modules/messages/inbound.md).
+Somente este POST exato usa assinatura em lugar de Origin/CSRF; demais rotas
+preservam as proteções da interface. WhatsApp continua exclusivamente mock.
