@@ -5,6 +5,10 @@ import { ApiError } from "../../../types/api";
 import { getCurrentUser } from "../api/authApi";
 import { changeOwnPassword, listOwnSessions, revokeOtherSessions, revokeOwnSession, updateOwnProfile, type OwnSession } from "../api/accountApi";
 import type { Role } from "../types";
+vi.mock("../../notifications/api/notificationsApi", () => ({
+  getUnreadCount: vi.fn(async () => 0),
+  getNotificationPreferences: vi.fn(async () => ({ items: [] }).items),
+}));
 vi.mock("../api/authApi");
 vi.mock("../api/accountApi");
 vi.mock("../../dashboard/pages/DashboardPage", () => ({ DashboardPage: () => <h1>Início da operação</h1> }));

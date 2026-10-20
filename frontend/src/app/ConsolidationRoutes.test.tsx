@@ -5,6 +5,10 @@ import { getCurrentUser } from "../features/auth/api/authApi";
 import type { Role } from "../features/auth/types";
 import { useAuth } from "../features/auth/hooks/useAuth";
 const pages = vi.hoisted(() => ({ dashboard: vi.fn(), trucks: vi.fn(), reports: vi.fn() }));
+vi.mock("../features/notifications/api/notificationsApi", () => ({
+  getUnreadCount: vi.fn(async () => 0),
+  getNotificationPreferences: vi.fn(async () => ({ items: [] }).items),
+}));
 vi.mock("../features/auth/api/authApi");
 vi.mock("../features/dashboard/pages/DashboardPage", () => ({ DashboardPage: () => { pages.dashboard(); const { user } = useAuth(); return <h1>Visão geral {user?.role}</h1>; } }));
 vi.mock("../features/trucks/pages/TruckWorkspacePage", () => ({ TruckWorkspacePage: () => { pages.trucks(); return <h1>Caminhões e frota</h1>; } }));

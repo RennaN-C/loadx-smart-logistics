@@ -10,6 +10,10 @@ import { App } from "./App";
 import { listUsers } from "../features/users/api/usersApi";
 import { listProfiles, permissionCatalog } from "../features/access-profiles/api/profilesApi";
 import { makePage } from "../tests/makePage";
+vi.mock("../features/notifications/api/notificationsApi", () => ({
+  getUnreadCount: vi.fn(async () => 0),
+  getNotificationPreferences: vi.fn(async () => ({ items: [] }).items),
+}));
 vi.mock("../features/users/api/usersApi");
 vi.mock("../features/access-profiles/api/profilesApi");
 
