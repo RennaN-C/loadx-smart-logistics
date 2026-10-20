@@ -1,3 +1,4 @@
+import { OutboxPanel } from "../components/OutboxPanel";
 import { AccessManagementPanel } from "../../users/components/AccessManagementPanel";
 import { Link, useLocation } from "react-router-dom";
 import { Icon } from "../../../components/Icon";
@@ -30,6 +31,7 @@ export function SettingsPage() {
           <SettingsSection id="settings-users" title="Gestão de usuários" headingHidden hidden={!accessManagement}>{accessManagement ? <AccessManagementPanel /> : null}</SettingsSection>
           <SettingsSection id="settings-company" title="Dados da empresa" description="Identificação institucional, canais de contato e referência de marca." hidden={activeId !== "settings-company"}><CompanyProfileForm /></SettingsSection>
           <SettingsSection id="settings-integrations" title="Integrações e Saúde" description="Consulte o estado real dos serviços e os limites de cada integração." hidden={activeId !== "settings-integrations"}><IntegrationHealthPanel /></SettingsSection>
+          <SettingsSection id="settings-outbox" title="Fila de eventos" description="Acompanhe tentativas, falhas e reprocessamentos auditáveis." hidden={activeId !== "settings-outbox"}>{activeId === "settings-outbox" ? <OutboxPanel /> : null}</SettingsSection>
           <SettingsSection id="settings-logistics" title="Configurações do LoadX" description="Configurações próprias da operação, separadas dos dados da empresa." hidden={activeId !== "settings-logistics"}>
             <div className="settings-operational-links">
               <Link className="settings-operation-link" to="/fleet"><Icon name="truck" size={24} /><div><h3>Frota e disponibilidade</h3><p>Consulte veículos, motoristas e restrições da operação.</p><span>Consultar frota <Icon name="arrow-right" size={16} /></span></div></Link>

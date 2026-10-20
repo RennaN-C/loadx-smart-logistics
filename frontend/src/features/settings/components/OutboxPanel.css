@@ -1,0 +1,54 @@
+.outbox-panel { display: grid; gap: 1.5rem; min-width: 0; }
+.outbox-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.outbox-toolbar h3 { margin: .25rem 0 .5rem; font-size: 1.25rem; }
+.outbox-toolbar p { margin: 0; color: var(--muted); line-height: 1.6; }
+.outbox-toolbar .outbox-kicker { color: var(--accent); font-size: .75rem; letter-spacing: .09em; text-transform: uppercase; font-weight: 600; }
+.outbox-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; margin: 0; }
+.outbox-metrics > div { border: 1px solid var(--line); border-radius: 14px; padding: 1.1rem; background: var(--paper); }
+.outbox-metrics dt { font-size: .8rem; color: var(--muted); line-height: 1.5; }
+.outbox-metrics dd { margin: .5rem 0 0; font-size: 1.8rem; font-weight: 600; }
+.outbox-filters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+.outbox-filters label { display: grid; gap: .5rem; font-size: .85rem; font-weight: 500; }
+.outbox-filters select { width: 100%; min-height: 44px; border: 1px solid var(--line); border-radius: 10px; padding: .7rem; background: var(--paper); color: var(--ink); font: inherit; }
+.outbox-table-wrap { max-width: 100%; overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; }
+.outbox-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+.outbox-table th { text-align: left; padding: 1rem; font-weight: 500; color: var(--muted); background: var(--paper); }
+.outbox-table td { padding: 1rem; border-top: 1px solid var(--line); vertical-align: middle; }
+.outbox-table td strong, .outbox-table small { display: block; }
+.outbox-table small { color: var(--muted); margin-top: .4rem; }
+.outbox-id { display: block; overflow-wrap: anywhere; font-size: .75rem; margin-top: .35rem; font-variant-numeric: tabular-nums; }
+.outbox-badge { display: inline-flex; padding: .35rem .65rem; border-radius: 99px; font-size: .75rem; font-weight: 600; background: var(--paper); border: 1px solid var(--line); line-height: 1.5; }
+.outbox-badge[data-status="PROCESSING"], .outbox-badge[data-status="PENDING"], .outbox-badge[data-status="RETRYABLE"] { color: var(--accent-strong); }
+.outbox-badge[data-status="TERMINAL"], .outbox-badge[data-status="UNCERTAIN"] { color: var(--danger); }
+.outbox-badge[data-status="SUCCEEDED"] { color: var(--good); }
+.outbox-note { color: var(--muted); font-size: .8rem; line-height: 1.7; margin: 0; }
+.outbox-empty { text-align: center; padding: 3rem 1rem; background: var(--paper); border-radius: 14px; }
+.outbox-empty p { color: var(--muted); line-height: 1.6; }
+.outbox-feedback { display: grid; justify-items: start; gap: .75rem; }
+.outbox-success { padding: 1rem; border-left: 3px solid var(--good); line-height: 1.6; }
+.outbox-detail { display: grid; gap: 1rem; }
+.outbox-detail dl { display: grid; gap: 1rem; margin: 0; }
+.outbox-detail dt { color: var(--muted); font-size: .8rem; }
+.outbox-detail dd { margin: .3rem 0 0; }
+.outbox-detail h3 { margin: .5rem 0; font-size: 1rem; }
+.outbox-attempts { margin: 0; padding: 0; list-style: none; display: grid; gap: .75rem; }
+.outbox-attempts li { border-top: 1px solid var(--line); padding-top: 1rem; }
+.outbox-attempts li > div { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .5rem; }
+.outbox-attempts time, .outbox-attempts small { display: block; margin-top: .5rem; font-size: .8rem; color: var(--muted); }
+.outbox-attempts p { margin: .5rem 0; }
+.outbox-actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1rem; }
+.outbox-panel button { min-height: 44px; }
+@media (max-width: 1100px) { .outbox-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) {
+  .outbox-toolbar { align-items: stretch; flex-direction: column; }
+  .outbox-filters { grid-template-columns: 1fr; }
+  .outbox-metrics { gap: .6rem; }
+  .outbox-metrics > div { padding: .85rem; }
+  .outbox-table-wrap { border: 0; overflow: visible; }
+  .outbox-table, .outbox-table tbody, .outbox-table tr, .outbox-table td { display: block; width: 100%; }
+  .outbox-table thead { display: none; }
+  .outbox-table tr { padding: 1rem; border: 1px solid var(--line); border-radius: 14px; margin-bottom: .75rem; }
+  .outbox-table td { padding: .5rem 0; border: 0; }
+  .outbox-table td::before { content: attr(data-label); display: block; margin-bottom: .35rem; color: var(--muted); font-size: .75rem; }
+  .outbox-actions { flex-direction: column; }
+}
