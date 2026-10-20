@@ -53,6 +53,9 @@ class OperationalNotificationService:
             from app.modules.notifications.inbox_service import InboxService
 
             InboxService(db).stage_recipients(row)
+            from app.modules.notifications.outbox_service import OutboxService
+
+            OutboxService(db).stage(row)
         # A dispatch hint only; the database row is the durable source of truth.
         db.info.setdefault("operational_notifications", {})[row.id] = self
         return row.id
