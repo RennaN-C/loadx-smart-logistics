@@ -41,3 +41,19 @@ it("apresenta erro e permite retry no dropdown", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Tentar novamente" }));
   await waitFor(() => expect(screen.getByText("Tudo em dia")).toBeInTheDocument());
 });
+
+it("mantém o painel e o foco após marcar uma notificação por teclado", async () => {
+  const item: api.NotificationItem = { id: "one", event_type: "TRIP_STARTED", category: "TRIPS", title: "Viagem iniciada", summary: "Viagem fictícia", created_at: "2026-10-20T12:00:00Z", received_at: "2026-10-20T12:00:00Z", read_at: null };
+  vi.mocked(api.listNotifications).mockResolvedValue({ items: [item], page: 1, pageSize: 5, total: 1, totalPages: 1, unreadCount: 1 });
+  vi.mocked(api.markNotificationRead).mockImplementation(async () => {
+    const read = { ...item, read_at: "2026-10-20T13:00:00Z" };
+    vi.mocked(api.listNotifications).mockResolvedValue({ items: [read], page: 1, pageSize: 5, total: 1, totalPages: 1, unreadCount: 0 });
+    return read;
+  });
+  setup(); fireEvent.click(await screen.findByRole("button", { name: "Notificações, 3 não lidas" }));
+  const button = await screen.findByRole("button", { name: "Marcar como lida: Viagem iniciada" });
+  button.focus(); fireEvent.click(button);
+  await screen.findByText("Lida");
+  expect(screen.getByRole("heading", { name: "Notificações" })).toHaveFocus();
+  expect(screen.getByRole("button", { name: "Notificações, 0 não lidas" })).toHaveAttribute("aria-expanded", "true");
+});

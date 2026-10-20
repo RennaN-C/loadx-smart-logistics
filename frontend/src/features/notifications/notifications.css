@@ -85,3 +85,8 @@
 .notification-preferences { scroll-margin-top: 80px; }
 
 .notification-feedback, .notification-success { display: block; }
+.notification-dropdown { display: flex; flex-direction: column; overflow: hidden; }
+.notification-dropdown-header, .notification-dropdown-footer { flex: 0 0 auto; }
+.notification-dropdown .notification-list { min-height: 0; overflow-y: auto; }
+.notification-dropdown-feedback { overflow-y: auto; }
+@media (max-width: 480px) { .notification-preferences .account-actions { flex-direction: column; } .notification-preferences .account-actions button { width: 100%; min-height: 44px; } }

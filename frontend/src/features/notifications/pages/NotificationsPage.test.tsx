@@ -46,6 +46,7 @@ it("sincroniza leitura individual e contador do sino", async () => {
   await waitFor(() => expect(screen.getByRole("button", { name: "Notificações, 1 não lidas" })).toBeInTheDocument());
   expect(api.markNotificationRead).toHaveBeenCalledWith("one");
   expect(screen.getByRole("status")).toHaveTextContent("Notificação marcada");
+  expect(screen.getByRole("status")).toHaveFocus();
 });
 it("marca todas sem modificar outras caixas ou inventar sucesso", async () => {
   setup(); await screen.findByText("Viagem iniciada");

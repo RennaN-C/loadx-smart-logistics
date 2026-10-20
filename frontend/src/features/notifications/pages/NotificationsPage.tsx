@@ -28,6 +28,8 @@ export function NotificationsPage() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const sequence = useRef(0);
+  const feedback = useRef<HTMLOutputElement>(null);
+  useEffect(() => { if (notice) feedback.current?.focus(); }, [notice]);
   const { count, synchronize } = useNotificationCounter();
   const navigate = useNavigate();
   const load = useCallback(async () => {
@@ -69,7 +71,7 @@ export function NotificationsPage() {
         <label>Categoria<select value={category ?? ""} disabled={busy} onChange={(event) => filter("category", event.target.value)}><option value="">Todas</option><option value="TRIPS">Viagens</option><option value="OCCURRENCES">Ocorrências</option><option value="SECURITY">Segurança</option></select></label>
         <label>Ordenação<select value={sortOrder} disabled={busy} onChange={(event) => filter("sort_order", event.target.value)}><option value="desc">Mais recentes primeiro</option><option value="asc">Mais antigas primeiro</option></select></label>
       </div>
-      {notice && <output className="notification-success">{notice}</output>}
+      {notice && <output ref={feedback} tabIndex={-1} className="notification-success">{notice}</output>}
       {error && <div className="notification-feedback"><AlertBanner>{error}</AlertBanner><button type="button" className="btn-secondary" disabled={loading || busy} onClick={() => void load()}>Tentar novamente</button></div>}
       {loading && <output className="notification-feedback">Carregando suas notificações…</output>}
       {!loading && result && (result.items.length ? <NotificationList items={result.items} busy={busy} onRead={(item) => void act(item)} onOpen={(item) => void act(item, true)} /> : <div className="notification-empty"><span className="notification-empty-icon"><Icon name="bell" size={30} /></span><h3>{read === false ? "Nenhuma notificação não lida" : "Nenhuma notificação por aqui"}</h3><p>{category || read !== undefined ? "Ajuste os filtros para consultar outras atualizações." : "As atualizações da sua operação aparecerão aqui quando forem recebidas."}</p></div>)}

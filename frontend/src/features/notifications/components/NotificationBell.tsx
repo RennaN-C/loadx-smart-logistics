@@ -46,6 +46,7 @@ export function NotificationBell() {
   function toggle() { if (!open) { setPage(null); void load(); } setOpen(!open); }
   async function act(item: NotificationItem, navigateToSource: boolean) {
     setBusy(true); setError("");
+    if (!navigateToSource) heading.current?.focus();
     try {
       // Revalidate the actual source before navigation; a notification is not a permission grant.
       const href = navigateToSource ? await getNotificationSource(item.id) : null;
