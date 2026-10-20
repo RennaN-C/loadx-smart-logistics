@@ -60,7 +60,7 @@ estado legado sem envio e preservação de fatos/destinatários/leitura.
 
 Regressões executadas: OC84/OC103/fila (91 testes), política/backfill/comandos e
 paginação (67 testes), fila/OpenAPI/migrations após correção de concorrência (55),
-contratos/política/readiness/head (46). Suíte frontend completa: **942 testes em
+contratos/política/readiness/head (46). Suíte frontend completa: **944 testes em
 107 arquivos**; lint, TypeScript/build, bundle budget e npm audit sem vulnerabilidades.
 Resultados da suíte backend completa com cobertura, CI, Trivy e Sonar são registrados
 no corpo/checks da [PR #230](https://github.com/RennaN-C/loadx-smart-logistics/pull/230),

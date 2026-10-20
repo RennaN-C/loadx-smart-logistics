@@ -1588,3 +1588,7 @@ viagem e retorna href; POST /outbox-events/{id}/retry recebe {command_id: UUID},
 retorna estado atual. Replay não reinicia fila; reutilização em outra origem 409.
 401/403, 404 fora da origem, 409 evento inelegível, 422 contrato. Sem payloads
 privados, sem publicação HTTP arbitrária.
+
+`CONFIRMADO` (OC109): /audit admite filtros OUTBOX_EVENT/OUTBOX_REPROCESSED;
+somente ADMIN pode consultá-los. Consultas gerais de outros perfis também
+excluem essas intervenções administrativas.

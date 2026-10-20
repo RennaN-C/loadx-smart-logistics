@@ -669,3 +669,32 @@ def test_custom_operational_grants_never_authorize_outbox_admin(client, queued):
             )
             db.execute(delete(AccessProfile).where(AccessProfile.id == profile_id))
             db.commit()
+
+
+def test_outbox_administrative_audit_is_admin_only_in_filters_and_aggregates(
+    client, queued
+):
+    s, identifier, _ = queued
+    transport = Mock()
+    transport.send.side_effect = PermanentDeliveryError()
+    process_one(s.factory, transport)
+    retry(s, identifier)
+    admin = issue_session_headers(s.factory, s.actors["admin"])
+    manager = issue_session_headers(s.factory, s.actors["manager"])
+    filters = {
+        "entity_type": "OUTBOX_EVENT",
+        "event_type": "OUTBOX_REPROCESSED",
+        "entity_id": str(identifier),
+    }
+    response = client.get("/api/v1/audit", headers=admin, params=filters)
+    assert response.status_code == 200
+    assert response.json()["total"] == 1
+    assert response.json()["items"][0]["entity_id"] == str(identifier)
+    assert (
+        client.get("/api/v1/audit", headers=manager, params=filters).status_code == 403
+    )
+    aggregate = client.get("/api/v1/audit", headers=manager)
+    assert aggregate.status_code == 200
+    assert all(
+        row["entity_type"] != "OUTBOX_EVENT" for row in aggregate.json()["items"]
+    )
