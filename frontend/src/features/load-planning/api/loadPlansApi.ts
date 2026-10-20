@@ -48,7 +48,8 @@ interface LoadPlanItemDto extends ItemSnapshotDto {
   rejection_reason: RejectionReason | null;
 }
 
-interface LoadPlanDto {
+export interface LoadPlanDto {
+  distribution_id?: string | null;
   id: string;
   truck_id: string;
   recalculated_from_id: string | null;
@@ -130,6 +131,7 @@ function mapItem(dto: LoadPlanItemDto): LoadPlanItem {
 
 export function mapLoadPlanFromDto(dto: LoadPlanDto): LoadPlan {
   return {
+    distributionId: dto.distribution_id ?? null,
     id: dto.id,
     truckId: dto.truck_id,
     recalculatedFromId: dto.recalculated_from_id,
@@ -215,6 +217,7 @@ export async function recalculateLoadPlan(id: string): Promise<LoadPlan> {
 }
 
 interface LoadPlanListDto {
+  distribution_id?: string | null;
   id: string;
   truck_id: string;
   truck_plate: string;
@@ -236,6 +239,7 @@ export async function listLoadPlans(
     params: { ...toPageQuery(params), status: params.status, truck_id: params.truckId },
   });
   return mapPageFromDto(data, (dto) => ({
+    distributionId: dto.distribution_id ?? null,
     id: dto.id, truckId: dto.truck_id, truckPlate: dto.truck_plate,
     truckModel: dto.truck_model, status: dto.status, createdAt: dto.created_at,
     recalculatedFromId: dto.recalculated_from_id, loadedCount: dto.loaded_count,
