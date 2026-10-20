@@ -143,13 +143,13 @@ class OutboxService:
         # Only the first claim owned by this worker may complete the OC84 attempt.
         # Terminal OC84 states are never reopened by retries.
         if event.generation == 1 and status != "UNCERTAIN":
+            legacy_status = "FAILED"
+            if status == "SUCCEEDED":
+                legacy_status = "SIMULATED"
+            elif code == "NO_RECIPIENT":
+                legacy_status = "NO_RECIPIENT"
             OperationalNotificationRepository(self.db).complete(
-                event.notification_id,
-                "SIMULATED"
-                if status == "SUCCEEDED"
-                else "NO_RECIPIENT"
-                if code == "NO_RECIPIENT"
-                else "FAILED",
+                event.notification_id, legacy_status
             )
 
     def list_events(self, pagination, **filters):
@@ -204,7 +204,9 @@ class OutboxService:
                 raise ApiError(
                     403, "AUTH_FORBIDDEN", "Reprocessamento exclusivo do ADMIN ativo."
                 )
-            self._get(identifier)
+            # Lock the parent before inserting its FK command. Otherwise two
+            # commands hold KEY SHARE and deadlock when upgrading to FOR UPDATE.
+            event = self._get(identifier, lock=True)
             inserted = self.repository.retry_command(command_id, identifier, actor.id)
             if inserted is None:
                 command = self.repository.get_command(command_id)
@@ -218,7 +220,6 @@ class OutboxService:
                         "Identificador de comando já utilizado.",
                     )
                 return self.detail(identifier)
-            event = self._get(identifier, lock=True)
             if event.status not in {"RETRYABLE", "TERMINAL", "UNCERTAIN"}:
                 raise ApiError(
                     409,

@@ -352,7 +352,8 @@ def test_api_paging_source_sanitization_csrf_and_idempotency(client, queued):
     )
     assert response.status_code == 200
     data = response.json()
-    assert data["total"] == 1 and data["items"][0]["id"] == str(identifier)
+    assert data["total"] == 1
+    assert data["items"][0]["id"] == str(identifier)
     assert all(
         key not in data["items"][0]
         for key in ["idempotency_key", "payload", "recipient_phone", "content"]
@@ -390,15 +391,22 @@ def test_api_paging_source_sanitization_csrf_and_idempotency(client, queued):
     )
 
 
-def test_simultaneous_manual_commands_only_one_reset_and_audit(queued):
+def test_simultaneous_manual_commands_only_one_reset_and_audit(queued, monkeypatch):
     s, identifier, _ = queued
     transport = Mock()
     transport.send.side_effect = PermanentDeliveryError()
     process_one(s.factory, transport)
     barrier = Barrier(2)
+    original_get = OutboxRepository.get
+
+    def synchronized_lock(repository, identifier, *, lock=False):
+        if lock:
+            barrier.wait(timeout=10)
+        return original_get(repository, identifier, lock=lock)
+
+    monkeypatch.setattr(OutboxRepository, "get", synchronized_lock)
 
     def run(_):
-        barrier.wait(timeout=10)
         try:
             retry(s, identifier)
             return 200
@@ -448,7 +456,6 @@ def test_database_constraints_protect_immutable_origin_status_and_attempts(queue
     for stmt in statements:
         with s.factory() as db, pytest.raises(IntegrityError):
             db.execute(stmt)
-            db.commit()
 
 
 def test_populated_downgrade_refuses_history_loss(queued):
@@ -546,7 +553,8 @@ def test_pagination_is_deterministic_empty_pages_keep_totals(queued):
         empty = service.list_events(
             PaginationParams(20, 2, "asc"), status=None, event_type=None
         )
-        assert empty.items == [] and empty.total == 4
+        assert empty.items == []
+        assert empty.total == 4
         assert (
             service.list_events(
                 PaginationParams(1, 20, "asc"), status="TERMINAL", event_type=None
@@ -583,10 +591,11 @@ def test_same_manual_command_concurrent_replay_has_one_audit(queued):
 def test_service_rejects_non_admin_and_command_reuse_on_other_event(queued):
     s, identifier, _ = queued
     with s.factory() as db:
+        service = OutboxService(db)
+        command_id = uuid.uuid4()
+        actor = db.get(User, s.actors["manager"])
         with pytest.raises(ApiError) as denied:
-            OutboxService(db).retry(
-                identifier, uuid.uuid4(), db.get(User, s.actors["manager"])
-            )
+            service.retry(identifier, command_id, actor)
         assert denied.value.status_code == 403
     transport = Mock()
     transport.send.side_effect = PermanentDeliveryError()
@@ -606,3 +615,57 @@ def test_service_rejects_non_admin_and_command_reuse_on_other_event(queued):
     with pytest.raises(ApiError) as conflict:
         retry(s, other, command)
     assert conflict.value.code == "OUTBOX_COMMAND_CONFLICT"
+
+
+def test_custom_operational_grants_never_authorize_outbox_admin(client, queued):
+    from app.modules.access_profiles.models import AccessProfile, ProfilePermission
+
+    s, identifier, _ = queued
+    profile_id, user_id = uuid.uuid4(), uuid.uuid4()
+    with s.factory() as db:
+        profile = AccessProfile(
+            id=profile_id, name="Fictício OC109", name_key="fictício oc109", active=True
+        )
+        db.add(profile)
+        db.flush()
+        db.add(
+            ProfilePermission(
+                profile_id=profile_id,
+                permission_code="loadx.trips.read",
+                delegable=True,
+            )
+        )
+        db.add(
+            User(
+                id=user_id,
+                name="Conta fictícia OC109",
+                email=f"{user_id}@example.invalid",
+                password_hash="fixture-only-no-password-login",
+                role="CUSTOM",
+                custom_profile_id=profile_id,
+                active=True,
+            )
+        )
+        db.commit()
+    try:
+        headers = issue_session_headers(s.factory, user_id)
+        assert client.get(BASE, headers=headers).status_code == 403
+        assert (
+            client.post(
+                f"{BASE}/{identifier}/retry",
+                headers=headers,
+                json={"command_id": str(uuid.uuid4())},
+            ).status_code
+            == 403
+        )
+    finally:
+        with s.factory() as db:
+            db.execute(delete(AuthSession).where(AuthSession.user_id == user_id))
+            db.execute(delete(User).where(User.id == user_id))
+            db.execute(
+                delete(ProfilePermission).where(
+                    ProfilePermission.profile_id == profile_id
+                )
+            )
+            db.execute(delete(AccessProfile).where(AccessProfile.id == profile_id))
+            db.commit()

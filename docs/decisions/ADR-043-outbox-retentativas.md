@@ -53,3 +53,8 @@ aplicar migration, trocar aplicação e iniciar worker; não executar deploy nes
 
 `RISCO IDENTIFICADO`: indisponibilidade do worker acumula fila; monitorar contadores,
 idade e heartbeat por execução. Não existe alerta externo ou webhook novo nesta OC.
+
+`CONFIRMADO`: reprocessamento bloqueia primeiro a conta autorizada com lock
+compartilhado e o evento com FOR UPDATE; somente então insere o comando com FK.
+Isso evita deadlock de promoção de KEY SHARE entre comandos simultâneos. A
+regressão sincroniza explicitamente os dois processos antes do lock do evento.
