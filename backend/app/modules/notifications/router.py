@@ -37,7 +37,7 @@ def get_inbox_service(db: Annotated[Session, Depends(get_db)]) -> InboxService:
 Inbox = Annotated[InboxService, Depends(get_inbox_service)]
 
 
-@router.get("", response_model=NotificationPage)
+@router.get("")
 def list_notifications(
     pagination: Pagination,
     current_user: CurrentUser,
@@ -51,31 +51,30 @@ def list_notifications(
     )
 
 
-@router.get("/unread-count", response_model=UnreadCount)
+@router.get("/unread-count")
 def unread_count(current_user: CurrentUser, service: Inbox) -> UnreadCount:
     return UnreadCount(unread_count=service.unread_count(current_user))
 
 
-@router.get("/preferences", response_model=PreferencesRead)
+@router.get("/preferences")
 def get_preferences(current_user: CurrentUser, service: Inbox) -> PreferencesRead:
     return service.preferences(current_user)
 
 
-@router.put("/preferences", response_model=PreferencesRead)
+@router.put("/preferences")
 def save_preferences(
     data: PreferencesWrite, current_user: CurrentUser, service: Inbox
 ) -> PreferencesRead:
     return service.save_preferences(current_user, data)
 
 
-@router.post("/read-all", response_model=ReadAllResult)
+@router.post("/read-all")
 def mark_all_read(current_user: CurrentUser, service: Inbox) -> ReadAllResult:
     return ReadAllResult(updated=service.mark_all_read(current_user))
 
 
 @router.post(
     "/{notification_id}/read",
-    response_model=NotificationRead,
     responses=openapi_error_responses(404),
 )
 def mark_read(
@@ -86,7 +85,6 @@ def mark_read(
 
 @router.get(
     "/{notification_id}/source",
-    response_model=NotificationSource,
     responses=openapi_error_responses(404),
 )
 def source(
