@@ -21,7 +21,7 @@ export function DistributionOverview({ distribution, canApprove, working, disabl
           <button type="button" className="btn-primary" disabled={disabled || distribution.status === "INCOMPLETE"} onClick={() => onAction("approve")}>{working ? "Processando…" : "Aprovar distribuição completa"}</button>
         </div> : null}
         {distribution.status === "INCOMPLETE" ? <p className="distribution-notice">Reprocesse as partes canceladas antes da aprovação completa.</p> : null}
-        {confirmCancel ? <div className="distribution-confirm" role="group" aria-label="Confirmar cancelamento da distribuição"><p>Cancelar toda a distribuição? Os volumes serão liberados para uma nova proposta. O histórico será preservado.</p><button type="button" className="btn-secondary" disabled={disabled} onClick={() => setConfirmCancel(false)}>Manter distribuição</button><button type="button" className="btn-secondary" disabled={disabled} onClick={() => { setConfirmCancel(false); onAction("cancel"); }}>Confirmar cancelamento</button></div> : null}
+        {confirmCancel ? <fieldset className="distribution-confirm" aria-label="Confirmar cancelamento da distribuição"><p>Cancelar toda a distribuição? Os volumes serão liberados para uma nova proposta. O histórico será preservado.</p><button type="button" className="btn-secondary" disabled={disabled} onClick={() => setConfirmCancel(false)}>Manter distribuição</button><button type="button" className="btn-secondary" disabled={disabled} onClick={() => { setConfirmCancel(false); onAction("cancel"); }}>Confirmar cancelamento</button></fieldset> : null}
       </section>
   );
 }

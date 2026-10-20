@@ -34,7 +34,7 @@ function DistributionWorkspace({ id }: { readonly id: string }) {
     setLoading(true); setError(null);
     getDistribution(id).then((result) => {
       if (active) { setStored(result); setRefreshRequired(false); }
-    }).catch((failure) => { if (active) setError(failure); })
+    }).catch((error_) => { if (active) setError(error_); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [id, attempt, canRead, user?.role]);
@@ -46,8 +46,8 @@ function DistributionWorkspace({ id }: { readonly id: string }) {
     try {
       const result = await action();
       if (alive.current) { setStored(result); setSuccess("Distribuição atualizada e salva."); }
-    } catch (failure) {
-      if (alive.current) { setError(failure); setRefreshRequired(true); }
+    } catch (error_) {
+      if (alive.current) { setError(error_); setRefreshRequired(true); }
     } finally {
       pending.current = false;
       if (alive.current) setWorking(false);
@@ -59,7 +59,7 @@ function DistributionWorkspace({ id }: { readonly id: string }) {
     <DistributionFeedback error={error} />
     {error ? <button type="button" className="btn-secondary" disabled={working || loading} onClick={() => setAttempt((value) => value + 1)}>Atualizar distribuição</button> : null}
     {refreshRequired ? <p className="entity-form-help">A proposta foi mantida. Consulte o estado atual antes de repetir uma ação.</p> : null}
-    {success ? <p role="status" className="distribution-success">{success}</p> : null}
+    {success ? <output className="distribution-success">{success}</output> : null}
     {loading ? <output className="entity-state"><span className="spinner" aria-hidden="true" />Carregando distribuição…</output> : null}
     {distribution && part ? <>
       <DistributionOverview distribution={distribution} canApprove={canApprove} working={working} disabled={disabled}
