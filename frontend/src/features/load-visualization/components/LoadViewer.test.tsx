@@ -168,10 +168,24 @@ describe("LoadViewer — passo a passo", () => {
 
 
 it("oferece nova consulta da cena após falha, sem calcular", async () => {
-  vi.mocked(getLoadPlanVisualization).mockRejectedValueOnce(new Error("Falha temporária")).mockResolvedValue(VIEW);
+  vi.mocked(getLoadPlanVisualization).mockReset().mockRejectedValueOnce(new Error("Falha temporária")).mockResolvedValue(VIEW);
   render(<LoadViewer planId="lp1" plan={PLAN} />);
   expect(await screen.findByRole("alert")).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Tentar carregar visualização novamente" }));
   expect(await screen.findByTestId("cena")).toBeInTheDocument();
   expect(getLoadPlanVisualization).toHaveBeenCalledTimes(2);
+});
+
+
+it("remonta a cena ao mudar de plano e não apresenta volumes anteriores", async () => {
+  vi.mocked(getLoadPlanVisualization).mockReset();
+  let finish!: (value: LoadPlanVisualization) => void;
+  vi.mocked(getLoadPlanVisualization).mockReturnValueOnce(new Promise((resolve) => { finish = resolve; })).mockResolvedValueOnce(VIEW);
+  const view = render(<LoadViewer key="first" planId="lp1" plan={PLAN} />);
+  // The first deferred response belongs to the old vehicle and must be ignored.
+  view.rerender(<LoadViewer key="second" planId="lp2" plan={{ ...PLAN, id: "lp2" }} />);
+  await screen.findByTestId("cena");
+  finish({ ...VIEW, truck: { ...TRUCK, plate: "OLD0X00" } });
+  await waitFor(() => expect(screen.queryByText(/OLD0X00/)).not.toBeInTheDocument());
+  expect(getLoadPlanVisualization).toHaveBeenNthCalledWith(2, "lp2");
 });
