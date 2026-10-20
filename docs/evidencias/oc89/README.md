@@ -11,6 +11,9 @@
 - Troca entre dois veículos consultando seus próprios IDs no endpoint de cena.
 - Resumo e cena nas larguras 375, 768, 1280 e 1920, em claro e escuro: 16 cenários.
 - Oito capturas abaixo, revisadas visualmente; sem overflow horizontal da página.
+- Nova sessão de navegador/login recupera a distribuição aprovada pela listagem.
+  Seleção de veículo por teclado e tema Automático respondem ao sistema; nenhuma
+  escrita de planejamento acontece durante essa consulta.
 - Navegação para Produtos, retorno pela lista e atualização do navegador sem
   executar optimize novamente. Aprovação parcial e total preservam a fronteira OC90.
 
@@ -27,3 +30,17 @@ permissões. PostgreSQL cobre snapshots e recuperação das versões reprocessad
 representativos da operação. Não há garantia de otimização global; a interface
 não inicia operação multi-caminhão antes da OC90. Capturas não comprovam todos
 os critérios WCAG; teclado e foco também devem ser verificados na revisão humana.
+
+## Qualidade executada
+
+`CONFIRMADO`: Pytest completo: **2.389 passaram**, sete warnings, **94%** de
+cobertura do backend (12.062 statements / 673 não cobertos). Vitest completo:
+**898 passaram em 101 arquivos**; após o refinamento, 89 testes focados da feature
+passaram. ESLint, TypeScript, build, Ruff e Ruff format passaram. Orçamento 3D:
+229,7 KiB gzip / limite 250. npm audit sem vulnerabilidades.
+
+`CONFIRMADO`: Alembic `heads`, `current`, `upgrade head` e `check` na base isolada,
+head único `20261016_0024`, sem novas operações de upgrade. A suíte PostgreSQL
+exercita upgrade/downgrade/upgrade pelo padrão existente. Não altera banco legado.
+CI/SonarCloud finais são conferidos no PR; a cobertura automática do Sonar não
+importa estes resultados Pytest e deve ser distinguida da cobertura local acima.
