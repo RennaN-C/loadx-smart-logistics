@@ -102,7 +102,8 @@ def test_real_http_restart_preserves_notification_and_get_has_no_effect(
             with urllib.request.urlopen(request, timeout=10) as response:
                 assert json.load(response)[0]["id"] == str(occurrence_id)
             row = row_for(s, occurrence_id)
-            assert row.id == notification_id and row.mock_status == "SIMULATED"
+            assert row.id == notification_id
+            assert row.mock_status == "SIMULATED"
             assert counts(s) == (1, 1)
     finally:
         with s.factory() as db:

@@ -1,4 +1,4 @@
-"""Existing domain guarantees; these tests do not claim OC84 persistence exists."""
+"""Regression guarantees for durable domain commits and isolated mock failures."""
 
 import uuid
 

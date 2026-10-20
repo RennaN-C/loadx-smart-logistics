@@ -23,6 +23,8 @@ operacional histórica, não usuário autorizado da futura central.
 (tipo, origem, motorista). INSERT ON CONFLICT aguarda concorrentes sem abortar a
 transação. Triggers PostgreSQL conferem origem/transição/viagem/destinatário,
 protegem identidade e origens referenciadas e fecham transições de tentativa.
+A origem é bloqueada com FOR SHARE durante a validação para impedir alteração
+concorrente entre a leitura da proveniência e o INSERT.
 
 | mock_status | Significado |
 |---|---|

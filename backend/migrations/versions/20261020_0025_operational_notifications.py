@@ -83,9 +83,9 @@ def upgrade() -> None:
         END IF;
         IF NEW.event_type = 'TRIP_STARTED' THEN
           PERFORM 1 FROM status_history WHERE id=NEW.status_history_id AND entity_type='TRIP'
-            AND entity_id=NEW.trip_id AND old_status='SCHEDULED' AND new_status='IN_ROUTE';
+            AND entity_id=NEW.trip_id AND old_status='SCHEDULED' AND new_status='IN_ROUTE' FOR SHARE;
         ELSE
-          PERFORM 1 FROM occurrences WHERE id=NEW.occurrence_id AND trip_id=NEW.trip_id;
+          PERFORM 1 FROM occurrences WHERE id=NEW.occurrence_id AND trip_id=NEW.trip_id FOR SHARE;
         END IF;
         IF NOT FOUND THEN
           RAISE EXCEPTION 'invalid notification origin' USING ERRCODE='23514';
