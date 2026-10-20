@@ -56,3 +56,5 @@ Proposta para revisão:
   ADR-038 reservada pela PR #211/OC98, não incorporada nesta base.
 
 - [ADR-040 — Perfis e permissões standalone](ADR-040-perfis-permissoes-standalone.md) — OC112, proposta implementada para revisão.
+
+- [ADR-041 — notificações operacionais duráveis e claim após commit externo](ADR-041-notificacoes-operacionais-duraveis.md).

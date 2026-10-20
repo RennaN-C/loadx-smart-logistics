@@ -16,8 +16,9 @@ import { PlanBuilder } from "../components/PlanBuilder";
 import { PlanItemsTable } from "../components/PlanItemsTable";
 import { PlanSummary } from "../components/PlanSummary";
 import { mapLoadPlanErrorToMessage } from "../components/loadPlansErrorMessages";
-import type { LoadPlan } from "../types";
+import type { LoadDistribution, LoadPlan } from "../types";
 import "./PlanningPage.css";
+import "./DistributionPage.css";
 
 /**
  * O three.js pesa ~600 kB. Carregar sob demanda mantém o pacote principal leve
@@ -63,11 +64,12 @@ function PlanningFeedback({ error, loading, hasPlanId, hasPlan, retry }: {
   </>;
 }
 
-function PlanningWorkspace({ isNew, canManage, checker, onCalculated }: {
+function PlanningWorkspace({ isNew, canManage, checker, onCalculated, onDistributed }: {
   readonly isNew: boolean;
   readonly canManage: boolean;
   readonly checker: boolean;
   readonly onCalculated: (plan: LoadPlan) => void;
+  readonly onDistributed: (distribution: LoadDistribution) => void;
 }) {
   const showBuilder = isNew && canManage;
   return <>
@@ -75,7 +77,7 @@ function PlanningWorkspace({ isNew, canManage, checker, onCalculated }: {
       <Link to="/planning" aria-current={!showBuilder ? "page" : undefined}>Planos existentes</Link>
       {canManage ? <Link to="/planning?tab=new" aria-current={showBuilder ? "page" : undefined}>Novo planejamento</Link> : null}
     </nav>
-    {showBuilder ? <><p className="entity-form-help">Seleções ainda não calculadas são rascunhos desta tela. O plano será salvo somente ao calcular (até 200 volumes).</p><PlanBuilder onCalculated={onCalculated} /></>
+    {showBuilder ? <><p className="entity-form-help">Seleções ainda não calculadas são rascunhos desta tela. O plano será salvo somente ao calcular (até 200 volumes).</p><PlanBuilder onCalculated={onCalculated} onDistributed={onDistributed} /></>
       : <PlanHistory checker={checker} />}
   </>;
 }
@@ -87,9 +89,11 @@ interface PlanningResultProps extends ComponentProps<typeof PlanSummary> {
 
 function PlanningResult({ plan, canManage, approvalAllowed, isWorking, onApprove, onRecalculate, tab, onTabChange }: PlanningResultProps) {
   const { user } = useAuth();
+  const distributionId = plan.distributionId;
   return <>
+    {distributionId ? <div className="distribution-notice"><p>Este plano pertence a uma distribuição. Aprovação, cancelamento e reprocessamento são feitos pela necessidade completa.</p><Link className="btn-secondary" to={`/planning/distributions/${distributionId}`}>Abrir distribuição completa</Link></div> : null}
     <p className="entity-form-help">Plano {plan.id.slice(0, 8)} salvo. <Link to={`/planning/${plan.id}`}>Abrir este plano</Link> ou reencontre em <Link to="/planning">Planos existentes</Link>.</p>
-    <PlanSummary plan={plan} canManage={canManage} approvalAllowed={approvalAllowed} isWorking={isWorking} onApprove={onApprove} onRecalculate={onRecalculate} />
+    <PlanSummary plan={plan} canManage={canManage && !distributionId} approvalAllowed={approvalAllowed && !distributionId} isWorking={isWorking} onApprove={onApprove} onRecalculate={onRecalculate} />
     <Tabs items={PLAN_TABS} active={tab} onChange={onTabChange} label="Formato do resultado" />
     <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
       {tab === "summary" ? <PlanItemsTable items={plan.items} /> :
@@ -206,7 +210,7 @@ export function PlanningPage() {
     </nav>
     <PlanningHeader plan={plan} canManage={canManage} canDownload={canDownload} />
     <PlanningFeedback error={errorMessage} loading={isLoading} hasPlanId={Boolean(planId)} hasPlan={Boolean(plan)} retry={() => setLoadAttempt((value) => value + 1)} />
-    {!planId && !isLoading ? <PlanningWorkspace isNew={isNew} canManage={canManage} checker={user?.role === "CHECKER"} onCalculated={handleCalculated} /> : null}
+    {!planId && !isLoading ? <PlanningWorkspace isNew={isNew} canManage={canManage} checker={user?.role === "CHECKER"} onCalculated={handleCalculated} onDistributed={(created) => { if (mounted.current && currentId.current === undefined) navigate(`/planning/distributions/${created.id}`); }} /> : null}
     {plan && !isLoading ? <PlanningResult plan={plan} canManage={canManage} approvalAllowed={hasPermission(user, "loadx.planning.approve")} isWorking={isWorking}
       onApprove={() => void runAction(approveLoadPlan)} onRecalculate={() => void runAction(recalculateLoadPlan)} tab={tab} onTabChange={setTab} /> : null}
   </div>;

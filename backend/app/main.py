@@ -19,6 +19,7 @@ from app.core.observability import (
 )
 from app.core.responses import openapi_error_responses
 from app.database.readiness import DatabaseReadinessChecker, ReadinessCheckError
+from app.integrations.inbound_webhook import build_inbound_webhook
 
 
 class ReadinessResponse(BaseModel):
@@ -42,6 +43,11 @@ def create_app(app_settings: Settings | None = None) -> FastAPI:
             yield
         finally:
             emit_operational_event(OperationalEvent.APP_STOPPED)
+            if (
+                application.state.inbound_webhook is not None
+                and application.state.inbound_webhook.engine is not None
+            ):
+                application.state.inbound_webhook.engine.dispose()
 
     expose_api_docs = current_settings.app_env == "local"
     application = FastAPI(
@@ -53,6 +59,7 @@ def create_app(app_settings: Settings | None = None) -> FastAPI:
         lifespan=lifespan,
     )
     register_exception_handlers(application)
+    application.state.inbound_webhook = build_inbound_webhook(current_settings)
     application.state.integration_health_sources = {}
     application.state.integration_health_settings = current_settings
     application.state.readiness_checker = DatabaseReadinessChecker(

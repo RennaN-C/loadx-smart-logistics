@@ -9,10 +9,17 @@ import { listCustomers } from "../../customers/api/customersApi";
 import { listOrders } from "../../orders/api/ordersApi";
 import { listTruckOperationalStatus, listTrucks } from "../../trucks/api/trucksApi";
 import { approveLoadPlan, createLoadPlan, getLoadPlan, getLoadPlanContinuity, listLoadPlans, recalculateLoadPlan } from "../api/loadPlansApi";
+import { optimizeDistribution } from "../api/distributionsApi";
+import { makeDistribution } from "../testing/distributionFixtures";
 import type { LoadPlan, LoadPlanItem } from "../types";
 import { PlanningPage } from "./PlanningPage";
 
-vi.mock("../api/loadPlansApi");
+vi.mock("../api/loadPlansApi", async (importOriginal) => ({
+  ...await importOriginal<typeof import("../api/loadPlansApi")>(),
+  getLoadPlan: vi.fn(), listLoadPlans: vi.fn(), getLoadPlanContinuity: vi.fn(),
+  createLoadPlan: vi.fn(), approveLoadPlan: vi.fn(), recalculateLoadPlan: vi.fn(),
+}));
+vi.mock("../api/distributionsApi", async (importOriginal) => ({ ...await importOriginal<typeof import("../api/distributionsApi")>(), optimizeDistribution: vi.fn() }));
 // WebGL nao existe em jsdom: a cena e testada pela geometria pura, em sceneGeometry.test.ts
 vi.mock("../../load-visualization/components/LoadViewer", () => ({
   LoadViewer: ({ planId }: { planId: string }) => <div data-testid="viewer">cena de {planId}</div>,
@@ -208,6 +215,40 @@ describe("PlanningPage", () => {
         },
       ]),
     );
+  });
+
+  it("otimiza pedidos sem caminhão manual e salva a proposta real", async () => {
+    vi.mocked(optimizeDistribution).mockResolvedValue(makeDistribution());
+    render(<MemoryRouter initialEntries={["/planning?tab=new"]}><Routes>
+      <Route path="/planning" element={<PlanningPage />} />
+      <Route path="/planning/distributions/:distributionId" element={<div>Distribuição persistida aberta</div>} />
+    </Routes></MemoryRouter>);
+    fireEvent.click(await screen.findByRole("radio", { name: /Seleção automática/ }));
+    fireEvent.click(await screen.findByRole("checkbox"));
+    fireEvent.click(screen.getByRole("button", { name: "Otimizar e salvar distribuição" }));
+    expect(await screen.findByText("Distribuição persistida aberta")).toBeInTheDocument();
+    expect(optimizeDistribution).toHaveBeenCalledWith(["o1"]);
+    expect(createLoadPlan).not.toHaveBeenCalled();
+  });
+
+  it.each(["DISTRIBUTION_CAPACITY_INSUFFICIENT", "TRUCK_OPERATION_CONFLICT", "LOAD_PLAN_ORDER_NOT_ELIGIBLE"])("preserva seleção e trata %s", async (code) => {
+    vi.mocked(optimizeDistribution).mockRejectedValue(new ApiError(code, "Resposta real", [{ volume_index: 1 }], 422));
+    renderAt("/planning");
+    fireEvent.click(await screen.findByRole("radio", { name: /Seleção automática/ }));
+    fireEvent.click(await screen.findByRole("checkbox"));
+    fireEvent.click(screen.getByRole("button", { name: "Otimizar e salvar distribuição" }));
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    expect(screen.getByRole("checkbox")).toBeChecked();
+    expect(screen.getByRole("button", { name: "Otimizar e salvar distribuição" })).toBeEnabled();
+    expect(createLoadPlan).not.toHaveBeenCalled();
+  });
+
+  it("plano de distribuição não usa aprovação ou recálculo legados", async () => {
+    vi.mocked(getLoadPlan).mockResolvedValue(makePlan({ distributionId: "distribution-1" }));
+    renderAt("/planning/lp1");
+    expect(await screen.findByRole("link", { name: "Abrir distribuição completa" })).toHaveAttribute("href", "/planning/distributions/distribution-1");
+    expect(screen.queryByRole("button", { name: "Aprovar plano" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Recalcular" })).not.toBeInTheDocument();
   });
 
   it("oferece só caminhão ativo e pedido pronto", async () => {

@@ -8,12 +8,14 @@ from datetime import UTC, datetime, timedelta
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
+from app.core.observability import request_id_context
 from app.core.security_events import SecurityEvent, emit_security_event
 from app.integrations.external_commands import (
     ExternalActorResolver,
     ExternalAuthenticator,
     TrustedIntegration,
 )
+from app.integrations.whatsapp import get_whatsapp_provider
 from app.modules.deliveries.reference_service import DeliveryReferenceService
 from app.modules.deliveries.service import (
     DeliveryNotFoundError,
@@ -42,6 +44,7 @@ from app.modules.external_commands.schemas import (
     ExternalCommandEnvelope,
     ExternalCommandReceipt,
 )
+from app.modules.notifications.service import OperationalNotificationService
 from app.modules.trucks.service import TruckOperationConflictError
 from app.modules.users.models import User
 from app.modules.users.service import UserNotFoundError, UserService
@@ -87,7 +90,7 @@ class ExternalCommandService:
         self.clock = clock
 
     def process(self, body: bytes, signature: str) -> ExternalCommandReceipt:
-        correlation_id = str(uuid.uuid4())
+        correlation_id = request_id_context.get() or str(uuid.uuid4())
         try:
             if not isinstance(body, bytes) or not 0 < len(body) <= MAX_BODY_BYTES:
                 raise ExternalCommandError(ExternalCommandErrorCode.PAYLOAD_INVALID)
@@ -169,7 +172,10 @@ class ExternalCommandService:
                 # while waiting must roll back even a domain service's commit.
                 self._ensure_current(envelope)
                 repository.complete(row, self.clock())
-                return ExternalCommandReceipt(id=row.id, duplicate=False)
+                OperationalNotificationService.transfer_staged(domain_db, db)
+                receipt = ExternalCommandReceipt(id=row.id, duplicate=False)
+        OperationalNotificationService.dispatch_after_commit(db)
+        return receipt
 
     @staticmethod
     def _authorize_actor(db: Session, actor: User) -> None:
@@ -188,9 +194,13 @@ class ExternalCommandService:
 
     @staticmethod
     def _execute(db: Session, actor: User, envelope: ExternalCommandEnvelope) -> None:
-        # Notifications are deliberately not injected: no external IO before the
-        # enclosing transaction is committed. Domain still checks object RBAC.
-        service = TripService(db)
+        # Domain stages only; the owning transaction dispatches after its commit.
+        service = TripService(
+            db,
+            notification_service=OperationalNotificationService(
+                get_whatsapp_provider()
+            ),
+        )
         if envelope.command == CommandName.START_TRIP:
             service.change_trip_status(
                 envelope.target_id, "IN_ROUTE", current_user=actor

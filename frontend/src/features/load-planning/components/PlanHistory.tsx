@@ -12,11 +12,13 @@ import { PLAN_STATUS_LABELS, planStatusTone } from "./loadPlanLabels";
 const date = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" });
 
 function PlanHistoryRow({ plan, canReadOrigin }: { readonly plan: LoadPlanListItem; readonly canReadOrigin: boolean }) {
+  const destination = plan.distributionId ? `/planning/distributions/${plan.distributionId}` : `/planning/${plan.id}`;
   return <li className="plan-history-row">
     <div className="plan-history-identification">
       <Link className="plan-history-plate" to={`/planning?truck=${plan.truckId}`} aria-label={`Filtrar planos do caminhão ${plan.truckPlate}`}>{plan.truckPlate}</Link>
-      <h3><Link to={`/planning/${plan.id}`}>Plano {plan.id.slice(0, 8)}</Link></h3>
+      <h3><Link to={destination}>Plano {plan.id.slice(0, 8)}</Link></h3>
       <p>{plan.truckModel}</p>
+      {plan.distributionId ? <p>Parte da distribuição {plan.distributionId.slice(0, 8)}</p> : null}
       <time dateTime={plan.createdAt}>{date.format(new Date(plan.createdAt))}</time>
     </div>
     <div className="plan-history-summary">
@@ -25,7 +27,7 @@ function PlanHistoryRow({ plan, canReadOrigin }: { readonly plan: LoadPlanListIt
       <p>{plan.occupancyPercent.toLocaleString("pt-BR")}% de ocupação · {plan.totalWeightKg.toLocaleString("pt-BR")} kg</p>
       {plan.recalculatedFromId && canReadOrigin ? <Link to={`/planning/${plan.recalculatedFromId}`}>Ver plano de origem</Link> : null}
     </div>
-    <Link className="btn-secondary" to={`/planning/${plan.id}`} aria-label={`Abrir plano ${plan.id.slice(0, 8)}`}>Abrir planejamento</Link>
+    <Link className="btn-secondary" to={destination} aria-label={`Abrir plano ${plan.id.slice(0, 8)}`}>{plan.distributionId ? "Abrir distribuição" : "Abrir planejamento"}</Link>
   </li>;
 }
 

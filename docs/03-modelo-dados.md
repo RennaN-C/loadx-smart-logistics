@@ -1,5 +1,54 @@
 # Modelo de dados inicial
 
+## OC84 — notificações operacionais duráveis
+
+`CONFIRMADO`: a Issue #127 e a ADR-037 autorizam notificações internas reais
+com saída WhatsApp exclusivamente mock. Antes da OC84, a base `c9b634c` não
+armazenava notificações duráveis. `status_history` e `occurrences` comprovam os fatos,
+mas não armazenam uma notificação nem o resultado de sua simulação.
+`external_commands` deduplica comandos, não notificações ou tentativas de saída.
+Reutilizar essas tabelas como histórico de envio mudaria seu significado.
+
+`CONFIRMADO`: implementação autorizada pela revisão de Rennan na PR #226,
+comentário 6289881953. Tabela `operational_notifications`, módulo notifications,
+migration `20261020_0025` sobre `20261016_0024`. Sem backfill fictício.
+
+| Campo | Tipo | Finalidade e restrição |
+| --- | --- | --- |
+| `id` | UUID | PK, gerada pelo servidor |
+| `event_type` | varchar(32) | Catálogo fechado `TRIP_STARTED` / `OCCURRENCE_REGISTERED` |
+| `status_history_id` | UUID nullable | FK `status_history.id` RESTRICT, somente para início efetivo `TRIP: SCHEDULED -> IN_ROUTE` |
+| `occurrence_id` | UUID nullable | FK `occurrences.id` RESTRICT, somente para ocorrência registrada |
+| `trip_id` | UUID | FK `trips.id` RESTRICT; recurso operacional de origem |
+| `recipient_driver_id` | UUID | FK `drivers.id` RESTRICT; motorista da viagem no momento do fato |
+| `created_at` | timestamptz | UTC do servidor, na transação do fato |
+| `mock_status` | varchar(24) | `NOT_ATTEMPTED`, `ATTEMPT_CLAIMED`, `SIMULATED`, `FAILED` ou `NO_RECIPIENT`; sem semântica de entrega externa |
+| `correlation_id` | UUID | Contexto técnico gerado pelo servidor, sem payload ou segredo |
+| `claimed_at` | timestamptz nullable | Commit do claim, separado do resultado |
+| `completed_at` | timestamptz nullable | Finalização local; não comprova entrega externa |
+
+`CONFIRMADO`: a existência da linha confirmada representa o registro interno;
+não adicionar `read_at`, preferências ou estado lida/não lida da OC103. Não copiar
+telefone, texto, descrição de ocorrência, assinatura, subject, dados de sessão ou
+identificador bruto de integração. `recipient_driver_id` preserva o destinatário
+operacional atual mesmo quando não existe conta `users` vinculada; isso **não
+concede acesso HTTP** nem aprova inferir um futuro destinatário da central.
+
+`CONFIRMADO`: CHECK exige exatamente a origem correspondente ao `event_type`;
+CHECK fecha `mock_status`. Dois índices UNIQUE parciais protegem
+`(event_type, status_history_id, recipient_driver_id)` quando o histórico não é
+nulo e `(event_type, occurrence_id, recipient_driver_id)` quando a ocorrência
+não é nula. Índice `(trip_id, created_at, id)` atende rastreamento técnico. UUIDs
+das origens vêm exclusivamente dos services públicos donos; a validação de
+proveniência verifica viagem, transição e destinatário na mesma transação.
+FK isolada não comprova esses vínculos semânticos.
+
+`CONFIRMADO`: triggers PostgreSQL validam viagem/transição efetiva da origem,
+viagem da ocorrência e destinatário operacional no INSERT. A identidade registrada
+é imutável; alterações de estado permitem apenas NOT_ATTEMPTED → ATTEMPT_CLAIMED
+→ SIMULATED/FAILED/NO_RECIPIENT, com timestamps coerentes. FKs RESTRICT conservam
+histórico. Downgrade recusa perda de notificações já registradas.
+
 ## OC87 — necessidade multi-caminhão
 
 `RECOMENDAÇÃO`: ADR-028 propõe quatro tabelas no módulo load_planning. Migration

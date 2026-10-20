@@ -1,5 +1,33 @@
 # Regras de negócio
 
+## OC84 — notificações operacionais persistentes
+
+`CONFIRMADO`: a revisão de Rennan na PR #226 aprovou a direção estrutural.
+[ADR-041](decisions/ADR-041-notificacoes-operacionais-duraveis.md) define a
+implementação: somente TRIP_STARTED (SCHEDULED → IN_ROUTE efetivo) e
+OCCURRENCE_REGISTERED (UUID real da ocorrência), com motorista da mesma viagem.
+Fato/histórico/notificação são persistidos na mesma transação; falha do registro
+faz rollback de todos. Repetir status não gera evento; duas ocorrências com UUIDs
+distintos são fatos diferentes, não deduplicados por texto ou horário.
+
+`CONFIRMADO`: unicidade PostgreSQL protege tipo/origem/motorista; a origem e o
+destinatário são validados por services públicos e triggers. O registro interno
+não depende de envio. mock_status distingue NOT_ATTEMPTED, ATTEMPT_CLAIMED,
+SIMULATED, FAILED e NO_RECIPIENT. Claim condicional é confirmado antes do mock;
+resultado/falha/ausência de destino não desfazem o domínio já durável.
+
+Session ligada à Connection/savepoint não autoriza saída. A OC79 transfere hints
+ao dono da transação, que despacha após o commit externo; replay não repete o efeito.
+Binding/atividade/telefone são relidos, sem redirecionar a outro motorista. O
+simulador conserva seu aviso explícito, sem notificação automática duplicada.
+Não altera RBAC, contratos HTTP, OC83 ou a fronteira operacional da OC89/OC90.
+
+`RISCO IDENTIFICADO`: crash antes do claim mantém NOT_ATTEMPTED; após claim ou
+resultado incerto mantém ATTEMPT_CLAIMED, nunca sucesso presumido. Sem retry,
+worker, varredura ou exactly-once. OC109 tratará recuperação; OC103, central e
+preferências. WhatsApp continua exclusivamente mock; não há envio/entrega Meta.
+
+
 ## Unidades
 
 - `CONFIRMADO`: dimensões em centímetros.
@@ -798,3 +826,11 @@ herda acesso do gerente; poderes reservados/identidade não são delegáveis. AD
 é superconjunto gerencial dentro do LoadX, preservando estados, vínculos e ator
 real. Nenhum entitlement, tenant ou SUPERADMIN é criado. Demais invariantes e
 proteção do último administrador continuam aplicáveis.
+
+## Recepção HTTP controlada — OC83
+
+`CONFIRMADO`: somente comandos já aprovados da OC79 alcançam os services de
+viagens/entregas. Assinatura, binding do servidor, capabilities e autorização por
+objeto são obrigatórios. Reenvio válido não repete efeito/histórico; conflito ou
+falha não deixa alteração parcial. Mídia inbound permanece desabilitada, sem
+comando novo, download externo ou IO de storage na transação da OC79.

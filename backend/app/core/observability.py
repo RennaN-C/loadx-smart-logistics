@@ -22,6 +22,10 @@ _FIELDS = frozenset(
         "duration_ms",
         "reason",
         "exception_type",
+        "correlation_id",
+        "notification_type",
+        "notification_id",
+        "trip_id",
     }
 )
 _METHODS = frozenset({"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"})
@@ -35,6 +39,8 @@ class OperationalEvent(StrEnum):
     READINESS_FAILED = "READINESS_FAILED"
     INTEGRATION_HEALTH_FAILED = "INTEGRATION_HEALTH_FAILED"
     NOTIFICATION_FAILED = "NOTIFICATION_FAILED"
+    NOTIFICATION_SIMULATED = "NOTIFICATION_SIMULATED"
+    NOTIFICATION_SKIPPED = "NOTIFICATION_SKIPPED"
 
 
 def emit_operational_event(

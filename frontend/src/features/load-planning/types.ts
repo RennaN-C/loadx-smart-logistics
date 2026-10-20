@@ -53,6 +53,7 @@ export interface LoadPlanItem extends LoadPlanItemSnapshot {
 }
 
 export interface LoadPlan {
+  distributionId?: string | null;
   id: string;
   truckId: string;
   /** Preenchido quando este plano nasceu de um recálculo de outro. */
@@ -110,6 +111,7 @@ export interface LoadPlanVisualization {
 }
 
 export interface LoadPlanListItem {
+  distributionId?: string | null;
   id: string;
   truckId: string;
   truckPlate: string;
@@ -128,4 +130,29 @@ export interface LoadPlanContinuity {
   loading_session: { id: string; status: "PENDING" | "IN_PROGRESS" | "FINISHED" } | null;
   trip: { id: string; status: "SCHEDULED" | "IN_ROUTE" | "FINISHED" } | null;
   operational_ready: boolean;
+}
+
+
+export type DistributionStatus = "PROPOSED" | "PARTIALLY_APPROVED" | "APPROVED" | "INCOMPLETE" | "CANCELED";
+export type DistributionPartStatus = "PENDING" | "APPROVED" | "CANCELED";
+export interface VolumeReference { orderItemId: string; volumeIndex: number }
+export interface DistributionVolume extends VolumeReference {
+  orderId: string; productId: string; quantity: number; partId: string;
+}
+export interface DistributionPart {
+  id: string; status: DistributionPartStatus; truck: TruckSnapshot; loadPlan: LoadPlan;
+}
+export interface LoadDistribution {
+  id: string; status: DistributionStatus; createdBy: string; createdAt: string;
+  orderIds: string[]; truckCount: number; volumeCount: number;
+  parts: DistributionPart[]; volumes: DistributionVolume[];
+}
+export type IneligibleTruckReason = "INACTIVE" | "TRUCK_OPERATION_CONFLICT" | "TRUCK_IN_MAINTENANCE" | "TRUCK_DOCUMENT_INELIGIBLE";
+export interface DistributionNeed {
+  orderIds: string[];
+  volumes: (VolumeReference & { orderId: string; productId: string; widthCm: number;
+    heightCm: number; lengthCm: number; weightKg: number; deliverySequence: number;
+    fragile: boolean; stackable: boolean; rotationAllowed: boolean })[];
+  eligibleTrucks: TruckSnapshot[];
+  ineligibleTrucks: { truckId: string; reason: IneligibleTruckReason }[];
 }

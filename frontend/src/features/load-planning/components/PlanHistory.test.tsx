@@ -91,3 +91,12 @@ it("conferente nao recebe link de origem cuja aprovacao nao foi confirmada", asy
   await screen.findByRole("link", { name: "Abrir plano abcd1234" });
   expect(screen.queryByRole("link", { name: "Ver plano de origem" })).not.toBeInTheDocument();
 });
+
+
+it("abre agregado persistido ao reencontrar plano de uma distribuição", async () => {
+  vi.mocked(listLoadPlans).mockResolvedValue(makePage([{ ...item, distributionId: "distribution-1" }]));
+  setup();
+  const link = await screen.findByRole("link", { name: "Abrir plano abcd1234" });
+  expect(link).toHaveAttribute("href", "/planning/distributions/distribution-1");
+  expect(link).toHaveTextContent("Abrir distribuição");
+});

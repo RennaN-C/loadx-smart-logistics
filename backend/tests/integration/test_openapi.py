@@ -507,6 +507,22 @@ for import_suffix, import_method in (
         (f"/api/v1/registration-imports{import_suffix}", import_method)
     ] = {"401", "403", "404", "409", "422", "500"}
 
+SIGNED_OPERATIONS = frozenset({("/api/v1/webhooks/controlled-events", "post")})
+EXPECTED_ERROR_STATUSES[("/api/v1/webhooks/controlled-events", "post")] = {
+    "400",
+    "401",
+    "403",
+    "408",
+    "409",
+    "410",
+    "413",
+    "415",
+    "422",
+    "429",
+    "500",
+    "503",
+}
+
 PUBLIC_OPERATIONS = frozenset(
     {
         ("/health", "get"),
@@ -514,7 +530,9 @@ PUBLIC_OPERATIONS = frozenset(
         ("/api/v1/auth/login", "post"),
     }
 )
-PROTECTED_OPERATIONS = frozenset(EXPECTED_ERROR_STATUSES).difference(PUBLIC_OPERATIONS)
+PROTECTED_OPERATIONS = frozenset(EXPECTED_ERROR_STATUSES).difference(
+    PUBLIC_OPERATIONS, SIGNED_OPERATIONS
+)
 HTTP_METHODS = frozenset({"get", "post", "patch", "put", "delete"})
 
 
@@ -852,3 +870,21 @@ def test_oc86_admin_list_documents_identity_fields_and_safe_filters() -> None:
         "created_at",
     }
     assert "password_hash" not in fields
+
+
+def test_openapi_documents_inbound_signature_without_session_cookie():
+    schema = get_openapi_schema()
+    operation = schema["paths"]["/api/v1/webhooks/controlled-events"]["post"]
+    assert "security" not in operation
+    signature = next(
+        item for item in operation["parameters"] if item["name"] == "X-LoadX-Signature"
+    )
+    assert signature["required"] is True
+    assert signature["schema"]["pattern"] == "^[0-9a-f]{64}$"
+    body = operation["requestBody"]["content"]["application/json"]["schema"]
+    assert body["additionalProperties"] is False
+    assert set(body["properties"]["command"]["enum"]) == {
+        "START_TRIP",
+        "START_DELIVERY",
+        "FINISH_DELIVERY",
+    }
