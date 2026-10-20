@@ -38,6 +38,29 @@ class OperationalNotificationService:
         trip = DeliveryReferenceService(db).get_trip_for_notification(trip_id)
         if trip is None or trip.driver_id != recipient_driver_id:
             raise ValueError("invalid notification recipient")
+        self._validate_origin(db, event_type, trip_id, status_history_id, occurrence_id)
+        row = OperationalNotificationRepository(db).record(
+            event_type=event_type,
+            trip_id=trip_id,
+            recipient_driver_id=recipient_driver_id,
+            status_history_id=status_history_id,
+            occurrence_id=occurrence_id,
+            correlation_id=uuid.UUID(request_id_context.get())
+            if request_id_context.get()
+            else uuid.uuid4(),
+        )
+        # A dispatch hint only; the database row is the durable source of truth.
+        db.info.setdefault("operational_notifications", {})[row.id] = self
+        return row.id
+
+    @staticmethod
+    def _validate_origin(
+        db: Session,
+        event_type: str,
+        trip_id: uuid.UUID,
+        status_history_id: uuid.UUID | None,
+        occurrence_id: uuid.UUID | None,
+    ) -> None:
         if event_type == "TRIP_STARTED":
             if status_history_id is None or occurrence_id is not None:
                 raise ValueError("invalid trip notification origin")
@@ -52,7 +75,7 @@ class OperationalNotificationService:
                 trip_id,
                 "SCHEDULED",
                 "IN_ROUTE",
-            ) or occurrence_id is not None:
+            ):
                 raise ValueError("invalid trip notification origin")
         elif event_type == "OCCURRENCE_REGISTERED":
             if occurrence_id is None or status_history_id is not None:
@@ -60,27 +83,10 @@ class OperationalNotificationService:
             origin = OccurrenceReferenceService(db).get_notification_origin(
                 occurrence_id
             )
-            if (
-                origin is None
-                or origin.trip_id != trip_id
-                or status_history_id is not None
-            ):
+            if origin is None or origin.trip_id != trip_id:
                 raise ValueError("invalid occurrence notification origin")
         else:
             raise ValueError("unsupported notification event")
-        row = OperationalNotificationRepository(db).record(
-            event_type=event_type,
-            trip_id=trip_id,
-            recipient_driver_id=recipient_driver_id,
-            status_history_id=status_history_id,
-            occurrence_id=occurrence_id,
-            correlation_id=uuid.UUID(request_id_context.get())
-            if request_id_context.get()
-            else uuid.uuid4(),
-        )
-        # A dispatch hint only; the database row is the durable source of truth.
-        db.info.setdefault("operational_notifications", {})[row.id] = self
-        return row.id
 
     @staticmethod
     def transfer_staged(source: Session, owner: Session) -> None:
