@@ -6,12 +6,12 @@ import pytest
 
 from app.core.observability import request_id_context
 from app.integrations.whatsapp import MockWhatsAppProvider, OutgoingWhatsAppMessage
-from app.modules.notifications.service import OperationalNotificationService
+from app.modules.notifications.sender import MockNotificationSender
 
 
 def test_notifies_assigned_driver_when_trip_starts() -> None:
     provider = MockWhatsAppProvider()
-    service = OperationalNotificationService(provider)
+    service = MockNotificationSender(provider)
     trip_id = uuid.UUID("00000000-0000-0000-0000-000000000001")
 
     sent = service.notify_trip_started(
@@ -29,7 +29,7 @@ def test_notifies_assigned_driver_when_trip_starts() -> None:
 
 def test_notifies_assigned_driver_when_occurrence_is_registered() -> None:
     provider = MockWhatsAppProvider()
-    service = OperationalNotificationService(provider)
+    service = MockNotificationSender(provider)
     trip_id = uuid.UUID("00000000-0000-0000-0000-000000000002")
 
     sent = service.notify_occurrence_registered(
@@ -52,7 +52,7 @@ def test_missing_recipient_does_not_send_or_fail_domain(
     recipient_phone: str | None,
 ) -> None:
     provider = MockWhatsAppProvider()
-    service = OperationalNotificationService(provider)
+    service = MockNotificationSender(provider)
     confirmed_status = "IN_ROUTE"
 
     sent = service.notify_trip_started(
@@ -70,7 +70,7 @@ def test_provider_failure_is_best_effort() -> None:
         def send_response(self, message):
             raise RuntimeError("controlled provider failure")
 
-    service = OperationalNotificationService(FailingWhatsAppProvider())
+    service = MockNotificationSender(FailingWhatsAppProvider())
 
     sent = service.notify_trip_started(
         recipient_phone="+5500000000000",
@@ -108,7 +108,7 @@ def test_mock_outcomes_are_correlated_without_claiming_delivery_or_logging_conte
             return super().send_response(message)
 
     provider = ControlledMock()
-    service = OperationalNotificationService(provider)
+    service = MockNotificationSender(provider)
     trip_id = uuid.uuid4()
     request_id = str(uuid.uuid4())
     token = request_id_context.set(request_id)
@@ -154,7 +154,7 @@ def test_mock_outcomes_are_correlated_without_claiming_delivery_or_logging_conte
 def test_mock_outside_http_gets_server_correlation_without_creating_request_context(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    service = OperationalNotificationService(MockWhatsAppProvider())
+    service = MockNotificationSender(MockWhatsAppProvider())
     assert request_id_context.get() is None
     with caplog.at_level(logging.INFO, logger="loadx.operations"):
         service.notify_trip_started(

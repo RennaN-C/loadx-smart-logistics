@@ -6,6 +6,8 @@ from collections.abc import Iterator
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from sqlalchemy import text
+from sqlalchemy.orm import sessionmaker
 
 from app.integrations.whatsapp import (
     MockWhatsAppProvider,
@@ -15,6 +17,20 @@ from app.integrations.whatsapp import (
 )
 from tests.integration.test_deliveries_api import create_trip, seed_operational_scenario
 from tests.integration.test_messages_api import finish_loading
+
+
+@pytest.fixture
+def session_factory(postgres_engine):
+    """HTTP notification tests need durable commits visible to independent Sessions."""
+    factory = sessionmaker(bind=postgres_engine, autoflush=False)
+    try:
+        yield factory
+    finally:
+        # postgres_engine validates the exclusive loadx_test database before use.
+        with postgres_engine.begin() as connection:
+            connection.execute(
+                text("TRUNCATE customers, products, trucks, drivers, users CASCADE")
+            )
 
 
 @pytest.fixture

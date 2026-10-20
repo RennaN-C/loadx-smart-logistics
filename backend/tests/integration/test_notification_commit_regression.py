@@ -7,6 +7,7 @@ from sqlalchemy import delete, select
 
 from app.integrations.whatsapp import MockWhatsAppProvider, OutgoingWhatsAppMessage
 from app.modules.deliveries.models import Trip
+from app.modules.notifications.models import OperationalNotification
 from app.modules.notifications.service import OperationalNotificationService
 from app.modules.occurrences.models import Occurrence
 from app.modules.occurrences.repository import OccurrenceRepository
@@ -76,6 +77,11 @@ def test_occurrence_is_durable_before_mock_and_survives_provider_failure_and_res
     finally:
         with scenario.factory() as cleanup:
             cleanup.execute(
+                delete(OperationalNotification).where(
+                    OperationalNotification.trip_id == scenario.trip_id
+                )
+            )
+            cleanup.execute(
                 delete(Occurrence).where(Occurrence.trip_id == scenario.trip_id)
             )
             cleanup.commit()
@@ -96,15 +102,14 @@ def test_occurrence_persistence_failure_rolls_back_without_mock_attempt(
         service = OccurrenceService(
             db, notification_service=OperationalNotificationService(provider)
         )
+        data = OccurrenceCreate(
+            trip_id=scenario.trip_id,
+            type="DELAY",
+            description="Teste fictício de rollback.",
+        )
+        actor = db.get(User, scenario.actors["manager"])
         with pytest.raises(RuntimeError, match="fixture persistence failure"):
-            service.register_occurrence(
-                OccurrenceCreate(
-                    trip_id=scenario.trip_id,
-                    type="DELAY",
-                    description="Teste fictício de rollback.",
-                ),
-                current_user=db.get(User, scenario.actors["manager"]),
-            )
+            service.register_occurrence(data, current_user=actor)
     with scenario.factory() as observer:
         assert (
             observer.scalar(
