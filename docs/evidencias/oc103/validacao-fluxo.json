@@ -1,0 +1,23 @@
+{
+  "before": {
+    "page": 1,
+    "page_size": 20,
+    "total": 9,
+    "total_pages": 1,
+    "unread_count": 6
+  },
+  "tripCountBefore": 1,
+  "afterRead": 5,
+  "afterReload": 5,
+  "afterReturn": 5,
+  "sourcePath": "/trips/5493b5ab-25f3-4a63-beef-4591a400c91c",
+  "tripCountAfter": 1,
+  "preferencesAnchor": true,
+  "preferencePersisted": true,
+  "securityMandatory": true,
+  "unnamedInteractive": 0,
+  "afterAll": 0,
+  "retryRecovered": true,
+  "overflow": false,
+  "errors": []
+}

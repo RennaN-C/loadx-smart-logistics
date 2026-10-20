@@ -54,3 +54,8 @@ A central lê fatos NOT_ATTEMPTED/CLAIMED/FAILED normalmente: são estados do ca
 não da caixa interna. O frontend consulta contratos reais, sem dados ou persistência
 fictícios. Categorias futuras entram pelo mesmo serviço após contrato aprovado,
 reutilizando regras de documento/manutenção dos módulos donos, sem reimplementá-las.
+
+`RISCO IDENTIFICADO`: o corte requer coordenar migration e troca dos escritores;
+uma instância antiga não conhece a associação de destinatários para fatos gravados
+após o backfill. Usar a sequência migrate/atualização da aplicação com escritores
+pausados no corte. Não há deploy ou intervenção em ambientes compartilhados nesta OC.
