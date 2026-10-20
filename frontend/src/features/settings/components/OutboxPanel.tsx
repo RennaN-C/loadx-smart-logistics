@@ -78,10 +78,10 @@ export function OutboxPanel() {
   }, [selected, attemptPage, refresh]);
   useEffect(() => () => { actionGeneration.current += 1; }, []);
   function filter(key: string, value: string) {
-    setNotice(""); setParams((current) => { const next = new URLSearchParams(current); next.delete("queue_page"); if (value) next.set(key, value); else next.delete(key); return next; });
+    setNotice(""); setParams((current) => { const next = new URLSearchParams(current); next.delete("queue_page"); if (value) { next.set(key, value); } else { next.delete(key); } return next; });
   }
   function choose(id: string | null) {
-    setAttemptPage(1); setParams((current) => { const next = new URLSearchParams(current); if (id) next.set("queue_event", id); else next.delete("queue_event"); return next; });
+    setAttemptPage(1); setParams((current) => { const next = new URLSearchParams(current); if (id) { next.set("queue_event", id); } else { next.delete("queue_event"); } return next; });
   }
   async function reprocess() {
     if (!event || busy) return;
@@ -124,7 +124,7 @@ export function OutboxPanel() {
     </tr>)}</tbody></table></div> : <div className="outbox-empty"><h3>Nenhum evento encontrado</h3><p>Os eventos persistidos aparecerão aqui. Ajuste os filtros para consultar outras situações.</p></div>)}
     {!loading && result && <Pagination label="eventos" page={result.page} totalPages={result.totalPages} onChange={(value) => setParams((current) => { const next = new URLSearchParams(current); next.set("queue_page", String(value)); return next; })} />}
     <p className="outbox-note">A caixa pessoal é independente do canal. Resultado incerto exige revisão; não há repetição automática de envios sem confirmação.</p>
-    {selected && <Modal title="Detalhes do evento" subtitle="Canal WhatsApp simulado · contrato v1" onClose={() => { if (!busy) choose(null); }}>
+    {selected && <div aria-hidden={confirm || undefined}><Modal title="Detalhes do evento" subtitle="Canal WhatsApp simulado · contrato v1" onClose={() => { if (!busy) choose(null); }}>
       {detailLoading && <output>Carregando evento e tentativas…</output>}
       {detailError && <AlertBanner>{detailError}</AlertBanner>}
       {!detailLoading && event && <div className="outbox-detail">{badge(event.status)}<dl><div><dt>Evento</dt><dd className="outbox-id">{event.id}</dd></div><div><dt>Notificação de origem</dt><dd className="outbox-id">{event.notification_id}</dd></div><div><dt>Correlação</dt><dd className="outbox-id">{event.correlation_id}</dd></div><div><dt>Último resultado</dt><dd>{errorText(event.last_error_code)}</dd></div>{["PENDING", "RETRYABLE"].includes(event.status) && <div><dt>Disponível para tentativa a partir de</dt><dd>{date(event.next_attempt_at)}</dd></div>}{event.lease_expires_at && <div><dt>Prazo do processamento</dt><dd>{date(event.lease_expires_at)}</dd></div>}</dl>
@@ -132,7 +132,7 @@ export function OutboxPanel() {
       {attempts && <Pagination label="tentativas" page={attempts.page} totalPages={attempts.totalPages} onChange={setAttemptPage} />}
       <div className="outbox-actions"><button type="button" className="btn-secondary" disabled={busy} onClick={() => void openSource()}>Abrir operação de origem</button>{eligible(event.status) && <button type="button" className="btn-primary" disabled={busy} onClick={() => setConfirm(true)}>Reprocessar evento</button>}</div></div>}
       <div className="outbox-actions"><button type="button" className="btn-secondary" disabled={busy} onClick={() => choose(null)}>Fechar detalhes</button>{detailError && <button type="button" className="btn-secondary" disabled={busy} onClick={() => setRefresh((value) => value + 1)}>Consultar novamente</button>}</div>
-    </Modal>}
+    </Modal></div>}
     {confirm && event && <Modal title="Confirmar reprocessamento" onClose={() => { if (!busy) setConfirm(false); }}><p>Uma nova tentativa será agendada para este evento simulado. O histórico será preservado e a ação será auditada.</p>{event.status === "UNCERTAIN" && <AlertBanner>A tentativa anterior não teve resultado confirmado. A repetição explícita é permitida apenas porque este canal é simulado.</AlertBanner>}{detailError && <AlertBanner>{detailError}</AlertBanner>}<div className="outbox-actions"><button className="btn-secondary" type="button" disabled={busy} onClick={() => setConfirm(false)}>Cancelar</button><button className="btn-primary" type="button" disabled={busy} onClick={() => void reprocess()}>{busy ? "Registrando…" : "Confirmar reprocessamento"}</button></div></Modal>}
   </div>;
 }

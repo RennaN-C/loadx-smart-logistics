@@ -79,7 +79,8 @@ def main() -> None:
                 )
                 if not processed:
                     stop.wait(settings.outbox_poll_seconds)
-            except Exception:  # noqa: BLE001 - crash-safe loop, never expose exception payload or credentials
+            # Keep the loop alive without exposing exception text or credentials.
+            except Exception:  # noqa: BLE001
                 logger.warning(
                     "outbox_cycle_failed reason=DATABASE_OR_PROCESSING_FAILED"
                 )

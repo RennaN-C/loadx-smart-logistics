@@ -37,7 +37,7 @@
 .outbox-attempts time, .outbox-attempts small { display: block; margin-top: .5rem; font-size: .8rem; color: var(--muted); }
 .outbox-attempts p { margin: .5rem 0; }
 .outbox-actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1rem; }
-.outbox-panel button { min-height: 44px; }
+.outbox-panel button { min-height: 44px; white-space: nowrap; }
 @media (max-width: 1100px) { .outbox-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 640px) {
   .outbox-toolbar { align-items: stretch; flex-direction: column; }
@@ -57,3 +57,4 @@
 
 .outbox-panel .modal-dialog { border-radius: 14px; }
 .outbox-detail > .outbox-badge { justify-self: start; }
+.outbox-toolbar > button { flex-shrink: 0; }

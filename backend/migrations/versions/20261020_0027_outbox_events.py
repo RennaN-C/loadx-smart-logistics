@@ -16,6 +16,9 @@ branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
 
+NOW_SQL = sa.text("now()")
+
+
 def upgrade() -> None:
     op.create_table(
         "outbox_events",
@@ -39,7 +42,7 @@ def upgrade() -> None:
         sa.Column(
             "next_attempt_at",
             sa.DateTime(timezone=True),
-            server_default=sa.text("now()"),
+            server_default=NOW_SQL,
             nullable=False,
         ),
         sa.Column("lease_expires_at", sa.DateTime(timezone=True), nullable=True),
@@ -47,13 +50,13 @@ def upgrade() -> None:
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
-            server_default=sa.text("now()"),
+            server_default=NOW_SQL,
             nullable=False,
         ),
         sa.Column(
             "updated_at",
             sa.DateTime(timezone=True),
-            server_default=sa.text("now()"),
+            server_default=NOW_SQL,
             nullable=False,
         ),
         sa.CheckConstraint(
@@ -114,7 +117,7 @@ def upgrade() -> None:
         sa.Column(
             "started_at",
             sa.DateTime(timezone=True),
-            server_default=sa.text("now()"),
+            server_default=NOW_SQL,
             nullable=False,
         ),
         sa.Column("finished_at", sa.DateTime(timezone=True), nullable=True),
@@ -160,7 +163,7 @@ def upgrade() -> None:
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
-            server_default=sa.text("now()"),
+            server_default=NOW_SQL,
             nullable=False,
         ),
         sa.ForeignKeyConstraint(
