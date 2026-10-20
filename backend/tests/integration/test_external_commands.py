@@ -30,7 +30,10 @@ from app.modules.external_commands.schemas import CommandName
 from app.modules.external_commands.service import ExternalCommandService
 from app.modules.load_planning.models import LoadPlan, LoadPlanOrder
 from app.modules.loading.reference_service import LoadingReferenceService
-from app.modules.notifications.models import OperationalNotification
+from app.modules.notifications.models import (
+    NotificationRecipient,
+    OperationalNotification,
+)
 from app.modules.occurrences.models import Occurrence
 from app.modules.orders.models import Order, OrderItem
 from app.modules.products.models import Product
@@ -124,6 +127,15 @@ def scenario(postgres_engine: Engine) -> Generator[Scenario, None, None]:
         yield result
     finally:
         with factory() as db:
+            db.execute(
+                delete(NotificationRecipient).where(
+                    NotificationRecipient.notification_id.in_(
+                        select(OperationalNotification.id).where(
+                            OperationalNotification.trip_id == result.trip_id
+                        )
+                    )
+                )
+            )
             db.execute(
                 delete(OperationalNotification).where(
                     OperationalNotification.trip_id == result.trip_id
