@@ -10,6 +10,8 @@ import { App } from "./App";
 import { listUsers } from "../features/users/api/usersApi";
 import { listProfiles, permissionCatalog } from "../features/access-profiles/api/profilesApi";
 import { makePage } from "../tests/makePage";
+vi.mock("../features/settings/components/OutboxPanel", () => ({ OutboxPanel: () => <div>Fila persistente</div> }));
+
 vi.mock("../features/notifications/api/notificationsApi", () => ({
   getUnreadCount: vi.fn(async () => 0),
   getNotificationPreferences: vi.fn(async () => ({ items: [] }).items),
@@ -153,6 +155,7 @@ describe("OC85: navegação e autorização na aplicação", () => {
     for (const [label, id] of [
       ["Dados da empresa", "settings-company"],
       ["Integrações e Saúde", "settings-integrations"],
+      ["Fila de eventos", "settings-outbox"],
       ["Configurações do LoadX", "settings-logistics"],
       ["Conta e administração", "settings-account"],
     ]) {

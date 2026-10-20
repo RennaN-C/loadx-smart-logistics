@@ -52,3 +52,8 @@
   .outbox-table td::before { content: attr(data-label); display: block; margin-bottom: .35rem; color: var(--muted); font-size: .75rem; }
   .outbox-actions { flex-direction: column; }
 }
+/* The existing mobile app header is layer 40; dialogs must cover it. */
+.outbox-panel .modal-overlay { z-index: 55; }
+
+.outbox-panel .modal-dialog { border-radius: 14px; }
+.outbox-detail > .outbox-badge { justify-self: start; }
