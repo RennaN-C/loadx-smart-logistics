@@ -49,3 +49,12 @@
   .distribution-vehicle { padding: 20px; }
 }
 @media (prefers-reduced-motion: reduce) { .distribution-vehicle { transition: none; } }
+@media (max-width: 600px) {
+  .distribution-overview .entity-form-actions,
+  .distribution-part-actions .entity-form-actions { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .distribution-overview .entity-form-actions button,
+  .distribution-part-actions .entity-form-actions button { width: 100%; justify-content: center; min-height: 44px; }
+}
+fieldset.distribution-vehicles { border: 0; padding: 0; min-width: 0; }
+fieldset.distribution-confirm { border: 0; border-top: 1px solid var(--line); padding: 16px 0; min-width: 0; }
+.distribution-success { display: block; }
