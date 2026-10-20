@@ -107,3 +107,11 @@ python -m pytest -q tests/unit/test_external_command_contract.py tests/unit/test
 `PENDENTE DE DEFINIÇÃO`: gestão de chaves e bindings, autenticação do fornecedor,
 recepção HTTP (OC82/OC83), envio real (OC84) e retenção/reprocessamento (OC109).
 Essas OCs precisam preservar esta fronteira, sessões/CSRF do frontend e RBAC.
+
+## Integração OC84
+
+`CONFIRMADO`: START_TRIP efetivo prepara notificação interna no savepoint do domínio.
+Os hints são transferidos ao owner e despachados apenas após commit do receipt e
+fato. Replay não despacha novamente. Falha do mock preserva o receipt e a viagem;
+claim/resultado indeterminado não tem retry automático. Não altera o contrato de
+entrada ou resposta da OC79/OC83; detalhes em notifications/README e ADR-041.
