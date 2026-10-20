@@ -24,6 +24,7 @@ _FIELDS = frozenset(
         "exception_type",
         "correlation_id",
         "notification_type",
+        "notification_id",
         "trip_id",
     }
 )
