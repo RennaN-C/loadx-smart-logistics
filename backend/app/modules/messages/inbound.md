@@ -101,4 +101,4 @@ inbound autenticado de mídia/replay e coordenação storage/commit. OC80 requer
 Session própria com commit real; savepoint OC79 não confirma IO durável. Produção,
 retenção e provider continuam dependentes de aprovação ADR-027 e #193.
 
-Homologação com HTTP real e dados fictícios: `infra/scripts/README.md`.
+Homologação com HTTP real e dados fictícios: `backend/scripts/README.md`.
