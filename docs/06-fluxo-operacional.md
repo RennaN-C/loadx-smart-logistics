@@ -260,3 +260,22 @@ verificar telas preenchidas, formulários, erros de ID inexistente e estados
 vazios/carregamento. Validar também sair para Produtos, usar anterior/próxima,
 F5 e reabrir a URL. Esses testes não autorizam backend novo nem substituem a
 central ainda bloqueada.
+
+## Planejamento com seleção automática — OC89
+
+`CONFIRMADO`: Planejamento → Novo planejamento → Seleção automática da frota →
+selecionar pedidos READY → Otimizar e salvar distribuição. O resultado já está
+persistido e pode ser reencontrado em Planos existentes, inclusive após novo login.
+Cada linha da lista representa um plano/versão; o vínculo leva à distribuição
+completa. O endereço `/planning/distributions/{id}` permite acesso direto autorizado.
+
+Selecionar um caminhão troca métricas, volumes e a consulta da cena 3D, sem cálculo.
+Aceitar parte não libera carga; aprovação total confirma toda a necessidade.
+Cancelar parte mantém seus volumes até reprocessar com controle de versão. Cancelar
+a proposta inteira preserva histórico e libera pedidos para outra proposta. Falhas
+não descartam a proposta consultada nem habilitam liberação operacional.
+
+`CONFIRMADO`: continuidade multi-caminhão permanece bloqueada até OC90; não há
+nova central de carregamentos/viagens nesta OC89. Uma distribuição de um veículo
+completa e aprovada usa os contratos de continuidade existentes. A disponibilidade
+é revalidada pelo backend e não equivale a reserva de frota.

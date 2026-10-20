@@ -101,3 +101,48 @@ e permitem o backend realizar a validação.
 Para um único pedido acima de 200 volumes, é necessário revisar as quantidades
 no módulo de Pedidos, respeitando a regra de edição em `DRAFT`, ou seguir o
 fluxo de planejamento de capacidade maior quando for implementado.
+
+## OC89 — seleção automática e distribuição persistida
+
+`CONFIRMADO`: Novo planejamento oferece **Um caminhão** (fluxo legado preservado)
+e **Seleção automática da frota**. A ação `Otimizar e salvar distribuição` envia
+somente `order_ids` a `POST /load-distributions/optimize`; HTTP 201 já representa
+uma proposta persistida, completa, de 1–10 caminhões e até 200 volumes físicos.
+Não há packing, disponibilidade, seleção de frota ou divisão de volumes no cliente.
+
+`CONFIRMADO`: `distributionsApi.ts` centraliza DTOs e conversões dos contratos
+OC87/88. A consulta estável é `/planning/distributions/:distributionId?part=:partId`.
+Os resumos de Planos existentes usam `distribution_id` (inclusive em versões
+históricas) para abrir o agregado. Consultar, F5, alternar veículos ou voltar de
+Produtos nunca chama optimize. O detalhe legado oferece retorno à distribuição e
+oculta aprovação/recálculo individuais quando existe esse vínculo. A listagem
+continua mostrando planos/versões, portanto várias linhas podem abrir a mesma
+necessidade; não se trata de distribuições duplicadas.
+
+`CONFIRMADO`: cartões apresentam placa/modelo do snapshot histórico, métricas e
+estado de cada parte; a seleção atualiza tabela e cena exclusivamente pelo
+`load_plan.id`. O viewer é lazy e recebe `key` do plano, descartando a cena anterior
+antes da nova consulta. A tabela mostra índice original/quantidade e item de origem.
+Erros da cena permitem repetir somente a leitura. Coordenadas não são alteradas.
+
+`CONFIRMADO`: aprovação/cancelamento usam o agregado; cancelar uma parte exige
+confirmação e deixa a necessidade incompleta. Reprocessamento consulta preflight,
+escolhe um caminhão elegível e envia `expected_load_plan_id`; não redistribui volumes
+entre partes. Erro mantém a proposta e exige atualizar o agregado antes de outra
+ação. Cliques concorrentes são bloqueados por estado e ref síncrona. Falha ambígua
+de rede na otimização orienta consultar Planos existentes antes de repetir; a API
+não fornece chave de idempotência para criação, e o frontend não inventa uma.
+
+`CONFIRMADO`: UI segue `loadx.planning.read/create/approve`, sem ampliar permissões.
+ADMIN/gestor de sistema gerenciam; CHECKER lê aprovados; DRIVER não consulta.
+Perfis flexíveis seguem o catálogo atual. Aprovação parcial não libera operação;
+com vários caminhões, carregamento/viagens permanecem na fronteira da OC90. Uma
+parte completa e aprovada reutiliza a continuidade real já existente.
+
+`CONFIRMADO`: aparência utiliza tokens existentes, controles nativos, foco visível,
+feedback real e grade responsiva. Evidências Chromium em
+[docs/evidencias/oc89](../../../../docs/evidencias/oc89/README.md).
+`RISCO IDENTIFICADO`: o backend não publica prova de otimalidade nem justificativa
+individual por alternativa descartada; a interface descreve a estratégia heurística
+documentada e a solução salva, sem inventar por que um caminhão específico falhou.
+Rascunhos não calculados continuam locais à tela, sem localStorage.
