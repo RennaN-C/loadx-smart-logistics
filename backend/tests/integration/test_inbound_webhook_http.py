@@ -6,7 +6,7 @@ from threading import Barrier
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import select
+from sqlalchemy import select, text
 
 from app.core.config import Settings
 from app.integrations.external_commands import (
@@ -192,6 +192,9 @@ def test_production_composition_preserves_namespace_and_bound_actor(scenario):
     )
     app = create_app(settings)
     app.state.inbound_webhook.commands.clock = lambda: NOW
+    with app.state.inbound_webhook.commands.session_factory() as db:
+        assert db.scalar(text("SHOW statement_timeout")) == "5s"
+        assert db.scalar(text("SHOW lock_timeout")) == "2s"
     with TestClient(app) as client:
         response = post(client, scenario.body())
         assert response.status_code == 200

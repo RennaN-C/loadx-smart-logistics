@@ -209,6 +209,35 @@ def test_size_and_content_metadata(transport):
         )
 
 
+def test_inclusive_limit_and_ambiguous_content_metadata(transport):
+    client, _, _ = transport
+    body = b" " * (16 * 1024)
+    assert (
+        client.post(
+            PATH,
+            content=body,
+            headers={
+                "X-LoadX-Signature": sign(body),
+                "Content-Type": "application/json",
+            },
+        ).status_code
+        == 422
+    )
+    body = command_body()
+    for metadata in (
+        [("Content-Type", "application/json"), ("Content-Type", "text/plain")],
+        [
+            ("Content-Type", "application/json"),
+            ("Content-Encoding", "identity"),
+            ("Content-Encoding", "gzip"),
+        ],
+    ):
+        response = client.post(
+            PATH, content=body, headers=[("X-LoadX-Signature", sign(body)), *metadata]
+        )
+        assert response.status_code == 415
+
+
 def test_disabled_and_browser_protections_unchanged():
     with TestClient(create_app()) as client:
         assert client.post(PATH).status_code == 503
@@ -233,18 +262,16 @@ def test_stream_limits_timeout_and_overload(monkeypatch):
         runtime = InboundWebhookRuntime(commands)
         app.state.inbound_webhook = runtime
 
-        async def send_request(chunks, headers=(), delay=0):
-            sent = []
+        async def send_request(chunks, headers=(), delay=0, disconnect=False):
             iterator = iter(chunks)
 
             async def receive():
+                if disconnect:
+                    return {"type": "http.disconnect"}
                 if delay:
                     await anyio.sleep(delay)
-                chunk = next(iterator)
-                return {"type": "http.request", "body": chunk, "more_body": True}
-
-            async def send(message):
-                sent.append(message)
+                chunk = next(iterator, b"")
+                return {"type": "http.request", "body": chunk, "more_body": bool(chunk)}
 
             from starlette.requests import Request
 
@@ -262,6 +289,10 @@ def test_stream_limits_timeout_and_overload(monkeypatch):
             return response
 
         assert (await send_request([b"x" * 8000, b"x" * 9000])).status_code == 413
+        assert (await send_request([], disconnect=True)).status_code == 400
+        assert (
+            await send_request([b"{}"], headers=[(b"content-length", b"3")])
+        ).status_code == 400
         monkeypatch.setattr(webhook_router, "BODY_TIMEOUT_SECONDS", 0.01)
         assert (await send_request([b""], delay=0.1)).status_code == 408
         assert (

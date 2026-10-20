@@ -35,6 +35,62 @@ ERROR_STATUS = {
 }
 
 
+class InboundTransportError(Exception):
+    def __init__(self, status: int, code: str) -> None:
+        super().__init__(code)
+        self.status = status
+        self.code = code
+
+
+def _signature(request: Request) -> str:
+    signatures = request.headers.getlist("x-loadx-signature")
+    if len(signatures) != 1 or len(signatures[0]) != 64:
+        raise InboundTransportError(401, "EXTERNAL_AUTHENTICITY_INVALID")
+    return signatures[0]
+
+
+def _declared_length(request: Request) -> int | None:
+    lengths = request.headers.getlist("content-length")
+    if not lengths:
+        return None
+    if len(lengths) != 1 or not lengths[0].isascii() or not lengths[0].isdigit():
+        raise InboundTransportError(400, "INBOUND_HEADERS_INVALID")
+    if len(lengths[0]) > 6 or int(lengths[0]) > MAX_BODY_BYTES:
+        raise InboundTransportError(413, "INBOUND_BODY_TOO_LARGE")
+    return int(lengths[0])
+
+
+async def _read_body(request: Request) -> bytes:
+    declared = _declared_length(request)
+    body = bytearray()
+    try:
+        with anyio.fail_after(BODY_TIMEOUT_SECONDS):
+            async for chunk in request.stream():
+                if len(body) + len(chunk) > MAX_BODY_BYTES:
+                    raise InboundTransportError(413, "INBOUND_BODY_TOO_LARGE")
+                body.extend(chunk)
+    except TimeoutError:
+        raise InboundTransportError(408, "INBOUND_BODY_TIMEOUT") from None
+    except ClientDisconnect:
+        raise InboundTransportError(400, "INBOUND_REQUEST_INCOMPLETE") from None
+    if declared is not None and declared != len(body):
+        raise InboundTransportError(400, "INBOUND_HEADERS_INVALID")
+    return bytes(body)
+
+
+def _validate_content_metadata(request: Request) -> None:
+    content_types = request.headers.getlist("content-type")
+    encodings = request.headers.getlist("content-encoding")
+    if (
+        len(content_types) != 1
+        or content_types[0].lower().replace(" ", "")
+        not in {"application/json", "application/json;charset=utf-8"}
+        or len(encodings) > 1
+        or (encodings and encodings[0].lower() != "identity")
+    ):
+        raise InboundTransportError(415, "INBOUND_CONTENT_TYPE_INVALID")
+
+
 def _envelope_schema() -> dict:
     schema = ExternalCommandEnvelope.model_json_schema()
     schema["properties"]["command"] = schema.pop("$defs")["CommandName"]
@@ -85,54 +141,23 @@ async def receive_controlled_event(
     runtime = request.app.state.inbound_webhook
     if runtime is None:
         return _reject(request, 503, "INBOUND_NOT_CONFIGURED")
-    signatures = request.headers.getlist("x-loadx-signature")
-    if len(signatures) != 1 or len(signatures[0]) != 64:
-        return _reject(request, 401, "EXTERNAL_AUTHENTICITY_INVALID")
     try:
+        signature = _signature(request)
         runtime.limiter.acquire_nowait()
+    except InboundTransportError as error:
+        return _reject(request, error.status, error.code)
     except anyio.WouldBlock:
         return _reject(request, 429, "INBOUND_BUSY")
     try:
-        lengths = request.headers.getlist("content-length")
-        if lengths and (
-            len(lengths) != 1 or not lengths[0].isascii() or not lengths[0].isdigit()
-        ):
-            return _reject(request, 400, "INBOUND_HEADERS_INVALID")
-        if lengths and (len(lengths[0]) > 6 or int(lengths[0]) > MAX_BODY_BYTES):
-            return _reject(request, 413, "INBOUND_BODY_TOO_LARGE")
-        body = bytearray()
-        try:
-            with anyio.fail_after(BODY_TIMEOUT_SECONDS):
-                async for chunk in request.stream():
-                    if len(body) + len(chunk) > MAX_BODY_BYTES:
-                        return _reject(request, 413, "INBOUND_BODY_TOO_LARGE")
-                    body.extend(chunk)
-        except TimeoutError:
-            return _reject(request, 408, "INBOUND_BODY_TIMEOUT")
-        except ClientDisconnect:
-            return _reject(request, 400, "INBOUND_REQUEST_INCOMPLETE")
-        if lengths and int(lengths[0]) != len(body):
-            return _reject(request, 400, "INBOUND_HEADERS_INVALID")
+        body = await _read_body(request)
         # Authenticate before interpreting even content metadata or JSON. The
         # command service independently verifies the identical original bytes.
-        try:
-            runtime.commands.authenticator.authenticate(bytes(body), signatures[0])
-            content_type = request.headers.getlist("content-type")
-            if (
-                len(content_type) != 1
-                or content_type[0].lower().replace(" ", "")
-                not in {
-                    "application/json",
-                    "application/json;charset=utf-8",
-                }
-                or request.headers.get("content-encoding", "identity").lower()
-                != "identity"
-            ):
-                return _reject(request, 415, "INBOUND_CONTENT_TYPE_INVALID")
-            return await run_in_threadpool(
-                runtime.commands.process, bytes(body), signatures[0]
-            )
-        except ExternalCommandError as error:
-            return _reject(request, ERROR_STATUS[error.code], error.code.value)
+        runtime.commands.authenticator.authenticate(body, signature)
+        _validate_content_metadata(request)
+        return await run_in_threadpool(runtime.commands.process, body, signature)
+    except InboundTransportError as error:
+        return _reject(request, error.status, error.code)
+    except ExternalCommandError as error:
+        return _reject(request, ERROR_STATUS[error.code], error.code.value)
     finally:
         runtime.limiter.release()
