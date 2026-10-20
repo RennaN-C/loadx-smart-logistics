@@ -6,6 +6,47 @@ from app.core.config import Settings
 from app.main import create_app
 
 EXPECTED_ERROR_STATUSES = {
+    ("/api/v1/outbox-events", "get"): {"401", "403", "404", "409", "422", "500"},
+    ("/api/v1/outbox-events/summary", "get"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
+    ("/api/v1/outbox-events/{event_id}", "get"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
+    ("/api/v1/outbox-events/{event_id}/attempts", "get"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
+    ("/api/v1/outbox-events/{event_id}/source", "get"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
+    ("/api/v1/outbox-events/{event_id}/retry", "post"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
     ("/api/v1/notifications", "get"): {"401", "403", "422", "500"},
     ("/api/v1/notifications/unread-count", "get"): {"401", "403", "422", "500"},
     ("/api/v1/notifications/preferences", "get"): {"401", "403", "422", "500"},

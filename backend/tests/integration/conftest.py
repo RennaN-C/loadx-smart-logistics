@@ -110,7 +110,22 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
         head_revision = connection.exec_driver_sql(
             "SELECT version_num FROM alembic_version"
         ).scalar_one()
-        assert head_revision == "20261020_0026"
+        assert head_revision == "20261020_0027"
+
+    _run_alembic(test_url, "downgrade", "-1")
+    with engine.connect() as connection:
+        assert (
+            connection.exec_driver_sql(
+                "SELECT to_regclass('public.outbox_events')"
+            ).scalar_one()
+            is None
+        )
+        assert (
+            connection.exec_driver_sql(
+                "SELECT version_num FROM alembic_version"
+            ).scalar_one()
+            == "20261020_0026"
+        )
 
     _run_alembic(test_url, "downgrade", "-1")
     with engine.connect() as connection:
@@ -148,6 +163,7 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
             is None
         )
     _run_alembic(test_url, "upgrade", "head")
+    _run_alembic(test_url, "downgrade", "-1")
     _run_alembic(test_url, "downgrade", "-1")
     _run_alembic(test_url, "downgrade", "-1")
     _run_alembic(test_url, "downgrade", "-1")

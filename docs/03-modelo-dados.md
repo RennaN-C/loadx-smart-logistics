@@ -859,3 +859,15 @@ obrigatório default true, updated_at UTC default now. CHECK category em
 TRIPS/OCCURRENCES/SECURITY e SECURITY sempre habilitada. Sem telefone/texto/segredo.
 Backfill só cria associações das contas elegíveis no corte. Downgrade com qualquer
 associação/preferência é recusado; fatos da OC84 são preservados integralmente.
+
+## OC109 — Outbox persistente (ADR-043)
+
+`CONFIRMADO`: outbox_events pertence a notifications: id UUID, notification_id FK
+RESTRICT/UNIQUE, channel WHATSAPP_MOCK, event_type, contract_version=1, correlation_id,
+idempotency_key UNIQUE, status, attempt_count por ciclo, generation monotônica,
+next_attempt_at/lease_expires_at UTC, last_error_code sanitizado, created_at/updated_at.
+Índices por status/agendamento e created_at/id. outbox_attempts registra UUID,
+outbox_event_id FK RESTRICT, generation UNIQUE por evento, started_at/finished_at,
+result e error_code; outbox_retry_commands fixa UUID idempotente, evento, ator FK
+RESTRICT e data. Auditoria acrescenta OUTBOX_REPROCESSED/OUTBOX_EVENT. Sem payload
+de texto/telefone, sem exclusão automática. Migration 20261020_0027.

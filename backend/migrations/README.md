@@ -9,8 +9,8 @@ O Alembic versiona toda alteração estrutural do PostgreSQL.
 - `migrations/script.py.mako`: template das revisions.
 - `migrations/versions`: migrations versionadas.
 
-`CONFIRMADO`: o head atual é `20261020_0026` (OC103), sobre `20261020_0025`
-(OC84). Historicamente, `20261008_0016` pertence à OC105, após OC87
+`CONFIRMADO`: o head atual é `20261020_0027` (OC109), sobre `20261020_0026`
+(OC103), que sucede `20261020_0025` (OC84). Historicamente, `20261008_0016` pertence à OC105, após OC87
 `20261007_0015` e evidências OC80 `20261007_0014`. A OC87 cria necessidade/partes/claims e triggers de integridade
 diferidas; downgrade remove esses registros/triggers e tipos de histórico próprios.
 A revisão `20260830_0011` adiciona
@@ -112,3 +112,7 @@ inferidos. FK/PK/índices/CHECK e trigger protegem isolamento estrutural, segura
 obrigatória e identidade/primeira leitura imutáveis. Com qualquer associação ou
 preferência, downgrade é recusado: preservar dados e planejar migração compensatória.
 A suíte percorre upgrade/downgrade/upgrade e testa backfill e recusa após uso.
+
+`CONFIRMADO`: OC109 associa tentativas legadas sem envio. Downgrade com eventos
+ou auditoria de reprocessamento é recusado. Procedimento de corte/worker em
+[notifications/README](../app/modules/notifications/README.md#oc109--fila-de-eventos-e-reprocessamento).

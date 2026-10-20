@@ -127,3 +127,63 @@ cobre isolamento, ADMIN sem personificação, RBAC/custom grants, vínculo atual
 preferências, auditoria/rollback, concorrência, snapshots, paginação com empate,
 idempotência e backfill/downgrade seguro. A suíte completa inclui regressões OC84,
 OC79, OC83 e OC89 em PostgreSQL 16.
+
+## OC109 — fila de eventos e reprocessamento
+
+`CONFIRMADO`: [ADR-043](../../../../docs/decisions/ADR-043-outbox-retentativas.md).
+`outbox_models/repository/service/router/schemas.py` acrescentam saída durável e
+administração; `worker.py` é processo separado, sem depender do ciclo HTTP.
+Contrato e tabelas em docs/03–05. WhatsApp continua **somente simulado**. Não há
+webhook de saída aprovado; webhook OC83 continua sendo entrada autenticada.
+
+### Execução local e Render (configuração proposta, sem deploy)
+
+1. Pausar escritores/worker antigos e confirmar backup; aplicar `alembic upgrade head`.
+2. Atualizar API e escritores externos para a mesma revisão. Nenhum `stamp`, reset
+   ou alteração de migrations antigas. Não iniciar worker antes da migration.
+3. Criar processo Background Worker no Render com a mesma imagem/dependências e
+   configuração segura do backend. Root directory `backend`, comando
+   `python -m app.modules.notifications.worker`. A URL do banco e os segredos vêm
+   do ambiente; não colocar valores em comandos/versionamento. Sem porta pública.
+4. Executar uma réplica inicialmente; múltiplas usam SKIP LOCKED. Verificar contadores,
+   idade do pendente mais antigo e logs `outbox_result`, além do histórico paginado.
+5. SIGTERM/SIGINT param novos claims e aguardam a chamada mock corrente; engine é
+   descartado. Interrupção abrupta deixa lease; próximo worker registra UNCERTAIN.
+   Erro de banco causa espera, sem log de mensagem/trace/URL/credenciais.
+
+Parâmetros validados em Settings: `OUTBOX_LEASE_SECONDS` (60, 10–600),
+`OUTBOX_MAX_ATTEMPTS` (5, 1–20), `OUTBOX_BASE_SECONDS` (30),
+`OUTBOX_CAP_SECONDS` (3600), `OUTBOX_POLL_SECONDS` (2, 0.1–60).
+Backoff = min(cap, base*2^(tentativa-1)) × uniforme[0.5,1]. Limites por ciclo;
+reprocessamento explícito começa outro ciclo sem apagar tentativas/gerações.
+Não há expurgo automático. Payload v1 contém apenas referência UUID (16 bytes),
+não aceita corpo arbitrário e não armazena mensagem/telefone.
+
+### Compatibilidade e falhas
+
+Backfill/adotação de SIMULATED/NO_RECIPIENT conclui sem reenviar; FAILED exige
+intervenção; ATTEMPT_CLAIMED permanece incerto. Estados OC84 não reiniciam. O
+caminho de dispatch mock compatível pode completar antes do worker; o mesmo claim
+OC84 impede envio adicional. Worker nunca repete canal já tentado na versão antiga.
+Novos retries têm histórico independente, sem alterar estados terminais da OC84.
+Caixa, leitura e preferências OC103 continuam independentes.
+
+Adapter em `app/integrations/outbox.py` reutiliza provider OC82. Rejeição definitiva
+é TERMINAL; falha transitória **com garantia de ausência de efeito** é RETRYABLE;
+timeout/erro desconhecido/crash são UNCERTAIN. Fencing protege resultado no banco;
+não cancela um efeito remoto. Nenhum adapter real está habilitado, nem se promete
+exactly-once. Novo transporte exige contrato de idempotência/timeout aprovado.
+
+### Administração
+
+Configurações → Fila de eventos usa API real, filtros/paginação/histórico e origem
+reautorizada. Somente ADMIN ativo consulta e reprocessa; nenhum grant novo delegável.
+POST exige CSRF/Origin e UUID de comando. Replay desse UUID não reabre o evento;
+reutilização para outro ator/origem retorna 409. Estado e comando/auditoria
+OUTBOX_REPROCESSED são atômicos. Lease ativo e sucesso não são reprocessáveis.
+Resultado incerto permite ação explícita apenas porque o canal é mock.
+
+Downgrade vazio testado; com qualquer evento/auditoria OC109, é recusado para
+preservar histórico. Correção com dados deve ser por migration aditiva. Não apagar
+fila para permitir downgrade em produção. Monitorar volume e retenção antes de
+crescimento operacional; não há política aprovada de descarte ou alerta externo.

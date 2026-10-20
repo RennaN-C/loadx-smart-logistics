@@ -4,6 +4,7 @@ export const SETTINGS_SECTIONS = [
   { id: "settings-users", label: "Gestão de usuários" },
   { id: "settings-company", label: "Dados da empresa" },
   { id: "settings-integrations", label: "Integrações e Saúde" },
+  { id: "settings-outbox", label: "Fila de eventos" },
   { id: "settings-logistics", label: "Configurações do LoadX" },
 ] as const;
 

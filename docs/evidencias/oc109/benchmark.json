@@ -1,0 +1,16 @@
+{
+  "scope": "PostgreSQL 16 local, banco isolado fict\u00edcio, mock sem I/O externo, sem SLA de produ\u00e7\u00e3o",
+  "worker": {
+    "samples": 20,
+    "median_ms": 15.88,
+    "p95_ms": 21.74,
+    "max_ms": 32.08
+  },
+  "list_page_20": {
+    "samples": 30,
+    "median_ms": 4.12,
+    "p95_ms": 6.49,
+    "max_ms": 13.87
+  },
+  "events_total": 35
+}

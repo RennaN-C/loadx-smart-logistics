@@ -60,3 +60,5 @@ Proposta para revisão:
 - [ADR-041 — notificações operacionais duráveis e claim após commit externo](ADR-041-notificacoes-operacionais-duraveis.md).
 
 - [ADR-042 — central pessoal de notificações](ADR-042-central-notificacoes-pessoais.md).
+
+- [ADR-043 — outbox, leases e reprocessamento](ADR-043-outbox-retentativas.md) — OC109, proposta implementada para revisão.

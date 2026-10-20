@@ -31,6 +31,11 @@ class Settings(BaseSettings):
     ai_provider: str = "mock"
     ai_explanation_timeout_seconds: float = Field(default=5.0, gt=0)
     whatsapp_provider: Literal["mock"] = "mock"
+    outbox_lease_seconds: int = Field(default=60, ge=10, le=600)
+    outbox_max_attempts: int = Field(default=5, ge=1, le=20)
+    outbox_base_seconds: int = Field(default=30, ge=1, le=3600)
+    outbox_cap_seconds: int = Field(default=3600, ge=1, le=86400)
+    outbox_poll_seconds: float = Field(default=2, ge=0.1, le=60)
     operational_log_level: Literal["INFO", "WARNING", "ERROR"] = "INFO"
     operational_request_logs: bool = True
     evidence_storage_dir: Path | None = None
