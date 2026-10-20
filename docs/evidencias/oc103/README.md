@@ -34,7 +34,7 @@ foram revisadas, além da medição: contraste, tipografia, espaçamento e contr
 [validacao-fluxo.json](validacao-fluxo.json) registra:
 
 1. Central com 9 fatos reais do cenário fictício; leitura individual reduz contador
-   de 6 para 5, sem alterar outra caixa.
+   de 6 para 5.
 2. F5 mantém a leitura e contador; sair para Produtos e voltar pelo sino encontra
    os mesmos registros persistidos e mantém 5 não lidas.
 3. Abrir operação navega à viagem existente; contagem de viagens permanece 1.
@@ -44,6 +44,11 @@ foram revisadas, além da medição: contraste, tipografia, espaçamento e contr
 5. Árvore de acessibilidade não possui controle interativo visível sem nome.
 6. Marcar todas reduz contador a zero. Filtro de não lidas mostra vazio real;
    falha de transporte mostra erro e nova tentativa recupera a consulta.
+
+[validacao-isolamento.json](validacao-isolamento.json) complementa o fluxo com
+consulta SQL após a leitura em lote: ADMIN possui 0/9 não lidas, enquanto as caixas
+DRIVER e LOGISTICS_MANAGER preservam 9/9 não lidas. A conta ADMIN não usa endpoints
+de personificação para essa verificação técnica do banco fictício.
 
 `CONFIRMADO`: testes Vitest adicionais cobrem retorno do foco após leitura,
 Escape, erro sem sucesso fictício, filtros na URL, contador/lista sincronizados e
