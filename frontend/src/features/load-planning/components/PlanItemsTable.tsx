@@ -46,6 +46,7 @@ export function PlanItemsTable({ items }: PlanItemsTableProps) {
                   <td>
                     <strong>{item.productCode}</strong>
                     <span className="plan-table-sub">{item.productName}</span>
+                    <span className="plan-table-sub">Volume {item.volumeIndex} de {item.quantity} · item {item.orderItemId.slice(0, 8)}</span>
                   </td>
                   <td className="plan-table-mono">
                     {item.xCm}, {item.yCm}, {item.zCm} cm
@@ -86,6 +87,7 @@ export function PlanItemsTable({ items }: PlanItemsTableProps) {
                     <td>
                       <strong>{item.productCode}</strong>
                       <span className="plan-table-sub">{item.productName}</span>
+                    <span className="plan-table-sub">Volume {item.volumeIndex} de {item.quantity} · item {item.orderItemId.slice(0, 8)}</span>
                     </td>
                     <td className="plan-table-mono">
                       {item.originalWidthCm}×{item.originalHeightCm}×{item.originalLengthCm} cm
