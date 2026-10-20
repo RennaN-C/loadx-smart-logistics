@@ -25,6 +25,35 @@ const listHistoricalCustomers = (params: ListParams) => listCustomers({ ...param
 /** Limite operacional do cálculo síncrono, imposto novamente pelo backend. */
 const MAX_SYNC_VOLUMES = 200;
 
+function PlanCalculateAction({ selectedCount, isCalculating, canCalculate, mode, onCalculate }: {
+  readonly selectedCount: number; readonly isCalculating: boolean; readonly canCalculate: boolean;
+  readonly mode: "single" | "automatic"; readonly onCalculate: () => void;
+}) {
+  return (
+          <div className="entity-form-actions">
+            <span className="plan-builder-count">
+              {selectedCount} {selectedCount === 1 ? "pedido" : "pedidos"} selecionados
+            </span>
+            <button
+              type="button"
+              className="btn-primary"
+              disabled={!canCalculate}
+              aria-busy={isCalculating}
+              onClick={onCalculate}
+            >
+              {isCalculating ? (
+                <>
+                  <span className="spinner" aria-hidden="true" />
+                  <span>Calculando…</span>
+                </>
+              ) : (
+                <span>{mode === "automatic" ? "Otimizar e salvar distribuição" : "Calcular plano de carga"}</span>
+              )}
+            </button>
+          </div>
+  );
+}
+
 export function PlanBuilder({ onCalculated, onDistributed }: PlanBuilderProps) {
   const { items: trucks, status: trucksStatus, refetch: reloadTrucks } = useResourceList(listTrucks);
   // Duas consultas porque os dois contratos são diferentes: `GET /trucks` traz as
@@ -155,27 +184,8 @@ export function PlanBuilder({ onCalculated, onDistributed }: PlanBuilderProps) {
           <PlanOrderSelection readyOrders={readyOrders} selectedOrders={selectedOrders} customerNames={customerNames}
             isCalculating={isCalculating} selectedVolumeCount={selectedVolumeCount} hasUnknownVolumeCounts={hasUnknownVolumeCounts}
             exceedsVolumeLimit={exceedsVolumeLimit} maxVolumes={MAX_SYNC_VOLUMES} onToggle={toggleOrder} />
-          <div className="entity-form-actions">
-            <span className="plan-builder-count">
-              {selectedOrders.length} {selectedOrders.length === 1 ? "pedido" : "pedidos"} selecionados
-            </span>
-            <button
-              type="button"
-              className="btn-primary"
-              disabled={!canCalculate}
-              aria-busy={isCalculating}
-              onClick={() => void handleCalculate()}
-            >
-              {isCalculating ? (
-                <>
-                  <span className="spinner" aria-hidden="true" />
-                  <span>Calculando…</span>
-                </>
-              ) : (
-                <span>{mode === "automatic" ? "Otimizar e salvar distribuição" : "Calcular plano de carga"}</span>
-              )}
-            </button>
-          </div>
+          <PlanCalculateAction selectedCount={selectedOrders.length} isCalculating={isCalculating}
+            canCalculate={canCalculate} mode={mode} onCalculate={() => void handleCalculate()} />
         </>
       ) : null}
     </div>

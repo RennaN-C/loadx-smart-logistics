@@ -1,6 +1,11 @@
 import { Link } from "react-router-dom";
 import type { OrderListItem } from "../../orders/types";
 
+function orderVolumeLabel(count?: number): string {
+  if (count === undefined) return "volumes não informados";
+  return `${count} ${count === 1 ? "volume" : "volumes"}`;
+}
+
 export function PlanOrderSelection({ readyOrders, selectedOrders, customerNames, isCalculating,
   selectedVolumeCount, hasUnknownVolumeCounts, exceedsVolumeLimit, maxVolumes, onToggle }: {
   readonly readyOrders: OrderListItem[]; readonly selectedOrders: string[];
@@ -38,8 +43,7 @@ export function PlanOrderSelection({ readyOrders, selectedOrders, customerNames,
                       {customerNames.get(order.customerId) ?? "Cliente não encontrado"}
                       <small>
                         Pedido {order.id.slice(0, 8)} · {order.itemCount} {order.itemCount === 1 ? "item" : "itens"}
-                        {" · "}{order.volumeCount === undefined ? "volumes não informados" :
-                          `${order.volumeCount} ${order.volumeCount === 1 ? "volume" : "volumes"}`}
+                        {" · "}{orderVolumeLabel(order.volumeCount)}
                       </small>
                     </span>
                   </label>

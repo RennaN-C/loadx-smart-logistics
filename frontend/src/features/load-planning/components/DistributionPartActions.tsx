@@ -10,7 +10,7 @@ interface PartActionProps {
   readonly onReprocess: (truckId: string) => void;
 }
 
-function ReprocessPart({ distribution, part, disabled, onReprocess }: PartActionProps) {
+function ReprocessPart({ distribution, part, disabled, onReprocess }: Pick<PartActionProps, "distribution" | "part" | "disabled" | "onReprocess">) {
   const [need, setNeed] = useState<DistributionNeed | null>(null);
   const [truckId, setTruckId] = useState("");
   const [loading, setLoading] = useState(false);
@@ -45,7 +45,7 @@ function ReprocessPart({ distribution, part, disabled, onReprocess }: PartAction
   </>;
 }
 
-function ApprovePart({ part, disabled, onAction }: PartActionProps) {
+function ApprovePart({ part, disabled, onAction }: Pick<PartActionProps, "part" | "disabled" | "onAction">) {
   const [confirmCancel, setConfirmCancel] = useState(false);
   return <>
     <div className="entity-form-actions">
