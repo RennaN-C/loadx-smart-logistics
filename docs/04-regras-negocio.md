@@ -798,3 +798,11 @@ herda acesso do gerente; poderes reservados/identidade não são delegáveis. AD
 é superconjunto gerencial dentro do LoadX, preservando estados, vínculos e ator
 real. Nenhum entitlement, tenant ou SUPERADMIN é criado. Demais invariantes e
 proteção do último administrador continuam aplicáveis.
+
+## Recepção HTTP controlada — OC83
+
+`CONFIRMADO`: somente comandos já aprovados da OC79 alcançam os services de
+viagens/entregas. Assinatura, binding do servidor, capabilities e autorização por
+objeto são obrigatórios. Reenvio válido não repete efeito/histórico; conflito ou
+falha não deixa alteração parcial. Mídia inbound permanece desabilitada, sem
+comando novo, download externo ou IO de storage na transação da OC79.
