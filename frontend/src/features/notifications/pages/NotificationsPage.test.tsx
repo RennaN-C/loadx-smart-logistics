@@ -88,3 +88,13 @@ it("permite acessar outras páginas pela paginação real", async () => {
   setup(); fireEvent.click(await screen.findByRole("button", { name: "Próxima" }));
   await waitFor(() => expect(api.listNotifications).toHaveBeenLastCalledWith(expect.objectContaining({ page: 2 })));
 });
+
+it("reconsulta a lista quando o contador detecta uma nova atualização", async () => {
+  setup(); await screen.findByText("Viagem iniciada");
+  const before = vi.mocked(api.listNotifications).mock.calls.length;
+  items.push({ ...original[1], id: "three", title: "Ocorrência posterior" });
+  vi.mocked(api.getUnreadCount).mockResolvedValue(3);
+  fireEvent.focus(window);
+  expect(await screen.findByText("Ocorrência posterior")).toBeInTheDocument();
+  expect(vi.mocked(api.listNotifications).mock.calls.length).toBeGreaterThan(before);
+});

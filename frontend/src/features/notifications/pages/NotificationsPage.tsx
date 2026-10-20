@@ -8,21 +8,27 @@ import { NotificationList } from "../components/NotificationList";
 import { useNotificationCounter } from "../hooks/NotificationContext";
 import "../notifications.css";
 
+function parseFilters(params: URLSearchParams) {
+  const value = params.get("category");
+  const category: NotificationCategory | undefined = value === "TRIPS" || value === "OCCURRENCES" || value === "SECURITY" ? value : undefined;
+  let read: boolean | undefined;
+  if (params.get("read") === "true") read = true;
+  if (params.get("read") === "false") read = false;
+  const sortOrder = params.get("sort_order") === "asc" ? "asc" as const : "desc" as const;
+  const page = Math.max(1, Math.min(1_000_000, Math.floor(Number(params.get("page")) || 1)));
+  return { category, read, sortOrder, page };
+}
+
 export function NotificationsPage() {
   const [params, setParams] = useSearchParams();
-  const categoryParam = params.get("category");
-  const category: NotificationCategory | undefined = categoryParam === "TRIPS" || categoryParam === "OCCURRENCES" || categoryParam === "SECURITY" ? categoryParam : undefined;
-  const readParam = params.get("read");
-  const read = readParam === "true" ? true : readParam === "false" ? false : undefined;
-  const sortOrder = params.get("sort_order") === "asc" ? "asc" : "desc";
-  const page = Math.max(1, Math.min(1_000_000, Number(params.get("page")) || 1));
+  const { category, read, sortOrder, page } = parseFilters(params);
   const [result, setResult] = useState<NotificationPage | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const sequence = useRef(0);
-  const { synchronize } = useNotificationCounter();
+  const { count, synchronize } = useNotificationCounter();
   const navigate = useNavigate();
   const load = useCallback(async () => {
     const request = ++sequence.current;
@@ -35,9 +41,12 @@ export function NotificationsPage() {
     } finally { if (request === sequence.current) setLoading(false); }
   }, [page, sortOrder, category, read, synchronize]);
   useEffect(() => { void load(); return () => { sequence.current += 1; }; }, [load]);
+  useEffect(() => {
+    if (result && count !== null && count !== result.unreadCount && !loading && !busy) void load();
+  }, [count, result, loading, busy, load]);
   function filter(name: string, value: string) {
     setNotice("");
-    setParams((current) => { const next = new URLSearchParams(current); next.delete("page"); if (value) next.set(name, value); else next.delete(name); return next; });
+    setParams((current) => { const next = new URLSearchParams(current); next.delete("page"); if (value) { next.set(name, value); } else { next.delete(name); } return next; });
   }
   async function act(item: NotificationItem | null, openSource = false) {
     setBusy(true); setError(""); setNotice("");
@@ -57,12 +66,12 @@ export function NotificationsPage() {
       <header className="notification-workspace-header"><div><h2 id="notification-inbox-heading">Sua caixa de entrada</h2><p>{result ? <><strong>{result.unreadCount}</strong> {result.unreadCount === 1 ? "não lida" : "não lidas"} <span aria-hidden="true">·</span> {result.total} {result.total === 1 ? "resultado" : "resultados"}</> : "Somente notificações disponíveis para sua conta."}</p></div><div className="notification-toolbar-actions"><button type="button" className="btn-secondary" disabled={loading || busy} onClick={() => void load()}>Atualizar</button><button type="button" className="btn-primary" disabled={loading || busy || !result?.unreadCount} onClick={() => void act(null)}>Marcar todas como lidas</button></div></header>
       <div className="notification-filters">
         <label>Situação<select value={read === undefined ? "" : String(read)} disabled={busy} onChange={(event) => filter("read", event.target.value)}><option value="">Todas</option><option value="false">Não lidas</option><option value="true">Lidas</option></select></label>
-        <label>Categoria<select value={category ?? ""} disabled={busy} onChange={(event) => filter("category", event.target.value)}><option value="">Todas as categorias</option><option value="TRIPS">Viagens</option><option value="OCCURRENCES">Ocorrências</option><option value="SECURITY">Segurança</option></select></label>
+        <label>Categoria<select value={category ?? ""} disabled={busy} onChange={(event) => filter("category", event.target.value)}><option value="">Todas</option><option value="TRIPS">Viagens</option><option value="OCCURRENCES">Ocorrências</option><option value="SECURITY">Segurança</option></select></label>
         <label>Ordenação<select value={sortOrder} disabled={busy} onChange={(event) => filter("sort_order", event.target.value)}><option value="desc">Mais recentes primeiro</option><option value="asc">Mais antigas primeiro</option></select></label>
       </div>
-      {notice && <p role="status" className="notification-success">{notice}</p>}
+      {notice && <output className="notification-success">{notice}</output>}
       {error && <div className="notification-feedback"><AlertBanner>{error}</AlertBanner><button type="button" className="btn-secondary" disabled={loading || busy} onClick={() => void load()}>Tentar novamente</button></div>}
-      {loading && <p role="status" className="notification-feedback">Carregando suas notificações…</p>}
+      {loading && <output className="notification-feedback">Carregando suas notificações…</output>}
       {!loading && result && (result.items.length ? <NotificationList items={result.items} busy={busy} onRead={(item) => void act(item)} onOpen={(item) => void act(item, true)} /> : <div className="notification-empty"><span className="notification-empty-icon"><Icon name="bell" size={30} /></span><h3>{read === false ? "Nenhuma notificação não lida" : "Nenhuma notificação por aqui"}</h3><p>{category || read !== undefined ? "Ajuste os filtros para consultar outras atualizações." : "As atualizações da sua operação aparecerão aqui quando forem recebidas."}</p></div>)}
       {result && !loading && <Pagination page={result.page} totalPages={result.totalPages} onChange={(value) => setParams((current) => { const next = new URLSearchParams(current); next.set("page", String(value)); return next; })} label="notificações" />}
     </section>

@@ -36,8 +36,12 @@ export function NotificationBell() {
     if (!open) return;
     heading.current?.focus();
     const dismiss = (event: MouseEvent) => { if (!wrapper.current?.contains(event.target as Node)) setOpen(false); };
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") { event.preventDefault(); setOpen(false); trigger.current?.focus(); }
+    };
     document.addEventListener("mousedown", dismiss);
-    return () => { sequence.current += 1; document.removeEventListener("mousedown", dismiss); };
+    document.addEventListener("keydown", escape);
+    return () => { sequence.current += 1; document.removeEventListener("mousedown", dismiss); document.removeEventListener("keydown", escape); };
   }, [open]);
   function toggle() { if (!open) { setPage(null); void load(); } setOpen(!open); }
   async function act(item: NotificationItem, navigateToSource: boolean) {
@@ -51,16 +55,19 @@ export function NotificationBell() {
     } catch { setError("A ação não foi concluída. Verifique seu acesso e tente novamente."); }
     finally { setBusy(false); }
   }
-  const label = counter.failed ? "Notificações, contador indisponível" : counter.count === null ? "Notificações" : `Notificações, ${counter.count} não lidas`;
-  return <div ref={wrapper} className="notification-bell" onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false); }} onKeyDown={(event) => { if (event.key === "Escape" && open) { event.preventDefault(); setOpen(false); trigger.current?.focus(); } }}>
+  let label = "Notificações";
+  if (counter.failed) label = "Notificações, contador indisponível";
+  else if (counter.count !== null) label = `Notificações, ${counter.count} não lidas`;
+  return <div ref={wrapper} className="notification-bell" onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false); }}>
     <button ref={trigger} type="button" className="notification-bell-trigger" aria-label={label} title="Notificações" aria-expanded={open} aria-controls={`${id}-panel`} onClick={toggle}>
       <Icon name="bell" size={22} />
-      {counter.failed ? <span className="notification-counter-error" aria-hidden="true">!</span> : counter.count !== null && counter.count > 0 ? <span className="notification-count" aria-hidden="true">{counter.count > 99 ? "99+" : counter.count}</span> : null}
+      {counter.failed && <span className="notification-counter-error" aria-hidden="true">!</span>}
+      {!counter.failed && counter.count !== null && counter.count > 0 && <span className="notification-count" aria-hidden="true">{counter.count > 99 ? "99+" : counter.count}</span>}
     </button>
     {open && <section id={`${id}-panel`} className="notification-dropdown" aria-labelledby={`${id}-heading`} aria-busy={loading || busy}>
       <header className="notification-dropdown-header"><div><span className="notification-kicker">Sua caixa</span><h2 id={`${id}-heading`} ref={heading} tabIndex={-1}>Notificações</h2></div><button type="button" className="notification-text-button" onClick={() => { setOpen(false); trigger.current?.focus(); }} aria-label="Fechar notificações">Fechar</button></header>
       {error && <div className="notification-dropdown-feedback"><AlertBanner>{error}</AlertBanner><button type="button" className="btn-secondary" disabled={loading || busy} onClick={() => void load()}>Tentar novamente</button></div>}
-      {loading && <p role="status" className="notification-feedback">Buscando atualizações…</p>}
+      {loading && <output className="notification-feedback">Buscando atualizações…</output>}
       {!loading && page && (page.items.length ? <NotificationList compact items={page.items} busy={busy} onRead={(item) => void act(item, false)} onOpen={(item) => void act(item, true)} /> : <div className="notification-empty"><Icon name="bell" size={26} /><h3>Tudo em dia</h3><p>Você ainda não tem notificações recebidas.</p></div>)}
       <footer className="notification-dropdown-footer"><Link to="/notifications" onClick={() => setOpen(false)}>Abrir central de notificações <Icon name="arrow-right" size={16} /></Link></footer>
     </section>}

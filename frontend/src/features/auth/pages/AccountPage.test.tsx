@@ -45,7 +45,7 @@ describe("OC92 Meu perfil", () => {
     expect(screen.getAllByText("Nome Atualizado").length).toBeGreaterThan(0);
   });
   it("cancela edição e restaura dados persistidos", async () => {
-    await show(); fireEvent.change(screen.getByLabelText("Nome"), { target: { value: "Rascunho" } }); fireEvent.click(screen.getByRole("button", { name: "Cancelar" })); expect(screen.getByLabelText("Nome")).toHaveValue(USER.name); expect(updateOwnProfile).not.toHaveBeenCalled();
+    await show(); fireEvent.change(screen.getByLabelText("Nome"), { target: { value: "Rascunho" } }); fireEvent.click(within(screen.getByRole("form", { name: "Dados pessoais" })).getByRole("button", { name: "Cancelar" })); expect(screen.getByLabelText("Nome")).toHaveValue(USER.name); expect(updateOwnProfile).not.toHaveBeenCalled();
   });
   it("informa e-mail duplicado sem apresentar resposta privada", async () => {
     vi.mocked(updateOwnProfile).mockRejectedValue(new ApiError("USER_EMAIL_ALREADY_EXISTS", "segredo interno", [], 409)); await show(); fireEvent.click(screen.getByRole("button", { name: "Salvar dados pessoais" })); await screen.findByText(/E-mail já cadastrado/); expect(screen.queryByText("segredo interno")).not.toBeInTheDocument();
