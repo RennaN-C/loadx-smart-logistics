@@ -12,6 +12,26 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
+ERROR_CODES = frozenset(
+    {
+        "EXTERNAL_AUTHENTICITY_INVALID",
+        "EXTERNAL_PAYLOAD_INVALID",
+        "EXTERNAL_COMMAND_EXPIRED",
+        "EXTERNAL_COMMAND_NOT_YET_VALID",
+        "EXTERNAL_COMMAND_FORBIDDEN",
+        "EXTERNAL_IDENTITY_CONFLICT",
+        "EXTERNAL_DOMAIN_REJECTED",
+        "EXTERNAL_PROCESSING_FAILED",
+        "INBOUND_HEADERS_INVALID",
+        "INBOUND_REQUEST_INCOMPLETE",
+        "INBOUND_BODY_TIMEOUT",
+        "INBOUND_BODY_TOO_LARGE",
+        "INBOUND_CONTENT_TYPE_INVALID",
+        "INBOUND_BUSY",
+        "INBOUND_NOT_CONFIGURED",
+    }
+)
+
 
 class NoRedirect(HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
@@ -88,21 +108,30 @@ def main() -> int:
         return 1
     with response:
         status = response.code
+        validated = False
         # Only publish contract-shaped technical results, never an arbitrary response.
         try:
             result = json.loads(response.read(4096))
-            receipt_id = str(uuid.UUID(result["id"]))
-            duplicate = result["duplicate"]
-            if type(duplicate) is not bool:
-                raise ValueError("invalid result")
-            print(
-                json.dumps(
-                    {"http_status": status, "id": receipt_id, "duplicate": duplicate}
-                )
-            )
+            if status >= 400:
+                code = result["code"]
+                if code not in ERROR_CODES:
+                    raise ValueError("unknown error code")
+                published = {"http_status": status, "code": code}
+            else:
+                receipt_id = str(uuid.UUID(result["id"]))
+                duplicate = result["duplicate"]
+                if type(duplicate) is not bool:
+                    raise ValueError("invalid result")
+                published = {
+                    "http_status": status,
+                    "id": receipt_id,
+                    "duplicate": duplicate,
+                }
+            validated = True
+            print(json.dumps(published))
         except (ValueError, KeyError, TypeError):
             print(json.dumps({"http_status": status}))
-    return 0 if status == args.expected_status else 1
+    return 0 if status == args.expected_status and validated else 1
 
 
 if __name__ == "__main__":

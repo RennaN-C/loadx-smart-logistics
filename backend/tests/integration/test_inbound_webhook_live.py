@@ -106,7 +106,10 @@ def test_local_emitter_real_http_restart_and_persisted_effect(scenario, tmp_path
                         str(scenario.delivery_id),
                     )
                     assert first["duplicate"] is False
-                    assert emit(event, 401, "--invalid-signature")["http_status"] == 401
+                    assert emit(event, 401, "--invalid-signature") == {
+                        "http_status": 401,
+                        "code": "EXTERNAL_AUTHENTICITY_INVALID",
+                    }
                     assert emit(event)["duplicate"] is True
                     rejected = emit(
                         tmp_path / "wrong-state.json",
@@ -119,6 +122,7 @@ def test_local_emitter_real_http_restart_and_persisted_effect(scenario, tmp_path
                         str(scenario.delivery_id),
                     )
                     assert rejected["http_status"] == 409
+                    assert rejected["code"] == "EXTERNAL_DOMAIN_REJECTED"
                 else:
                     duplicate = emit(event)
                     assert duplicate == {**first, "duplicate": True}
