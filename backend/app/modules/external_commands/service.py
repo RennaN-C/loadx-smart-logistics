@@ -8,6 +8,7 @@ from datetime import UTC, datetime, timedelta
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
+from app.core.observability import request_id_context
 from app.core.security_events import SecurityEvent, emit_security_event
 from app.integrations.external_commands import (
     ExternalActorResolver,
@@ -87,7 +88,7 @@ class ExternalCommandService:
         self.clock = clock
 
     def process(self, body: bytes, signature: str) -> ExternalCommandReceipt:
-        correlation_id = str(uuid.uuid4())
+        correlation_id = request_id_context.get() or str(uuid.uuid4())
         try:
             if not isinstance(body, bytes) or not 0 < len(body) <= MAX_BODY_BYTES:
                 raise ExternalCommandError(ExternalCommandErrorCode.PAYLOAD_INVALID)
