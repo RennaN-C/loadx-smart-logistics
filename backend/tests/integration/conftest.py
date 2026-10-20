@@ -5,16 +5,15 @@ from collections.abc import Callable, Generator
 from pathlib import Path
 
 import pytest
+from app.core.config import settings
+from app.database.readiness import DatabaseReadinessChecker
+from app.database.session import get_db
+from app.main import app, get_readiness_checker
 from fastapi.testclient import TestClient
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.engine import URL, make_url
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import NullPool
-
-from app.core.config import settings
-from app.database.readiness import DatabaseReadinessChecker
-from app.database.session import get_db
-from app.main import app, get_readiness_checker
 
 SessionFactory = Callable[[], Session]
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
@@ -110,8 +109,24 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
         head_revision = connection.exec_driver_sql(
             "SELECT version_num FROM alembic_version"
         ).scalar_one()
-        assert head_revision == "20261016_0024"
+        assert head_revision == "20261020_0025"
 
+    _run_alembic(test_url, "downgrade", "-1")
+    with engine.connect() as connection:
+        assert (
+            connection.exec_driver_sql(
+                "SELECT version_num FROM alembic_version"
+            ).scalar_one()
+            == "20261016_0024"
+        )
+        assert (
+            connection.exec_driver_sql(
+                "SELECT to_regclass('public.operational_notifications')"
+            ).scalar_one()
+            is None
+        )
+    _run_alembic(test_url, "upgrade", "head")
+    _run_alembic(test_url, "downgrade", "-1")
     _run_alembic(test_url, "downgrade", "-1")
     with engine.connect() as connection:
         assert (

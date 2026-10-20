@@ -1,6 +1,6 @@
 # Modelo de dados inicial
 
-## OC84 — proposta de notificações operacionais (aguarda revisão)
+## OC84 — notificações operacionais duráveis
 
 `CONFIRMADO`: a Issue #127 e a ADR-037 autorizam notificações internas reais
 com saída WhatsApp exclusivamente mock. Na base `c9b634c`, `notifications`
@@ -9,11 +9,11 @@ mas não armazenam uma notificação nem o resultado de sua simulação.
 `external_commands` deduplica comandos, não notificações ou tentativas de saída.
 Reutilizar essas tabelas como histórico de envio mudaria seu significado.
 
-`RECOMENDAÇÃO`: adicionar somente `operational_notifications`, pertencente a
-`notifications`, após revisão de Rennan. Esta seção é uma proposta concreta,
-**não uma alteração aprovada do schema**; ainda não há model ou migration OC84.
+`CONFIRMADO`: implementação autorizada pela revisão de Rennan na PR #226,
+comentário 6289881953. Tabela `operational_notifications`, módulo notifications,
+migration `20261020_0025` sobre `20261016_0024`. Sem backfill fictício.
 
-| Campo proposto | Tipo | Finalidade e restrição proposta |
+| Campo | Tipo | Finalidade e restrição |
 | --- | --- | --- |
 | `id` | UUID | PK, gerada pelo servidor |
 | `event_type` | varchar(32) | Catálogo fechado `TRIP_STARTED` / `OCCURRENCE_REGISTERED` |
@@ -24,6 +24,8 @@ Reutilizar essas tabelas como histórico de envio mudaria seu significado.
 | `created_at` | timestamptz | UTC do servidor, na transação do fato |
 | `mock_status` | varchar(24) | `NOT_ATTEMPTED`, `ATTEMPT_CLAIMED`, `SIMULATED`, `FAILED` ou `NO_RECIPIENT`; sem semântica de entrega externa |
 | `correlation_id` | UUID | Contexto técnico gerado pelo servidor, sem payload ou segredo |
+| `claimed_at` | timestamptz nullable | Commit do claim, separado do resultado |
+| `completed_at` | timestamptz nullable | Finalização local; não comprova entrega externa |
 
 `RECOMENDAÇÃO`: a existência da linha confirmada representa o registro interno;
 não adicionar `read_at`, preferências ou estado lida/não lida da OC103. Não copiar
@@ -41,12 +43,11 @@ das origens vêm exclusivamente dos services públicos donos; a validação de
 proveniência verifica viagem, transição e destinatário na mesma transação.
 FK isolada não comprova esses vínculos semânticos.
 
-`DECISÃO NECESSÁRIA`: Rennan revisar tabela/campos/constraints, destinatário por
-motorista e semântica dos estados antes de criar model/migration. Após aprovação,
-usar revision sequencial sobre o head então vigente, upgrade sem backfill de
-envios fictícios e downgrade reversível sem dados, recusando perda de histórico
-quando já houver notificações. Nunca apagar linhas para permitir downgrade.
-Transação, concorrência e limites estão em `docs/04` e no README de notifications.
+`CONFIRMADO`: triggers PostgreSQL validam viagem/transição efetiva da origem,
+viagem da ocorrência e destinatário operacional no INSERT. A identidade registrada
+é imutável; alterações de estado permitem apenas NOT_ATTEMPTED → ATTEMPT_CLAIMED
+→ SIMULATED/FAILED/NO_RECIPIENT, com timestamps coerentes. FKs RESTRICT conservam
+histórico. Downgrade recusa perda de notificações já registradas.
 
 ## OC87 — necessidade multi-caminhão
 
