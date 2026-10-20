@@ -9,7 +9,6 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 ERROR_CODES = frozenset(
@@ -38,38 +37,17 @@ class NoRedirect(HTTPRedirectHandler):
         return None
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "--url", default="http://127.0.0.1:8000/api/v1/webhooks/controlled-events"
-    )
-    parser.add_argument("--event-file", type=Path, required=True)
-    parser.add_argument("--subject")
-    parser.add_argument(
-        "--command", choices=("START_TRIP", "START_DELIVERY", "FINISH_DELIVERY")
-    )
-    parser.add_argument("--target-id", type=uuid.UUID)
-    parser.add_argument("--invalid-signature", action="store_true")
-    parser.add_argument("--expected-status", type=int, default=200)
-    args = parser.parse_args()
-    url = urlsplit(args.url)
-    if (
-        url.scheme not in {"http", "https"}
-        or not url.hostname
-        or url.username
-        or url.password
-        or url.query
-        or url.fragment
-        or url.path != "/api/v1/webhooks/controlled-events"
-        or (
-            url.scheme == "http"
-            and url.hostname not in {"127.0.0.1", "localhost", "::1"}
-        )
-    ):
-        parser.error("Use the controlled endpoint with HTTPS or loopback HTTP.")
-    key = os.environ.get("INBOUND_WEBHOOK_SIGNING_KEY", "").encode()
-    if len(key) < 32:
-        parser.error("Set a local exclusive signing key in the secure environment.")
+def local_port(value: str) -> int:
+    try:
+        port = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError("Port must be an integer.") from None
+    if not 1 <= port <= 65535:
+        raise argparse.ArgumentTypeError("Port must be between 1 and 65535.")
+    return port
+
+
+def event_bytes(args, parser: argparse.ArgumentParser) -> bytes:
     if not args.event_file.exists():
         if not all((args.subject, args.command, args.target_id)):
             parser.error("A new event file requires subject, command and target-id.")
@@ -90,11 +68,44 @@ def main() -> int:
         body = source.read(16 * 1024 + 1)
     if not 0 < len(body) <= 16 * 1024:
         parser.error("Event must contain 1 to 16384 bytes.")
+    return body
+
+
+def public_result(status: int, body: bytes) -> dict:
+    result = json.loads(body)
+    if status >= 400:
+        code = result["code"]
+        if code not in ERROR_CODES:
+            raise ValueError("unknown error code")
+        return {"http_status": status, "code": code}
+    receipt_id = str(uuid.UUID(result["id"]))
+    duplicate = result["duplicate"]
+    if type(duplicate) is not bool:
+        raise ValueError("invalid result")
+    return {"http_status": status, "id": receipt_id, "duplicate": duplicate}
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--port", type=local_port, default=8000)
+    parser.add_argument("--event-file", type=Path, required=True)
+    parser.add_argument("--subject")
+    parser.add_argument(
+        "--command", choices=("START_TRIP", "START_DELIVERY", "FINISH_DELIVERY")
+    )
+    parser.add_argument("--target-id", type=uuid.UUID)
+    parser.add_argument("--invalid-signature", action="store_true")
+    parser.add_argument("--expected-status", type=int, default=200)
+    args = parser.parse_args()
+    key = os.environ.get("INBOUND_WEBHOOK_SIGNING_KEY", "").encode()
+    if len(key) < 32:
+        parser.error("Set a local exclusive signing key in the secure environment.")
+    body = event_bytes(args, parser)
     signature = hmac.new(key, body, hashlib.sha256).hexdigest()
     if args.invalid_signature:
         signature = ("0" if signature[0] != "0" else "1") + signature[1:]
     request = Request(
-        args.url,
+        f"http://127.0.0.1:{args.port}/api/v1/webhooks/controlled-events",
         data=body,
         method="POST",
         headers={"Content-Type": "application/json", "X-LoadX-Signature": signature},
@@ -111,22 +122,7 @@ def main() -> int:
         validated = False
         # Only publish contract-shaped technical results, never an arbitrary response.
         try:
-            result = json.loads(response.read(4096))
-            if status >= 400:
-                code = result["code"]
-                if code not in ERROR_CODES:
-                    raise ValueError("unknown error code")
-                published = {"http_status": status, "code": code}
-            else:
-                receipt_id = str(uuid.UUID(result["id"]))
-                duplicate = result["duplicate"]
-                if type(duplicate) is not bool:
-                    raise ValueError("invalid result")
-                published = {
-                    "http_status": status,
-                    "id": receipt_id,
-                    "duplicate": duplicate,
-                }
+            published = public_result(status, response.read(4096))
             validated = True
             print(json.dumps(published))
         except (ValueError, KeyError, TypeError):

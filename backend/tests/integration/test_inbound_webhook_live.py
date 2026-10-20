@@ -34,7 +34,6 @@ def test_local_emitter_real_http_restart_and_persisted_effect(scenario, tmp_path
         ),
         "INBOUND_WEBHOOK_CAPABILITIES": '["FINISH_DELIVERY","START_DELIVERY"]',
     }
-    url = f"http://127.0.0.1:{port}/api/v1/webhooks/controlled-events"
     event = tmp_path / "event.json"
     before = scenario.counts()
 
@@ -43,8 +42,8 @@ def test_local_emitter_real_http_restart_and_persisted_effect(scenario, tmp_path
             [
                 sys.executable,
                 "scripts/emit_inbound.py",
-                "--url",
-                url,
+                "--port",
+                str(port),
                 "--event-file",
                 str(path),
                 "--expected-status",

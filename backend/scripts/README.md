@@ -4,7 +4,7 @@
 `emit_inbound.py` cria um evento v1 em arquivo novo, assina seus bytes exatos e
 faz POST HTTP real. Arquivo existente é reutilizado sem mudar event_id, bytes ou
 validade. A chave vem exclusivamente do ambiente, nunca de argumento/arquivo de
-evento. O emissor recusa redirects, credenciais na URL e HTTP fora de loopback.
+evento. O emissor usa somente 127.0.0.1, com porta inteira de 1 a 65535 (--port, padrão 8000). Não aceita URL/host e recusa redirects.
 Saída contém apenas status HTTP e receipt técnico; não imprime corpo/assinatura.
 
 ## Preparar ambiente local
