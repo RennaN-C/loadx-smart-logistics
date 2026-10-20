@@ -1,0 +1,51 @@
+.distribution-page { min-width: 0; }
+.distribution-overview { margin: 24px 0; padding: 28px; background: var(--card); border: 1px solid var(--line); border-radius: 16px; }
+.distribution-overview-heading, .distribution-detail-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; flex-wrap: wrap; }
+.distribution-overview h2, .distribution-detail h2 { margin: 8px 0 14px; font-size: clamp(1.25rem, 2vw, 1.6rem); letter-spacing: -.03em; }
+.distribution-overview p { max-width: 90ch; line-height: 1.7; color: var(--muted); font-size: .9rem; }
+.distribution-eyebrow { color: var(--muted); font: 500 .78rem var(--font-mono); overflow-wrap: anywhere; }
+.distribution-totals { display: flex; gap: 12px 28px; flex-wrap: wrap; padding: 8px 0; color: var(--muted); font-size: .88rem; }
+.distribution-totals strong { font-size: 1.2rem; color: var(--ink); margin-right: 4px; }
+.distribution-vehicles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 16px; margin: 24px 0 32px; }
+.distribution-vehicle { display: grid; gap: 14px; min-width: 0; padding: 22px; text-align: left; color: var(--ink); background: var(--card); border: 1px solid var(--line); border-radius: 12px; font: inherit; cursor: pointer; transition: border-color 150ms, box-shadow 150ms; }
+.distribution-vehicle:hover { border-color: var(--accent); }
+.distribution-vehicle[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 3px var(--accent); background: linear-gradient(var(--accent-bg), var(--card) 60%); }
+.distribution-vehicle:focus-visible { outline: 3px solid var(--accent-strong); outline-offset: 4px; }
+.distribution-vehicle-heading { display: flex; align-items: center; gap: 12px; }
+.distribution-vehicle-heading small { display: block; color: var(--muted); font-size: .78rem; margin-bottom: 4px; }
+.distribution-vehicle-heading strong { font: 700 1.16rem var(--font-mono); letter-spacing: .04em; }
+.distribution-vehicle-icon { display: inline-flex; padding: 10px; border-radius: 10px; background: var(--accent-bg); color: var(--accent-strong); }
+.distribution-vehicle-model { color: var(--muted); font-size: .85rem; overflow-wrap: anywhere; }
+.distribution-vehicle-metrics, .distribution-vehicle-occupancy { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: .84rem; }
+.distribution-vehicle-metrics { padding-top: 8px; border-top: 1px solid var(--line); }
+.distribution-vehicle-metrics strong { font-size: 1rem; }
+.distribution-vehicle .plan-occupancy, .distribution-vehicle .plan-occupancy-fill { display: block; }
+.distribution-vehicle .status-pill { justify-self: start; }
+.distribution-detail { min-width: 0; padding-top: 8px; }
+.distribution-detail-heading p { color: var(--muted); font-size: .88rem; margin-top: 0; }
+.distribution-part-actions { margin: 20px 0; line-height: 1.7; font-size: .9rem; }
+.distribution-notice { padding: 16px 20px; margin: 20px 0; border-left: 3px solid var(--accent); border-radius: 0 8px 8px 0; background: var(--accent-bg); color: var(--ink); line-height: 1.7; font-size: .9rem; }
+.distribution-confirm { padding: 16px 0; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
+.distribution-confirm p { flex: 1 1 100%; margin: 0; }
+.distribution-reprocess { display: grid; gap: 12px; max-width: 600px; margin-top: 16px; }
+.distribution-reprocess label { display: grid; gap: 8px; font-weight: 600; }
+.distribution-reprocess select { padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--ink); font: inherit; min-width: 0; width: 100%; }
+.distribution-reprocess select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.distribution-reprocess button { justify-self: start; }
+.distribution-success { color: var(--ink); padding: 14px 18px; background: var(--accent-bg); border-radius: 8px; }
+.distribution-error-detail { margin-top: 10px; font-size: .85rem; }
+.distribution-error-detail summary { cursor: pointer; min-height: 32px; }
+.distribution-error-detail pre { max-height: 240px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font-size: .8rem; }
+.distribution-mode { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding: 0; border: 0; margin: 0 0 12px; }
+.distribution-mode legend { padding: 0 0 14px; font-weight: 600; font-size: 1.05rem; }
+.distribution-mode label { display: flex; align-items: flex-start; gap: 12px; padding: 18px; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; }
+.distribution-mode label:has(input:checked) { border-color: var(--accent); background: var(--accent-bg); }
+.distribution-mode input { margin: 4px 0 0; accent-color: var(--accent-strong); }
+.distribution-mode small { display: block; color: var(--muted); margin-top: 6px; line-height: 1.6; }
+@media (max-width: 600px) {
+  .distribution-mode { grid-template-columns: minmax(0, 1fr); }
+  .distribution-overview { padding: 20px; }
+  .distribution-detail-heading > a, .distribution-confirm button { width: 100%; justify-content: center; }
+  .distribution-vehicle { padding: 20px; }
+}
+@media (prefers-reduced-motion: reduce) { .distribution-vehicle { transition: none; } }
