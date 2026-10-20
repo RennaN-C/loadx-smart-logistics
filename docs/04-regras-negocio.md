@@ -1,5 +1,55 @@
 # Regras de negócio
 
+## OC84 — contrato proposto e limite de execução
+
+`CONFIRMADO`: os gatilhos existentes são início efetivo de viagem pelo fluxo
+HTTP e registro de ocorrência; o único destinatário atual é o motorista da
+viagem. WhatsApp permanece mock (ADRs 036/037, #125 e #193). Conclusão de entrega
+ou viagem tem fato auditável, mas ainda não tem contrato de notificação aprovado;
+não acrescentar esses gatilhos, gestores, clientes ou outros destinatários.
+
+`RECOMENDAÇÃO`: correlacionar `TRIP_STARTED` ao UUID do histórico persistido
+`TRIP: SCHEDULED -> IN_ROUTE`, e `OCCURRENCE_REGISTERED` ao UUID da ocorrência.
+Registrar a notificação na **mesma transação** do fato/histórico. Falha dessa
+persistência deve desfazer a operação inteira, evitando fato confirmado sem
+notificação. Repetição de status não cria histórico nem notificação; reprocessar
+a mesma origem recupera a linha original. Dois POSTs de ocorrência sem chave
+idempotente hoje criam dois fatos legítimos distintos: não deduplicar por texto
+ou horário nem inventar identidade de request. Um retry idempotente desse POST
+exigiria contrato próprio aprovado.
+
+`RECOMENDAÇÃO`: após commit durável, uma atualização condicional PostgreSQL
+`NOT_ATTEMPTED -> ATTEMPT_CLAIMED`, confirmada antes do mock, concede a somente
+um chamador a tentativa daquele registro. O vencedor registra `SIMULATED`
+apenas se o provider mock retornar normalmente; falha usa `FAILED`, ausência de
+telefone elegível usa `NO_RECIPIENT`. A notificação interna permanece registrada
+em todos esses casos. `SIMULATED` jamais significa envio, entrega ou leitura
+real do WhatsApp. Nenhuma falha do mock altera viagem, entrega ou ocorrência.
+
+`RECOMENDAÇÃO`: o service de domínio prepara a notificação via service público,
+sem acessar seu repository/model. A composição dona do commit durável encaminha
+os IDs confirmados para simulação depois de sair da transação. Na OC79, o commit
+da Session ligada à Connection libera savepoint e **não autoriza saída**; o dono
+da transação externa precisa efetuar o encaminhamento após seu próprio commit.
+Replay OC79 não reexecuta domínio nem tentativa mock. O simulador interno mantém
+sua confirmação atual sem segundo aviso automático; alinhar a persistência
+desse caminho na revisão para não introduzir comportamento novo silencioso.
+
+`RISCO IDENTIFICADO`: crash após commit do fato e antes da tentativa deixa
+`NOT_ATTEMPTED`; crash após claim deixa `ATTEMPT_CLAIMED`, que significa resultado
+indeterminado e nunca sucesso. Falha ao persistir resultado após simular também
+permanece indeterminada. Não retentar automaticamente: preserva-se no máximo uma
+tentativa local, sem promessa de exactly-once, processamento eventual ou entrega.
+Isso ainda não é outbox confiável; recuperação, backoff, workers e reprocessamento
+administrativo pertencem à OC109 (#156).
+
+`DECISÃO NECESSÁRIA`: revisão estrutural de Rennan antes de model/migration,
+conforme instrução da OC84. O modelo de `docs/03` e o fluxo acima permanecem
+propostos. Persistência, unicidade, claim e integração transacional ainda não
+estão implementados; o fluxo atual continua best-effort em memória. O PR deve
+permanecer draft enquanto essa revisão e a implementação/validação estiverem
+pendentes. Ausência de aprovação Meta na #193 não é o bloqueio.
+
 ## Unidades
 
 - `CONFIRMADO`: dimensões em centímetros.

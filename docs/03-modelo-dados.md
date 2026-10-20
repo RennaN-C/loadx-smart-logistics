@@ -1,5 +1,53 @@
 # Modelo de dados inicial
 
+## OC84 — proposta de notificações operacionais (aguarda revisão)
+
+`CONFIRMADO`: a Issue #127 e a ADR-037 autorizam notificações internas reais
+com saída WhatsApp exclusivamente mock. Na base `c9b634c`, `notifications`
+não possui model nem tabela. `status_history` e `occurrences` comprovam os fatos,
+mas não armazenam uma notificação nem o resultado de sua simulação.
+`external_commands` deduplica comandos, não notificações ou tentativas de saída.
+Reutilizar essas tabelas como histórico de envio mudaria seu significado.
+
+`RECOMENDAÇÃO`: adicionar somente `operational_notifications`, pertencente a
+`notifications`, após revisão de Rennan. Esta seção é uma proposta concreta,
+**não uma alteração aprovada do schema**; ainda não há model ou migration OC84.
+
+| Campo proposto | Tipo | Finalidade e restrição proposta |
+| --- | --- | --- |
+| `id` | UUID | PK, gerada pelo servidor |
+| `event_type` | varchar(32) | Catálogo fechado `TRIP_STARTED` / `OCCURRENCE_REGISTERED` |
+| `status_history_id` | UUID nullable | FK `status_history.id` RESTRICT, somente para início efetivo `TRIP: SCHEDULED -> IN_ROUTE` |
+| `occurrence_id` | UUID nullable | FK `occurrences.id` RESTRICT, somente para ocorrência registrada |
+| `trip_id` | UUID | FK `trips.id` RESTRICT; recurso operacional de origem |
+| `recipient_driver_id` | UUID | FK `drivers.id` RESTRICT; motorista da viagem no momento do fato |
+| `created_at` | timestamptz | UTC do servidor, na transação do fato |
+| `mock_status` | varchar(24) | `NOT_ATTEMPTED`, `ATTEMPT_CLAIMED`, `SIMULATED`, `FAILED` ou `NO_RECIPIENT`; sem semântica de entrega externa |
+| `correlation_id` | UUID | Contexto técnico gerado pelo servidor, sem payload ou segredo |
+
+`RECOMENDAÇÃO`: a existência da linha confirmada representa o registro interno;
+não adicionar `read_at`, preferências ou estado lida/não lida da OC103. Não copiar
+telefone, texto, descrição de ocorrência, assinatura, subject, dados de sessão ou
+identificador bruto de integração. `recipient_driver_id` preserva o destinatário
+operacional atual mesmo quando não existe conta `users` vinculada; isso **não
+concede acesso HTTP** nem aprova inferir um futuro destinatário da central.
+
+`RECOMENDAÇÃO`: CHECK exige exatamente a origem correspondente ao `event_type`;
+CHECK fecha `mock_status`. Dois índices UNIQUE parciais protegem
+`(event_type, status_history_id, recipient_driver_id)` quando o histórico não é
+nulo e `(event_type, occurrence_id, recipient_driver_id)` quando a ocorrência
+não é nula. Índice `(trip_id, created_at, id)` atende rastreamento técnico. UUIDs
+das origens vêm exclusivamente dos services públicos donos; a validação de
+proveniência verifica viagem, transição e destinatário na mesma transação.
+FK isolada não comprova esses vínculos semânticos.
+
+`DECISÃO NECESSÁRIA`: Rennan revisar tabela/campos/constraints, destinatário por
+motorista e semântica dos estados antes de criar model/migration. Após aprovação,
+usar revision sequencial sobre o head então vigente, upgrade sem backfill de
+envios fictícios e downgrade reversível sem dados, recusando perda de histórico
+quando já houver notificações. Nunca apagar linhas para permitir downgrade.
+Transação, concorrência e limites estão em `docs/04` e no README de notifications.
+
 ## OC87 — necessidade multi-caminhão
 
 `RECOMENDAÇÃO`: ADR-028 propõe quatro tabelas no módulo load_planning. Migration

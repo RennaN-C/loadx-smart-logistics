@@ -1167,6 +1167,15 @@ e o `TripService` validar permissão e estado. Nenhuma regra de viagem ou entreg
 
 ### Notificações automáticas
 
+`CONFIRMADO` (análise OC84): não foi acrescentado endpoint de criação ou consulta
+de notificações. Sessão, Origin/CSRF, permissões efetivas OC112 e autorização por
+viagem continuam nos endpoints existentes. GET não produz notificações. A OC103
+(#150) definirá leitura por destinatário, paginação, lida/não lida e preferências;
+a proposta persistente OC84 em `docs/03`/`docs/04` não concede acesso antecipado.
+`DECISÃO NECESSÁRIA`: revisar esse schema com Rennan antes de implementação.
+Enquanto isso, a descrição best-effort abaixo continua refletindo o código;
+não há garantia durável ou contrato de consulta de notificações implementado.
+
 `CONFIRMADO`: não existe endpoint público específico para notificações. Uma
 transição efetiva `SCHEDULED -> IN_ROUTE` realizada por
 `PATCH /trips/{id}/status` e um `POST /occurrences` concluído disparam mensagem
