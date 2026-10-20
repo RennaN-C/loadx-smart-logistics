@@ -1,7 +1,7 @@
 import uuid
 from collections.abc import Sequence
 
-from sqlalchemy import asc, desc, func, select
+from sqlalchemy import Select, and_, asc, desc, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.core.pagination import PageResult, PaginationParams
@@ -118,3 +118,17 @@ class UserRepository:
             .order_by(User.id)
             .with_for_update()
         ).all()
+
+    def notification_recipient_ids(
+        self,
+        fixed_roles: Sequence[str],
+        profile_ids: Select[tuple[uuid.UUID]],
+        driver_id: uuid.UUID | None,
+    ) -> Select[tuple[uuid.UUID]]:
+        eligible = [
+            User.role.in_(fixed_roles),
+            and_(User.role == "CUSTOM", User.custom_profile_id.in_(profile_ids)),
+        ]
+        if driver_id is not None:
+            eligible.append(and_(User.role == "DRIVER", User.driver_id == driver_id))
+        return select(User.id).where(User.active.is_(True), or_(*eligible))

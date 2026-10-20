@@ -2,7 +2,7 @@ import uuid
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from sqlalchemy import select
+from sqlalchemy import Select, select
 from sqlalchemy.orm import Session
 
 from app.modules.deliveries.models import Delivery, Trip
@@ -30,6 +30,10 @@ class DeliveryReferenceService:
 
     def __init__(self, db: Session) -> None:
         self.db = db
+
+    def trip_ids_for_driver(self, driver_id: uuid.UUID) -> Select[tuple[uuid.UUID]]:
+        """Composable ownership scope; callers must also validate the active identity."""
+        return TripRepository(self.db).ids_for_driver(driver_id)
 
     def get_trip_for_notification(self, trip_id: uuid.UUID) -> Trip | None:
         """Lock the current operational recipient during notification processing."""

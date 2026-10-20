@@ -9,7 +9,10 @@ from app.modules.deliveries.models import Delivery, Trip
 from app.modules.deliveries.service import TripService
 from app.modules.drivers.models import Driver
 from app.modules.load_planning.models import LoadPlan, LoadPlanOrder
-from app.modules.notifications.models import OperationalNotification
+from app.modules.notifications.models import (
+    NotificationRecipient,
+    OperationalNotification,
+)
 from app.modules.orders.models import Order, OrderItem
 from app.modules.products.models import Product
 from app.modules.status_history.models import StatusHistory
@@ -78,6 +81,15 @@ def test_concurrent_receipts_refresh_locked_state_and_share_one_completion(
             assert db.get(Delivery, delivery_id).status == "DELIVERED"
     finally:
         with session_factory() as db:
+            db.execute(
+                delete(NotificationRecipient).where(
+                    NotificationRecipient.notification_id.in_(
+                        select(OperationalNotification.id).where(
+                            OperationalNotification.trip_id == trip_id
+                        )
+                    )
+                )
+            )
             db.execute(
                 delete(OperationalNotification).where(
                     OperationalNotification.trip_id == trip_id

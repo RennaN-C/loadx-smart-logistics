@@ -36,3 +36,11 @@ cookie `HttpOnly`; o frontend não lê nem persiste credenciais. O
 `CONFIRMADO`: atualização bem-sucedida sincroniza o usuário no AuthProvider. Troca de senha ou encerramento da atual limpa CSRF/estado autenticado pelo contexto central e exige login; mensagem de sucesso permanece somente em memória. Expiração e revogação remotas preservam a reação central existente. Revogar outra sessão reconsulta a lista. Falha transitória conserva a lista anterior com aviso explícito; não declara revogação concluída quando a API falha.
 
 `CONFIRMADO`: a conta standalone é visualmente separada de preferências logísticas futuras. Sem OC86/OC98/OC112, MFA/recuperação/SSO ou nova dependência. Layout de uma coluna em telas pequenas e duas em telas largas, controles sem sobreposição e labels ligados aos inputs.
+
+
+## OC103 — preferências de notificações
+
+`CONFIRMADO`: Meu perfil incorpora NotificationPreferences, com persistência real
+por conta via /notifications/preferences. O link da central abre a seção por hash
+com foco visual preservado. Aparência, dados, senha e sessões mantêm contratos da
+OC92; nenhuma implementação da OC98 isolada é incorporada.

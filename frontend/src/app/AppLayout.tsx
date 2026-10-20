@@ -1,3 +1,5 @@
+import { NotificationProvider } from "../features/notifications/components/NotificationProvider";
+import { NotificationBell } from "../features/notifications/components/NotificationBell";
 import { hasPermission } from "../features/auth/permissions";
 import { canReadReports } from "../features/reports/permissions";
 import { GlobalSearch } from "../features/global-search/components/GlobalSearch";
@@ -191,6 +193,7 @@ export function AppLayout() {
   })).filter((group) => group.items.length > 0);
 
   return (
+    <NotificationProvider active={Boolean(user)} key={`${user?.id}:${user?.role}:${user?.permissions?.join(",")}`}>
     <div className="app-shell" data-sidebar-collapsed={sidebarCollapsed} data-mobile-open={mobileOpen}>
       {/* o menu vem antes do conteúdo no DOM; sem isto, quem navega por teclado
           atravessa a lista inteira em toda troca de tela */}
@@ -386,9 +389,10 @@ export function AppLayout() {
       </aside>
 
       <main id="conteudo">
-        <header className="app-search-header"><GlobalSearch key={`${user?.id}:${user?.role}:${user?.permissions?.join(",")}`} /></header>
+        <header className="app-search-header"><GlobalSearch key={`${user?.id}:${user?.role}:${user?.permissions?.join(",")}`} />{user && <NotificationBell />}</header>
         <Outlet />
       </main>
     </div>
+    </NotificationProvider>
   );
 }

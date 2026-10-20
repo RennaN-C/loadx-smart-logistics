@@ -23,7 +23,7 @@ class OperationalNotificationRepository:
         status_history_id: uuid.UUID | None,
         occurrence_id: uuid.UUID | None,
         correlation_id: uuid.UUID,
-    ) -> OperationalNotification:
+    ) -> tuple[OperationalNotification, bool]:
         values = {
             "event_type": event_type,
             "trip_id": trip_id,
@@ -33,10 +33,11 @@ class OperationalNotificationRepository:
             "correlation_id": correlation_id,
         }
         # DO NOTHING waits on a competing insert without poisoning the domain transaction.
-        self.db.execute(
+        inserted = self.db.scalar(
             insert(OperationalNotification)
             .values(id=uuid.uuid4(), **values)
             .on_conflict_do_nothing()
+            .returning(OperationalNotification.id)
         )
         origin_field = (
             "status_history_id"
@@ -53,7 +54,7 @@ class OperationalNotificationRepository:
         )
         if row is None:
             raise RuntimeError("notification record unavailable")
-        return row
+        return row, inserted is not None
 
     def claim(self, identifier: uuid.UUID) -> bool:
         return (

@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import asc, delete, desc, func, select, text
+from sqlalchemy import Select, asc, delete, desc, func, select, text
 from sqlalchemy.orm import Session
 
 from app.modules.access_profiles.models import AccessProfile, ProfilePermission
@@ -65,4 +65,18 @@ class ProfileRepository:
         self.db.add_all(
             ProfilePermission(profile_id=identity, permission_code=code)
             for code in codes
+        )
+
+    def ids_with_permissions(self, codes: tuple[str, ...]) -> Select[tuple[uuid.UUID]]:
+        return select(AccessProfile.id).where(
+            AccessProfile.active.is_(True),
+            *(
+                select(ProfilePermission.profile_id)
+                .where(
+                    ProfilePermission.profile_id == AccessProfile.id,
+                    ProfilePermission.permission_code == code,
+                )
+                .exists()
+                for code in codes
+            ),
         )

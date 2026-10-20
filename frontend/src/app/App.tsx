@@ -18,6 +18,7 @@ import { OperationalAccess } from "./OperationalAccess";
 import { RequireSettingsAdmin } from "../features/settings/components/RequireSettingsAdmin";
 import { SettingsPage } from "../features/settings/pages/SettingsPage";
 import { AccountPage } from "../features/auth/pages/AccountPage";
+import { NotificationsPage } from "../features/notifications/pages/NotificationsPage";
 import { AppLayout } from "./AppLayout";
 
 export function App() {
@@ -30,6 +31,7 @@ export function App() {
             <Route element={<AppLayout />}>
               <Route index element={<DashboardPage />} />
               <Route path="account" element={<AccountPage />} />
+              <Route path="notifications" element={<NotificationsPage />} />
               <Route element={<RequireSettingsAdmin />}>
                 <Route path="settings" element={<SettingsPage />} />
               </Route>
