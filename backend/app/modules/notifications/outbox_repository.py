@@ -2,9 +2,9 @@ import uuid
 from collections.abc import Sequence
 from datetime import timedelta
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, or_, select, true
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, aliased
 
 from app.core.pagination import PageResult, PaginationParams
 from app.modules.notifications.outbox_models import (
@@ -124,15 +124,36 @@ class OutboxRepository:
             stmt = stmt.where(OutboxEvent.status == status)
         if event_type:
             stmt = stmt.where(OutboxEvent.event_type == event_type)
-        # Window count is read in the same snapshot as rows; empty pages still need a total.
-        total = self.db.scalar(select(func.count()).select_from(stmt.subquery()))
-        order = (OutboxEvent.created_at, OutboxEvent.id)
+        # One snapshot includes a total even when the requested page is empty.
+        visible = stmt.cte("visible_outbox")
+        model = aliased(OutboxEvent, visible)
+        order = (model.created_at, model.id)
         if pagination.sort_order == "desc":
             order = tuple(col.desc() for col in order)
-        rows = self.db.scalars(
-            stmt.order_by(*order).offset(pagination.offset).limit(pagination.page_size)
+        paged = (
+            select(model)
+            .order_by(*order)
+            .offset(pagination.offset)
+            .limit(pagination.page_size)
+            .cte("outbox_page")
+        )
+        total = (
+            select(func.count().label("total")).select_from(visible).cte("outbox_total")
+        )
+        item = aliased(OutboxEvent, paged)
+        final_order = (item.created_at, item.id)
+        if pagination.sort_order == "desc":
+            final_order = tuple(col.desc() for col in final_order)
+        records = self.db.execute(
+            select(item, total.c.total)
+            .select_from(total.outerjoin(paged, true()))
+            .order_by(*final_order)
         ).all()
-        return PageResult.create(rows, pagination, total)
+        return PageResult.create(
+            [record[0] for record in records if record[0] is not None],
+            pagination,
+            records[0][1],
+        )
 
     def summary(self) -> Sequence:
         return self.db.execute(

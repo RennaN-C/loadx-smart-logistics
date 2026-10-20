@@ -22,6 +22,7 @@ from app.modules.notifications.outbox_repository import OutboxRepository
 from app.modules.notifications.repository import OperationalNotificationRepository
 from app.modules.status_history.schemas import AuditEventCreate
 from app.modules.status_history.service import AuditService
+from app.modules.users.service import UserService
 
 
 @dataclass(frozen=True)
@@ -198,6 +199,11 @@ class OutboxService:
 
     def retry(self, identifier, command_id, actor):
         try:
+            actor = UserService(self.db).get_user_for_authorization(actor.id)
+            if not actor.active or actor.role != "ADMIN":
+                raise ApiError(
+                    403, "AUTH_FORBIDDEN", "Reprocessamento exclusivo do ADMIN ativo."
+                )
             self._get(identifier)
             inserted = self.repository.retry_command(command_id, identifier, actor.id)
             if inserted is None:

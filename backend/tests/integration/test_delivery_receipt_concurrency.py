@@ -18,6 +18,7 @@ from app.modules.products.models import Product
 from app.modules.status_history.models import StatusHistory
 from app.modules.trucks.models import Truck
 from app.modules.users.models import User
+from tests.integration.notification_helpers import clear_outbox_fixture
 from tests.unit.test_delivery_service import prepare_receipt_delivery
 
 
@@ -81,6 +82,7 @@ def test_concurrent_receipts_refresh_locked_state_and_share_one_completion(
             assert db.get(Delivery, delivery_id).status == "DELIVERED"
     finally:
         with session_factory() as db:
+            clear_outbox_fixture(db, trip_id)
             db.execute(
                 delete(NotificationRecipient).where(
                     NotificationRecipient.notification_id.in_(
