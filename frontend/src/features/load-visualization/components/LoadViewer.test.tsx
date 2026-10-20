@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getLoadPlanVisualization } from "../../load-planning/api/loadPlansApi";
@@ -185,7 +185,8 @@ it("remonta a cena ao mudar de plano e não apresenta volumes anteriores", async
   // The first deferred response belongs to the old vehicle and must be ignored.
   view.rerender(<LoadViewer key="second" planId="lp2" plan={{ ...PLAN, id: "lp2" }} />);
   await screen.findByTestId("cena");
-  finish({ ...VIEW, truck: { ...TRUCK, plate: "OLD0X00" } });
-  await waitFor(() => expect(screen.queryByText(/OLD0X00/)).not.toBeInTheDocument());
+  await act(async () => finish({ ...VIEW, truck: { ...TRUCK, plate: "OLD0X00" } }));
+  expect(ultimaCena().truck.plate).toBe(TRUCK.plate);
+  expect(ultimaCena().items.map((volume) => volume.id)).toEqual(VIEW.items.map((volume) => volume.id));
   expect(getLoadPlanVisualization).toHaveBeenNthCalledWith(2, "lp2");
 });
