@@ -109,6 +109,7 @@ class StatusHistoryRepository:
 
         if event_type in {
             None,
+            "OUTBOX_REPROCESSED",
             "PROFILE_CREATED",
             "PROFILE_UPDATED",
             "USER_CREATED",
