@@ -1555,3 +1555,26 @@ continuam paginados, sem itens; filtro/ordenação/RBAC não mudam.
 `DistributionPartRead` inclui `truck: TruckSnapshotRead` do plano persistido
 (placa, modelo, dimensões em cm e capacidade em kg). Não consulta cadastro atual
 para reconstruir o histórico. Estes campos aditivos não exigem migration.
+
+## OC103 — notificações pessoais (sessão obrigatória)
+
+`CONFIRMADO`: prefixo `/api/v1/notifications`, sem parâmetro de destinatário.
+Todos os perfis autenticados acessam a própria caixa; eventos exigem permissão
+real e vínculo atual. ADMIN não consulta caixa alheia. CSRF/Origin nas mutações.
+
+| Método | Caminho | Contrato |
+|---|---|---|
+| GET | /notifications | PageResponse + unread_count global no mesmo snapshot; page/page_size/sort_order, event_type, category e read opcionais |
+| GET | /notifications/unread-count | unread_count visível da sessão |
+| POST | /notifications/read-all | updated; leitura idempotente das notificações visíveis |
+| POST | /notifications/{id}/read | read_at da primeira leitura; 404 fora da caixa/escopo |
+| GET | /notifications/{id}/source | href relativo da viagem, após autorização atual da origem; 404 fora do escopo |
+| GET | /notifications/preferences | items: category, enabled, mandatory |
+| PUT | /notifications/preferences | items (1–3 categorias únicas); SECURITY false é 422; extras recusados |
+
+Projeção: id, event_type, category, title, summary, created_at (fato), received_at,
+read_at. Sem dados do canal/telefone/conteúdo original. Preferência não remove
+notificações anteriores nem cria associações retroativas. Erros: 401 sessão,
+403 CSRF/Origin, 404 NOTIFICATION_NOT_FOUND, 422 contrato. GETs não gravam nem
+simulam envio. Categorias aprovadas: TRIPS/OCCURRENCES; SECURITY é política
+obrigatória, sem eventos artificiais. Eventos/alertas futuros exigem contrato próprio.
