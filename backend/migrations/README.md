@@ -9,8 +9,8 @@ O Alembic versiona toda alteração estrutural do PostgreSQL.
 - `migrations/script.py.mako`: template das revisions.
 - `migrations/versions`: migrations versionadas.
 
-`CONFIRMADO`: o head atual é `20261020_0026` (OC103), sobre `20261020_0025`
-(OC84). Historicamente, `20261008_0016` pertence à OC105, após OC87
+`CONFIRMADO`: o head atual é `20261020_0027` (OC90), após `20261020_0026`
+(OC103) e `20261020_0025` (OC84). Historicamente OC105 sucede OC87
 `20261007_0015` e evidências OC80 `20261007_0014`. A OC87 cria necessidade/partes/claims e triggers de integridade
 diferidas; downgrade remove esses registros/triggers e tipos de histórico próprios.
 A revisão `20260830_0011` adiciona
@@ -105,10 +105,38 @@ downgrade, constraints, concorrência e rollback.
 
 ## OC103 — revision 20261020_0026
 
-`CONFIRMADO`: único head sobre 20261020_0025. Acrescenta destinatários internos,
+`CONFIRMADO`: revisão sobre 20261020_0025. Acrescenta destinatários internos,
 primeira leitura e preferências, sem alterar operational_notifications. Backfill
 associa fatos reais às contas elegíveis no corte, sem destinatários históricos
 inferidos. FK/PK/índices/CHECK e trigger protegem isolamento estrutural, segurança
 obrigatória e identidade/primeira leitura imutáveis. Com qualquer associação ou
 preferência, downgrade é recusado: preservar dados e planejar migração compensatória.
 A suíte percorre upgrade/downgrade/upgrade e testa backfill e recusa após uso.
+
+
+## OC90 — revision 20261020_0027
+
+`CONFIRMADO`: head único após 20261020_0026 (OC103). Acrescenta FK opcional de
+Delivery para parte, UNIQUE parte/pedido e índice único parcial por pedido legado.
+Triggers protegem contexto operacional e imutabilidade dos vínculos/partição.
+Backfill associa entregas existentes de distribuição com uma parte; entregas
+legadas continuam NULL. Não há exclusão nem reescrita de históricos.
+
+Upgrade/downgrade/novo upgrade e alembic check são exercitados no PostgreSQL 16.
+Downgrade falha antes de DDL se houver entrega com parte, inclusive uma única:
+o runtime anterior não suporta a semântica operacional multi. Preservar contexto
+e auditoria; usar migration compensatória. Não apagar dados para contornar.
+
+`CONFIRMADO` (OC90): upgrade revalida entregas antigas com a mesma trigger de
+contexto usada por escritas futuras. Vínculo antigo inconsistente aborta o upgrade
+transacional, preservando schema/dados anteriores; não há correção silenciosa.
+
+`CONFIRMADO`: esta mesma migration OC90, ainda não integrada, foi renumerada para
+0027 ao atualizar a base: 0025/0026 já pertencem a OC84/OC103 em desenvolvimento.
+Não é criada uma segunda revisão OC90. A guarda `protect_operated_load_plan()`
+congela linhas inteiras de planos e seus pedidos/itens desde LoadingSession ou
+Trip, inclusive legado; no-op permanece permitido. Pais em UUID crescente com
+NOWAIT evitam espera invertida filho/pai durante criação de checklist. Contenção
+rejeita com `ck_load_plans__operational_snapshot` e exige retry da transação.
+Downgrade permitido remove os três triggers `protect_operated_load_*` e a função;
+o bloqueio fail-safe por entregas de parte ocorre antes de qualquer remoção.

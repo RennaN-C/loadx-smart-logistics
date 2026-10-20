@@ -49,25 +49,27 @@ class LoadingService:
         existing = self.repository.get_by_load_plan_id(load_plan_id)
         if existing is not None:
             return existing
-        plan = self.load_plan_reference_service.get_operational_plan(load_plan_id)
-        items = self.load_plan_reference_service.get_loading_items(load_plan_id)
-        if (
-            plan is None
-            or plan.status != "APPROVED"
-            or not plan.operational_ready
-            or not items
-        ):
-            raise LoadingPlanNotApprovedError
-
-        session = LoadingSession(
-            load_plan_id=load_plan_id,
-            status="PENDING",
-            items=[
-                LoadingSessionItem(load_plan_item_id=item.id, status="PENDING")
-                for item in items
-            ],
-        )
         try:
+            plan = self.load_plan_reference_service.get_operational_plan(
+                load_plan_id, for_update=True
+            )
+            items = self.load_plan_reference_service.get_loading_items(load_plan_id)
+            if (
+                plan is None
+                or plan.status != "APPROVED"
+                or not plan.operational_ready
+                or not items
+            ):
+                raise LoadingPlanNotApprovedError
+
+            session = LoadingSession(
+                load_plan_id=load_plan_id,
+                status="PENDING",
+                items=[
+                    LoadingSessionItem(load_plan_item_id=item.id, status="PENDING")
+                    for item in items
+                ],
+            )
             truck = self.truck_service.ensure_no_operation_conflict(
                 plan.truck_id,
                 exclude_load_plan_id=plan.id,
@@ -100,9 +102,10 @@ class LoadingService:
             plan = self.load_plan_reference_service.get_operational_plan(
                 session.load_plan_id
             )
-            if plan is not None:
-                self.truck_service.get_truck_for_update(plan.truck_id)
-                self.truck_service.ensure_operational_eligibility(plan.truck_id)
+            if plan is None or plan.status != "APPROVED" or not plan.operational_ready:
+                raise LoadingPlanNotApprovedError
+            self.truck_service.get_truck_for_update(plan.truck_id)
+            self.truck_service.ensure_operational_eligibility(plan.truck_id)
             session.status = status
             session.started_at = datetime.now(UTC)
         elif session.status == "IN_PROGRESS" and status == "FINISHED":

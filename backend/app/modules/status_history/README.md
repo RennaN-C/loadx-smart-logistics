@@ -30,3 +30,12 @@ Módulo responsável pelo histórico operacional de status e pela consulta de au
   `LOGISTICS_MANAGER`;
 - filtros por entidade, registro, ator, evento e período são aplicados no backend
   antes da paginação.
+
+
+## OC90
+
+`CONFIRMADO`: filtros públicos de auditoria também aceitam LOAD_DISTRIBUTION e
+LOAD_DISTRIBUTION_PART já persistidos pela OC87. Permissão efetiva reservada
+loadx.audit.read não muda. Order registra somente uma transição de primeiro
+início e uma de conclusão agregada; Trips/Deliveries têm históricos independentes.
+Não há mecanismo paralelo de auditoria nem IDs de domínio em logs operacionais.

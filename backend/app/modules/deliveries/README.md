@@ -25,13 +25,16 @@ Viagem, entregas, estados e histórico. Roteirização externa não entra no MVP
 
 ## Regras implementadas
 
-- Criação exige plano `APPROVED`, motorista ativo e pedidos `PLANNED`.
+- Criação exige plano operacional `APPROVED` e motorista elegível. Pedidos
+  legados exigem `PLANNED`; partes multi aceitam também `IN_TRANSIT`.
 - Viagem usa `SCHEDULED -> IN_ROUTE -> FINISHED`.
 - Entrega usa `PENDING -> IN_DELIVERY -> DELIVERED` durante `IN_ROUTE`.
-- Início exige confirmação pública de carregamento finalizado e move todos os
-  pedidos para `IN_TRANSIT`.
-- Conclusão da entrega registra horário e move o pedido para `DELIVERED`.
-- Viagem termina somente com todas as entregas e pedidos `DELIVERED`.
+- Início exige confirmação pública de carregamento finalizado e move somente
+  pedidos `PLANNED` para `IN_TRANSIT`, sem repetir histórico de outra parte.
+- Conclusão registra horário; legado entrega o pedido e multi aguarda todas
+  as partes que contêm volumes desse pedido.
+- Viagem termina com suas entregas `DELIVERED`; legado exige também pedidos
+  `DELIVERED`.
 - Repetir o estado atual é idempotente.
 - A transição efetiva `SCHEDULED -> IN_ROUTE` pelo endpoint HTTP envia depois do
   commit uma notificação mock ao motorista; repetição idempotente não duplica o
@@ -96,3 +99,28 @@ até o commit de `FINISHED`. Repetição idempotente e conclusão mantêm seu fl
 `DeliveryReferenceService` expõe a consulta de viagens ativas através do
 repository dono, também reutilizada pela identificação de viagem no WhatsApp.
 Conflito retorna HTTP `409 DRIVER_OPERATION_CONFLICT` (ver `docs/05`).
+
+
+## OC90 — fluxo multi-caminhão
+
+`CONFIRMADO`: Delivery.distribution_part_id identifica a perna, derivada do plano pelo
+servidor; NULL conserva legado. UNIQUE parte/pedido e índice único parcial legado,
+FK e triggers de contexto/imutabilidade protegem PostgreSQL (migration 0027).
+Trip mantém UNIQUE load_plan_id; retry de criação conserva o conflito público.
+
+Planos atuais de distribuição/parte APPROVED aceitam PLANNED ou IN_TRANSIT na
+criação/início. Somente pedidos PLANNED mudam para IN_TRANSIT e recebem histórico.
+Conclusão persiste a própria perna sob lock de Order e consulta as partes
+necessárias pela reference_service de planejamento e as pernas entregues por SQL.
+Somente a última necessária muda Order para DELIVERED. Não bloqueia outra Trip
+ou Delivery ao agregar; ordem de locks: Trip → entregas próprias UUID → pedidos/
+itens UUID. Leituras após lock renovam objetos e usam READ COMMITTED. A viagem
+multi termina pelas suas entregas, independentemente de outras partes.
+
+Comprovante ADR-024 é independente por Delivery e permanece idempotente e
+transacional. Falha em B não desfaz A; rollback não publica meia conclusão.
+Históricos existentes e vínculos persistidos reconstroem toda a operação.
+Permissões efetivas OC112 e recorte do motorista permanecem em vigor, sem novos
+papéis ou concessões. Observabilidade ADR-025 não recebe IDs/PII/payload.
+ADR-043 registra a proposta estrutural; downgrade falha se existirem entregas
+com parte para preservar contexto/auditoria. OC94 permanece fora do escopo.

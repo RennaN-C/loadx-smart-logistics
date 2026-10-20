@@ -536,6 +536,7 @@ Entregas planejadas dentro de uma viagem.
 - `id`: UUID, PK.
 - `trip_id`: UUID, FK para `trips.id`, obrigatório.
 - `order_id`: UUID, FK para `orders.id`, obrigatório.
+- `distribution_part_id`: UUID nullable, FK RESTRICT para `load_distribution_parts.id` (OC90).
 - `status`: texto ou enum, obrigatório.
 - `sequence`: inteiro, obrigatório.
 - `delivered_at`: timestamptz UTC.
@@ -544,10 +545,12 @@ Entregas planejadas dentro de uma viagem.
 
 - `fk_deliveries__trips`.
 - `fk_deliveries__orders`.
+- `fk_deliveries__load_distribution_parts`.
 - `ix_deliveries__trip_id`.
 - `ix_deliveries__order_id`.
 - `ix_deliveries__status`.
-- `uq_deliveries__order_id`.
+- `uq_deliveries__legacy_order`: índice único parcial por order_id quando parte NULL.
+- `uq_deliveries__part_order`: UNIQUE distribution_part_id/order_id.
 - `uq_deliveries__trip_order`.
 - `uq_deliveries__trip_sequence`.
 - `ck_deliveries__status_allowed`.
@@ -555,7 +558,8 @@ Entregas planejadas dentro de uma viagem.
 - `ck_deliveries__completion_consistent`.
 
 `CONFIRMADO`: `status` aceita `PENDING`, `IN_DELIVERY` e `DELIVERED`. Cada pedido
-gera no máximo uma entrega no MVP. `sequence` é 1-based, positiva, contígua e
+legado gera no máximo uma entrega. Na OC90, cada parte que transporta volumes
+do pedido gera sua própria entrega, com contexto validado por triggers. `sequence` é 1-based, positiva, contígua e
 única na viagem; sua ordenação deriva de `order_items.delivery_sequence` e do
 UUID do pedido como desempate. Todos os itens de um pedido devem informar a
 mesma sequência. `delivered_at` existe se e somente se o status é `DELIVERED`.
@@ -658,7 +662,7 @@ A consulta da OC97 agrega as duas fontes sem modificar nem apagar registros.
 - `drivers` 1:N `trips`.
 - `drivers` 1:0..1 `users` por `users.driver_id`.
 - `trips` 1:N `deliveries`.
-- `orders` 1:0..1 `deliveries` no MVP.
+- `orders` 1:0..1 `deliveries` no legado; 1:N por partes na OC90, no máximo uma por parte/pedido.
 - `trips` 1:N `occurrences`.
 - `deliveries` 1:N `occurrences`.
 - `users` 1:N `status_history` por `changed_by`.
@@ -859,3 +863,57 @@ obrigatório default true, updated_at UTC default now. CHECK category em
 TRIPS/OCCURRENCES/SECURITY e SECURITY sempre habilitada. Sem telefone/texto/segredo.
 Backfill só cria associações das contas elegíveis no corte. Downgrade com qualquer
 associação/preferência é recusado; fatos da OC84 são preservados integralmente.
+
+
+## OC90 — entrega por perna física
+
+`CONFIRMADO`: a revisão `20261020_0027` sucede `20261020_0026`. Delivery recebe
+`distribution_part_id` UUID nullable, FK RESTRICT para `load_distribution_parts`.
+NULL preserva o legado: índice único parcial `uq_deliveries__legacy_order`
+por `order_id WHERE distribution_part_id IS NULL`. Para distribuição, a UNIQUE
+`uq_deliveries__part_order` limita uma entrega por parte/pedido. Permanecem as
+unicidades de trip/order, trip/sequence e trips/load_plan_id.
+
+`CONFIRMADO`: trigger de contexto serializa atribuições pelo pedido e valida
+parte atual/aprovada, distribuição aprovada, plano da viagem e existência de
+volume do pedido nessa parte. Impede mistura legado/distribuição e distribuições
+distintas para o mesmo pedido. Contexto da entrega e plano da viagem com entregas
+são imutáveis; estrutura/status da distribuição com entregas também ficam
+protegidos no banco. Identidades continuam somente no planejamento, sem cópia
+ou renumeração em Delivery. As FKs e CHECKs anteriores permanecem vigentes.
+
+`CONFIRMADO`: upgrade associa entregas antigas de partes operacionais únicas à
+parte já persistida. Downgrade aborta se existir qualquer entrega com contexto
+de parte: não remove vínculos, entregas nem auditoria para restaurar o schema
+anterior. Sem esse estado operacional, o downgrade restaura a unicidade global.
+Ver ADR-043 (proposta para revisão da equipe).
+
+`CONFIRMADO` (OC90): upgrade revalida entregas antigas com a mesma trigger de
+contexto usada por escritas futuras. Vínculo antigo inconsistente aborta o upgrade
+transacional, preservando schema/dados anteriores; não há correção silenciosa.
+
+
+`CONFIRMADO` (correção de integridade OC90): a primeira LoadingSession persistida
+marca a imutabilidade operacional do LoadPlan; a existência de Trip também é
+verificada defensivamente, incluindo planos legados. A função PostgreSQL
+`protect_operated_load_plan()` protege UPDATE/DELETE da linha inteira de
+`load_plans` e INSERT/UPDATE/DELETE de `load_plan_orders` e `load_plan_items`.
+Os triggers `protect_operated_load_plans`, `protect_operated_load_plan_orders` e
+`protect_operated_load_plan_items` rejeitam mudanças com SQLSTATE 23514 e
+constraint `ck_load_plans__operational_snapshot`. UPDATE sem mudança real é
+permitido. Ambos os pais são verificados em reatribuições; não há lista parcial
+de colunas editáveis, cópia de volumes ou alteração do contrato HTTP.
+
+`CONFIRMADO`: criação de LoadingSession serializa pelo LoadPlan FOR UPDATE,
+recarrega snapshots/itens do identity map após o lock e só então materializa o
+checklist e adquire o caminhão. Trip create já adquire plano antes de caminhão,
+motorista e pedidos. Escrita direta de filho pode já possuir lock da tupla antes
+da trigger; por isso a guarda tenta pais em UUID crescente com FOR UPDATE NOWAIT.
+Contenção rejeita a mutação com a mesma constraint e mensagem para repetir a
+transação, inclusive antes da operação. Não espera por um pai que possa estar
+aguardando a FK do checklist nesse filho, evitando esse ciclo. A guarda não
+bloqueia sessão, viagem, distribuição ou pedido; apenas consulta evidências
+persistidas. Planejamento sem evidência operacional conserva criação, aprovação
+e reprocessamento permitidos. Constraints e locks de contexto/distribuição
+existentes permanecem; o congelamento do snapshot físico começa no loading,
+antes da primeira entrega que protege a estrutura da distribuição.

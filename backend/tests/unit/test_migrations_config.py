@@ -31,7 +31,8 @@ def test_alembic_has_current_revision_head() -> None:
     config = Config(str(BACKEND_ROOT / "alembic.ini"))
     script = ScriptDirectory.from_config(config)
 
-    assert script.get_heads() == ["20261020_0026"]
+    assert script.get_heads() == ["20261020_0027"]
+    assert script.get_revision("20261020_0027").down_revision == "20261020_0026"
     assert script.get_revision("20261020_0026").down_revision == "20261020_0025"
     assert script.get_revision("20261020_0025").down_revision == "20261016_0024"
     assert script.get_revision("20261016_0024").down_revision == "20261009_0023"

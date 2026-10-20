@@ -429,7 +429,8 @@ def test_migration_backfills_real_facts_and_refuses_loss(
         original = list(db.scalars(select(OperationalNotification.id)))
         db.execute(delete(NotificationRecipient))
         db.commit()
-    _run_alembic(_required_test_database_url(), "downgrade", "-1")
+    # Target OC103's parent even when newer revisions (such as OC90) exist.
+    _run_alembic(_required_test_database_url(), "downgrade", "20261020_0025")
     _run_alembic(_required_test_database_url(), "upgrade", "head")
     assert inbox(client, scenario.driver_headers)["total"] == 1
     with session_factory() as db:
