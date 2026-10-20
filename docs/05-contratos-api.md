@@ -1256,10 +1256,12 @@ Mapeamento recomendado:
 ## Segurança de API
 
 - Somente `GET /health`, `GET /ready` e `POST /api/v1/auth/login` são públicos.
-- Todos os demais endpoints de negócio exigem o cookie de sessão e aplicam a
-  matriz de `docs/04-regras-negocio.md`.
-- `POST`, `PUT`, `PATCH` e `DELETE` exigem `Origin` presente na lista exata de
-  CORS. Operações autenticadas nesses métodos também exigem `X-CSRF-Token`.
+- Endpoints de negócio da interface exigem cookie de sessão e a matriz de
+  `docs/04-regras-negocio.md`. O POST exato `/api/v1/webhooks/controlled-events`
+  exige assinatura HMAC e autorização OC79, sem cookie; não é público/anônimo.
+- Nas rotas de sessão, `POST`, `PUT`, `PATCH` e `DELETE` exigem `Origin` na lista
+  exata de CORS e operações autenticadas exigem `X-CSRF-Token`. Apenas o POST
+  assinado da OC83 usa autenticação de emissor em lugar dessas proteções de navegador.
 - `CONFIRMADO`: com `APP_ENV=local`, `/docs`, `/docs/oauth2-redirect`, `/redoc` e `/openapi.json` ficam disponíveis. Com `APP_ENV=production` ou sem a variável, essas rotas não são registradas e retornam `404`.
 - Senhas nunca retornam na API.
 - Tokens e segredos nunca aparecem em logs.
@@ -1288,9 +1290,10 @@ Contrato, catálogo fechado, erros e consumo pelas OCs seguintes estão em
 [external_commands/README](../backend/app/modules/external_commands/README.md)
 e na proposta [ADR-026](decisions/ADR-026-seguranca-comandos-externos.md).
 
-`PENDENTE DE DEFINIÇÃO`: assinatura e composição específicas de fornecedor,
-webhook HTTP e bindings reais serão definidos em OC82/OC83 antes de habilitar
-integração externa. Sessão/Origin/CSRF e RBAC das rotas atuais permanecem vigentes.
+`CONFIRMADO`: OC83 compõe HMAC, bindings confiáveis e recebimento HTTP controlado
+em [messages/inbound](../backend/app/modules/messages/inbound.md). OC82 mantém
+WhatsApp mock. `PENDENTE DE DEFINIÇÃO`: autenticação/formato Meta específico
+permanece na pré-produção (#193); sessão/Origin/CSRF e RBAC da interface são preservados.
 
 ## OC105 — cadastros ativos e arquivados
 
@@ -1529,6 +1532,16 @@ Auditoria ADMIN admite filtros ACCESS_PROFILE e PROFILE_CREATED/PROFILE_UPDATED.
 Esses eventos permanecem ocultos ao gerente antes de paginação; escopo legado de
 usuários do gerente não é ampliado. ADR-040 substitui o RBAC exclusivamente fixo
 onde a ação foi migrada. OC98/tenant/CoreFlow não são incorporados.
+
+## Webhook controlado — OC83
+
+`CONFIRMADO`: `POST /api/v1/webhooks/controlled-events`, assinatura HMAC dos bytes
+originais no header `X-LoadX-Signature`, sem sessão/cookie. Reutiliza envelope v1,
+capabilities, bindings e idempotência PostgreSQL da OC79. Contrato HTTP, erros,
+limites, configuração opt-in e mídia desabilitada em
+[messages/inbound](../backend/app/modules/messages/inbound.md).
+Somente este POST exato usa assinatura em lugar de Origin/CSRF; demais rotas
+preservam as proteções da interface. WhatsApp continua exclusivamente mock.
 
 ### OC89 — vínculos de recuperação e caminhão histórico
 
