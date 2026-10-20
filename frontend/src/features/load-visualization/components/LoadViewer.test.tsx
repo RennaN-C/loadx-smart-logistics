@@ -165,3 +165,13 @@ describe("LoadViewer — passo a passo", () => {
     await waitFor(() => expect(ultimaCena().visibleIds).toBeNull());
   });
 });
+
+
+it("oferece nova consulta da cena após falha, sem calcular", async () => {
+  vi.mocked(getLoadPlanVisualization).mockRejectedValueOnce(new Error("Falha temporária")).mockResolvedValue(VIEW);
+  render(<LoadViewer planId="lp1" plan={PLAN} />);
+  expect(await screen.findByRole("alert")).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Tentar carregar visualização novamente" }));
+  expect(await screen.findByTestId("cena")).toBeInTheDocument();
+  expect(getLoadPlanVisualization).toHaveBeenCalledTimes(2);
+});
