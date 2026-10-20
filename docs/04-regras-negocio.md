@@ -844,3 +844,9 @@ marcar todas afeta somente a caixa visível da sessão naquele snapshot.
 Preferências TRIPS/OCCURRENCES afetam somente novas associações; SECURITY é
 obrigatória, sem criar evento novo. Não há alertas de documento/manutenção até
 contrato do módulo dono; regras e elegibilidade existentes não são duplicadas.
+
+## OC109
+
+`CONFIRMADO`: ADR-043 define lease/fencing, resultado incerto sem retry automático,
+backoff limitado, adoção de tentativas OC84 sem reenvio e reprocessamento ADMIN
+idempotente/auditado. Caixa OC103 é independente do canal exclusivamente mock.
