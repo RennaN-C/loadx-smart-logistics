@@ -465,3 +465,144 @@ def test_populated_downgrade_refuses_history_loss(queued):
         pytest.raises(RuntimeError, match="downgrade refused"),
     ):
         module.downgrade()
+
+
+@pytest.mark.parametrize(
+    "legacy,target",
+    [
+        ("SIMULATED", "SUCCEEDED"),
+        ("FAILED", "TERMINAL"),
+        ("ATTEMPT_CLAIMED", "UNCERTAIN"),
+        ("NO_RECIPIENT", "SUCCEEDED"),
+    ],
+)
+def test_upgrade_backfill_preserves_oc84_and_oc103_without_sending(
+    queued, legacy, target
+):
+    from app.modules.notifications.repository import OperationalNotificationRepository
+    from tests.integration.conftest import _required_test_database_url, _run_alembic
+
+    s, _, notification = queued
+    with s.factory() as db:
+        repository = OperationalNotificationRepository(db)
+        repository.claim(notification)
+        if legacy != "ATTEMPT_CLAIMED":
+            repository.complete(notification, legacy)
+        recipients = list(
+            db.scalars(
+                select(NotificationRecipient.user_id).where(
+                    NotificationRecipient.notification_id == notification
+                )
+            )
+        )
+        clear_outbox_fixture(db)
+        db.commit()
+    _run_alembic(_required_test_database_url(), "downgrade", "20261020_0026")
+    _run_alembic(_required_test_database_url(), "upgrade", "head")
+    with s.factory() as db:
+        event = db.scalar(
+            select(OutboxEvent).where(OutboxEvent.notification_id == notification)
+        )
+        assert event.status == target
+        assert event.generation == 0
+        attempt = db.scalar(
+            select(OutboxAttempt).where(OutboxAttempt.outbox_event_id == event.id)
+        )
+        assert attempt.origin == "LEGACY"
+        assert db.get(OperationalNotification, notification).mock_status == legacy
+        assert (
+            list(
+                db.scalars(
+                    select(NotificationRecipient.user_id).where(
+                        NotificationRecipient.notification_id == notification
+                    )
+                )
+            )
+            == recipients
+        )
+
+
+def test_pagination_is_deterministic_empty_pages_keep_totals(queued):
+    from app.core.pagination import PaginationParams
+
+    s, _, _ = queued
+    for _ in range(3):
+        register(s)
+    with s.factory() as db:
+        service = OutboxService(db)
+        asc = service.list_events(
+            PaginationParams(1, 2, "asc"), status=None, event_type=None
+        )
+        second = service.list_events(
+            PaginationParams(2, 2, "asc"), status=None, event_type=None
+        )
+        desc = service.list_events(
+            PaginationParams(1, 4, "desc"), status=None, event_type=None
+        )
+        assert asc.total == second.total == desc.total == 4
+        ids = [row.id for row in asc.items + second.items]
+        assert len(set(ids)) == 4
+        assert ids == [row.id for row in desc.items][::-1]
+        empty = service.list_events(
+            PaginationParams(20, 2, "asc"), status=None, event_type=None
+        )
+        assert empty.items == [] and empty.total == 4
+        assert (
+            service.list_events(
+                PaginationParams(1, 20, "asc"), status="TERMINAL", event_type=None
+            ).total
+            == 0
+        )
+
+
+def test_same_manual_command_concurrent_replay_has_one_audit(queued):
+    s, identifier, _ = queued
+    transport = Mock()
+    transport.send.side_effect = PermanentDeliveryError()
+    process_one(s.factory, transport)
+    command, barrier = uuid.uuid4(), Barrier(2)
+
+    def run(_):
+        barrier.wait(timeout=10)
+        return retry(s, identifier, command).status
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        assert list(pool.map(run, range(2))) == ["PENDING", "PENDING"]
+    with s.factory() as db:
+        assert db.scalar(select(func.count()).select_from(OutboxRetryCommand)) == 1
+        assert (
+            db.scalar(
+                select(func.count())
+                .select_from(AuditEvent)
+                .where(AuditEvent.event_type == "OUTBOX_REPROCESSED")
+            )
+            == 1
+        )
+
+
+def test_service_rejects_non_admin_and_command_reuse_on_other_event(queued):
+    s, identifier, _ = queued
+    with s.factory() as db:
+        with pytest.raises(ApiError) as denied:
+            OutboxService(db).retry(
+                identifier, uuid.uuid4(), db.get(User, s.actors["manager"])
+            )
+        assert denied.value.status_code == 403
+    transport = Mock()
+    transport.send.side_effect = PermanentDeliveryError()
+    process_one(s.factory, transport)
+    command = uuid.uuid4()
+    retry(s, identifier, command)
+    other_occurrence = register(s)
+    with s.factory() as db:
+        notification = db.scalar(
+            select(OperationalNotification).where(
+                OperationalNotification.occurrence_id == other_occurrence
+            )
+        )
+        other = db.scalar(
+            select(OutboxEvent).where(OutboxEvent.notification_id == notification.id)
+        ).id
+    with pytest.raises(ApiError) as conflict:
+        retry(s, other, command)
+    assert conflict.value.code == "OUTBOX_COMMAND_CONFLICT"
