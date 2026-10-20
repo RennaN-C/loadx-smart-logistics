@@ -1,5 +1,33 @@
 # Regras de negócio
 
+## OC84 — notificações operacionais persistentes
+
+`CONFIRMADO`: a revisão de Rennan na PR #226 aprovou a direção estrutural.
+[ADR-041](decisions/ADR-041-notificacoes-operacionais-duraveis.md) define a
+implementação: somente TRIP_STARTED (SCHEDULED → IN_ROUTE efetivo) e
+OCCURRENCE_REGISTERED (UUID real da ocorrência), com motorista da mesma viagem.
+Fato/histórico/notificação são persistidos na mesma transação; falha do registro
+faz rollback de todos. Repetir status não gera evento; duas ocorrências com UUIDs
+distintos são fatos diferentes, não deduplicados por texto ou horário.
+
+`CONFIRMADO`: unicidade PostgreSQL protege tipo/origem/motorista; a origem e o
+destinatário são validados por services públicos e triggers. O registro interno
+não depende de envio. mock_status distingue NOT_ATTEMPTED, ATTEMPT_CLAIMED,
+SIMULATED, FAILED e NO_RECIPIENT. Claim condicional é confirmado antes do mock;
+resultado/falha/ausência de destino não desfazem o domínio já durável.
+
+Session ligada à Connection/savepoint não autoriza saída. A OC79 transfere hints
+ao dono da transação, que despacha após o commit externo; replay não repete o efeito.
+Binding/atividade/telefone são relidos, sem redirecionar a outro motorista. O
+simulador conserva seu aviso explícito, sem notificação automática duplicada.
+Não altera RBAC, contratos HTTP, OC83 ou a fronteira operacional da OC89/OC90.
+
+`RISCO IDENTIFICADO`: crash antes do claim mantém NOT_ATTEMPTED; após claim ou
+resultado incerto mantém ATTEMPT_CLAIMED, nunca sucesso presumido. Sem retry,
+worker, varredura ou exactly-once. OC109 tratará recuperação; OC103, central e
+preferências. WhatsApp continua exclusivamente mock; não há envio/entrega Meta.
+
+
 ## Unidades
 
 - `CONFIRMADO`: dimensões em centímetros.

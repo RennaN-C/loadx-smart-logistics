@@ -1,3 +1,5 @@
+import json
+import logging
 import uuid
 from collections.abc import Iterator
 
@@ -13,6 +15,11 @@ from app.integrations.whatsapp import (
 )
 from tests.integration.test_deliveries_api import create_trip, seed_operational_scenario
 from tests.integration.test_messages_api import finish_loading
+
+
+@pytest.fixture
+def session_factory(committed_session_factory):
+    return committed_session_factory
 
 
 @pytest.fixture
@@ -159,3 +166,115 @@ def test_provider_failure_does_not_rollback_confirmed_trip_start(
     assert started.json()["status"] == "IN_ROUTE"
     assert persisted.status_code == 200
     assert persisted.json()["status"] == "IN_ROUTE"
+
+
+def test_mock_trace_uses_server_request_id_and_gets_have_no_notification_effects(
+    client: TestClient,
+    session_factory,
+    notification_provider: MockWhatsAppProvider,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    scenario = seed_operational_scenario(session_factory)
+    trip = create_trip(client, scenario)
+    finish_loading(client, scenario)
+    with caplog.at_level(logging.INFO, logger="loadx.operations"):
+        started = client.patch(
+            f"/api/v1/trips/{trip['id']}/status",
+            json={"status": "IN_ROUTE"},
+            headers={**scenario.manager_headers, "X-Request-ID": "private-injected-id"},
+        )
+        for path in (
+            "/api/v1/trips",
+            f"/api/v1/trips/{trip['id']}",
+            f"/api/v1/trips/{trip['id']}/occurrences",
+        ):
+            assert client.get(path, headers=scenario.manager_headers).status_code == 200
+
+    assert started.status_code == 200
+    events = [
+        json.loads(record.getMessage())
+        for record in caplog.records
+        if record.name == "loadx.operations"
+        and json.loads(record.getMessage())["event"].startswith("NOTIFICATION_")
+    ]
+    assert len(notification_provider.sent_messages) == len(events) == 1
+    assert events[0]["event"] == "NOTIFICATION_SIMULATED"
+    assert events[0]["correlation_id"] == started.headers["x-request-id"]
+    assert events[0]["trip_id"] == trip["id"]
+    assert "5500000000000" not in caplog.text
+    assert "private-injected-id" not in caplog.text
+    assert f"Viagem {trip['id']} iniciada." not in caplog.text
+
+
+@pytest.mark.parametrize("action", ["trip_start", "occurrence"])
+@pytest.mark.parametrize(
+    ("headers_name", "expected_status"),
+    [(None, 401), ("checker_headers", 403), ("other_driver_headers", 403)],
+)
+def test_unauthorized_operations_do_not_simulate_notifications(
+    action: str,
+    headers_name: str | None,
+    expected_status: int,
+    client: TestClient,
+    session_factory,
+    notification_provider: MockWhatsAppProvider,
+) -> None:
+    scenario = seed_operational_scenario(session_factory)
+    trip = create_trip(client, scenario)
+    headers = getattr(scenario, headers_name) if headers_name else {}
+    if action == "trip_start":
+        response = client.patch(
+            f"/api/v1/trips/{trip['id']}/status",
+            json={"status": "IN_ROUTE"},
+            headers=headers,
+        )
+    else:
+        response = client.post(
+            "/api/v1/occurrences",
+            json={"trip_id": trip["id"], "type": "DELAY", "description": "Teste."},
+            headers=headers,
+        )
+    assert response.status_code == expected_status
+    assert notification_provider.sent_messages == []
+    assert (
+        client.get(
+            f"/api/v1/trips/{trip['id']}", headers=scenario.manager_headers
+        ).json()["status"]
+        == "SCHEDULED"
+    )
+    assert (
+        client.get(
+            f"/api/v1/trips/{trip['id']}/occurrences", headers=scenario.manager_headers
+        ).json()
+        == []
+    )
+
+
+@pytest.mark.parametrize("protection", ["origin", "csrf"])
+def test_request_protections_do_not_persist_or_attempt_notifications(
+    client, session_factory, notification_provider, protection
+):
+    from sqlalchemy import func, select
+
+    from app.modules.notifications.models import OperationalNotification
+
+    scenario = seed_operational_scenario(session_factory)
+    trip = create_trip(client, scenario)
+    headers = dict(scenario.manager_headers)
+    if protection == "origin":
+        headers["Origin"] = "https://untrusted.example.test"
+    else:
+        headers.pop("X-CSRF-Token", None)
+    result = client.post(
+        "/api/v1/occurrences",
+        json={
+            "trip_id": trip["id"],
+            "type": "DELAY",
+            "description": "Fato protegido fictício.",
+        },
+        headers=headers,
+    )
+    assert result.status_code == 403
+    assert notification_provider.sent_messages == []
+    with session_factory() as db:
+        assert db.scalar(select(func.count()).select_from(OperationalNotification)) == 0

@@ -1,4 +1,3 @@
-import logging
 import uuid
 from collections.abc import Sequence
 from datetime import UTC, datetime
@@ -6,7 +5,6 @@ from datetime import UTC, datetime
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.core.observability import OperationalEvent, emit_operational_event
 from app.core.pagination import PageResult, PaginationParams
 from app.database.integrity import get_integrity_constraint_name
 from app.modules.access_profiles.catalog import Permission, has_permission
@@ -24,6 +22,7 @@ from app.modules.loading.reference_service import LoadingReferenceService
 from app.modules.notifications.service import OperationalNotificationService
 from app.modules.orders.models import Order
 from app.modules.orders.service import OrderService
+from app.modules.status_history.models import StatusHistory
 from app.modules.status_history.schemas import StatusHistoryCreate
 from app.modules.status_history.service import StatusHistoryService
 from app.modules.trucks.service import TruckService
@@ -137,13 +136,21 @@ class TripService:
         self.loading_reference_service = (
             loading_reference_service or LoadingReferenceService(db)
         )
-        self.notification_service = notification_service
+        self.notification_service = (
+            notification_service or OperationalNotificationService()
+        )
         self.order_service = OrderService(db)
         self.status_history_service = StatusHistoryService(db)
         self.truck_service = TruckService(db)
 
-    def get_trip(self, trip_id: uuid.UUID, *, current_user: User) -> Trip:
-        trip = self.repository.get(trip_id)
+    def get_trip(
+        self, trip_id: uuid.UUID, *, current_user: User, for_update: bool = False
+    ) -> Trip:
+        trip = (
+            self.repository.get_for_update(trip_id)
+            if for_update
+            else self.repository.get(trip_id)
+        )
         if trip is None:
             raise TripNotFoundError
         self._ensure_can_read(current_user, trip)
@@ -278,10 +285,8 @@ class TripService:
                 self._stage_trip_finish(trip, deliveries, current_user.id)
 
             self.db.commit()
-            persisted_trip = self._get_persisted_trip(trip.id)
-            if normalized_status == "IN_ROUTE":
-                self._notify_trip_started(persisted_trip)
-            return persisted_trip
+            OperationalNotificationService.dispatch_after_commit(self.db)
+            return self._get_persisted_trip(trip.id)
         except Exception:
             self.db.rollback()
             raise
@@ -449,7 +454,7 @@ class TripService:
         trip.status = "IN_ROUTE"
         trip.started_at = datetime.now(UTC)
         self.repository.update_trip(trip)
-        self._stage_status_change(
+        history = self._stage_status_change(
             entity_type="TRIP",
             entity_id=trip.id,
             old_status="SCHEDULED",
@@ -464,6 +469,14 @@ class TripService:
                 new_status="IN_TRANSIT",
                 changed_by=changed_by,
             )
+
+        self.notification_service.stage(
+            self.db,
+            event_type="TRIP_STARTED",
+            trip_id=trip.id,
+            recipient_driver_id=trip.driver_id,
+            status_history_id=history.id,
+        )
 
     def _stage_trip_finish(
         self,
@@ -564,8 +577,8 @@ class TripService:
         old_status: str | None,
         new_status: str,
         changed_by: uuid.UUID,
-    ) -> None:
-        self.status_history_service.stage_status_change(
+    ) -> StatusHistory:
+        return self.status_history_service.stage_status_change(
             StatusHistoryCreate(
                 entity_type=entity_type,
                 entity_id=entity_id,
@@ -574,24 +587,6 @@ class TripService:
                 changed_by=changed_by,
             )
         )
-
-    def _notify_trip_started(self, trip: Trip) -> None:
-        if self.notification_service is None:
-            return
-        try:
-            driver = self.driver_service.get_driver(trip.driver_id)
-            self.notification_service.notify_trip_started(
-                recipient_phone=driver.phone,
-                trip_id=trip.id,
-            )
-        except Exception as error:  # noqa: BLE001 - notification failure must not undo operation
-            emit_operational_event(
-                OperationalEvent.NOTIFICATION_FAILED,
-                level=logging.WARNING,
-                alert=True,
-                reason="TRIP_PREPARATION_FAILED",
-                exception_type=type(error).__name__,
-            )
 
     def _raise_integrity_error(self, exc: IntegrityError) -> None:
         constraint_name = get_integrity_constraint_name(exc)

@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import Engine, create_engine
+from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.engine import URL, make_url
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import NullPool
@@ -110,8 +110,24 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
         head_revision = connection.exec_driver_sql(
             "SELECT version_num FROM alembic_version"
         ).scalar_one()
-        assert head_revision == "20261016_0024"
+        assert head_revision == "20261020_0025"
 
+    _run_alembic(test_url, "downgrade", "-1")
+    with engine.connect() as connection:
+        assert (
+            connection.exec_driver_sql(
+                "SELECT version_num FROM alembic_version"
+            ).scalar_one()
+            == "20261016_0024"
+        )
+        assert (
+            connection.exec_driver_sql(
+                "SELECT to_regclass('public.operational_notifications')"
+            ).scalar_one()
+            is None
+        )
+    _run_alembic(test_url, "upgrade", "head")
+    _run_alembic(test_url, "downgrade", "-1")
     _run_alembic(test_url, "downgrade", "-1")
     with engine.connect() as connection:
         assert (
@@ -343,6 +359,21 @@ def session_factory(
         if transaction.is_active:
             transaction.rollback()
         connection.close()
+
+
+@pytest.fixture
+def committed_session_factory(
+    postgres_engine: Engine,
+) -> Generator[SessionFactory, None, None]:
+    """Exercise real commit boundaries; exclusively on the validated test database."""
+    factory = sessionmaker(bind=postgres_engine, autoflush=False)
+    try:
+        yield factory
+    finally:
+        with postgres_engine.begin() as connection:
+            connection.execute(
+                text("TRUNCATE customers, products, trucks, drivers, users CASCADE")
+            )
 
 
 @pytest.fixture
