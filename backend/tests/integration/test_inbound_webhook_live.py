@@ -10,6 +10,8 @@ import time
 import urllib.request
 from pathlib import Path
 
+import pytest
+
 from tests.integration.test_external_commands import scenario
 
 __all__ = ("scenario",)
@@ -17,9 +19,14 @@ __all__ = ("scenario",)
 
 def test_local_emitter_real_http_restart_and_persisted_effect(scenario, tmp_path):
     backend = Path(__file__).resolve().parents[2]
+    port = 8000
     with socket.socket() as available:
-        available.bind(("127.0.0.1", 0))
-        port = available.getsockname()[1]
+        try:
+            available.bind(("127.0.0.1", port))
+        except OSError:
+            pytest.skip(
+                "Live harness requires free loopback port 8000; existing services are preserved."
+            )
     key = secrets.token_hex(32)
     environment = {
         **os.environ,
@@ -42,8 +49,6 @@ def test_local_emitter_real_http_restart_and_persisted_effect(scenario, tmp_path
             [
                 sys.executable,
                 "scripts/emit_inbound.py",
-                "--port",
-                str(port),
                 "--event-file",
                 str(path),
                 "--expected-status",

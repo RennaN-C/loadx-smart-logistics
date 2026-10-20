@@ -37,16 +37,6 @@ class NoRedirect(HTTPRedirectHandler):
         return None
 
 
-def local_port(value: str) -> int:
-    try:
-        port = int(value)
-    except ValueError:
-        raise argparse.ArgumentTypeError("Port must be an integer.") from None
-    if not 1 <= port <= 65535:
-        raise argparse.ArgumentTypeError("Port must be between 1 and 65535.")
-    return port
-
-
 def event_bytes(args, parser: argparse.ArgumentParser) -> bytes:
     if not args.event_file.exists():
         if not all((args.subject, args.command, args.target_id)):
@@ -87,7 +77,6 @@ def public_result(status: int, body: bytes) -> dict:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--port", type=local_port, default=8000)
     parser.add_argument("--event-file", type=Path, required=True)
     parser.add_argument("--subject")
     parser.add_argument(
@@ -105,7 +94,7 @@ def main() -> int:
     if args.invalid_signature:
         signature = ("0" if signature[0] != "0" else "1") + signature[1:]
     request = Request(
-        f"http://127.0.0.1:{args.port}/api/v1/webhooks/controlled-events",
+        "http://127.0.0.1:8000/api/v1/webhooks/controlled-events",
         data=body,
         method="POST",
         headers={"Content-Type": "application/json", "X-LoadX-Signature": signature},

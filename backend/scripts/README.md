@@ -4,7 +4,7 @@
 `emit_inbound.py` cria um evento v1 em arquivo novo, assina seus bytes exatos e
 faz POST HTTP real. Arquivo existente é reutilizado sem mudar event_id, bytes ou
 validade. A chave vem exclusivamente do ambiente, nunca de argumento/arquivo de
-evento. O emissor usa somente 127.0.0.1, com porta inteira de 1 a 65535 (--port, padrão 8000). Não aceita URL/host e recusa redirects.
+evento. O destino é fixo: http://127.0.0.1:8000/api/v1/webhooks/controlled-events. O emissor não aceita URL, host ou porta como argumento e recusa redirects.
 Saída contém apenas status HTTP e receipt técnico; não imprime corpo/assinatura.
 
 ## Preparar ambiente local
@@ -85,3 +85,7 @@ nunca apontar TEST_DATABASE_URL para banco de desenvolvimento/produção.
 
 `CONFIRMADO`: mídia inbound está bloqueada; não fornece upload, storage ou Meta.
 Contrato completo: ../app/modules/messages/inbound.md.
+
+`CONFIRMADO`: a verificação live preserva serviços existentes e é explicitamente
+pulada se a porta 8000 estiver ocupada; libere-a por operação do responsável
+para executar a homologação, sem interromper processos de terceiros.

@@ -9,15 +9,14 @@ from scripts import emit_inbound
     "arguments",
     [
         ["--url", "https://outside.invalid/api/v1/webhooks/controlled-events"],
+        ["--port", "8000"],
         ["--port", "0"],
         ["--port", "65536"],
         ["--port", "not-a-port"],
         ["--port", "8000@outside.invalid"],
     ],
 )
-def test_emitter_rejects_url_or_invalid_port_before_network(
-    arguments, tmp_path, monkeypatch
-):
+def test_emitter_rejects_url_or_port_before_network(arguments, tmp_path, monkeypatch):
     opener = Mock(side_effect=AssertionError("no network permitted"))
     monkeypatch.setattr(emit_inbound, "build_opener", opener)
     monkeypatch.setattr(
