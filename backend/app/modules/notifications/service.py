@@ -110,58 +110,9 @@ class OperationalNotificationService:
                 claimed = OperationalNotificationRepository(db).claim(identifier)
             if not claimed:
                 return
-            # Claim is durably committed BEFORE touching the mock. Lock recipient
-            # bindings until the local simulation ends, without reusing domain state.
+            # Claim is durable before the independent simulation transaction.
             with factory() as db, db.begin():
-                repository = OperationalNotificationRepository(db)
-                row = repository.get(identifier)
-                trip = DeliveryReferenceService(db).get_trip_for_notification(
-                    row.trip_id
-                )
-                driver = DriverService(db).get_driver_for_update(
-                    row.recipient_driver_id
-                )
-                if (
-                    trip is None
-                    or trip.driver_id != driver.id
-                    or not driver.active
-                    or not (driver.phone or "").strip()
-                ):
-                    result = "NO_RECIPIENT"
-                    MockNotificationSender(self.provider).send(
-                        None,
-                        "",
-                        trip_id=row.trip_id,
-                        notification_type=row.event_type,
-                        correlation_id=row.correlation_id,
-                        notification_id=row.id,
-                    )
-                else:
-                    origin = (
-                        OccurrenceReferenceService(db).get_notification_origin(
-                            row.occurrence_id
-                        )
-                        if row.occurrence_id
-                        else None
-                    )
-                    content = (
-                        f"Viagem {row.trip_id} iniciada."
-                        if row.event_type == "TRIP_STARTED"
-                        else f"Ocorrência {origin.type} registrada na viagem {row.trip_id}."
-                    )
-                    result = (
-                        "SIMULATED"
-                        if MockNotificationSender(self.provider).send(
-                            driver.phone,
-                            content,
-                            trip_id=row.trip_id,
-                            notification_type=row.event_type,
-                            correlation_id=row.correlation_id,
-                            notification_id=row.id,
-                        )
-                        else "FAILED"
-                    )
-                repository.complete(identifier, result)
+                self._simulate_claimed(db, identifier)
         except Exception as error:  # noqa: BLE001 - a durable domain event must survive channel failure
             emit_operational_event(
                 OperationalEvent.NOTIFICATION_FAILED,
@@ -171,3 +122,50 @@ class OperationalNotificationService:
                 notification_id=str(identifier),
                 exception_type=type(error).__name__,
             )
+
+    def _simulate_claimed(self, db: Session, identifier: uuid.UUID) -> None:
+        repository = OperationalNotificationRepository(db)
+        row = repository.get(identifier)
+        trip = DeliveryReferenceService(db).get_trip_for_notification(row.trip_id)
+        driver = DriverService(db).get_driver_for_update(row.recipient_driver_id)
+        if (
+            trip is None
+            or trip.driver_id != driver.id
+            or not driver.active
+            or not (driver.phone or "").strip()
+        ):
+            result = "NO_RECIPIENT"
+            MockNotificationSender(self.provider).send(
+                None,
+                "",
+                trip_id=row.trip_id,
+                notification_type=row.event_type,
+                correlation_id=row.correlation_id,
+                notification_id=row.id,
+            )
+        else:
+            origin = (
+                OccurrenceReferenceService(db).get_notification_origin(
+                    row.occurrence_id
+                )
+                if row.occurrence_id
+                else None
+            )
+            content = (
+                f"Viagem {row.trip_id} iniciada."
+                if row.event_type == "TRIP_STARTED"
+                else f"Ocorrência {origin.type} registrada na viagem {row.trip_id}."
+            )
+            result = (
+                "SIMULATED"
+                if MockNotificationSender(self.provider).send(
+                    driver.phone,
+                    content,
+                    trip_id=row.trip_id,
+                    notification_type=row.event_type,
+                    correlation_id=row.correlation_id,
+                    notification_id=row.id,
+                )
+                else "FAILED"
+            )
+        repository.complete(identifier, result)

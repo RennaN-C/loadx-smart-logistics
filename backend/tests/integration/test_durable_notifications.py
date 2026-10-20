@@ -584,3 +584,59 @@ def test_connection_bound_dispatch_cannot_claim_or_simulate_before_outer_commit(
         assert provider.sent_messages == []
         with s.factory() as observer:
             assert observer.get(Notification, row.id).mock_status == "NOT_ATTEMPTED"
+
+
+def test_crash_after_domain_commit_before_claim_preserves_unattempted_record(
+    scenario, monkeypatch
+):
+    class ProcessStopped(BaseException):
+        pass
+
+    provider = MockWhatsAppProvider()
+
+    def stop_before_claim(*args):
+        raise ProcessStopped
+
+    monkeypatch.setattr(Service, "dispatch", stop_before_claim)
+    channel = Service(provider)
+    with pytest.raises(ProcessStopped):
+        register(scenario, channel)
+    assert counts(scenario) == (1, 1)
+    with scenario.factory() as db:
+        row = db.scalar(
+            select(Notification).where(
+                Notification.trip_id == scenario.trip_id,
+                Notification.event_type == "OCCURRENCE_REGISTERED",
+            )
+        )
+        assert row.mock_status == "NOT_ATTEMPTED" and row.claimed_at is None
+    assert provider.sent_messages == []
+
+
+def test_replay_after_commit_without_dispatch_does_not_recover_or_repeat_attempt(
+    scenario, monkeypatch
+):
+    from app.modules.external_commands import service as command_module
+    from app.modules.loading.reference_service import LoadingReferenceService
+    from tests.unit.test_external_command_validation import command_body, sign
+
+    s = scenario
+    prepare_scheduled(s)
+    provider = MockWhatsAppProvider()
+    monkeypatch.setattr(command_module, "get_whatsapp_provider", lambda: provider)
+    monkeypatch.setattr(
+        LoadingReferenceService, "is_load_plan_finished", lambda *args: True
+    )
+    body = command_body(command="START_TRIP", target_id=str(s.trip_id))
+    original = Service.dispatch_after_commit
+    monkeypatch.setattr(Service, "dispatch_after_commit", lambda db: None)
+    first = s.service().process(body, sign(body))
+    monkeypatch.setattr(Service, "dispatch_after_commit", original)
+    duplicate = s.service().process(body, sign(body))
+    assert first.id == duplicate.id and duplicate.duplicate
+    with s.factory() as db:
+        rows = list(
+            db.scalars(select(Notification).where(Notification.trip_id == s.trip_id))
+        )
+        assert len(rows) == 1 and rows[0].mock_status == "NOT_ATTEMPTED"
+    assert provider.sent_messages == []

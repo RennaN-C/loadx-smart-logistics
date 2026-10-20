@@ -5,15 +5,16 @@ from collections.abc import Callable, Generator
 from pathlib import Path
 
 import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy import Engine, create_engine, text
+from sqlalchemy.engine import URL, make_url
+from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import NullPool
+
 from app.core.config import settings
 from app.database.readiness import DatabaseReadinessChecker
 from app.database.session import get_db
 from app.main import app, get_readiness_checker
-from fastapi.testclient import TestClient
-from sqlalchemy import Engine, create_engine
-from sqlalchemy.engine import URL, make_url
-from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy.pool import NullPool
 
 SessionFactory = Callable[[], Session]
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
@@ -358,6 +359,21 @@ def session_factory(
         if transaction.is_active:
             transaction.rollback()
         connection.close()
+
+
+@pytest.fixture
+def committed_session_factory(
+    postgres_engine: Engine,
+) -> Generator[SessionFactory, None, None]:
+    """Exercise real commit boundaries; exclusively on the validated test database."""
+    factory = sessionmaker(bind=postgres_engine, autoflush=False)
+    try:
+        yield factory
+    finally:
+        with postgres_engine.begin() as connection:
+            connection.execute(
+                text("TRUNCATE customers, products, trucks, drivers, users CASCADE")
+            )
 
 
 @pytest.fixture

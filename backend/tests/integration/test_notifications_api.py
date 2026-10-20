@@ -6,8 +6,6 @@ from collections.abc import Iterator
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from sqlalchemy import text
-from sqlalchemy.orm import sessionmaker
 
 from app.integrations.whatsapp import (
     MockWhatsAppProvider,
@@ -20,17 +18,8 @@ from tests.integration.test_messages_api import finish_loading
 
 
 @pytest.fixture
-def session_factory(postgres_engine):
-    """HTTP notification tests need durable commits visible to independent Sessions."""
-    factory = sessionmaker(bind=postgres_engine, autoflush=False)
-    try:
-        yield factory
-    finally:
-        # postgres_engine validates the exclusive loadx_test database before use.
-        with postgres_engine.begin() as connection:
-            connection.execute(
-                text("TRUNCATE customers, products, trucks, drivers, users CASCADE")
-            )
+def session_factory(committed_session_factory):
+    return committed_session_factory
 
 
 @pytest.fixture
@@ -259,3 +248,33 @@ def test_unauthorized_operations_do_not_simulate_notifications(
         ).json()
         == []
     )
+
+
+@pytest.mark.parametrize("protection", ["origin", "csrf"])
+def test_request_protections_do_not_persist_or_attempt_notifications(
+    client, session_factory, notification_provider, protection
+):
+    from sqlalchemy import func, select
+
+    from app.modules.notifications.models import OperationalNotification
+
+    scenario = seed_operational_scenario(session_factory)
+    trip = create_trip(client, scenario)
+    headers = dict(scenario.manager_headers)
+    if protection == "origin":
+        headers["Origin"] = "https://untrusted.example.test"
+    else:
+        headers.pop("X-CSRF-Token", None)
+    result = client.post(
+        "/api/v1/occurrences",
+        json={
+            "trip_id": trip["id"],
+            "type": "DELAY",
+            "description": "Fato protegido fictício.",
+        },
+        headers=headers,
+    )
+    assert result.status_code == 403
+    assert notification_provider.sent_messages == []
+    with session_factory() as db:
+        assert db.scalar(select(func.count()).select_from(OperationalNotification)) == 0
