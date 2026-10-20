@@ -115,3 +115,15 @@ ativa; sair da seção descarta senhas e rascunhos. O fragmento antigo
 #settings-profiles redireciona para #settings-users-profiles, sem menu duplicado. Não
 altera o estado dos formulários institucionais existentes nem Meu perfil/tema.
 O atalho Gerenciar usuários substitui o aviso de preparação em Conta.
+
+## OC109 — Fila de eventos
+
+`CONFIRMADO`: #settings-outbox é seção ADMIN na sidebar existente. Monta apenas
+quando ativa e usa /outbox-events reais. Resumo global, lista paginada, filtros e
+ordenação persistem na URL sem remover o fragmento da seção. Detalhe por UUID
+reabre após F5 e consulta tentativas paginadas; origem exige validação no backend.
+Modal reutilizado com foco/Escape, confirmação e comando UUID estável em falha
+de rede. Somente RETRYABLE/TERMINAL/UNCERTAIN oferecem reprocessamento. Não usa
+localStorage, dados fictícios nem promete entrega Meta. Códigos de erro têm
+tradução pública sanitizada; falha parcial preserva só respostas autorizadas.
+Temas usam tokens existentes; tabela vira cards rotulados no celular.
