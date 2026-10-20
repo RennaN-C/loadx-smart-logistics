@@ -159,6 +159,10 @@ class LoadPlanningService:
             status = "APPROVED"
         return self.repository.list(pagination, status=status, truck_id=truck_id)
 
+    def get_distribution_id_for_plan(self, load_plan_id: uuid.UUID) -> uuid.UUID | None:
+        part = LoadDistributionRepository(self.db).plan_part(load_plan_id)
+        return part.distribution_id if part else None
+
     def get_load_plan(self, load_plan_id: uuid.UUID) -> LoadPlan:
         load_plan = self.repository.get(load_plan_id)
         if load_plan is None:

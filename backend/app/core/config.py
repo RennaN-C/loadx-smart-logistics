@@ -1,12 +1,16 @@
 import os
+import re
+import uuid
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, Json, SecretBytes, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.engine import make_url
 from sqlalchemy.exc import ArgumentError
+
+from app.modules.external_commands.schemas import CommandName
 
 INSECURE_SECRET_KEYS = frozenset(
     {
@@ -30,11 +34,18 @@ class Settings(BaseSettings):
     operational_log_level: Literal["INFO", "WARNING", "ERROR"] = "INFO"
     operational_request_logs: bool = True
     evidence_storage_dir: Path | None = None
+    inbound_webhook_enabled: bool = False
+    inbound_webhook_signing_key: SecretBytes | None = Field(default=None, repr=False)
+    inbound_webhook_bindings: Json[dict[str, uuid.UUID]] = Field(
+        default="{}", repr=False
+    )
+    inbound_webhook_capabilities: Json[list[CommandName]] = Field(default="[]")
 
     model_config = SettingsConfigDict(
         env_file=".env",
         extra="ignore",
         populate_by_name=True,
+        hide_input_in_errors=True,
     )
 
     @field_validator("database_url")
@@ -54,6 +65,31 @@ class Settings(BaseSettings):
     @classmethod
     def normalize_optional_blocklist_path(cls, value: object) -> object:
         return None if value == "" else value
+
+    @model_validator(mode="after")
+    def validate_inbound_webhook(self) -> "Settings":
+        key = self.inbound_webhook_signing_key
+        if key is not None and (
+            len(key.get_secret_value()) < 32
+            or key.get_secret_value() == self.secret_key.encode()
+        ):
+            raise ValueError(
+                "Inbound signing key must be exclusive and at least 32 bytes."
+            )
+        if any(
+            re.fullmatch(r"[A-Za-z0-9_.:-]{1,128}", subject) is None
+            for subject in self.inbound_webhook_bindings
+        ):
+            raise ValueError("Invalid configured inbound subject binding.")
+        if self.inbound_webhook_enabled and (
+            key is None
+            or not self.inbound_webhook_bindings
+            or not self.inbound_webhook_capabilities
+        ):
+            raise ValueError(
+                "Enabled inbound webhook requires key, bindings and capabilities."
+            )
+        return self
 
     @model_validator(mode="after")
     def reject_insecure_production_defaults(self) -> "Settings":

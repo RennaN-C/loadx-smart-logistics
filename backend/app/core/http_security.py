@@ -7,6 +7,7 @@ from starlette.responses import Response
 from app.core.responses import error_response
 
 UNSAFE_HTTP_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
+SIGNED_INBOUND_PATH = "/api/v1/webhooks/controlled-events"
 API_CONTENT_SECURITY_POLICY = (
     "default-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
 )
@@ -51,6 +52,9 @@ class OriginValidationMiddleware(BaseHTTPMiddleware):
         if (
             request.url.path.startswith("/api/v1/")
             and request.method in UNSAFE_HTTP_METHODS
+            and not (
+                request.method == "POST" and request.url.path == SIGNED_INBOUND_PATH
+            )
             and request.headers.get("origin") not in self.allowed_origins
         ):
             return error_response(
