@@ -1,103 +1,88 @@
-# Notificações operacionais
+# Notificações operacionais — OC84
 
-Serviço pequeno para transformar fatos operacionais já confirmados em mensagens
-determinísticas enviadas por `WhatsAppProvider`.
+`CONFIRMADO`: implementação persistente autorizada pela
+[revisão técnica da PR #226](https://github.com/RennaN-C/loadx-smart-logistics/pull/226#issuecomment-6289881953).
+WhatsApp continua exclusivamente mock (ADRs 036/037). Não há rota pública ou UI nova.
 
-`CONFIRMADO`: os gatilhos do MVP são início efetivo da viagem pelo endpoint HTTP
-e registro efetivo de ocorrência. O destinatário é o telefone do motorista
-vinculado à viagem.
+## Registro interno e canal
 
-`CONFIRMADO`: o envio ocorre depois do commit e é best-effort. Falha do provider
-ou destinatário ausente não altera estados, não desfaz a operação e não cria
-integração externa real.
+`operational_notifications` registra na transação do domínio:
 
-`CONFIRMADO`: o ambiente atual usa somente `MockWhatsAppProvider`. Webhook,
-WhatsApp real, upload de mídia e serviços pagos permanecem fora do MVP.
+- `TRIP_STARTED`: UUID do histórico efetivo `TRIP: SCHEDULED → IN_ROUTE`;
+- `OCCURRENCE_REGISTERED`: UUID da ocorrência efetivamente gravada.
 
-## OC84 — diagnóstico e proposta para revisão
+TripService/OccurrenceService usam o service público deste módulo para preparar a
+linha antes do commit, mesmo sem provider injetado. Falha na gravação desfaz o fato
+e histórico. A linha existe independentemente da simulação; não é recibo de envio.
+Não copia texto, telefone, credenciais ou payload. O motorista é identidade
+operacional histórica, não usuário autorizado da futura central.
 
-`CONFIRMADO`: na base `desenvolvimento` `c9b634c`, o módulo contém somente o
-service best-effort e não tem model, repository ou migration. As listas do mock
-são voláteis, e `True` no service significa somente retorno local normal.
-O histórico de viagem e o UUID de ocorrência são reutilizáveis como identidade
-do fato, mas não substituem um registro de notificação ou de tentativa.
+## Integridade e estados
 
-`CONFIRMADO`: o PR #223 (OC83) foi inspecionado em 20/10/2026 UTC: aberto em
-draft, não integrado. Esta branch parte de `desenvolvimento`, sem copiar ou
-exigir código desse PR. A OC79 integrada já fornece a fronteira reutilizável
-para compatibilidade futura com HTTP inbound.
+`CONFIRMADO`: FKs RESTRICT, CHECKs e dois índices UNIQUE parciais protegem
+(tipo, origem, motorista). INSERT ON CONFLICT aguarda concorrentes sem abortar a
+transação. Triggers PostgreSQL conferem origem/transição/viagem/destinatário,
+protegem identidade e origens referenciadas e fecham transições de tentativa.
 
-`RECOMENDAÇÃO`: o modelo mínimo de `operational_notifications`, seus campos,
-FKs, CHECKs e unicidades estão em
-[docs/03](../../../../docs/03-modelo-dados.md#oc84--proposta-de-notificações-operacionais-aguarda-revisão).
-O fluxo transacional e o significado dos resultados mock estão em
-[docs/04](../../../../docs/04-regras-negocio.md#oc84--contrato-proposto-e-limite-de-execução).
-Essas propostas não criam persistência nem autorizam novos eventos ou públicos.
+| mock_status | Significado |
+|---|---|
+| NOT_ATTEMPTED | Registro durável, nenhuma tentativa reclamada |
+| ATTEMPT_CLAIMED | Claim confirmado; resultado ainda desconhecido |
+| SIMULATED | Mock retornou normalmente; não comprova envio/entrega real |
+| FAILED | Mock falhou; domínio permanece confirmado |
+| NO_RECIPIENT | Sem telefone/motorista ativo ou vínculo atual elegível; sem mock |
 
-| Fato existente | Origem proposta | Destinatário operacional existente |
-| --- | --- | --- |
-| Início efetivo `SCHEDULED -> IN_ROUTE` | UUID de `status_history` da transição | Motorista da viagem |
-| Registro de ocorrência | UUID da ocorrência | Motorista da viagem |
+Claim e resultado têm timestamps distintos. Estado terminal não volta para
+NOT_ATTEMPTED. Alteração de vínculo/atividade é relida sob lock de viagem e
+motorista antes da simulação, sem reendereçar a outra pessoa nem copiar telefone.
 
-`SUPOSIÇÃO TÉCNICA`: uma linha por fato/tipo/motorista, protegida por índices
-UNIQUE no PostgreSQL, é suficiente para a notificação lógica inicial. Não há
-necessidade de copiar conteúdo ou telefone, nem introduzir broker/fila externa.
+## Fronteira transacional
 
-`PENDENTE DE DEFINIÇÃO`: revisão de Rennan para schema, estados mock e
-destinatário operacional sem conta vinculada. A OC103 precisará definir o
-vínculo de destinatários internos e acesso por objeto usando permissões atuais;
-um UUID de motorista armazenado não concede direitos ao usuário. Não criar
-rotas para CHECKER/DRIVER enumerarem dados alheios nem notificações arbitrárias.
+`CONFIRMADO`: após o commit durável, `dispatch_after_commit` usa outra Session
+ligada ao Engine. UPDATE condicional NOT_ATTEMPTED → ATTEMPT_CLAIMED concede uma
+única tentativa e é confirmado **antes** de chamar o mock. Depois, outra transação
+revalida o destinatário e grava o resultado. Falhas dessa etapa nunca fazem rollback
+do domínio já confirmado. `MockNotificationSender` concentra formatação/telemetria
+do canal, sem representar persistência por si só.
 
-`RISCO IDENTIFICADO`: os commits atuais dos services podem ser savepoints sob
-uma transação externa (OC79 e fixtures). Não generalizar o envio após
-`Session.commit()` como confirmação durável. A OC79 atualmente não injeta o
-provider, preservando a ausência de IO antes de confirmar o comando. A evolução
-deve registrar fato/notificação atomicamente e simular somente depois do commit
-externo; exige testes com Sessions ligadas ao Engine e conexões independentes.
+Sessions ligadas à Connection podem apenas liberar savepoints: não autorizam
+simulação nem claim. Na OC79, `transfer_staged` encaminha somente IDs/handlers ao
+dono da transação; ele despacha depois de sair do `db.begin()` externo. Replay não
+executa domínio nem despacha outra vez. OC83 utiliza essa composição integrada.
+Os hints em `Session.info` são voláteis, não são fila nem fonte de verdade; a linha
+PostgreSQL permanece NOT_ATTEMPTED se o processo morrer antes do claim.
 
-`RECOMENDAÇÃO`: após aprovação, alterar `notifications` (model/repository/service),
-integração pública dos services de deliveries/occurrences, composição transacional
-da OC79 e migration Alembic. Cobrir rollback, falha de persistência, duplicidade
-concorrente, replay, origem correta, reinício, ausência de destinatário e mock
-falho. Manter testes HTTP de 401/403, privacidade, GET sem efeitos e regressões.
+Uma composição customizada com transação externa precisa transferir os hints e
+chamar dispatch após seu próprio commit. Sem isso, mantém o registro interno sem
+simular. O simulador existente conserva sua confirmação explícita: cria o fato
+interno, mas não injeta um segundo aviso automático.
 
-`CONFIRMADO`: a saída permanece exclusivamente mock. Somente #193 pode aprovar
-Meta na pré-produção. A central/UI é OC103; outbox, recuperação de pendências,
-retries/backoff e reprocessamento são OC109. Nenhuma dessas capacidades pode
-ser apresentada como implementada pela proposta.
+`RISCO IDENTIFICADO`: crash entre commit/claim mantém NOT_ATTEMPTED; após claim
+ou falha ao confirmar resultado mantém ATTEMPT_CLAIMED, inclusive se o mock já
+retornou. Não há retry, varredura, worker ou promessa exactly-once. OC109 definirá
+recuperação; OC103 definirá central, preferências e autorização por destinatário.
+Não há backfill de mensagens fictícias ou inclusão de eventos novos.
 
-## Observabilidade implementada nesta preparação
+## Arquivos e rastreabilidade
 
-`CONFIRMADO`: `loadx.operations` distingue os resultados locais abaixo, sem
-persistir estados propostos ou mudar o retorno booleano dos métodos existentes.
+- `models.py`, `repository.py`, `service.py`: persistência, unicidade e composição;
+- `sender.py`: mock/telemetria sanitizada, sem conteúdo/telefone em logs;
+- migration `20261020_0025` sobre `20261016_0024`, aditiva e sem perda de dados;
+- [ADR-041](../../../../docs/decisions/ADR-041-notificacoes-operacionais-duraveis.md).
 
-| Evento técnico | Código (`reason`) | Significado |
-| --- | --- | --- |
-| `NOTIFICATION_SIMULATED` | `MOCK_RETURNED` | O mock retornou normalmente; não comprova entrega externa |
-| `NOTIFICATION_SKIPPED` | `RECIPIENT_MISSING` | Telefone ausente/vazio; nenhuma tentativa realizada |
-| `NOTIFICATION_FAILED` | `DELIVERY_FAILED` | O provider lançou exceção; domínio mantém o fato confirmado |
+A consulta interna por ID é somente leitura. Logs carregam tipo, UUID da viagem,
+UUID da notificação e correlação técnica; exceções não incluem mensagem/trace.
+401/403, Origin/CSRF e permissões continuam nos comandos operacionais existentes.
+Downgrade recusa banco que já contenha notificações.
 
-`CONFIRMADO`: esses eventos contêm `trip_id`, tipo do aviso e `correlation_id`.
-Em HTTP, a correlação reutiliza o `X-Request-ID` gerado pelo servidor; fora de
-HTTP, gera UUID técnico sem modificar o contexto de request. Não registram
-telefone, conteúdo, credencial, cookies, assinatura ou traceback. `request_id`
-continua sendo preenchido pela infraestrutura existente quando disponível.
-O UUID do fato e a futura notificação ainda não são incluídos: dependem da
-integração transacional proposta. Logs não substituem persistência ou unicidade.
+## Validação
 
-`CONFIRMADO`: os testes de commit usam PostgreSQL 16, Sessions ligadas ao Engine
-e observação por conexão independente. Cobrem a ocorrência confirmada antes do
-mock, falha do provider, nova instância de service e rollback de falha anterior
-ao commit. As regressões HTTP cobrem 401/403, GET sem efeitos, repetição de status,
-rejeição e correlação sanitizada. Esses testes comprovam o comportamento atual,
-**não** a persistência ou concorrência de notificações ainda não implementadas.
+`CONFIRMADO`: testes PostgreSQL 16 exclusivos em `test_durable_notifications.py`,
+`test_notifications_api.py`, `test_notification_commit_regression.py` e
+`test_external_commands.py`. Cobrem persistência/recriação de services, concorrência
+por conexões independentes, rollback, claim visível antes do mock, savepoints,
+replay OC79, falhas/crashes, privacidade e consultas sem escrita.
 
-```bash
-# Em backend; PostgreSQL 16 exclusivo conforme tests/integration/README.md.
-python -m ruff check .
-python -m ruff format --check .
-python -m pytest -q tests/unit
-python -m pytest -q tests/integration
-python -m pytest -q tests/e2e
-```
+Executar a suíte conforme `backend/tests/integration/README.md`; nunca usar dados
+reais. A OC89 permanece integrada; a OC90 não foi antecipada nem copiada. Notificação
+sempre se refere à viagem efetiva, independentemente da origem de seu plano.

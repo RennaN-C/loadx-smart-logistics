@@ -29,3 +29,11 @@ opera e consulta somente a própria; `ADMIN` apenas consulta.
 - `domain/`: objetos e regras puras, quando necessário.
 
 Crie somente os arquivos necessários para a ocorrência atual.
+
+## Persistência OC84
+
+`CONFIRMADO`: ocorrência e notificação interna são atômicas. O motorista é
+capturado sob lock da viagem; falha no registro da notificação faz rollback da
+ocorrência. Depois do commit durável, claim persistente permite uma tentativa mock,
+sem reverter o domínio se ela falhar. Savepoints não autorizam envio. Contrato
+completo em notifications/README e ADR-041; não há endpoint de notificações novo.

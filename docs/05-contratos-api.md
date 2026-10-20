@@ -1165,28 +1165,23 @@ Resposta recomendada:
 e o `TripService` validar permissão e estado. Nenhuma regra de viagem ou entrega
 é duplicada no módulo de mensagens.
 
-### Notificações automáticas
+### Notificações automáticas — OC84
 
-`CONFIRMADO` (análise OC84): não foi acrescentado endpoint de criação ou consulta
-de notificações. Sessão, Origin/CSRF, permissões efetivas OC112 e autorização por
-viagem continuam nos endpoints existentes. GET não produz notificações. A OC103
-(#150) definirá leitura por destinatário, paginação, lida/não lida e preferências;
-a proposta persistente OC84 em `docs/03`/`docs/04` não concede acesso antecipado.
-`DECISÃO NECESSÁRIA`: revisar esse schema com Rennan antes de implementação.
-Enquanto isso, a descrição best-effort abaixo continua refletindo o código;
-não há garantia durável ou contrato de consulta de notificações implementado.
+`CONFIRMADO`: não há endpoint público novo. Permissões, autorização por viagem,
+401/403, Origin e CSRF continuam nos endpoints existentes. GET não cria notificações.
+Os eventos reais de início de viagem e ocorrência geram registros duráveis,
+idempotentes por tipo/origem/motorista; saída WhatsApp é exclusivamente mock.
 
-`CONFIRMADO`: não existe endpoint público específico para notificações. Uma
-transição efetiva `SCHEDULED -> IN_ROUTE` realizada por
-`PATCH /trips/{id}/status` e um `POST /occurrences` concluído disparam mensagem
-determinística para o telefone do motorista da viagem por
-`MockWhatsAppProvider`.
+`CONFIRMADO`: o registro é atômico com o fato. Claim persistente posterior ao commit
+externo autoriza no máximo uma tentativa local; falha do mock não desfaz domínio.
+OC79/OC83 respeitam savepoints e replay. SIMULATED não equivale a envio ou entrega
+externa. O simulador preserva sua confirmação sem segundo aviso automático.
+Consulta interna do service não altera estado nem inicia tentativas.
 
-`CONFIRMADO`: mensagens automáticas são best-effort e posteriores ao commit.
-Falha do mock não muda a resposta nem reverte a operação confirmada. Transição
-rejeitada e repetição idempotente não disparam mensagem. Comandos recebidos pelo
-simulador mantêm sua confirmação explícita e não recebem um segundo aviso
-automático para o mesmo fato.
+`CONFIRMADO`: schema/estados em docs/03 e ADR-041. OC103 definirá central/leitura,
+preferências e acesso por destinatário; OC109 definirá recuperação de pendências,
+worker/retries. Nenhuma dessas APIs foi antecipada nesta OC84.
+
 
 ## Auditoria — OC97
 

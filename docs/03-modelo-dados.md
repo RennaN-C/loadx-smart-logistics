@@ -3,8 +3,8 @@
 ## OC84 — notificações operacionais duráveis
 
 `CONFIRMADO`: a Issue #127 e a ADR-037 autorizam notificações internas reais
-com saída WhatsApp exclusivamente mock. Na base `c9b634c`, `notifications`
-não possui model nem tabela. `status_history` e `occurrences` comprovam os fatos,
+com saída WhatsApp exclusivamente mock. Antes da OC84, a base `c9b634c` não
+armazenava notificações duráveis. `status_history` e `occurrences` comprovam os fatos,
 mas não armazenam uma notificação nem o resultado de sua simulação.
 `external_commands` deduplica comandos, não notificações ou tentativas de saída.
 Reutilizar essas tabelas como histórico de envio mudaria seu significado.
@@ -27,14 +27,14 @@ migration `20261020_0025` sobre `20261016_0024`. Sem backfill fictício.
 | `claimed_at` | timestamptz nullable | Commit do claim, separado do resultado |
 | `completed_at` | timestamptz nullable | Finalização local; não comprova entrega externa |
 
-`RECOMENDAÇÃO`: a existência da linha confirmada representa o registro interno;
+`CONFIRMADO`: a existência da linha confirmada representa o registro interno;
 não adicionar `read_at`, preferências ou estado lida/não lida da OC103. Não copiar
 telefone, texto, descrição de ocorrência, assinatura, subject, dados de sessão ou
 identificador bruto de integração. `recipient_driver_id` preserva o destinatário
 operacional atual mesmo quando não existe conta `users` vinculada; isso **não
 concede acesso HTTP** nem aprova inferir um futuro destinatário da central.
 
-`RECOMENDAÇÃO`: CHECK exige exatamente a origem correspondente ao `event_type`;
+`CONFIRMADO`: CHECK exige exatamente a origem correspondente ao `event_type`;
 CHECK fecha `mock_status`. Dois índices UNIQUE parciais protegem
 `(event_type, status_history_id, recipient_driver_id)` quando o histórico não é
 nulo e `(event_type, occurrence_id, recipient_driver_id)` quando a ocorrência
