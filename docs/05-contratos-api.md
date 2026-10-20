@@ -1529,3 +1529,12 @@ Auditoria ADMIN admite filtros ACCESS_PROFILE e PROFILE_CREATED/PROFILE_UPDATED.
 Esses eventos permanecem ocultos ao gerente antes de paginação; escopo legado de
 usuários do gerente não é ampliado. ADR-040 substitui o RBAC exclusivamente fixo
 onde a ação foi migrada. OC98/tenant/CoreFlow não são incorporados.
+
+### OC89 — vínculos de recuperação e caminhão histórico
+
+`CONFIRMADO`: respostas de `GET /load-plans` e `GET /load-plans/{id}` incluem
+`distribution_id: UUID | null`, inclusive para versões reprocessadas. Resumos
+continuam paginados, sem itens; filtro/ordenação/RBAC não mudam.
+`DistributionPartRead` inclui `truck: TruckSnapshotRead` do plano persistido
+(placa, modelo, dimensões em cm e capacidade em kg). Não consulta cadastro atual
+para reconstruir o histórico. Estes campos aditivos não exigem migration.

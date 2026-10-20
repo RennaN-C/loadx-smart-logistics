@@ -8,6 +8,7 @@ from sqlalchemy import asc, desc, func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.pagination import PageResult, PaginationParams
+from app.modules.load_planning.distribution_models import LoadDistributionPart
 from app.modules.load_planning.models import LoadPlan, LoadPlanItem, LoadPlanOrder
 
 
@@ -25,6 +26,7 @@ class LoadPlanSummary:
     occupancy_percent: Decimal
     total_weight_kg: Decimal
     order_count: int
+    distribution_id: uuid.UUID | None = None
 
 
 class LoadPlanRepository:
@@ -55,6 +57,16 @@ class LoadPlanRepository:
             .correlate(LoadPlan)
             .scalar_subquery()
         )
+        # Follow ancestors from each current part; old versions stay discoverable.
+        versions = select(
+            LoadDistributionPart.load_plan_id.label("plan_id"),
+            LoadDistributionPart.distribution_id,
+        ).cte("distribution_versions", recursive=True)
+        versions = versions.union(
+            select(LoadPlan.recalculated_from_id, versions.c.distribution_id)
+            .join(versions, LoadPlan.id == versions.c.plan_id)
+            .where(LoadPlan.recalculated_from_id.is_not(None))
+        )
         statement = (
             select(
                 LoadPlan.id,
@@ -69,7 +81,9 @@ class LoadPlanRepository:
                 LoadPlan.occupancy_percent,
                 LoadPlan.total_weight_kg,
                 order_count.label("order_count"),
+                versions.c.distribution_id,
             )
+            .outerjoin(versions, versions.c.plan_id == LoadPlan.id)
             .where(*filters)
             .order_by(direction(LoadPlan.created_at), direction(LoadPlan.id))
             .offset(pagination.offset)

@@ -78,7 +78,7 @@ tentativas da busca. Nenhum plano parcial é persistido.
 | POST /{distribution_id}/parts/{part_id}/reprocess | truck_id e expected_load_plan_id, 200 |
 
 `CONFIRMADO`: DistributionRead informa id/status/created_by/created_at UTC,
-order_ids, truck_count, volume_count, parts e volumes. Cada parte tem UUID estável,
+order_ids, truck_count, volume_count, parts e volumes. Cada parte contém `truck` (TruckSnapshotRead histórico do plano), UUID estável,
 status e LoadPlanRead completo (truck_id, ocupação/peso, volumes/snapshots, posições,
 rejeições e plano de origem). volumes explicita parte, proveniência, índice original
 e quantidade original; quantidade nunca é a contagem parcial por caminhão.
@@ -147,3 +147,17 @@ OC88/OC89/OC90; liberação operacional/cancelamento após aprovação são das 
 `RISCO IDENTIFICADO`: snapshots são históricos; recálculo usa cadastros atuais e
 não reescreve outras partes. Limites síncronos e disponibilidade não são promessa
 de solução ótima ou reserva. Não há purge de necessidade/plano/histórico pela API.
+
+## Recuperação no frontend — OC89
+
+`CONFIRMADO`: `GET /load-plans` acrescenta `distribution_id` anulável aos resumos,
+sem carregar itens. A consulta resolve também as versões anteriores por sua cadeia
+persistida. O detalhe `GET /load-plans/{id}` informa o mesmo vínculo. O frontend
+abre `/planning/distributions/{id}` e consulta o agregado; nunca otimiza ao reabrir.
+Não há nova tabela, migration, listagem paralela ou persistência local de propostas.
+
+`CONFIRMADO`: permissões efetivas atuais são `loadx.planning.read`,
+`loadx.planning.create` e `loadx.planning.approve` (OC112). ADMIN e gestor de sistema
+possuem as três; CHECKER continua restrito a leitura de aprovados, DRIVER não lê.
+Perfis personalizados seguem seu catálogo no servidor. A matriz antiga acima é
+histórica e não amplia nem restringe as permissões efetivas da OC112.
