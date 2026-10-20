@@ -66,3 +66,38 @@ falho. Manter testes HTTP de 401/403, privacidade, GET sem efeitos e regressões
 Meta na pré-produção. A central/UI é OC103; outbox, recuperação de pendências,
 retries/backoff e reprocessamento são OC109. Nenhuma dessas capacidades pode
 ser apresentada como implementada pela proposta.
+
+## Observabilidade implementada nesta preparação
+
+`CONFIRMADO`: `loadx.operations` distingue os resultados locais abaixo, sem
+persistir estados propostos ou mudar o retorno booleano dos métodos existentes.
+
+| Evento técnico | Código (`reason`) | Significado |
+| --- | --- | --- |
+| `NOTIFICATION_SIMULATED` | `MOCK_RETURNED` | O mock retornou normalmente; não comprova entrega externa |
+| `NOTIFICATION_SKIPPED` | `RECIPIENT_MISSING` | Telefone ausente/vazio; nenhuma tentativa realizada |
+| `NOTIFICATION_FAILED` | `DELIVERY_FAILED` | O provider lançou exceção; domínio mantém o fato confirmado |
+
+`CONFIRMADO`: esses eventos contêm `trip_id`, tipo do aviso e `correlation_id`.
+Em HTTP, a correlação reutiliza o `X-Request-ID` gerado pelo servidor; fora de
+HTTP, gera UUID técnico sem modificar o contexto de request. Não registram
+telefone, conteúdo, credencial, cookies, assinatura ou traceback. `request_id`
+continua sendo preenchido pela infraestrutura existente quando disponível.
+O UUID do fato e a futura notificação ainda não são incluídos: dependem da
+integração transacional proposta. Logs não substituem persistência ou unicidade.
+
+`CONFIRMADO`: os testes de commit usam PostgreSQL 16, Sessions ligadas ao Engine
+e observação por conexão independente. Cobrem a ocorrência confirmada antes do
+mock, falha do provider, nova instância de service e rollback de falha anterior
+ao commit. As regressões HTTP cobrem 401/403, GET sem efeitos, repetição de status,
+rejeição e correlação sanitizada. Esses testes comprovam o comportamento atual,
+**não** a persistência ou concorrência de notificações ainda não implementadas.
+
+```bash
+# Em backend; PostgreSQL 16 exclusivo conforme tests/integration/README.md.
+python -m ruff check .
+python -m ruff format --check .
+python -m pytest -q tests/unit
+python -m pytest -q tests/integration
+python -m pytest -q tests/e2e
+```
