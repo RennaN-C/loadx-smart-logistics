@@ -24,11 +24,12 @@ export function OutboxPanel() {
     navigate({ pathname: location.pathname, search: next.toString(), hash: location.hash });
   }
   const navigate = useNavigate();
-  const page = Math.max(1, Number(params.get("queue_page")) || 1);
+  const rawPage = Number(params.get("queue_page"));
+  const page = Number.isSafeInteger(rawPage) && rawPage > 0 ? rawPage : 1;
   const rawStatus = params.get("queue_status");
-  const status = rawStatus && rawStatus in OUTBOX_LABELS ? rawStatus as OutboxState : undefined;
+  const status = rawStatus && Object.keys(OUTBOX_LABELS).includes(rawStatus) ? rawStatus as OutboxState : undefined;
   const rawType = params.get("queue_type");
-  const eventType = rawType && rawType in TYPES ? rawType as OutboxType : undefined;
+  const eventType = rawType && Object.keys(TYPES).includes(rawType) ? rawType as OutboxType : undefined;
   const order = params.get("queue_order") === "asc" ? "asc" : "desc";
   const selected = params.get("queue_event");
   const [result, setResult] = useState<Page<OutboxEvent> | null>(null);

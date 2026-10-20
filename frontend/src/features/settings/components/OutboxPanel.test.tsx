@@ -37,6 +37,11 @@ describe("OC109: fila administrativa", () => {
     fireEvent.change(screen.getByLabelText("Ordenação da fila"), { target: { value: "asc" } });
     await waitFor(() => expect(api.listOutbox).toHaveBeenLastCalledWith(expect.objectContaining({ event_type: "OCCURRENCE_REGISTERED", sort_order: "asc" }), expect.any(AbortSignal)));
   });
+  it("normaliza filtros e paginação inválidos da URL sem enviar opções inexistentes", async () => {
+    renderPanel("/settings?queue_status=constructor&queue_type=toString&queue_page=Infinity#settings-outbox");
+    await screen.findByRole("cell", { name: "Resultado incerto" });
+    expect(api.listOutbox).toHaveBeenCalledWith(expect.objectContaining({ page: 1, status: undefined, event_type: undefined }), expect.any(AbortSignal));
+  });
   it("abre detalhe por URL e restaura histórico paginado", async () => {
     vi.mocked(api.getOutboxAttempts).mockResolvedValue({ items: [], page: 1, pageSize: 10, total: 11, totalPages: 2 });
     renderPanel(`/settings?queue_event=${ITEM.id}#settings-outbox`);
