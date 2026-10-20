@@ -63,6 +63,7 @@ class DistributionVolumeRead(VolumeReference):
 
 
 class DistributionPartRead(BaseModel):
+    truck: TruckSnapshotRead
     id: uuid.UUID
     status: Literal["PENDING", "APPROVED", "CANCELED"]
     load_plan: LoadPlanRead

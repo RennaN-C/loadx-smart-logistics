@@ -87,3 +87,14 @@ entregas parciais (OC90) e cancelamento depois de liberação (OC94).
 `RISCO IDENTIFICADO`: limites síncronos atuais permanecem; propostas grandes não
 são uma solução assíncrona nem promessa de capacidade ótima. Disponibilidade não
 é reserva e pode mudar entre aprovação e operação.
+
+## Integração de leitura OC89
+
+`CONFIRMADO`: a UI consome a necessidade persistida e ações do agregado. Foram
+acrescentados campos aditivos de consulta: `distribution_id` na listagem/detalhe de
+planos (rastreando a cadeia histórica), e `truck` em cada parte a partir do snapshot
+do plano. Não há alteração de schema PostgreSQL, estados ou algoritmo. A descoberta
+reutiliza Planos existentes; a rota estável consulta o agregado sem criar proposta.
+A cena continua consultando o plano persistido e é remontada ao trocar de ID.
+Permissões seguem o catálogo OC112 atual; a fronteira da OC90 continua aplicada.
+Esta integração não substitui a revisão humana do status original desta ADR.

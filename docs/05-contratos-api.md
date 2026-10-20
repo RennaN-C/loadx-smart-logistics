@@ -1542,3 +1542,12 @@ limites, configuração opt-in e mídia desabilitada em
 [messages/inbound](../backend/app/modules/messages/inbound.md).
 Somente este POST exato usa assinatura em lugar de Origin/CSRF; demais rotas
 preservam as proteções da interface. WhatsApp continua exclusivamente mock.
+
+### OC89 — vínculos de recuperação e caminhão histórico
+
+`CONFIRMADO`: respostas de `GET /load-plans` e `GET /load-plans/{id}` incluem
+`distribution_id: UUID | null`, inclusive para versões reprocessadas. Resumos
+continuam paginados, sem itens; filtro/ordenação/RBAC não mudam.
+`DistributionPartRead` inclui `truck: TruckSnapshotRead` do plano persistido
+(placa, modelo, dimensões em cm e capacidade em kg). Não consulta cadastro atual
+para reconstruir o histórico. Estes campos aditivos não exigem migration.

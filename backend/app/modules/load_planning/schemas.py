@@ -25,6 +25,7 @@ RejectionReasonValue = Literal[
 
 
 class LoadPlanListRead(BaseModel):
+    distribution_id: uuid.UUID | None = None
     id: uuid.UUID
     truck_id: uuid.UUID
     truck_plate: str
@@ -203,6 +204,7 @@ class UnloadedLoadPlanItemRead(_LoadPlanItemSnapshotRead):
 
 
 class LoadPlanRead(BaseModel):
+    distribution_id: uuid.UUID | None = None
     id: uuid.UUID
     truck_id: uuid.UUID
     recalculated_from_id: uuid.UUID | None
@@ -322,7 +324,9 @@ def _identity_key(item: LoadPlanItemRead) -> tuple[int, int]:
     return (item.order_item_id.int, item.volume_index)
 
 
-def map_load_plan_read(load_plan: LoadPlan) -> LoadPlanRead:
+def map_load_plan_read(
+    load_plan: LoadPlan, *, distribution_id: uuid.UUID | None = None
+) -> LoadPlanRead:
     items = sorted(
         (map_load_plan_item(item) for item in load_plan.items),
         key=_identity_key,
@@ -332,6 +336,7 @@ def map_load_plan_read(load_plan: LoadPlan) -> LoadPlanRead:
         key=lambda order_id: order_id.int,
     )
     return LoadPlanRead(
+        distribution_id=distribution_id,
         id=load_plan.id,
         truck_id=load_plan.truck_id,
         recalculated_from_id=load_plan.recalculated_from_id,
