@@ -6,6 +6,25 @@ from app.core.config import Settings
 from app.main import create_app
 
 EXPECTED_ERROR_STATUSES = {
+    ("/api/v1/notifications", "get"): {"401", "403", "422", "500"},
+    ("/api/v1/notifications/unread-count", "get"): {"401", "403", "422", "500"},
+    ("/api/v1/notifications/preferences", "get"): {"401", "403", "422", "500"},
+    ("/api/v1/notifications/preferences", "put"): {"401", "403", "422", "500"},
+    ("/api/v1/notifications/read-all", "post"): {"401", "403", "422", "500"},
+    ("/api/v1/notifications/{notification_id}/read", "post"): {
+        "401",
+        "403",
+        "404",
+        "422",
+        "500",
+    },
+    ("/api/v1/notifications/{notification_id}/source", "get"): {
+        "401",
+        "403",
+        "404",
+        "422",
+        "500",
+    },
     ("/api/v1/access-profiles", "get"): {"401", "403", "404", "409", "422", "500"},
     ("/api/v1/access-profiles", "post"): {"401", "403", "404", "409", "422", "500"},
     ("/api/v1/access-profiles/permissions", "get"): {
@@ -888,3 +907,29 @@ def test_openapi_documents_inbound_signature_without_session_cookie():
         "START_DELIVERY",
         "FINISH_DELIVERY",
     }
+
+
+def test_notification_contract_is_personal_and_excludes_channel_secrets() -> None:
+    schema = get_openapi_schema()
+    listing = schema["paths"]["/api/v1/notifications"]["get"]
+    parameters = {item["name"] for item in listing["parameters"]}
+    assert parameters == {
+        "page",
+        "page_size",
+        "sort_order",
+        "read",
+        "event_type",
+        "category",
+    }
+    properties = schema["components"]["schemas"]["NotificationRead"]["properties"]
+    assert set(properties) == {
+        "id",
+        "event_type",
+        "category",
+        "title",
+        "summary",
+        "created_at",
+        "received_at",
+        "read_at",
+    }
+    assert listing["security"] == [{"SessionCookie": []}]

@@ -1,5 +1,6 @@
 import uuid
 
+from sqlalchemy import Select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -17,6 +18,10 @@ class ProfileService:
     def __init__(self, db: Session):
         self.db = db
         self.repository = ProfileRepository(db)
+
+    def ids_with_permissions(self, codes: tuple[str, ...]) -> Select[tuple[uuid.UUID]]:
+        """Composable scope of currently active profiles granting every code."""
+        return self.repository.ids_with_permissions(codes)
 
     def resolve(self, user, *, lock: bool = False) -> None:
         if user.role != "CUSTOM":

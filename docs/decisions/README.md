@@ -58,3 +58,5 @@ Proposta para revisão:
 - [ADR-040 — Perfis e permissões standalone](ADR-040-perfis-permissoes-standalone.md) — OC112, proposta implementada para revisão.
 
 - [ADR-041 — notificações operacionais duráveis e claim após commit externo](ADR-041-notificacoes-operacionais-duraveis.md).
+
+- [ADR-042 — central pessoal de notificações](ADR-042-central-notificacoes-pessoais.md).

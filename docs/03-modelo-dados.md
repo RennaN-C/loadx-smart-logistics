@@ -846,3 +846,16 @@ registram somente nomes de campos e ator, na mesma transação.
 
 `CONFIRMADO`: rollback estrutural é recusado enquanto usuários CUSTOM ou eventos
 históricos de perfil existirem, para evitar perda silenciosa de acesso/histórico.
+
+## OC103 — destinatários e preferências da central
+
+`CONFIRMADO`: ADR-042; migration 20261020_0026 sobre 20261020_0025.
+`notification_recipients`: PK composta notification_id/user_id (UUID), FKs RESTRICT
+para operational_notifications/users, created_at UTC obrigatório (default now),
+read_at UTC opcional. Índices user_id/created_at/notification_id e parcial user_id
+para não lidas. Trigger protege identidade/criação e primeira leitura imutáveis.
+`notification_preferences`: PK user_id/category, FK RESTRICT users, enabled boolean
+obrigatório default true, updated_at UTC default now. CHECK category em
+TRIPS/OCCURRENCES/SECURITY e SECURITY sempre habilitada. Sem telefone/texto/segredo.
+Backfill só cria associações das contas elegíveis no corte. Downgrade com qualquer
+associação/preferência é recusado; fatos da OC84 são preservados integralmente.

@@ -7,7 +7,10 @@ from sqlalchemy import delete, select
 
 from app.integrations.whatsapp import MockWhatsAppProvider, OutgoingWhatsAppMessage
 from app.modules.deliveries.models import Trip
-from app.modules.notifications.models import OperationalNotification
+from app.modules.notifications.models import (
+    NotificationRecipient,
+    OperationalNotification,
+)
 from app.modules.notifications.service import OperationalNotificationService
 from app.modules.occurrences.models import Occurrence
 from app.modules.occurrences.repository import OccurrenceRepository
@@ -76,6 +79,15 @@ def test_occurrence_is_durable_before_mock_and_survives_provider_failure_and_res
             assert restarted.get(Trip, scenario.trip_id).status == "IN_ROUTE"
     finally:
         with scenario.factory() as cleanup:
+            cleanup.execute(
+                delete(NotificationRecipient).where(
+                    NotificationRecipient.notification_id.in_(
+                        select(OperationalNotification.id).where(
+                            OperationalNotification.trip_id == scenario.trip_id
+                        )
+                    )
+                )
+            )
             cleanup.execute(
                 delete(OperationalNotification).where(
                     OperationalNotification.trip_id == scenario.trip_id

@@ -834,3 +834,13 @@ viagens/entregas. Assinatura, binding do servidor, capabilities e autorização 
 objeto são obrigatórios. Reenvio válido não repete efeito/histórico; conflito ou
 falha não deixa alteração parcial. Mídia inbound permanece desabilitada, sem
 comando novo, download externo ou IO de storage na transação da OC79.
+
+## OC103 — central pessoal de notificações
+
+`CONFIRMADO`: ADR-042 define destinatários por conta/permissão efetiva e vínculo
+DRIVER. ADMIN não personifica outro destinatário. Revogação de acesso à origem
+oculta a notificação sem apagar histórico. Leitura é individual e idempotente;
+marcar todas afeta somente a caixa visível da sessão naquele snapshot.
+Preferências TRIPS/OCCURRENCES afetam somente novas associações; SECURITY é
+obrigatória, sem criar evento novo. Não há alertas de documento/manutenção até
+contrato do módulo dono; regras e elegibilidade existentes não são duplicadas.

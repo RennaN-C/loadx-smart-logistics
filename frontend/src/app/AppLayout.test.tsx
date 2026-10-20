@@ -6,6 +6,10 @@ import type { Role } from "../features/auth/types";
 import { useAuth } from "../features/auth/hooks/useAuth";
 import { AppLayout } from "./AppLayout";
 
+vi.mock("../features/notifications/api/notificationsApi", () => ({
+  getUnreadCount: vi.fn(async () => 0),
+  getNotificationPreferences: vi.fn(async () => ({ items: [] }).items),
+}));
 vi.mock("../features/auth/hooks/useAuth");
 
 const AUTHENTICATED_USER = {

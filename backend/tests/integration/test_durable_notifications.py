@@ -13,6 +13,7 @@ from app.integrations.whatsapp import MockWhatsAppProvider, OutgoingWhatsAppMess
 from app.modules.deliveries.models import Trip
 from app.modules.deliveries.service import TripService
 from app.modules.drivers.models import Driver
+from app.modules.notifications.models import NotificationRecipient
 from app.modules.notifications.models import OperationalNotification as Notification
 from app.modules.notifications.repository import (
     OperationalNotificationRepository as Repository,
@@ -161,6 +162,13 @@ def test_notification_failure_rolls_back_occurrence(scenario, monkeypatch):
 def prepare_scheduled(s):
     with s.factory() as db:
         # Arrange a pristine scheduled-trip fixture, removing its setup transition.
+        db.execute(
+            delete(NotificationRecipient).where(
+                NotificationRecipient.notification_id.in_(
+                    select(Notification.id).where(Notification.trip_id == s.trip_id)
+                )
+            )
+        )
         db.execute(delete(Notification).where(Notification.trip_id == s.trip_id))
         db.execute(
             delete(StatusHistory).where(

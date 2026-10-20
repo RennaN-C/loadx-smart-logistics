@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import (
+    Boolean,
     CheckConstraint,
     DateTime,
     ForeignKey,
@@ -79,3 +80,54 @@ class OperationalNotification(Base):
     )
     claimed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class NotificationRecipient(Base):
+    __tablename__ = "notification_recipients"
+    __table_args__ = (
+        Index(
+            "ix_notification_recipients__user_created",
+            "user_id",
+            "created_at",
+            "notification_id",
+        ),
+        Index(
+            "ix_notification_recipients__unread",
+            "user_id",
+            postgresql_where=text("read_at IS NULL"),
+            sqlite_where=text("read_at IS NULL"),
+        ),
+    )
+    notification_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("operational_notifications.id", ondelete="RESTRICT"),
+        primary_key=True,
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="RESTRICT"), primary_key=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class NotificationPreference(Base):
+    __tablename__ = "notification_preferences"
+    __table_args__ = (
+        CheckConstraint(
+            "category IN ('TRIPS','OCCURRENCES','SECURITY')", name="category_allowed"
+        ),
+        CheckConstraint(
+            "category <> 'SECURITY' OR enabled = true", name="security_required"
+        ),
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="RESTRICT"), primary_key=True
+    )
+    category: Mapped[str] = mapped_column(String(24), primary_key=True)
+    enabled: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default="true"
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
