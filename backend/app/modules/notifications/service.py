@@ -39,7 +39,7 @@ class OperationalNotificationService:
         if trip is None or trip.driver_id != recipient_driver_id:
             raise ValueError("invalid notification recipient")
         self._validate_origin(db, event_type, trip_id, status_history_id, occurrence_id)
-        row = OperationalNotificationRepository(db).record(
+        row, created = OperationalNotificationRepository(db).record(
             event_type=event_type,
             trip_id=trip_id,
             recipient_driver_id=recipient_driver_id,
@@ -49,6 +49,10 @@ class OperationalNotificationService:
             if request_id_context.get()
             else uuid.uuid4(),
         )
+        if created:
+            from app.modules.notifications.inbox_service import InboxService
+
+            InboxService(db).stage_recipients(row)
         # A dispatch hint only; the database row is the durable source of truth.
         db.info.setdefault("operational_notifications", {})[row.id] = self
         return row.id

@@ -2,7 +2,7 @@ import uuid
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from sqlalchemy import String, asc, cast, desc, func, select
+from sqlalchemy import Select, String, asc, cast, desc, func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.pagination import PageResult, PaginationParams
@@ -19,6 +19,9 @@ class TripListItem:
 class TripRepository:
     def __init__(self, db: Session) -> None:
         self.db = db
+
+    def ids_for_driver(self, driver_id: uuid.UUID) -> Select[tuple[uuid.UUID]]:
+        return select(Trip.id).where(Trip.driver_id == driver_id)
 
     def get(self, trip_id: uuid.UUID) -> Trip | None:
         statement = (
