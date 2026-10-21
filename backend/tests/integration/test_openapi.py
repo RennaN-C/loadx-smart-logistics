@@ -344,6 +344,14 @@ EXPECTED_ERROR_STATUSES = {
         "422",
         "500",
     },
+    ("/api/v1/trips/{trip_id}/timeline", "get"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
     ("/api/v1/trips/{trip_id}/status", "patch"): {
         "401",
         "403",
