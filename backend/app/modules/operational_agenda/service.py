@@ -40,11 +40,15 @@ def validate_window(filters: AgendaFilters) -> AgendaFilters:
         or filters.end.tzinfo is None
         or filters.end.tzinfo.utcoffset(filters.end) is None
     ):
-        raise ApiError(422, "AGENDA_TIMEZONE_REQUIRED", "Informe datas com fuso horario.")
+        raise ApiError(
+            422, "AGENDA_TIMEZONE_REQUIRED", "Informe datas com fuso horario."
+        )
     start = filters.start.astimezone(UTC)
     end = filters.end.astimezone(UTC)
     if end <= start or end - start > timedelta(days=MAX_DAYS):
-        raise ApiError(422, "AGENDA_PERIOD_INVALID", "O periodo deve ter ate sete dias.")
+        raise ApiError(
+            422, "AGENDA_PERIOD_INVALID", "O periodo deve ter ate sete dias."
+        )
     return AgendaFilters(start, end, filters.kind, filters.truck_id, filters.driver_id)
 
 
@@ -70,7 +74,9 @@ class OperationalAgendaService:
             raise ApiError(403, "AUTH_FORBIDDEN", "Motorista nao autorizado.")
         return current_user.driver_id
 
-    def get(self, requested: AgendaFilters, *, current_user: User) -> OperationalAgendaRead:
+    def get(
+        self, requested: AgendaFilters, *, current_user: User
+    ) -> OperationalAgendaRead:
         filters = validate_window(requested)
         driver_id = self._permitted_driver(filters.driver_id, current_user)
 
