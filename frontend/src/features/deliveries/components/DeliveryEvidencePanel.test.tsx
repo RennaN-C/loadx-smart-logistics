@@ -115,7 +115,7 @@ describe("DeliveryEvidencePanel — permissões", () => {
 
     render(<DeliveryEvidencePanel deliveryId="d1" canOperate />);
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(/Seu perfil não registra/);
+    expect(await screen.findByRole("alert")).toHaveTextContent(/Seu perfil não tem acesso/);
   });
 });
 
@@ -185,7 +185,7 @@ describe("DeliveryEvidencePanel — registro", () => {
     expect(registerDeliveryEvidence).not.toHaveBeenCalled();
   });
 
-  it("armazenamento fora do ar diz que NADA foi registrado", async () => {
+  it("armazenamento fora do ar informa resultado não confirmado sem afirmar perda", async () => {
     vi.mocked(registerDeliveryEvidence).mockRejectedValue(
       new ApiError("EVIDENCE_STORAGE_UNAVAILABLE", "indisponível", [], 503),
     );
@@ -195,7 +195,7 @@ describe("DeliveryEvidencePanel — registro", () => {
     escolherArquivo();
     fireEvent.click(screen.getByRole("button", { name: "Registrar evidência" }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(/Nada foi registrado/);
+    expect(await screen.findByRole("alert")).toHaveTextContent(/Não foi possível confirmar o registro/);
   });
 });
 
@@ -244,5 +244,51 @@ describe("DeliveryEvidencePanel — lista", () => {
     await waitFor(() => expect(revokeDeliveryEvidence).toHaveBeenCalledWith("d1", "e1"));
 
     confirm.mockRestore();
+  });
+});
+
+
+describe("OC81 integridade de consulta e reenvio", () => {
+  it("pagina além das primeiras vinte evidências persistidas", async () => {
+    vi.mocked(listDeliveryEvidences).mockResolvedValue({ ...page([evidence()]), pageSize: 20, total: 21, totalPages: 2 });
+    render(<DeliveryEvidencePanel deliveryId="d1" canOperate />);
+    await screen.findByText("Página 1 de 2");
+    vi.mocked(listDeliveryEvidences).mockResolvedValue({ ...page([evidence({ id: "e21", kind: "SIGNATURE" })]), page: 2, pageSize: 20, total: 21, totalPages: 2 });
+    fireEvent.click(screen.getByRole("button", { name: "Próxima" }));
+    await screen.findByText("Página 2 de 2");
+    expect(listDeliveryEvidences).toHaveBeenLastCalledWith("d1", { page: 2, pageSize: 20 });
+  });
+  it("preserva o comprovante e o sucesso do upload se a consulta posterior falhar", async () => {
+    vi.mocked(listDeliveryEvidences).mockResolvedValueOnce(page([])).mockRejectedValueOnce(new ApiError("NETWORK_ERROR", "interno"));
+    render(<DeliveryEvidencePanel deliveryId="d1" canOperate />);
+    await screen.findByText("ENTREGUE EM"); escolherArquivo();
+    fireEvent.click(screen.getByRole("button", { name: "Registrar evidência" }));
+    await screen.findByText(/Registro confirmado/);
+    await screen.findByRole("alert");
+    expect(screen.getByText("ENTREGUE EM")).toBeInTheDocument();
+    expect(registerDeliveryEvidence).toHaveBeenCalledOnce();
+    expect(screen.getByRole("button", { name: "Registrar evidência" })).toBeDisabled();
+  });
+  it("congela o tipo após uma tentativa incerta e mantém a mesma intenção no retry", async () => {
+    vi.mocked(registerDeliveryEvidence).mockRejectedValueOnce(new ApiError("NETWORK_ERROR", "sem confirmação"));
+    render(<DeliveryEvidencePanel deliveryId="d1" canOperate />);
+    await screen.findByText("ENTREGUE EM"); escolherArquivo();
+    fireEvent.click(screen.getByRole("button", { name: "Registrar evidência" }));
+    await screen.findByRole("button", { name: "Tentar novamente" });
+    expect(screen.getByLabelText("TIPO")).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Tentar novamente" }));
+    await waitFor(() => expect(registerDeliveryEvidence).toHaveBeenCalledTimes(2));
+    const [first, next] = vi.mocked(registerDeliveryEvidence).mock.calls;
+    expect(next).toEqual(first);
+  });
+  it("reseta arquivo e comprovante ao trocar de entrega, sem aceitar resposta atrasada", async () => {
+    let old!: (value: DeliveryReceipt) => void;
+    vi.mocked(getDeliveryReceipt).mockImplementationOnce(() => new Promise(resolve => { old = resolve; })).mockResolvedValue({ ...receipt(), deliveryId: "d2" });
+    const view = render(<DeliveryEvidencePanel deliveryId="d1" canOperate />);
+    view.rerender(<DeliveryEvidencePanel deliveryId="d2" canOperate />);
+    await screen.findByText("ENTREGUE EM");
+    old({ ...receipt(), deliveredAt: "2020-01-01T00:00:00Z" });
+    await waitFor(() => expect(listDeliveryEvidences).toHaveBeenCalledWith("d2", { page: 1, pageSize: 20 }));
+    expect(listDeliveryEvidences).not.toHaveBeenCalledWith("d1", expect.anything());
   });
 });
