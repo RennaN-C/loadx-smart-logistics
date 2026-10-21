@@ -29,7 +29,7 @@ def test_postgresql_16_reaches_alembic_head(postgres_engine: Engine) -> None:
         )
 
     assert server_version_num // 10_000 == 16
-    assert revision == "20261021_0033"
+    assert revision == "20261021_0034"
     assert {
         "users",
         "customers",
