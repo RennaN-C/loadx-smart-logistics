@@ -115,6 +115,7 @@ class TripRepository:
             .where(Delivery.trip_id == trip_id)
             .order_by(Delivery.id.asc())
             .with_for_update()
+            .execution_options(populate_existing=True)
         )
         return self.db.scalars(statement).all()
 
@@ -137,12 +138,33 @@ class TripRepository:
     def assigned_order_ids(
         self,
         order_ids: Sequence[uuid.UUID],
+        *,
+        allowed_other_part_ids: Sequence[uuid.UUID] = (),
     ) -> frozenset[uuid.UUID]:
         identifiers = tuple(order_ids)
         if not identifiers:
             return frozenset()
-        statement = select(Delivery.order_id).where(Delivery.order_id.in_(identifiers))
+        statement = select(Delivery.order_id).where(
+            Delivery.order_id.in_(identifiers), Delivery.status != "CANCELED"
+        )
+        if allowed_other_part_ids:
+            statement = statement.where(
+                Delivery.distribution_part_id.is_(None)
+                | Delivery.distribution_part_id.not_in(allowed_other_part_ids)
+            )
         return frozenset(self.db.scalars(statement).all())
+
+    def delivered_part_ids(self, order_id: uuid.UUID) -> frozenset[uuid.UUID]:
+        # Scalar query after the Order lock: never reuse stale ORM leg snapshots.
+        return frozenset(
+            self.db.scalars(
+                select(Delivery.distribution_part_id).where(
+                    Delivery.order_id == order_id,
+                    Delivery.distribution_part_id.is_not(None),
+                    Delivery.status == "DELIVERED",
+                )
+            ).all()
+        )
 
     def add(self, trip: Trip) -> Trip:
         self.db.add(trip)

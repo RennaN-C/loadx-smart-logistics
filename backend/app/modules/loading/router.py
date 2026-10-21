@@ -132,6 +132,10 @@ def change_status(
 ) -> LoadingSession | JSONResponse:
     try:
         return service.change_status(session_id, data.status)
+    except LoadingPlanNotApprovedError:
+        return error_response(
+            409, "LOADING_PLAN_NOT_APPROVED", "O carregamento exige plano aprovado."
+        )
     except LoadingSessionNotFoundError:
         return error_response(
             404, "LOADING_SESSION_NOT_FOUND", LOADING_SESSION_NOT_FOUND_MESSAGE

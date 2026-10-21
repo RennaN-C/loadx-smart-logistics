@@ -1,3 +1,6 @@
+import { getNotificationPreferences } from "../../notifications/api/notificationsApi";
+import { listTrustedDevices } from "../api/trustedDevicesApi";
+import { getMfaStatus } from "../api/identityApi";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "../../../app/App";
@@ -11,10 +14,12 @@ vi.mock("../../notifications/api/notificationsApi", () => ({
 }));
 vi.mock("../api/authApi");
 vi.mock("../api/accountApi");
+vi.mock("../api/identityApi");
+vi.mock("../api/trustedDevicesApi");
 vi.mock("../../dashboard/pages/DashboardPage", () => ({ DashboardPage: () => <h1>Início da operação</h1> }));
 const USER = { id: "u1", name: "Conta Fictícia", email: "conta@example.test", role: "ADMIN" as Role, active: true, createdAt: "2026-10-10T00:00:00Z" };
 const SESSION: OwnSession = { id: "session-current", current: true, created_at: "2026-10-10T00:00:00Z", last_seen_at: "2026-10-10T00:01:00Z", idle_expires_at: "2026-10-10T00:31:00Z", absolute_expires_at: "2026-10-10T08:00:00Z" };
-beforeEach(() => { vi.resetAllMocks(); window.history.replaceState({}, "", "/account"); vi.mocked(getCurrentUser).mockResolvedValue(USER); vi.mocked(listOwnSessions).mockResolvedValue([SESSION, { ...SESSION, id: "session-other", current: false }]); });
+beforeEach(() => { vi.resetAllMocks(); vi.mocked(listTrustedDevices).mockResolvedValue({ enabled: false, lifetime_days: 30, items: [] }); vi.mocked(getMfaStatus).mockResolvedValue({ enabled: true, required: true }); window.history.replaceState({}, "", "/account"); vi.mocked(getCurrentUser).mockResolvedValue(USER); vi.mocked(listOwnSessions).mockResolvedValue([SESSION, { ...SESSION, id: "session-other", current: false }]); });
 async function show() { render(<App />); await screen.findByRole("heading", { name: "Meu perfil", level: 1 }); await screen.findByRole("heading", { name: "Sessão atual" }); }
 function fillPassword(confirm = "Nova-senha-ficticia-2026") {
   fireEvent.change(screen.getByLabelText("Senha atual"), { target: { value: "Senha-atual-ficticia" } });
@@ -22,6 +27,15 @@ function fillPassword(confirm = "Nova-senha-ficticia-2026") {
   fireEvent.change(screen.getByLabelText("Confirmar nova senha"), { target: { value: confirm } });
 }
 describe("OC92 Meu perfil", () => {
+  it("preserva notificações OC103 junto da segurança OC98 e dispositivos confiáveis", async () => {
+    await show();
+    await screen.findByRole("form", { name: "Preferências de notificações" });
+    expect(getNotificationPreferences).toHaveBeenCalled();
+    expect(screen.getByRole("link", { name: /Abrir central/ })).toHaveAttribute("href", "/notifications");
+    expect(screen.getByRole("form", { name: "Autenticação multifator" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Dispositivos confiáveis" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Sessão atual" })).toBeInTheDocument();
+  });
   it.each<Role>(["ADMIN", "LOGISTICS_MANAGER", "CHECKER", "DRIVER"])("%s acessa sua conta por URL e menu sem novos privilégios", async (role) => {
     vi.mocked(getCurrentUser).mockResolvedValue({ ...USER, role }); await show();
     expect(screen.getByRole("radio", { name: /Automático/ })).toBeInTheDocument();

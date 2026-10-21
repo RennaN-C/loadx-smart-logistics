@@ -1,3 +1,4 @@
+import type { MfaChallenge } from "./mfaTypes";
 export type Role = "ADMIN" | "LOGISTICS_MANAGER" | "CHECKER" | "DRIVER" | "CUSTOM";
 
 export interface AuthenticatedUser {
@@ -20,5 +21,7 @@ export interface AuthContextValue {
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (user: AuthenticatedUser | null, accountNotice?: "password-changed" | "session-revoked") => void;
+  pendingMfa?: MfaChallenge;
+  beginMfa?: (challenge: MfaChallenge | undefined) => void;
   accountNotice?: "password-changed" | "session-revoked";
 }

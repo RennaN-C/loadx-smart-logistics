@@ -37,6 +37,40 @@ cookie `HttpOnly`; o frontend não lê nem persiste credenciais. O
 
 `CONFIRMADO`: a conta standalone é visualmente separada de preferências logísticas futuras. Sem OC86/OC98/OC112, MFA/recuperação/SSO ou nova dependência. Layout de uma coluna em telas pequenas e duas em telas largas, controles sem sobreposição e labels ligados aos inputs.
 
+## OC98 — recuperação e MFA
+
+`CONFIRMADO`: /password-recovery solicita link neutro; /password-reset lê token
+do fragmento, limpa URL e exige nova senha/confirmar, sem autenticar. Login
+recebe desafio ENROLL/LOGIN em memória no AuthProvider e apresenta
+MfaChallengePanel. Senha correta não atualiza usuário autenticado nessa etapa.
+Setup exibe URI autorizada, verifica posse e mostra códigos uma vez; confirmação
+pelo usuário limpa os códigos. F5 no desafio exige novo login. Depois de concluir,
+F5 usa /auth/me e a sessão normal da OC92.
+
+OwnMfaPanel consulta estado real e exige senha + fator para regenerar/trocar;
+ativação voluntária encerra a sessão e retorna ao desafio. Nenhum segredo usa
+Web Storage. Mudança de e-mail em conta com MFA exige confirmação reforçada.
+Origin/CSRF e cliente HTTP existentes permanecem. Telas usam componentes/tokens
+locais, temas por prefers-color-scheme, labels e mensagens reais. CoreFlow/SSO
+não implementados. Requisitos de infraestrutura e contingência: ADR-038.
+
+`CONFIRMADO`: cadastro MFA mostra QR SVG gerado localmente por `qrcode.react`,
+com margem branca fixa para leitura em ambos os temas e layout fluido. Chave e
+URI manuais ficam em detalhes; clipboard bloqueado permite seleção manual.
+Preparação não é repetida por rerender e expiração apaga o provisionamento.
+Nenhum segredo vai para serviço de QR, Web Storage ou logs. Leia o
+[roteiro SMTP/Mailpit](../../../../backend/app/modules/auth/README.md#complemento-oc98--qr-local-e-transporte-de-e-mail).
+
+`CONFIRMADO`: Issue #222 adiciona opt-in de dispositivo confiável apenas na
+etapa LOGIN quando o servidor informa `trusted_device_days`. Checkbox inicia
+desmarcado; a explicação distingue TOTP de recuperação e alerta sobre navegador
+compartilhado. A API recebe booleano explícito, sem armazenamento de credenciais
+no JavaScript. Meu perfil → Segurança apresenta listagem real com datas, estado
+vazio/loading/erro, remoção própria e confirmação para revogar todos. Identificação
+usa UUID parcial; não inventa nome de hardware. Cookie HttpOnly é controlado
+pelo backend. Falhas mantêm a lista e oferecem nova consulta. Temas e layout
+responsivo usam tokens atuais; sessões e reautenticação sensível preservadas.
+
 
 ## OC103 — preferências de notificações
 

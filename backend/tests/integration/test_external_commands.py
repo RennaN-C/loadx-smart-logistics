@@ -40,6 +40,7 @@ from app.modules.products.models import Product
 from app.modules.status_history.models import StatusHistory
 from app.modules.trucks.models import Truck
 from app.modules.users.models import User
+from tests.integration.notification_helpers import clear_outbox_fixture
 from tests.unit.test_delivery_service import create_user, prepare_receipt_delivery
 from tests.unit.test_external_command_validation import KEY, NOW, command_body, sign
 
@@ -127,6 +128,7 @@ def scenario(postgres_engine: Engine) -> Generator[Scenario, None, None]:
         yield result
     finally:
         with factory() as db:
+            clear_outbox_fixture(db, result.trip_id)
             db.execute(
                 delete(NotificationRecipient).where(
                     NotificationRecipient.notification_id.in_(

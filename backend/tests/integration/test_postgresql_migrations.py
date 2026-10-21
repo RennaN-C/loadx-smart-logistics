@@ -29,7 +29,7 @@ def test_postgresql_16_reaches_alembic_head(postgres_engine: Engine) -> None:
         )
 
     assert server_version_num // 10_000 == 16
-    assert revision == "20261020_0026"
+    assert revision == "20261021_0034"
     assert {
         "users",
         "customers",
@@ -47,9 +47,13 @@ def test_postgresql_16_reaches_alembic_head(postgres_engine: Engine) -> None:
         "load_plan_items",
         "auth_login_throttles",
         "auth_sessions",
+        "auth_trusted_devices",
         "trips",
         "deliveries",
         "delivery_evidences",
+        "delivery_exceptions",
+        "trip_cancellations",
+        "trip_interruption_events",
         "load_distributions",
         "load_distribution_orders",
         "load_distribution_parts",
@@ -58,6 +62,9 @@ def test_postgresql_16_reaches_alembic_head(postgres_engine: Engine) -> None:
         "loading_sessions",
         "loading_session_items",
         "external_commands",
+        "outbox_events",
+        "outbox_attempts",
+        "outbox_retry_commands",
     } <= tables
 
 

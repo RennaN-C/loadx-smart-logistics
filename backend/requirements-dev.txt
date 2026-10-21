@@ -3,3 +3,6 @@
 pytest>=9.0.3,<10.0
 pytest-cov>=5.0,<7.0
 ruff>=0.6,<1.0
+
+# OC90: inspect actual report PDF text and physical leg identities in E2E.
+pypdf>=6.0,<7.0

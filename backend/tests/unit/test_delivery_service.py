@@ -9,6 +9,8 @@ from sqlalchemy.orm import Session
 from app.core.pagination import PaginationParams
 from app.modules.access_profiles.models import AccessProfile
 from app.modules.customers.models import Customer, CustomerAddress
+from app.modules.deliveries.cancellation_service import TripCancellation
+from app.modules.deliveries.exception_models import DeliveryException
 from app.modules.deliveries.models import Delivery, Trip
 from app.modules.deliveries.repository import TripRepository
 from app.modules.deliveries.schemas import TripCreate
@@ -78,6 +80,8 @@ SQLITE_TABLES = (
     LoadingSession.__table__,
     Trip.__table__,
     Delivery.__table__,
+    DeliveryException.__table__,
+    TripCancellation.__table__,
 )
 
 

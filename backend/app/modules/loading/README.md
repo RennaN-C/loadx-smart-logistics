@@ -53,18 +53,18 @@ Formato, erros e integração OC75 estão em `docs/05-contratos-api.md`.
 A operação reutiliza `change_item_status`, incluindo bloqueios de sessão/item,
 com rejeição explícita de duplicatas. Código é identidade, não autorização.
 
-## Atalho exclusivo de homologação (pentest-lab)
 
-Esta branch possui `POST /api/v1/loading-sessions/{id}/check-all` para
-simular a conferência de **todos os volumes pendentes** sem leitor de QR/barra.
-O botão `Conferir todos os pendentes (teste)` aparece somente após iniciar
-a conferência, com pelo menos um volume pendente, para usuários com permissão
-`loadx.loading.operate` (ADMIN, CHECKER ou perfil personalizado autorizado).
+## OC90 — fluxo multi-caminhão
 
-A ação pede confirmação, usa o mesmo bloqueio da sessão e uma transação única,
-preserva volumes já conferidos, mantém `IN_PROGRESS` e **não finaliza** o
-carregamento. Finalizar continua dependendo da ação normal. Com acesso negado,
-a API responde 403 antes de ler a sessão; estados inválidos retornam 409.
+`CONFIRMADO`: A OC90 reutiliza exatamente uma LoadingSession por plano/parte operacional.
+Checklist contém somente LoadPlanItems daquele plano, com identidades originais.
+Create repetido mantém sessão e itens; concluir/falhar em uma parte não modifica
+outra. LoadingReferenceService continua exigindo FINISHED do mesmo plano para
+iniciar a viagem. Não há segundo motor, endpoint ou regra física.
 
-**Não integrar esse atalho a `desenvolvimento` ou `main`.** A conferência
-real permanece por código QR/barra ou manual, volume por volume.
+`CONFIRMADO` (integridade OC90): create_session bloqueia e atualiza a leitura do
+LoadPlan antes de materializar checklist e bloquear caminhão. A primeira sessão
+persistida congela plano/pedidos/itens no PostgreSQL, inclusive legado. Trip é
+evidência defensiva adicional. Escrita concorrente em filho usa guarda NOWAIT
+para não inverter espera com a FK do checklist; contenção exige retry da
+transação. Detalhes e constraint estável em ADR-044 e docs/03-modelo-dados.md.

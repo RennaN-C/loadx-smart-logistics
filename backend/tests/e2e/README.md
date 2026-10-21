@@ -15,3 +15,32 @@ Não use serviços externos reais.
 durável antes do mock (OC84). A fixture compartilhada valida PostgreSQL 16 e banco
 exclusivo loadx_test, limpando somente os dados desse ambiente. Os cenários de
 savepoint/rollback continuam na integração e nunca autorizam tentativa prematura.
+
+
+
+`CONFIRMADO`: test_multi_truck_flow.py executa OC90 usando optimize real, duas
+partes forçadas fisicamente, carregamentos/checklists disjuntos, falha de B antes
+do carregamento, conclusão independente de A, retry de B, recomposição única do
+pedido, comprovantes, PDFs e auditoria. pypdf é dependência somente de testes
+para verificar conteúdo e identidades no PDF real, além do MIME/magic. O teste
+legado test_complete_flow.py mantém seu fluxo anterior sem adaptações.
+
+Em backend, com TEST_DATABASE_URL exclusivo, execute:
+
+```bash
+python -m pytest -q tests/integration/test_multi_truck_operations.py tests/integration/test_multi_truck_concurrency.py tests/e2e
+```
+
+Concorrência usa transações PostgreSQL independentes, barreira e mapas de
+identidade intencionalmente obsoletos; verifica um histórico agregado e conclusões
+independentes. Integração também testa escrita direta, rollback e downgrade seguro.
+
+`CONFIRMADO`: cenários, reprodução, resultados e inventário da OC90 em
+[evidências operacionais](../../../docs/evidencias/oc90/README.md).
+
+`CONFIRMADO`: `test_multi_truck_outbox.py` valida a composição OC90/OC109 por
+HTTP e commits reais: um fato/outbox por viagem, rollback antes/depois da fila,
+worker mock concorrente sem alterar execução física, comprovantes idempotentes
+e roundtrip 0028/0027 com notificações, destinatários, tentativas, comandos e
+auditoria existentes. Não remove dados para permitir downgrade. Detalhes em
+[reconciliação OC109](../../../docs/evidencias/oc90/reconciliacao-oc109.md).
