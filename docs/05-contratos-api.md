@@ -1487,6 +1487,15 @@ no resumo. O contrato do cálculo `POST /load-plans` permanece inalterado:
 máximo de 200 volumes e erro 422 com `volume_count` e `max_volumes` nos
 detalhes quando o limite é superado.
 
+### OC98 — recuperação e segundo fator standalone
+
+`CONFIRMADO`: contrato aprovado na ADR-038 e detalhado em [auth/README](../backend/app/modules/auth/README.md#oc98--recuperação-de-senha-e-mfa).
+Login mantém UserRead para perfis sem MFA; para ADMIN/LOGISTICS_MANAGER retorna
+MfaChallengeRead sem sessão. `POST /auth/mfa/verify` é a única conclusão desse
+desafio. Recuperação tem solicitação neutra e confirmação 204 sem autenticação.
+Rotas próprias de MFA exigem cookie/CSRF/ownership e reautenticação reforçada.
+Nenhuma mudança nos contratos logísticos, planos, snapshots, OC88 ou OC93.
+
 ## OC107 — Busca global
 
 `CONFIRMADO`: `GET /api/v1/search` exige sessão e `search` obrigatório (2–120

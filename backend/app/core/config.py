@@ -5,7 +5,14 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import Field, Json, SecretBytes, field_validator, model_validator
+from pydantic import (
+    Field,
+    Json,
+    SecretBytes,
+    SecretStr,
+    field_validator,
+    model_validator,
+)
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.engine import make_url
 from sqlalchemy.exc import ArgumentError
@@ -39,6 +46,17 @@ class Settings(BaseSettings):
     operational_log_level: Literal["INFO", "WARNING", "ERROR"] = "INFO"
     operational_request_logs: bool = True
     evidence_storage_dir: Path | None = None
+    trusted_devices_enabled: bool = False
+    trusted_device_days: int = Field(default=30, ge=1, le=30)
+    mfa_encryption_key: SecretStr | None = None
+    password_recovery_provider: Literal["none", "smtp"] = "none"
+    password_recovery_url: str | None = None
+    smtp_security: Literal["ssl", "starttls", "local"] = "ssl"
+    smtp_host: str | None = None
+    smtp_port: int = Field(default=465, ge=1, le=65535)
+    smtp_username: str | None = None
+    smtp_password: SecretStr | None = None
+    smtp_sender: str | None = None
     inbound_webhook_enabled: bool = False
     inbound_webhook_signing_key: SecretBytes | None = Field(default=None, repr=False)
     inbound_webhook_bindings: Json[dict[str, uuid.UUID]] = Field(
@@ -65,6 +83,11 @@ class Settings(BaseSettings):
                 "DATABASE_URL must use postgresql+psycopg and name a database."
             )
         return value
+
+    @field_validator("mfa_encryption_key", "smtp_password", mode="before")
+    @classmethod
+    def optional_secret(cls, value: object) -> object:
+        return None if value == "" else value
 
     @field_validator("password_blocklist_path", mode="before")
     @classmethod
@@ -103,6 +126,17 @@ class Settings(BaseSettings):
             and not self.password_blocklist_path.is_file()
         ):
             raise ValueError("PASSWORD_BLOCKLIST_PATH must point to a readable file.")
+        if self.mfa_encryption_key is not None:
+            from cryptography.fernet import Fernet
+
+            try:
+                Fernet(self.mfa_encryption_key.get_secret_value().encode("ascii"))
+            except ValueError:
+                raise ValueError(
+                    "MFA_ENCRYPTION_KEY must be a valid Fernet key."
+                ) from None
+            if self.mfa_encryption_key.get_secret_value() == self.secret_key:
+                raise ValueError("MFA encryption requires a dedicated key.")
         if self.app_env != "production":
             return self
         if len(self.secret_key) < 32 or self.secret_key in INSECURE_SECRET_KEYS:
@@ -121,6 +155,14 @@ class Settings(BaseSettings):
             for origin in self.backend_cors_origins_raw.split(",")
             if origin.strip()
         ]
+
+    @property
+    def trusted_device_cookie_name(self) -> str:
+        return (
+            "__Host-loadx_trusted_device"
+            if self.app_env == "production"
+            else "loadx_trusted_device"
+        )
 
     @property
     def session_cookie_name(self) -> str:

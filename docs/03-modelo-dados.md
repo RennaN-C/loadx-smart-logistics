@@ -833,6 +833,23 @@ opcionais, `created_at`/`updated_at` UTC. Não representa tenant e não possui
 vínculos dos agregados logísticos. Eventos COMPANY_PROFILE_CREATED/UPDATED
 registram somente nomes de campos e ator, na mesma transação.
 
+## OC98 — identidade standalone
+
+`CONFIRMADO`: ADR-038 acrescenta tabelas do módulo auth, sem campos em users:
+- auth_password_resets: UUID, user_id (CASCADE), token_hash único, created_at,
+  expires_at e consumed_at; CHECK prazo positivo; índice por usuário.
+- auth_factors: UUID, user_id único (CASCADE), encrypted_secret opcional,
+  enabled, last_totp_step e security_version não negativos; nenhum segredo puro.
+- auth_challenges: UUID, user_id (CASCADE), token_hash único, purpose LOGIN/ENROLL,
+  password_fingerprint, role, security_version, created_at, expires_at,
+  consumed_at e failed_count 0–5; índice por usuário e CHECKs de prazo/escopo.
+- auth_recovery_codes: UUID, user_id (CASCADE), code_hash único, consumed_at;
+  índice por usuário. Código aleatório é apresentado somente na emissão.
+
+Todas as operações concorrentes serializam por lock users antes das tabelas auth.
+A migration 20261021_0029 sucede o head da OC112 20261016_0024; revoga sessões
+antigas de ADMIN/LOGISTICS_MANAGER para exigir o bootstrap MFA seguro.
+
 ## OC112 — Perfis locais e permissões
 
 `CONFIRMADO`: migration `20261016_0024` sobre `20261009_0023`:
@@ -850,6 +867,20 @@ registram somente nomes de campos e ator, na mesma transação.
 
 `CONFIRMADO`: rollback estrutural é recusado enquanto usuários CUSTOM ou eventos
 históricos de perfil existirem, para evitar perda silenciosa de acesso/histórico.
+
+### auth_trusted_devices — OC98 / Issue #222
+
+`CONFIRMADO`: credencial opaca de dispositivo, distinta de `auth_sessions`.
+UUID `id`, FK `user_id` → users (CASCADE), `token_hash` SHA-256 único,
+`security_binding` SHA-256 da credencial/fator/papel/perfil atuais, UTC
+`created_at`, `last_used_at`, `expires_at`, `revoked_at` opcional. Índices por
+usuário e expiração. Constraints limitam vida absoluta a 30 dias e ordenam
+uso/revogação após criação. Não guarda senha, TOTP, recuperação, IP ou User-Agent.
+Token CSPRNG só no cookie HttpOnly; consultas retornam UUID/datas/current.
+No máximo vinte dispositivos ativos por conta; novo opt-in substitui o cookie
+anterior próprio e revoga os mais antigos quando necessário. Histórico revogado
+permanece. Migration aditiva `20261021_0030` sucede `20261021_0029`; downgrade
+bloqueia registros existentes, preservando credenciais e histórico.
 
 ## OC103 — destinatários e preferências da central
 

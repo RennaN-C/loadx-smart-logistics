@@ -3,6 +3,9 @@ import { AppearancePreferences } from "../components/AppearancePreferences";
 import { Link } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { OwnProfileForm } from "../components/OwnProfileForm";
+import { TrustedDevicesPanel } from "../components/TrustedDevicesPanel";
+import { OwnMfaPanel } from "../components/OwnMfaPanel";
+
 import { OwnPasswordForm } from "../components/OwnPasswordForm";
 import { OwnSessionsPanel } from "../components/OwnSessionsPanel";
 import "./AccountPage.css";
@@ -15,7 +18,7 @@ export function AccountPage() {
     <section className="account-section" aria-labelledby="own-data"><h2 id="own-data">Dados pessoais</h2><OwnProfileForm /></section>
     <AppearancePreferences />
     <NotificationPreferences />
-    <section className="account-section" aria-labelledby="own-security"><h2 id="own-security">Segurança</h2><OwnPasswordForm onSignedOut={signedOut} /></section>
+    <section className="account-section" aria-labelledby="own-security"><h2 id="own-security">Segurança</h2><OwnPasswordForm onSignedOut={signedOut} /><OwnMfaPanel /><TrustedDevicesPanel /></section>
     <section className="account-section" aria-labelledby="own-sessions"><h2 id="own-sessions">Sessões</h2><OwnSessionsPanel onSignedOut={signedOut} /></section>
     <p>Seus dados de conta e segurança ficam separados das configurações logísticas.</p>
   </div>;

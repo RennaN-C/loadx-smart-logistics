@@ -9,7 +9,8 @@ O Alembic versiona toda alteração estrutural do PostgreSQL.
 - `migrations/script.py.mako`: template das revisions.
 - `migrations/versions`: migrations versionadas.
 
-`CONFIRMADO`: o head atual é `20261020_0028` (OC90), sobre `20261020_0027`
+`CONFIRMADO`: o head atual é `20261021_0030` (#222), sobre `20261021_0029` (OC98),
+`20261020_0028` (OC90), `20261020_0027`
 (OC109), `20261020_0026` (OC103) e `20261020_0025` (OC84). Historicamente OC105 sucede OC87
 `20261007_0015` e evidências OC80 `20261007_0014`. A OC87 cria necessidade/partes/claims e triggers de integridade
 diferidas; downgrade remove esses registros/triggers e tipos de histórico próprios.
@@ -144,3 +145,23 @@ NOWAIT evitam espera invertida filho/pai durante criação de checklist. Conten�
 rejeita com `ck_load_plans__operational_snapshot` e exige retry da transação.
 Downgrade permitido remove os três triggers `protect_operated_load_*` e a função;
 o bloqueio fail-safe por entregas de parte ocorre antes de qualquer remoção.
+
+
+## OC98 / #222 — reconciliação para revisão da PR #211
+
+`CONFIRMADO`: a base integrada termina em `20261020_0028`. As revisões ainda
+não integradas da OC98 e de dispositivos confiáveis passam a
+`20261021_0029` → `20261021_0030`, sem modificar as revisões publicadas da
+OC84, OC103, OC109 ou OC90. Não existem branches Alembic concorrentes.
+
+A revisão 0029 cria recuperação/MFA, preserva usuários e histórico operacional
+e invalida sessões anteriores ao novo requisito de autenticação. A 0030 adiciona
+dispositivos confiáveis por 30 dias. Downgrade é bloqueado após uso dos dados de
+identidade/dispositivos; a suíte exercita ida/volta em banco exclusivo sem esses
+dados. Não apague dados para liberar rollback.
+
+`RISCO IDENTIFICADO`: bancos experimentais que já executaram os antigos IDs
+não integrados da PR #211 precisam de análise específica antes da atualização.
+Não executar `stamp`, reset ou reaplicar migrations automaticamente nesses bancos.
+Esta reconciliação valida o caminho oficial a partir de 0028 em PostgreSQL 16
+novo e isolado; não altera bancos existentes nem chaves de criptografia.

@@ -227,6 +227,8 @@ class UserService:
 
         def persist_user_revoke_sessions_and_audit() -> User:
             updated_user = self.repository.update(user)
+            if "email" in changed_fields:
+                self.auth_sessions.stage_invalidate_access_credentials(user.id)
             if security_changed:
                 self.auth_sessions.stage_revoke_all_for_user(user.id)
             if actor_id is not None and changed_fields:

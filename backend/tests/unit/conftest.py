@@ -1,7 +1,7 @@
 from collections.abc import Generator, Sequence
 
 import pytest
-from sqlalchemy import Table, create_engine, event
+from sqlalchemy import CheckConstraint, MetaData, Table, create_engine, event, text
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
@@ -11,6 +11,44 @@ def db_session(request: pytest.FixtureRequest) -> Generator[Session, None, None]
     """Provide an isolated SQLite session for service-level unit tests."""
 
     tables: Sequence[Table] = request.module.SQLITE_TABLES
+    if any(table.name == "auth_sessions" for table in tables):
+        from app.modules.auth.models import (
+            AuthChallenge,
+            AuthFactor,
+            AuthPasswordReset,
+            AuthRecoveryCode,
+            AuthTrustedDevice,
+        )
+
+        tables = (
+            *tables,
+            AuthFactor.__table__,
+            AuthChallenge.__table__,
+            AuthPasswordReset.__table__,
+            AuthRecoveryCode.__table__,
+            AuthTrustedDevice.__table__,
+        )
+    if any(table.name == "auth_trusted_devices" for table in tables):
+        # Unit SQLite cannot compile PostgreSQL interval syntax. Clone metadata
+        # locally and keep an equivalent upper bound; official DDL/constraints
+        # are exercised against PostgreSQL 16 in integration tests.
+        metadata = MetaData()
+        for table in tables:
+            table.to_metadata(metadata)
+        trusted_table = metadata.tables["auth_trusted_devices"]
+        # Preserve conditional PostgreSQL-only DDL on all existing tables;
+        # to_metadata does not retain their ddl_if predicates.
+        tables = tuple(
+            trusted_table if table.name == "auth_trusted_devices" else table
+            for table in tables
+        )
+        for constraint in trusted_table.constraints:
+            if isinstance(constraint, CheckConstraint) and "interval" in str(
+                constraint.sqltext
+            ):
+                constraint.sqltext = text(
+                    "expires_at > created_at AND julianday(expires_at) <= julianday(created_at) + 30"
+                )
     engine = create_engine(
         "sqlite+pysqlite:///:memory:",
         connect_args={"check_same_thread": False},
