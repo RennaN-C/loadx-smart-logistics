@@ -1,6 +1,6 @@
 # ADR-045 — OC94: ledger de tentativas de excecao
 
-Estado: **em revisão na PR #235; implementação sujeita à validação da CI e aprovação técnica.**
+Estado: **em revisão na PR #235; migrations 0031 → 0032 → 0033 pendentes de validação final da CI e aprovação técnica.**
 
 ## Atualização do contrato de cancelamento (PR #235)
 
@@ -31,10 +31,20 @@ escritas antes da implementação do POST de cancelamento.
   O POST revalida o estado; não há confirmação exclusivamente pelo frontend.
 - Não são enviados webhooks ou notificações sintéticas. Qualquer publicação
   futura requer contrato de evento aprovado e outbox transacional.
-- **Ainda fora desta implementação:** pausa/interrupção de viagem já em rota
-  com estado próprio; reprogramação automática de rota; comunicação externa
-  real. Eventos `RESCHEDULED`/`RESUMED` da entrega são históricos de
-  tentativa, não uma pausa física de viagem.
+- **Interrupção/retomada operacional:** migration `20261021_0033`,
+  `Trip.status=INTERRUPTED`, ledger `trip_interruption_events` e endpoints
+  `GET/POST /trips/{id}/interruptions` e `POST /trips/{id}/resumptions`.
+  A transição `IN_ROUTE → INTERRUPTED → IN_ROUTE` exige `trips.manage`,
+  motivo, UUID idempotente e histórico transacional; somente gestor autorizado
+  executa. O motorista não recebe automaticamente permissão para pausar.
+- Durante interrupção, `started_at` permanece original e `finished_at`
+  continua nulo; caminhão e motorista continuam reservados; entregas,
+  comprovantes e baixas não avançam. Não há descarregamento, redespacho,
+  liberação de volumes nem alteração do plano aprovado.
+- Fora do escopo: reprogramação automática de rota e comunicação externa real.
+  `RESCHEDULED`/`RESUMED` da *entrega* continuam independentes da
+  interrupção e retomada da *viagem*. A migration 0033 recusa downgrade
+  destrutivo quando há ledger ou viagens interrompidas.
 - **Critério de liberação:** testes PostgreSQL 16 (incluindo concorrência),
   migrações upgrade/downgrade, segurança e frontend concluídos, revisão
   formal do comportamento multi-caminhão e aprovação da decisão.
