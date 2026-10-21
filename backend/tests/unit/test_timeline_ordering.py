@@ -28,7 +28,7 @@ def test_timeline_order_is_deterministic_and_removes_source_duplicates():
 
 
 def test_timeline_normalizes_datetime_to_utc():
-    naive = datetime(2026, 10, 21, 12)
+    naive = datetime(2026, 10, 21, 12, tzinfo=UTC).replace(tzinfo=None)
     event = TimelineEventRead(
         id=uuid.uuid4(),
         source="OCCURRENCE",
