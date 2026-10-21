@@ -189,7 +189,9 @@ def downgrade() -> None:
     )
     op.execute(context)
     parent = legacy.PARENT_SQL.split("CREATE FUNCTION protect_trip_delivery_plan()")[0]
-    op.execute(parent.replace(
-        "CREATE FUNCTION protect_operational_distribution()",
-        "CREATE OR REPLACE FUNCTION protect_operational_distribution()",
-    ))
+    op.execute(
+        parent.replace(
+            "CREATE FUNCTION protect_operational_distribution()",
+            "CREATE OR REPLACE FUNCTION protect_operational_distribution()",
+        )
+    )
