@@ -33,8 +33,8 @@ interface DeliveryDto {
   delivered_at: string | null;
 }
 
-export async function listLoadingSessions(params: ListParams = {}): Promise<Page<LoadingListItem>> {
-  const { data } = await api.get<PageDto<LoadingDto>>("/loading-sessions", { params: toPageQuery(params) });
+export async function listLoadingSessions(params: ListParams & { status?: string } = {}): Promise<Page<LoadingListItem>> {
+  const { data } = await api.get<PageDto<LoadingDto>>("/loading-sessions", { params: { ...toPageQuery(params), status: params.status } });
   return mapPageFromDto(data, (dto) => ({
     id: dto.id,
     loadPlanId: dto.load_plan_id,
@@ -44,8 +44,8 @@ export async function listLoadingSessions(params: ListParams = {}): Promise<Page
   }));
 }
 
-export async function listDeliveries(params: ListParams = {}): Promise<Page<DeliveryListItem>> {
-  const { data } = await api.get<PageDto<DeliveryDto>>("/deliveries", { params: toPageQuery(params) });
+export async function listDeliveries(params: ListParams & { status?: string } = {}): Promise<Page<DeliveryListItem>> {
+  const { data } = await api.get<PageDto<DeliveryDto>>("/deliveries", { params: { ...toPageQuery(params), status: params.status } });
   return mapPageFromDto(data, (dto) => ({
     id: dto.id,
     tripId: dto.trip_id,
