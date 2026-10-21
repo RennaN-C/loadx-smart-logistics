@@ -1,6 +1,8 @@
 """OC94 transaction invariants on real PostgreSQL 16."""
 
 import uuid
+from concurrent.futures import ThreadPoolExecutor
+from threading import Barrier
 from collections.abc import Callable
 
 from fastapi.testclient import TestClient
@@ -247,3 +249,70 @@ def test_cancel_one_part_preserves_sibling_trip_and_allows_reprocess(
     )
     assert new_trip["status"] == "SCHEDULED"
     assert s.request("GET", f"/trips/{sibling_trip['id']}")["status"] == "IN_ROUTE"
+
+
+def test_oc94_concurrent_cancel_commands_are_idempotent(
+    client: TestClient, session_factory: SessionFactory
+) -> None:
+    scenario = seed_operational_scenario(session_factory)
+    trip = create_trip(client, scenario)
+    path = f"/api/v1/trips/{trip['id']}/cancellation"
+    key = str(uuid.uuid4())
+    barrier = Barrier(2)
+
+    def request(_: int):
+        barrier.wait(timeout=10)
+        return client.post(
+            path,
+            headers=scenario.manager_headers,
+            json={"reason": "Cancelamento simultaneo validado", "idempotency_key": key},
+        )
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        replies = list(executor.map(request, range(2)))
+    assert [reply.status_code for reply in replies] == [200, 200], [
+        reply.text for reply in replies
+    ]
+    assert replies[0].json()["id"] == replies[1].json()["id"]
+    with session_factory() as db:
+        assert db.scalar(select(func.count()).select_from(TripCancellation)) == 1
+        assert (
+            db.scalar(
+                select(func.count())
+                .select_from(StatusHistory)
+                .where(
+                    StatusHistory.entity_type == "TRIP",
+                    StatusHistory.entity_id == uuid.UUID(trip["id"]),
+                    StatusHistory.new_status == "CANCELED",
+                )
+            )
+            == 1
+        )
+
+
+def test_oc94_concurrent_different_keys_have_one_winner(
+    client: TestClient, session_factory: SessionFactory
+) -> None:
+    scenario = seed_operational_scenario(session_factory)
+    trip = create_trip(client, scenario)
+    path = f"/api/v1/trips/{trip['id']}/cancellation"
+    barrier = Barrier(2)
+
+    def request(_: int):
+        barrier.wait(timeout=10)
+        return client.post(
+            path,
+            headers=scenario.manager_headers,
+            json={
+                "reason": "Cancelamento concorrente com mesma viagem",
+                "idempotency_key": str(uuid.uuid4()),
+            },
+        )
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        replies = list(executor.map(request, range(2)))
+    assert sorted(reply.status_code for reply in replies) == [200, 409], [
+        reply.text for reply in replies
+    ]
+    with session_factory() as db:
+        assert db.scalar(select(func.count()).select_from(TripCancellation)) == 1
