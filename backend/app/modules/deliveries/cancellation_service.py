@@ -230,8 +230,9 @@ class TripCancellationService:
 
         trip.status = "CANCELED"
         self._history("TRIP", trip.id, "SCHEDULED", "CANCELED", current_user.id)
-        plan.status = "CANCELED"  # preserve approved_at as historical fact
-        self._history("LOAD_PLAN", plan.id, "APPROVED", "CANCELED", current_user.id)
+        # The OC90 operated-plan snapshot is immutable. Keep the historical
+        # APPROVED plan and its approval date; release happens via the terminal
+        # trip status and the absence of any loading session.
 
         if is_multi and distribution is not None and part is not None:
             part.status = "CANCELED"
