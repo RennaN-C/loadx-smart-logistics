@@ -85,7 +85,7 @@ def trip_cancellation_preflight(
 @router.post(
     "/trips/{trip_id}/cancellation",
     response_model=TripCancellationRead,
-    responses=openapi_error_responses(401, 403, 404, 409, 422),
+    responses=openapi_error_responses(401, 403, 404, 409, 422, 500),
 )
 def cancel_scheduled_trip(
     trip_id: uuid.UUID,
