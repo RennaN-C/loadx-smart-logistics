@@ -7,7 +7,12 @@ from app.core.exceptions import ApiError
 from app.modules.deliveries.exception_models import DeliveryException
 from app.modules.deliveries.exception_schemas import DeliveryExceptionCreate, DeliveryExceptionRead
 from app.modules.deliveries.models import Trip
-from app.modules.deliveries.service import TripService
+from app.modules.deliveries.service import (
+    DeliveryNotFoundError,
+    TripAccessForbiddenError,
+    TripNotFoundError,
+    TripService,
+)
 from app.modules.users.models import User
 
 
@@ -16,8 +21,18 @@ class DeliveryExceptionService:
         self.db = db
         self.trips = TripService(db)
 
+    def _authorized_delivery(self, delivery_id: uuid.UUID, *, current_user: User, operate: bool):
+        try:
+            return self.trips.get_delivery_for_access(
+                delivery_id, current_user=current_user, operate=operate
+            )
+        except TripAccessForbiddenError:
+            raise ApiError(403, "AUTH_FORBIDDEN", "Usuario sem permissao para esta acao.") from None
+        except (TripNotFoundError, DeliveryNotFoundError):
+            raise ApiError(404, "DELIVERY_NOT_FOUND", "Entrega nao encontrada.") from None
+
     def list_for_delivery(self, delivery_id: uuid.UUID, *, current_user: User) -> list[DeliveryExceptionRead]:
-        self.trips.get_delivery_for_access(delivery_id, current_user=current_user)
+        self._authorized_delivery(delivery_id, current_user=current_user, operate=False)
         rows = self.db.scalars(
             select(DeliveryException)
             .where(DeliveryException.delivery_id == delivery_id)
@@ -28,7 +43,7 @@ class DeliveryExceptionService:
     def register(self, delivery_id: uuid.UUID, data: DeliveryExceptionCreate, *, current_user: User) -> tuple[DeliveryExceptionRead, bool]:
         try:
             # OC90 serializes operations with trip -> deliveries locks.
-            delivery = self.trips.get_delivery_for_access(
+            delivery = self._authorized_delivery(
                 delivery_id, current_user=current_user, operate=True
             )
             previous = self.db.scalar(
