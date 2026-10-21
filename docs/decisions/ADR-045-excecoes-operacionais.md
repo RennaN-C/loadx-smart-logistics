@@ -20,3 +20,16 @@ Decisao desta primeira entrega:
 PENDENTE para encerramento da OC94: transicoes de cancelamento, interrupcao e
 retomada com bloqueios fisicos, reserva do caminhao, etapas de carregamento,
 integração de UI, outbox, testes de concorrencia e multi-caminhao E2E.
+
+## Sequência de tentativas operacional
+
+- Ausência, recusa, avaria ou falha operacional abrem ocorrência pendente.
+- Enquanto existir ocorrência pendente, entrega e comprovante não podem ser
+  concluídos: a operação retorna 409 sob o lock OC90, sem baixa de volumes.
+- `RESCHEDULED` exige falha aberta e data futura com fuso; **não** remonta
+  cargas ou altera a agenda/rota automaticamente.
+- `RESUMED` exige falha ou reagendamento pendente; reagendamento futuro impede
+  retomar antes do combinado. Depois da retomada, a entrega original avança
+  normalmente, sem duplicar parte, pedido ou comprovante.
+- Uma falha adicional exige encerrar a tentativa anterior por retomada.
+- Cancelamento físico e liberação de reservas continuam fora deste recorte.
