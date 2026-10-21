@@ -27,6 +27,7 @@ export const DELIVERY_ACTION_LABELS: Record<DeliveryStatus, string> = {
   PENDING: "Iniciar entrega",
   IN_DELIVERY: "Confirmar entrega",
   DELIVERED: "Entregue",
+  CANCELED: "Cancelada",
 };
 
 export function tripStatusTone(status: TripStatus): StatusTone {
