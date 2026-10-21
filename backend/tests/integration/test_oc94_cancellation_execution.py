@@ -248,9 +248,19 @@ def test_cancel_one_part_preserves_sibling_trip_and_allows_reprocess(
 
 
 def test_oc94_concurrent_cancel_commands_are_idempotent(
-    client: TestClient, session_factory: SessionFactory
+    client: TestClient, committed_session_factory: SessionFactory
 ) -> None:
-    scenario = seed_operational_scenario(session_factory)
+    from app.database.session import get_db
+    from app.main import app
+
+    def independent_session():
+        with committed_session_factory() as db:
+            yield db
+
+    # Real concurrent HTTP requests cannot share a SAVEPOINT-backed connection.
+    # Committed fixture owns isolated rows and cleans them after this test.
+    app.dependency_overrides[get_db] = independent_session
+    scenario = seed_operational_scenario(committed_session_factory)
     trip = create_trip(client, scenario)
     path = f"/api/v1/trips/{trip['id']}/cancellation"
     key = str(uuid.uuid4())
@@ -270,7 +280,7 @@ def test_oc94_concurrent_cancel_commands_are_idempotent(
         reply.text for reply in replies
     ]
     assert replies[0].json()["id"] == replies[1].json()["id"]
-    with session_factory() as db:
+    with committed_session_factory() as db:
         assert db.scalar(select(func.count()).select_from(TripCancellation)) == 1
         assert (
             db.scalar(
@@ -287,9 +297,19 @@ def test_oc94_concurrent_cancel_commands_are_idempotent(
 
 
 def test_oc94_concurrent_different_keys_have_one_winner(
-    client: TestClient, session_factory: SessionFactory
+    client: TestClient, committed_session_factory: SessionFactory
 ) -> None:
-    scenario = seed_operational_scenario(session_factory)
+    from app.database.session import get_db
+    from app.main import app
+
+    def independent_session():
+        with committed_session_factory() as db:
+            yield db
+
+    # Real concurrent HTTP requests cannot share a SAVEPOINT-backed connection.
+    # Committed fixture owns isolated rows and cleans them after this test.
+    app.dependency_overrides[get_db] = independent_session
+    scenario = seed_operational_scenario(committed_session_factory)
     trip = create_trip(client, scenario)
     path = f"/api/v1/trips/{trip['id']}/cancellation"
     barrier = Barrier(2)
@@ -310,7 +330,7 @@ def test_oc94_concurrent_different_keys_have_one_winner(
     assert sorted(reply.status_code for reply in replies) == [200, 409], [
         reply.text for reply in replies
     ]
-    with session_factory() as db:
+    with committed_session_factory() as db:
         assert db.scalar(select(func.count()).select_from(TripCancellation)) == 1
 
 
