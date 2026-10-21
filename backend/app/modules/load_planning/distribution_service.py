@@ -485,8 +485,13 @@ class LoadDistributionService:
             self._lock_trucks([plan.truck_id for plan in plans.values()])
             for p in sorted(distribution.parts, key=lambda p: p.load_plan_id.int):
                 plans[p.id] = self.planning.repository.get_for_update(p.load_plan_id)
+            is_reapproval = any(
+                plan.recalculated_from_id is not None for plan in plans.values()
+            )
             orders, _, _, _ = self._sources(
-                [o.order_id for o in distribution.orders], lock=True
+                [o.order_id for o in distribution.orders],
+                lock=True,
+                allow_operational=is_reapproval,
             )
             targets = (
                 [self._part(distribution, part_id)] if part_id else distribution.parts
@@ -506,15 +511,21 @@ class LoadDistributionService:
             old = distribution.status
             distribution.status = self._status(distribution)
             if distribution.status == "APPROVED":
-                self.orders.stage_orders_as_planned(orders)
+                starting_orders = tuple(
+                    order for order in orders if order.status == "READY"
+                )
+                if starting_orders:
+                    self.orders.stage_orders_as_planned(starting_orders)
                 for part in distribution.parts:
                     plan = plans[part.id]
-                    plan.status = "APPROVED"
-                    plan.approved_at = datetime.now(UTC)
-                    self._history(
-                        "LOAD_PLAN", plan.id, "CALCULATED", "APPROVED", changed_by
-                    )
-                for order in orders:
+                    if plan.status == "CALCULATED":
+                        plan.status = "APPROVED"
+                        plan.approved_at = datetime.now(UTC)
+                        self._history(
+                            "LOAD_PLAN", plan.id, "CALCULATED", "APPROVED",
+                            changed_by,
+                        )
+                for order in starting_orders:
                     self._history("ORDER", order.id, "READY", "PLANNED", changed_by)
             if old != distribution.status:
                 self._history(
