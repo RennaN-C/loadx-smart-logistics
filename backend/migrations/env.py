@@ -24,6 +24,8 @@ def import_models() -> None:
     from app.modules.customers import models as customers_models  # noqa: F401
     from app.modules.deliveries import (
         cancellation_service as cancellation_models,  # noqa: F401
+    )
+    from app.modules.deliveries import (
         evidence_models,  # noqa: F401
         exception_models,  # noqa: F401
     )
