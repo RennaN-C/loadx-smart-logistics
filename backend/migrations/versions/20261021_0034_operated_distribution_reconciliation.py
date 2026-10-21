@@ -181,9 +181,7 @@ def upgrade() -> None:
     # OC87's deferred coverage/lifecycle validator must also understand an
     # already-operated sibling. Keep ordinary planning invariants unchanged;
     # only an actual delivery in this distribution justifies an exception.
-    integrity = import_module(
-        "migrations.versions.20261007_0015_load_distributions"
-    )
+    integrity = import_module("migrations.versions.20261007_0015_load_distributions")
     old_plan_check = "(d.status<>'APPROVED' AND lp.status<>'CALCULATED')"
     new_plan_check = (
         "(d.status<>'APPROVED' AND lp.status<>'CALCULATED' "
@@ -216,9 +214,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    integrity = import_module(
-        "migrations.versions.20261007_0015_load_distributions"
-    )
+    integrity = import_module("migrations.versions.20261007_0015_load_distributions")
     op.execute(
         integrity.INTEGRITY_SQL.replace(
             "CREATE FUNCTION validate_load_distributions()",
