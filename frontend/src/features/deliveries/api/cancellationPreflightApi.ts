@@ -13,3 +13,27 @@ export async function getCancellationPreflight(tripId: string): Promise<Cancella
   );
   return data;
 }
+
+
+export interface TripCancellation {
+  id: string;
+  trip_id: string;
+  actor_id: string;
+  idempotency_key: string;
+  reason: string;
+  created_at: string;
+  status: "CANCELED";
+}
+
+/** Server rechecks all locks and statuses; the preflight is not authority. */
+export async function cancelScheduledTrip(
+  tripId: string,
+  reason: string,
+  idempotencyKey: string,
+): Promise<TripCancellation> {
+  const { data } = await api.post<TripCancellation>(
+    `/trips/${tripId}/cancellation`,
+    { reason, idempotency_key: idempotencyKey },
+  );
+  return data;
+}
