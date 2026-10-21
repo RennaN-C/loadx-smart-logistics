@@ -21,8 +21,10 @@ from app.modules.auth.dependencies import (
     get_current_session,
     get_current_user,
 )
+from app.modules.auth.identity_service import MfaChallengeResult
 from app.modules.auth.schemas import (
     AuthLogin,
+    MfaChallengeRead,
     OwnPasswordChange,
     OwnProfileUpdate,
     OwnSessionRead,
@@ -33,6 +35,7 @@ from app.modules.auth.service import (
 )
 from app.modules.auth.sessions import AuthSessionInvalidError, ResolvedAuthSession
 from app.modules.auth.throttling import AuthRateLimitedError
+from app.modules.auth.totp import IdentityUnavailableError
 from app.modules.users.models import User
 from app.modules.users.schemas import UserRead
 from app.modules.users.service import UserEmailAlreadyExistsError
@@ -42,18 +45,27 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.post(
     "/login",
-    response_model=UserRead,
-    responses=openapi_error_responses(401, 403, 422, 429),
+    response_model=UserRead | MfaChallengeRead,
+    responses=openapi_error_responses(401, 403, 422, 429, 503),
 )
 def login(
     request: Request,
     response: Response,
     data: AuthLogin,
     service: Annotated[AuthService, Depends(get_auth_service)],
-) -> User | JSONResponse:
+) -> User | MfaChallengeRead | JSONResponse:
     try:
         client_ip = request.client.host if request.client is not None else "unknown"
-        result = service.login(data, client_ip)
+        result = service.login(
+            data,
+            client_ip,
+            trusted_device_token=request.cookies.get(
+                settings.trusted_device_cookie_name
+            ),
+        )
+        if isinstance(result, MfaChallengeResult):
+            clear_session_cookie(response)
+            return MfaChallengeRead(**result.__dict__)
         response.set_cookie(
             key=settings.session_cookie_name,
             value=result.session.token,
@@ -68,6 +80,12 @@ def login(
 
         ProfileService(service.user_service.db).resolve(result.user)
         return result.user
+    except IdentityUnavailableError:
+        return error_response(
+            503,
+            "AUTH_IDENTITY_UNAVAILABLE",
+            "Autenticação indisponível. Contate o suporte.",
+        )
     except AuthInvalidCredentialsError:
         return error_response(
             status.HTTP_401_UNAUTHORIZED,
@@ -127,6 +145,12 @@ T = TypeVar("T")
 def account_operation(operation: Callable[[], T]) -> T:
     try:
         return operation()
+    except IdentityUnavailableError:
+        raise ApiError(
+            503,
+            "AUTH_IDENTITY_UNAVAILABLE",
+            "Serviço de identidade indisponível. Contate o suporte.",
+        ) from None
     except AuthSessionInvalidError:
         raise ApiError(
             401, "AUTH_INVALID_TOKEN", "Sessão ausente ou inválida."
@@ -165,14 +189,21 @@ def clear_session_cookie(response: Response) -> None:
 @router.patch(
     "/me",
     response_model=UserRead,
-    responses=openapi_error_responses(401, 403, 409, 422),
+    responses=openapi_error_responses(400, 401, 403, 409, 422, 429, 503),
 )
 def update_me(
+    request: Request,
     data: OwnProfileUpdate,
     current: Annotated[ResolvedAuthSession, Depends(get_current_session)],
     service: Annotated[AccountService, Depends(get_account_service)],
 ) -> User:
-    return account_operation(lambda: service.update_profile(current, data))
+    return account_operation(
+        lambda: service.update_profile(
+            current,
+            data,
+            client_ip=request.client.host if request.client else "unknown",
+        )
+    )
 
 
 @router.post(

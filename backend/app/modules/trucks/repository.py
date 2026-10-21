@@ -90,10 +90,10 @@ class TruckRepository:
                 LoadingSession.id.is_not(None),
                 or_(
                     Trip.id.is_(None),
-                    Trip.status != "FINISHED",
+                    Trip.status.in_(("SCHEDULED", "IN_ROUTE", "INTERRUPTED")),
                 ),
             ),
-            Trip.status.in_(("SCHEDULED", "IN_ROUTE")),
+            Trip.status.in_(("SCHEDULED", "IN_ROUTE", "INTERRUPTED")),
         )
 
         statement = (

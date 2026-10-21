@@ -1,5 +1,7 @@
 import logging
 import uuid
+from collections.abc import Callable
+from datetime import datetime
 
 from sqlalchemy.orm import Session
 
@@ -26,11 +28,13 @@ class OwnSessionNotFoundError(Exception):
 
 
 class AccountService:
-    def __init__(self, db: Session) -> None:
+    def __init__(
+        self, db: Session, *, now_provider: Callable[[], datetime] | None = None
+    ) -> None:
         self.db = db
         self.users = UserService(db)
-        self.sessions = AuthSessionService(db)
-        self.throttle = LoginThrottleService(db)
+        self.sessions = AuthSessionService(db, now_provider=now_provider)
+        self.throttle = LoginThrottleService(db, now_provider=now_provider)
 
     def _lock_account(self, current: ResolvedAuthSession) -> User:
         user = self.users.lock_account(current.user.id)
@@ -48,12 +52,37 @@ class AccountService:
         return user
 
     def update_profile(
-        self, current: ResolvedAuthSession, data: OwnProfileUpdate
+        self,
+        current: ResolvedAuthSession,
+        data: OwnProfileUpdate,
+        *,
+        client_ip: str = "unknown",
     ) -> User:
         user = self._lock_account(current)
+        from app.modules.auth.identity_repository import IdentityRepository
+        from app.modules.auth.identity_service import IdentityService
+
+        identity = IdentityService(self.db)
+        factor = IdentityRepository(self.db).find_factor(user.id)
+        if data.email != user.email:
+            if factor and factor.enabled:
+                identity.confirm_email_change(
+                    current,
+                    data.current_password or "",
+                    data.second_factor or "",
+                    client_ip,
+                )
+            IdentityRepository(self.db).invalidate_resets(
+                user.id, self.sessions.now_provider()
+            )
         result = self.users.update_user(
-            user.id, UserUpdate(**data.model_dump()), actor_id=user.id
+            user.id,
+            UserUpdate(
+                **data.model_dump(exclude={"current_password", "second_factor"})
+            ),
+            actor_id=user.id,
         )
+        identity.emit_committed_security_events()
         emit_security_event(SecurityEvent.OWN_PROFILE_UPDATED, user_id=str(user.id))
         return result
 
@@ -105,6 +134,7 @@ class AccountService:
         if session is None:
             raise OwnSessionNotFoundError
         if session.revoked_at is None:
+            self.sessions.stage_invalidate_access_credentials(current.user.id)
             self.sessions.repository.revoke(session, self.sessions.now_provider())
         self.db.commit()
         emit_security_event(
@@ -116,6 +146,7 @@ class AccountService:
 
     def revoke_other_sessions(self, current: ResolvedAuthSession) -> None:
         self._lock_account(current)
+        self.sessions.stage_invalidate_access_credentials(current.user.id)
         others = self.sessions.repository.list_active_for_user_for_update(
             current.user.id
         )

@@ -110,7 +110,93 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
         head_revision = connection.exec_driver_sql(
             "SELECT version_num FROM alembic_version"
         ).scalar_one()
-        assert head_revision == "20261020_0026"
+        assert head_revision == "20261021_0034"
+
+    # Descend through OC94 and trusted-device revisions explicitly; -1 would
+    # only reach 0030 now and would not exercise the trusted-device rollback.
+    _run_alembic(test_url, "downgrade", "20261021_0029")
+    with engine.connect() as connection:
+        assert (
+            connection.exec_driver_sql(
+                "SELECT version_num FROM alembic_version"
+            ).scalar_one()
+            == "20261021_0029"
+        )
+        assert (
+            connection.exec_driver_sql(
+                "SELECT to_regclass('public.auth_trusted_devices')"
+            ).scalar_one()
+            is None
+        )
+        assert (
+            connection.exec_driver_sql(
+                "SELECT to_regclass('public.auth_factors')"
+            ).scalar_one()
+            is not None
+        )
+    _run_alembic(test_url, "upgrade", "head")
+    _run_alembic(test_url, "downgrade", "20261021_0029")
+
+    # OC98 rollback preserves all integrated operational and authorization tables.
+    _run_alembic(test_url, "downgrade", "-1")
+    with engine.connect() as connection:
+        assert (
+            connection.exec_driver_sql(
+                "SELECT version_num FROM alembic_version"
+            ).scalar_one()
+            == "20261020_0028"
+        )
+        assert (
+            connection.exec_driver_sql(
+                "SELECT to_regclass('public.auth_factors')"
+            ).scalar_one()
+            is None
+        )
+        assert (
+            connection.exec_driver_sql(
+                "SELECT to_regclass('public.access_profiles')"
+            ).scalar_one()
+            is not None
+        )
+        for table in (
+            "operational_notifications",
+            "notification_recipients",
+            "outbox_events",
+        ):
+            assert (
+                connection.exec_driver_sql(
+                    f"SELECT to_regclass('public.{table}')"
+                ).scalar_one()
+                == table
+            )
+        assert connection.exec_driver_sql(
+            "SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='deliveries' AND column_name='distribution_part_id')"
+        ).scalar_one()
+    _run_alembic(test_url, "upgrade", "head")
+    _run_alembic(test_url, "downgrade", "20261020_0028")
+
+    _run_alembic(test_url, "downgrade", "-1")
+    with engine.connect() as connection:
+        assert not connection.exec_driver_sql(
+            "SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='deliveries' AND column_name='distribution_part_id')"
+        ).scalar_one()
+    _run_alembic(test_url, "upgrade", "head")
+    _run_alembic(test_url, "downgrade", "20261020_0027")
+
+    _run_alembic(test_url, "downgrade", "-1")
+    with engine.connect() as connection:
+        assert (
+            connection.exec_driver_sql(
+                "SELECT to_regclass('public.outbox_events')"
+            ).scalar_one()
+            is None
+        )
+        assert (
+            connection.exec_driver_sql(
+                "SELECT version_num FROM alembic_version"
+            ).scalar_one()
+            == "20261020_0026"
+        )
 
     _run_alembic(test_url, "downgrade", "-1")
     with engine.connect() as connection:
@@ -148,6 +234,7 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
             is None
         )
     _run_alembic(test_url, "upgrade", "head")
+    _run_alembic(test_url, "downgrade", "20261020_0026")
     _run_alembic(test_url, "downgrade", "-1")
     _run_alembic(test_url, "downgrade", "-1")
     _run_alembic(test_url, "downgrade", "-1")

@@ -1,6 +1,7 @@
 import type { AuditEntityType, AuditEventType } from "../types";
 
 export const AUDIT_ENTITY_LABELS: Record<AuditEntityType, string> = {
+  OUTBOX_EVENT: "Evento de saída",
   ACCESS_PROFILE: "Perfil de acesso",
   COMPANY_PROFILE: "Dados da empresa",
   ORDER: "Pedido",
@@ -26,6 +27,7 @@ export const AUDIT_ENTITY_LABELS: Record<AuditEntityType, string> = {
 };
 
 export const AUDIT_EVENT_LABELS: Record<AuditEventType, string> = {
+  OUTBOX_REPROCESSED: "Evento reagendado para reprocessamento",
   PROFILE_CREATED: "Perfil criado",
   PROFILE_UPDATED: "Permissões do perfil atualizadas",
   COMPANY_PROFILE_CREATED: "Dados da empresa cadastrados",
@@ -56,6 +58,8 @@ export const AUDIT_EVENT_LABELS: Record<AuditEventType, string> = {
 };
 
 const FIELD_LABELS: Readonly<Record<string, string>> = {
+  status: "situação",
+  next_attempt_at: "agendamento da tentativa",
   legal_name: "nome empresarial",
   display_name: "nome de exibição",
   cnpj: "CNPJ",

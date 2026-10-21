@@ -25,6 +25,7 @@ from app.modules.occurrences.service import OccurrenceService
 from app.modules.orders.models import Order
 from app.modules.status_history.models import StatusHistory
 from app.modules.users.models import User
+from tests.integration.notification_helpers import clear_outbox_fixture
 from tests.integration.test_external_commands import scenario
 
 __all__ = ("scenario",)
@@ -162,6 +163,7 @@ def test_notification_failure_rolls_back_occurrence(scenario, monkeypatch):
 def prepare_scheduled(s):
     with s.factory() as db:
         # Arrange a pristine scheduled-trip fixture, removing its setup transition.
+        clear_outbox_fixture(db, s.trip_id)
         db.execute(
             delete(NotificationRecipient).where(
                 NotificationRecipient.notification_id.in_(

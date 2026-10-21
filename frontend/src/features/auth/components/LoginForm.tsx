@@ -1,3 +1,6 @@
+import { Link } from "react-router-dom";
+import { MfaRequired } from "../mfaTypes";
+import { MfaChallengePanel } from "./MfaChallengePanel";
 import { useState, type FormEvent } from "react";
 
 import { ApiError } from "../../../types/api";
@@ -6,7 +9,7 @@ import { mapLoginErrorToMessage } from "./loginErrorMessages";
 import { AlertBanner } from "../../../components/AlertBanner";
 
 export function LoginForm() {
-  const { login } = useAuth();
+  const { login, pendingMfa, beginMfa } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -21,12 +24,15 @@ export function LoginForm() {
     try {
       await login(email, password);
     } catch (error) {
+      if (error instanceof MfaRequired) { beginMfa?.(error.challenge); setPassword(""); setIsSubmitting(false); return; }
       const apiError =
         error instanceof ApiError ? error : new ApiError("UNKNOWN_ERROR", "Ocorreu um erro inesperado.");
       setErrorMessage(mapLoginErrorToMessage(apiError));
       setIsSubmitting(false);
     }
   }
+
+  if (pendingMfa) return <MfaChallengePanel key={pendingMfa.challenge_token} challenge={pendingMfa} />;
 
   return (
     <form className="login-card" onSubmit={handleSubmit}>
@@ -93,6 +99,7 @@ export function LoginForm() {
         )}
       </button>
 
+      <Link className="login-recovery-link" to="/password-recovery">Esqueci minha senha</Link>
       <p className="login-hint">Não tem acesso? Fale com o administrador do sistema.</p>
     </form>
   );

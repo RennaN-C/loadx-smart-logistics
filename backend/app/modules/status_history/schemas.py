@@ -30,10 +30,12 @@ RECORD_ENTITY_TYPES = frozenset(
         "REGISTRATION_IMPORT",
         "COMPANY_PROFILE",
         "ACCESS_PROFILE",
+        "OUTBOX_EVENT",
     }
 )
 ADMINISTRATIVE_EVENT_TYPES = frozenset(
     {
+        "OUTBOX_REPROCESSED",
         "PROFILE_CREATED",
         "PROFILE_UPDATED",
         "USER_CREATED",

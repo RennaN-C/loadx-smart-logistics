@@ -34,8 +34,18 @@ describe("AuditPage", () => {
     vi.mocked(useAuth).mockReturnValue({ user: { role: "LOGISTICS_MANAGER" } } as ReturnType<typeof useAuth>);
     render(<AuditPage />);
     await screen.findByText("Ana Souza");
+    expect(screen.queryByRole("option", { name: "Evento de saída" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "Evento reagendado para reprocessamento" })).not.toBeInTheDocument();
     expect(screen.queryByRole("option", { name: "Dados da empresa" })).not.toBeInTheDocument();
     expect(screen.queryByRole("option", { name: "Dados da empresa atualizados" })).not.toBeInTheDocument();
+  });
+
+  it("ADMIN consulta intervenção da OC109 com rótulos reais", async () => {
+    vi.mocked(listAuditEntries).mockResolvedValue(makePage([{ ...ENTRY, eventType: "OUTBOX_REPROCESSED", entityType: "OUTBOX_EVENT", oldStatus: null, newStatus: null, changedFields: ["status", "next_attempt_at"] }]));
+    render(<AuditPage />);
+    await screen.findByText("Campos alterados: situação, agendamento da tentativa.");
+    expect(within(screen.getByRole("table")).getByText("Evento de saída")).toBeInTheDocument();
+    expect(within(screen.getByRole("table")).getByText("Evento reagendado para reprocessamento")).toBeInTheDocument();
   });
 
   it("mostra quem alterou, quando e o que mudou", async () => {

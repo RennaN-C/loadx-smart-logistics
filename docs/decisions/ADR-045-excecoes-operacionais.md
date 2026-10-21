@@ -1,0 +1,244 @@
+# ADR-045 — OC94: ledger de tentativas de excecao
+
+Estado: **em revisão na PR #235; migrations 0031 → 0032 → 0033 pendentes de validação final da CI e aprovação técnica.**
+
+## Atualização do contrato de cancelamento (PR #235)
+
+**Esta seção prevalece sobre as notas históricas de proposta abaixo**, que foram
+escritas antes da implementação do POST de cancelamento.
+
+- `POST /api/v1/trips/{trip_id}/cancellation` exige permissão efetiva
+  `loadx.trips.manage`, autenticação, motivo de 8 a 500 caracteres e UUID
+  idempotente; o ator vem da sessão, nunca do corpo.
+- Somente viagem `SCHEDULED`, entregas `PENDING` e ausência total de
+  `LoadingSession` podem ser canceladas. Não se cancela viagem iniciada,
+  entrega movimentada, comprovante emitido ou carregamento pendente.
+- Uma nova transação revalida condições e locks. No cenário legado,
+  `Trip`, `Delivery` e `LoadPlan` passam a `CANCELED` e os pedidos
+  `PLANNED` elegíveis são devolvidos a `READY`, sem excluir o plano.
+- Para parte de distribuição multi-caminhão, a parte passa a `CANCELED`,
+  a distribuição fica `INCOMPLETE` e os volumes ativos, outros planos,
+  outros caminhões e o estado agregado dos pedidos permanecem preservados.
+  O reprocessamento da parte gera uma versão nova do plano, com referência
+  ao original, sem transformar pedidos `IN_TRANSIT` em `PLANNED`.
+- O ledger `trip_cancellations` guarda motivo, ator, chave, data e unicidade
+  por viagem. Histórico de estado e ledger são persistidos na mesma
+  transação; em falhas há rollback. Reenvio idêntico é idempotente.
+- A migration `20261021_0032` amplia os CHECKs e permite histórico de
+  entregas canceladas, sem descarte de dados. Downgrade recusa destruição
+  quando existir qualquer registro afetado.
+- O GET de preflight é **consultivo**: pode ficar obsoleto por concorrência.
+  O POST revalida o estado; não há confirmação exclusivamente pelo frontend.
+- Não são enviados webhooks ou notificações sintéticas. Qualquer publicação
+  futura requer contrato de evento aprovado e outbox transacional.
+- **Interrupção/retomada operacional:** migration `20261021_0033`,
+  `Trip.status=INTERRUPTED`, ledger `trip_interruption_events` e endpoints
+  `GET/POST /trips/{id}/interruptions` e `POST /trips/{id}/resumptions`.
+  A transição `IN_ROUTE → INTERRUPTED → IN_ROUTE` exige `trips.manage`,
+  motivo, UUID idempotente e histórico transacional; somente gestor autorizado
+  executa. O motorista não recebe automaticamente permissão para pausar.
+- Durante interrupção, `started_at` permanece original e `finished_at`
+  continua nulo; caminhão e motorista continuam reservados; entregas,
+  comprovantes e baixas não avançam. Não há descarregamento, redespacho,
+  liberação de volumes nem alteração do plano aprovado.
+- Fora do escopo: reprogramação automática de rota e comunicação externa real.
+  `RESCHEDULED`/`RESUMED` da *entrega* continuam independentes da
+  interrupção e retomada da *viagem*. A migration 0033 recusa downgrade
+  destrutivo quando há ledger ou viagens interrompidas.
+- **Critério de liberação:** testes PostgreSQL 16 (incluindo concorrência),
+  migrações upgrade/downgrade, segurança e frontend concluídos, revisão
+  formal do comportamento multi-caminhão e aprovação da decisão.
+  Nenhum merge ou deploy deve ocorrer antes de satisfazer isso.
+
+## Reconciliação das distribuições operadas — revisão 0034
+
+A migration `20261021_0034` mantém os gatilhos da OC90 e permite
+**somente** transições de estado estritamente verificadas: uma parte
+`APPROVED → CANCELED` precisa de viagem/entregas já `CANCELED`,
+sem carregamento; a distribuição passa a `INCOMPLETE` depois da parte.
+O plano original permanece `APPROVED` e seus snapshots e volumes físicos
+não mudam.
+
+Para reprocessar, a parte `CANCELED → PENDING` só pode vincular plano
+`CALCULATED` com `recalculated_from_id` apontando à viagem cancelada.
+A aprovação posterior preserva as viagens irmãs e os pedidos agregados.
+A validação de novas entregas aceita distribuição `INCOMPLETE` somente
+quando a parte e o plano correntes estão `APPROVED`. Não se autorizam
+alterações de volumes, componentes de pedidos ou entregas históricas.
+As transições continuam dentro das transações de negócio e sob os locks
+originais; qualquer falha volta por rollback.
+
+Esta exceção ao gatilho exige regressão PostgreSQL 16 e revisão formal
+de concorrência, especialmente com reprocessamento e carregamento.
+Sem CI verde e verificação operacional não é possível publicar a PR.
+
+## Histórico da proposta original (supersedido onde divergir)
+
+
+
+O modelo OC90 usa estados restritos e preserva comprovantes e partes fisicas multi-caminhao.
+Nao se deve adicionar cancelamento ao status operacional sem reconciliar sessoes de
+carregamento pendentes, reserva do veiculo, volumes e outbox.
+
+Decisao desta primeira entrega:
+- Nova tabela aditiva de eventos por entrega, sem alterar viagens, pedidos ou comprovantes.
+- Eventos: ausencia, recusa, avaria, falha operacional, reagendamento e retomada informativa.
+- Cada tentativa exige motivo, autor e chave UUID de idempotencia; retries identicos
+  retornam o evento original e payload divergente com mesma chave recebe 409.
+- Registro somente para viagem IN_ROUTE e entrega nao concluida.
+- A consulta respeita a autorizacao ja implementada pela OC90.
+- Reagendamento registra data futura mas NAO muda a rota nem agenda do caminhao.
+- Nao emitir notificacao ficticia nem dar baixa em volumes nesta fase.
+- A migration protege o historico de downgrade destrutivo.
+
+PENDENTE para encerramento da OC94: transicoes de cancelamento, interrupcao e
+retomada com bloqueios fisicos, reserva do caminhao, etapas de carregamento,
+integração de UI, outbox, testes de concorrencia e multi-caminhao E2E.
+
+## Sequência de tentativas operacional
+
+- Ausência, recusa, avaria ou falha operacional abrem ocorrência pendente.
+- Enquanto existir ocorrência pendente, entrega e comprovante não podem ser
+  concluídos: a operação retorna 409 sob o lock OC90, sem baixa de volumes.
+- `RESCHEDULED` exige falha aberta e data futura com fuso; **não** remonta
+  cargas ou altera a agenda/rota automaticamente.
+- `RESUMED` exige falha ou reagendamento pendente; reagendamento futuro impede
+  retomar antes do combinado. Depois da retomada, a entrega original avança
+  normalmente, sem duplicar parte, pedido ou comprovante.
+- Uma falha adicional exige encerrar a tentativa anterior por retomada.
+- Cancelamento físico e liberação de reservas continuam fora deste recorte.
+
+
+## Pré-validação de cancelamento (sem efeito colateral)
+
+Endpoint `GET /api/v1/trips/{trip_id}/cancellation-preflight` para
+ADMIN/gestores com `trips.manage`, com autorização por objeto.
+
+O retorno é um **parecer de segurança operacional**, não um cancelamento.
+`safe_for_cancellation_workflow=true` significa somente que uma transação
+completa de cancelamento pode ser preparada e revisada. Nenhuma reserva é
+liberada por este GET. São bloqueios explícitos:
+
+- `TRIP_ALREADY_STARTED_OR_FINISHED`: só viagens ainda SCHEDULED;
+- `LOADING_SESSION_EXISTS`: inclusive PENDING, pois já pode reservar caminhão;
+- `DELIVERY_ALREADY_STARTED_OR_MISSING`: todas as entregas devem estar PENDING;
+- `MULTI_TRUCK_PART_REQUIRES_RECONCILIATION`: não liberar parte isolada nem
+  marcar pedido agregado como cancelado sem reconciliar os demais caminhões.
+
+Antes de habilitar um POST irreversível, reconciliar dentro de **uma**
+transação com locks ordenados: viagem, entregas, plano/caminhão,
+sessão de carregamento, pedidos e partes de distribuição; garantir
+unicidade dos volumes físicos, histórico e eventual outbox. A API existente
+não pode simplesmente mudar `Trip.status` ou chamar cancelamento de
+distribuição já aprovada. O retorno da pré-validação pode ficar obsoleto
+por concorrência: a implementação futura **deverá revalidar tudo sob lock**.
+
+**Pendência explícita:** execução do cancelamento e liberação de recursos
+ainda não são suportadas. Não apresentar o preflight como ação concluída.
+
+## Proposta de contrato: cancelamento transacional (aguardando revisão)
+
+Esta seção registra a **próxima fase de implementação**, ainda **não aprovada**
+nem habilitada por API. Foi preparada após a integração da OC90, considerando os
+contratos reais de `Trip`, `Delivery`, `LoadPlan`, `LoadingSession`,
+`LoadDistributionPart`, `Order` e a reserva de caminhão/motorista.
+A pré-validação GET já disponível **não concede autorização para mutação**.
+
+### Restrições observadas no código de 21/10/2026
+
+1. `trips.status` aceita apenas `SCHEDULED`, `IN_ROUTE` e `FINISHED`;
+   o CHECK de timestamps também depende desses três estados. Acrescentar
+   `CANCELED` exige migration aditiva, atualização do modelo e histórico.
+2. `deliveries.status` aceita apenas `PENDING`, `IN_DELIVERY` e
+   `DELIVERED`. Não remover entregas já vinculadas nem simular
+   `DELIVERED` para permitir o cancelamento.
+3. `TruckRepository.has_operation_conflict` considera a existência de
+   `LoadingSession` e `Trip.status != FINISHED`; uma viagem
+   `CANCELED` sem adaptar esse filtro **continuaria reservando caminhão**.
+   O conflito de motorista também consulta viagens ativas.
+4. `trips.load_plan_id` é único e `LoadPlan.status` não tem estado
+   `CANCELED`. Plano aprovado, pedidos `PLANNED` e volumes referenciados
+   não podem ser simplesmente eliminados ou marcados como disponíveis.
+5. Entregas OC90 vinculam `distribution_part_id` a volumes físicos
+   identificados por `(order_item_id, volume_index)`, com partes irmãs.
+   Cancelar uma viagem não equivale a cancelar toda a distribuição.
+
+### Matriz de elegibilidade proposta
+
+| Estado observado sob lock | Política inicial | Justificativa |
+| --- | --- | --- |
+| `SCHEDULED`, nenhuma `LoadingSession`, todas as entregas `PENDING`, sem `distribution_part_id` | Candidato para cancelamento transacional **somente após** contrato de planejamento/pedidos | Ainda é preciso reconciliar plano aprovado e reservas |
+| Qualquer `LoadingSession` (`PENDING`, em curso ou finalizada) | Bloquear | Carregamento já pode ter reservado caminhão e volumes |
+| `IN_ROUTE` ou `FINISHED` | Bloquear | Viagem iniciada tem efeitos operacionais e/ou comprovantes |
+| Qualquer entrega fora de `PENDING`, ausência de entregas ou comprovante existente | Bloquear | Não apagar entrega, histórico ou comprovação |
+| Entrega vinculada a `distribution_part_id` | Bloquear **neste incremento** | Exige reconciliação de todas as partes e volumes sob lock |
+| Repetição da mesma chave idempotente, com mesmo payload, após sucesso | Retornar resultado persistido | Evitar dupla baixa/reserva e histórico duplicado |
+| Mesma chave idempotente, payload diferente | `409` | Chave não representa duas intenções diferentes |
+
+O campo `safe_for_cancellation_workflow` do GET significa apenas
+**elegibilidade preliminar**. O POST deverá executar novamente as validações
+**dentro da transação**, pois estado e reservas podem mudar após a consulta.
+
+### Contrato de comando proposto, não implementado
+
+- `POST /api/v1/trips/{trip_id}/cancellation`, somente
+  `loadx.trips.manage` e com checagem de acesso ao objeto.
+- Corpo estrito: `reason` não vazio e limitado, `idempotency_key` UUID;
+  identidade do autor vem da sessão autenticada, nunca do payload.
+- Resposta de sucesso deverá incluir referência de auditoria e estado
+  persistido; `409` estável para cada impedimento; `404` se a viagem
+  não existe; `401/403` sem vazar existência a quem não possui acesso.
+- Um registro persistente e único por viagem documentará autor, horário,
+  motivo, idempotência e resultado. Não usar delete em cascata de viagem,
+  entrega, plano, comprovante ou volume.
+- `Trip.CANCELED` e sua constraint de timestamp exigem migration
+  **nova**, descendente do head atual. A transição não deve atualizar
+  `started_at` ou `finished_at` com valores artificiais.
+
+### Transação e isolamento necessários antes de habilitar o POST
+
+1. Reaproveitar a ordem de locks da OC90 para viagem, entregas e demais
+   entidades, coordenando plano/caminhão, carregamento, pedidos e distribuição
+   sem introduzir inversão de locks com aprovação ou início de viagem.
+2. Revalidar sob lock todas as condições da matriz e qualquer concorrência
+   com criação de carregamento, início de viagem e entrega.
+3. Resolver primeiro a política de **plano aprovado e pedidos `PLANNED`**:
+   cancelar apenas a viagem libera o caminhão, mas pode deixar o pedido
+   preso no planejamento aprovado; reverter o pedido para `READY` sem
+   invalidar referências ativas também seria incorreto. Esta política
+   requer contrato com o módulo de planejamento antes de escolher uma
+   mutação definitiva.
+4. Quando a política for aprovada, persistir mudança de estado, ledger de
+   cancelamento e histórico na **mesma transação**, com rollback completo
+   em erro; garantir que os predicados de reserva de caminhão **e**
+   motorista deixem de contar viagens canceladas, sem liberar uma sessão
+   de carregamento que permaneça ativa.
+5. Não emitir `TRIP_STARTED` nem ocorrência/notificação de cancelamento
+   sem fato e contrato aceitos por OC84/OC103/OC109. Qualquer outbox
+   futura deverá ser inserida na mesma transação com chave idempotente.
+6. Manter os dados físicos e de comprovantes intactos; nada de reatribuição
+   automática de `distribution_part_id` ou de volumes entre caminhões.
+
+### Evidências exigidas para liberar a implementação
+
+- Migrations upgrade/downgrade seguro, com histórico preservado e verificação
+  das constraints e dos predicados de reserva.
+- PostgreSQL 16 real: sucesso elegível, bloqueio de loading `PENDING`,
+  loading finalizado, trip em rota/finalizada, entrega movida, ausência de
+  entregas, pedido com outro vínculo, parte multi-caminhão e comprovante.
+- Dois comandos concorrentes com mesma chave (um efeito) e diferentes chaves
+  (um vencedor), disputa com início de viagem/loading e rollback injetado.
+- Verificar que caminhão/motorista ficam disponíveis **somente** após
+  confirmação do commit e que pedido, plano e volumes não entram em estado
+  impossível após erro.
+- Provar `401/403/404/409`, autorização efetiva de ADMIN/gestor, proibição
+  de DRIVER/CHECKER sem permissão, e evitar vazamento de dados.
+- UI de confirmação só após API transacional e esses testes; nada de
+  exibir cancelamento como concluído enquanto houver apenas preflight.
+
+**Decisão pendente para aprovação:** definir junto ao domínio de planejamento
+se cancelar uma viagem agendada sem loading também invalida o plano aprovado,
+como os pedidos retornam à elegibilidade de replanejamento e como o sistema
+audita essa transição. A implementação do POST e o desbloqueio dos cenários
+multi-caminhão ficam condicionados a essa reconciliação. Até lá, manter o
+endpoint físico e seus botões desabilitados.

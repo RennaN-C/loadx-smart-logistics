@@ -55,6 +55,7 @@ class DeliveryRead(BaseModel):
     id: uuid.UUID
     trip_id: uuid.UUID
     order_id: uuid.UUID
+    distribution_part_id: uuid.UUID | None = None
     status: str
     sequence: int = Field(gt=0)
     delivered_at: datetime | None

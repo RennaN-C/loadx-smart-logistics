@@ -996,17 +996,19 @@ Regras de autorização:
 
 Regras do contrato:
 
-- criação exige plano `APPROVED`, motorista ativo, pedidos do plano em
-  `PLANNED` e ainda sem entrega;
-- uma entrega é criada por pedido, com `sequence` contígua 1-based;
+- criação exige plano operacional `APPROVED`, motorista elegível e pedidos
+  `PLANNED`; partes de distribuição OC90 também aceitam `IN_TRANSIT`. Legado
+  exige pedido sem entrega; multi permite outra parte válida da mesma distribuição;
+- uma entrega é criada por pedido do plano/parte, com `sequence` contígua 1-based;
 - viagem aceita `SCHEDULED -> IN_ROUTE -> FINISHED`;
 - entrega aceita `PENDING -> IN_DELIVERY -> DELIVERED` somente durante
   `IN_ROUTE`;
 - repetir o status atual é idempotente e não cria novo histórico;
-- início exige carregamento finalizado e move todos os pedidos para
-  `IN_TRANSIT`;
-- conclusão de entrega move o pedido para `DELIVERED`; conclusão da viagem
-  exige todas as entregas e pedidos em `DELIVERED`;
+- início exige carregamento finalizado do mesmo plano e move somente pedidos
+  `PLANNED` para `IN_TRANSIT`, sem repetir transição de outra parte;
+- conclusão de entrega move o pedido para `DELIVERED` quando todas as suas
+  pernas necessárias concluíram (legado tem uma). Viagem multi exige somente
+  suas próprias entregas `DELIVERED`; legado exige também seus pedidos;
 - timestamps de início, entrega e fim são retornados em UTC.
 
 Erros específicos:
@@ -1065,8 +1067,8 @@ Não há referência de evidências, sequer URL mock ou alegação de upload.
 `GET` admite os três perfis. `CHECKER` é negado. Sessão em cookie é obrigatória;
 `POST` exige Origin aprovada e CSRF. Autorização por objeto ocorre antes de
 verificar estado/histórico. A primeira conclusão exige `IN_DELIVERY` e viagem
-`IN_ROUTE`, move somente seu pedido para `DELIVERED` e compartilha commit com
-os históricos. Repetição autorizada retorna o mesmo `id`, horários e responsável,
+`IN_ROUTE`, conclui a própria perna e move o pedido para `DELIVERED` somente
+quando todas as partes necessárias concluíram; compartilha commit com os históricos. Repetição autorizada retorna o mesmo `id`, horários e responsável,
 sem novo histórico, inclusive após `FINISHED`.
 
 | Status | Código | Condição |
@@ -1485,6 +1487,15 @@ no resumo. O contrato do cálculo `POST /load-plans` permanece inalterado:
 máximo de 200 volumes e erro 422 com `volume_count` e `max_volumes` nos
 detalhes quando o limite é superado.
 
+### OC98 — recuperação e segundo fator standalone
+
+`CONFIRMADO`: contrato aprovado na ADR-038 e detalhado em [auth/README](../backend/app/modules/auth/README.md#oc98--recuperação-de-senha-e-mfa).
+Login mantém UserRead para perfis sem MFA; para ADMIN/LOGISTICS_MANAGER retorna
+MfaChallengeRead sem sessão. `POST /auth/mfa/verify` é a única conclusão desse
+desafio. Recuperação tem solicitação neutra e confirmação 204 sem autenticação.
+Rotas próprias de MFA exigem cookie/CSRF/ownership e reautenticação reforçada.
+Nenhuma mudança nos contratos logísticos, planos, snapshots, OC88 ou OC93.
+
 ## OC107 — Busca global
 
 `CONFIRMADO`: `GET /api/v1/search` exige sessão e `search` obrigatório (2–120
@@ -1578,3 +1589,43 @@ notificações anteriores nem cria associações retroativas. Erros: 401 sessão
 403 CSRF/Origin, 404 NOTIFICATION_NOT_FOUND, 422 contrato. GETs não gravam nem
 simulam envio. Categorias aprovadas: TRIPS/OCCURRENCES; SECURITY é política
 obrigatória, sem eventos artificiais. Eventos/alertas futuros exigem contrato próprio.
+
+## OC109 — administração da fila
+
+`CONFIRMADO`: ADMIN autenticado; CSRF/Origin nos comandos. GET /api/v1/outbox-events
+com paginação padrão, sort_order, status/event_type; GET /outbox-events/summary;
+GET /outbox-events/{id} inclui tentativas; GET /outbox-events/{id}/source revalida
+viagem e retorna href; POST /outbox-events/{id}/retry recebe {command_id: UUID},
+retorna estado atual. Replay não reinicia fila; reutilização em outra origem 409.
+401/403, 404 fora da origem, 409 evento inelegível, 422 contrato. Sem payloads
+privados, sem publicação HTTP arbitrária.
+
+`CONFIRMADO` (OC109): /audit admite filtros OUTBOX_EVENT/OUTBOX_REPROCESSED;
+somente ADMIN pode consultá-los. Consultas gerais de outros perfis também
+excluem essas intervenções administrativas.
+
+
+## OC90 — operação por parte física
+
+`CONFIRMADO`: endpoints existentes de loading-sessions, trips, deliveries,
+receipts e reports operam partes APPROVED de distribuições APPROVED usando
+somente seu load_plan atual. Nenhum endpoint novo ou parâmetro de escrita para
+atribuir parte. TripCreate mantém load_plan_id/driver_id; o servidor resolve a
+parte. Versões históricas e partes não aprovadas continuam recusadas.
+
+`CONFIRMADO`: DeliveryRead acrescenta `distribution_part_id: UUID | null` (null
+para legado). O campo é somente de saída. Uma entrega por parte/pedido, com
+comprovante independente e contrato DeliveryReceiptRead inalterado. Início da
+primeira perna muda Order para IN_TRANSIT; somente conclusão de todas as partes
+que transportam esse pedido permite DELIVERED. Trip multi finaliza pelas suas
+próprias entregas. Repetições preservam o histórico; POST Trip duplicado continua
+409 TRIP_LOAD_PLAN_ALREADY_ASSIGNED. Demais erros/permissões OC112 e regras de
+vínculo de motorista permanecem vigentes.
+
+`CONFIRMADO`: GET /reports/load-plans/{id} e GET /reports/trips/{id} continuam PDF
+somente leitura. Para distribuição, incluem distribution_id/part_id, plano,
+caminhão e quantidade/identidades `(order_item_id, volume_index)` da parte.
+Relatório de viagem inclui também trip_id. Não mistura volumes nem recalcula.
+GET /audit admite também filtros entity_type=LOAD_DISTRIBUTION e
+LOAD_DISTRIBUTION_PART com a mesma permissão reservada de leitura da auditoria.
+Nenhum dado pessoal adicional foi incorporado aos schemas ou logs.

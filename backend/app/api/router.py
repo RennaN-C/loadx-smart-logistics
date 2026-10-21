@@ -3,11 +3,14 @@ from fastapi import APIRouter
 from app.core.responses import openapi_error_responses
 from app.modules.access_profiles.router import router as profiles_router
 from app.modules.attachments.router import router as attachments_router
+from app.modules.auth.identity_router import router as identity_router
 from app.modules.auth.router import router as auth_router
+from app.modules.auth.trusted_device_router import router as trusted_device_router
 from app.modules.company_profile.router import router as company_profile_router
 from app.modules.customers.address_router import router as customer_addresses_router
 from app.modules.customers.router import router as customers_router
 from app.modules.deliveries.evidence_router import router as evidence_router
+from app.modules.deliveries.exception_router import router as exception_router
 from app.modules.deliveries.router import router as deliveries_router
 from app.modules.drivers.document_router import router as driver_documents_router
 from app.modules.drivers.document_router import (
@@ -21,6 +24,7 @@ from app.modules.load_planning.router import router as load_planning_router
 from app.modules.loading.router import router as loading_router
 from app.modules.messages.router import router as messages_router
 from app.modules.messages.webhook_router import router as inbound_webhook_router
+from app.modules.notifications.outbox_router import router as outbox_router
 from app.modules.notifications.router import router as notifications_router
 from app.modules.occurrences.router import router as occurrences_router
 from app.modules.operational_indicators.router import (
@@ -40,6 +44,8 @@ from app.modules.users.router import router as users_router
 
 api_router = APIRouter(responses=openapi_error_responses(500))
 api_router.include_router(auth_router)
+api_router.include_router(identity_router)
+api_router.include_router(trusted_device_router)
 api_router.include_router(integration_health_router)
 api_router.include_router(company_profile_router)
 api_router.include_router(audit_router)
@@ -47,6 +53,7 @@ api_router.include_router(customers_router)
 api_router.include_router(customer_addresses_router)
 api_router.include_router(deliveries_router)
 api_router.include_router(evidence_router)
+api_router.include_router(exception_router)
 api_router.include_router(drivers_router)
 api_router.include_router(driver_documents_router)
 api_router.include_router(driver_document_types_router)
@@ -75,3 +82,4 @@ api_router.include_router(global_search_router)
 api_router.include_router(profiles_router)
 
 api_router.include_router(notifications_router)
+api_router.include_router(outbox_router)

@@ -22,3 +22,13 @@ alteram plano, carregamento, viagem ou entrega.
 - `domain/`: objetos e regras puras, quando necessário.
 
 Crie somente os arquivos necessários para a ocorrência atual.
+
+
+## OC90 — fluxo multi-caminhão
+
+`CONFIRMADO`: Os PDFs de carregamento e viagem acrescentam distribuição/parte, plano e
+quantidade de volumes quando existe distribuição. Ambos preservam identidades
+(order_item_id, volume_index) do próprio plano; a viagem também lista os volumes
+transportados. Dados vêm do plano persistido e da fronteira pública de
+load_planning, sem acesso privado, escrita ou recálculo. Legado não exige parte.
+Teste E2E extrai o texto real do PDF com pypdf (dependência apenas de testes).

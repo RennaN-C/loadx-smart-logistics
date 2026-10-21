@@ -43,10 +43,14 @@ def test_delivery_constraints_protect_order_sequence_and_completion() -> None:
         "ck_deliveries__completion_consistent",
     } <= constraint_names(Delivery.__table__, CheckConstraint)
     assert {
-        "uq_deliveries__order_id",
         "uq_deliveries__trip_order",
         "uq_deliveries__trip_sequence",
     } <= constraint_names(Delivery.__table__, UniqueConstraint)
+    # Reassignment requires historical canceled rows to coexist: partial
+    # uniqueness is implemented with a filtered Index, not a constraint.
+    assert "uq_deliveries__part_order" in {
+        index.name for index in Delivery.__table__.indexes if index.unique
+    }
 
 
 def test_operational_foreign_keys_are_restrictive() -> None:
@@ -62,5 +66,6 @@ def test_operational_foreign_keys_are_restrictive() -> None:
         "fk_trips__load_plans",
         "fk_deliveries__orders",
         "fk_deliveries__trips",
+        "fk_deliveries__load_distribution_parts",
     }
     assert all(constraint.ondelete == "RESTRICT" for constraint in foreign_keys)

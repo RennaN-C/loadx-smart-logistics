@@ -25,7 +25,7 @@ def create_user(
                 name="Admin Local",
                 email=email,
                 password="senha-local-segura",
-                role="admin",
+                role="CHECKER",
                 active=active,
             )
         )

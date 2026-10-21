@@ -24,6 +24,7 @@ from app.modules.deliveries.schemas import (
 )
 from app.modules.deliveries.service import (
     DeliveryNotFoundError,
+    DeliveryOperationalExceptionPendingError,
     DeliveryReceiptHistoryInvalidError,
     DeliveryReceiptNotAvailableError,
     DeliveryStatusTransitionNotAllowedError,
@@ -58,6 +59,7 @@ TripOperator = Annotated[
 ]
 TRIP_SERVICE_ERRORS = (
     DeliveryNotFoundError,
+    DeliveryOperationalExceptionPendingError,
     DeliveryReceiptHistoryInvalidError,
     DeliveryReceiptNotAvailableError,
     DeliveryStatusTransitionNotAllowedError,
@@ -242,6 +244,12 @@ def get_delivery_receipt(
 
 
 def _trip_error_response(exc: Exception) -> JSONResponse:
+    if isinstance(exc, DeliveryOperationalExceptionPendingError):
+        return error_response(
+            status.HTTP_409_CONFLICT,
+            "DELIVERY_EXCEPTION_PENDING",
+            "Resolva a ocorrencia antes de concluir a entrega.",
+        )
     if isinstance(exc, DeliveryReceiptNotAvailableError):
         return error_response(
             status.HTTP_409_CONFLICT,

@@ -6,6 +6,73 @@ from app.core.config import Settings
 from app.main import create_app
 
 EXPECTED_ERROR_STATUSES = {
+    # Homologação exclusiva: conferência em lote sem leitor físico.
+    ("/api/v1/loading-sessions/{session_id}/check-all", "post"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
+    **{
+        (path, method): {"400", "401", "403", "422", "429", "503", "500"}
+        for path, method in [
+            ("/api/v1/auth/password-recovery", "post"),
+            ("/api/v1/auth/password-recovery/confirm", "post"),
+            ("/api/v1/auth/mfa/setup", "post"),
+            ("/api/v1/auth/mfa/verify", "post"),
+            ("/api/v1/auth/me/mfa", "get"),
+            ("/api/v1/auth/me/trusted-devices", "get"),
+            ("/api/v1/auth/me/trusted-devices/current", "delete"),
+            ("/api/v1/auth/me/trusted-devices/{device_id}", "delete"),
+            ("/api/v1/auth/me/trusted-devices/revoke-all", "post"),
+            ("/api/v1/auth/me/mfa/enroll", "post"),
+            ("/api/v1/auth/me/mfa/recovery-codes", "post"),
+            ("/api/v1/auth/me/mfa/disable", "post"),
+        ]
+    },
+    ("/api/v1/outbox-events", "get"): {"401", "403", "404", "409", "422", "500"},
+    ("/api/v1/outbox-events/summary", "get"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
+    ("/api/v1/outbox-events/{event_id}", "get"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
+    ("/api/v1/outbox-events/{event_id}/attempts", "get"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
+    ("/api/v1/outbox-events/{event_id}/source", "get"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
+    ("/api/v1/outbox-events/{event_id}/retry", "post"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
     ("/api/v1/notifications", "get"): {"401", "403", "422", "500"},
     ("/api/v1/notifications/unread-count", "get"): {"401", "403", "422", "500"},
     ("/api/v1/notifications/preferences", "get"): {"401", "403", "422", "500"},
@@ -52,7 +119,16 @@ EXPECTED_ERROR_STATUSES = {
         "500",
     },
     ("/api/v1/search", "get"): {"401", "403", "422", "500"},
-    ("/api/v1/auth/me", "patch"): {"401", "403", "409", "422", "500"},
+    ("/api/v1/auth/me", "patch"): {
+        "400",
+        "401",
+        "403",
+        "409",
+        "422",
+        "429",
+        "503",
+        "500",
+    },
     ("/api/v1/auth/me/password", "post"): {"400", "401", "403", "422", "429", "500"},
     ("/api/v1/auth/me/sessions", "get"): {"401", "403", "422", "500"},
     ("/api/v1/auth/me/sessions/{session_id}", "delete"): {
@@ -68,7 +144,7 @@ EXPECTED_ERROR_STATUSES = {
     ("/api/v1/company-profile", "put"): {"401", "403", "422", "500"},
     ("/health", "get"): {"500"},
     ("/ready", "get"): {"500", "503"},
-    ("/api/v1/auth/login", "post"): {"401", "403", "422", "429", "500"},
+    ("/api/v1/auth/login", "post"): {"401", "403", "422", "429", "500", "503"},
     ("/api/v1/auth/me", "get"): {"401", "403", "422", "500"},
     ("/api/v1/auth/logout", "post"): {"401", "403", "422", "500"},
     ("/api/v1/audit", "get"): {"401", "403", "422", "500"},
@@ -309,6 +385,59 @@ EXPECTED_ERROR_STATUSES = {
         "422",
         "500",
     },
+    ("/api/v1/deliveries/{delivery_id}/exceptions", "get"): {
+        "401",
+        "403",
+        "404",
+        "422",
+        "500",
+    },
+    ("/api/v1/deliveries/{delivery_id}/exceptions", "post"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
+    ("/api/v1/trips/{trip_id}/cancellation", "post"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
+    ("/api/v1/trips/{trip_id}/interruptions", "get"): {
+        "401",
+        "403",
+        "404",
+        "422",
+        "500",
+    },
+    ("/api/v1/trips/{trip_id}/interruptions", "post"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
+    ("/api/v1/trips/{trip_id}/resumptions", "post"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
+    ("/api/v1/trips/{trip_id}/cancellation-preflight", "get"): {
+        "401",
+        "403",
+        "404",
+        "422",
+        "500",
+    },
     ("/api/v1/deliveries/{delivery_id}/evidences", "post"): {
         "401",
         "403",
@@ -377,15 +506,6 @@ EXPECTED_ERROR_STATUSES = {
         "500",
     },
     ("/api/v1/loading-sessions/{session_id}/scan", "post"): {
-        "401",
-        "403",
-        "404",
-        "409",
-        "422",
-        "500",
-    },
-    # Endpoint de simulação exclusivo da branch pentest-lab.
-    ("/api/v1/loading-sessions/{session_id}/check-all", "post"): {
         "401",
         "403",
         "404",
@@ -547,6 +667,10 @@ PUBLIC_OPERATIONS = frozenset(
         ("/health", "get"),
         ("/ready", "get"),
         ("/api/v1/auth/login", "post"),
+        ("/api/v1/auth/password-recovery", "post"),
+        ("/api/v1/auth/password-recovery/confirm", "post"),
+        ("/api/v1/auth/mfa/setup", "post"),
+        ("/api/v1/auth/mfa/verify", "post"),
     }
 )
 PROTECTED_OPERATIONS = frozenset(EXPECTED_ERROR_STATUSES).difference(
@@ -933,3 +1057,19 @@ def test_notification_contract_is_personal_and_excludes_channel_secrets() -> Non
         "read_at",
     }
     assert listing["security"] == [{"SessionCookie": []}]
+
+
+def test_oc90_delivery_leg_context_is_additive_and_not_client_assignable():
+    schema = get_openapi_schema()
+    schemas = schema["components"]["schemas"]
+    field = schemas["DeliveryRead"]["properties"]["distribution_part_id"]
+    assert {"type": "string", "format": "uuid"} in field["anyOf"]
+    assert {"type": "null"} in field["anyOf"]
+    assert "distribution_part_id" not in schemas["DeliveryRead"]["required"]
+    assert set(schemas["TripCreate"]["properties"]) == {"load_plan_id", "driver_id"}
+    assert schemas["TripCreate"]["additionalProperties"] is False
+    audit = schema["paths"]["/api/v1/audit"]["get"]["parameters"]
+    entity = next(p for p in audit if p["name"] == "entity_type")
+    assert {"LOAD_DISTRIBUTION", "LOAD_DISTRIBUTION_PART"} <= set(
+        entity["schema"]["anyOf"][0]["enum"]
+    )

@@ -17,6 +17,7 @@ from app.modules.occurrences.repository import OccurrenceRepository
 from app.modules.occurrences.schemas import OccurrenceCreate
 from app.modules.occurrences.service import OccurrenceService
 from app.modules.users.models import User
+from tests.integration.notification_helpers import clear_outbox_fixture
 from tests.integration.test_external_commands import scenario
 
 __all__ = ("scenario",)
@@ -79,6 +80,7 @@ def test_occurrence_is_durable_before_mock_and_survives_provider_failure_and_res
             assert restarted.get(Trip, scenario.trip_id).status == "IN_ROUTE"
     finally:
         with scenario.factory() as cleanup:
+            clear_outbox_fixture(cleanup, scenario.trip_id)
             cleanup.execute(
                 delete(NotificationRecipient).where(
                     NotificationRecipient.notification_id.in_(

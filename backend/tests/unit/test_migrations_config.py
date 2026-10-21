@@ -31,7 +31,15 @@ def test_alembic_has_current_revision_head() -> None:
     config = Config(str(BACKEND_ROOT / "alembic.ini"))
     script = ScriptDirectory.from_config(config)
 
-    assert script.get_heads() == ["20261020_0026"]
+    assert script.get_heads() == ["20261021_0034"]
+    assert script.get_revision("20261021_0034").down_revision == "20261021_0033"
+    assert script.get_revision("20261021_0033").down_revision == "20261021_0032"
+    assert script.get_revision("20261021_0032").down_revision == "20261021_0031"
+    assert script.get_revision("20261021_0031").down_revision == "20261021_0030"
+    assert script.get_revision("20261021_0030").down_revision == "20261021_0029"
+    assert script.get_revision("20261021_0029").down_revision == "20261020_0028"
+    assert script.get_revision("20261020_0028").down_revision == "20261020_0027"
+    assert script.get_revision("20261020_0027").down_revision == "20261020_0026"
     assert script.get_revision("20261020_0026").down_revision == "20261020_0025"
     assert script.get_revision("20261020_0025").down_revision == "20261016_0024"
     assert script.get_revision("20261016_0024").down_revision == "20261009_0023"
@@ -97,3 +105,13 @@ def test_initial_migration_renders_expected_check_constraint_names() -> None:
     assert "ck_users__ck_users" not in result.stdout
     assert "ck_trucks__ck_trucks" not in result.stdout
     assert "ck_products__ck_products" not in result.stdout
+
+
+def test_oc98_revision_chains_real_head():
+    script = ScriptDirectory.from_config(Config("alembic.ini"))
+    assert script.get_revision("20261021_0029").down_revision == "20261020_0028"
+
+
+def test_trusted_devices_revision_extends_oc98():
+    script = ScriptDirectory.from_config(Config("alembic.ini"))
+    assert script.get_revision("20261021_0030").down_revision == "20261021_0029"

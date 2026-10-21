@@ -14,6 +14,14 @@ class OperationalNotificationRepository:
     def get(self, identifier: uuid.UUID) -> OperationalNotification | None:
         return self.db.get(OperationalNotification, identifier)
 
+    def get_for_update(self, identifier: uuid.UUID) -> OperationalNotification:
+        return self.db.scalar(
+            select(OperationalNotification)
+            .where(OperationalNotification.id == identifier)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+
     def record(
         self,
         *,

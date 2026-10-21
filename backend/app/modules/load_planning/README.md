@@ -139,3 +139,11 @@ GET /{id}/continuity consulta interfaces públicas de carregamento/entrega e
 compatibilidade operacional, sem escrita ou exposição de viagem ao conferente.
 Contratos detalhados em docs/05-contratos-api.md. Sem alteração de schema,
 engine, snapshots, aprovação, histórico ou estados. Head permanece 20261009_0023.
+
+
+## OC90 — fluxo multi-caminhão
+
+`CONFIRMADO`: A OC90 libera planos atuais de partes/distribuições APPROVED sem limite de uma
+parte. Planos históricos permanecem bloqueados. A fronteira imutável pública
+projeta pedidos, identidades e partes necessárias por pedido; consumidores não
+importam tabelas privadas. Ver distributions.md e ADR-044 (proposta).
