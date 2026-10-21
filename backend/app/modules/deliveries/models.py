@@ -17,19 +17,19 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base
 
-TRIP_STATUS_VALUES = ("SCHEDULED", "IN_ROUTE", "FINISHED")
-DELIVERY_STATUS_VALUES = ("PENDING", "IN_DELIVERY", "DELIVERED")
+TRIP_STATUS_VALUES = ("SCHEDULED", "IN_ROUTE", "FINISHED", "CANCELED")
+DELIVERY_STATUS_VALUES = ("PENDING", "IN_DELIVERY", "DELIVERED", "CANCELED")
 
 
 class Trip(Base):
     __tablename__ = "trips"
     __table_args__ = (
         CheckConstraint(
-            "status IN ('SCHEDULED', 'IN_ROUTE', 'FINISHED')",
+            "status IN ('SCHEDULED', 'IN_ROUTE', 'FINISHED', 'CANCELED')",
             name="status_allowed",
         ),
         CheckConstraint(
-            "(status = 'SCHEDULED' AND started_at IS NULL AND finished_at IS NULL) "
+            "(status IN ('SCHEDULED', 'CANCELED') AND started_at IS NULL AND finished_at IS NULL) "
             "OR (status = 'IN_ROUTE' AND started_at IS NOT NULL "
             "AND finished_at IS NULL) "
             "OR (status = 'FINISHED' AND started_at IS NOT NULL "
@@ -69,18 +69,21 @@ class Delivery(Base):
     __table_args__ = (
         UniqueConstraint("trip_id", "order_id", name="uq_deliveries__trip_order"),
         UniqueConstraint("trip_id", "sequence", name="uq_deliveries__trip_sequence"),
-        UniqueConstraint(
-            "distribution_part_id", "order_id", name="uq_deliveries__part_order"
+        Index(
+            "uq_deliveries__part_order", "distribution_part_id", "order_id",
+            unique=True,
+            postgresql_where=text("distribution_part_id IS NOT NULL AND status <> 'CANCELED'"),
+            sqlite_where=text("distribution_part_id IS NOT NULL AND status <> 'CANCELED'"),
         ),
         Index(
             "uq_deliveries__legacy_order",
             "order_id",
             unique=True,
-            postgresql_where=text("distribution_part_id IS NULL"),
-            sqlite_where=text("distribution_part_id IS NULL"),
+            postgresql_where=text("distribution_part_id IS NULL AND status <> 'CANCELED'"),
+            sqlite_where=text("distribution_part_id IS NULL AND status <> 'CANCELED'"),
         ),
         CheckConstraint(
-            "status IN ('PENDING', 'IN_DELIVERY', 'DELIVERED')",
+            "status IN ('PENDING', 'IN_DELIVERY', 'DELIVERED', 'CANCELED')",
             name="status_allowed",
         ),
         CheckConstraint("sequence > 0", name="sequence_positive"),
