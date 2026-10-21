@@ -23,6 +23,11 @@ from app.modules.deliveries.exception_schemas import (
     DeliveryExceptionRead,
 )
 from app.modules.deliveries.exception_service import DeliveryExceptionService
+from app.modules.deliveries.interruption_service import (
+    TripInterruptionRead,
+    TripInterruptionRequest,
+    TripInterruptionService,
+)
 from app.modules.users.models import User
 
 router = APIRouter(tags=["deliveries"])
@@ -95,3 +100,46 @@ def cancel_scheduled_trip(
 ) -> TripCancellationRead:
     """Cancel atomically after revalidating the current physical state."""
     return TripCancellationService(db).cancel(trip_id, data, current_user=current_user)
+
+
+@router.get(
+    "/trips/{trip_id}/interruptions",
+    response_model=list[TripInterruptionRead],
+    responses=openapi_error_responses(401, 403, 404, 422, 500),
+)
+def get_trip_interruptions(
+    trip_id: uuid.UUID, current_user: Manager, db: Db
+) -> list[TripInterruptionRead]:
+    return TripInterruptionService(db).history_for(trip_id, user=current_user)
+
+
+@router.post(
+    "/trips/{trip_id}/interruptions",
+    response_model=TripInterruptionRead,
+    responses=openapi_error_responses(401, 403, 404, 409, 422, 500),
+)
+def interrupt_trip(
+    trip_id: uuid.UUID,
+    data: TripInterruptionRequest,
+    current_user: Manager,
+    db: Db,
+) -> TripInterruptionRead:
+    return TripInterruptionService(db).transition(
+        trip_id, data, user=current_user, action="INTERRUPTED"
+    )
+
+
+@router.post(
+    "/trips/{trip_id}/resumptions",
+    response_model=TripInterruptionRead,
+    responses=openapi_error_responses(401, 403, 404, 409, 422, 500),
+)
+def resume_trip(
+    trip_id: uuid.UUID,
+    data: TripInterruptionRequest,
+    current_user: Manager,
+    db: Db,
+) -> TripInterruptionRead:
+    return TripInterruptionService(db).transition(
+        trip_id, data, user=current_user, action="RESUMED"
+    )
