@@ -316,3 +316,33 @@ def test_oc94_concurrent_different_keys_have_one_winner(
     ]
     with session_factory() as db:
         assert db.scalar(select(func.count()).select_from(TripCancellation)) == 1
+
+
+def test_oc94_canceled_sibling_does_not_block_other_scheduled_trip(
+    client: TestClient, session_factory: SessionFactory
+) -> None:
+    from tests.integration.oc90_helpers import seed_multi_flow
+
+    s = seed_multi_flow(client, session_factory)
+    s.approve()
+    s.trips = [s.create_trip(0), s.create_trip(1)]
+    canceled = _cancel(
+        client,
+        s.trips[0]["id"],
+        s.headers,
+        reason="Reprogramacao do primeiro veiculo sem alterar o segundo",
+    )
+    assert canceled.status_code == 200, canceled.text
+    distribution = s.request("GET", f"/load-distributions/{s.distribution['id']}")
+    assert distribution["status"] == "INCOMPLETE"
+
+    # An approved sibling must remain operational even before replacement.
+    s.loadings = [None, s.create_loading(1)]
+    s.finish_loading(1)
+    active = s.trip_status(1, "IN_ROUTE")
+    assert active["status"] == "IN_ROUTE"
+    assert s.status() == "IN_TRANSIT"
+    assert (
+        s.request("GET", f"/trips/{s.trips[0]['id']}")["status"]
+        == "CANCELED"
+    )
