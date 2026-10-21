@@ -41,12 +41,11 @@ def assess_cancellation(
     if loading_status is not None:
         # A PENDING loading session already participates in truck reservation.
         blockers.append("LOADING_SESSION_EXISTS")
+    # Distribution-specific invariants are rechecked in the POST under locks.
     if not delivery_statuses or any(
         delivery_status != "PENDING" for delivery_status in delivery_statuses
     ):
         blockers.append("DELIVERY_ALREADY_STARTED_OR_MISSING")
-    if has_distribution_part:
-        blockers.append("MULTI_TRUCK_PART_REQUIRES_RECONCILIATION")
     return blockers
 
 
