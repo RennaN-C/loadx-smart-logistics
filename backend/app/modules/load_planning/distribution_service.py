@@ -394,6 +394,25 @@ class LoadDistributionService:
             )
         return plan
 
+    def _read_part(
+        self, part: LoadDistributionPart, distribution_id: uuid.UUID
+    ) -> DistributionPartRead:
+        plan = self.planning.get_load_plan(part.load_plan_id)
+        return DistributionPartRead(
+            id=part.id,
+            status=part.status,
+            truck=TruckSnapshotRead(
+                id=plan.truck_id,
+                plate=plan.truck_snapshot_plate,
+                model=plan.truck_snapshot_model,
+                width_cm=plan.truck_snapshot_internal_width_cm,
+                height_cm=plan.truck_snapshot_internal_height_cm,
+                length_cm=plan.truck_snapshot_internal_length_cm,
+                max_weight_kg=plan.truck_snapshot_max_weight_kg,
+            ),
+            load_plan=map_load_plan_read(plan, distribution_id=distribution_id),
+        )
+
     def get(self, identifier: uuid.UUID) -> DistributionRead:
         distribution = self._get(identifier)
         return DistributionRead(
@@ -407,13 +426,7 @@ class LoadDistributionService:
             truck_count=len(distribution.parts),
             volume_count=len(distribution.volumes),
             parts=[
-                DistributionPartRead(
-                    id=p.id,
-                    status=p.status,
-                    load_plan=map_load_plan_read(
-                        self.planning.get_load_plan(p.load_plan_id)
-                    ),
-                )
+                self._read_part(p, distribution.id)
                 for p in sorted(distribution.parts, key=lambda p: p.id.int)
             ],
             volumes=[

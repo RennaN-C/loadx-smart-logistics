@@ -1,0 +1,109 @@
+{
+  "results": [
+    {
+      "width": 375,
+      "theme": "light",
+      "list": {
+        "overflow": false,
+        "count": 1,
+        "theme": "light"
+      },
+      "detail": {
+        "overflow": false,
+        "focusedInside": true
+      }
+    },
+    {
+      "width": 768,
+      "theme": "light",
+      "list": {
+        "overflow": false,
+        "count": 1,
+        "theme": "light"
+      },
+      "detail": {
+        "overflow": false,
+        "focusedInside": true
+      }
+    },
+    {
+      "width": 1280,
+      "theme": "light",
+      "list": {
+        "overflow": false,
+        "count": 1,
+        "theme": "light"
+      },
+      "detail": {
+        "overflow": false,
+        "focusedInside": true
+      }
+    },
+    {
+      "width": 1920,
+      "theme": "light",
+      "list": {
+        "overflow": false,
+        "count": 1,
+        "theme": "light"
+      },
+      "detail": {
+        "overflow": false,
+        "focusedInside": true
+      }
+    },
+    {
+      "width": 375,
+      "theme": "dark",
+      "list": {
+        "overflow": false,
+        "count": 1,
+        "theme": "dark"
+      },
+      "detail": {
+        "overflow": false,
+        "focusedInside": true
+      }
+    },
+    {
+      "width": 768,
+      "theme": "dark",
+      "list": {
+        "overflow": false,
+        "count": 1,
+        "theme": "dark"
+      },
+      "detail": {
+        "overflow": false,
+        "focusedInside": true
+      }
+    },
+    {
+      "width": 1280,
+      "theme": "dark",
+      "list": {
+        "overflow": false,
+        "count": 1,
+        "theme": "dark"
+      },
+      "detail": {
+        "overflow": false,
+        "focusedInside": true
+      }
+    },
+    {
+      "width": 1920,
+      "theme": "dark",
+      "list": {
+        "overflow": false,
+        "count": 1,
+        "theme": "dark"
+      },
+      "detail": {
+        "overflow": false,
+        "focusedInside": true
+      }
+    }
+  ],
+  "runtimeErrors": []
+}

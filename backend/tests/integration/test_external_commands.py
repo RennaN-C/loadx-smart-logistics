@@ -30,11 +30,17 @@ from app.modules.external_commands.schemas import CommandName
 from app.modules.external_commands.service import ExternalCommandService
 from app.modules.load_planning.models import LoadPlan, LoadPlanOrder
 from app.modules.loading.reference_service import LoadingReferenceService
+from app.modules.notifications.models import (
+    NotificationRecipient,
+    OperationalNotification,
+)
+from app.modules.occurrences.models import Occurrence
 from app.modules.orders.models import Order, OrderItem
 from app.modules.products.models import Product
 from app.modules.status_history.models import StatusHistory
 from app.modules.trucks.models import Truck
 from app.modules.users.models import User
+from tests.integration.notification_helpers import clear_outbox_fixture
 from tests.unit.test_delivery_service import create_user, prepare_receipt_delivery
 from tests.unit.test_external_command_validation import KEY, NOW, command_body, sign
 
@@ -122,11 +128,27 @@ def scenario(postgres_engine: Engine) -> Generator[Scenario, None, None]:
         yield result
     finally:
         with factory() as db:
+            clear_outbox_fixture(db, result.trip_id)
+            db.execute(
+                delete(NotificationRecipient).where(
+                    NotificationRecipient.notification_id.in_(
+                        select(OperationalNotification.id).where(
+                            OperationalNotification.trip_id == result.trip_id
+                        )
+                    )
+                )
+            )
+            db.execute(
+                delete(OperationalNotification).where(
+                    OperationalNotification.trip_id == result.trip_id
+                )
+            )
             db.execute(
                 delete(ExternalCommand).where(
                     ExternalCommand.user_id.in_(actors.values())
                 )
             )
+            db.execute(delete(Occurrence).where(Occurrence.trip_id == result.trip_id))
             db.execute(
                 delete(StatusHistory).where(
                     StatusHistory.changed_by.in_(actors.values())

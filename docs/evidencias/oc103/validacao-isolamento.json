@@ -1,0 +1,20 @@
+{
+  "source": "PostgreSQL 16 isolado, dados fictícios, após leitura em lote pela conta ADMIN",
+  "inboxes": [
+    {
+      "role": "ADMIN",
+      "unread_count": 0,
+      "total": 9
+    },
+    {
+      "role": "DRIVER",
+      "unread_count": 9,
+      "total": 9
+    },
+    {
+      "role": "LOGISTICS_MANAGER",
+      "unread_count": 9,
+      "total": 9
+    }
+  ]
+}

@@ -70,3 +70,11 @@ vazio/loading/erro, remoção própria e confirmação para revogar todos. Ident
 usa UUID parcial; não inventa nome de hardware. Cookie HttpOnly é controlado
 pelo backend. Falhas mantêm a lista e oferecem nova consulta. Temas e layout
 responsivo usam tokens atuais; sessões e reautenticação sensível preservadas.
+
+
+## OC103 — preferências de notificações
+
+`CONFIRMADO`: Meu perfil incorpora NotificationPreferences, com persistência real
+por conta via /notifications/preferences. O link da central abre a seção por hash
+com foco visual preservado. Aparência, dados, senha e sessões mantêm contratos da
+OC92; nenhuma implementação da OC98 isolada é incorporada.

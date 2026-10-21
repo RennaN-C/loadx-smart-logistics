@@ -8,6 +8,7 @@ from app.modules.load_planning.distribution_models import (
     LoadDistribution,
     LoadDistributionOrder,
     LoadDistributionPart,
+    LoadDistributionVolume,
 )
 from app.modules.load_planning.models import LoadPlan
 
@@ -65,6 +66,31 @@ class LoadDistributionRepository:
             )
             is not None
         )
+
+    def order_parts(
+        self, part_id: uuid.UUID, order_id: uuid.UUID
+    ) -> tuple[uuid.UUID, tuple[uuid.UUID, ...]] | None:
+        distribution_id = self.db.scalar(
+            select(LoadDistributionPart.distribution_id).where(
+                LoadDistributionPart.id == part_id
+            )
+        )
+        if distribution_id is None:
+            return None
+        part_ids = tuple(
+            self.db.scalars(
+                select(LoadDistributionVolume.part_id)
+                .where(
+                    LoadDistributionVolume.distribution_id == distribution_id,
+                    LoadDistributionVolume.order_id == order_id,
+                )
+                .distinct()
+                .order_by(LoadDistributionVolume.part_id)
+            ).all()
+        )
+        if part_id not in part_ids:
+            return None
+        return distribution_id, part_ids
 
     def add(self, distribution: LoadDistribution) -> None:
         self.db.add(distribution)

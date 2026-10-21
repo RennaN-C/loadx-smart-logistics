@@ -297,7 +297,9 @@ def get_load_plan(
     forbidden = _ensure_read_access(load_plan, current_user)
     if forbidden is not None:
         return forbidden
-    return map_load_plan_read(load_plan)
+    return map_load_plan_read(
+        load_plan, distribution_id=service.get_distribution_id_for_plan(load_plan_id)
+    )
 
 
 @router.get(

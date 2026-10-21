@@ -1,6 +1,7 @@
 import uuid
 from collections.abc import Callable, Sequence
 
+from sqlalchemy import Select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -48,6 +49,23 @@ class UserService:
         self.auth_sessions = AuthSessionService(db)
         self.driver_service = DriverService(db)
         self.audit_service = AuditService(db)
+
+    def notification_recipient_ids(
+        self, codes: tuple[str, ...], driver_id: uuid.UUID
+    ) -> Select[tuple[uuid.UUID]]:
+        """Public scope: fixed/effective profile permissions or the active DRIVER identity."""
+        from app.modules.access_profiles.catalog import SYSTEM_PERMISSIONS
+        from app.modules.access_profiles.service import ProfileService
+
+        roles = [
+            role for role, grants in SYSTEM_PERMISSIONS.items() if set(codes) <= grants
+        ]
+        driver = self.driver_service.get_driver(driver_id)
+        return self.repository.notification_recipient_ids(
+            roles,
+            ProfileService(self.db).ids_with_permissions(codes),
+            driver_id if driver.active else None,
+        )
 
     def list_users(
         self,

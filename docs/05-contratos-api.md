@@ -996,17 +996,19 @@ Regras de autorização:
 
 Regras do contrato:
 
-- criação exige plano `APPROVED`, motorista ativo, pedidos do plano em
-  `PLANNED` e ainda sem entrega;
-- uma entrega é criada por pedido, com `sequence` contígua 1-based;
+- criação exige plano operacional `APPROVED`, motorista elegível e pedidos
+  `PLANNED`; partes de distribuição OC90 também aceitam `IN_TRANSIT`. Legado
+  exige pedido sem entrega; multi permite outra parte válida da mesma distribuição;
+- uma entrega é criada por pedido do plano/parte, com `sequence` contígua 1-based;
 - viagem aceita `SCHEDULED -> IN_ROUTE -> FINISHED`;
 - entrega aceita `PENDING -> IN_DELIVERY -> DELIVERED` somente durante
   `IN_ROUTE`;
 - repetir o status atual é idempotente e não cria novo histórico;
-- início exige carregamento finalizado e move todos os pedidos para
-  `IN_TRANSIT`;
-- conclusão de entrega move o pedido para `DELIVERED`; conclusão da viagem
-  exige todas as entregas e pedidos em `DELIVERED`;
+- início exige carregamento finalizado do mesmo plano e move somente pedidos
+  `PLANNED` para `IN_TRANSIT`, sem repetir transição de outra parte;
+- conclusão de entrega move o pedido para `DELIVERED` quando todas as suas
+  pernas necessárias concluíram (legado tem uma). Viagem multi exige somente
+  suas próprias entregas `DELIVERED`; legado exige também seus pedidos;
 - timestamps de início, entrega e fim são retornados em UTC.
 
 Erros específicos:
@@ -1065,8 +1067,8 @@ Não há referência de evidências, sequer URL mock ou alegação de upload.
 `GET` admite os três perfis. `CHECKER` é negado. Sessão em cookie é obrigatória;
 `POST` exige Origin aprovada e CSRF. Autorização por objeto ocorre antes de
 verificar estado/histórico. A primeira conclusão exige `IN_DELIVERY` e viagem
-`IN_ROUTE`, move somente seu pedido para `DELIVERED` e compartilha commit com
-os históricos. Repetição autorizada retorna o mesmo `id`, horários e responsável,
+`IN_ROUTE`, conclui a própria perna e move o pedido para `DELIVERED` somente
+quando todas as partes necessárias concluíram; compartilha commit com os históricos. Repetição autorizada retorna o mesmo `id`, horários e responsável,
 sem novo histórico, inclusive após `FINISHED`.
 
 | Status | Código | Condição |
@@ -1165,19 +1167,23 @@ Resposta recomendada:
 e o `TripService` validar permissão e estado. Nenhuma regra de viagem ou entrega
 é duplicada no módulo de mensagens.
 
-### Notificações automáticas
+### Notificações automáticas — OC84
 
-`CONFIRMADO`: não existe endpoint público específico para notificações. Uma
-transição efetiva `SCHEDULED -> IN_ROUTE` realizada por
-`PATCH /trips/{id}/status` e um `POST /occurrences` concluído disparam mensagem
-determinística para o telefone do motorista da viagem por
-`MockWhatsAppProvider`.
+`CONFIRMADO`: não há endpoint público novo. Permissões, autorização por viagem,
+401/403, Origin e CSRF continuam nos endpoints existentes. GET não cria notificações.
+Os eventos reais de início de viagem e ocorrência geram registros duráveis,
+idempotentes por tipo/origem/motorista; saída WhatsApp é exclusivamente mock.
 
-`CONFIRMADO`: mensagens automáticas são best-effort e posteriores ao commit.
-Falha do mock não muda a resposta nem reverte a operação confirmada. Transição
-rejeitada e repetição idempotente não disparam mensagem. Comandos recebidos pelo
-simulador mantêm sua confirmação explícita e não recebem um segundo aviso
-automático para o mesmo fato.
+`CONFIRMADO`: o registro é atômico com o fato. Claim persistente posterior ao commit
+externo autoriza no máximo uma tentativa local; falha do mock não desfaz domínio.
+OC79/OC83 respeitam savepoints e replay. SIMULATED não equivale a envio ou entrega
+externa. O simulador preserva sua confirmação sem segundo aviso automático.
+Consulta interna do service não altera estado nem inicia tentativas.
+
+`CONFIRMADO`: schema/estados em docs/03 e ADR-041. OC103 definirá central/leitura,
+preferências e acesso por destinatário; OC109 definirá recuperação de pendências,
+worker/retries. Nenhuma dessas APIs foi antecipada nesta OC84.
+
 
 ## Auditoria — OC97
 
@@ -1256,10 +1262,12 @@ Mapeamento recomendado:
 ## Segurança de API
 
 - Somente `GET /health`, `GET /ready` e `POST /api/v1/auth/login` são públicos.
-- Todos os demais endpoints de negócio exigem o cookie de sessão e aplicam a
-  matriz de `docs/04-regras-negocio.md`.
-- `POST`, `PUT`, `PATCH` e `DELETE` exigem `Origin` presente na lista exata de
-  CORS. Operações autenticadas nesses métodos também exigem `X-CSRF-Token`.
+- Endpoints de negócio da interface exigem cookie de sessão e a matriz de
+  `docs/04-regras-negocio.md`. O POST exato `/api/v1/webhooks/controlled-events`
+  exige assinatura HMAC e autorização OC79, sem cookie; não é público/anônimo.
+- Nas rotas de sessão, `POST`, `PUT`, `PATCH` e `DELETE` exigem `Origin` na lista
+  exata de CORS e operações autenticadas exigem `X-CSRF-Token`. Apenas o POST
+  assinado da OC83 usa autenticação de emissor em lugar dessas proteções de navegador.
 - `CONFIRMADO`: com `APP_ENV=local`, `/docs`, `/docs/oauth2-redirect`, `/redoc` e `/openapi.json` ficam disponíveis. Com `APP_ENV=production` ou sem a variável, essas rotas não são registradas e retornam `404`.
 - Senhas nunca retornam na API.
 - Tokens e segredos nunca aparecem em logs.
@@ -1288,9 +1296,10 @@ Contrato, catálogo fechado, erros e consumo pelas OCs seguintes estão em
 [external_commands/README](../backend/app/modules/external_commands/README.md)
 e na proposta [ADR-026](decisions/ADR-026-seguranca-comandos-externos.md).
 
-`PENDENTE DE DEFINIÇÃO`: assinatura e composição específicas de fornecedor,
-webhook HTTP e bindings reais serão definidos em OC82/OC83 antes de habilitar
-integração externa. Sessão/Origin/CSRF e RBAC das rotas atuais permanecem vigentes.
+`CONFIRMADO`: OC83 compõe HMAC, bindings confiáveis e recebimento HTTP controlado
+em [messages/inbound](../backend/app/modules/messages/inbound.md). OC82 mantém
+WhatsApp mock. `PENDENTE DE DEFINIÇÃO`: autenticação/formato Meta específico
+permanece na pré-produção (#193); sessão/Origin/CSRF e RBAC da interface são preservados.
 
 ## OC105 — cadastros ativos e arquivados
 
@@ -1538,3 +1547,85 @@ Auditoria ADMIN admite filtros ACCESS_PROFILE e PROFILE_CREATED/PROFILE_UPDATED.
 Esses eventos permanecem ocultos ao gerente antes de paginação; escopo legado de
 usuários do gerente não é ampliado. ADR-040 substitui o RBAC exclusivamente fixo
 onde a ação foi migrada. OC98/tenant/CoreFlow não são incorporados.
+
+## Webhook controlado — OC83
+
+`CONFIRMADO`: `POST /api/v1/webhooks/controlled-events`, assinatura HMAC dos bytes
+originais no header `X-LoadX-Signature`, sem sessão/cookie. Reutiliza envelope v1,
+capabilities, bindings e idempotência PostgreSQL da OC79. Contrato HTTP, erros,
+limites, configuração opt-in e mídia desabilitada em
+[messages/inbound](../backend/app/modules/messages/inbound.md).
+Somente este POST exato usa assinatura em lugar de Origin/CSRF; demais rotas
+preservam as proteções da interface. WhatsApp continua exclusivamente mock.
+
+### OC89 — vínculos de recuperação e caminhão histórico
+
+`CONFIRMADO`: respostas de `GET /load-plans` e `GET /load-plans/{id}` incluem
+`distribution_id: UUID | null`, inclusive para versões reprocessadas. Resumos
+continuam paginados, sem itens; filtro/ordenação/RBAC não mudam.
+`DistributionPartRead` inclui `truck: TruckSnapshotRead` do plano persistido
+(placa, modelo, dimensões em cm e capacidade em kg). Não consulta cadastro atual
+para reconstruir o histórico. Estes campos aditivos não exigem migration.
+
+## OC103 — notificações pessoais (sessão obrigatória)
+
+`CONFIRMADO`: prefixo `/api/v1/notifications`, sem parâmetro de destinatário.
+Todos os perfis autenticados acessam a própria caixa; eventos exigem permissão
+real e vínculo atual. ADMIN não consulta caixa alheia. CSRF/Origin nas mutações.
+
+| Método | Caminho | Contrato |
+|---|---|---|
+| GET | /notifications | PageResponse + unread_count global no mesmo snapshot; page/page_size/sort_order, event_type, category e read opcionais |
+| GET | /notifications/unread-count | unread_count visível da sessão |
+| POST | /notifications/read-all | updated; leitura idempotente das notificações visíveis |
+| POST | /notifications/{id}/read | read_at da primeira leitura; 404 fora da caixa/escopo |
+| GET | /notifications/{id}/source | href relativo da viagem, após autorização atual da origem; 404 fora do escopo |
+| GET | /notifications/preferences | items: category, enabled, mandatory |
+| PUT | /notifications/preferences | items (1–3 categorias únicas); SECURITY false é 422; extras recusados |
+
+Projeção: id, event_type, category, title, summary, created_at (fato), received_at,
+read_at. Sem dados do canal/telefone/conteúdo original. Preferência não remove
+notificações anteriores nem cria associações retroativas. Erros: 401 sessão,
+403 CSRF/Origin, 404 NOTIFICATION_NOT_FOUND, 422 contrato. GETs não gravam nem
+simulam envio. Categorias aprovadas: TRIPS/OCCURRENCES; SECURITY é política
+obrigatória, sem eventos artificiais. Eventos/alertas futuros exigem contrato próprio.
+
+## OC109 — administração da fila
+
+`CONFIRMADO`: ADMIN autenticado; CSRF/Origin nos comandos. GET /api/v1/outbox-events
+com paginação padrão, sort_order, status/event_type; GET /outbox-events/summary;
+GET /outbox-events/{id} inclui tentativas; GET /outbox-events/{id}/source revalida
+viagem e retorna href; POST /outbox-events/{id}/retry recebe {command_id: UUID},
+retorna estado atual. Replay não reinicia fila; reutilização em outra origem 409.
+401/403, 404 fora da origem, 409 evento inelegível, 422 contrato. Sem payloads
+privados, sem publicação HTTP arbitrária.
+
+`CONFIRMADO` (OC109): /audit admite filtros OUTBOX_EVENT/OUTBOX_REPROCESSED;
+somente ADMIN pode consultá-los. Consultas gerais de outros perfis também
+excluem essas intervenções administrativas.
+
+
+## OC90 — operação por parte física
+
+`CONFIRMADO`: endpoints existentes de loading-sessions, trips, deliveries,
+receipts e reports operam partes APPROVED de distribuições APPROVED usando
+somente seu load_plan atual. Nenhum endpoint novo ou parâmetro de escrita para
+atribuir parte. TripCreate mantém load_plan_id/driver_id; o servidor resolve a
+parte. Versões históricas e partes não aprovadas continuam recusadas.
+
+`CONFIRMADO`: DeliveryRead acrescenta `distribution_part_id: UUID | null` (null
+para legado). O campo é somente de saída. Uma entrega por parte/pedido, com
+comprovante independente e contrato DeliveryReceiptRead inalterado. Início da
+primeira perna muda Order para IN_TRANSIT; somente conclusão de todas as partes
+que transportam esse pedido permite DELIVERED. Trip multi finaliza pelas suas
+próprias entregas. Repetições preservam o histórico; POST Trip duplicado continua
+409 TRIP_LOAD_PLAN_ALREADY_ASSIGNED. Demais erros/permissões OC112 e regras de
+vínculo de motorista permanecem vigentes.
+
+`CONFIRMADO`: GET /reports/load-plans/{id} e GET /reports/trips/{id} continuam PDF
+somente leitura. Para distribuição, incluem distribution_id/part_id, plano,
+caminhão e quantidade/identidades `(order_item_id, volume_index)` da parte.
+Relatório de viagem inclui também trip_id. Não mistura volumes nem recalcula.
+GET /audit admite também filtros entity_type=LOAD_DISTRIBUTION e
+LOAD_DISTRIBUTION_PART com a mesma permissão reservada de leitura da auditoria.
+Nenhum dado pessoal adicional foi incorporado aos schemas ou logs.

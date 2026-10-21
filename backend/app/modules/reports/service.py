@@ -16,6 +16,7 @@ from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, Tabl
 from sqlalchemy.orm import Session
 
 from app.modules.deliveries.service import TripService
+from app.modules.load_planning.reference_service import LoadPlanReferenceService
 from app.modules.load_planning.service import LoadPlanningService
 from app.modules.loading.reference_service import LoadingReferenceService
 from app.modules.occurrences.service import OccurrenceService
@@ -29,6 +30,7 @@ class ReportLoadingNotFoundError(Exception):
 class ReportService:
     def __init__(self, db: Session) -> None:
         self.load_planning_service = LoadPlanningService(db)
+        self.load_plan_reference_service = LoadPlanReferenceService(db)
         self.loading_reference_service = LoadingReferenceService(db)
         self.trip_service = TripService(db)
         self.occurrence_service = OccurrenceService(db)
@@ -45,7 +47,7 @@ class ReportService:
             (
                 item.loading_sequence or "-",
                 item.product_snapshot_code,
-                f"{item.product_snapshot_name} #{item.volume_index}",
+                f"{item.product_snapshot_name} ({item.order_item_id}, {item.volume_index})",
                 checked_by_item.get(item.id, "PENDING"),
             )
             for item in sorted(
@@ -63,6 +65,7 @@ class ReportService:
             ("Início", self._format_datetime(loading.started_at)),
             ("Fim", self._format_datetime(loading.finished_at)),
         )
+        metadata += tuple(self._distribution_metadata(plan.id))
         return self._build_pdf(
             "Relatório de carregamento",
             metadata,
@@ -95,11 +98,20 @@ class ReportService:
         ] or [("-", "Nenhuma ocorrência", "-")]
         metadata = (
             ("Viagem", str(trip.id)),
+            ("Plano", str(plan.id)),
             ("Caminhão", f"{plan.truck_snapshot_plate} - {plan.truck_snapshot_model}"),
             ("Status", trip.status),
             ("Início", self._format_datetime(trip.started_at)),
             ("Fim", self._format_datetime(trip.finished_at)),
         )
+        metadata += tuple(self._distribution_metadata(plan.id))
+        volume_rows = [
+            (str(item.order_item_id), item.volume_index, str(item.order_id))
+            for item in sorted(
+                plan.items, key=lambda item: (item.order_item_id.int, item.volume_index)
+            )
+            if item.placed
+        ]
         return self._build_pdf(
             "Relatório de viagem",
             metadata,
@@ -108,7 +120,20 @@ class ReportService:
             secondary_title="Ocorrências",
             secondary_headers=("Tipo", "Descrição", "Data"),
             secondary_rows=occurrence_rows,
+            volume_rows=volume_rows,
         )
+
+    def _distribution_metadata(self, load_plan_id: uuid.UUID) -> list[tuple[str, str]]:
+        part = self.load_plan_reference_service.get_distribution_part_for_plan(
+            load_plan_id
+        )
+        if part is None:
+            return []
+        return [
+            ("Distribuição", str(part.distribution_id)),
+            ("Parte", str(part.part_id)),
+            ("Volumes da parte", str(len(part.volumes))),
+        ]
 
     @staticmethod
     def _build_pdf(
@@ -120,6 +145,7 @@ class ReportService:
         secondary_title: str | None = None,
         secondary_headers: tuple[str, ...] = (),
         secondary_rows: Iterable[tuple[object, ...]] = (),
+        volume_rows: Iterable[tuple[object, ...]] = (),
     ) -> bytes:
         stream = BytesIO()
         document = SimpleDocTemplate(
@@ -153,6 +179,16 @@ class ReportService:
                     Spacer(1, 7 * mm),
                     Paragraph(escape(secondary_title), styles["Heading2"]),
                     ReportService._table(secondary_headers, secondary_rows),
+                )
+            )
+        if volume_rows:
+            story.extend(
+                (
+                    Spacer(1, 7 * mm),
+                    Paragraph("Volumes transportados", styles["Heading2"]),
+                    ReportService._table(
+                        ("Item do pedido", "Índice do volume", "Pedido"), volume_rows
+                    ),
                 )
             )
         document.build(story)

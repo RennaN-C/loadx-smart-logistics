@@ -501,9 +501,7 @@ def test_busy_truck_preserves_operational_conflict_rule(distribution_scenario):
 
 
 @pytest.mark.parametrize("parts", [1, 2])
-def test_operational_port_preserves_single_truck_and_gates_split_orders(
-    distribution_scenario, parts
-):
+def test_operational_port_releases_current_approved_parts(distribution_scenario, parts):
     s = distribution_scenario
     result = s.create(parts)
     part = result["parts"][0]
@@ -512,7 +510,7 @@ def test_operational_port_preserves_single_truck_and_gates_split_orders(
     assert s.client.post(path, json=body, headers=s.user.headers).status_code == 409
     s.post(f"/{result['id']}/approve")
     response = s.client.post(path, json=body, headers=s.user.headers)
-    assert response.status_code == (201 if parts == 1 else 409), response.text
+    assert response.status_code == 201, response.text
 
 
 @pytest.mark.parametrize("role", ["CHECKER", "DRIVER"])
@@ -937,3 +935,60 @@ def test_oc88_insufficient_fleet_is_explainable_and_does_not_persist_partial_pla
         )
 
     assert s.order_status() == "READY"
+
+
+def test_recovery_exposes_distribution_and_historical_truck(distribution_scenario):
+    scenario = distribution_scenario
+    result = scenario.create()
+    identifier = result["id"]
+    for part in result["parts"]:
+        plan = part["load_plan"]
+        assert plan["distribution_id"] == identifier
+        assert part["truck"]["id"] == plan["truck_id"]
+        assert part["truck"]["width_cm"] == 30
+        with scenario.factory() as db:
+            truck = db.get(Truck, uuid.UUID(plan["truck_id"]))
+            truck.model = "Cadastro alterado depois do calculo"
+            db.commit()
+    recovered = scenario.client.get(
+        f"/api/v1/load-distributions/{identifier}", headers=scenario.user.headers
+    )
+    assert recovered.status_code == 200
+    assert all(
+        p["truck"]["model"] != "Cadastro alterado depois do calculo"
+        for p in recovered.json()["parts"]
+    )
+    page = scenario.client.get("/api/v1/load-plans", headers=scenario.user.headers)
+    assert page.status_code == 200
+    rows = page.json()["items"]
+    assert len(rows) == 2
+    assert all(row["distribution_id"] == identifier for row in rows)
+    assert all("items" not in row for row in rows)
+    detail = scenario.client.get(
+        f"/api/v1/load-plans/{result['parts'][0]['load_plan']['id']}",
+        headers=scenario.user.headers,
+    )
+    assert detail.json()["distribution_id"] == identifier
+
+
+def test_recovery_keeps_link_after_part_reprocess(distribution_scenario):
+    scenario = distribution_scenario
+    result = scenario.create()
+    part = result["parts"][0]
+    path = f"/{result['id']}/parts/{part['id']}"
+    assert scenario.post(path + "/cancel").status_code == 200
+    response = scenario.post(
+        path + "/reprocess",
+        {
+            "truck_id": part["load_plan"]["truck_id"],
+            "expected_load_plan_id": part["load_plan"]["id"],
+        },
+    )
+    assert response.status_code == 200, response.text
+    page = scenario.client.get("/api/v1/load-plans", headers=scenario.user.headers)
+    assert len(page.json()["items"]) == 3
+    assert all(row["distribution_id"] == result["id"] for row in page.json()["items"])
+    old = scenario.client.get(
+        f"/api/v1/load-plans/{part['load_plan']['id']}", headers=scenario.user.headers
+    )
+    assert old.json()["distribution_id"] == result["id"]

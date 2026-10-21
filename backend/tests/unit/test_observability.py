@@ -17,7 +17,7 @@ from app.core.observability import (
 )
 from app.database.readiness import ReadinessCheckError, ReadinessFailureReason
 from app.main import create_app, get_readiness_checker
-from app.modules.notifications.service import OperationalNotificationService
+from app.modules.notifications.sender import MockNotificationSender
 
 
 def _events(caplog):
@@ -132,7 +132,7 @@ def test_notification_failure_never_logs_provider_payload(caplog):
         def send_response(self, message):
             raise RuntimeError("phone=private-phone token=secret-provider")
 
-    service = OperationalNotificationService(FailingProvider())
+    service = MockNotificationSender(FailingProvider())
     with caplog.at_level(logging.WARNING, logger="loadx.operations"):
         assert not service.notify_trip_started(
             recipient_phone="private-phone", trip_id=uuid.uuid4()

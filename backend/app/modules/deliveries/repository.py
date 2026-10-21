@@ -2,7 +2,7 @@ import uuid
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from sqlalchemy import String, asc, cast, desc, func, select
+from sqlalchemy import Select, String, asc, cast, desc, func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.pagination import PageResult, PaginationParams
@@ -19,6 +19,9 @@ class TripListItem:
 class TripRepository:
     def __init__(self, db: Session) -> None:
         self.db = db
+
+    def ids_for_driver(self, driver_id: uuid.UUID) -> Select[tuple[uuid.UUID]]:
+        return select(Trip.id).where(Trip.driver_id == driver_id)
 
     def get(self, trip_id: uuid.UUID) -> Trip | None:
         statement = (
@@ -112,6 +115,7 @@ class TripRepository:
             .where(Delivery.trip_id == trip_id)
             .order_by(Delivery.id.asc())
             .with_for_update()
+            .execution_options(populate_existing=True)
         )
         return self.db.scalars(statement).all()
 
@@ -134,12 +138,31 @@ class TripRepository:
     def assigned_order_ids(
         self,
         order_ids: Sequence[uuid.UUID],
+        *,
+        allowed_other_part_ids: Sequence[uuid.UUID] = (),
     ) -> frozenset[uuid.UUID]:
         identifiers = tuple(order_ids)
         if not identifiers:
             return frozenset()
         statement = select(Delivery.order_id).where(Delivery.order_id.in_(identifiers))
+        if allowed_other_part_ids:
+            statement = statement.where(
+                Delivery.distribution_part_id.is_(None)
+                | Delivery.distribution_part_id.not_in(allowed_other_part_ids)
+            )
         return frozenset(self.db.scalars(statement).all())
+
+    def delivered_part_ids(self, order_id: uuid.UUID) -> frozenset[uuid.UUID]:
+        # Scalar query after the Order lock: never reuse stale ORM leg snapshots.
+        return frozenset(
+            self.db.scalars(
+                select(Delivery.distribution_part_id).where(
+                    Delivery.order_id == order_id,
+                    Delivery.distribution_part_id.is_not(None),
+                    Delivery.status == "DELIVERED",
+                )
+            ).all()
+        )
 
     def add(self, trip: Trip) -> Trip:
         self.db.add(trip)

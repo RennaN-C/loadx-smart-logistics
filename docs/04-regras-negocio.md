@@ -1,5 +1,33 @@
 # Regras de negócio
 
+## OC84 — notificações operacionais persistentes
+
+`CONFIRMADO`: a revisão de Rennan na PR #226 aprovou a direção estrutural.
+[ADR-041](decisions/ADR-041-notificacoes-operacionais-duraveis.md) define a
+implementação: somente TRIP_STARTED (SCHEDULED → IN_ROUTE efetivo) e
+OCCURRENCE_REGISTERED (UUID real da ocorrência), com motorista da mesma viagem.
+Fato/histórico/notificação são persistidos na mesma transação; falha do registro
+faz rollback de todos. Repetir status não gera evento; duas ocorrências com UUIDs
+distintos são fatos diferentes, não deduplicados por texto ou horário.
+
+`CONFIRMADO`: unicidade PostgreSQL protege tipo/origem/motorista; a origem e o
+destinatário são validados por services públicos e triggers. O registro interno
+não depende de envio. mock_status distingue NOT_ATTEMPTED, ATTEMPT_CLAIMED,
+SIMULATED, FAILED e NO_RECIPIENT. Claim condicional é confirmado antes do mock;
+resultado/falha/ausência de destino não desfazem o domínio já durável.
+
+Session ligada à Connection/savepoint não autoriza saída. A OC79 transfere hints
+ao dono da transação, que despacha após o commit externo; replay não repete o efeito.
+Binding/atividade/telefone são relidos, sem redirecionar a outro motorista. O
+simulador conserva seu aviso explícito, sem notificação automática duplicada.
+Não altera RBAC, contratos HTTP, OC83 ou a fronteira operacional da OC89/OC90.
+
+`RISCO IDENTIFICADO`: crash antes do claim mantém NOT_ATTEMPTED; após claim ou
+resultado incerto mantém ATTEMPT_CLAIMED, nunca sucesso presumido. Sem retry,
+worker, varredura ou exactly-once. OC109 tratará recuperação; OC103, central e
+preferências. WhatsApp continua exclusivamente mock; não há envio/entrega Meta.
+
+
 ## Unidades
 
 - `CONFIRMADO`: dimensões em centímetros.
@@ -497,19 +525,22 @@ Desenvolvedor 4.
 ## Viagem e entrega
 
 - `CONFIRMADO`: viagem nasce `SCHEDULED` a partir de plano `APPROVED`, motorista
-  ativo e todos os pedidos do plano em `PLANNED`.
+  elegível e pedidos `PLANNED`; partes operacionais OC90 também aceitam `IN_TRANSIT`.
 - `CONFIRMADO`: cada plano pertence a no máximo uma viagem e cada pedido a no
-  máximo uma entrega no MVP.
+  máximo uma entrega legada, ou uma por parte/pedido na OC90.
 - `CONFIRMADO`: viagem só começa quando a interface pública do carregamento
   confirmar sessão `FINISHED` para o mesmo plano; qualquer ausência ou
   divergência falha fechada e bloqueia `IN_ROUTE`.
 - `CONFIRMADO`: iniciar a viagem executa `SCHEDULED -> IN_ROUTE`, registra
-  `started_at` e move atomicamente todos os pedidos `PLANNED -> IN_TRANSIT`.
+  `started_at` e move atomicamente pedidos `PLANNED -> IN_TRANSIT`. Pedidos já
+  em trânsito por outra parte permanecem assim, sem repetir histórico.
 - `CONFIRMADO`: finalizar executa `IN_ROUTE -> FINISHED` e registra
-  `finished_at` somente quando todas as entregas e pedidos estão `DELIVERED`.
+  `finished_at` quando todas as suas entregas estão `DELIVERED`. No legado,
+  também exige pedidos `DELIVERED`; multi independe de outra viagem.
 - `CONFIRMADO`: entrega executa apenas `PENDING -> IN_DELIVERY -> DELIVERED`
   durante uma viagem `IN_ROUTE`; a conclusão registra `delivered_at` e move o
-  pedido correspondente `IN_TRANSIT -> DELIVERED`.
+  pedido correspondente `IN_TRANSIT -> DELIVERED` no legado; multi aguarda
+  todas as partes que contêm volumes daquele pedido.
 - `CONFIRMADO`: repetir o status atual é idempotente e não cria histórico.
 - `CONFIRMADO` (v1.2.0): `ADMIN` e `LOGISTICS_MANAGER` criam e operam; `DRIVER`
   consulta e opera somente a própria viagem, com vínculo validado; `CHECKER` não acessa.
@@ -798,3 +829,53 @@ herda acesso do gerente; poderes reservados/identidade não são delegáveis. AD
 é superconjunto gerencial dentro do LoadX, preservando estados, vínculos e ator
 real. Nenhum entitlement, tenant ou SUPERADMIN é criado. Demais invariantes e
 proteção do último administrador continuam aplicáveis.
+
+## Recepção HTTP controlada — OC83
+
+`CONFIRMADO`: somente comandos já aprovados da OC79 alcançam os services de
+viagens/entregas. Assinatura, binding do servidor, capabilities e autorização por
+objeto são obrigatórios. Reenvio válido não repete efeito/histórico; conflito ou
+falha não deixa alteração parcial. Mídia inbound permanece desabilitada, sem
+comando novo, download externo ou IO de storage na transação da OC79.
+
+## OC103 — central pessoal de notificações
+
+`CONFIRMADO`: ADR-042 define destinatários por conta/permissão efetiva e vínculo
+DRIVER. ADMIN não personifica outro destinatário. Revogação de acesso à origem
+oculta a notificação sem apagar histórico. Leitura é individual e idempotente;
+marcar todas afeta somente a caixa visível da sessão naquele snapshot.
+Preferências TRIPS/OCCURRENCES afetam somente novas associações; SECURITY é
+obrigatória, sem criar evento novo. Não há alertas de documento/manutenção até
+contrato do módulo dono; regras e elegibilidade existentes não são duplicadas.
+
+## OC109
+
+`CONFIRMADO`: ADR-043 define lease/fencing, resultado incerto sem retry automático,
+backoff limitado, adoção de tentativas OC84 sem reenvio e reprocessamento ADMIN
+idempotente/auditado. Caixa OC103 é independente do canal exclusivamente mock.
+
+
+## OC90 — continuidade operacional multi-caminhão
+
+`CONFIRMADO`: somente distribuição APPROVED, parte APPROVED e plano atual
+liberam carregamento/viagem, qualquer que seja a quantidade de partes. Versão
+histórica continua bloqueada. Cada parte opera somente seus volumes originais.
+O primeiro início muda o pedido PLANNED → IN_TRANSIT uma vez. Outros inícios
+aceitam IN_TRANSIT e não repetem histórico. A entrega representa uma perna;
+somente todas as partes que contêm volumes daquele pedido permitem DELIVERED.
+Partes ainda sem entrega também impedem conclusão agregada. Locks por pedido e
+consulta persistida após o lock serializam conclusões concorrentes.
+
+`CONFIRMADO`: viagem multi pode FINISHED com suas próprias entregas concluídas,
+mesmo com outra perna pendente e pedido IN_TRANSIT. Falha/rollback em uma parte
+não altera outra. Loading create e repetição de estado/comprovante preservam
+idempotência; criar novamente Trip mantém TRIP_LOAD_PLAN_ALREADY_ASSIGNED.
+Legado sem distribuição conserva unicidade de entrega e semântica anterior.
+Decisão estrutural proposta: ADR-044. OC94 e UI OC89 permanecem fora do escopo.
+
+`CONFIRMADO` (OC90): desde a primeira LoadingSession persistida (ou Trip,
+defensivamente), plano, caminhão/snapshots/métricas e pedidos/volumes/posições do
+plano permanecem imutáveis no PostgreSQL, inclusive no legado. UPDATE sem mudança
+é permitido. Antes desse marco, criação, aprovação e reprocessamento continuam
+sob as regras anteriores. Contenção com criação operacional exige retry da
+mutação direta; não autoriza alterar uma fotografia já operada. Ver ADR-044.

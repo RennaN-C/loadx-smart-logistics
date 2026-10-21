@@ -111,7 +111,7 @@ Tokens usam SHA-256 e alta entropia; códigos TOTP não são persistidos. Segred
 TOTP é cifrado com Fernet; `cryptography` é a única dependência nova, justificada
 pela criptografia autenticada. RFC 6238 testada com vetores oficiais. A mesma
 ordem de locks de OC92 serializa consumo/replay/revogação. Falha de auditoria
-reverte hash, token, fator e sessão. Migration 20261018_0025 sucede 20261016_0024 (OC112) e revoga
+reverte hash, token, fator e sessão. Migration 20261021_0029 sucede 20261020_0028 (OC90) e revoga
 sessões sensíveis anteriores; downgrade bloqueia dados OC98, sem apagá-los.
 
 ### Configuração de produção
@@ -224,7 +224,7 @@ aprovada. Não há fila durável/reenvio automático nesta OC.
 ### Dispositivos confiáveis — Issue #222
 
 `CONFIRMADO`: ADR-038 define confiança opcional por 30 dias sem prolongar sessão.
-Aplicar migration `20261019_0026` (anterior `20261018_0025`) e configurar
+Aplicar migration `20261021_0030` (anterior `20261021_0029`) e configurar
 `TRUSTED_DEVICES_ENABLED=true` somente no ambiente aprovado. Padrão false;
 `TRUSTED_DEVICE_DAYS=30`, aceitos 1–30. Não alterar chave MFA existente.
 

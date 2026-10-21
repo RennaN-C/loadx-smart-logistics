@@ -18,6 +18,8 @@ router = APIRouter(prefix="/audit", tags=["audit"])
 
 AuditReader = Annotated[User, Depends(require_permission("loadx.audit.read"))]
 AuditEntityType = Literal[
+    "LOAD_DISTRIBUTION",
+    "LOAD_DISTRIBUTION_PART",
     "ORDER",
     "LOAD_PLAN",
     "TRIP",
@@ -25,9 +27,11 @@ AuditEntityType = Literal[
     "USER",
     "COMPANY_PROFILE",
     "ACCESS_PROFILE",
+    "OUTBOX_EVENT",
 ]
 AuditEventType = Literal[
     "STATUS_CHANGED",
+    "OUTBOX_REPROCESSED",
     "PROFILE_CREATED",
     "PROFILE_UPDATED",
     "USER_CREATED",
@@ -58,9 +62,10 @@ def list_audit_entries(
     end_at: Annotated[datetime | None, Query()] = None,
 ) -> PageResponse[AuditEntryRead] | JSONResponse:
     if current_user.role != "ADMIN" and (
-        entity_type in {"COMPANY_PROFILE", "ACCESS_PROFILE"}
+        entity_type in {"COMPANY_PROFILE", "ACCESS_PROFILE", "OUTBOX_EVENT"}
         or event_type
         in {
+            "OUTBOX_REPROCESSED",
             "COMPANY_PROFILE_CREATED",
             "COMPANY_PROFILE_UPDATED",
             "PROFILE_CREATED",

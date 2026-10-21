@@ -508,7 +508,7 @@ def test_trusted_data_blocks_downgrade_without_deleting_identity(session_factory
     issued = trust(session_factory, user, secret)
     with session_factory() as db:
         migration = import_module(
-            "migrations.versions.20261019_0026_auth_trusted_devices"
+            "migrations.versions.20261021_0030_auth_trusted_devices"
         )
         with (
             Operations.context(MigrationContext.configure(db.connection())),

@@ -1,7 +1,7 @@
 """auth_trusted_devices
 
-Revision ID: 20261019_0026
-Revises: 20261018_0025
+Revision ID: 20261021_0030
+Revises: 20261021_0029
 Create Date: 2026-10-19 19:48:05.371287
 """
 
@@ -10,8 +10,8 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "20261019_0026"
-down_revision: str | None = "20261018_0025"
+revision: str = "20261021_0030"
+down_revision: str | None = "20261021_0029"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

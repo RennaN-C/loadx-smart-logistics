@@ -63,6 +63,27 @@ def db_session(request: pytest.FixtureRequest) -> Generator[Session, None, None]
 
     for table in tables:
         table.create(engine, checkfirst=True)
+    if any(table.name == "trips" for table in tables):
+        from app.modules.access_profiles.models import (
+            PermissionReference,
+            ProfilePermission,
+        )
+        from app.modules.notifications.models import (
+            NotificationPreference,
+            NotificationRecipient,
+            OperationalNotification,
+        )
+        from app.modules.occurrences.models import Occurrence
+
+        Occurrence.__table__.create(engine, checkfirst=True)
+        OperationalNotification.__table__.create(engine, checkfirst=True)
+        from app.modules.notifications.outbox_models import OutboxEvent
+
+        OutboxEvent.__table__.create(engine, checkfirst=True)
+        NotificationRecipient.__table__.create(engine, checkfirst=True)
+        NotificationPreference.__table__.create(engine, checkfirst=True)
+        PermissionReference.__table__.create(engine, checkfirst=True)
+        ProfilePermission.__table__.create(engine, checkfirst=True)
 
     if any(table.name == "driver_document_types" for table in tables):
         from app.modules.drivers.models import CNH_TYPE_ID, DriverDocumentType

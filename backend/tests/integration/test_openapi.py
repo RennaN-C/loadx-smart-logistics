@@ -23,6 +23,66 @@ EXPECTED_ERROR_STATUSES = {
             ("/api/v1/auth/me/mfa/disable", "post"),
         ]
     },
+    ("/api/v1/outbox-events", "get"): {"401", "403", "404", "409", "422", "500"},
+    ("/api/v1/outbox-events/summary", "get"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
+    ("/api/v1/outbox-events/{event_id}", "get"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
+    ("/api/v1/outbox-events/{event_id}/attempts", "get"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
+    ("/api/v1/outbox-events/{event_id}/source", "get"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
+    ("/api/v1/outbox-events/{event_id}/retry", "post"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
+    ("/api/v1/notifications", "get"): {"401", "403", "422", "500"},
+    ("/api/v1/notifications/unread-count", "get"): {"401", "403", "422", "500"},
+    ("/api/v1/notifications/preferences", "get"): {"401", "403", "422", "500"},
+    ("/api/v1/notifications/preferences", "put"): {"401", "403", "422", "500"},
+    ("/api/v1/notifications/read-all", "post"): {"401", "403", "422", "500"},
+    ("/api/v1/notifications/{notification_id}/read", "post"): {
+        "401",
+        "403",
+        "404",
+        "422",
+        "500",
+    },
+    ("/api/v1/notifications/{notification_id}/source", "get"): {
+        "401",
+        "403",
+        "404",
+        "422",
+        "500",
+    },
     ("/api/v1/access-profiles", "get"): {"401", "403", "404", "409", "422", "500"},
     ("/api/v1/access-profiles", "post"): {"401", "403", "404", "409", "422", "500"},
     ("/api/v1/access-profiles/permissions", "get"): {
@@ -524,6 +584,22 @@ for import_suffix, import_method in (
         (f"/api/v1/registration-imports{import_suffix}", import_method)
     ] = {"401", "403", "404", "409", "422", "500"}
 
+SIGNED_OPERATIONS = frozenset({("/api/v1/webhooks/controlled-events", "post")})
+EXPECTED_ERROR_STATUSES[("/api/v1/webhooks/controlled-events", "post")] = {
+    "400",
+    "401",
+    "403",
+    "408",
+    "409",
+    "410",
+    "413",
+    "415",
+    "422",
+    "429",
+    "500",
+    "503",
+}
+
 PUBLIC_OPERATIONS = frozenset(
     {
         ("/health", "get"),
@@ -535,7 +611,9 @@ PUBLIC_OPERATIONS = frozenset(
         ("/api/v1/auth/mfa/verify", "post"),
     }
 )
-PROTECTED_OPERATIONS = frozenset(EXPECTED_ERROR_STATUSES).difference(PUBLIC_OPERATIONS)
+PROTECTED_OPERATIONS = frozenset(EXPECTED_ERROR_STATUSES).difference(
+    PUBLIC_OPERATIONS, SIGNED_OPERATIONS
+)
 HTTP_METHODS = frozenset({"get", "post", "patch", "put", "delete"})
 
 
@@ -873,3 +951,63 @@ def test_oc86_admin_list_documents_identity_fields_and_safe_filters() -> None:
         "created_at",
     }
     assert "password_hash" not in fields
+
+
+def test_openapi_documents_inbound_signature_without_session_cookie():
+    schema = get_openapi_schema()
+    operation = schema["paths"]["/api/v1/webhooks/controlled-events"]["post"]
+    assert "security" not in operation
+    signature = next(
+        item for item in operation["parameters"] if item["name"] == "X-LoadX-Signature"
+    )
+    assert signature["required"] is True
+    assert signature["schema"]["pattern"] == "^[0-9a-f]{64}$"
+    body = operation["requestBody"]["content"]["application/json"]["schema"]
+    assert body["additionalProperties"] is False
+    assert set(body["properties"]["command"]["enum"]) == {
+        "START_TRIP",
+        "START_DELIVERY",
+        "FINISH_DELIVERY",
+    }
+
+
+def test_notification_contract_is_personal_and_excludes_channel_secrets() -> None:
+    schema = get_openapi_schema()
+    listing = schema["paths"]["/api/v1/notifications"]["get"]
+    parameters = {item["name"] for item in listing["parameters"]}
+    assert parameters == {
+        "page",
+        "page_size",
+        "sort_order",
+        "read",
+        "event_type",
+        "category",
+    }
+    properties = schema["components"]["schemas"]["NotificationRead"]["properties"]
+    assert set(properties) == {
+        "id",
+        "event_type",
+        "category",
+        "title",
+        "summary",
+        "created_at",
+        "received_at",
+        "read_at",
+    }
+    assert listing["security"] == [{"SessionCookie": []}]
+
+
+def test_oc90_delivery_leg_context_is_additive_and_not_client_assignable():
+    schema = get_openapi_schema()
+    schemas = schema["components"]["schemas"]
+    field = schemas["DeliveryRead"]["properties"]["distribution_part_id"]
+    assert {"type": "string", "format": "uuid"} in field["anyOf"]
+    assert {"type": "null"} in field["anyOf"]
+    assert "distribution_part_id" not in schemas["DeliveryRead"]["required"]
+    assert set(schemas["TripCreate"]["properties"]) == {"load_plan_id", "driver_id"}
+    assert schemas["TripCreate"]["additionalProperties"] is False
+    audit = schema["paths"]["/api/v1/audit"]["get"]["parameters"]
+    entity = next(p for p in audit if p["name"] == "entity_type")
+    assert {"LOAD_DISTRIBUTION", "LOAD_DISTRIBUTION_PART"} <= set(
+        entity["schema"]["anyOf"][0]["enum"]
+    )

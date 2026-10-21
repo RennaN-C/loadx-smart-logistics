@@ -130,7 +130,7 @@ export function AuditPage() {
             }
           >
             <option value="">Todas</option>
-            {AUDIT_ENTITY_TYPES.filter((value) => canReadCompany || !["COMPANY_PROFILE", "ACCESS_PROFILE"].includes(value)).map((value) => (
+            {AUDIT_ENTITY_TYPES.filter((value) => canReadCompany || !["COMPANY_PROFILE", "ACCESS_PROFILE", "OUTBOX_EVENT"].includes(value)).map((value) => (
               <option key={value} value={value}>
                 {AUDIT_ENTITY_LABELS[value]}
               </option>
@@ -150,7 +150,7 @@ export function AuditPage() {
             }
           >
             <option value="">Todos</option>
-            {AUDIT_EVENT_TYPES.filter((value) => canReadCompany || (!value.startsWith("COMPANY_PROFILE_") && !value.startsWith("PROFILE_"))).map((value) => (
+            {AUDIT_EVENT_TYPES.filter((value) => canReadCompany || (value !== "OUTBOX_REPROCESSED" && !value.startsWith("COMPANY_PROFILE_") && !value.startsWith("PROFILE_"))).map((value) => (
               <option key={value} value={value}>
                 {AUDIT_EVENT_LABELS[value]}
               </option>

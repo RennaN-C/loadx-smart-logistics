@@ -32,6 +32,14 @@ class DistributionPartReference:
     distribution_status: str
     part_status: str
     volumes: tuple[VolumeIdentity, ...]
+    order_ids: tuple[uuid.UUID, ...]
+    distribution_part_ids: tuple[uuid.UUID, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class DistributionOrderReference:
+    distribution_id: uuid.UUID
+    part_ids: tuple[uuid.UUID, ...]
 
 
 class LoadPlanReferenceService:
@@ -72,7 +80,25 @@ class LoadPlanReferenceService:
                 )
                 if v.part_id == part.id
             ),
+            order_ids=tuple(
+                sorted(
+                    {v.order_id for v in distribution.volumes if v.part_id == part.id},
+                    key=lambda value: value.int,
+                )
+            ),
+            distribution_part_ids=tuple(
+                sorted((p.id for p in distribution.parts), key=lambda value: value.int)
+            ),
         )
+
+    def get_distribution_order_for_part(
+        self, part_id: uuid.UUID, order_id: uuid.UUID
+    ) -> DistributionOrderReference | None:
+        """Authoritative required legs, including legs without a trip/delivery yet."""
+        result = self.distributions.order_parts(part_id, order_id)
+        if result is None:
+            return None
+        return DistributionOrderReference(distribution_id=result[0], part_ids=result[1])
 
     def get_operational_plan(
         self,
@@ -93,7 +119,7 @@ class LoadPlanReferenceService:
             distribution = self.distributions.get(part.distribution_id)
             operational_ready = (
                 distribution.status == "APPROVED"
-                and len(distribution.parts) == 1
+                and part.status == "APPROVED"
                 and part.load_plan_id == load_plan_id
             )
         return OperationalLoadPlan(

@@ -78,7 +78,7 @@ tentativas da busca. Nenhum plano parcial é persistido.
 | POST /{distribution_id}/parts/{part_id}/reprocess | truck_id e expected_load_plan_id, 200 |
 
 `CONFIRMADO`: DistributionRead informa id/status/created_by/created_at UTC,
-order_ids, truck_count, volume_count, parts e volumes. Cada parte tem UUID estável,
+order_ids, truck_count, volume_count, parts e volumes. Cada parte contém `truck` (TruckSnapshotRead histórico do plano), UUID estável,
 status e LoadPlanRead completo (truck_id, ocupação/peso, volumes/snapshots, posições,
 rejeições e plano de origem). volumes explicita parte, proveniência, índice original
 e quantidade original; quantidade nunca é a contagem parcial por caminhão.
@@ -136,14 +136,50 @@ LOAD_DISTRIBUTION/LOAD_DISTRIBUTION_PART ampliam o histórico consultado pela OC
 O port público get_distribution_part_for_plan resolve plano atual/histórico em
 necessidade, parte estável, current_load_plan_id, estados e identidades de volume;
 consumidores não acessam tabelas internas do planejamento.
-OperationalLoadPlan acrescenta operational_ready: true no legado e na
-necessidade completa de uma parte após aprovação; false para múltiplas partes ou
-versões históricas. Loading/Trip rejeitam uso prematuro. Não modificar pedidos,
-entregas/comprovantes/evidências por uma fração sem recomposição: a operação multi
-permanece bloqueada até OC90, preservando a entrega única do legado.
+OperationalLoadPlan expõe operational_ready: true no legado e, pela OC90, para
+qualquer parte APPROVED de distribuição APPROVED usando seu plano atual. Versões
+históricas/reprocessadas permanecem false. Loading/Trip rejeitam uso prematuro.
+A OC90 recompõe o pedido pelas entregas das partes necessárias sem alterar a
+identidade dos volumes ou a entrega única do legado sem distribuição.
 
-`PENDENTE DE DEFINIÇÃO`: revisão humana da ADR-028 e integração dos consumidores
-OC88/OC89/OC90; liberação operacional/cancelamento após aprovação são das OCs próprias.
+`PENDENTE DE DEFINIÇÃO`: revisão humana das ADR-028/044.
+`CONFIRMADO`: a UI OC89 já integra a base.
+Cancelamento após aprovação continua pertencendo à OC94.
 `RISCO IDENTIFICADO`: snapshots são históricos; recálculo usa cadastros atuais e
 não reescreve outras partes. Limites síncronos e disponibilidade não são promessa
 de solução ótima ou reserva. Não há purge de necessidade/plano/histórico pela API.
+
+## Recuperação no frontend — OC89
+
+`CONFIRMADO`: `GET /load-plans` acrescenta `distribution_id` anulável aos resumos,
+sem carregar itens. A consulta resolve também as versões anteriores por sua cadeia
+persistida. O detalhe `GET /load-plans/{id}` informa o mesmo vínculo. O frontend
+abre `/planning/distributions/{id}` e consulta o agregado; nunca otimiza ao reabrir.
+Não há nova tabela, migration, listagem paralela ou persistência local de propostas.
+
+`CONFIRMADO`: permissões efetivas atuais são `loadx.planning.read`,
+`loadx.planning.create` e `loadx.planning.approve` (OC112). ADMIN e gestor de sistema
+possuem as três; CHECKER continua restrito a leitura de aprovados, DRIVER não lê.
+Perfis personalizados seguem seu catálogo no servidor. A matriz antiga acima é
+histórica e não amplia nem restringe as permissões efetivas da OC112.
+
+
+
+## OC90 — continuidade operacional
+
+`CONFIRMADO`: get_operational_plan libera qualquer quantidade de partes somente
+quando distribuição/parte estão APPROVED e o plano é o atual. Histórico continua
+rastreável e bloqueado. get_distribution_part_for_plan projeta IDs de pedidos,
+identidades e partes da distribuição; get_distribution_order_for_part projeta
+somente as partes que contêm volumes de um pedido, inclusive sem viagem criada.
+Consumidores continuam sem acesso às tabelas internas.
+
+`CONFIRMADO`: Delivery referencia parte, uma por parte/pedido. Aprovação mantém
+PLANNED; primeiro início move IN_TRANSIT; somente todas as pernas necessárias
+concluídas entregam o pedido. Triggers OC90 preservam estrutura/status da
+distribuição desde a primeira entrega. A fotografia inteira do plano e seus
+pedidos/itens congela desde a primeira LoadingSession ou Trip, inclusive legado.
+Fonte dos volumes permanece aqui; auditoria
+reconstrói distribuição → parte → plano → loading → trip → delivery → pedido.
+ADR-044 documenta cardinalidade/locks como proposta para revisão. Não altera a
+UI OC89 nem implementa cancelamento/reentrega OC94.

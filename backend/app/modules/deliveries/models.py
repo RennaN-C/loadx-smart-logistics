@@ -5,11 +5,13 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     String,
     UniqueConstraint,
     Uuid,
     func,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -67,7 +69,16 @@ class Delivery(Base):
     __table_args__ = (
         UniqueConstraint("trip_id", "order_id", name="uq_deliveries__trip_order"),
         UniqueConstraint("trip_id", "sequence", name="uq_deliveries__trip_sequence"),
-        UniqueConstraint("order_id", name="uq_deliveries__order_id"),
+        UniqueConstraint(
+            "distribution_part_id", "order_id", name="uq_deliveries__part_order"
+        ),
+        Index(
+            "uq_deliveries__legacy_order",
+            "order_id",
+            unique=True,
+            postgresql_where=text("distribution_part_id IS NULL"),
+            sqlite_where=text("distribution_part_id IS NULL"),
+        ),
         CheckConstraint(
             "status IN ('PENDING', 'IN_DELIVERY', 'DELIVERED')",
             name="status_allowed",
@@ -86,6 +97,9 @@ class Delivery(Base):
     )
     order_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("orders.id", ondelete="RESTRICT"), nullable=False, index=True
+    )
+    distribution_part_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("load_distribution_parts.id", ondelete="RESTRICT"), nullable=True
     )
     status: Mapped[str] = mapped_column(
         String(32),

@@ -25,6 +25,7 @@ interface LoadViewerProps {
 }
 
 export function LoadViewer({ planId, plan }: LoadViewerProps) {
+  const [attempt, setAttempt] = useState(0);
   const [view, setView] = useState<LoadPlanVisualization | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -66,7 +67,7 @@ export function LoadViewer({ planId, plan }: LoadViewerProps) {
     return () => {
       active = false;
     };
-  }, [planId]);
+  }, [planId, attempt]);
 
   const ordered = useMemo(
     () => (view ? [...view.items].sort((a, b) => a.loadingSequence - b.loadingSequence) : []),
@@ -148,7 +149,7 @@ export function LoadViewer({ planId, plan }: LoadViewerProps) {
     );
   }
 
-  if (errorMessage) return <AlertBanner>{errorMessage}</AlertBanner>;
+  if (errorMessage) return <><AlertBanner>{errorMessage}</AlertBanner><button type="button" className="btn-secondary" onClick={() => setAttempt((value) => value + 1)}>Tentar carregar visualização novamente</button></>;
   if (!view) return null;
 
   if (view.items.length === 0) {

@@ -109,6 +109,7 @@ class StatusHistoryRepository:
 
         if event_type in {
             None,
+            "OUTBOX_REPROCESSED",
             "PROFILE_CREATED",
             "PROFILE_UPDATED",
             "USER_CREATED",
@@ -134,7 +135,9 @@ class StatusHistoryRepository:
             )
             if exclude_company:
                 audit_statement = audit_statement.where(
-                    AuditEvent.entity_type.not_in(["COMPANY_PROFILE", "ACCESS_PROFILE"])
+                    AuditEvent.entity_type.not_in(
+                        ["COMPANY_PROFILE", "ACCESS_PROFILE", "OUTBOX_EVENT"]
+                    )
                 )
             if event_type is not None:
                 audit_statement = audit_statement.where(

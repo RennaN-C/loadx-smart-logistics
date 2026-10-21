@@ -9,11 +9,16 @@ from app.modules.deliveries.models import Delivery, Trip
 from app.modules.deliveries.service import TripService
 from app.modules.drivers.models import Driver
 from app.modules.load_planning.models import LoadPlan, LoadPlanOrder
+from app.modules.notifications.models import (
+    NotificationRecipient,
+    OperationalNotification,
+)
 from app.modules.orders.models import Order, OrderItem
 from app.modules.products.models import Product
 from app.modules.status_history.models import StatusHistory
 from app.modules.trucks.models import Truck
 from app.modules.users.models import User
+from tests.integration.notification_helpers import clear_outbox_fixture
 from tests.unit.test_delivery_service import prepare_receipt_delivery
 
 
@@ -77,6 +82,21 @@ def test_concurrent_receipts_refresh_locked_state_and_share_one_completion(
             assert db.get(Delivery, delivery_id).status == "DELIVERED"
     finally:
         with session_factory() as db:
+            clear_outbox_fixture(db, trip_id)
+            db.execute(
+                delete(NotificationRecipient).where(
+                    NotificationRecipient.notification_id.in_(
+                        select(OperationalNotification.id).where(
+                            OperationalNotification.trip_id == trip_id
+                        )
+                    )
+                )
+            )
+            db.execute(
+                delete(OperationalNotification).where(
+                    OperationalNotification.trip_id == trip_id
+                )
+            )
             db.execute(
                 delete(StatusHistory).where(StatusHistory.changed_by == manager_id)
             )

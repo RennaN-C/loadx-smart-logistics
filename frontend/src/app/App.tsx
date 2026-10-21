@@ -8,6 +8,7 @@ import { AuditPage } from "../features/audit/pages/AuditPage";
 import { ContactsPage } from "../features/customers/pages/ContactsPage";
 import { DashboardPage } from "../features/dashboard/pages/DashboardPage";
 import { TripPage } from "../features/deliveries/pages/TripPage";
+import { DistributionPage } from "../features/load-planning/pages/DistributionPage";
 import { PlanningPage } from "../features/load-planning/pages/PlanningPage";
 import { LoadingPage } from "../features/loading-operation/pages/LoadingPage";
 import { OrderListPage } from "../features/orders/pages/OrderListPage";
@@ -18,6 +19,7 @@ import { OperationalAccess } from "./OperationalAccess";
 import { RequireSettingsAdmin } from "../features/settings/components/RequireSettingsAdmin";
 import { SettingsPage } from "../features/settings/pages/SettingsPage";
 import { AccountPage } from "../features/auth/pages/AccountPage";
+import { NotificationsPage } from "../features/notifications/pages/NotificationsPage";
 import { AppLayout } from "./AppLayout";
 
 export function App() {
@@ -32,6 +34,7 @@ export function App() {
             <Route element={<AppLayout />}>
               <Route index element={<DashboardPage />} />
               <Route path="account" element={<AccountPage />} />
+              <Route path="notifications" element={<NotificationsPage />} />
               <Route element={<RequireSettingsAdmin />}>
                 <Route path="settings" element={<SettingsPage />} />
               </Route>
@@ -44,6 +47,7 @@ export function App() {
               <Route path="operations" element={<OperationalAccess overview><Navigate to="/" replace /></OperationalAccess>} />
               <Route path="audit" element={<AuditPage />} />
               <Route path="planning" element={<PlanningPage />} />
+              <Route path="planning/distributions/:distributionId" element={<DistributionPage />} />
               <Route path="planning/:planId" element={<PlanningPage />} />
               <Route path="trips/:tripId" element={<TripPage />} />
               <Route path="loading/:sessionId" element={<LoadingPage />} />
