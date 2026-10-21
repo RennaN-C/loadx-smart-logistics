@@ -376,6 +376,21 @@ EXPECTED_ERROR_STATUSES = {
         "422",
         "500",
     },
+    ("/api/v1/deliveries/{delivery_id}/exceptions", "get"): {
+        "401",
+        "403",
+        "404",
+        "422",
+        "500",
+    },
+    ("/api/v1/deliveries/{delivery_id}/exceptions", "post"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
     ("/api/v1/deliveries/{delivery_id}/evidences", "post"): {
         "401",
         "403",
