@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.modules.deliveries.interruption_service import TripInterruptionEvent
 from app.modules.deliveries.models import Trip
+from app.modules.drivers.service import DriverService
 from app.modules.load_planning.models import LoadPlan
 from app.modules.orders.models import Order
 from app.modules.status_history.models import StatusHistory
@@ -71,6 +72,7 @@ def test_interrupt_and_resume_preserve_resources_and_original_start(
         assert paused.finished_at is None
         assert plan.status == "APPROVED"
         assert TruckService(db).has_operation_conflict(plan.truck_id)
+        assert DriverService(db).has_operation_conflict(paused.driver_id)
         assert {order.status for order in db.scalars(select(Order)).all()} == {
             "IN_TRANSIT"
         }
