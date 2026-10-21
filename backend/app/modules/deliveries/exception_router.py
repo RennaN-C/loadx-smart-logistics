@@ -9,6 +9,11 @@ from sqlalchemy.orm import Session
 from app.core.responses import openapi_error_responses
 from app.database.session import get_db
 from app.modules.auth.dependencies import require_any_permission, require_permission
+from app.modules.deliveries.cancellation_service import (
+    TripCancellationRead,
+    TripCancellationRequest,
+    TripCancellationService,
+)
 from app.modules.deliveries.cancellation_preflight import (
     TripCancellationPreflight,
     TripCancellationPreflightService,
@@ -74,4 +79,21 @@ def trip_cancellation_preflight(
     """Eligibility only. It never cancels a trip or releases reservations."""
     return TripCancellationPreflightService(db).assess(
         trip_id, current_user=current_user
+    )
+
+
+@router.post(
+    "/trips/{trip_id}/cancellation",
+    response_model=TripCancellationRead,
+    responses=openapi_error_responses(401, 403, 404, 409, 422),
+)
+def cancel_scheduled_trip(
+    trip_id: uuid.UUID,
+    data: TripCancellationRequest,
+    current_user: Manager,
+    db: Db,
+) -> TripCancellationRead:
+    """Cancel atomically after revalidating the current physical state."""
+    return TripCancellationService(db).cancel(
+        trip_id, data, current_user=current_user
     )
