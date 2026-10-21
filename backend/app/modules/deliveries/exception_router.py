@@ -94,6 +94,4 @@ def cancel_scheduled_trip(
     db: Db,
 ) -> TripCancellationRead:
     """Cancel atomically after revalidating the current physical state."""
-    return TripCancellationService(db).cancel(
-        trip_id, data, current_user=current_user
-    )
+    return TripCancellationService(db).cancel(trip_id, data, current_user=current_user)

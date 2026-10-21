@@ -25,12 +25,15 @@ def test_pending_loading_session_already_blocks_truck_release():
 
 
 def test_mixed_distribution_is_candidate_when_not_loaded():
-    assert assess_cancellation(
-        status="SCHEDULED",
-        delivery_statuses=("PENDING",),
-        has_distribution_part=True,
-        loading_status=None,
-    ) == []
+    assert (
+        assess_cancellation(
+            status="SCHEDULED",
+            delivery_statuses=("PENDING",),
+            has_distribution_part=True,
+            loading_status=None,
+        )
+        == []
+    )
 
 
 def test_in_route_or_partial_completion_blocks_cancellation():

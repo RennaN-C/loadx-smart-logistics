@@ -43,24 +43,26 @@ def test_cancel_scheduled_trip_releases_resources_preserving_audit(
     scenario = seed_operational_scenario(session_factory)
     trip = create_trip(client, scenario)
     key = str(uuid.uuid4())
-    created = _cancel(
-        client, trip["id"], scenario.manager_headers, key=key
-    )
+    created = _cancel(client, trip["id"], scenario.manager_headers, key=key)
     assert created.status_code == 200, created.text
     assert created.json()["status"] == "CANCELED"
     assert created.json()["idempotency_key"] == key
 
-    replay = _cancel(
-        client, trip["id"], scenario.manager_headers, key=key
-    )
+    replay = _cancel(client, trip["id"], scenario.manager_headers, key=key)
     assert replay.status_code == 200
     assert replay.json()["id"] == created.json()["id"]
 
     assert _cancel(client, trip["id"], scenario.manager_headers).status_code == 409
-    assert _cancel(
-        client, trip["id"], scenario.manager_headers,
-        key=key, reason="Motivo incompatível com a primeira solicitação",
-    ).status_code == 409
+    assert (
+        _cancel(
+            client,
+            trip["id"],
+            scenario.manager_headers,
+            key=key,
+            reason="Motivo incompatível com a primeira solicitação",
+        ).status_code
+        == 409
+    )
 
     persisted = client.get(
         f"/api/v1/trips/{trip['id']}",
@@ -69,8 +71,7 @@ def test_cancel_scheduled_trip_releases_resources_preserving_audit(
     assert persisted.status_code == 200
     assert persisted.json()["status"] == "CANCELED"
     assert all(
-        delivery["status"] == "CANCELED"
-        for delivery in persisted.json()["deliveries"]
+        delivery["status"] == "CANCELED" for delivery in persisted.json()["deliveries"]
     )
 
     with session_factory() as db:
@@ -80,26 +81,39 @@ def test_cancel_scheduled_trip_releases_resources_preserving_audit(
         assert db.scalars(select(Order)).all()
         assert {o.status for o in db.scalars(select(Order)).all()} == {"READY"}
         assert db.scalar(select(func.count()).select_from(TripCancellation)) == 1
-        assert db.scalar(
-            select(func.count()).select_from(StatusHistory).where(
-                StatusHistory.entity_type == "TRIP",
-                StatusHistory.entity_id == uuid.UUID(trip["id"]),
-                StatusHistory.new_status == "CANCELED",
+        assert (
+            db.scalar(
+                select(func.count())
+                .select_from(StatusHistory)
+                .where(
+                    StatusHistory.entity_type == "TRIP",
+                    StatusHistory.entity_id == uuid.UUID(trip["id"]),
+                    StatusHistory.new_status == "CANCELED",
+                )
             )
-        ) == 1
-        assert db.scalar(
-            select(func.count()).select_from(Delivery).where(
-                Delivery.trip_id == uuid.UUID(trip["id"]),
-                Delivery.status == "DELIVERED",
+            == 1
+        )
+        assert (
+            db.scalar(
+                select(func.count())
+                .select_from(Delivery)
+                .where(
+                    Delivery.trip_id == uuid.UUID(trip["id"]),
+                    Delivery.status == "DELIVERED",
+                )
             )
-        ) == 0
+            == 0
+        )
         assert not TruckService(db).has_operation_conflict(plan.truck_id)
 
     # A different approved plan can be created for these READY orders.
-    assert client.get(
-        f"/api/v1/trips/{trip['id']}/cancellation-preflight",
-        headers=scenario.manager_headers,
-    ).json()["safe_for_cancellation_workflow"] is False
+    assert (
+        client.get(
+            f"/api/v1/trips/{trip['id']}/cancellation-preflight",
+            headers=scenario.manager_headers,
+        ).json()["safe_for_cancellation_workflow"]
+        is False
+    )
 
 
 def test_cancellation_blocked_for_loading_and_restricted_roles(
@@ -113,16 +127,22 @@ def test_cancellation_blocked_for_loading_and_restricted_roles(
         "idempotency_key": str(uuid.uuid4()),
     }
     assert client.post(path, json=payload).status_code == 401
-    assert client.post(
-        path, json=payload, headers=scenario.driver_headers
-    ).status_code == 403
-    assert client.post(
-        path, json=payload, headers=scenario.checker_headers
-    ).status_code == 403
-    assert client.post(
-        path, json={"reason": "curto", "idempotency_key": str(uuid.uuid4())},
-        headers=scenario.manager_headers,
-    ).status_code == 422
+    assert (
+        client.post(path, json=payload, headers=scenario.driver_headers).status_code
+        == 403
+    )
+    assert (
+        client.post(path, json=payload, headers=scenario.checker_headers).status_code
+        == 403
+    )
+    assert (
+        client.post(
+            path,
+            json={"reason": "curto", "idempotency_key": str(uuid.uuid4())},
+            headers=scenario.manager_headers,
+        ).status_code
+        == 422
+    )
 
     loading = client.post(
         "/api/v1/loading-sessions",
@@ -130,9 +150,7 @@ def test_cancellation_blocked_for_loading_and_restricted_roles(
         headers=scenario.manager_headers,
     )
     assert loading.status_code == 201
-    blocked = client.post(
-        path, json=payload, headers=scenario.manager_headers
-    )
+    blocked = client.post(path, json=payload, headers=scenario.manager_headers)
     assert blocked.status_code == 409
     assert blocked.json()["code"] == "TRIP_CANCELLATION_BLOCKED"
     with session_factory() as db:
@@ -184,7 +202,9 @@ def test_cancel_one_part_preserves_sibling_trip_and_allows_reprocess(
     assert s.status() == "IN_TRANSIT"
 
     canceled = _cancel(
-        client, s.trips[0]["id"], s.headers,
+        client,
+        s.trips[0]["id"],
+        s.headers,
         reason="Falha na alocacao inicial do primeiro veiculo",
     )
     assert canceled.status_code == 200, canceled.text
@@ -217,7 +237,8 @@ def test_cancel_one_part_preserves_sibling_trip_and_allows_reprocess(
     assert approved["status"] == "APPROVED"
     assert s.status() == "IN_TRANSIT"
     new_trip = s.request(
-        "POST", "/trips",
+        "POST",
+        "/trips",
         {
             "load_plan_id": replacement["load_plan"]["id"],
             "driver_id": s.drivers[0]["id"],

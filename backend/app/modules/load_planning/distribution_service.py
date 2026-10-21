@@ -76,14 +76,14 @@ class LoadDistributionService:
         self.trucks = TruckService(db)
         self.history = StatusHistoryService(db)
 
-    def _sources(
-        self, order_ids, *, lock: bool, allow_operational: bool = False
-    ):
+    def _sources(self, order_ids, *, lock: bool, allow_operational: bool = False):
         orders = tuple(self.orders.get_orders(order_ids, for_update=lock))
         missing = set(order_ids) - {o.id for o in orders}
         if missing:
             raise LoadPlanOrdersNotFoundError(sorted(missing, key=lambda x: x.int))
-        eligible = {"READY", "PLANNED", "IN_TRANSIT"} if allow_operational else {"READY"}
+        eligible = (
+            {"READY", "PLANNED", "IN_TRANSIT"} if allow_operational else {"READY"}
+        )
         ineligible = [o for o in orders if o.status not in eligible]
         if ineligible:
             raise LoadPlanOrdersNotEligibleError(ineligible)
@@ -486,15 +486,19 @@ class LoadDistributionService:
                 plan.recalculated_from_id is not None for plan in plans.values()
             )
             available_ids = [
-                plan.truck_id for plan in plans.values()
+                plan.truck_id
+                for plan in plans.values()
                 if not is_reapproval or plan.status == "CALCULATED"
             ]
             self._lock_trucks(available_ids)
             if is_reapproval:
                 # Already-approved siblings legitimately reserve their vehicles.
                 for sibling_truck_id in sorted(
-                    {plan.truck_id for plan in plans.values()
-                     if plan.status == "APPROVED"},
+                    {
+                        plan.truck_id
+                        for plan in plans.values()
+                        if plan.status == "APPROVED"
+                    },
                     key=lambda value: value.int,
                 ):
                     self.trucks.get_truck_for_update(sibling_truck_id)
@@ -534,7 +538,10 @@ class LoadDistributionService:
                         plan.status = "APPROVED"
                         plan.approved_at = datetime.now(UTC)
                         self._history(
-                            "LOAD_PLAN", plan.id, "CALCULATED", "APPROVED",
+                            "LOAD_PLAN",
+                            plan.id,
+                            "CALCULATED",
+                            "APPROVED",
                             changed_by,
                         )
                 for order in starting_orders:

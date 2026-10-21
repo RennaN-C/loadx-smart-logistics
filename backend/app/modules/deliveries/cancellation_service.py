@@ -43,7 +43,7 @@ class TripCancellation(Base):
     actor_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("users.id", ondelete="RESTRICT"), nullable=False
     )
-    idempotency_key: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False, unique=True)
+    idempotency_key: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
     reason: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
@@ -96,7 +96,8 @@ class TripCancellationService:
         except IntegrityError as exc:
             self.db.rollback()
             raise ApiError(
-                409, "TRIP_CANCELLATION_CONFLICT",
+                409,
+                "TRIP_CANCELLATION_CONFLICT",
                 "Conflito entre operacoes de cancelamento.",
             ) from exc
         except Exception:
@@ -133,7 +134,8 @@ class TripCancellationService:
                 or existing.actor_id != current_user.id
             ):
                 raise ApiError(
-                    409, "TRIP_CANCELLATION_ALREADY_EXISTS",
+                    409,
+                    "TRIP_CANCELLATION_ALREADY_EXISTS",
                     "Viagem ja cancelada com outra solicitacao.",
                 )
             return self._result(existing, status=trip.status)
@@ -141,7 +143,8 @@ class TripCancellationService:
         plan = LoadPlanRepository(self.db).get_for_update(trip.load_plan_id)
         if plan is None or plan.status != "APPROVED":
             raise ApiError(
-                409, "TRIP_CANCELLATION_PLAN_INVALID",
+                409,
+                "TRIP_CANCELLATION_PLAN_INVALID",
                 "Plano original nao esta aprovado.",
             )
         # A loading session is a physical claim, even in status PENDING.
@@ -149,7 +152,8 @@ class TripCancellationService:
         part_ids = {row.distribution_part_id for row in deliveries}
         if len(part_ids) > 1:
             raise ApiError(
-                409, "TRIP_CANCELLATION_INVALID_PARTS",
+                409,
+                "TRIP_CANCELLATION_INVALID_PARTS",
                 "Viagem tem partes de distribuicao inconsistentes.",
             )
         is_multi = bool(part_ids and None not in part_ids)
@@ -161,12 +165,14 @@ class TripCancellationService:
         )
         if blockers:
             raise ApiError(
-                409, "TRIP_CANCELLATION_BLOCKED",
+                409,
+                "TRIP_CANCELLATION_BLOCKED",
                 "Operacao nao elegivel: " + ", ".join(blockers),
             )
         if len({row.order_id for row in deliveries}) != len(deliveries):
             raise ApiError(
-                409, "TRIP_CANCELLATION_DUPLICATE_ORDER",
+                409,
+                "TRIP_CANCELLATION_DUPLICATE_ORDER",
                 "Entregas duplicadas na viagem.",
             )
         TruckService(self.db).get_truck_for_update(plan.truck_id)
@@ -177,7 +183,8 @@ class TripCancellationService:
             part = LoadDistributionRepository(self.db).plan_part(plan.id)
             if part is None or part.id != part_id or part.load_plan_id != plan.id:
                 raise ApiError(
-                    409, "TRIP_CANCELLATION_PART_CHANGED",
+                    409,
+                    "TRIP_CANCELLATION_PART_CHANGED",
                     "Parte de distribuicao foi substituida.",
                 )
             distribution = LoadDistributionRepository(self.db).get(
@@ -189,16 +196,16 @@ class TripCancellationService:
                 or part.status != "APPROVED"
             ):
                 raise ApiError(
-                    409, "TRIP_CANCELLATION_DISTRIBUTION_INVALID",
+                    409,
+                    "TRIP_CANCELLATION_DISTRIBUTION_INVALID",
                     "Distribuicao nao esta no estado esperado.",
                 )
             # Check that canceled part is current, without changing its volumes.
-            part = next(
-                (p for p in distribution.parts if p.id == part_id), None
-            )
+            part = next((p for p in distribution.parts if p.id == part_id), None)
             if part is None or part.status != "APPROVED":
                 raise ApiError(
-                    409, "TRIP_CANCELLATION_PART_CHANGED",
+                    409,
+                    "TRIP_CANCELLATION_PART_CHANGED",
                     "Parte de distribuicao foi alterada.",
                 )
 
@@ -209,14 +216,17 @@ class TripCancellationService:
             o.status not in eligible for o in orders
         ):
             raise ApiError(
-                409, "TRIP_CANCELLATION_ORDER_CHANGED",
+                409,
+                "TRIP_CANCELLATION_ORDER_CHANGED",
                 "Pedido ja possui movimentacao operacional.",
             )
 
         # No historical receipt, delivery or physical volume is deleted.
         for delivery in deliveries:
             delivery.status = "CANCELED"
-            self._history("DELIVERY", delivery.id, "PENDING", "CANCELED", current_user.id)
+            self._history(
+                "DELIVERY", delivery.id, "PENDING", "CANCELED", current_user.id
+            )
 
         trip.status = "CANCELED"
         self._history("TRIP", trip.id, "SCHEDULED", "CANCELED", current_user.id)
@@ -226,35 +236,42 @@ class TripCancellationService:
         if is_multi and distribution is not None and part is not None:
             part.status = "CANCELED"
             self._history(
-                "LOAD_DISTRIBUTION_PART", part.id, "APPROVED",
-                "CANCELED", current_user.id,
+                "LOAD_DISTRIBUTION_PART",
+                part.id,
+                "APPROVED",
+                "CANCELED",
+                current_user.id,
             )
             previous = distribution.status
             distribution.status = "INCOMPLETE"
             if previous != "INCOMPLETE":
                 self._history(
-                    "LOAD_DISTRIBUTION", distribution.id, previous,
-                    "INCOMPLETE", current_user.id,
+                    "LOAD_DISTRIBUTION",
+                    distribution.id,
+                    previous,
+                    "INCOMPLETE",
+                    current_user.id,
                 )
             # Preserve active volume identity and order claim for reprocessing.
         else:
             for order in orders:
                 other = self.db.scalar(
-                    select(Delivery.id).where(
+                    select(Delivery.id)
+                    .where(
                         Delivery.order_id == order.id,
                         Delivery.trip_id != trip.id,
                         Delivery.status != "CANCELED",
-                    ).limit(1)
+                    )
+                    .limit(1)
                 )
                 if other is not None:
                     raise ApiError(
-                        409, "TRIP_CANCELLATION_ORDER_CLAIMED",
+                        409,
+                        "TRIP_CANCELLATION_ORDER_CLAIMED",
                         "Pedido possui entrega em outra viagem.",
                     )
                 order.status = "READY"
-                self._history(
-                    "ORDER", order.id, "PLANNED", "READY", current_user.id
-                )
+                self._history("ORDER", order.id, "PLANNED", "READY", current_user.id)
 
         row = TripCancellation(
             trip_id=trip.id,

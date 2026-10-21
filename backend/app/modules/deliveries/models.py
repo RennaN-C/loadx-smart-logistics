@@ -70,16 +70,24 @@ class Delivery(Base):
         UniqueConstraint("trip_id", "order_id", name="uq_deliveries__trip_order"),
         UniqueConstraint("trip_id", "sequence", name="uq_deliveries__trip_sequence"),
         Index(
-            "uq_deliveries__part_order", "distribution_part_id", "order_id",
+            "uq_deliveries__part_order",
+            "distribution_part_id",
+            "order_id",
             unique=True,
-            postgresql_where=text("distribution_part_id IS NOT NULL AND status <> 'CANCELED'"),
-            sqlite_where=text("distribution_part_id IS NOT NULL AND status <> 'CANCELED'"),
+            postgresql_where=text(
+                "distribution_part_id IS NOT NULL AND status <> 'CANCELED'"
+            ),
+            sqlite_where=text(
+                "distribution_part_id IS NOT NULL AND status <> 'CANCELED'"
+            ),
         ),
         Index(
             "uq_deliveries__legacy_order",
             "order_id",
             unique=True,
-            postgresql_where=text("distribution_part_id IS NULL AND status <> 'CANCELED'"),
+            postgresql_where=text(
+                "distribution_part_id IS NULL AND status <> 'CANCELED'"
+            ),
             sqlite_where=text("distribution_part_id IS NULL AND status <> 'CANCELED'"),
         ),
         CheckConstraint(
