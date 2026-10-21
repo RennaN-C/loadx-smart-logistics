@@ -122,7 +122,6 @@ class DeliveryOperationalExceptionPendingError(Exception):
     """Unresolved exception blocks confirmation and receipt."""
 
 
-
 class TripAccessForbiddenError(Exception):
     pass
 
