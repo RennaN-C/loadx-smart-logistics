@@ -14,13 +14,13 @@ from sqlalchemy.orm import Mapped, Session, mapped_column
 from app.core.exceptions import ApiError
 from app.database.base import Base
 from app.modules.deliveries.cancellation_preflight import assess_cancellation
+from app.modules.deliveries.models import Delivery
 from app.modules.deliveries.service import (
     TripAccessForbiddenError,
     TripNotFoundError,
     TripService,
 )
 from app.modules.load_planning.distribution_repository import LoadDistributionRepository
-from app.modules.load_planning.models import LoadPlan
 from app.modules.load_planning.repository import LoadPlanRepository
 from app.modules.loading.reference_service import LoadingReferenceService
 from app.modules.status_history.schemas import StatusHistoryCreate
