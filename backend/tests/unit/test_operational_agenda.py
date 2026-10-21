@@ -20,7 +20,5 @@ def test_agenda_requires_timezone():
     start = datetime(2026, 10, 21, tzinfo=UTC)
     with pytest.raises(ApiError):
         validate_window(
-            AgendaFilters(
-                start.replace(tzinfo=None), start + timedelta(days=1)
-            )
+            AgendaFilters(start.replace(tzinfo=None), start + timedelta(days=1))
         )
