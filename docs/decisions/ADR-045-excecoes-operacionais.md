@@ -50,6 +50,28 @@ escritas antes da implementação do POST de cancelamento.
   formal do comportamento multi-caminhão e aprovação da decisão.
   Nenhum merge ou deploy deve ocorrer antes de satisfazer isso.
 
+## Reconciliação das distribuições operadas — revisão 0034
+
+A migration `20261021_0034` mantém os gatilhos da OC90 e permite
+**somente** transições de estado estritamente verificadas: uma parte
+`APPROVED → CANCELED` precisa de viagem/entregas já `CANCELED`,
+sem carregamento; a distribuição passa a `INCOMPLETE` depois da parte.
+O plano original permanece `APPROVED` e seus snapshots e volumes físicos
+não mudam.
+
+Para reprocessar, a parte `CANCELED → PENDING` só pode vincular plano
+`CALCULATED` com `recalculated_from_id` apontando à viagem cancelada.
+A aprovação posterior preserva as viagens irmãs e os pedidos agregados.
+A validação de novas entregas aceita distribuição `INCOMPLETE` somente
+quando a parte e o plano correntes estão `APPROVED`. Não se autorizam
+alterações de volumes, componentes de pedidos ou entregas históricas.
+As transições continuam dentro das transações de negócio e sob os locks
+originais; qualquer falha volta por rollback.
+
+Esta exceção ao gatilho exige regressão PostgreSQL 16 e revisão formal
+de concorrência, especialmente com reprocessamento e carregamento.
+Sem CI verde e verificação operacional não é possível publicar a PR.
+
 ## Histórico da proposta original (supersedido onde divergir)
 
 
