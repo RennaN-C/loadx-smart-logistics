@@ -2,6 +2,8 @@
 
 import uuid
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
+from threading import Barrier
 
 from fastapi.testclient import TestClient
 from sqlalchemy import func, select
@@ -121,3 +123,101 @@ def test_interruption_failure_rolls_back_trip_and_ledger(
     with session_factory() as db:
         assert db.get(Trip, uuid.UUID(delivery["trip_id"])).status == "IN_ROUTE"
         assert db.scalar(select(func.count()).select_from(TripInterruptionEvent)) == 0
+
+
+def test_oc94_interruption_and_delivery_race_serializes(
+    client: TestClient,
+    committed_session_factory: SessionFactory,
+    monkeypatch,
+) -> None:
+    from app.database.session import get_db
+    from app.main import app
+
+    def independent_session():
+        with committed_session_factory() as db:
+            yield db
+
+    # A dedicated committed connection per HTTP request, rather than sharing
+    # the SAVEPOINT-backed transaction used by ordinary integration tests.
+    app.dependency_overrides[get_db] = independent_session
+    scenario, delivery = _in_route(client, committed_session_factory, monkeypatch)
+    trip_id = delivery["trip_id"]
+    barrier = Barrier(2)
+
+    def interrupt():
+        barrier.wait(timeout=10)
+        return _command(
+            client, trip_id, "interruptions", scenario.manager_headers
+        )
+
+    def advance_delivery():
+        barrier.wait(timeout=10)
+        return client.patch(
+            f"/api/v1/deliveries/{delivery['id']}/status",
+            headers=scenario.driver_headers,
+            json={"status": "IN_DELIVERY"},
+        )
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        pause = executor.submit(interrupt)
+        advance = executor.submit(advance_delivery)
+        result_pause = pause.result()
+        result_advance = advance.result()
+
+    assert result_pause.status_code == 200, result_pause.text
+    assert result_advance.status_code in (200, 409), result_advance.text
+    with committed_session_factory() as db:
+        persisted = db.get(Trip, uuid.UUID(trip_id))
+        assert persisted.status == "INTERRUPTED"
+        assert db.scalar(select(func.count()).select_from(TripInterruptionEvent)) == 1
+        # The delivery may have won the trip lock before pause, but no further
+        # delivery mutation is permitted while the trip is INTERRUPTED.
+        before = client.get(
+            f"/api/v1/trips/{trip_id}",
+            headers=scenario.manager_headers,
+        ).json()["deliveries"][0]["status"]
+        blocked = client.patch(
+            f"/api/v1/deliveries/{delivery['id']}/status",
+            headers=scenario.driver_headers,
+            json={"status": "DELIVERED"},
+        )
+        assert blocked.status_code == 409
+        after = client.get(
+            f"/api/v1/trips/{trip_id}",
+            headers=scenario.manager_headers,
+        ).json()["deliveries"][0]["status"]
+        assert after == before
+
+
+def test_oc94_concurrent_interruption_replay_has_one_ledger(
+    client: TestClient,
+    committed_session_factory: SessionFactory,
+    monkeypatch,
+) -> None:
+    from app.database.session import get_db
+    from app.main import app
+
+    def independent_session():
+        with committed_session_factory() as db:
+            yield db
+
+    app.dependency_overrides[get_db] = independent_session
+    scenario, delivery = _in_route(client, committed_session_factory, monkeypatch)
+    trip_id = delivery["trip_id"]
+    key = str(uuid.uuid4())
+    barrier = Barrier(2)
+
+    def interrupt(_index: int):
+        barrier.wait(timeout=10)
+        return _command(
+            client, trip_id, "interruptions", scenario.manager_headers, key
+        )
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        responses = list(executor.map(interrupt, range(2)))
+    assert [r.status_code for r in responses] == [200, 200], [
+        r.text for r in responses
+    ]
+    assert responses[0].json()["id"] == responses[1].json()["id"]
+    with committed_session_factory() as db:
+        assert db.scalar(select(func.count()).select_from(TripInterruptionEvent)) == 1
