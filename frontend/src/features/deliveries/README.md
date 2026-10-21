@@ -113,8 +113,10 @@ devolve o registro original em vez de criar uma segunda evidência igual.
 
 Por isso o arquivo escolhido só é descartado depois de um registro
 bem-sucedido, e a chave vive junto dele: o botão vira "Tentar novamente" e
-reenvia com a mesma chave. Chave nova só quando o ARQUIVO muda — reaproveitá-la
-para outros bytes daria `EVIDENCE_IDENTITY_CONFLICT`.
+reenvia com a mesma chave. Depois da primeira tentativa, o tipo é congelado. Chave nova somente por uma
+nova seleção explícita de arquivo; mudar o tipo antes do primeiro envio também
+cria nova intenção. Reaproveitar a chave para outros bytes/tipo daria
+`EVIDENCE_IDENTITY_CONFLICT`.
 
 ### Validação local não substitui a do servidor
 
@@ -138,18 +140,40 @@ não tem reativação nem substituição de arquivo. Por isso a tela confirma an
 perfil; o recorte por viagem (motorista só na própria) é do backend e não é
 reproduzido aqui. `CHECKER` é negado.
 
-### Pendência
+### Comunicação operacional disponível
 
-`RISCO IDENTIFICADO`: a parte de **comunicação operacional** da OC81 continua
-sem contrato, e já não é por falta das OCs de mensageria — OC82, OC83 e OC84
-fecharam. O que falta é leitura de comunicação **por entrega**:
+`CONFIRMADO`: a finalização coordenada da OC81 acrescenta
+`GET /deliveries/{delivery_id}/communications`, consulta paginada de fatos reais
+OC84/OC109. O backend seleciona somente `OCCURRENCE_REGISTERED` cuja ocorrência
+possui exatamente o `delivery_id` e a viagem autorizada. Não varre notificações
+pessoais e não atribui `TRIP_STARTED` ou ocorrência geral de viagem à entrega.
 
-- `/messages` expõe apenas `POST /interpret`, que interpreta uma mensagem
-  recebida e pode resolver um `delivery_id`; não lista conversa nenhuma;
-- `/notifications` é caixa de entrada do **usuário**, com filtros de tipo,
-  categoria e lida. `NotificationRead` não tem `delivery_id`.
+O botão **Comunicação** fica disponível nas paradas autorizadas, inclusive antes
+da conclusão. A interface mostra estados reais da simulação e do processamento,
+com carregamento, vazio, erro/retry e paginação. WHATSAPP_MOCK é apresentado como
+**WhatsApp simulado**: sucesso não comprova envio, recebimento ou leitura Meta.
+Não há conversa, envio livre, retry administrativo nem canal externo real.
 
-Juntar as duas coisas no cliente — varrer notificações e adivinhar quais
-pertencem a esta entrega — seria inventar um vínculo que o backend não afirma,
-e é exatamente o que a Issue proíbe. A tela fica pronta para receber a seção
-quando existir um endpoint de leitura escopado por entrega.
+`CONFIRMADO`: a consulta exige grants efetivos `loadx.deliveries.read` e
+`loadx.occurrences.read`, ou motorista com `loadx.trips.own` ativo e vinculado à
+viagem. A central pessoal OC103 permanece independente: consultar este painel
+não marca notificações como lidas nem expõe destinatários/preferências alheias.
+
+### Continuidade e consistência da interface
+
+`CONFIRMADO`: evidências usam paginação server-side de vinte itens, permitindo
+reencontrar registros além da primeira página. Falha ao atualizar a listagem não
+apaga o comprovante consultado nem transforma um upload confirmado em falha.
+Após falha sem confirmação, o tipo fica congelado e a mesma intenção, arquivo e
+bytes são usados no retry. Selecionar outro arquivo inicia outro registro
+explícito. Trocar a entrega remonta o painel e descarta respostas tardias; não
+persiste imagens, tokens ou intenções em Web Storage.
+
+`RISCO IDENTIFICADO`: se a conexão falhar após o commit, a UI não afirma que nada
+foi gravado. Consultar a lista ou repetir a mesma intenção permite recuperar o
+resultado. Fechar a tela descarta o rascunho local; não há upload em background
+ou promessa de retomada de arquivo após F5. O backend continua autoritativo.
+
+`CONFIRMADO`: os commits originais de Marlon foram reaproveitados com autoria e
+referência de cherry-pick; sua branch não foi sobrescrita. Não há migration,
+nova dependência, envio Meta ou alteração de domínio da OC90.
