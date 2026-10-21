@@ -105,7 +105,7 @@ def test_initial_migration_renders_expected_check_constraint_names() -> None:
 
 def test_oc98_revision_chains_real_head():
     script = ScriptDirectory.from_config(Config("alembic.ini"))
-    assert script.get_revision("20261021_0029").down_revision == "20261016_0024"
+    assert script.get_revision("20261021_0029").down_revision == "20261020_0028"
 
 
 def test_trusted_devices_revision_extends_oc98():

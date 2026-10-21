@@ -1,3 +1,4 @@
+import { getNotificationPreferences } from "../../notifications/api/notificationsApi";
 import { listTrustedDevices } from "../api/trustedDevicesApi";
 import { getMfaStatus } from "../api/identityApi";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -26,6 +27,15 @@ function fillPassword(confirm = "Nova-senha-ficticia-2026") {
   fireEvent.change(screen.getByLabelText("Confirmar nova senha"), { target: { value: confirm } });
 }
 describe("OC92 Meu perfil", () => {
+  it("preserva notificações OC103 junto da segurança OC98 e dispositivos confiáveis", async () => {
+    await show();
+    await screen.findByRole("form", { name: "Preferências de notificações" });
+    expect(getNotificationPreferences).toHaveBeenCalled();
+    expect(screen.getByRole("link", { name: /Abrir central/ })).toHaveAttribute("href", "/notifications");
+    expect(screen.getByRole("form", { name: "Autenticação multifator" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Dispositivos confiáveis" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Sessão atual" })).toBeInTheDocument();
+  });
   it.each<Role>(["ADMIN", "LOGISTICS_MANAGER", "CHECKER", "DRIVER"])("%s acessa sua conta por URL e menu sem novos privilégios", async (role) => {
     vi.mocked(getCurrentUser).mockResolvedValue({ ...USER, role }); await show();
     expect(screen.getByRole("radio", { name: /Automático/ })).toBeInTheDocument();
