@@ -305,19 +305,24 @@ def test_oc90_upgrade_downgrade_preserves_existing_outbox_receipts_attempts_and_
         oc94_pause = import_module(
             "migrations.versions.20261021_0033_trip_interruption"
         )
+        oc94_reconcile = import_module(
+            "migrations.versions.20261021_0034_operated_distribution_reconciliation"
+        )
         with Operations.context(MigrationContext.configure(db.connection())):
+            oc94_reconcile.downgrade()
             oc94_pause.downgrade()
             oc94.downgrade()
             migration.downgrade()
             migration.upgrade()
             oc94.upgrade()
             oc94_pause.upgrade()
+            oc94_reconcile.upgrade()
         db.commit()
     assert rows(session_factory, *models) == before
     with session_factory() as db:
         assert (
             db.scalar(text("SELECT version_num FROM alembic_version"))
-            == "20261021_0033"
+            == "20261021_0034"
         )
         assert (
             db.scalar(text("SELECT to_regclass('public.outbox_events')"))
