@@ -1,7 +1,7 @@
-export const TRIP_STATUSES = ["SCHEDULED", "IN_ROUTE", "FINISHED"] as const;
+export const TRIP_STATUSES = ["SCHEDULED", "IN_ROUTE", "FINISHED", "CANCELED"] as const;
 export type TripStatus = (typeof TRIP_STATUSES)[number];
 
-export const DELIVERY_STATUSES = ["PENDING", "IN_DELIVERY", "DELIVERED"] as const;
+export const DELIVERY_STATUSES = ["PENDING", "IN_DELIVERY", "DELIVERED", "CANCELED"] as const;
 export type DeliveryStatus = (typeof DELIVERY_STATUSES)[number];
 
 /**
