@@ -12,6 +12,7 @@ import { canReadReports } from "../../reports/permissions";
 import { changeDeliveryStatus, changeTripStatus } from "../api/tripsApi";
 import { TRIP_ACTION_LABELS, TRIP_STATUS_LABELS, tripStatusTone } from "../components/tripLabels";
 import { DeliveryExceptionsPanel } from "../components/DeliveryExceptionsPanel";
+import { TripCancellationPreflightPanel } from "../components/TripCancellationPreflightPanel";
 import { TripStops } from "../components/TripStops";
 import { TripSummary } from "../components/TripSummary";
 import { useTripPage } from "../hooks/useTripPage";
@@ -154,6 +155,10 @@ function TripOperations({ trip, user, isWorking, run }: { readonly trip: Trip; r
 
           {trip.status === "IN_ROUTE" ? (
             <DeliveryExceptionsPanel deliveries={trip.deliveries} canOperate={canDeliver} />
+          ) : null}
+
+          {hasPermission(user, "loadx.trips.manage") ? (
+            <TripCancellationPreflightPanel tripId={trip.id} />
           ) : null}
 
           {hasPermission(user, "loadx.audit.read") ? (
