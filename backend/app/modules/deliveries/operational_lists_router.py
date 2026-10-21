@@ -54,9 +54,7 @@ def list_loading_sessions(
 ) -> PageResponse[LoadingListRead]:
     direction = asc if pagination.sort_order == "asc" else desc
     filters = [LoadingSession.status == status] if status is not None else []
-    total = db.scalar(
-        select(func.count(LoadingSession.id)).where(*filters)
-    ) or 0
+    total = db.scalar(select(func.count(LoadingSession.id)).where(*filters)) or 0
     rows = db.scalars(
         select(LoadingSession)
         .where(*filters)
@@ -100,11 +98,14 @@ def list_deliveries(
         filters.append(Trip.driver_id == driver_id)
     if status is not None:
         filters.append(Delivery.status == status)
-    total = db.scalar(
-        select(func.count(Delivery.id))
-        .join(Trip, Trip.id == Delivery.trip_id)
-        .where(*filters)
-    ) or 0
+    total = (
+        db.scalar(
+            select(func.count(Delivery.id))
+            .join(Trip, Trip.id == Delivery.trip_id)
+            .where(*filters)
+        )
+        or 0
+    )
     rows = db.scalars(
         select(Delivery)
         .join(Trip, Trip.id == Delivery.trip_id)
