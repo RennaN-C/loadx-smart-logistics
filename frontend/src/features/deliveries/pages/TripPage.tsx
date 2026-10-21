@@ -13,6 +13,7 @@ import { changeDeliveryStatus, changeTripStatus, getTrip } from "../api/tripsApi
 import { TRIP_ACTION_LABELS, TRIP_STATUS_LABELS, tripStatusTone } from "../components/tripLabels";
 import { DeliveryExceptionsPanel } from "../components/DeliveryExceptionsPanel";
 import { TripCancellationPreflightPanel } from "../components/TripCancellationPreflightPanel";
+import { TripInterruptionPanel } from "../components/TripInterruptionPanel";
 import { TripStops } from "../components/TripStops";
 import { TripSummary } from "../components/TripSummary";
 import { useTripPage } from "../hooks/useTripPage";
@@ -146,7 +147,7 @@ function TripOperations({ trip, user, isWorking, run }: { readonly trip: Trip; r
 
           <TripStops
             trip={trip}
-            canOperate={canDeliver}
+            canOperate={canDeliver && trip.status === "IN_ROUTE"}
             isWorking={isWorking}
             onAdvance={(delivery, next) =>
               void run(() => changeDeliveryStatus(delivery.id, next))
@@ -155,6 +156,13 @@ function TripOperations({ trip, user, isWorking, run }: { readonly trip: Trip; r
 
           {trip.status === "IN_ROUTE" ? (
             <DeliveryExceptionsPanel deliveries={trip.deliveries} canOperate={canDeliver} />
+          ) : null}
+
+          {hasPermission(user, "loadx.trips.manage") ? (
+            <TripInterruptionPanel
+              trip={trip}
+              onChanged={() => run(() => getTrip(trip.id))}
+            />
           ) : null}
 
           {hasPermission(user, "loadx.trips.manage") ? (
