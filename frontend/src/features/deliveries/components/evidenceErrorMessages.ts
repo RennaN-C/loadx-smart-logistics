@@ -33,13 +33,13 @@ export function mapEvidenceErrorToMessage(error: ApiError): string {
       return "O arquivo não é uma imagem PNG ou JPEG válida, ou passa dos limites aceitos.";
 
     case "EVIDENCE_STORAGE_UNAVAILABLE":
-      return "O armazenamento de evidências não está disponível neste ambiente. Nada foi registrado.";
+      return "Não foi possível confirmar o registro no armazenamento. Consulte a lista antes de reenviar; repetir a tentativa mantém sua identificação.";
 
     case "DELIVERY_NOT_FOUND":
       return "Esta entrega não foi encontrada. Atualize a viagem e tente novamente.";
 
     case "AUTH_FORBIDDEN":
-      return "Seu perfil não registra evidências nesta entrega.";
+      return "Seu perfil não tem acesso a esta ação nesta entrega.";
 
     default:
       return fallbackErrorMessage(error);
