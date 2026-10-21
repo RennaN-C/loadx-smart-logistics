@@ -144,7 +144,7 @@ class TripRepository:
         identifiers = tuple(order_ids)
         if not identifiers:
             return frozenset()
-        statement = select(Delivery.order_id).where(Delivery.order_id.in_(identifiers))
+        statement = select(Delivery.order_id).where(Delivery.order_id.in_(identifiers), Delivery.status != "CANCELED")
         if allowed_other_part_ids:
             statement = statement.where(
                 Delivery.distribution_part_id.is_(None)
