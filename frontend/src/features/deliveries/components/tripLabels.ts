@@ -21,6 +21,7 @@ export const TRIP_ACTION_LABELS: Record<TripStatus, string> = {
   SCHEDULED: "Iniciar viagem",
   IN_ROUTE: "Finalizar viagem",
   FINISHED: "Finalizada",
+  INTERRUPTED: "Retomar viagem",
   CANCELED: "Cancelada",
 };
 
