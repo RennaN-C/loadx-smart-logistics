@@ -185,7 +185,7 @@ class TripCancellationService:
             )
             if (
                 distribution is None
-                or distribution.status != "APPROVED"
+                or distribution.status not in {"APPROVED", "INCOMPLETE"}
                 or part.status != "APPROVED"
             ):
                 raise ApiError(
@@ -204,8 +204,9 @@ class TripCancellationService:
 
         ids = sorted({row.order_id for row in deliveries}, key=lambda x: x.int)
         orders = self.trips.order_service.get_orders(ids, for_update=True)
+        eligible = {"PLANNED", "IN_TRANSIT"} if is_multi else {"PLANNED"}
         if {o.id for o in orders} != set(ids) or any(
-            o.status != "PLANNED" for o in orders
+            o.status not in eligible for o in orders
         ):
             raise ApiError(
                 409, "TRIP_CANCELLATION_ORDER_CHANGED",
@@ -228,11 +229,13 @@ class TripCancellationService:
                 "LOAD_DISTRIBUTION_PART", part.id, "APPROVED",
                 "CANCELED", current_user.id,
             )
+            previous = distribution.status
             distribution.status = "INCOMPLETE"
-            self._history(
-                "LOAD_DISTRIBUTION", distribution.id, "APPROVED",
-                "INCOMPLETE", current_user.id,
-            )
+            if previous != "INCOMPLETE":
+                self._history(
+                    "LOAD_DISTRIBUTION", distribution.id, previous,
+                    "INCOMPLETE", current_user.id,
+                )
             # Preserve active volume identity and order claim for reprocessing.
         else:
             for order in orders:
