@@ -24,13 +24,13 @@ def test_pending_loading_session_already_blocks_truck_release():
     ) == ["LOADING_SESSION_EXISTS"]
 
 
-def test_mixed_distribution_is_blocked_without_aggregate_reconciliation():
+def test_mixed_distribution_is_candidate_when_not_loaded():
     assert assess_cancellation(
         status="SCHEDULED",
         delivery_statuses=("PENDING",),
         has_distribution_part=True,
         loading_status=None,
-    ) == ["MULTI_TRUCK_PART_REQUIRES_RECONCILIATION"]
+    ) == []
 
 
 def test_in_route_or_partial_completion_blocks_cancellation():
