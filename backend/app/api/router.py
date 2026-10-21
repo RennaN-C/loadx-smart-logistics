@@ -26,6 +26,7 @@ from app.modules.messages.webhook_router import router as inbound_webhook_router
 from app.modules.notifications.outbox_router import router as outbox_router
 from app.modules.notifications.router import router as notifications_router
 from app.modules.occurrences.router import router as occurrences_router
+from app.modules.operational_agenda.router import router as agenda_router
 from app.modules.operational_indicators.router import (
     router as operational_indicators_router,
 )
@@ -61,6 +62,7 @@ api_router.include_router(messages_router)
 api_router.include_router(inbound_webhook_router)
 api_router.include_router(occurrences_router)
 api_router.include_router(operational_indicators_router)
+api_router.include_router(agenda_router)
 api_router.include_router(orders_router)
 api_router.include_router(products_router)
 api_router.include_router(reports_router)
