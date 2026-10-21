@@ -16,15 +16,15 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    op.drop_constraint(op.f(op.f("ck_trips__status_allowed")), "trips", type_="check")
-    op.drop_constraint(op.f(op.f("ck_trips__timestamps_consistent")), "trips", type_="check")
+    op.drop_constraint(op.f("ck_trips__status_allowed"), "trips", type_="check")
+    op.drop_constraint(op.f("ck_trips__timestamps_consistent"), "trips", type_="check")
     op.create_check_constraint(
-        op.f(op.f("ck_trips__status_allowed")),
+        op.f("ck_trips__status_allowed"),
         "trips",
         "status IN ('SCHEDULED', 'IN_ROUTE', 'FINISHED', 'CANCELED')",
     )
     op.create_check_constraint(
-        op.f(op.f("ck_trips__timestamps_consistent")),
+        op.f("ck_trips__timestamps_consistent"),
         "trips",
         "(status IN ('SCHEDULED', 'CANCELED') AND started_at IS NULL "
         "AND finished_at IS NULL) OR "
@@ -33,9 +33,9 @@ def upgrade() -> None:
         "AND finished_at IS NOT NULL AND finished_at >= started_at)",
     )
 
-    op.drop_constraint(op.f(op.f("ck_deliveries__status_allowed")), "deliveries", type_="check")
+    op.drop_constraint(op.f("ck_deliveries__status_allowed"), "deliveries", type_="check")
     op.create_check_constraint(
-        op.f(op.f("ck_deliveries__status_allowed")),
+        op.f("ck_deliveries__status_allowed"),
         "deliveries",
         "status IN ('PENDING', 'IN_DELIVERY', 'DELIVERED', 'CANCELED')",
     )
@@ -60,20 +60,20 @@ def upgrade() -> None:
         ),
     )
 
-    op.drop_constraint(op.f(op.f("ck_load_plans__status_allowed")), "load_plans", type_="check")
+    op.drop_constraint(op.f("ck_load_plans__status_allowed"), "load_plans", type_="check")
     op.drop_constraint(
-        op.f(op.f("ck_load_plans__status_metrics_consistent")), "load_plans", type_="check"
+        op.f("ck_load_plans__status_metrics_consistent"), "load_plans", type_="check"
     )
     op.drop_constraint(
-        op.f(op.f("ck_load_plans__approval_consistent")), "load_plans", type_="check"
+        op.f("ck_load_plans__approval_consistent"), "load_plans", type_="check"
     )
     op.create_check_constraint(
-        op.f(op.f("ck_load_plans__status_allowed")),
+        op.f("ck_load_plans__status_allowed"),
         "load_plans",
         "status IN ('CALCULATED', 'APPROVED', 'REJECTED', 'CANCELED')",
     )
     op.create_check_constraint(
-        op.f(op.f("ck_load_plans__status_metrics_consistent")),
+        op.f("ck_load_plans__status_metrics_consistent"),
         "load_plans",
         "(status = 'REJECTED' AND loaded_count = 0 AND unloaded_count > 0 "
         "AND used_volume_cm3 = 0 AND total_weight_kg = 0 "
@@ -83,7 +83,7 @@ def upgrade() -> None:
         "AND total_weight_kg > 0)",
     )
     op.create_check_constraint(
-        op.f(op.f("ck_load_plans__approval_consistent")),
+        op.f("ck_load_plans__approval_consistent"),
         "load_plans",
         "(status IN ('APPROVED', 'CANCELED') AND approved_at IS NOT NULL "
         "AND unloaded_count = 0) OR "
@@ -147,19 +147,19 @@ def downgrade() -> None:
 
     op.drop_table("trip_cancellations")
     op.drop_constraint(
-        op.f(op.f("ck_load_plans__approval_consistent")), "load_plans", type_="check"
+        op.f("ck_load_plans__approval_consistent"), "load_plans", type_="check"
     )
     op.drop_constraint(
-        op.f(op.f("ck_load_plans__status_metrics_consistent")), "load_plans", type_="check"
+        op.f("ck_load_plans__status_metrics_consistent"), "load_plans", type_="check"
     )
-    op.drop_constraint(op.f(op.f("ck_load_plans__status_allowed")), "load_plans", type_="check")
+    op.drop_constraint(op.f("ck_load_plans__status_allowed"), "load_plans", type_="check")
     op.create_check_constraint(
-        op.f(op.f("ck_load_plans__status_allowed")),
+        op.f("ck_load_plans__status_allowed"),
         "load_plans",
         "status IN ('CALCULATED', 'APPROVED', 'REJECTED')",
     )
     op.create_check_constraint(
-        op.f(op.f("ck_load_plans__status_metrics_consistent")),
+        op.f("ck_load_plans__status_metrics_consistent"),
         "load_plans",
         "(status = 'REJECTED' AND loaded_count = 0 AND unloaded_count > 0 "
         "AND used_volume_cm3 = 0 AND total_weight_kg = 0 "
@@ -168,7 +168,7 @@ def downgrade() -> None:
         "AND used_volume_cm3 > 0 AND total_weight_kg > 0)",
     )
     op.create_check_constraint(
-        op.f(op.f("ck_load_plans__approval_consistent")),
+        op.f("ck_load_plans__approval_consistent"),
         "load_plans",
         "(status = 'APPROVED' AND approved_at IS NOT NULL AND unloaded_count = 0) "
         "OR (status <> 'APPROVED' AND approved_at IS NULL)",
@@ -187,21 +187,21 @@ def downgrade() -> None:
         unique=True,
         postgresql_where=sa.text("distribution_part_id IS NULL"),
     )
-    op.drop_constraint(op.f(op.f("ck_deliveries__status_allowed")), "deliveries", type_="check")
+    op.drop_constraint(op.f("ck_deliveries__status_allowed"), "deliveries", type_="check")
     op.create_check_constraint(
-        op.f(op.f("ck_deliveries__status_allowed")),
+        op.f("ck_deliveries__status_allowed"),
         "deliveries",
         "status IN ('PENDING', 'IN_DELIVERY', 'DELIVERED')",
     )
-    op.drop_constraint(op.f(op.f("ck_trips__timestamps_consistent")), "trips", type_="check")
-    op.drop_constraint(op.f(op.f("ck_trips__status_allowed")), "trips", type_="check")
+    op.drop_constraint(op.f("ck_trips__timestamps_consistent"), "trips", type_="check")
+    op.drop_constraint(op.f("ck_trips__status_allowed"), "trips", type_="check")
     op.create_check_constraint(
-        op.f(op.f("ck_trips__status_allowed")),
+        op.f("ck_trips__status_allowed"),
         "trips",
         "status IN ('SCHEDULED', 'IN_ROUTE', 'FINISHED')",
     )
     op.create_check_constraint(
-        op.f(op.f("ck_trips__timestamps_consistent")),
+        op.f("ck_trips__timestamps_consistent"),
         "trips",
         "(status = 'SCHEDULED' AND started_at IS NULL AND finished_at IS NULL) "
         "OR (status = 'IN_ROUTE' AND started_at IS NOT NULL "
