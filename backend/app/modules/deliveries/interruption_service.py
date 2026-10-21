@@ -4,7 +4,17 @@ import uuid
 from datetime import UTC, datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, String, UniqueConstraint, Uuid, func, select
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Index,
+    String,
+    UniqueConstraint,
+    Uuid,
+    func,
+    select,
+)
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
