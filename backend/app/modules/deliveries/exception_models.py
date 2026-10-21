@@ -11,7 +11,7 @@ class DeliveryException(Base):
     __tablename__ = "delivery_exceptions"
     __table_args__ = (
         CheckConstraint("code IN ('CUSTOMER_ABSENT', 'REFUSED', 'DAMAGED', 'OPERATIONAL_FAILURE', 'RESCHEDULED', 'RESUMED')", name="code_allowed"),
-        UniqueConstraint("delivery_id", "idempotency_key", name="delivery_request"),
+        UniqueConstraint("delivery_id", "idempotency_key", name="uq_delivery_exceptions__delivery_request"),
         Index("ix_delivery_exceptions__delivery_created", "delivery_id", "created_at"),
     )
 
