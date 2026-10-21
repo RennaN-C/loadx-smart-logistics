@@ -61,9 +61,7 @@ class TripCancellationPreflightService:
         try:
             trip = trips.get_trip(trip_id, current_user=current_user)
         except TripNotFoundError:
-            raise ApiError(
-                404, "TRIP_NOT_FOUND", "Viagem nao encontrada."
-            ) from None
+            raise ApiError(404, "TRIP_NOT_FOUND", "Viagem nao encontrada.") from None
         except TripAccessForbiddenError:
             raise ApiError(
                 403, "AUTH_FORBIDDEN", "Acesso nao autorizado a viagem."
