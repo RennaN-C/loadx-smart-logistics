@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.modules.deliveries.cancellation_service import TripCancellation
 from app.modules.deliveries.models import Delivery, Trip
+from app.modules.load_planning.distribution_models import LoadDistributionVolume
 from app.modules.load_planning.models import LoadPlan
 from app.modules.orders.models import Order
 from app.modules.status_history.models import StatusHistory
@@ -190,7 +191,13 @@ def test_cancel_one_part_preserves_sibling_trip_and_allows_reprocess(
     after = s.request("GET", f"/load-distributions/{s.distribution['id']}")
     assert after["status"] == "INCOMPLETE"
     assert sum(1 for part in after["parts"] if part["status"] == "CANCELED") == 1
-    assert all(volume["active"] for volume in after["volumes"])
+    with session_factory() as db:
+        physical = db.scalars(
+            select(LoadDistributionVolume).where(
+                LoadDistributionVolume.distribution_id == uuid.UUID(after["id"])
+            )
+        ).all()
+        assert physical and all(volume.active for volume in physical)
     assert s.status() == "IN_TRANSIT"
     assert s.request("GET", f"/trips/{sibling_trip['id']}")["status"] == "IN_ROUTE"
 
