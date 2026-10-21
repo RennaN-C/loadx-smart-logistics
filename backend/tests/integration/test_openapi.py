@@ -391,6 +391,7 @@ EXPECTED_ERROR_STATUSES = {
         "422",
         "500",
     },
+    ("/api/v1/trips/{trip_id}/cancellation", "post"): {"401", "403", "404", "409", "422", "500"},
     ("/api/v1/trips/{trip_id}/cancellation-preflight", "get"): {
         "401",
         "403",
