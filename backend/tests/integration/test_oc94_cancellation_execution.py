@@ -1,9 +1,9 @@
 """OC94 transaction invariants on real PostgreSQL 16."""
 
 import uuid
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from threading import Barrier
-from collections.abc import Callable
 
 from fastapi.testclient import TestClient
 from sqlalchemy import func, select
