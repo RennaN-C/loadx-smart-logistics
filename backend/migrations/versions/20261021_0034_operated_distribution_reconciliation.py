@@ -184,9 +184,7 @@ def upgrade() -> None:
     integrity = import_module(
         "migrations.versions.20261007_0015_load_distributions"
     )
-    old_plan_check = (
-        "(d.status<>'APPROVED' AND lp.status<>'CALCULATED')"
-    )
+    old_plan_check = "(d.status<>'APPROVED' AND lp.status<>'CALCULATED')"
     new_plan_check = (
         "(d.status<>'APPROVED' AND lp.status<>'CALCULATED' "
         "AND NOT (d.status IN ('INCOMPLETE','PARTIALLY_APPROVED','PROPOSED') "
@@ -209,20 +207,24 @@ def upgrade() -> None:
     guarded = source.replace(old_plan_check, new_plan_check).replace(
         old_order_check, new_order_check
     )
-    op.execute(guarded.replace(
-        "CREATE FUNCTION validate_load_distributions()",
-        "CREATE OR REPLACE FUNCTION validate_load_distributions()",
-    ))
+    op.execute(
+        guarded.replace(
+            "CREATE FUNCTION validate_load_distributions()",
+            "CREATE OR REPLACE FUNCTION validate_load_distributions()",
+        )
+    )
 
 
 def downgrade() -> None:
     integrity = import_module(
         "migrations.versions.20261007_0015_load_distributions"
     )
-    op.execute(integrity.INTEGRITY_SQL.replace(
-        "CREATE FUNCTION validate_load_distributions()",
-        "CREATE OR REPLACE FUNCTION validate_load_distributions()",
-    ))
+    op.execute(
+        integrity.INTEGRITY_SQL.replace(
+            "CREATE FUNCTION validate_load_distributions()",
+            "CREATE OR REPLACE FUNCTION validate_load_distributions()",
+        )
+    )
     legacy = import_module(
         "migrations.versions.20261020_0028_delivery_distribution_parts"
     )
