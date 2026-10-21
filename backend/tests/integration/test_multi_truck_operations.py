@@ -133,7 +133,7 @@ def test_database_rejects_inconsistent_direct_writes(multi, mutation):
     trip = s.trips[0]
     part = s.parts[0]
     with s.factory() as db:
-        with pytest.raises(IntegrityError):
+        def attempt_invalid_direct_write():
             if mutation in {"wrong_part", "no_part", "unknown_part", "wrong_order"}:
                 db.add(
                     Delivery(
@@ -187,6 +187,9 @@ def test_database_rejects_inconsistent_direct_writes(multi, mutation):
                 )
             db.flush()
             db.execute(text("SET CONSTRAINTS ALL IMMEDIATE"))
+
+        with pytest.raises(IntegrityError):
+            attempt_invalid_direct_write()
         db.rollback()
     assert s.request("GET", f"/trips/{trip['id']}") == trip
     assert s.status() == "PLANNED"
@@ -198,16 +201,16 @@ def test_duplicate_part_order_is_rejected_and_downgrade_preserves_legs(
     s = multi
     s.trips = [s.create_trip(i) for i in range(2)]
     with s.factory() as db:
-        with pytest.raises(IntegrityError):
-            db.add(
-                Delivery(
-                    trip_id=uuid.UUID(s.trips[0]["id"]),
-                    order_id=uuid.UUID(s.order["id"]),
-                    distribution_part_id=uuid.UUID(s.parts[0]["id"]),
-                    status="PENDING",
-                    sequence=2,
-                )
+        db.add(
+            Delivery(
+                trip_id=uuid.UUID(s.trips[0]["id"]),
+                order_id=uuid.UUID(s.order["id"]),
+                distribution_part_id=uuid.UUID(s.parts[0]["id"]),
+                status="PENDING",
+                sequence=2,
             )
+        )
+        with pytest.raises(IntegrityError):
             db.flush()
         db.rollback()
         migration = import_module(
@@ -316,16 +319,16 @@ def test_order_without_volumes_in_part_is_rejected_by_database(multi):
     )
     trip = s.create_trip(0)
     with s.factory() as db:
-        with pytest.raises(IntegrityError) as error:
-            db.add(
-                Delivery(
-                    trip_id=uuid.UUID(trip["id"]),
-                    order_id=uuid.UUID(other["id"]),
-                    distribution_part_id=uuid.UUID(s.parts[0]["id"]),
-                    status="PENDING",
-                    sequence=2,
-                )
+        db.add(
+            Delivery(
+                trip_id=uuid.UUID(trip["id"]),
+                order_id=uuid.UUID(other["id"]),
+                distribution_part_id=uuid.UUID(s.parts[0]["id"]),
+                status="PENDING",
+                sequence=2,
             )
+        )
+        with pytest.raises(IntegrityError) as error:
             db.flush()
         assert error.value.orig.diag.constraint_name == "ck_deliveries__part_context"
         db.rollback()
@@ -419,15 +422,15 @@ def test_legacy_unique_order_survives_across_different_trips(client, session_fac
     first = create_trip(client, seed_operational_scenario(session_factory))
     second = create_trip(client, seed_operational_scenario(session_factory))
     with session_factory() as db:
-        with pytest.raises(IntegrityError) as error:
-            db.add(
-                Delivery(
-                    trip_id=uuid.UUID(second["id"]),
-                    order_id=uuid.UUID(first["deliveries"][0]["order_id"]),
-                    status="PENDING",
-                    sequence=3,
-                )
+        db.add(
+            Delivery(
+                trip_id=uuid.UUID(second["id"]),
+                order_id=uuid.UUID(first["deliveries"][0]["order_id"]),
+                status="PENDING",
+                sequence=3,
             )
+        )
+        with pytest.raises(IntegrityError) as error:
             db.flush()
         assert error.value.orig.diag.constraint_name == "uq_deliveries__legacy_order"
         db.rollback()
@@ -649,16 +652,16 @@ def test_database_rejects_valid_part_from_another_distribution(multi):
     s.request("POST", f"/load-distributions/{distribution['id']}/approve", {})
     trip = s.create_trip(0)
     with s.factory() as db:
-        with pytest.raises(IntegrityError) as error:
-            db.add(
-                Delivery(
-                    trip_id=uuid.UUID(trip["id"]),
-                    order_id=uuid.UUID(s.order["id"]),
-                    distribution_part_id=uuid.UUID(distribution["parts"][0]["id"]),
-                    status="PENDING",
-                    sequence=2,
-                )
+        db.add(
+            Delivery(
+                trip_id=uuid.UUID(trip["id"]),
+                order_id=uuid.UUID(s.order["id"]),
+                distribution_part_id=uuid.UUID(distribution["parts"][0]["id"]),
+                status="PENDING",
+                sequence=2,
             )
+        )
+        with pytest.raises(IntegrityError) as error:
             db.flush()
         assert error.value.orig.diag.constraint_name == "ck_deliveries__part_context"
         db.rollback()
@@ -673,7 +676,7 @@ def test_database_prevents_legacy_order_or_plan_becoming_multi_after_delivery(mu
     s = multi
     legacy = create_trip(s.client, seed_operational_scenario(s.factory))
     with s.factory() as db:
-        with pytest.raises(IntegrityError) as error:
+        def attempt_attach_legacy_order():
             db.execute(
                 text(
                     "INSERT INTO load_distribution_orders (distribution_id,order_id,active) VALUES (:distribution,:order,true)"
@@ -683,9 +686,12 @@ def test_database_prevents_legacy_order_or_plan_becoming_multi_after_delivery(mu
                     "order": uuid.UUID(legacy["deliveries"][0]["order_id"]),
                 },
             )
+
+        with pytest.raises(IntegrityError) as error:
+            attempt_attach_legacy_order()
         assert error.value.orig.diag.constraint_name == "ck_deliveries__assignment"
         db.rollback()
-        with pytest.raises(IntegrityError) as error:
+        def attempt_attach_legacy_plan():
             db.execute(
                 text(
                     "INSERT INTO load_distribution_parts (id,distribution_id,load_plan_id,status) VALUES (:id,:distribution,:plan,'PENDING')"
@@ -696,6 +702,9 @@ def test_database_prevents_legacy_order_or_plan_becoming_multi_after_delivery(mu
                     "plan": uuid.UUID(legacy["load_plan_id"]),
                 },
             )
+
+        with pytest.raises(IntegrityError) as error:
+            attempt_attach_legacy_plan()
         assert error.value.orig.diag.constraint_name == "ck_deliveries__part_context"
         db.rollback()
 

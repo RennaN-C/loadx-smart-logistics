@@ -107,12 +107,15 @@ def test_two_legs_commit_outbox_once_and_worker_preserves_physical_execution(flo
                 # The other part has an independent FINISHED checklist and its
                 # physical snapshot stays protected while the worker runs.
                 plan_id = uuid.UUID(s.parts[1]["load_plan"]["id"])
-                with pytest.raises(IntegrityError) as error:
+                def attempt_snapshot_update():
                     db.execute(
                         update(LoadPlanItem)
                         .where(LoadPlanItem.load_plan_id == plan_id)
                         .values(position_x_cm=1)
                     )
+
+                with pytest.raises(IntegrityError) as error:
+                    attempt_snapshot_update()
                 assert (
                     error.value.orig.diag.constraint_name
                     == "ck_load_plans__operational_snapshot"

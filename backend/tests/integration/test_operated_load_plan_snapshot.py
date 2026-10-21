@@ -154,9 +154,12 @@ def test_direct_snapshot_mutation_is_rejected_by_stable_guard(operated, mutation
             statement = delete(LoadPlanOrder).where(
                 LoadPlanOrder.load_plan_id == identifier
             )
-        with pytest.raises(IntegrityError) as error:
+        def attempt_snapshot_write():
             db.execute(statement)
             db.flush()
+
+        with pytest.raises(IntegrityError) as error:
+            attempt_snapshot_write()
         assert error.value.orig.diag.constraint_name == CONSTRAINT
         db.rollback()
 
@@ -189,12 +192,15 @@ def test_reassignment_cannot_insert_an_unoperated_child_into_operated_parent(ope
     spare = seed_operational_scenario(factory)
     with factory() as db:
         # The new parent is operated; the old parent has no operation.
-        with pytest.raises(IntegrityError) as error:
+        def attempt_child_reassignment():
             db.execute(
                 update(LoadPlanItem)
                 .where(LoadPlanItem.load_plan_id == spare.load_plan_id)
                 .values(load_plan_id=identifier)
             )
+
+        with pytest.raises(IntegrityError) as error:
+            attempt_child_reassignment()
         assert error.value.orig.diag.constraint_name == CONSTRAINT
         db.rollback()
 
@@ -273,11 +279,14 @@ def test_allowed_downgrade_removes_snapshot_triggers_and_upgrade_restores_them(
             )
             == 3
         )
-        with pytest.raises(IntegrityError) as error:
+        def attempt_protected_plan_write():
             db.execute(
                 update(LoadPlan)
                 .where(LoadPlan.id == scenario.load_plan_id)
                 .values(truck_snapshot_model="Alteração bloqueada")
             )
+
+        with pytest.raises(IntegrityError) as error:
+            attempt_protected_plan_write()
         assert error.value.orig.diag.constraint_name == CONSTRAINT
         db.rollback()

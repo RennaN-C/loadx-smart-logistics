@@ -181,10 +181,13 @@ def test_loading_parent_lock_rejects_child_delete_without_fk_deadlock(
             # DELETE already holds a child tuple lock when BEFORE ROW runs.
             # Waiting for the parent here would deadlock loading's checklist FK.
             with s.factory() as db:
-                with pytest.raises(IntegrityError) as error:
+                def attempt_locked_child_delete():
                     db.execute(
                         delete(LoadPlanItem).where(LoadPlanItem.id == min(item_ids))
                     )
+
+                with pytest.raises(IntegrityError) as error:
+                    attempt_locked_child_delete()
                 assert (
                     error.value.orig.diag.constraint_name
                     == "ck_load_plans__operational_snapshot"
@@ -267,4 +270,5 @@ def test_loading_refreshes_cached_snapshot_after_preoperational_mutation(
         loading = future.result(timeout=20)
     assert loading.load_plan_id == plan_id
     assert observed == [new_truck_id]
-    assert observed_sequences and all(value > 1000 for value in observed_sequences)
+    assert observed_sequences
+    assert all(value > 1000 for value in observed_sequences)
