@@ -44,7 +44,7 @@ Manager = Annotated[User, Depends(require_permission("loadx.trips.manage"))]
 @router.get(
     "/deliveries/{delivery_id}/exceptions",
     response_model=list[DeliveryExceptionRead],
-    responses=openapi_error_responses(401, 403, 404),
+    responses=openapi_error_responses(401, 403, 404, 422),
 )
 def list_delivery_exceptions(
     delivery_id: uuid.UUID, current_user: Reader, db: Db
