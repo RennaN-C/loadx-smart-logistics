@@ -434,6 +434,7 @@ def test_migration_backfills_real_facts_and_refuses_loss(
     with session_factory() as db:
         clear_outbox_fixture(db)
         db.commit()
+    # Target OC103's parent even when newer revisions (such as OC90) exist.
     _run_alembic(_required_test_database_url(), "downgrade", "20261020_0025")
     _run_alembic(_required_test_database_url(), "upgrade", "head")
     assert inbox(client, scenario.driver_headers)["total"] == 1

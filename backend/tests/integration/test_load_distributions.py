@@ -501,9 +501,7 @@ def test_busy_truck_preserves_operational_conflict_rule(distribution_scenario):
 
 
 @pytest.mark.parametrize("parts", [1, 2])
-def test_operational_port_preserves_single_truck_and_gates_split_orders(
-    distribution_scenario, parts
-):
+def test_operational_port_releases_current_approved_parts(distribution_scenario, parts):
     s = distribution_scenario
     result = s.create(parts)
     part = result["parts"][0]
@@ -512,7 +510,7 @@ def test_operational_port_preserves_single_truck_and_gates_split_orders(
     assert s.client.post(path, json=body, headers=s.user.headers).status_code == 409
     s.post(f"/{result['id']}/approve")
     response = s.client.post(path, json=body, headers=s.user.headers)
-    assert response.status_code == (201 if parts == 1 else 409), response.text
+    assert response.status_code == 201, response.text
 
 
 @pytest.mark.parametrize("role", ["CHECKER", "DRIVER"])

@@ -965,3 +965,19 @@ def test_notification_contract_is_personal_and_excludes_channel_secrets() -> Non
         "read_at",
     }
     assert listing["security"] == [{"SessionCookie": []}]
+
+
+def test_oc90_delivery_leg_context_is_additive_and_not_client_assignable():
+    schema = get_openapi_schema()
+    schemas = schema["components"]["schemas"]
+    field = schemas["DeliveryRead"]["properties"]["distribution_part_id"]
+    assert {"type": "string", "format": "uuid"} in field["anyOf"]
+    assert {"type": "null"} in field["anyOf"]
+    assert "distribution_part_id" not in schemas["DeliveryRead"]["required"]
+    assert set(schemas["TripCreate"]["properties"]) == {"load_plan_id", "driver_id"}
+    assert schemas["TripCreate"]["additionalProperties"] is False
+    audit = schema["paths"]["/api/v1/audit"]["get"]["parameters"]
+    entity = next(p for p in audit if p["name"] == "entity_type")
+    assert {"LOAD_DISTRIBUTION", "LOAD_DISTRIBUTION_PART"} <= set(
+        entity["schema"]["anyOf"][0]["enum"]
+    )

@@ -18,6 +18,8 @@ router = APIRouter(prefix="/audit", tags=["audit"])
 
 AuditReader = Annotated[User, Depends(require_permission("loadx.audit.read"))]
 AuditEntityType = Literal[
+    "LOAD_DISTRIBUTION",
+    "LOAD_DISTRIBUTION_PART",
     "ORDER",
     "LOAD_PLAN",
     "TRIP",

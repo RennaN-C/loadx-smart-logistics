@@ -525,19 +525,22 @@ Desenvolvedor 4.
 ## Viagem e entrega
 
 - `CONFIRMADO`: viagem nasce `SCHEDULED` a partir de plano `APPROVED`, motorista
-  ativo e todos os pedidos do plano em `PLANNED`.
+  elegível e pedidos `PLANNED`; partes operacionais OC90 também aceitam `IN_TRANSIT`.
 - `CONFIRMADO`: cada plano pertence a no máximo uma viagem e cada pedido a no
-  máximo uma entrega no MVP.
+  máximo uma entrega legada, ou uma por parte/pedido na OC90.
 - `CONFIRMADO`: viagem só começa quando a interface pública do carregamento
   confirmar sessão `FINISHED` para o mesmo plano; qualquer ausência ou
   divergência falha fechada e bloqueia `IN_ROUTE`.
 - `CONFIRMADO`: iniciar a viagem executa `SCHEDULED -> IN_ROUTE`, registra
-  `started_at` e move atomicamente todos os pedidos `PLANNED -> IN_TRANSIT`.
+  `started_at` e move atomicamente pedidos `PLANNED -> IN_TRANSIT`. Pedidos já
+  em trânsito por outra parte permanecem assim, sem repetir histórico.
 - `CONFIRMADO`: finalizar executa `IN_ROUTE -> FINISHED` e registra
-  `finished_at` somente quando todas as entregas e pedidos estão `DELIVERED`.
+  `finished_at` quando todas as suas entregas estão `DELIVERED`. No legado,
+  também exige pedidos `DELIVERED`; multi independe de outra viagem.
 - `CONFIRMADO`: entrega executa apenas `PENDING -> IN_DELIVERY -> DELIVERED`
   durante uma viagem `IN_ROUTE`; a conclusão registra `delivered_at` e move o
-  pedido correspondente `IN_TRANSIT -> DELIVERED`.
+  pedido correspondente `IN_TRANSIT -> DELIVERED` no legado; multi aguarda
+  todas as partes que contêm volumes daquele pedido.
 - `CONFIRMADO`: repetir o status atual é idempotente e não cria histórico.
 - `CONFIRMADO` (v1.2.0): `ADMIN` e `LOGISTICS_MANAGER` criam e operam; `DRIVER`
   consulta e opera somente a própria viagem, com vínculo validado; `CHECKER` não acessa.
@@ -850,3 +853,29 @@ contrato do módulo dono; regras e elegibilidade existentes não são duplicadas
 `CONFIRMADO`: ADR-043 define lease/fencing, resultado incerto sem retry automático,
 backoff limitado, adoção de tentativas OC84 sem reenvio e reprocessamento ADMIN
 idempotente/auditado. Caixa OC103 é independente do canal exclusivamente mock.
+
+
+## OC90 — continuidade operacional multi-caminhão
+
+`CONFIRMADO`: somente distribuição APPROVED, parte APPROVED e plano atual
+liberam carregamento/viagem, qualquer que seja a quantidade de partes. Versão
+histórica continua bloqueada. Cada parte opera somente seus volumes originais.
+O primeiro início muda o pedido PLANNED → IN_TRANSIT uma vez. Outros inícios
+aceitam IN_TRANSIT e não repetem histórico. A entrega representa uma perna;
+somente todas as partes que contêm volumes daquele pedido permitem DELIVERED.
+Partes ainda sem entrega também impedem conclusão agregada. Locks por pedido e
+consulta persistida após o lock serializam conclusões concorrentes.
+
+`CONFIRMADO`: viagem multi pode FINISHED com suas próprias entregas concluídas,
+mesmo com outra perna pendente e pedido IN_TRANSIT. Falha/rollback em uma parte
+não altera outra. Loading create e repetição de estado/comprovante preservam
+idempotência; criar novamente Trip mantém TRIP_LOAD_PLAN_ALREADY_ASSIGNED.
+Legado sem distribuição conserva unicidade de entrega e semântica anterior.
+Decisão estrutural proposta: ADR-044. OC94 e UI OC89 permanecem fora do escopo.
+
+`CONFIRMADO` (OC90): desde a primeira LoadingSession persistida (ou Trip,
+defensivamente), plano, caminhão/snapshots/métricas e pedidos/volumes/posições do
+plano permanecem imutáveis no PostgreSQL, inclusive no legado. UPDATE sem mudança
+é permitido. Antes desse marco, criação, aprovação e reprocessamento continuam
+sob as regras anteriores. Contenção com criação operacional exige retry da
+mutação direta; não autoriza alterar uma fotografia já operada. Ver ADR-044.
