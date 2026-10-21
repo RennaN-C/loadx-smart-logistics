@@ -235,6 +235,9 @@ class TripCancellationService:
         # trip status and the absence of any loading session.
 
         if is_multi and distribution is not None and part is not None:
+            # The 0034 DB guard only allows the part transition after both
+            # the trip and its deliveries are durably staged as canceled.
+            self.db.flush()
             part.status = "CANCELED"
             self._history(
                 "LOAD_DISTRIBUTION_PART",
@@ -243,6 +246,9 @@ class TripCancellationService:
                 "CANCELED",
                 current_user.id,
             )
+            # Ensure the part is canceled before the parent guard checks the
+            # aggregate transition. The whole sequence remains one transaction.
+            self.db.flush()
             previous = distribution.status
             distribution.status = "INCOMPLETE"
             if previous != "INCOMPLETE":
