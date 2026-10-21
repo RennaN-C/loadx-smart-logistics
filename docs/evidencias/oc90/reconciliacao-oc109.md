@@ -94,8 +94,8 @@ A versão final é novamente coberta pelas suítes abaixo.
 
 `CONFIRMADO`: frontend: 944 testes/107 arquivos aprovados (73,80 s), ESLint,
 TypeScript/build e bundle budget aprovados (LoadViewer 229,7 KiB gzip ≤ 250 KiB).
-Frontend da OC109 permanece idêntico a desenvolvimento; dependências não mudaram,
-portanto o npm ci da sessão continuou válido. Avisos AggregateError do jsdom e
+Nessa primeira rodada, o frontend era idêntico a desenvolvimento e o npm ci da
+sessão continuava válido; a correção de dependências após o CI está descrita abaixo. Avisos AggregateError do jsdom e
 chunk grande não reprovaram testes/build.
 
 `CONFIRMADO`: Ruff check e format --check aprovados (480 arquivos).
@@ -116,9 +116,32 @@ exercitados separadamente pelos testes, sem exclusão de histórico para liberar
 
 `CONFIRMADO`: fetch final conserva desenvolvimento em 8f313c9 e remoto OC90 em
 163b59d antes do commit. Auditoria de escopo/diff e ausência de marcadores,
-credenciais ou artefatos inesperados aprovadas. O commit de merge terá como pais
+credenciais ou artefatos inesperados aprovadas. O commit de merge `630c4fdc0b749ae3c2f91fe6328203e9684b4eec` tem como pais
 essas duas referências, preservando o original e a OC109. Publicação exclusivamente
 por git push normal; nunca houve force/rebase/amend/reset nesta reconciliação.
+
+## Falha de CI herdada e correção de dependências
+
+`CONFIRMADO`: a [execução 39526096808](https://github.com/RennaN-C/loadx-smart-logistics/actions/runs/39526096808)
+do merge 630c4fd recusou Frontend em npm audit: follow-redirects 1.16.0
+(GHSA-q3jh-wrc6-jgq8/GHSA-8r9p-f939-6h3c) e Vite 8.2.1
+(GHSA-698v-4r3x-3vcv/GHSA-r825-w8mm-5pxw/GHSA-587h-7wmj-h5pm).
+Duas vulnerabilidades high também foram reproduzidas com manifests/lock copiados
+**diretamente de origin/desenvolvimento**, em diretório temporário, sem alterar a
+base. Portanto são falhas preexistentes de dependências, não das regras OC90/109.
+
+`CONFIRMADO`: correção pontual: Vite 8.2.1 → 8.2.4, mantendo major/minor e Node 22;
+follow-redirects 1.16.0 → 1.16.1. Lockfile atualiza a cadeia de build compatível do
+Vite (Rolldown/bindings, tipos, PostCSS/nanoid). Não há mudança em componentes,
+perfis, contratos, outbox ou workflow; nenhuma exceção/ignore da auditoria. Novo
+npm ci --ignore-scripts e npm audit --audit-level=high retornam zero vulnerabilidades.
+A correção é outro commit normal, posterior ao merge, sem reescrita de histórico.
+
+`CONFIRMADO`: após corrigir os pins: npm ci --ignore-scripts e npm audit aprovados
+(zero vulnerabilidades), Vitest completo com 944 testes/107 arquivos aprovados
+(62,59 s), ESLint, TypeScript, build e bundle budget aprovados (229,6 KiB gzip).
+Backend permaneceu inalterado em relação à execução local de 2.695 testes/95%;
+os workflows da publicação seguinte revalidam o SHA final completo.
 
 ## Checks e revisão
 
@@ -134,10 +157,11 @@ outra PR nem mesclar em desenvolvimento. Não há deploy.
 
 ## Inventário da PR contra desenvolvimento
 
-`CONFIRMADO`: 44 arquivos OC90 contra a base integrada. Os 82 arquivos
+`CONFIRMADO`: 46 arquivos OC90 e correção de CI contra a base integrada. Os 82 arquivos
 trazidos da OC109 foram conferidos contra desenvolvimento, sem diferenças fora
-dos 12 compartilhados já descritos. Frontend, worker, outbox, adapter e migration/ADR
-OC109 não receberam mudanças de comportamento pela reconciliação.
+dos 12 compartilhados já descritos. Componentes frontend, worker, outbox, adapter e migration/ADR
+OC109 não receberam mudanças de comportamento pela reconciliação. Somente os
+manifestos frontend foram atualizados para corrigir a falha herdada de CI.
 
 - `backend/app/modules/deliveries/README.md`.
 - `backend/app/modules/deliveries/models.py`.
@@ -183,3 +207,5 @@ OC109 não receberam mudanças de comportamento pela reconciliação.
 - `docs/decisions/README.md`.
 - `docs/evidencias/oc90/README.md`.
 - `docs/evidencias/oc90/reconciliacao-oc109.md`.
+- `frontend/package.json`.
+- `frontend/package-lock.json`.
