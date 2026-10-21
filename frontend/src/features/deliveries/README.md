@@ -140,7 +140,16 @@ reproduzido aqui. `CHECKER` é negado.
 
 ### Pendência
 
-`PENDENTE DE DEFINIÇÃO`: a parte de **comunicação operacional** da OC81 depende
-dos contratos da OC82/OC84, ainda não publicados. O único endpoint de mensagens
-hoje é `/messages/interpret`, que não é vinculado a entrega. Nada foi inventado
-aqui enquanto esse contrato não existir.
+`RISCO IDENTIFICADO`: a parte de **comunicação operacional** da OC81 continua
+sem contrato, e já não é por falta das OCs de mensageria — OC82, OC83 e OC84
+fecharam. O que falta é leitura de comunicação **por entrega**:
+
+- `/messages` expõe apenas `POST /interpret`, que interpreta uma mensagem
+  recebida e pode resolver um `delivery_id`; não lista conversa nenhuma;
+- `/notifications` é caixa de entrada do **usuário**, com filtros de tipo,
+  categoria e lida. `NotificationRead` não tem `delivery_id`.
+
+Juntar as duas coisas no cliente — varrer notificações e adivinhar quais
+pertencem a esta entrega — seria inventar um vínculo que o backend não afirma,
+e é exatamente o que a Issue proíbe. A tela fica pronta para receber a seção
+quando existir um endpoint de leitura escopado por entrega.

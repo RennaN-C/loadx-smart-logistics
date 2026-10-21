@@ -57,10 +57,12 @@ interface DeliveryEvidencePanelProps {
  * conclusão. Por isso o comprovante é carregado primeiro — sem ele não há onde
  * anexar, e o backend recusa com `DELIVERY_RECEIPT_NOT_AVAILABLE`.
  *
- * `PENDENTE DE DEFINIÇÃO`: a parte de "comunicação operacional" da OC81
- * depende dos contratos da OC82/OC84, que ainda não estão publicados — o único
- * endpoint de mensagens hoje é `/messages/interpret`, que não é vinculado a
- * entrega. Nada é inventado aqui enquanto esse contrato não existir.
+ * `RISCO IDENTIFICADO`: a parte de "comunicação operacional" da OC81 continua
+ * sem contrato. OC82, OC83 e OC84 fecharam, mas nenhuma delas expõe leitura de
+ * comunicação POR ENTREGA: `/messages` só tem `POST /interpret`, que interpreta
+ * uma mensagem recebida, e `/notifications` é caixa de entrada do USUÁRIO, com
+ * filtros de tipo, categoria e lida — sem `delivery_id`. Juntar as duas coisas
+ * no cliente seria inventar vínculo que o backend não afirma.
  */
 export function DeliveryEvidencePanel({ deliveryId, canOperate }: DeliveryEvidencePanelProps) {
   const fileInput = useRef<HTMLInputElement>(null);
