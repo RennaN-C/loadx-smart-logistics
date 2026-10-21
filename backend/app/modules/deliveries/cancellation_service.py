@@ -7,25 +7,22 @@ import uuid
 from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
-from sqlalchemy import DateTime, ForeignKey, String, Text, Uuid, select
+from sqlalchemy import DateTime, ForeignKey, Text, UniqueConstraint, Uuid, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from app.core.exceptions import ApiError
 from app.database.base import Base
 from app.modules.deliveries.cancellation_preflight import assess_cancellation
-from app.modules.deliveries.models import Delivery, Trip
 from app.modules.deliveries.service import (
     TripAccessForbiddenError,
     TripNotFoundError,
     TripService,
 )
-from app.modules.load_planning.distribution_models import LoadDistribution
 from app.modules.load_planning.distribution_repository import LoadDistributionRepository
 from app.modules.load_planning.models import LoadPlan
 from app.modules.load_planning.repository import LoadPlanRepository
 from app.modules.loading.reference_service import LoadingReferenceService
-from app.modules.orders.models import Order
 from app.modules.status_history.schemas import StatusHistoryCreate
 from app.modules.status_history.service import StatusHistoryService
 from app.modules.trucks.service import TruckService
@@ -34,10 +31,14 @@ from app.modules.users.models import User
 
 class TripCancellation(Base):
     __tablename__ = "trip_cancellations"
+    __table_args__ = (
+        UniqueConstraint("trip_id", name="uq_trip_cancellations__trip"),
+        UniqueConstraint("idempotency_key", name="uq_trip_cancellations__request"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     trip_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("trips.id", ondelete="RESTRICT"), nullable=False, unique=True
+        ForeignKey("trips.id", ondelete="RESTRICT"), nullable=False
     )
     actor_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("users.id", ondelete="RESTRICT"), nullable=False
@@ -45,7 +46,7 @@ class TripCancellation(Base):
     idempotency_key: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False, unique=True)
     reason: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False
+        DateTime(timezone=True), nullable=False, server_default=func.now()
     )
 
 
