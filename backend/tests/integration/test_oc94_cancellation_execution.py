@@ -163,3 +163,59 @@ def test_cancellation_is_transactional_on_history_failure(
         assert db.get(LoadPlan, scenario.load_plan_id).status == "APPROVED"
         assert {o.status for o in db.scalars(select(Order)).all()} == {"PLANNED"}
         assert db.scalar(select(func.count()).select_from(TripCancellation)) == 0
+
+
+def test_cancel_one_part_preserves_sibling_trip_and_allows_reprocess(
+    client: TestClient, session_factory: SessionFactory
+) -> None:
+    from tests.integration.oc90_helpers import seed_multi_flow
+
+    s = seed_multi_flow(client, session_factory)
+    s.approve()
+    s.trips = [s.create_trip(0), s.create_trip(1)]
+    original_part = s.parts[0]
+    sibling_trip = s.trips[1]
+
+    # Only the sibling is loaded and on the road: aggregate order is IN_TRANSIT.
+    s.loadings = [None, s.create_loading(1)]
+    s.finish_loading(1)
+    s.trip_status(1, "IN_ROUTE")
+    assert s.status() == "IN_TRANSIT"
+
+    canceled = _cancel(
+        client, s.trips[0]["id"], s.headers,
+        reason="Falha na alocacao inicial do primeiro veiculo",
+    )
+    assert canceled.status_code == 200, canceled.text
+    after = s.request("GET", f"/load-distributions/{s.distribution['id']}")
+    assert after["status"] == "INCOMPLETE"
+    assert sum(1 for part in after["parts"] if part["status"] == "CANCELED") == 1
+    assert all(volume["active"] for volume in after["volumes"])
+    assert s.status() == "IN_TRANSIT"
+    assert s.request("GET", f"/trips/{sibling_trip['id']}")["status"] == "IN_ROUTE"
+
+    response = s.request(
+        "POST",
+        f"/load-distributions/{after['id']}/parts/{original_part['id']}/reprocess",
+        {
+            "truck_id": original_part["load_plan"]["truck_id"],
+            "expected_load_plan_id": original_part["load_plan"]["id"],
+        },
+    )
+    replacement = next(
+        part for part in response["parts"] if part["id"] == original_part["id"]
+    )
+    assert replacement["load_plan"]["id"] != original_part["load_plan"]["id"]
+    approved = s.request("POST", f"/load-distributions/{after['id']}/approve", {})
+    assert approved["status"] == "APPROVED"
+    assert s.status() == "IN_TRANSIT"
+    new_trip = s.request(
+        "POST", "/trips",
+        {
+            "load_plan_id": replacement["load_plan"]["id"],
+            "driver_id": s.drivers[0]["id"],
+        },
+        expected=201,
+    )
+    assert new_trip["status"] == "SCHEDULED"
+    assert s.request("GET", f"/trips/{sibling_trip['id']}")["status"] == "IN_ROUTE"
