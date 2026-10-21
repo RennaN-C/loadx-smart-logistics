@@ -37,9 +37,10 @@ def test_interrupt_and_resume_preserve_resources_and_original_start(
     url = f"/api/v1/trips/{trip_id}/interruptions"
     assert client.get(url).status_code == 401
     assert client.get(url, headers=scenario.driver_headers).status_code == 403
-    assert _command(
-        client, trip_id, "interruptions", scenario.driver_headers
-    ).status_code == 403
+    assert (
+        _command(client, trip_id, "interruptions", scenario.driver_headers).status_code
+        == 403
+    )
     with session_factory() as db:
         trip_before = db.get(Trip, uuid.UUID(trip_id))
         started_at = trip_before.started_at
@@ -51,9 +52,10 @@ def test_interrupt_and_resume_preserve_resources_and_original_start(
     replay = _command(client, trip_id, "interruptions", scenario.manager_headers, key)
     assert replay.status_code == 200
     assert replay.json()["id"] == first.json()["id"]
-    assert _command(
-        client, trip_id, "interruptions", scenario.manager_headers
-    ).status_code == 409
+    assert (
+        _command(client, trip_id, "interruptions", scenario.manager_headers).status_code
+        == 409
+    )
 
     unavailable_delivery = client.patch(
         f"/api/v1/deliveries/{delivery['id']}/status",
