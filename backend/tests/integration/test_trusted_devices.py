@@ -163,7 +163,8 @@ def test_untrusted_context_requires_mfa(session_factory, monkeypatch, kind):
     if kind == "absent":
         token = None
     if kind == "tampered":
-        token = "x" + token[1:]
+        token = ("y" if token[0] == "x" else "x") + token[1:]
+        assert token != issued.token
     if kind == "other-account":
         user = create_account(session_factory, suffix="other")
         enroll(session_factory, user)
