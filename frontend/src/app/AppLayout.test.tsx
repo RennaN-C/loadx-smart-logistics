@@ -164,8 +164,28 @@ describe("AppLayout", () => {
     renderLayout();
 
     expect(screen.getByRole("link", { name: "Visão geral" })).toBeInTheDocument();
+    // Cadastros continua vazio para o motorista: ele não lê caminhão, produto,
+    // cliente nem pedido.
     expect(screen.queryByText("Cadastros")).not.toBeInTheDocument();
-    expect(screen.queryByText("Operação")).not.toBeInTheDocument();
+  });
+
+  it("o motorista agora acha as próprias viagens pelo menu", () => {
+    // Antes o grupo Operação sumia inteiro para ele, e a única porta de entrada
+    // era receber o link da viagem. É a lacuna que a OC93 existe para fechar.
+    signedInAs("DRIVER");
+    renderLayout();
+
+    expect(screen.getByText("Operação")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Viagens" })).toHaveAttribute("href", "/trips");
+    // e segue sem enxergar o que não é dele
+    expect(screen.queryByRole("link", { name: "Pedidos" })).not.toBeInTheDocument();
+  });
+
+  it("o conferente não lê viagens, então não recebe o link", () => {
+    signedInAs("CHECKER");
+    renderLayout();
+
+    expect(screen.queryByRole("link", { name: "Viagens" })).not.toBeInTheDocument();
   });
 
   it("marca só a tela atual como ativa", () => {

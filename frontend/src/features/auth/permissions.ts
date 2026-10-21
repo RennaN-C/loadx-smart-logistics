@@ -46,3 +46,5 @@ export function canManageLogistics(subject: PermissionSubject, resource = "custo
 }
 export function canCheckLoading(subject: PermissionSubject): boolean { return hasPermission(subject, "loadx.loading.operate"); }
 export function canOperateTrip(subject: PermissionSubject): boolean { return hasPermission(subject, "loadx.trips.manage") || hasPermission(subject, "loadx.trips.own"); }
+/** Ver a lista: quem gerencia vê todas, o motorista vê as próprias (recorte do backend). */
+export function canReadTrips(subject: PermissionSubject): boolean { return hasPermission(subject, "loadx.trips.read") || hasPermission(subject, "loadx.trips.own"); }
