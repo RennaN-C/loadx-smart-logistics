@@ -6,8 +6,8 @@ from app.core.pagination import PaginationParams
 from app.modules.deliveries.models import Delivery, Trip
 from app.modules.deliveries.operational_lists_router import (
     DeliveryStatus,
-    LoadingStatus,
     LoadingListRead,
+    LoadingStatus,
 )
 from app.modules.loading.models import LoadingSession
 
