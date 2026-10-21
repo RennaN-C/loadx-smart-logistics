@@ -301,15 +301,18 @@ def test_oc90_upgrade_downgrade_preserves_existing_outbox_receipts_attempts_and_
         "migrations.versions.20261020_0028_delivery_distribution_parts"
     )
     with session_factory() as db:
+        oc94 = import_module("migrations.versions.20261021_0032_trip_cancellation")
         with Operations.context(MigrationContext.configure(db.connection())):
+            oc94.downgrade()
             migration.downgrade()
             migration.upgrade()
+            oc94.upgrade()
         db.commit()
     assert rows(session_factory, *models) == before
     with session_factory() as db:
         assert (
             db.scalar(text("SELECT version_num FROM alembic_version"))
-            == "20261021_0030"
+            == "20261021_0032"
         )
         assert (
             db.scalar(text("SELECT to_regclass('public.outbox_events')"))
