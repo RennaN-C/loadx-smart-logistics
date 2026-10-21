@@ -492,12 +492,12 @@ class LoadDistributionService:
             self._lock_trucks(available_ids)
             if is_reapproval:
                 # Already-approved siblings legitimately reserve their vehicles.
-                for identifier in sorted(
+                for sibling_truck_id in sorted(
                     {plan.truck_id for plan in plans.values()
                      if plan.status == "APPROVED"},
                     key=lambda value: value.int,
                 ):
-                    self.trucks.get_truck_for_update(identifier)
+                    self.trucks.get_truck_for_update(sibling_truck_id)
             for p in sorted(distribution.parts, key=lambda p: p.load_plan_id.int):
                 plans[p.id] = self.planning.repository.get_for_update(p.load_plan_id)
             orders, _, _, _ = self._sources(
