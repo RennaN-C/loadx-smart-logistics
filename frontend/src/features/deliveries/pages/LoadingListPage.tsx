@@ -1,15 +1,32 @@
+import { useCallback, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { AlertBanner } from "../../../components/AlertBanner";
 import { Pagination } from "../../../components/Pagination";
 import { useResourceList } from "../../../hooks/useResourceList";
+import type { ListParams } from "../../../services/pagination";
 import { listLoadingSessions } from "../api/operationalListsApi";
 import "./TripListPage.css";
 
 export function LoadingListPage() {
-  const { items, status, error, refetch, page, total, totalPages, goToPage } = useResourceList(listLoadingSessions);
+  const [filter, setFilter] = useState("");
+  const load = useCallback(
+    (params: ListParams) => listLoadingSessions({ ...params, status: filter || undefined }),
+    [filter],
+  );
+  const { items, status, error, refetch, page, total, totalPages, goToPage } = useResourceList(load);
   return <div className="entity-page">
     <header className="entity-header"><div><h1>Carregamentos</h1><p className="entity-lede">Sessões reais de carregamento, com acesso direto à conferência.</p></div></header>
+    <label htmlFor="loading-list-status">Filtrar situação</label>
+    <select id="loading-list-status" value={filter} onChange={(event) => {
+      setFilter(event.target.value);
+      goToPage(1);
+    }}>
+      <option value="">Todas</option>
+      <option value="PENDING">Pendente</option>
+      <option value="IN_PROGRESS">Em andamento</option>
+      <option value="FINISHED">Finalizado</option>
+    </select>
     {status === "loading" && <p role="status">Carregando sessões...</p>}
     {status === "error" && <><AlertBanner>{error?.message ?? "Não foi possível consultar os carregamentos."}</AlertBanner><button className="btn-secondary" type="button" onClick={() => void refetch()}>Tentar novamente</button></>}
     {status === "success" && items.length === 0 && <p className="entity-state">Nenhum carregamento encontrado.</p>}
