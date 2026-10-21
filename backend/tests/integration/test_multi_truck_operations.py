@@ -494,7 +494,11 @@ def test_migration_backfills_operated_single_part_and_preserves_legacy(
         oc94_pause = import_module(
             "migrations.versions.20261021_0033_trip_interruption"
         )
+        oc94_reconcile = import_module(
+            "migrations.versions.20261021_0034_operated_distribution_reconciliation"
+        )
         with Operations.context(MigrationContext.configure(db.connection())):
+            oc94_reconcile.downgrade()
             oc94_pause.downgrade()
             oc94.downgrade()
             migration.downgrade()
@@ -517,6 +521,7 @@ def test_migration_backfills_operated_single_part_and_preserves_legacy(
             migration.upgrade()
             oc94.upgrade()
             oc94_pause.upgrade()
+            oc94_reconcile.upgrade()
         assert db.get(Delivery, delivery_id).distribution_part_id == uuid.UUID(
             s.parts[0]["id"]
         )
@@ -529,7 +534,7 @@ def test_migration_backfills_operated_single_part_and_preserves_legacy(
         assert set(db.scalars(select(StatusHistory.id)).all()) == set(before)
         assert (
             db.scalar(text("SELECT version_num FROM alembic_version"))
-            == "20261021_0033"
+            == "20261021_0034"
         )
 
 
@@ -778,7 +783,11 @@ def test_upgrade_rejects_inconsistent_old_delivery_without_losing_data(multi):
         oc94_pause = import_module(
             "migrations.versions.20261021_0033_trip_interruption"
         )
+        oc94_reconcile = import_module(
+            "migrations.versions.20261021_0034_operated_distribution_reconciliation"
+        )
         with Operations.context(MigrationContext.configure(db.connection())):
+            oc94_reconcile.downgrade()
             oc94_pause.downgrade()
             oc94.downgrade()
             migration.downgrade()
