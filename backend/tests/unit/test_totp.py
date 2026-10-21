@@ -46,5 +46,11 @@ def test_authenticated_encryption_has_no_plaintext_fallback():
     for bad_key in (None, "invalid", Fernet.generate_key().decode()):
         with pytest.raises(IdentityUnavailableError):
             decrypt_secret(encrypted, bad_key)
+    # Flip an authenticated byte, not trailing base64 characters whose changes
+    # might decode to the same bytes because of padding.
+    damaged = bytearray(base64.urlsafe_b64decode(encrypted))
+    damaged[-1] ^= 0x01
+    tampered = base64.urlsafe_b64encode(damaged).decode("ascii")
+    assert tampered != encrypted
     with pytest.raises(IdentityUnavailableError):
-        decrypt_secret(encrypted[:-2] + "aa", key)
+        decrypt_secret(tampered, key)

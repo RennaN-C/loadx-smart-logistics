@@ -225,8 +225,13 @@ aprovada. Não há fila durável/reenvio automático nesta OC.
 
 `CONFIRMADO`: ADR-038 define confiança opcional por 30 dias sem prolongar sessão.
 Aplicar migration `20261021_0030` (anterior `20261021_0029`) e configurar
-`TRUSTED_DEVICES_ENABLED=true` somente no ambiente aprovado. Padrão false;
-`TRUSTED_DEVICE_DAYS=30`, aceitos 1–30. Não alterar chave MFA existente.
+`TRUSTED_DEVICES_ENABLED=true` por padrão no código e no `.env.example`;
+`TRUSTED_DEVICE_DAYS=30`, aceitos 1–30. A caixa de confiança segue desmarcada
+por padrão e só é exibida no login com TOTP após o cadastro obrigatório.
+O usuário precisa confirmar o código e escolher confiar no navegador.
+Ambientes específicos podem definir `TRUSTED_DEVICES_ENABLED=false` para desligar
+o recurso, inclusive durante homologação; uma variável já definida prevalece
+sobre o valor padrão do projeto. Não alterar chave MFA existente.
 
 - `MfaChallengeRead` adiciona `trusted_device_days` (null quando indisponível ou
   ENROLL); clientes antigos continuam compatíveis.
