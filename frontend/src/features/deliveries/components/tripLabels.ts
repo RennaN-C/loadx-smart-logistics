@@ -5,6 +5,7 @@ export const TRIP_STATUS_LABELS: Record<TripStatus, string> = {
   SCHEDULED: "Agendada",
   IN_ROUTE: "Em rota",
   FINISHED: "Finalizada",
+  INTERRUPTED: "Interrompida",
   CANCELED: "Cancelada",
 };
 
@@ -32,6 +33,7 @@ export const DELIVERY_ACTION_LABELS: Record<DeliveryStatus, string> = {
 
 export function tripStatusTone(status: TripStatus): StatusTone {
   if (status === "FINISHED") return "good";
+  if (status === "INTERRUPTED") return "warn";
   if (status === "CANCELED") return "neutral";
   if (status === "SCHEDULED") return "neutral";
   return "warn";
