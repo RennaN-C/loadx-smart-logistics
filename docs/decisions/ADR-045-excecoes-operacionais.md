@@ -1,6 +1,48 @@
 # ADR-045 — OC94: ledger de tentativas de excecao
 
-Estado: implementacao inicial proposta. A OC94 NAO ESTA CONCLUIDA.
+Estado: **em revisão na PR #235; implementação sujeita à validação da CI e aprovação técnica.**
+
+## Atualização do contrato de cancelamento (PR #235)
+
+**Esta seção prevalece sobre as notas históricas de proposta abaixo**, que foram
+escritas antes da implementação do POST de cancelamento.
+
+- `POST /api/v1/trips/{trip_id}/cancellation` exige permissão efetiva
+  `loadx.trips.manage`, autenticação, motivo de 8 a 500 caracteres e UUID
+  idempotente; o ator vem da sessão, nunca do corpo.
+- Somente viagem `SCHEDULED`, entregas `PENDING` e ausência total de
+  `LoadingSession` podem ser canceladas. Não se cancela viagem iniciada,
+  entrega movimentada, comprovante emitido ou carregamento pendente.
+- Uma nova transação revalida condições e locks. No cenário legado,
+  `Trip`, `Delivery` e `LoadPlan` passam a `CANCELED` e os pedidos
+  `PLANNED` elegíveis são devolvidos a `READY`, sem excluir o plano.
+- Para parte de distribuição multi-caminhão, a parte passa a `CANCELED`,
+  a distribuição fica `INCOMPLETE` e os volumes ativos, outros planos,
+  outros caminhões e o estado agregado dos pedidos permanecem preservados.
+  O reprocessamento da parte gera uma versão nova do plano, com referência
+  ao original, sem transformar pedidos `IN_TRANSIT` em `PLANNED`.
+- O ledger `trip_cancellations` guarda motivo, ator, chave, data e unicidade
+  por viagem. Histórico de estado e ledger são persistidos na mesma
+  transação; em falhas há rollback. Reenvio idêntico é idempotente.
+- A migration `20261021_0032` amplia os CHECKs e permite histórico de
+  entregas canceladas, sem descarte de dados. Downgrade recusa destruição
+  quando existir qualquer registro afetado.
+- O GET de preflight é **consultivo**: pode ficar obsoleto por concorrência.
+  O POST revalida o estado; não há confirmação exclusivamente pelo frontend.
+- Não são enviados webhooks ou notificações sintéticas. Qualquer publicação
+  futura requer contrato de evento aprovado e outbox transacional.
+- **Ainda fora desta implementação:** pausa/interrupção de viagem já em rota
+  com estado próprio; reprogramação automática de rota; comunicação externa
+  real. Eventos `RESCHEDULED`/`RESUMED` da entrega são históricos de
+  tentativa, não uma pausa física de viagem.
+- **Critério de liberação:** testes PostgreSQL 16 (incluindo concorrência),
+  migrações upgrade/downgrade, segurança e frontend concluídos, revisão
+  formal do comportamento multi-caminhão e aprovação da decisão.
+  Nenhum merge ou deploy deve ocorrer antes de satisfazer isso.
+
+## Histórico da proposta original (supersedido onde divergir)
+
+
 
 O modelo OC90 usa estados restritos e preserva comprovantes e partes fisicas multi-caminhao.
 Nao se deve adicionar cancelamento ao status operacional sem reconciliar sessoes de
