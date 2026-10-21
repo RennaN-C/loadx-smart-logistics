@@ -33,7 +33,9 @@ def upgrade() -> None:
         "AND finished_at IS NOT NULL AND finished_at >= started_at)",
     )
 
-    op.drop_constraint(op.f("ck_deliveries__status_allowed"), "deliveries", type_="check")
+    op.drop_constraint(
+        op.f("ck_deliveries__status_allowed"), "deliveries", type_="check"
+    )
     op.create_check_constraint(
         op.f("ck_deliveries__status_allowed"),
         "deliveries",
@@ -60,7 +62,9 @@ def upgrade() -> None:
         ),
     )
 
-    op.drop_constraint(op.f("ck_load_plans__status_allowed"), "load_plans", type_="check")
+    op.drop_constraint(
+        op.f("ck_load_plans__status_allowed"), "load_plans", type_="check"
+    )
     op.drop_constraint(
         op.f("ck_load_plans__status_metrics_consistent"), "load_plans", type_="check"
     )
@@ -114,7 +118,9 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.UniqueConstraint("trip_id", name=op.f("uq_trip_cancellations__trip")),
-        sa.UniqueConstraint("idempotency_key", name=op.f("uq_trip_cancellations__request")),
+        sa.UniqueConstraint(
+            "idempotency_key", name=op.f("uq_trip_cancellations__request")
+        ),
     )
 
 
@@ -152,7 +158,9 @@ def downgrade() -> None:
     op.drop_constraint(
         op.f("ck_load_plans__status_metrics_consistent"), "load_plans", type_="check"
     )
-    op.drop_constraint(op.f("ck_load_plans__status_allowed"), "load_plans", type_="check")
+    op.drop_constraint(
+        op.f("ck_load_plans__status_allowed"), "load_plans", type_="check"
+    )
     op.create_check_constraint(
         op.f("ck_load_plans__status_allowed"),
         "load_plans",
@@ -187,7 +195,9 @@ def downgrade() -> None:
         unique=True,
         postgresql_where=sa.text("distribution_part_id IS NULL"),
     )
-    op.drop_constraint(op.f("ck_deliveries__status_allowed"), "deliveries", type_="check")
+    op.drop_constraint(
+        op.f("ck_deliveries__status_allowed"), "deliveries", type_="check"
+    )
     op.create_check_constraint(
         op.f("ck_deliveries__status_allowed"),
         "deliveries",
