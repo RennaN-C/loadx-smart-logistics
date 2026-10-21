@@ -70,9 +70,11 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    if op.get_bind().execute(
-        sa.text("SELECT EXISTS (SELECT 1 FROM delivery_exceptions)")
-    ).scalar():
+    if (
+        op.get_bind()
+        .execute(sa.text("SELECT EXISTS (SELECT 1 FROM delivery_exceptions)"))
+        .scalar()
+    ):
         raise RuntimeError("OC94 records exist: downgrade would destroy history")
     op.drop_index(
         "ix_delivery_exceptions__delivery_created", table_name="delivery_exceptions"
