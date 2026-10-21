@@ -255,7 +255,11 @@ def test_allowed_downgrade_removes_snapshot_triggers_and_upgrade_restores_them(
         oc94_pause = import_module(
             "migrations.versions.20261021_0033_trip_interruption"
         )
+        oc94_reconcile = import_module(
+            "migrations.versions.20261021_0034_operated_distribution_reconciliation"
+        )
         with Operations.context(MigrationContext.configure(db.connection())):
+            oc94_reconcile.downgrade()
             oc94_pause.downgrade()
             oc94.downgrade()
             migration.downgrade()
@@ -281,6 +285,7 @@ def test_allowed_downgrade_removes_snapshot_triggers_and_upgrade_restores_them(
             migration.upgrade()
             oc94.upgrade()
             oc94_pause.upgrade()
+            oc94_reconcile.upgrade()
         assert (
             db.scalar(
                 text(
