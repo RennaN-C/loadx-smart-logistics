@@ -342,7 +342,4 @@ def test_oc94_canceled_sibling_does_not_block_other_scheduled_trip(
     active = s.trip_status(1, "IN_ROUTE")
     assert active["status"] == "IN_ROUTE"
     assert s.status() == "IN_TRANSIT"
-    assert (
-        s.request("GET", f"/trips/{s.trips[0]['id']}")["status"]
-        == "CANCELED"
-    )
+    assert s.request("GET", f"/trips/{s.trips[0]['id']}")["status"] == "CANCELED"
