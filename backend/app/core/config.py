@@ -46,7 +46,7 @@ class Settings(BaseSettings):
     operational_log_level: Literal["INFO", "WARNING", "ERROR"] = "INFO"
     operational_request_logs: bool = True
     evidence_storage_dir: Path | None = None
-    trusted_devices_enabled: bool = False
+    trusted_devices_enabled: bool = True
     trusted_device_days: int = Field(default=30, ge=1, le=30)
     mfa_encryption_key: SecretStr | None = None
     password_recovery_provider: Literal["none", "smtp"] = "none"
