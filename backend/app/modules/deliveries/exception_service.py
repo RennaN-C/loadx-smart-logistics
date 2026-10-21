@@ -161,6 +161,9 @@ class DeliveryExceptionService:
                 actor_id=current_user.id,
                 idempotency_key=data.idempotency_key,
                 scheduled_for=data.scheduled_for,
+                # PostgreSQL now() uses the outer transaction timestamp in
+                # savepoint-backed tests; order attempts by actual event time.
+                created_at=datetime.now(UTC),
             )
             self.db.add(event)
             self.db.flush()
