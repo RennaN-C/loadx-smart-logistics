@@ -302,7 +302,9 @@ def test_oc90_upgrade_downgrade_preserves_existing_outbox_receipts_attempts_and_
     )
     with session_factory() as db:
         oc94 = import_module("migrations.versions.20261021_0032_trip_cancellation")
-        oc94_pause = import_module("migrations.versions.20261021_0033_trip_interruption")
+        oc94_pause = import_module(
+            "migrations.versions.20261021_0033_trip_interruption"
+        )
         with Operations.context(MigrationContext.configure(db.connection())):
             oc94_pause.downgrade()
             oc94.downgrade()
