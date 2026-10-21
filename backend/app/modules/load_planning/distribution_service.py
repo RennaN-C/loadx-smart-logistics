@@ -524,6 +524,10 @@ class LoadDistributionService:
                         "APPROVED",
                         changed_by,
                     )
+            if is_reapproval:
+                # Validate that the replacement part is approved before
+                # changing the aggregate distribution state (OC94 / 0034).
+                self.db.flush()
             old = distribution.status
             distribution.status = self._status(distribution)
             if distribution.status == "APPROVED":
@@ -667,6 +671,9 @@ class LoadDistributionService:
             part.load_plan_id = plan.id
             part.status = "PENDING"
             self._history("LOAD_DISTRIBUTION_PART", part.id, old, "PENDING", changed_by)
+            # Guard requires a current replacement plan + a canceled original.
+            # Persist the part's version transition before updating its parent.
+            self.db.flush()
             previous = distribution.status
             distribution.status = self._status(distribution)
             if previous != distribution.status:
