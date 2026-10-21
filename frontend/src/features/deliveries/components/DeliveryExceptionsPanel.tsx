@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, type FormEvent } from "react";
 
 import { AlertBanner } from "../../../components/AlertBanner";
 import {
@@ -53,7 +53,7 @@ export function DeliveryExceptionsPanel({ deliveries, canOperate }: Props) {
 
   const selected = deliveries.find((delivery) => delivery.id === deliveryId);
   const codes = nextCodes(events);
-  const selectedCode = codes.includes(code) ? code : codes[0];
+  const selectedCode = codes.includes(code) ? code : (codes[0] ?? "CUSTOMER_ABSENT");
   const canWrite = canOperate && selected?.status !== "DELIVERED";
 
   async function refresh(id: string) {
@@ -80,7 +80,7 @@ export function DeliveryExceptionsPanel({ deliveries, canOperate }: Props) {
     void refresh(id);
   }
 
-  async function submit(event: React.FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!deliveryId || !canWrite || posting) return;
     const key = requestId.current ?? crypto.randomUUID();
