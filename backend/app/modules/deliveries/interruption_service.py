@@ -33,9 +33,13 @@ from app.modules.users.models import User
 class TripInterruptionEvent(Base):
     __tablename__ = "trip_interruption_events"
     __table_args__ = (
-        UniqueConstraint("idempotency_key", name="uq_trip_interruption_events__request"),
+        UniqueConstraint(
+            "idempotency_key", name="uq_trip_interruption_events__request"
+        ),
         CheckConstraint("action IN ('INTERRUPTED','RESUMED')", name="action_allowed"),
-        Index("ix_trip_interruption_events__trip_id_created_at", "trip_id", "created_at"),
+        Index(
+            "ix_trip_interruption_events__trip_id_created_at", "trip_id", "created_at"
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
@@ -107,7 +111,9 @@ class TripInterruptionService:
         except TripAccessForbiddenError:
             raise ApiError(403, "AUTH_FORBIDDEN", "Acesso negado a viagem.") from None
 
-    def history_for(self, trip_id: uuid.UUID, *, user: User) -> list[TripInterruptionRead]:
+    def history_for(
+        self, trip_id: uuid.UUID, *, user: User
+    ) -> list[TripInterruptionRead]:
         trip = self._trip(trip_id, user=user, lock=False)
         records = self.db.scalars(
             select(TripInterruptionEvent)
@@ -139,7 +145,8 @@ class TripInterruptionService:
                     or prior.reason != data.reason
                 ):
                     raise ApiError(
-                        409, "TRIP_INTERRUPTION_IDEMPOTENCY_CONFLICT",
+                        409,
+                        "TRIP_INTERRUPTION_IDEMPOTENCY_CONFLICT",
                         "Chave de idempotencia ja utilizada com outros dados.",
                     )
                 return self.as_read(prior, trip.status)
@@ -148,7 +155,8 @@ class TripInterruptionService:
             after = "INTERRUPTED" if action == "INTERRUPTED" else "IN_ROUTE"
             if trip.status != before:
                 raise ApiError(
-                    409, "TRIP_INTERRUPTION_INVALID_TRANSITION",
+                    409,
+                    "TRIP_INTERRUPTION_INVALID_TRANSITION",
                     "Viagem nao esta no estado exigido para esta operacao.",
                 )
 
