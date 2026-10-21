@@ -178,8 +178,51 @@ def upgrade() -> None:
     )
     op.execute(context)
 
+    # OC87's deferred coverage/lifecycle validator must also understand an
+    # already-operated sibling. Keep ordinary planning invariants unchanged;
+    # only an actual delivery in this distribution justifies an exception.
+    integrity = import_module(
+        "migrations.versions.20261007_0015_load_distributions"
+    )
+    old_plan_check = (
+        "(d.status<>'APPROVED' AND lp.status<>'CALCULATED')"
+    )
+    new_plan_check = (
+        "(d.status<>'APPROVED' AND lp.status<>'CALCULATED' "
+        "AND NOT (d.status IN ('INCOMPLETE','PARTIALLY_APPROVED','PROPOSED') "
+        "AND p.status IN ('APPROVED','CANCELED') "
+        "AND lp.status='APPROVED' AND EXISTS ("
+        "SELECT 1 FROM deliveries e WHERE e.distribution_part_id=p.id)))"
+    )
+    old_order_check = "(d.status<>'APPROVED' AND o.status<>'READY')"
+    new_order_check = (
+        "(d.status<>'APPROVED' AND o.status<>'READY' "
+        "AND NOT (d.status IN ('INCOMPLETE','PARTIALLY_APPROVED','PROPOSED') "
+        "AND o.status IN ('PLANNED','IN_TRANSIT','DELIVERED') "
+        "AND EXISTS (SELECT 1 FROM deliveries e "
+        "JOIN load_distribution_parts p ON p.id=e.distribution_part_id "
+        "WHERE p.distribution_id=d.id AND e.order_id=o.id)))"
+    )
+    source = integrity.INTEGRITY_SQL
+    if source.count(old_plan_check) != 1 or source.count(old_order_check) != 1:
+        raise RuntimeError("OC94 distribution lifecycle guard drifted")
+    guarded = source.replace(old_plan_check, new_plan_check).replace(
+        old_order_check, new_order_check
+    )
+    op.execute(guarded.replace(
+        "CREATE FUNCTION validate_load_distributions()",
+        "CREATE OR REPLACE FUNCTION validate_load_distributions()",
+    ))
+
 
 def downgrade() -> None:
+    integrity = import_module(
+        "migrations.versions.20261007_0015_load_distributions"
+    )
+    op.execute(integrity.INTEGRITY_SQL.replace(
+        "CREATE FUNCTION validate_load_distributions()",
+        "CREATE OR REPLACE FUNCTION validate_load_distributions()",
+    ))
     legacy = import_module(
         "migrations.versions.20261020_0028_delivery_distribution_parts"
     )
