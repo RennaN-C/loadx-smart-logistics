@@ -21,6 +21,7 @@ from app.modules.load_planning.router import router as load_planning_router
 from app.modules.loading.router import router as loading_router
 from app.modules.messages.router import router as messages_router
 from app.modules.messages.webhook_router import router as inbound_webhook_router
+from app.modules.notifications.outbox_router import router as outbox_router
 from app.modules.notifications.router import router as notifications_router
 from app.modules.occurrences.router import router as occurrences_router
 from app.modules.operational_indicators.router import (
@@ -75,3 +76,4 @@ api_router.include_router(global_search_router)
 api_router.include_router(profiles_router)
 
 api_router.include_router(notifications_router)
+api_router.include_router(outbox_router)

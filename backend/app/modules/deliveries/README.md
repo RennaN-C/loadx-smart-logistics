@@ -105,7 +105,7 @@ Conflito retorna HTTP `409 DRIVER_OPERATION_CONFLICT` (ver `docs/05`).
 
 `CONFIRMADO`: Delivery.distribution_part_id identifica a perna, derivada do plano pelo
 servidor; NULL conserva legado. UNIQUE parte/pedido e índice único parcial legado,
-FK e triggers de contexto/imutabilidade protegem PostgreSQL (migration 0027).
+FK e triggers de contexto/imutabilidade protegem PostgreSQL (migration 0028).
 Trip mantém UNIQUE load_plan_id; retry de criação conserva o conflito público.
 
 Planos atuais de distribuição/parte APPROVED aceitam PLANNED ou IN_TRANSIT na
@@ -122,5 +122,5 @@ transacional. Falha em B não desfaz A; rollback não publica meia conclusão.
 Históricos existentes e vínculos persistidos reconstroem toda a operação.
 Permissões efetivas OC112 e recorte do motorista permanecem em vigor, sem novos
 papéis ou concessões. Observabilidade ADR-025 não recebe IDs/PII/payload.
-ADR-043 registra a proposta estrutural; downgrade falha se existirem entregas
+ADR-044 registra a proposta estrutural; downgrade falha se existirem entregas
 com parte para preservar contexto/auditoria. OC94 permanece fora do escopo.

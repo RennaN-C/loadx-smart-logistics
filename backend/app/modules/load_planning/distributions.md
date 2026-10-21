@@ -142,7 +142,7 @@ históricas/reprocessadas permanecem false. Loading/Trip rejeitam uso prematuro.
 A OC90 recompõe o pedido pelas entregas das partes necessárias sem alterar a
 identidade dos volumes ou a entrega única do legado sem distribuição.
 
-`PENDENTE DE DEFINIÇÃO`: revisão humana das ADR-028/043.
+`PENDENTE DE DEFINIÇÃO`: revisão humana das ADR-028/044.
 `CONFIRMADO`: a UI OC89 já integra a base.
 Cancelamento após aprovação continua pertencendo à OC94.
 `RISCO IDENTIFICADO`: snapshots são históricos; recálculo usa cadastros atuais e
@@ -181,5 +181,5 @@ distribuição desde a primeira entrega. A fotografia inteira do plano e seus
 pedidos/itens congela desde a primeira LoadingSession ou Trip, inclusive legado.
 Fonte dos volumes permanece aqui; auditoria
 reconstrói distribuição → parte → plano → loading → trip → delivery → pedido.
-ADR-043 documenta cardinalidade/locks como proposta para revisão. Não altera a
+ADR-044 documenta cardinalidade/locks como proposta para revisão. Não altera a
 UI OC89 nem implementa cancelamento/reentrega OC94.

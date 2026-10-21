@@ -211,7 +211,7 @@ def test_duplicate_part_order_is_rejected_and_downgrade_preserves_legs(
             db.flush()
         db.rollback()
         migration = import_module(
-            "migrations.versions.20261020_0027_delivery_distribution_parts"
+            "migrations.versions.20261020_0028_delivery_distribution_parts"
         )
         monkeypatch.setattr(migration.op, "get_bind", lambda: db.connection())
         with pytest.raises(RuntimeError, match="OC90 downgrade blocked"):
@@ -478,7 +478,7 @@ def test_migration_backfills_operated_single_part_and_preserves_legacy(
     )
     s.approve()
     migration = import_module(
-        "migrations.versions.20261020_0027_delivery_distribution_parts"
+        "migrations.versions.20261020_0028_delivery_distribution_parts"
     )
     trip_id, delivery_id = uuid.uuid4(), uuid.uuid4()
     with session_factory() as db:
@@ -517,7 +517,7 @@ def test_migration_backfills_operated_single_part_and_preserves_legacy(
         assert set(db.scalars(select(StatusHistory.id)).all()) == set(before)
         assert (
             db.scalar(text("SELECT version_num FROM alembic_version"))
-            == "20261020_0027"
+            == "20261020_0028"
         )
 
 
@@ -749,7 +749,7 @@ def test_upgrade_rejects_inconsistent_old_delivery_without_losing_data(multi):
         expected=201,
     )
     migration = import_module(
-        "migrations.versions.20261020_0027_delivery_distribution_parts"
+        "migrations.versions.20261020_0028_delivery_distribution_parts"
     )
     trip_id, delivery_id = uuid.uuid4(), uuid.uuid4()
     with s.factory() as db:

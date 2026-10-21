@@ -864,10 +864,22 @@ TRIPS/OCCURRENCES/SECURITY e SECURITY sempre habilitada. Sem telefone/texto/segr
 Backfill só cria associações das contas elegíveis no corte. Downgrade com qualquer
 associação/preferência é recusado; fatos da OC84 são preservados integralmente.
 
+## OC109 — Outbox persistente (ADR-043)
+
+`CONFIRMADO`: outbox_events pertence a notifications: id UUID, notification_id FK
+RESTRICT/UNIQUE, channel WHATSAPP_MOCK, event_type, contract_version=1, correlation_id,
+idempotency_key UNIQUE, status, attempt_count por ciclo, generation monotônica,
+next_attempt_at/lease_expires_at UTC, last_error_code sanitizado, created_at/updated_at.
+Índices por status/agendamento e created_at/id. outbox_attempts registra UUID,
+outbox_event_id FK RESTRICT, generation UNIQUE por evento, started_at/finished_at,
+result e error_code; outbox_retry_commands fixa UUID idempotente, evento, ator FK
+RESTRICT e data. Auditoria acrescenta OUTBOX_REPROCESSED/OUTBOX_EVENT. Sem payload
+de texto/telefone, sem exclusão automática. Migration 20261020_0027.
+
 
 ## OC90 — entrega por perna física
 
-`CONFIRMADO`: a revisão `20261020_0027` sucede `20261020_0026`. Delivery recebe
+`CONFIRMADO`: a revisão `20261020_0028` sucede `20261020_0027`. Delivery recebe
 `distribution_part_id` UUID nullable, FK RESTRICT para `load_distribution_parts`.
 NULL preserva o legado: índice único parcial `uq_deliveries__legacy_order`
 por `order_id WHERE distribution_part_id IS NULL`. Para distribuição, a UNIQUE
@@ -886,7 +898,7 @@ ou renumeração em Delivery. As FKs e CHECKs anteriores permanecem vigentes.
 parte já persistida. Downgrade aborta se existir qualquer entrega com contexto
 de parte: não remove vínculos, entregas nem auditoria para restaurar o schema
 anterior. Sem esse estado operacional, o downgrade restaura a unicidade global.
-Ver ADR-043 (proposta para revisão da equipe).
+Ver ADR-044 (proposta para revisão da equipe).
 
 `CONFIRMADO` (OC90): upgrade revalida entregas antigas com a mesma trigger de
 contexto usada por escritas futuras. Vínculo antigo inconsistente aborta o upgrade

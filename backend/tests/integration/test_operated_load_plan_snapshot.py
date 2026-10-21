@@ -240,7 +240,7 @@ def test_allowed_downgrade_removes_snapshot_triggers_and_upgrade_restores_them(
     with session_factory() as db:
         LoadingService(db).create_session(scenario.load_plan_id)
         migration = import_module(
-            "migrations.versions.20261020_0027_delivery_distribution_parts"
+            "migrations.versions.20261020_0028_delivery_distribution_parts"
         )
         db.execute(text("SET CONSTRAINTS ALL IMMEDIATE"))
         with Operations.context(MigrationContext.configure(db.connection())):

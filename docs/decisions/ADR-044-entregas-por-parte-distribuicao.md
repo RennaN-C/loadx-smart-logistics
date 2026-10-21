@@ -1,4 +1,4 @@
-# ADR-043: entregas por parte física de distribuição
+# ADR-044 — Entregas por parte de distribuição
 
 Status: proposta implementada para revisão na OC90 (#133).
 
@@ -19,7 +19,7 @@ Partes de distribuições com um caminhão usam o mesmo contexto; planos sem
 distribuição conservam NULL e a unicidade legada por pedido.
 
 `CONFIRMADO`: FK RESTRICT, UNIQUE parte/pedido, índice único parcial legado e
-triggers na revisão 0027 protegem a estrutura. A validação de atribuição bloqueia
+triggers na revisão 0028 protegem a estrutura. A validação de atribuição bloqueia
 Order antes de consultar outras entregas e toma SHARE na viagem/parte/distribuição.
 Rejeita plano incompatível, parte não operacional, pedido sem volume e mistura
 com entrega legada ou outra distribuição. Vínculos da entrega e plano de viagem

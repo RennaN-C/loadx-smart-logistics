@@ -67,4 +67,4 @@ LoadPlan antes de materializar checklist e bloquear caminhão. A primeira sessã
 persistida congela plano/pedidos/itens no PostgreSQL, inclusive legado. Trip é
 evidência defensiva adicional. Escrita concorrente em filho usa guarda NOWAIT
 para não inverter espera com a FK do checklist; contenção exige retry da
-transação. Detalhes e constraint estável em ADR-043 e docs/03-modelo-dados.md.
+transação. Detalhes e constraint estável em ADR-044 e docs/03-modelo-dados.md.

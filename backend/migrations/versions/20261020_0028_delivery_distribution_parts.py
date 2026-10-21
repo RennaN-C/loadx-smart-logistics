@@ -11,8 +11,8 @@ guards use parent NOWAIT to avoid inversion with loading checklist FK locks.
 import sqlalchemy as sa
 from alembic import op
 
-revision = "20261020_0027"
-down_revision = "20261020_0026"
+revision = "20261020_0028"
+down_revision = "20261020_0027"
 branch_labels = None
 depends_on = None
 

@@ -848,6 +848,12 @@ Preferências TRIPS/OCCURRENCES afetam somente novas associações; SECURITY é
 obrigatória, sem criar evento novo. Não há alertas de documento/manutenção até
 contrato do módulo dono; regras e elegibilidade existentes não são duplicadas.
 
+## OC109
+
+`CONFIRMADO`: ADR-043 define lease/fencing, resultado incerto sem retry automático,
+backoff limitado, adoção de tentativas OC84 sem reenvio e reprocessamento ADMIN
+idempotente/auditado. Caixa OC103 é independente do canal exclusivamente mock.
+
 
 ## OC90 — continuidade operacional multi-caminhão
 
@@ -865,11 +871,11 @@ mesmo com outra perna pendente e pedido IN_TRANSIT. Falha/rollback em uma parte
 não altera outra. Loading create e repetição de estado/comprovante preservam
 idempotência; criar novamente Trip mantém TRIP_LOAD_PLAN_ALREADY_ASSIGNED.
 Legado sem distribuição conserva unicidade de entrega e semântica anterior.
-Decisão estrutural proposta: ADR-043. OC94 e UI OC89 permanecem fora do escopo.
+Decisão estrutural proposta: ADR-044. OC94 e UI OC89 permanecem fora do escopo.
 
 `CONFIRMADO` (OC90): desde a primeira LoadingSession persistida (ou Trip,
 defensivamente), plano, caminhão/snapshots/métricas e pedidos/volumes/posições do
 plano permanecem imutáveis no PostgreSQL, inclusive no legado. UPDATE sem mudança
 é permitido. Antes desse marco, criação, aprovação e reprocessamento continuam
 sob as regras anteriores. Contenção com criação operacional exige retry da
-mutação direta; não autoriza alterar uma fotografia já operada. Ver ADR-043.
+mutação direta; não autoriza alterar uma fotografia já operada. Ver ADR-044.

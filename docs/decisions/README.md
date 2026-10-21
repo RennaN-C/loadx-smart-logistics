@@ -61,5 +61,7 @@ Proposta para revisão:
 
 - [ADR-042 — central pessoal de notificações](ADR-042-central-notificacoes-pessoais.md).
 
+- [ADR-043 — outbox, leases e reprocessamento](ADR-043-outbox-retentativas.md) — OC109, proposta implementada para revisão.
 
-- [ADR-043 — Entregas por parte de distribuição](ADR-043-entregas-por-parte-distribuicao.md) — OC90, proposta implementada para revisão.
+
+- [ADR-044 — Entregas por parte de distribuição](ADR-044-entregas-por-parte-distribuicao.md) — OC90, proposta implementada para revisão.

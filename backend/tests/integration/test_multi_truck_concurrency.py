@@ -20,6 +20,7 @@ from app.modules.notifications.models import (
 from app.modules.orders.models import Order
 from app.modules.status_history.models import StatusHistory
 from app.modules.users.models import User
+from tests.integration.notification_helpers import clear_outbox_fixture
 from tests.integration.test_load_distributions import distribution_scenario
 
 __all__ = ("distribution_scenario",)
@@ -123,6 +124,8 @@ def test_concurrent_last_legs_serialize_order_and_record_one_completion(
     finally:
         # The owning distribution fixture cleans its physical graph afterwards.
         with s.factory() as db:
+            for identifier in trip_ids:
+                clear_outbox_fixture(db, identifier)
             notifications = select(OperationalNotification.id).where(
                 OperationalNotification.trip_id.in_(trip_ids)
             )

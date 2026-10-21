@@ -37,3 +37,10 @@ independentes. Integração também testa escrita direta, rollback e downgrade s
 
 `CONFIRMADO`: cenários, reprodução, resultados e inventário da OC90 em
 [evidências operacionais](../../../docs/evidencias/oc90/README.md).
+
+`CONFIRMADO`: `test_multi_truck_outbox.py` valida a composição OC90/OC109 por
+HTTP e commits reais: um fato/outbox por viagem, rollback antes/depois da fila,
+worker mock concorrente sem alterar execução física, comprovantes idempotentes
+e roundtrip 0028/0027 com notificações, destinatários, tentativas, comandos e
+auditoria existentes. Não remove dados para permitir downgrade. Detalhes em
+[reconciliação OC109](../../../docs/evidencias/oc90/reconciliacao-oc109.md).

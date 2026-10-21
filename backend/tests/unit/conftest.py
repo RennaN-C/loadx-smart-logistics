@@ -39,6 +39,9 @@ def db_session(request: pytest.FixtureRequest) -> Generator[Session, None, None]
 
         Occurrence.__table__.create(engine, checkfirst=True)
         OperationalNotification.__table__.create(engine, checkfirst=True)
+        from app.modules.notifications.outbox_models import OutboxEvent
+
+        OutboxEvent.__table__.create(engine, checkfirst=True)
         NotificationRecipient.__table__.create(engine, checkfirst=True)
         NotificationPreference.__table__.create(engine, checkfirst=True)
         PermissionReference.__table__.create(engine, checkfirst=True)

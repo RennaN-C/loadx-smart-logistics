@@ -146,4 +146,4 @@ engine, snapshots, aprovação, histórico ou estados. Head permanece 20261009_0
 `CONFIRMADO`: A OC90 libera planos atuais de partes/distribuições APPROVED sem limite de uma
 parte. Planos históricos permanecem bloqueados. A fronteira imutável pública
 projeta pedidos, identidades e partes necessárias por pedido; consumidores não
-importam tabelas privadas. Ver distributions.md e ADR-043 (proposta).
+importam tabelas privadas. Ver distributions.md e ADR-044 (proposta).
