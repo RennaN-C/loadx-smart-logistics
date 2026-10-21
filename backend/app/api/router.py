@@ -34,8 +34,8 @@ from app.modules.products.router import router as products_router
 from app.modules.registration_imports.router import (
     router as registration_imports_router,
 )
-from app.modules.reports.router import router as reports_router
 from app.modules.reports.management_router import router as management_router
+from app.modules.reports.router import router as reports_router
 from app.modules.status_history.router import router as audit_router
 from app.modules.trucks.document_router import router as truck_documents_router
 from app.modules.trucks.maintenance_router import router as maintenance_router
