@@ -252,7 +252,9 @@ def test_allowed_downgrade_removes_snapshot_triggers_and_upgrade_restores_them(
         )
         db.execute(text("SET CONSTRAINTS ALL IMMEDIATE"))
         oc94 = import_module("migrations.versions.20261021_0032_trip_cancellation")
+        oc94_pause = import_module("migrations.versions.20261021_0033_trip_interruption")
         with Operations.context(MigrationContext.configure(db.connection())):
+            oc94_pause.downgrade()
             oc94.downgrade()
             migration.downgrade()
             assert (
@@ -276,6 +278,7 @@ def test_allowed_downgrade_removes_snapshot_triggers_and_upgrade_restores_them(
             )
             migration.upgrade()
             oc94.upgrade()
+            oc94_pause.upgrade()
         assert (
             db.scalar(
                 text(
