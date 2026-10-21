@@ -136,7 +136,7 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
     _run_alembic(test_url, "upgrade", "head")
     _run_alembic(test_url, "downgrade", "20261021_0029")
 
-    # OC98 downgrade alone must preserve OC112 access profiles.
+    # OC98 rollback preserves all integrated operational and authorization tables.
     _run_alembic(test_url, "downgrade", "-1")
     with engine.connect() as connection:
         assert (
@@ -157,6 +157,20 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
             ).scalar_one()
             is not None
         )
+        for table in (
+            "operational_notifications",
+            "notification_recipients",
+            "outbox_events",
+        ):
+            assert (
+                connection.exec_driver_sql(
+                    f"SELECT to_regclass('public.{table}')"
+                ).scalar_one()
+                == table
+            )
+        assert connection.exec_driver_sql(
+            "SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='deliveries' AND column_name='distribution_part_id')"
+        ).scalar_one()
     _run_alembic(test_url, "upgrade", "head")
     _run_alembic(test_url, "downgrade", "20261020_0028")
 
