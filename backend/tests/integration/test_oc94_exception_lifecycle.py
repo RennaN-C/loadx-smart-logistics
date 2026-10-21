@@ -67,9 +67,7 @@ def test_oc94_replay_permissions_and_receipt_gate(
 
     assert client.get(path).status_code == 401
     assert client.get(path, headers=scenario.checker_headers).status_code == 403
-    assert (
-        client.get(path, headers=scenario.other_driver_headers).status_code == 403
-    )
+    assert client.get(path, headers=scenario.other_driver_headers).status_code == 403
 
     key = str(uuid.uuid4())
     first = _record(
@@ -121,11 +119,14 @@ def test_oc94_replay_permissions_and_receipt_gate(
     )
     assert finish.status_code == 409
     assert finish.json()["code"] == "DELIVERY_EXCEPTION_PENDING"
-    assert client.post(
-        f"/api/v1/deliveries/{delivery['id']}/receipt",
-        json={},
-        headers=scenario.driver_headers,
-    ).status_code == 409
+    assert (
+        client.post(
+            f"/api/v1/deliveries/{delivery['id']}/receipt",
+            json={},
+            headers=scenario.driver_headers,
+        ).status_code
+        == 409
+    )
 
     events = client.get(path, headers=scenario.manager_headers)
     assert events.status_code == 200
@@ -155,13 +156,20 @@ def test_oc94_replay_permissions_and_receipt_gate(
     assert delivered.json()["delivered_at"] is not None
 
     # A same-key replay remains idempotent after completion; new actions do not.
-    assert _record(
-        client, delivery["id"], scenario.driver_headers, "CUSTOMER_ABSENT",
-        key=key,
-    ).status_code == 200
-    assert _record(
-        client, delivery["id"], scenario.driver_headers, "DAMAGED"
-    ).status_code == 409
+    assert (
+        _record(
+            client,
+            delivery["id"],
+            scenario.driver_headers,
+            "CUSTOMER_ABSENT",
+            key=key,
+        ).status_code
+        == 200
+    )
+    assert (
+        _record(client, delivery["id"], scenario.driver_headers, "DAMAGED").status_code
+        == 409
+    )
 
 
 def test_oc94_reagendamento_exige_falha_e_respeita_prazo(
@@ -173,25 +181,42 @@ def test_oc94_reagendamento_exige_falha_e_respeita_prazo(
     future = (datetime.now(UTC) + timedelta(days=2)).isoformat()
 
     premature = _record(
-        client, identifier, headers, "RESCHEDULED",
-        scheduled_for=future, reason="Entrega reagendada com o destinatario",
+        client,
+        identifier,
+        headers,
+        "RESCHEDULED",
+        scheduled_for=future,
+        reason="Entrega reagendada com o destinatario",
     )
     assert premature.status_code == 409
     assert premature.json()["code"] == "DELIVERY_EXCEPTION_TRANSITION_INVALID"
-    assert _record(
-        client, identifier, headers, "RESUMED",
-        reason="Retomada solicitada sem incidente anterior",
-    ).status_code == 409
+    assert (
+        _record(
+            client,
+            identifier,
+            headers,
+            "RESUMED",
+            reason="Retomada solicitada sem incidente anterior",
+        ).status_code
+        == 409
+    )
 
     failure = _record(client, identifier, headers, "REFUSED")
     assert failure.status_code == 201
     schedule = _record(
-        client, identifier, headers, "RESCHEDULED", scheduled_for=future,
+        client,
+        identifier,
+        headers,
+        "RESCHEDULED",
+        scheduled_for=future,
         reason="Nova data de entrega combinada com destinatario",
     )
     assert schedule.status_code == 201
     early = _record(
-        client, identifier, headers, "RESUMED",
+        client,
+        identifier,
+        headers,
+        "RESUMED",
         reason="Nova tentativa solicitada antes da data prevista",
     )
     assert early.status_code == 409
@@ -215,9 +240,7 @@ def test_oc94_out_of_route_is_rejected_without_creating_history(
     scenario = seed_operational_scenario(session_factory)
     trip = create_trip(client, scenario)
     delivery_id = trip["deliveries"][0]["id"]
-    response = _record(
-        client, delivery_id, scenario.manager_headers, "CUSTOMER_ABSENT"
-    )
+    response = _record(client, delivery_id, scenario.manager_headers, "CUSTOMER_ABSENT")
     assert response.status_code == 409
     assert response.json()["code"] == "DELIVERY_EXCEPTION_NOT_ELIGIBLE"
     with session_factory() as db:
