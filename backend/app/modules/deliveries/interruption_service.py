@@ -4,7 +4,7 @@ import uuid
 from datetime import UTC, datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
-from sqlalchemy import DateTime, ForeignKey, Index, String, UniqueConstraint, Uuid, func, select
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, String, UniqueConstraint, Uuid, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
@@ -24,6 +24,7 @@ class TripInterruptionEvent(Base):
     __tablename__ = "trip_interruption_events"
     __table_args__ = (
         UniqueConstraint("idempotency_key", name="uq_trip_interruption_events__request"),
+        CheckConstraint("action IN ('INTERRUPTED','RESUMED')", name="action_allowed"),
         Index("ix_trip_interruption_events__trip_id_created_at", "trip_id", "created_at"),
     )
 
