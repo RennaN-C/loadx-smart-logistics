@@ -176,3 +176,24 @@ cookie ou sincronização automática entre dispositivos. Ativação em homologa
 requer aplicar migration e configurar a flag no ambiente aprovado, fora desta
 entrega sem deploy. Bases legadas precisam reconciliação preservadora antes de
 upgrade; não fazer stamp/reset.
+
+## Reconciliação com a base operacional integrada — 21/10/2026
+
+`CONFIRMADO`: a PR #211 permanece aberta para revisão. A reconciliação preserva
+os commits anteriores da OC98/#222 e incorpora `desenvolvimento` com OC84,
+OC103, OC109 e OC90. O head integrado `20261020_0028` permanece intacto;
+as duas revisões ainda não integradas passam a `20261021_0029` (OC98) e
+`20261021_0030` (#222), formando uma única cadeia. Não há alteração dos estados,
+snapshots, notificações, outbox ou regras de entregas da base operacional.
+
+Preferências da OC103, segurança MFA e dispositivos confiáveis coexistem em
+Meu perfil. Configuração e eventos de segurança conservam tanto os contratos de
+identidade quanto os de webhook/outbox. Pillow 13 e os hashes dos lockfiles da
+base atual são preservados. Testes de rollback também verificam a permanência
+de destinatários, outbox e proveniência das entregas multi-caminhão.
+
+`RISCO IDENTIFICADO`: bases de homologações antigas que executaram IDs
+experimentais desta PR precisam de reconciliação específica e preservadora.
+Esta entrega não atualiza essas bases, não troca suas chaves, não usa `stamp`
+e não reseta dados. O caminho oficial é validado em PostgreSQL 16 exclusivo,
+a partir de 0028; downgrade após uso continua bloqueado para preservar identidade.
