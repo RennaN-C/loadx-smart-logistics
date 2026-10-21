@@ -491,7 +491,9 @@ def test_migration_backfills_operated_single_part_and_preserves_legacy(
         # Flush their validation before schema DDL, as a real migration sees.
         db.execute(text("SET CONSTRAINTS ALL IMMEDIATE"))
         oc94 = import_module("migrations.versions.20261021_0032_trip_cancellation")
+        oc94_pause = import_module("migrations.versions.20261021_0033_trip_interruption")
         with Operations.context(MigrationContext.configure(db.connection())):
+            oc94_pause.downgrade()
             oc94.downgrade()
             migration.downgrade()
             db.execute(
@@ -512,6 +514,7 @@ def test_migration_backfills_operated_single_part_and_preserves_legacy(
             )
             migration.upgrade()
             oc94.upgrade()
+            oc94_pause.upgrade()
         assert db.get(Delivery, delivery_id).distribution_part_id == uuid.UUID(
             s.parts[0]["id"]
         )
@@ -524,7 +527,7 @@ def test_migration_backfills_operated_single_part_and_preserves_legacy(
         assert set(db.scalars(select(StatusHistory.id)).all()) == set(before)
         assert (
             db.scalar(text("SELECT version_num FROM alembic_version"))
-            == "20261021_0032"
+            == "20261021_0033"
         )
 
 
@@ -770,7 +773,9 @@ def test_upgrade_rejects_inconsistent_old_delivery_without_losing_data(multi):
     with s.factory() as db:
         db.execute(text("SET CONSTRAINTS ALL IMMEDIATE"))
         oc94 = import_module("migrations.versions.20261021_0032_trip_cancellation")
+        oc94_pause = import_module("migrations.versions.20261021_0033_trip_interruption")
         with Operations.context(MigrationContext.configure(db.connection())):
+            oc94_pause.downgrade()
             oc94.downgrade()
             migration.downgrade()
         db.execute(
