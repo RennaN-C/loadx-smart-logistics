@@ -11,6 +11,7 @@ import { ReportDownloadButton } from "../../reports/components/ReportDownloadBut
 import { canReadReports } from "../../reports/permissions";
 import { changeDeliveryStatus, changeTripStatus } from "../api/tripsApi";
 import { TRIP_ACTION_LABELS, TRIP_STATUS_LABELS, tripStatusTone } from "../components/tripLabels";
+import { DeliveryExceptionsPanel } from "../components/DeliveryExceptionsPanel";
 import { TripStops } from "../components/TripStops";
 import { TripSummary } from "../components/TripSummary";
 import { useTripPage } from "../hooks/useTripPage";
@@ -150,6 +151,10 @@ function TripOperations({ trip, user, isWorking, run }: { readonly trip: Trip; r
               void run(() => changeDeliveryStatus(delivery.id, next))
             }
           />
+
+          {trip.status === "IN_ROUTE" ? (
+            <DeliveryExceptionsPanel deliveries={trip.deliveries} canOperate={canDeliver} />
+          ) : null}
 
           {hasPermission(user, "loadx.audit.read") ? (
             <AuditTrail entityType="TRIP" entityId={trip.id} title="Histórico da viagem" />
