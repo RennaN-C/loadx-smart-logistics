@@ -123,9 +123,7 @@ class ReportService:
             volume_rows=volume_rows,
         )
 
-    def _distribution_metadata(
-        self, load_plan_id: uuid.UUID
-    ) -> list[tuple[str, str]]:
+    def _distribution_metadata(self, load_plan_id: uuid.UUID) -> list[tuple[str, str]]:
         part = self.load_plan_reference_service.get_distribution_part_for_plan(
             load_plan_id
         )

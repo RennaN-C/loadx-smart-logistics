@@ -107,6 +107,7 @@ def test_two_legs_commit_outbox_once_and_worker_preserves_physical_execution(flo
                 # The other part has an independent FINISHED checklist and its
                 # physical snapshot stays protected while the worker runs.
                 plan_id = uuid.UUID(s.parts[1]["load_plan"]["id"])
+
                 def attempt_snapshot_update():
                     db.execute(
                         update(LoadPlanItem)

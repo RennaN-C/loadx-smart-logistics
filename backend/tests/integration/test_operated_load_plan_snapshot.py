@@ -154,6 +154,7 @@ def test_direct_snapshot_mutation_is_rejected_by_stable_guard(operated, mutation
             statement = delete(LoadPlanOrder).where(
                 LoadPlanOrder.load_plan_id == identifier
             )
+
         def attempt_snapshot_write():
             db.execute(statement)
             db.flush()
@@ -192,6 +193,7 @@ def test_reassignment_cannot_insert_an_unoperated_child_into_operated_parent(ope
     spare = seed_operational_scenario(factory)
     with factory() as db:
         # The new parent is operated; the old parent has no operation.
+
         def attempt_child_reassignment():
             db.execute(
                 update(LoadPlanItem)
@@ -279,6 +281,7 @@ def test_allowed_downgrade_removes_snapshot_triggers_and_upgrade_restores_them(
             )
             == 3
         )
+
         def attempt_protected_plan_write():
             db.execute(
                 update(LoadPlan)

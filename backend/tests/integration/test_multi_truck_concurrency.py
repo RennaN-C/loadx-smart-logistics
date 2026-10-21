@@ -181,6 +181,7 @@ def test_loading_parent_lock_rejects_child_delete_without_fk_deadlock(
             # DELETE already holds a child tuple lock when BEFORE ROW runs.
             # Waiting for the parent here would deadlock loading's checklist FK.
             with s.factory() as db:
+
                 def attempt_locked_child_delete():
                     db.execute(
                         delete(LoadPlanItem).where(LoadPlanItem.id == min(item_ids))

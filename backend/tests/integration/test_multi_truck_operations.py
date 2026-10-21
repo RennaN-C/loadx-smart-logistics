@@ -133,6 +133,7 @@ def test_database_rejects_inconsistent_direct_writes(multi, mutation):
     trip = s.trips[0]
     part = s.parts[0]
     with s.factory() as db:
+
         def attempt_invalid_direct_write():
             if mutation in {"wrong_part", "no_part", "unknown_part", "wrong_order"}:
                 db.add(
@@ -676,6 +677,7 @@ def test_database_prevents_legacy_order_or_plan_becoming_multi_after_delivery(mu
     s = multi
     legacy = create_trip(s.client, seed_operational_scenario(s.factory))
     with s.factory() as db:
+
         def attempt_attach_legacy_order():
             db.execute(
                 text(
@@ -691,6 +693,7 @@ def test_database_prevents_legacy_order_or_plan_becoming_multi_after_delivery(mu
             attempt_attach_legacy_order()
         assert error.value.orig.diag.constraint_name == "ck_deliveries__assignment"
         db.rollback()
+
         def attempt_attach_legacy_plan():
             db.execute(
                 text(
