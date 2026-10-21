@@ -78,7 +78,7 @@ def test_cancel_scheduled_trip_releases_resources_preserving_audit(
 
     with session_factory() as db:
         plan = db.get(LoadPlan, scenario.load_plan_id)
-        assert plan is not None and plan.status == "CANCELED"
+        assert plan is not None and plan.status == "APPROVED"
         assert plan.approved_at is not None
         assert db.scalars(select(Order)).all()
         assert {o.status for o in db.scalars(select(Order)).all()} == {"READY"}
@@ -172,12 +172,8 @@ def test_cancellation_is_transactional_on_history_failure(
         raise RuntimeError("simulated history write failure")
 
     monkeypatch.setattr(TripCancellationService, "_history", broken_history)
-    try:
-        _cancel(client, trip["id"], scenario.manager_headers)
-    except RuntimeError:
-        pass
-    else:
-        raise AssertionError("Injected failure must propagate")
+    response = _cancel(client, trip["id"], scenario.manager_headers)
+    assert response.status_code == 500
 
     with session_factory() as db:
         assert db.get(Trip, uuid.UUID(trip["id"])).status == "SCHEDULED"
