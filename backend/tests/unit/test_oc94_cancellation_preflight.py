@@ -4,12 +4,15 @@ from app.modules.deliveries.cancellation_preflight import assess_cancellation
 
 
 def test_scheduled_trip_without_loading_or_started_leg_is_candidate():
-    assert assess_cancellation(
-        status="SCHEDULED",
-        delivery_statuses=("PENDING", "PENDING"),
-        has_distribution_part=False,
-        loading_status=None,
-    ) == []
+    assert (
+        assess_cancellation(
+            status="SCHEDULED",
+            delivery_statuses=("PENDING", "PENDING"),
+            has_distribution_part=False,
+            loading_status=None,
+        )
+        == []
+    )
 
 
 def test_pending_loading_session_already_blocks_truck_release():
