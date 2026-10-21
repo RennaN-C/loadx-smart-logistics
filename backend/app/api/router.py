@@ -36,6 +36,7 @@ from app.modules.registration_imports.router import (
 )
 from app.modules.reports.router import router as reports_router
 from app.modules.status_history.router import router as audit_router
+from app.modules.status_history.timeline_router import router as timeline_router
 from app.modules.trucks.document_router import router as truck_documents_router
 from app.modules.trucks.maintenance_router import router as maintenance_router
 from app.modules.trucks.router import router as trucks_router
@@ -48,6 +49,7 @@ api_router.include_router(trusted_device_router)
 api_router.include_router(integration_health_router)
 api_router.include_router(company_profile_router)
 api_router.include_router(audit_router)
+api_router.include_router(timeline_router)
 api_router.include_router(customers_router)
 api_router.include_router(customer_addresses_router)
 api_router.include_router(deliveries_router)
