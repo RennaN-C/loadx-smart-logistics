@@ -13,6 +13,11 @@ from app.modules.deliveries.exception_schemas import (
     DeliveryExceptionRead,
 )
 from app.modules.deliveries.models import Trip
+
+_FAILURE_CODES = frozenset(
+    {"CUSTOMER_ABSENT", "REFUSED", "DAMAGED", "OPERATIONAL_FAILURE"}
+)
+
 from app.modules.deliveries.service import (
     DeliveryNotFoundError,
     TripAccessForbiddenError,
@@ -106,6 +111,43 @@ class DeliveryExceptionService:
                     "DELIVERY_EXCEPTION_INVALID_SCHEDULE",
                     "O reagendamento deve estar no futuro.",
                 )
+
+            last = self.db.scalar(
+                select(DeliveryException)
+                .where(DeliveryException.delivery_id == delivery_id)
+                .order_by(
+                    DeliveryException.created_at.desc(),
+                    DeliveryException.id.desc(),
+                )
+                .limit(1)
+            )
+            if data.code in _FAILURE_CODES:
+                if last is not None and last.code != "RESUMED":
+                    raise ApiError(
+                        409, "DELIVERY_EXCEPTION_PENDING",
+                        "Resolva a ocorrencia anterior antes de abrir outra.",
+                    )
+            elif data.code == "RESCHEDULED":
+                if last is None or last.code not in _FAILURE_CODES:
+                    raise ApiError(
+                        409, "DELIVERY_EXCEPTION_TRANSITION_INVALID",
+                        "Reagendamento exige uma falha anterior em aberto.",
+                    )
+            elif data.code == "RESUMED":
+                if last is None or (
+                    last.code not in _FAILURE_CODES and last.code != "RESCHEDULED"
+                ):
+                    raise ApiError(
+                        409, "DELIVERY_EXCEPTION_TRANSITION_INVALID",
+                        "Retomada exige uma falha ou reagendamento pendente.",
+                    )
+                if last.scheduled_for is not None and last.scheduled_for > datetime.now(
+                    UTC
+                ):
+                    raise ApiError(
+                        409, "DELIVERY_EXCEPTION_SCHEDULE_PENDING",
+                        "A nova tentativa ainda nao atingiu o horario combinado.",
+                    )
 
             event = DeliveryException(
                 delivery_id=delivery.id,
