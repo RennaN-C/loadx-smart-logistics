@@ -17,7 +17,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base
 
-TRIP_STATUS_VALUES = ("SCHEDULED", "IN_ROUTE", "FINISHED", "CANCELED")
+TRIP_STATUS_VALUES = ("SCHEDULED", "IN_ROUTE", "INTERRUPTED", "FINISHED", "CANCELED")
 DELIVERY_STATUS_VALUES = ("PENDING", "IN_DELIVERY", "DELIVERED", "CANCELED")
 
 
@@ -25,12 +25,12 @@ class Trip(Base):
     __tablename__ = "trips"
     __table_args__ = (
         CheckConstraint(
-            "status IN ('SCHEDULED', 'IN_ROUTE', 'FINISHED', 'CANCELED')",
+            "status IN ('SCHEDULED','IN_ROUTE','INTERRUPTED','FINISHED','CANCELED')",
             name="status_allowed",
         ),
         CheckConstraint(
             "(status IN ('SCHEDULED', 'CANCELED') AND started_at IS NULL AND finished_at IS NULL) "
-            "OR (status = 'IN_ROUTE' AND started_at IS NOT NULL "
+            "OR (status IN ('IN_ROUTE','INTERRUPTED') AND started_at IS NOT NULL "
             "AND finished_at IS NULL) "
             "OR (status = 'FINISHED' AND started_at IS NOT NULL "
             "AND finished_at IS NOT NULL AND finished_at >= started_at)",
