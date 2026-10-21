@@ -65,7 +65,7 @@ class ReportService:
             ("Início", self._format_datetime(loading.started_at)),
             ("Fim", self._format_datetime(loading.finished_at)),
         )
-        metadata += self._distribution_metadata(plan.id)
+        metadata += tuple(self._distribution_metadata(plan.id))
         return self._build_pdf(
             "Relatório de carregamento",
             metadata,
@@ -104,7 +104,7 @@ class ReportService:
             ("Início", self._format_datetime(trip.started_at)),
             ("Fim", self._format_datetime(trip.finished_at)),
         )
-        metadata += self._distribution_metadata(plan.id)
+        metadata += tuple(self._distribution_metadata(plan.id))
         volume_rows = [
             (str(item.order_item_id), item.volume_index, str(item.order_id))
             for item in sorted(
@@ -125,17 +125,17 @@ class ReportService:
 
     def _distribution_metadata(
         self, load_plan_id: uuid.UUID
-    ) -> tuple[tuple[str, str], ...]:
+    ) -> list[tuple[str, str]]:
         part = self.load_plan_reference_service.get_distribution_part_for_plan(
             load_plan_id
         )
         if part is None:
-            return ()
-        return (
+            return []
+        return [
             ("Distribuição", str(part.distribution_id)),
             ("Parte", str(part.part_id)),
             ("Volumes da parte", str(len(part.volumes))),
-        )
+        ]
 
     @staticmethod
     def _build_pdf(

@@ -212,9 +212,7 @@ class TripService:
             )
             if {order.id for order in orders} != set(load_plan.order_ids) or not orders:
                 raise TripOrderNotEligibleError
-            eligible_statuses = {"PLANNED", "IN_TRANSIT"} if part else {"PLANNED"}
-            if any(order.status not in eligible_statuses for order in orders):
-                raise TripOrderNotEligibleError
+            self._ensure_trip_order_statuses(orders, multi=part is not None)
 
             assigned_ids = self.repository.assigned_order_ids(
                 load_plan.order_ids,
@@ -262,6 +260,13 @@ class TripService:
         except Exception:
             self.db.rollback()
             raise
+
+    @staticmethod
+    def _ensure_trip_order_statuses(orders: Sequence[Order], *, multi: bool) -> None:
+        """Check order states without changing transactional lock ordering."""
+        eligible_statuses = {"PLANNED", "IN_TRANSIT"} if multi else {"PLANNED"}
+        if any(order.status not in eligible_statuses for order in orders):
+            raise TripOrderNotEligibleError
 
     def change_trip_status(
         self,
