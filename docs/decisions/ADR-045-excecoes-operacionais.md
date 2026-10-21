@@ -33,3 +33,31 @@ integração de UI, outbox, testes de concorrencia e multi-caminhao E2E.
   normalmente, sem duplicar parte, pedido ou comprovante.
 - Uma falha adicional exige encerrar a tentativa anterior por retomada.
 - Cancelamento físico e liberação de reservas continuam fora deste recorte.
+
+
+## Pré-validação de cancelamento (sem efeito colateral)
+
+Endpoint `GET /api/v1/trips/{trip_id}/cancellation-preflight` para
+ADMIN/gestores com `trips.manage`, com autorização por objeto.
+
+O retorno é um **parecer de segurança operacional**, não um cancelamento.
+`safe_for_cancellation_workflow=true` significa somente que uma transação
+completa de cancelamento pode ser preparada e revisada. Nenhuma reserva é
+liberada por este GET. São bloqueios explícitos:
+
+- `TRIP_ALREADY_STARTED_OR_FINISHED`: só viagens ainda SCHEDULED;
+- `LOADING_SESSION_EXISTS`: inclusive PENDING, pois já pode reservar caminhão;
+- `DELIVERY_ALREADY_STARTED_OR_MISSING`: todas as entregas devem estar PENDING;
+- `MULTI_TRUCK_PART_REQUIRES_RECONCILIATION`: não liberar parte isolada nem
+  marcar pedido agregado como cancelado sem reconciliar os demais caminhões.
+
+Antes de habilitar um POST irreversível, reconciliar dentro de **uma**
+transação com locks ordenados: viagem, entregas, plano/caminhão,
+sessão de carregamento, pedidos e partes de distribuição; garantir
+unicidade dos volumes físicos, histórico e eventual outbox. A API existente
+não pode simplesmente mudar `Trip.status` ou chamar cancelamento de
+distribuição já aprovada. O retorno da pré-validação pode ficar obsoleto
+por concorrência: a implementação futura **deverá revalidar tudo sob lock**.
+
+**Pendência explícita:** execução do cancelamento e liberação de recursos
+ainda não são suportadas. Não apresentar o preflight como ação concluída.
