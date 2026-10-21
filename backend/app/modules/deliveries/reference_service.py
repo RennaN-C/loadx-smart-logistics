@@ -77,7 +77,7 @@ class DeliveryReferenceService:
         """Return at most two trips; two also signal ambiguous legacy allocation."""
         return TripRepository(self.db).list_driver_trips(
             driver_id,
-            statuses=("SCHEDULED", "IN_ROUTE"),
+            statuses=("SCHEDULED", "IN_ROUTE", "INTERRUPTED"),
             exclude_trip_id=exclude_trip_id,
         )
 
