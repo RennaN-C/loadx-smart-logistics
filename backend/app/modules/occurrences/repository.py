@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import func, select
+from sqlalchemy import Select, func, select
 from sqlalchemy.orm import Session
 
 from app.modules.occurrences.models import Occurrence
@@ -29,3 +29,10 @@ class OccurrenceRepository:
             .order_by(Occurrence.created_at, Occurrence.id)
         )
         return list(self.db.scalars(statement))
+
+    def ids_for_delivery(
+        self, delivery_id: uuid.UUID, trip_id: uuid.UUID
+    ) -> Select[tuple[uuid.UUID]]:
+        return select(Occurrence.id).where(
+            Occurrence.delivery_id == delivery_id, Occurrence.trip_id == trip_id
+        )
