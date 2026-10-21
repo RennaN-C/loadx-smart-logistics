@@ -146,9 +146,7 @@ def test_oc94_interruption_and_delivery_race_serializes(
 
     def interrupt():
         barrier.wait(timeout=10)
-        return _command(
-            client, trip_id, "interruptions", scenario.manager_headers
-        )
+        return _command(client, trip_id, "interruptions", scenario.manager_headers)
 
     def advance_delivery():
         barrier.wait(timeout=10)
@@ -209,15 +207,11 @@ def test_oc94_concurrent_interruption_replay_has_one_ledger(
 
     def interrupt(_index: int):
         barrier.wait(timeout=10)
-        return _command(
-            client, trip_id, "interruptions", scenario.manager_headers, key
-        )
+        return _command(client, trip_id, "interruptions", scenario.manager_headers, key)
 
     with ThreadPoolExecutor(max_workers=2) as executor:
         responses = list(executor.map(interrupt, range(2)))
-    assert [r.status_code for r in responses] == [200, 200], [
-        r.text for r in responses
-    ]
+    assert [r.status_code for r in responses] == [200, 200], [r.text for r in responses]
     assert responses[0].json()["id"] == responses[1].json()["id"]
     with committed_session_factory() as db:
         assert db.scalar(select(func.count()).select_from(TripInterruptionEvent)) == 1
