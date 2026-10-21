@@ -25,7 +25,11 @@ def test_loading_discovery_reuses_existing_records_and_permission_boundary(
     assert created.status_code == 201
     loading_id = created.json()["id"]
 
-    for headers in (scenario.manager_headers, scenario.admin_headers, scenario.checker_headers):
+    for headers in (
+        scenario.manager_headers,
+        scenario.admin_headers,
+        scenario.checker_headers,
+    ):
         response = client.get(
             "/api/v1/loading-sessions?page=1&page_size=1&status=PENDING",
             headers=headers,
@@ -38,10 +42,13 @@ def test_loading_discovery_reuses_existing_records_and_permission_boundary(
     forbidden = client.get("/api/v1/loading-sessions", headers=scenario.driver_headers)
     assert forbidden.status_code == 403
     assert client.get("/api/v1/loading-sessions").status_code == 401
-    assert client.get(
-        "/api/v1/loading-sessions?status=UNSUPPORTED",
-        headers=scenario.manager_headers,
-    ).status_code == 422
+    assert (
+        client.get(
+            "/api/v1/loading-sessions?status=UNSUPPORTED",
+            headers=scenario.manager_headers,
+        ).status_code
+        == 422
+    )
 
 
 def test_delivery_discovery_isolated_by_driver_and_filter(
@@ -65,9 +72,7 @@ def test_delivery_discovery_isolated_by_driver_and_filter(
     assert own.json()["total"] == 2
     assert {item["trip_id"] for item in own.json()["items"]} == {trip_id}
 
-    stranger = client.get(
-        "/api/v1/deliveries", headers=scenario.other_driver_headers
-    )
+    stranger = client.get("/api/v1/deliveries", headers=scenario.other_driver_headers)
     assert stranger.status_code == 200
     assert stranger.json()["total"] == 0
     assert stranger.json()["items"] == []
@@ -75,7 +80,10 @@ def test_delivery_discovery_isolated_by_driver_and_filter(
     checker = client.get("/api/v1/deliveries", headers=scenario.checker_headers)
     assert checker.status_code == 403
     assert client.get("/api/v1/deliveries").status_code == 401
-    assert client.get(
-        "/api/v1/deliveries?status=INVALID",
-        headers=scenario.manager_headers,
-    ).status_code == 422
+    assert (
+        client.get(
+            "/api/v1/deliveries?status=INVALID",
+            headers=scenario.manager_headers,
+        ).status_code
+        == 422
+    )
