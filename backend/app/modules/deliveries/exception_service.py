@@ -46,9 +46,7 @@ class DeliveryExceptionService:
     def list_for_delivery(
         self, delivery_id: uuid.UUID, *, current_user: User
     ) -> list[DeliveryExceptionRead]:
-        self._authorized_delivery(
-            delivery_id, current_user=current_user, operate=False
-        )
+        self._authorized_delivery(delivery_id, current_user=current_user, operate=False)
         rows = self.db.scalars(
             select(DeliveryException)
             .where(DeliveryException.delivery_id == delivery_id)
@@ -100,9 +98,8 @@ class DeliveryExceptionService:
                     "DELIVERY_EXCEPTION_NOT_ELIGIBLE",
                     "A entrega nao admite ocorrencias neste estado.",
                 )
-            if (
-                data.scheduled_for is not None
-                and data.scheduled_for <= datetime.now(UTC)
+            if data.scheduled_for is not None and data.scheduled_for <= datetime.now(
+                UTC
             ):
                 raise ApiError(
                     422,
