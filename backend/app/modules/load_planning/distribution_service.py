@@ -76,12 +76,15 @@ class LoadDistributionService:
         self.trucks = TruckService(db)
         self.history = StatusHistoryService(db)
 
-    def _sources(self, order_ids, *, lock: bool):
+    def _sources(
+        self, order_ids, *, lock: bool, allow_operational: bool = False
+    ):
         orders = tuple(self.orders.get_orders(order_ids, for_update=lock))
         missing = set(order_ids) - {o.id for o in orders}
         if missing:
             raise LoadPlanOrdersNotFoundError(sorted(missing, key=lambda x: x.int))
-        ineligible = [o for o in orders if o.status != "READY"]
+        eligible = {"READY", "PLANNED", "IN_TRANSIT"} if allow_operational else {"READY"}
+        ineligible = [o for o in orders if o.status not in eligible]
         if ineligible:
             raise LoadPlanOrdersNotEligibleError(ineligible)
         items = {i.id: i for o in orders for i in o.items}
@@ -605,10 +608,16 @@ class LoadDistributionService:
             ]
             if data.truck_id in all_truck_ids:
                 raise DistributionError("DISTRIBUTION_TRUCK_DUPLICATED")
-            trucks = self._lock_trucks([*all_truck_ids, data.truck_id])
+            # Sibling trucks can be legitimately in route.
+            # Lock them, but do not demand that they be idle.
+            trucks = self._lock_trucks([data.truck_id])
+            for sibling_id in sorted(set(all_truck_ids), key=lambda value: value.int):
+                self.trucks.get_truck_for_update(sibling_id)
             self.planning.repository.get_for_update(old_plan.id)
             orders, items, products, volumes = self._sources(
-                [o.order_id for o in distribution.orders], lock=True
+                [o.order_id for o in distribution.orders],
+                lock=True,
+                allow_operational=True,
             )
             selected = [
                 volumes[VolumeIdentity(v.order_item_id, v.volume_index)]
