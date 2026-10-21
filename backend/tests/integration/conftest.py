@@ -110,7 +110,7 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
         head_revision = connection.exec_driver_sql(
             "SELECT version_num FROM alembic_version"
         ).scalar_one()
-        assert head_revision == "20261021_0030"
+        assert head_revision == "20261021_0031"
 
     # The additive trusted-device migration rolls back without touching OC98.
     _run_alembic(test_url, "downgrade", "-1")
