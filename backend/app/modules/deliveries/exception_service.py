@@ -124,13 +124,15 @@ class DeliveryExceptionService:
             if data.code in _FAILURE_CODES:
                 if last is not None and last.code != "RESUMED":
                     raise ApiError(
-                        409, "DELIVERY_EXCEPTION_PENDING",
+                        409,
+                        "DELIVERY_EXCEPTION_PENDING",
                         "Resolva a ocorrencia anterior antes de abrir outra.",
                     )
             elif data.code == "RESCHEDULED":
                 if last is None or last.code not in _FAILURE_CODES:
                     raise ApiError(
-                        409, "DELIVERY_EXCEPTION_TRANSITION_INVALID",
+                        409,
+                        "DELIVERY_EXCEPTION_TRANSITION_INVALID",
                         "Reagendamento exige uma falha anterior em aberto.",
                     )
             elif data.code == "RESUMED":
@@ -138,14 +140,16 @@ class DeliveryExceptionService:
                     last.code not in _FAILURE_CODES and last.code != "RESCHEDULED"
                 ):
                     raise ApiError(
-                        409, "DELIVERY_EXCEPTION_TRANSITION_INVALID",
+                        409,
+                        "DELIVERY_EXCEPTION_TRANSITION_INVALID",
                         "Retomada exige uma falha ou reagendamento pendente.",
                     )
                 if last.scheduled_for is not None and last.scheduled_for > datetime.now(
                     UTC
                 ):
                     raise ApiError(
-                        409, "DELIVERY_EXCEPTION_SCHEDULE_PENDING",
+                        409,
+                        "DELIVERY_EXCEPTION_SCHEDULE_PENDING",
                         "A nova tentativa ainda nao atingiu o horario combinado.",
                     )
 
