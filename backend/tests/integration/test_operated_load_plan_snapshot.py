@@ -251,7 +251,9 @@ def test_allowed_downgrade_removes_snapshot_triggers_and_upgrade_restores_them(
             "migrations.versions.20261020_0028_delivery_distribution_parts"
         )
         db.execute(text("SET CONSTRAINTS ALL IMMEDIATE"))
+        oc94 = import_module("migrations.versions.20261021_0032_trip_cancellation")
         with Operations.context(MigrationContext.configure(db.connection())):
+            oc94.downgrade()
             migration.downgrade()
             assert (
                 db.scalar(
@@ -273,6 +275,7 @@ def test_allowed_downgrade_removes_snapshot_triggers_and_upgrade_restores_them(
                 .values(truck_snapshot_model="Revisão anterior")
             )
             migration.upgrade()
+            oc94.upgrade()
         assert (
             db.scalar(
                 text(
