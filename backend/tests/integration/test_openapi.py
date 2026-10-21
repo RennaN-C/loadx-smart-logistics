@@ -428,6 +428,8 @@ EXPECTED_ERROR_STATUSES = {
         "422",
         "500",
     },
+    ("/api/v1/loading-sessions", "get"): {"401", "403", "422", "500"},
+    ("/api/v1/deliveries", "get"): {"401", "403", "422", "500"},
     ("/api/v1/loading-sessions/{session_id}", "get"): {
         "401",
         "403",
