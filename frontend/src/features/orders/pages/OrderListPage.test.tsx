@@ -225,3 +225,47 @@ describe("OrderListPage", () => {
   });
 
 });
+
+
+describe("Atalhos de pedidos entregues", () => {
+  it("consulta pedidos entregues no servidor e permite voltar a todos", async () => {
+    render(<MemoryRouter><OrderListPage /></MemoryRouter>);
+    await screen.findByText("Distribuidora Aurora");
+    fireEvent.click(screen.getByRole("button", { name: "Pedidos entregues" }));
+    await waitFor(() => expect(listOrders).toHaveBeenLastCalledWith(
+      expect.objectContaining({ status: "DELIVERED", page: 1 }),
+    ));
+    expect(screen.getByRole("button", { name: "Pedidos entregues" })).toHaveAttribute(
+      "aria-pressed", "true",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Todos os pedidos" }));
+    await waitFor(() => expect(listOrders).toHaveBeenLastCalledWith(
+      expect.objectContaining({ status: undefined, page: 1 }),
+    ));
+  });
+
+  it("restaura filtro de entregues por URL apos recarregar a pagina", async () => {
+    render(<MemoryRouter initialEntries={["/orders?status=DELIVERED"]}><OrderListPage /></MemoryRouter>);
+    await waitFor(() => expect(listOrders).toHaveBeenCalledWith(
+      expect.objectContaining({ status: "DELIVERED" }),
+    ));
+    expect(screen.getByRole("button", { name: "Pedidos entregues" })).toHaveAttribute(
+      "aria-pressed", "true",
+    );
+    expect(screen.getByLabelText("Filtrar por situação")).toHaveValue("DELIVERED");
+  });
+
+  it("mantem o filtro de situacao completo e a leitura para conferente", async () => {
+    mockRole("CHECKER");
+    render(<MemoryRouter><OrderListPage /></MemoryRouter>);
+    await screen.findByText("Cliente c1");
+    fireEvent.change(screen.getByLabelText("Filtrar por situação"), {
+      target: { value: "READY" },
+    });
+    await waitFor(() => expect(listOrders).toHaveBeenLastCalledWith(
+      expect.objectContaining({ status: "READY" }),
+    ));
+    expect(screen.getByRole("button", { name: "Pedidos entregues" })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: "Novo pedido" })).not.toBeInTheDocument();
+  });
+});
