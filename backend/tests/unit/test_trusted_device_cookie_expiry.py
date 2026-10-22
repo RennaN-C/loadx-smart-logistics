@@ -13,7 +13,7 @@ from app.modules.auth.identity_router import trusted_cookie_expiry
     [
         datetime(2026, 10, 22, 11, 37, tzinfo=UTC),
         datetime(2026, 10, 22, 8, 37, tzinfo=timezone(timedelta(hours=-3))),
-        datetime(2026, 10, 22, 11, 37),
+        datetime(2026, 10, 22, 11, 37, tzinfo=UTC).replace(tzinfo=None),
     ],
 )
 def test_trusted_cookie_expiry_is_utc_and_serializable(expires_at):
