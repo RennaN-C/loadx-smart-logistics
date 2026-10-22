@@ -82,7 +82,7 @@ export function PlanHistory({ checker }: { readonly checker: boolean }) {
   }
   return <section className="plan-history" aria-label="Planos existentes">
     <div className="plan-history-toolbar">
-      <div><h2>Retome uma carga</h2><p className="entity-lede">Planos salvos no servidor, disponíveis após sair da tela ou entrar novamente.</p></div>
+      <div><h2>Retome uma carga</h2><p className="entity-lede">Planos salvos no servidor, disponíveis após sair da tela ou entrar novamente.</p><p className="entity-form-help">A situação exibida pertence ao plano de carga, não à entrega. Um plano aprovado pode estar associado a uma viagem já concluída. Confira a operação vinculada para saber se os pedidos foram entregues.</p></div>
       <div className="plan-history-filters">
         {!checker ? <label>Situação<select value={status ?? ""} onChange={(event) => change("status", event.target.value)}>
           <option value="">Todas as situações</option>
