@@ -76,15 +76,20 @@ class TruckRepository:
         return self.db.scalar(statement)
 
     def has_operation_conflict(
+        self, truck_id: uuid.UUID, *, exclude_load_plan_id: uuid.UUID | None = None
+    ) -> bool:
+        return bool(
+            self.conflicted_truck_ids(
+                (truck_id,), exclude_load_plan_id=exclude_load_plan_id
+            )
+        )
+
+    def conflicted_truck_ids(
         self,
-        truck_id: uuid.UUID,
+        truck_ids: Sequence[uuid.UUID] | None = None,
         *,
         exclude_load_plan_id: uuid.UUID | None = None,
-    ) -> bool:
-        filters = [LoadPlan.truck_id == truck_id]
-        if exclude_load_plan_id is not None:
-            filters.append(LoadPlan.id != exclude_load_plan_id)
-
+    ) -> frozenset[uuid.UUID]:
         active_operation = or_(
             and_(
                 LoadingSession.id.is_not(None),
@@ -97,7 +102,7 @@ class TruckRepository:
         )
 
         statement = (
-            select(LoadPlan.id)
+            select(LoadPlan.truck_id)
             .outerjoin(
                 LoadingSession,
                 LoadingSession.load_plan_id == LoadPlan.id,
@@ -106,10 +111,13 @@ class TruckRepository:
                 Trip,
                 Trip.load_plan_id == LoadPlan.id,
             )
-            .where(*filters, active_operation)
-            .limit(1)
+            .where(active_operation)
         )
-        return self.db.scalar(statement) is not None
+        if truck_ids is not None:
+            statement = statement.where(LoadPlan.truck_id.in_(truck_ids))
+        if exclude_load_plan_id is not None:
+            statement = statement.where(LoadPlan.id != exclude_load_plan_id)
+        return frozenset(self.db.scalars(statement.distinct()).all())
 
     def existing_registration_keys(
         self, keys: dict[str, set[str]]

@@ -1,4 +1,5 @@
 import uuid
+from collections.abc import Sequence
 from datetime import datetime
 
 from sqlalchemy import asc, desc, func, or_, select
@@ -47,17 +48,19 @@ class MaintenanceRepository:
         )
 
     def has_block(self, truck_id: uuid.UUID, at: datetime) -> bool:
-        query = (
-            select(TruckMaintenance.id)
-            .where(
-                TruckMaintenance.truck_id == truck_id,
-                TruckMaintenance.closed_at.is_(None),
-                TruckMaintenance.starts_at <= at,
-                or_(TruckMaintenance.ends_at.is_(None), TruckMaintenance.ends_at > at),
-            )
-            .limit(1)
+        return bool(self.blocked_truck_ids((truck_id,), at))
+
+    def blocked_truck_ids(
+        self, truck_ids: Sequence[uuid.UUID] | None, at: datetime
+    ) -> frozenset[uuid.UUID]:
+        query = select(TruckMaintenance.truck_id).where(
+            TruckMaintenance.closed_at.is_(None),
+            TruckMaintenance.starts_at <= at,
+            or_(TruckMaintenance.ends_at.is_(None), TruckMaintenance.ends_at > at),
         )
-        return self.db.scalar(query) is not None
+        if truck_ids is not None:
+            query = query.where(TruckMaintenance.truck_id.in_(truck_ids))
+        return frozenset(self.db.scalars(query.distinct()).all())
 
     def save(self, record: TruckMaintenance) -> TruckMaintenance:
         self.db.add(record)
