@@ -51,6 +51,10 @@ class ResendRecoveryDelivery:
             or not _EMAIL_ADDRESS.fullmatch(sender)
         ):
             raise IdentityUnavailableError
+        if sender.lower() == "onboarding@resend.dev":
+            permitted = (config.resend_test_recipient or "").strip()
+            if not _EMAIL_ADDRESS.fullmatch(permitted):
+                raise IdentityUnavailableError
 
     def deliver(self, email: str, token: str) -> None:
         """Send after the reset token is committed, with bounded HTTPS timeout."""
@@ -59,6 +63,10 @@ class ResendRecoveryDelivery:
         url = self.config.password_recovery_url
         if key is None or sender is None or url is None:
             raise IdentityUnavailableError
+        if sender.lower() == "onboarding@resend.dev":
+            permitted = (self.config.resend_test_recipient or "").strip()
+            if email.casefold() != permitted.casefold():
+                raise OSError("Resend sandbox recipient not allowed")
         message = build_recovery_message(email, token, sender, url)
         payload = {
             "from": str(message["From"]),
