@@ -118,7 +118,7 @@ class LoadPlanReferenceService:
         if part is not None:
             distribution = self.distributions.get(part.distribution_id)
             operational_ready = (
-                distribution.status == "APPROVED"
+                distribution.status in {"APPROVED", "INCOMPLETE"}
                 and part.status == "APPROVED"
                 and part.load_plan_id == load_plan_id
             )
