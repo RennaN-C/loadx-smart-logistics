@@ -97,6 +97,12 @@ class SmtpRecoveryDelivery:
 
 
 def get_recovery_delivery() -> RecoveryDelivery:
+    if settings.password_recovery_provider == "resend":
+        from app.integrations.password_recovery.resend_delivery import (
+            ResendRecoveryDelivery,
+        )
+
+        return ResendRecoveryDelivery(settings)
     return SmtpRecoveryDelivery(settings)
 
 
