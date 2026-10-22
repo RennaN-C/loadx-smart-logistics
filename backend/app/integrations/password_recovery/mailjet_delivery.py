@@ -19,9 +19,7 @@ from app.integrations.password_recovery.message import build_recovery_message
 from app.modules.auth.totp import IdentityUnavailableError
 
 _MAILJET_ENDPOINT = "https://api.mailjet.com/v3.1/send"
-_EMAIL_ADDRESS = re.compile(
-    r"[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)+\\Z"
-)
+_EMAIL_ADDRESS = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 
 
 class MailjetRecoveryDelivery:
