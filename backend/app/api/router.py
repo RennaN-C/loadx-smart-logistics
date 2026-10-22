@@ -11,7 +11,9 @@ from app.modules.customers.address_router import router as customer_addresses_ro
 from app.modules.customers.router import router as customers_router
 from app.modules.deliveries.evidence_router import router as evidence_router
 from app.modules.deliveries.exception_router import router as exception_router
-from app.modules.deliveries.operational_lists_router import router as operational_lists_router
+from app.modules.deliveries.operational_lists_router import (
+    router as operational_lists_router,
+)
 from app.modules.deliveries.router import router as deliveries_router
 from app.modules.drivers.document_router import router as driver_documents_router
 from app.modules.drivers.document_router import (
