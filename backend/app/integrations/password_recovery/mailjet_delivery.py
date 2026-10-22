@@ -5,12 +5,14 @@ Never put secrets, reset tokens, provider response bodies or addresses in logs.
 
 import base64
 import json
+import logging
 import re
 import ssl
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from app.core.config import Settings
+from app.core.security_events import SecurityEvent, emit_security_event
 from app.integrations.password_recovery.delivery import (
     RecoveryDeliveryFailure,
     valid_recovery_url,
@@ -27,15 +29,37 @@ class MailjetRecoveryDelivery:
 
     def __init__(self, config: Settings) -> None:
         self.config = config
-        if (
-            config.password_recovery_provider != "mailjet"
-            or not valid_recovery_url(config)
-            or config.mailjet_api_key is None
-            or not config.mailjet_api_key.get_secret_value()
-            or config.mailjet_secret_key is None
-            or not config.mailjet_secret_key.get_secret_value()
-            or not _EMAIL_ADDRESS.fullmatch(config.mailjet_sender or "")
-        ):
+        # Only fixed diagnostic codes. Never log sender, secrets or recovery URL.
+        failed_checks = [
+            name
+            for name, invalid in (
+                ("provider_mismatch", config.password_recovery_provider != "mailjet"),
+                ("recovery_url_invalid", not valid_recovery_url(config)),
+                (
+                    "api_key_missing",
+                    config.mailjet_api_key is None
+                    or not config.mailjet_api_key.get_secret_value(),
+                ),
+                (
+                    "secret_key_missing",
+                    config.mailjet_secret_key is None
+                    or not config.mailjet_secret_key.get_secret_value(),
+                ),
+                (
+                    "sender_invalid",
+                    not _EMAIL_ADDRESS.fullmatch(config.mailjet_sender or ""),
+                ),
+            )
+            if invalid
+        ]
+        if failed_checks:
+            emit_security_event(
+                SecurityEvent.RECOVERY_CONFIG_INVALID,
+                level=logging.ERROR,
+                alert=True,
+                delivery_provider="mailjet",
+                failed_checks=",".join(failed_checks),
+            )
             raise IdentityUnavailableError
 
     def deliver(self, email: str, token: str) -> None:
