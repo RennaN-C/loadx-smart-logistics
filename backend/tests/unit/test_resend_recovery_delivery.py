@@ -106,7 +106,9 @@ def test_resend_factory_selects_only_explicit_provider(monkeypatch):
         get_recovery_delivery()
 
 
-def test_resend_error_is_sanitized_without_token_or_provider_response(monkeypatch, caplog):
+def test_resend_error_is_sanitized_without_token_or_provider_response(
+    monkeypatch, caplog
+):
     def failing_open(request, *, timeout):
         raise HTTPError(
             request.full_url,
