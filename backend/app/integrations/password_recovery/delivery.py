@@ -3,7 +3,7 @@
 import logging
 import smtplib
 import ssl
-from typing import Protocol
+from typing import Literal, Protocol
 from urllib.parse import urlsplit
 
 from app.core.config import Settings, settings
@@ -14,6 +14,22 @@ from app.modules.auth.totp import IdentityUnavailableError
 
 class RecoveryDelivery(Protocol):
     def deliver(self, email: str, token: str) -> None: ...
+
+class RecoveryDeliveryFailure(OSError):
+    """Safe, allowlisted diagnostics without provider response content."""
+
+    def __init__(
+        self,
+        category: Literal[
+            "http_rejection", "timeout", "tls", "network", "recipient_not_allowed"
+        ],
+        http_status: int | None = None,
+    ) -> None:
+        super().__init__("Recovery delivery failed")
+        self.category = category
+        self.http_status = http_status
+
+
 
 
 def valid_recovery_url(config: Settings) -> bool:
@@ -114,8 +130,23 @@ def get_recovery_delivery() -> RecoveryDelivery:
 def dispatch_recovery(delivery: RecoveryDelivery, email: str, token: str) -> None:
     try:
         delivery.deliver(email, token)
+    except RecoveryDeliveryFailure as exc:
+        # Only fixed categories and numeric HTTP status; never log exceptions,
+        # recipient, token, request headers, response body or remote URL.
+        details: dict[str, str | int | bool] = {
+            "delivery_provider": "resend",
+            "failure_category": exc.category,
+        }
+        if exc.http_status is not None:
+            details["provider_http_status"] = exc.http_status
+        emit_security_event(
+            SecurityEvent.RECOVERY_DELIVERY_FAILED,
+            level=logging.ERROR,
+            alert=True,
+            **details,
+        )
     except OSError:
-        # Do not include SMTP responses, destination, token, or exception payload.
+        # Preserve the generic SMTP behavior without leaking provider replies.
         emit_security_event(
             SecurityEvent.RECOVERY_DELIVERY_FAILED, level=logging.ERROR, alert=True
         )
