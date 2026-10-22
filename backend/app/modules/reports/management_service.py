@@ -127,7 +127,9 @@ class ManagementReportService:
             occurrences_registered=count(Occurrence, Occurrence.created_at),
             delivery_exceptions=count(DeliveryException, DeliveryException.created_at),
             trips_canceled=count(TripCancellation, TripCancellation.created_at),
-            interruption_events=count(TripInterruptionEvent, TripInterruptionEvent.created_at),
+            interruption_events=count(
+                TripInterruptionEvent, TripInterruptionEvent.created_at
+            ),
         )
 
     @staticmethod
