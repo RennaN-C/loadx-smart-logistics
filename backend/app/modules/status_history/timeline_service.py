@@ -6,10 +6,10 @@ from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import ApiError
-from app.modules.deliveries.service import TripService
-from app.modules.deliveries.exception_models import DeliveryException
 from app.modules.deliveries.cancellation_service import TripCancellation
+from app.modules.deliveries.exception_models import DeliveryException
 from app.modules.deliveries.interruption_service import TripInterruptionEvent
+from app.modules.deliveries.service import TripService
 from app.modules.occurrences.models import Occurrence
 from app.modules.status_history.models import StatusHistory
 from app.modules.status_history.timeline_schemas import (
