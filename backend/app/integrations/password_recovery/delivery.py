@@ -15,6 +15,7 @@ from app.modules.auth.totp import IdentityUnavailableError
 class RecoveryDelivery(Protocol):
     def deliver(self, email: str, token: str) -> None: ...
 
+
 class RecoveryDeliveryFailure(OSError):
     """Safe, allowlisted diagnostics without provider response content."""
 
@@ -28,8 +29,6 @@ class RecoveryDeliveryFailure(OSError):
         super().__init__("Recovery delivery failed")
         self.category = category
         self.http_status = http_status
-
-
 
 
 def valid_recovery_url(config: Settings) -> bool:
