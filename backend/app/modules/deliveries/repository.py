@@ -37,9 +37,12 @@ class TripRepository:
         *,
         driver_id: uuid.UUID | None = None,
         search: str | None = None,
+        status: str | None = None,
     ) -> PageResult[TripListItem]:
         direction = asc if pagination.sort_order == "asc" else desc
         filters = [Trip.driver_id == driver_id] if driver_id is not None else []
+        if status is not None:
+            filters.append(Trip.status == status)
         pattern = search_pattern(search)
         if pattern is not None:
             filters.append(cast(Trip.id, String).ilike(pattern, escape="\\"))
