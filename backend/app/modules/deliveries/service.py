@@ -167,9 +167,10 @@ class TripService:
         *,
         current_user: User,
         search: str | None = None,
+        status: str | None = None,
     ) -> PageResult[TripListItem]:
         if has_permission(current_user, Permission.TRIPS_READ):
-            return self.repository.list(pagination, search=search)
+            return self.repository.list(pagination, search=search, status=status)
         if current_user.role != "DRIVER" or current_user.driver_id is None:
             raise TripAccessForbiddenError
         try:
@@ -178,7 +179,9 @@ class TripService:
             raise TripAccessForbiddenError from exc
         if not driver.active:
             raise TripAccessForbiddenError
-        return self.repository.list(pagination, driver_id=driver.id, search=search)
+        return self.repository.list(
+            pagination, driver_id=driver.id, search=search, status=status
+        )
 
     def create_trip(self, data: TripCreate, *, changed_by: uuid.UUID) -> Trip:
         try:
