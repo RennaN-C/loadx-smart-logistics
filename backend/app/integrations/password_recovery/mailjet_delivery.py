@@ -64,9 +64,7 @@ class MailjetRecoveryDelivery:
             ]
         }
         auth = base64.b64encode(
-            (
-                key.get_secret_value() + ":" + secret.get_secret_value()
-            ).encode("utf-8")
+            (key.get_secret_value() + ":" + secret.get_secret_value()).encode("utf-8")
         ).decode("ascii")
         request = Request(
             _MAILJET_ENDPOINT,
