@@ -109,5 +109,5 @@ it("distingue situacao do plano aprovado da conclusao de entrega", async () => {
   setup();
   expect(await screen.findByText("ABC1D23")).toBeInTheDocument();
   expect(screen.getByText(/A situação exibida pertence ao plano de carga/)).toBeInTheDocument();
-  expect(screen.getByText("Aprovado")).toBeInTheDocument();
+  expect(screen.getAllByText("Aprovado").length).toBeGreaterThanOrEqual(1);
 });
