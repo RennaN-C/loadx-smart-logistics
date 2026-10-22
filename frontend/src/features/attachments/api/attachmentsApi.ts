@@ -1,3 +1,4 @@
+import { readImageAsBase64 } from "../../../services/imageFile";
 import { requestProtectedBlob } from "../../../services/protectedDownload";
 import { api } from "../../../services/api";
 import { mapPageFromDto, toPageQuery, type PageDto, type ListParams } from "../../../services/pagination";
@@ -37,18 +38,11 @@ export async function listTripAttachmentOccurrences(tripId: string) {
   const { data } = await api.get<{ id: string; type: string; description: string }[]>(`/trips/${encodeURIComponent(tripId)}/occurrences`);
   return data;
 }
+/**
+ * Mantido como porta do módulo de anexos, mas a leitura em si é compartilhada:
+ * anexos (OC110) e evidências de entrega (OC80/OC81) seguem o mesmo contrato de
+ * upload, e duas cópias divergiriam na primeira mudança de limite.
+ */
 export function readAttachmentFile(file: File): Promise<string> {
-  if (!new Set(["image/png", "image/jpeg"]).has(file.type) || file.size === 0 || file.size > 5 * 1024 * 1024) {
-    return Promise.reject(new Error("Selecione PNG/JPEG de até 5 MiB."));
-  }
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(new Error("Não foi possível ler o arquivo."));
-    reader.onload = () => {
-      const result = reader.result;
-      if (typeof result !== "string" || !result.includes(",")) reject(new Error("Arquivo inválido."));
-      else resolve(result.slice(result.indexOf(",") + 1));
-    };
-    reader.readAsDataURL(file);
-  });
+  return readImageAsBase64(file);
 }

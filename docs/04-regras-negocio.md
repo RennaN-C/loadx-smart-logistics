@@ -879,3 +879,15 @@ plano permanecem imutáveis no PostgreSQL, inclusive no legado. UPDATE sem mudan
 é permitido. Antes desse marco, criação, aprovação e reprocessamento continuam
 sob as regras anteriores. Contenção com criação operacional exige retry da
 mutação direta; não autoriza alterar uma fotografia já operada. Ver ADR-044.
+
+
+## OC81 — leitura contextual de comunicação
+
+`CONFIRMADO`: a comunicação por entrega é somente projeção dos fatos duráveis de
+ocorrências associadas exatamente à própria entrega/viagem, respeitando grants
+de leitura de entregas e ocorrências ou vínculo DRIVER ativo. Não transfere a
+caixa pessoal de outro usuário, não marca avisos como lidos e não dá permissão
+para administrar/reprocessar outbox. Eventos gerais de viagem e outras pernas
+do mesmo pedido não são atribuídos à entrega. Estados são de WhatsApp simulado;
+não afirmam conexão, envio ou entrega Meta. Nenhuma alteração da máquina de
+estados das entregas, comprovantes, volumes ou pedidos é feita nesta OC.

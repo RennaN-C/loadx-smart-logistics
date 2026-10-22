@@ -93,3 +93,87 @@ Ler: `ADMIN`, `LOGISTICS_MANAGER` e `DRIVER`. Operar (mover viagem e entregas):
 O motorista só enxerga a própria viagem — o backend confere pelo vínculo `users.driver_id`, criado na
 `OC09`. A tela não tenta replicar essa checagem; um acesso indevido volta `AUTH_FORBIDDEN` e a
 mensagem diz que a viagem não é sua.
+
+## Comprovante e evidências (OC78 / OC80 / OC81)
+
+`CONFIRMADO`: são dois contratos ENCADEADOS. O comprovante nasce da conclusão
+da entrega e identifica o HISTÓRICO dela — não é um arquivo, não tem foto nem
+assinatura embutida. A evidência se pendura nesse comprovante. Por isso o
+painel carrega o comprovante primeiro: sem ele não há onde anexar, e o backend
+responde `DELIVERY_RECEIPT_NOT_AVAILABLE`.
+
+Chega-se pelo botão **Comprovante** de cada parada, que só aparece em entrega
+`DELIVERED` — antes disso não há o que mostrar.
+
+### A chave de intenção é o que impede duplicata
+
+`CONFIRMADO`: o registro leva `event_id`, e o backend tem
+`UNIQUE (recorded_by, event_id)`. Numa falha de rede, repetir com a MESMA chave
+devolve o registro original em vez de criar uma segunda evidência igual.
+
+Por isso o arquivo escolhido só é descartado depois de um registro
+bem-sucedido, e a chave vive junto dele: o botão vira "Tentar novamente" e
+reenvia com a mesma chave. Depois da primeira tentativa, o tipo é congelado. Chave nova somente por uma
+nova seleção explícita de arquivo; mudar o tipo antes do primeiro envio também
+cria nova intenção. Reaproveitar a chave para outros bytes/tipo daria
+`EVIDENCE_IDENTITY_CONFLICT`.
+
+### Validação local não substitui a do servidor
+
+PNG/JPEG e 5 MiB são conferidos antes de enviar (`services/imageFile.ts`,
+compartilhado com os anexos da OC110), para a pessoa não esperar o upload de um
+arquivo grande só para receber recusa. O limite de 20 milhões de pixels fica de
+fora de propósito: só se conhece decodificando a imagem. O backend revalida
+pelos BYTES, não pelo tipo que o navegador declarou.
+
+A recusa local não passa pelo mapa de códigos da API — mandá-la para lá
+transformaria "Selecione PNG/JPEG de até 5 MiB" em "erro inesperado".
+
+### Revogação
+
+É lógica e definitiva: preserva metadados e responsável, bloqueia o download e
+não tem reativação nem substituição de arquivo. Por isso a tela confirma antes.
+
+### Permissões
+
+`CONFIRMADO`: `ADMIN`, `LOGISTICS_MANAGER` e `DRIVER` leem e operam no nível de
+perfil; o recorte por viagem (motorista só na própria) é do backend e não é
+reproduzido aqui. `CHECKER` é negado.
+
+### Comunicação operacional disponível
+
+`CONFIRMADO`: a finalização coordenada da OC81 acrescenta
+`GET /deliveries/{delivery_id}/communications`, consulta paginada de fatos reais
+OC84/OC109. O backend seleciona somente `OCCURRENCE_REGISTERED` cuja ocorrência
+possui exatamente o `delivery_id` e a viagem autorizada. Não varre notificações
+pessoais e não atribui `TRIP_STARTED` ou ocorrência geral de viagem à entrega.
+
+O botão **Comunicação** fica disponível nas paradas autorizadas, inclusive antes
+da conclusão. A interface mostra estados reais da simulação e do processamento,
+com carregamento, vazio, erro/retry e paginação. WHATSAPP_MOCK é apresentado como
+**WhatsApp simulado**: sucesso não comprova envio, recebimento ou leitura Meta.
+Não há conversa, envio livre, retry administrativo nem canal externo real.
+
+`CONFIRMADO`: a consulta exige grants efetivos `loadx.deliveries.read` e
+`loadx.occurrences.read`, ou motorista com `loadx.trips.own` ativo e vinculado à
+viagem. A central pessoal OC103 permanece independente: consultar este painel
+não marca notificações como lidas nem expõe destinatários/preferências alheias.
+
+### Continuidade e consistência da interface
+
+`CONFIRMADO`: evidências usam paginação server-side de vinte itens, permitindo
+reencontrar registros além da primeira página. Falha ao atualizar a listagem não
+apaga o comprovante consultado nem transforma um upload confirmado em falha.
+Após falha sem confirmação, o tipo fica congelado e a mesma intenção, arquivo e
+bytes são usados no retry. Selecionar outro arquivo inicia outro registro
+explícito. Trocar a entrega remonta o painel e descarta respostas tardias; não
+persiste imagens, tokens ou intenções em Web Storage.
+
+`RISCO IDENTIFICADO`: se a conexão falhar após o commit, a UI não afirma que nada
+foi gravado. Consultar a lista ou repetir a mesma intenção permite recuperar o
+resultado. Fechar a tela descarta o rascunho local; não há upload em background
+ou promessa de retomada de arquivo após F5. O backend continua autoritativo.
+
+`CONFIRMADO`: os commits originais de Marlon foram reaproveitados com autoria e
+referência de cherry-pick; sua branch não foi sobrescrita. Não há migration,
+nova dependência, envio Meta ou alteração de domínio da OC90.
