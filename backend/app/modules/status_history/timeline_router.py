@@ -6,7 +6,9 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
+from app.core.exceptions import ApiError
 from app.core.responses import openapi_error_responses
+from app.modules.deliveries.service import TripAccessForbiddenError, TripNotFoundError
 from app.database.session import get_db
 from app.modules.auth.dependencies import require_any_permission
 from app.modules.status_history.timeline_schemas import TimelinePage
@@ -32,6 +34,11 @@ def get_trip_timeline(
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=100)] = 50,
 ) -> TimelinePage:
-    return OperationalTimelineService(db).list_trip(
-        trip_id, current_user=current_user, page=page, page_size=page_size
-    )
+    try:
+        return OperationalTimelineService(db).list_trip(
+            trip_id, current_user=current_user, page=page, page_size=page_size
+        )
+    except TripNotFoundError:
+        raise ApiError(404, "TRIP_NOT_FOUND", "Viagem nao encontrada.") from None
+    except TripAccessForbiddenError:
+        raise ApiError(403, "AUTH_FORBIDDEN", "Acesso negado a esta viagem.") from None
