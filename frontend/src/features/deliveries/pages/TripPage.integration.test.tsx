@@ -10,6 +10,8 @@ import { TripPage } from "./TripPage";
 
 vi.mock("../../../services/api", () => ({ api: { get: vi.fn(), patch: vi.fn() } }));
 vi.mock("../../auth/hooks/useAuth");
+// Linha do tempo tem adapter proprio: nao deve consumir os GETs sequenciados da viagem.
+vi.mock("../components/TripTimeline", () => ({ TripTimeline: () => null }));
 
 function deliveryDto(status: DeliveryStatus) {
   return {
