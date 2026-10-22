@@ -26,7 +26,10 @@ def test_operational_agenda_respects_driver_scope_and_time_window(
     }
     path = "/api/v1/operations/agenda"
     assert client.get(path, params=params).status_code == 401
-    assert client.get(path, params=params, headers=scenario.checker_headers).status_code == 403
+    assert (
+        client.get(path, params=params, headers=scenario.checker_headers).status_code
+        == 403
+    )
 
     for headers in (scenario.manager_headers, scenario.driver_headers):
         response = client.get(path, params=params, headers=headers)
@@ -37,7 +40,10 @@ def test_operational_agenda_respects_driver_scope_and_time_window(
             event["kind"] == "TRIP_CREATED" and event["trip_id"] == trip["id"]
             for event in body["items"]
         )
-        assert all("reason" not in event and "description" not in event for event in body["items"])
+        assert all(
+            "reason" not in event and "description" not in event
+            for event in body["items"]
+        )
 
     other = client.get(path, params=params, headers=scenario.other_driver_headers)
     assert other.status_code == 200
