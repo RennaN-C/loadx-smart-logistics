@@ -490,7 +490,17 @@ def test_migration_backfills_operated_single_part_and_preserves_legacy(
         # Savepoint-backed fixtures have not committed deferred OC87 events.
         # Flush their validation before schema DDL, as a real migration sees.
         db.execute(text("SET CONSTRAINTS ALL IMMEDIATE"))
+        oc94 = import_module("migrations.versions.20261021_0032_trip_cancellation")
+        oc94_pause = import_module(
+            "migrations.versions.20261021_0033_trip_interruption"
+        )
+        oc94_reconcile = import_module(
+            "migrations.versions.20261021_0034_operated_distribution_reconciliation"
+        )
         with Operations.context(MigrationContext.configure(db.connection())):
+            oc94_reconcile.downgrade()
+            oc94_pause.downgrade()
+            oc94.downgrade()
             migration.downgrade()
             db.execute(
                 text(
@@ -509,6 +519,9 @@ def test_migration_backfills_operated_single_part_and_preserves_legacy(
                 {"id": delivery_id, "trip": trip_id, "order": uuid.UUID(s.order["id"])},
             )
             migration.upgrade()
+            oc94.upgrade()
+            oc94_pause.upgrade()
+            oc94_reconcile.upgrade()
         assert db.get(Delivery, delivery_id).distribution_part_id == uuid.UUID(
             s.parts[0]["id"]
         )
@@ -521,7 +534,7 @@ def test_migration_backfills_operated_single_part_and_preserves_legacy(
         assert set(db.scalars(select(StatusHistory.id)).all()) == set(before)
         assert (
             db.scalar(text("SELECT version_num FROM alembic_version"))
-            == "20261021_0030"
+            == "20261021_0034"
         )
 
 
@@ -766,7 +779,17 @@ def test_upgrade_rejects_inconsistent_old_delivery_without_losing_data(multi):
     trip_id, delivery_id = uuid.uuid4(), uuid.uuid4()
     with s.factory() as db:
         db.execute(text("SET CONSTRAINTS ALL IMMEDIATE"))
+        oc94 = import_module("migrations.versions.20261021_0032_trip_cancellation")
+        oc94_pause = import_module(
+            "migrations.versions.20261021_0033_trip_interruption"
+        )
+        oc94_reconcile = import_module(
+            "migrations.versions.20261021_0034_operated_distribution_reconciliation"
+        )
         with Operations.context(MigrationContext.configure(db.connection())):
+            oc94_reconcile.downgrade()
+            oc94_pause.downgrade()
+            oc94.downgrade()
             migration.downgrade()
         db.execute(
             text(

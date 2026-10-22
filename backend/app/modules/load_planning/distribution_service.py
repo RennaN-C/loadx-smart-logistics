@@ -76,12 +76,15 @@ class LoadDistributionService:
         self.trucks = TruckService(db)
         self.history = StatusHistoryService(db)
 
-    def _sources(self, order_ids, *, lock: bool):
+    def _sources(self, order_ids, *, lock: bool, allow_operational: bool = False):
         orders = tuple(self.orders.get_orders(order_ids, for_update=lock))
         missing = set(order_ids) - {o.id for o in orders}
         if missing:
             raise LoadPlanOrdersNotFoundError(sorted(missing, key=lambda x: x.int))
-        ineligible = [o for o in orders if o.status != "READY"]
+        eligible = (
+            {"READY", "PLANNED", "IN_TRANSIT"} if allow_operational else {"READY"}
+        )
+        ineligible = [o for o in orders if o.status not in eligible]
         if ineligible:
             raise LoadPlanOrdersNotEligibleError(ineligible)
         items = {i.id: i for o in orders for i in o.items}
@@ -479,11 +482,32 @@ class LoadDistributionService:
                 p.id: self.planning.get_load_plan(p.load_plan_id)
                 for p in distribution.parts
             }
-            self._lock_trucks([plan.truck_id for plan in plans.values()])
+            is_reapproval = any(
+                plan.recalculated_from_id is not None for plan in plans.values()
+            )
+            available_ids = [
+                plan.truck_id
+                for plan in plans.values()
+                if not is_reapproval or plan.status == "CALCULATED"
+            ]
+            self._lock_trucks(available_ids)
+            if is_reapproval:
+                # Already-approved siblings legitimately reserve their vehicles.
+                for sibling_truck_id in sorted(
+                    {
+                        plan.truck_id
+                        for plan in plans.values()
+                        if plan.status == "APPROVED"
+                    },
+                    key=lambda value: value.int,
+                ):
+                    self.trucks.get_truck_for_update(sibling_truck_id)
             for p in sorted(distribution.parts, key=lambda p: p.load_plan_id.int):
                 plans[p.id] = self.planning.repository.get_for_update(p.load_plan_id)
             orders, _, _, _ = self._sources(
-                [o.order_id for o in distribution.orders], lock=True
+                [o.order_id for o in distribution.orders],
+                lock=True,
+                allow_operational=is_reapproval,
             )
             targets = (
                 [self._part(distribution, part_id)] if part_id else distribution.parts
@@ -500,18 +524,31 @@ class LoadDistributionService:
                         "APPROVED",
                         changed_by,
                     )
+            if is_reapproval:
+                # Validate that the replacement part is approved before
+                # changing the aggregate distribution state (OC94 / 0034).
+                self.db.flush()
             old = distribution.status
             distribution.status = self._status(distribution)
             if distribution.status == "APPROVED":
-                self.orders.stage_orders_as_planned(orders)
+                starting_orders = tuple(
+                    order for order in orders if order.status == "READY"
+                )
+                if starting_orders:
+                    self.orders.stage_orders_as_planned(starting_orders)
                 for part in distribution.parts:
                     plan = plans[part.id]
-                    plan.status = "APPROVED"
-                    plan.approved_at = datetime.now(UTC)
-                    self._history(
-                        "LOAD_PLAN", plan.id, "CALCULATED", "APPROVED", changed_by
-                    )
-                for order in orders:
+                    if plan.status == "CALCULATED":
+                        plan.status = "APPROVED"
+                        plan.approved_at = datetime.now(UTC)
+                        self._history(
+                            "LOAD_PLAN",
+                            plan.id,
+                            "CALCULATED",
+                            "APPROVED",
+                            changed_by,
+                        )
+                for order in starting_orders:
                     self._history("ORDER", order.id, "READY", "PLANNED", changed_by)
             if old != distribution.status:
                 self._history(
@@ -605,10 +642,16 @@ class LoadDistributionService:
             ]
             if data.truck_id in all_truck_ids:
                 raise DistributionError("DISTRIBUTION_TRUCK_DUPLICATED")
-            trucks = self._lock_trucks([*all_truck_ids, data.truck_id])
+            # Sibling trucks can be legitimately in route.
+            # Lock them, but do not demand that they be idle.
+            trucks = self._lock_trucks([data.truck_id])
+            for sibling_id in sorted(set(all_truck_ids), key=lambda value: value.int):
+                self.trucks.get_truck_for_update(sibling_id)
             self.planning.repository.get_for_update(old_plan.id)
             orders, items, products, volumes = self._sources(
-                [o.order_id for o in distribution.orders], lock=True
+                [o.order_id for o in distribution.orders],
+                lock=True,
+                allow_operational=True,
             )
             selected = [
                 volumes[VolumeIdentity(v.order_item_id, v.volume_index)]
@@ -628,6 +671,9 @@ class LoadDistributionService:
             part.load_plan_id = plan.id
             part.status = "PENDING"
             self._history("LOAD_DISTRIBUTION_PART", part.id, old, "PENDING", changed_by)
+            # Guard requires a current replacement plan + a canceled original.
+            # Persist the part's version transition before updating its parent.
+            self.db.flush()
             previous = distribution.status
             distribution.status = self._status(distribution)
             if previous != distribution.status:

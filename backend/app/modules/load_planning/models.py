@@ -20,7 +20,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base
 
-LOAD_PLAN_STATUS_VALUES = ("CALCULATED", "APPROVED", "REJECTED")
+LOAD_PLAN_STATUS_VALUES = ("CALCULATED", "APPROVED", "REJECTED", "CANCELED")
 ROTATION_CODE_VALUES = ("XYZ", "XZY", "YXZ", "YZX", "ZXY", "ZYX")
 REJECTION_REASON_VALUES = (
     "TRUCK_DIMENSIONS_EXCEEDED",
@@ -37,7 +37,7 @@ class LoadPlan(Base):
     __tablename__ = "load_plans"
     __table_args__ = (
         CheckConstraint(
-            "status IN ('CALCULATED', 'APPROVED', 'REJECTED')",
+            "status IN ('CALCULATED', 'APPROVED', 'REJECTED', 'CANCELED')",
             name="status_allowed",
         ),
         CheckConstraint(
@@ -84,17 +84,17 @@ class LoadPlan(Base):
             "AND used_volume_cm3 = 0 "
             "AND total_weight_kg = 0 "
             "AND occupancy_percent = 0) "
-            "OR (status IN ('CALCULATED', 'APPROVED') "
+            "OR (status IN ('CALCULATED', 'APPROVED', 'CANCELED') "
             "AND loaded_count > 0 "
             "AND used_volume_cm3 > 0 "
             "AND total_weight_kg > 0)",
             name="status_metrics_consistent",
         ),
         CheckConstraint(
-            "(status = 'APPROVED' "
+            "(status IN ('APPROVED', 'CANCELED') "
             "AND approved_at IS NOT NULL "
             "AND unloaded_count = 0) "
-            "OR (status <> 'APPROVED' AND approved_at IS NULL)",
+            "OR (status NOT IN ('APPROVED', 'CANCELED') AND approved_at IS NULL)",
             name="approval_consistent",
         ),
         CheckConstraint(

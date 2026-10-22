@@ -2,6 +2,7 @@ import uuid
 from collections.abc import Sequence
 from datetime import UTC, datetime
 
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -115,6 +116,10 @@ class DeliveryReceiptNotAvailableError(Exception):
 
 class DeliveryReceiptHistoryInvalidError(Exception):
     pass
+
+
+class DeliveryOperationalExceptionPendingError(Exception):
+    """Unresolved exception blocks confirmation and receipt."""
 
 
 class TripAccessForbiddenError(Exception):
@@ -413,6 +418,21 @@ class TripService:
             raise DeliveryTripNotInRouteError
 
         if normalized_status == "DELIVERED":
+            # Lock order already matches OC90: trip, then deliveries.
+            from app.modules.deliveries.exception_models import DeliveryException
+
+            latest = self.db.scalar(
+                select(DeliveryException)
+                .where(DeliveryException.delivery_id == delivery.id)
+                .order_by(
+                    DeliveryException.created_at.desc(),
+                    DeliveryException.id.desc(),
+                )
+                .limit(1)
+            )
+            if latest is not None and latest.code != "RESUMED":
+                raise DeliveryOperationalExceptionPendingError
+
             # Serialize the aggregate BEFORE making this leg visible. The scalar
             # query below runs after this lock, in READ COMMITTED, and sees the
             # preceding leg's commit even with stale objects in the identity map.
