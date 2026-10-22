@@ -32,7 +32,7 @@ def test_management_window_is_bounded_and_requires_aware_dates():
         )
 
 
-def test_management_export_uses_same_six_metrics():
+def test_management_export_preserves_counts_of_each_operational_fact():
     start = datetime(2026, 10, 21, tzinfo=UTC)
     summary = ManagementSummary(
         start=start,
@@ -43,8 +43,14 @@ def test_management_export_uses_same_six_metrics():
         deliveries_completed=4,
         orders_with_completed_leg=2,
         occurrences_registered=5,
+        delivery_exceptions=6,
+        trips_canceled=7,
+        interruption_events=8,
     )
     exported = ManagementReportService.csv_content(summary)
     assert exported.startswith("Indicador,Total")
     assert "Pernas de entrega concluidas,4" in exported
     assert "Pedidos com ao menos uma perna concluida,2" in exported
+    assert "Excecoes de entrega registradas,6" in exported
+    assert "Viagens canceladas,7" in exported
+    assert "Interrupcoes e retomadas,8" in exported
