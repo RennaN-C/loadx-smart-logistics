@@ -78,7 +78,14 @@ class OperationalTimelineService:
             .order_by(TripInterruptionEvent.created_at, TripInterruptionEvent.id)
             .limit(MAX_EVENTS_PER_TRIP + 1)
         ).all()
-        if len(history) + len(occurrences) + len(delivery_exceptions) + len(cancellations) + len(interruptions) > MAX_EVENTS_PER_TRIP:
+        if (
+            len(history)
+            + len(occurrences)
+            + len(delivery_exceptions)
+            + len(cancellations)
+            + len(interruptions)
+            > MAX_EVENTS_PER_TRIP
+        ):
             raise ApiError(
                 409,
                 "TIMELINE_TOO_LARGE",
