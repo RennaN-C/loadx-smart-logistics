@@ -24,7 +24,30 @@ RejectionReasonValue = Literal[
 ]
 
 
+OperationStatus = Literal[
+    "NOT_STARTED", "IN_PROGRESS", "PARTIALLY_DELIVERED", "COMPLETED", "CANCELED"
+]
+OperationScope = Literal["ongoing", "completed", "all"]
+
+
+class PlanOperationRead(BaseModel):
+    status: OperationStatus
+    loading_session_id: uuid.UUID | None
+    loading_status: Literal["PENDING", "IN_PROGRESS", "FINISHED"] | None
+    trip_id: uuid.UUID | None
+    trip_status: (
+        Literal["SCHEDULED", "IN_ROUTE", "INTERRUPTED", "FINISHED", "CANCELED"] | None
+    )
+    order_count: int = Field(ge=0)
+    delivered_order_count: int = Field(ge=0)
+    partial_order_count: int = Field(ge=0)
+    ready_order_count: int = Field(ge=0)
+    delivery_count: int = Field(ge=0)
+    delivered_leg_count: int = Field(ge=0)
+
+
 class LoadPlanListRead(BaseModel):
+    operation: PlanOperationRead | None = None
     distribution_id: uuid.UUID | None = None
     id: uuid.UUID
     truck_id: uuid.UUID
@@ -51,6 +74,7 @@ class TripContinuityRead(BaseModel):
 
 
 class LoadPlanContinuityRead(BaseModel):
+    operation: PlanOperationRead | None = None
     loading_session: LoadingContinuityRead | None
     trip: TripContinuityRead | None
     operational_ready: bool
@@ -204,6 +228,7 @@ class UnloadedLoadPlanItemRead(_LoadPlanItemSnapshotRead):
 
 
 class LoadPlanRead(BaseModel):
+    orders_ready_for_approval: bool | None = None
     distribution_id: uuid.UUID | None = None
     id: uuid.UUID
     truck_id: uuid.UUID
@@ -325,7 +350,10 @@ def _identity_key(item: LoadPlanItemRead) -> tuple[int, int]:
 
 
 def map_load_plan_read(
-    load_plan: LoadPlan, *, distribution_id: uuid.UUID | None = None
+    load_plan: LoadPlan,
+    *,
+    distribution_id: uuid.UUID | None = None,
+    orders_ready_for_approval: bool | None = None,
 ) -> LoadPlanRead:
     items = sorted(
         (map_load_plan_item(item) for item in load_plan.items),
@@ -336,6 +364,7 @@ def map_load_plan_read(
         key=lambda order_id: order_id.int,
     )
     return LoadPlanRead(
+        orders_ready_for_approval=orders_ready_for_approval,
         distribution_id=distribution_id,
         id=load_plan.id,
         truck_id=load_plan.truck_id,
