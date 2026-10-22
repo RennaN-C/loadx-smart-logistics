@@ -101,11 +101,9 @@ class MfaLoginRead(RecoveryCodesRead):
 
 def trusted_cookie_expiry(value: datetime) -> datetime:
     """Serialize database expiry in UTC without shifting a naive UTC value."""
-    return (
-        value.replace(tzinfo=UTC)
-        if value.tzinfo is None
-        else value.astimezone(UTC)
-    )
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
 
 
 @router.post("/mfa/verify")
