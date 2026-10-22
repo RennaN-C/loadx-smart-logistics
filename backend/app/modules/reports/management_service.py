@@ -10,10 +10,10 @@ from sqlalchemy import distinct, func, select
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import ApiError
-from app.modules.deliveries.models import Delivery, Trip
-from app.modules.deliveries.exception_models import DeliveryException
 from app.modules.deliveries.cancellation_service import TripCancellation
+from app.modules.deliveries.exception_models import DeliveryException
 from app.modules.deliveries.interruption_service import TripInterruptionEvent
+from app.modules.deliveries.models import Delivery, Trip
 from app.modules.load_planning.models import LoadPlan
 from app.modules.occurrences.models import Occurrence
 from app.modules.reports.service import ReportService
