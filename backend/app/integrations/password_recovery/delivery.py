@@ -16,26 +16,31 @@ class RecoveryDelivery(Protocol):
     def deliver(self, email: str, token: str) -> None: ...
 
 
+def valid_recovery_url(config: Settings) -> bool:
+    """Validate the recovery URL uniformly for all external delivery providers."""
+    try:
+        raw_url = config.password_recovery_url or ""
+        url = urlsplit(raw_url)
+        local_url = (
+            config.app_env == "local"
+            and raw_url == "http://localhost:5173/password-reset"
+        )
+        return (
+            bool(url.hostname)
+            and (url.scheme == "https" or local_url)
+            and not any((url.username, url.password, url.query, url.fragment))
+            and not any(char.isspace() or ord(char) < 32 for char in raw_url)
+            and "\\" not in raw_url
+            and url.port != 0
+        )
+    except ValueError:
+        return False
+
+
 class SmtpRecoveryDelivery:
     def __init__(self, config: Settings) -> None:
         self.config = config
-        try:
-            raw_url = config.password_recovery_url or ""
-            url = urlsplit(raw_url)
-            local_url = (
-                config.app_env == "local"
-                and raw_url == "http://localhost:5173/password-reset"
-            )
-            valid_url = (
-                bool(url.hostname)
-                and (url.scheme == "https" or local_url)
-                and not any((url.username, url.password, url.query, url.fragment))
-                and not any(char.isspace() or ord(char) < 32 for char in raw_url)
-                and "\\" not in raw_url
-                and url.port != 0
-            )
-        except ValueError:
-            raise IdentityUnavailableError from None
+        valid_url = valid_recovery_url(config)
         local_transport = config.smtp_security == "local"
         if (
             config.password_recovery_provider != "smtp"
