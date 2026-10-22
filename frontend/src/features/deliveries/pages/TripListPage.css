@@ -1,0 +1,47 @@
+.trip-list-scroll {
+  overflow-x: auto;
+  margin-top: 16px;
+}
+
+.trip-list {
+  width: 100%;
+  min-width: 520px;
+  border-collapse: collapse;
+  font-size: 0.87rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--card);
+}
+
+.trip-list th {
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  font-weight: 600;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.trip-list td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+
+.trip-list tr:last-child td {
+  border-bottom: none;
+}
+
+.trip-list-count {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.trip-list-date {
+  font-family: var(--font-mono);
+  color: var(--muted);
+  white-space: nowrap;
+}

@@ -32,6 +32,8 @@ const OPERATION_READERS: readonly Role[] = ["ADMIN", "CHECKER", "LOGISTICS_MANAG
 const PERSONAL_DATA_READERS: readonly Role[] = ["ADMIN", "LOGISTICS_MANAGER"];
 /** Visão consolidada da operação inteira; o backend restringe a ADMIN e LOGISTICS_MANAGER. */
 const OPERATION_OVERVIEW_READERS: readonly Role[] = ["ADMIN", "LOGISTICS_MANAGER"];
+/** A API aplica isolamento de viagens/entregas de motorista ativo. */
+const TRIP_READERS: readonly Role[] = ["ADMIN", "LOGISTICS_MANAGER", "DRIVER", "CUSTOM"];
 
 const ALL_ROLES: readonly Role[] = ["ADMIN", "CHECKER", "LOGISTICS_MANAGER", "DRIVER", "CUSTOM"];
 
@@ -71,6 +73,9 @@ const NAV_GROUPS: readonly NavGroup[] = [
     title: "Operação",
     items: [
       { to: "/orders", label: "Pedidos", icon: "orders", roles: OPERATION_READERS },
+      { to: "/trips", label: "Viagens", icon: "truck", roles: TRIP_READERS },
+      { to: "/loading-sessions", label: "Carregamentos", icon: "package", roles: OPERATION_READERS },
+      { to: "/deliveries", label: "Entregas", icon: "truck", roles: TRIP_READERS },
       { to: "/planning", label: "Planejamento de carga", icon: "planning", roles: OPERATION_READERS },
       { to: "/reports", label: "Relatórios e indicadores", icon: "chart", roles: OPERATION_READERS },
       {
@@ -89,7 +94,7 @@ const NAV_GROUPS: readonly NavGroup[] = [
   },
 ];
 
-const CUSTOM_NAV: Record<string, string[]> = { "/": ["loadx.customers.read", "loadx.products.read", "loadx.trucks.read", "loadx.drivers.read", "loadx.orders.read", "loadx.planning.read", "loadx.loading.read", "loadx.trips.read", "loadx.reports.read"], "/account": ["account"], "/trucks": ["loadx.trucks.read"], "/products": ["loadx.products.read"], "/contacts": ["loadx.customers.read", "loadx.drivers.read"], "/orders": ["loadx.orders.read"], "/planning": ["loadx.planning.read"] };
+const CUSTOM_NAV: Record<string, string[]> = { "/": ["loadx.customers.read", "loadx.products.read", "loadx.trucks.read", "loadx.drivers.read", "loadx.orders.read", "loadx.planning.read", "loadx.loading.read", "loadx.trips.read", "loadx.reports.read"], "/account": ["account"], "/trucks": ["loadx.trucks.read"], "/products": ["loadx.products.read"], "/contacts": ["loadx.customers.read", "loadx.drivers.read"], "/orders": ["loadx.orders.read"], "/planning": ["loadx.planning.read"], "/trips": ["loadx.trips.read", "loadx.trips.own"], "/loading-sessions": ["loadx.loading.read"], "/deliveries": ["loadx.deliveries.read", "loadx.trips.own"] };
 const SIDEBAR_PREFERENCE = "loadx.sidebar-collapsed";
 
 function initialSidebarCollapsed() {
