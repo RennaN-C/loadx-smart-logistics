@@ -80,7 +80,7 @@ export function AgendaPage() {
       <button type="button" className="btn-secondary" onClick={() => setDay(today())}>Hoje</button>
       <button type="button" className="btn-secondary" onClick={() => setDay(dateShift(day, mode === "week" ? 7 : 1))}>Próximo</button>
       <label>Visualização <select value={mode} onChange={e => setMode(e.target.value as "day" | "week")}><option value="day">Dia</option><option value="week">Semana</option></select></label>
-      <label>Data inicial <input type="date" value={day} onChange={e => setDay(e.target.value)} /></label>
+      <label>Data inicial <input type="date" value={day} onChange={e => { if (e.target.value) setDay(e.target.value); }} /></label>
     </div>
     <div className="agenda-controls">
       <label>Tipo de evento <select value={kind} onChange={e => setKind(e.target.value as AgendaKind | "")}><option value="">Todos</option>{agendaKinds.map(k => <option key={k} value={k}>{labels[k]}</option>)}</select></label>

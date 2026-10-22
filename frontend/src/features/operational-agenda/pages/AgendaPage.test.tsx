@@ -47,6 +47,21 @@ describe("AgendaPage", () => {
     ));
   });
 
+  it("preserva uma data válida ao limpar o campo e mantém a navegação", async () => {
+    renderAgenda();
+    await screen.findByText("Viagem criada");
+    const date = screen.getByLabelText("Data inicial") as HTMLInputElement;
+    const initial = date.value;
+    fireEvent.change(date, { target: { value: "" } });
+    expect(date).toHaveValue(initial);
+    fireEvent.click(screen.getByRole("button", { name: "Próximo" }));
+    await waitFor(() => expect(date.value).not.toBe(initial));
+    const last = vi.mocked(fetchAgenda).mock.calls.at(-1)?.[0];
+    expect(last).toBeDefined();
+    expect(Number.isFinite(Date.parse(last!.start))).toBe(true);
+    expect(Date.parse(last!.end) - Date.parse(last!.start)).toBe(7 * 86400000);
+  });
+
   it("diferencia ausencia de eventos e erro de rede", async () => {
     vi.mocked(fetchAgenda).mockResolvedValue({
       start: "2026-10-22T00:00:00Z", end: "2026-10-23T00:00:00Z",
