@@ -219,3 +219,7 @@
 .report-scroll-controls button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: .8rem; white-space: normal; }
 .report-scroll-back .icon { transform: rotate(180deg); }
 .report-scroll-controls button:disabled { opacity: .5; cursor: default; }
+
+/* Grade de métricas gerenciais separada dos KPIs legados de pedidos. */
+.management-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin: 16px 0; }
+.management-kpis .report-kpi { min-width: 0; }
