@@ -23,9 +23,7 @@ def test_oc111_timeline_is_read_only_and_scoped_to_trip(
 
     assert client.get(uri).status_code == 401
     assert client.get(uri, headers=scenario.checker_headers).status_code == 403
-    assert (
-        client.get(uri, headers=scenario.other_driver_headers).status_code == 403
-    )
+    assert client.get(uri, headers=scenario.other_driver_headers).status_code == 403
 
     for headers in (scenario.manager_headers, scenario.driver_headers):
         response = client.get(uri, headers=headers)
