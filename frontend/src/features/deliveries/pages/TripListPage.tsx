@@ -1,3 +1,4 @@
+import { useCallback, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { AlertBanner } from "../../../components/AlertBanner";
@@ -6,6 +7,8 @@ import { StatusPill } from "../../../components/StatusPill";
 import { useResourceList } from "../../../hooks/useResourceList";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { listTrips } from "../api/tripsApi";
+import type { ListParams } from "../../../services/pagination";
+import type { TripStatus } from "../types";
 import { TRIP_STATUS_LABELS, tripStatusTone } from "../components/tripLabels";
 import { mapTripErrorToMessage } from "../components/tripsErrorMessages";
 import "./TripListPage.css";
@@ -32,8 +35,14 @@ const dateTime = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyl
  */
 export function TripListPage() {
   const { user } = useAuth();
+  const [tripStatusFilter, setTripStatusFilter] = useState<TripStatus | "">("");
+  const [search, setSearch] = useState("");
+  const load = useCallback((params: ListParams) =>
+    listTrips({ ...params, ...(tripStatusFilter ? { status: tripStatusFilter } : {}), ...(search.trim().length >= 2 ? { search: search.trim() } : {}) }),
+    [tripStatusFilter, search],
+  );
   const { status, items, error, refetch, page, total, totalPages, goToPage } =
-    useResourceList(listTrips);
+    useResourceList(load);
 
   const isDriver = user?.role === "DRIVER";
 
@@ -49,6 +58,19 @@ export function TripListPage() {
           </p>
         </div>
       </header>
+
+      <div className="entity-toolbar">
+        <label>Situação
+          <select value={tripStatusFilter} onChange={(e) => { setTripStatusFilter(e.target.value as TripStatus | ""); goToPage(1); }} aria-label="Filtrar viagens por situação">
+            <option value="">Todas</option>
+            {(["SCHEDULED","IN_ROUTE","INTERRUPTED","FINISHED","CANCELED"] as TripStatus[]).map(key => <option key={key} value={key}>{TRIP_STATUS_LABELS[key]}</option>)}
+          </select>
+        </label>
+        <label>Buscar viagem
+          <input aria-label="Buscar viagem por identificador" value={search} maxLength={120}
+            onChange={e => { setSearch(e.target.value); goToPage(1); }} placeholder="Identificador (mínimo 2 caracteres)" />
+        </label>
+      </div>
 
       {status === "loading" ? (
         <p className="entity-state">
