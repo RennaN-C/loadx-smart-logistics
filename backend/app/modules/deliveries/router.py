@@ -112,7 +112,10 @@ def list_trips(
     pagination: Pagination,
     current_user: TripReader,
     service: Annotated[TripService, Depends(get_trip_service)],
-    trip_status: Annotated[Literal["SCHEDULED", "IN_ROUTE", "INTERRUPTED", "FINISHED", "CANCELED"] | None, Query(alias="status")] = None,
+    trip_status: Annotated[
+        Literal["SCHEDULED", "IN_ROUTE", "INTERRUPTED", "FINISHED", "CANCELED"] | None,
+        Query(alias="status"),
+    ] = None,
     search: Annotated[str | None, Query(min_length=2, max_length=120)] = None,
 ) -> PageResponse[TripListRead] | JSONResponse:
     try:
