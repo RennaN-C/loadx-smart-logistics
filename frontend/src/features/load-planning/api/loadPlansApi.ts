@@ -49,6 +49,7 @@ interface LoadPlanItemDto extends ItemSnapshotDto {
 }
 
 export interface LoadPlanDto {
+  orders_ready_for_approval?: boolean | null;
   distribution_id?: string | null;
   id: string;
   truck_id: string;
@@ -136,6 +137,7 @@ export function mapLoadPlanFromDto(dto: LoadPlanDto): LoadPlan {
     truckId: dto.truck_id,
     recalculatedFromId: dto.recalculated_from_id,
     status: dto.status,
+    ordersReadyForApproval: dto.orders_ready_for_approval ?? null,
     internalVolumeCm3: dto.internal_volume_cm3,
     usedVolumeCm3: dto.used_volume_cm3,
     occupancyPercent: dto.occupancy_percent,
@@ -217,6 +219,7 @@ export async function recalculateLoadPlan(id: string): Promise<LoadPlan> {
 }
 
 interface LoadPlanListDto {
+  operation?: LoadPlanListItem["operation"];
   distribution_id?: string | null;
   id: string;
   truck_id: string;
@@ -233,12 +236,13 @@ interface LoadPlanListDto {
 }
 
 export async function listLoadPlans(
-  params: ListParams & { status?: LoadPlanStatus; truckId?: string } = {},
+  params: ListParams & { status?: LoadPlanStatus; truckId?: string; operationScope?: "ongoing" | "completed" | "all" } = {},
 ): Promise<Page<LoadPlanListItem>> {
   const { data } = await api.get<PageDto<LoadPlanListDto>>("/load-plans", {
-    params: { ...toPageQuery(params), status: params.status, truck_id: params.truckId },
+    params: { ...toPageQuery(params), status: params.status, truck_id: params.truckId, operation_scope: params.operationScope },
   });
   return mapPageFromDto(data, (dto) => ({
+    operation: dto.operation ?? null,
     distributionId: dto.distribution_id ?? null,
     id: dto.id, truckId: dto.truck_id, truckPlate: dto.truck_plate,
     truckModel: dto.truck_model, status: dto.status, createdAt: dto.created_at,

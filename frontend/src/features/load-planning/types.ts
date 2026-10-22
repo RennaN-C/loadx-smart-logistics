@@ -55,6 +55,7 @@ export interface LoadPlanItem extends LoadPlanItemSnapshot {
 }
 
 export interface LoadPlan {
+  ordersReadyForApproval?: boolean | null;
   distributionId?: string | null;
   id: string;
   truckId: string;
@@ -112,7 +113,23 @@ export interface LoadPlanVisualization {
   unloadedItems: UnloadedItem[];
 }
 
+export type PlanOperationStatus = "NOT_STARTED" | "IN_PROGRESS" | "PARTIALLY_DELIVERED" | "COMPLETED" | "CANCELED";
+export interface PlanOperation {
+  status: PlanOperationStatus;
+  loading_session_id: string | null;
+  loading_status: "PENDING" | "IN_PROGRESS" | "FINISHED" | null;
+  trip_id: string | null;
+  trip_status: TripStatus | null;
+  order_count: number;
+  delivered_order_count: number;
+  partial_order_count: number;
+  ready_order_count: number;
+  delivery_count: number;
+  delivered_leg_count: number;
+}
+
 export interface LoadPlanListItem {
+  operation?: PlanOperation | null;
   distributionId?: string | null;
   id: string;
   truckId: string;
@@ -129,6 +146,7 @@ export interface LoadPlanListItem {
 }
 
 export interface LoadPlanContinuity {
+  operation?: PlanOperation | null;
   loading_session: { id: string; status: "PENDING" | "IN_PROGRESS" | "FINISHED" } | null;
   trip: { id: string; status: TripStatus } | null;
   operational_ready: boolean;
