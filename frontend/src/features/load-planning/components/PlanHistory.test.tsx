@@ -13,9 +13,9 @@ const item: LoadPlanListItem = {
   status: "CALCULATED", createdAt: "2026-10-12T12:00:00Z", recalculatedFromId: null,
   loadedCount: 10, unloadedCount: 1, occupancyPercent: 21.5, totalWeightKg: 120, orderCount: 2,
 };
-function setup(path = "/planning", checker = false) {
+function setup(path = "/planning", checker = false, canReadOperations = false) {
   return render(<MemoryRouter initialEntries={[path]}><Link to="/products">Produtos</Link><Link to="/planning">Planejamento de carga</Link><Routes>
-    <Route path="/planning" element={<PlanHistory checker={checker} />} />
+    <Route path="/planning" element={<PlanHistory checker={checker} canReadOperations={canReadOperations} />} />
     <Route path="/planning/:id" element={<div>Detalhe persistido</div>} />
     <Route path="/products" element={<div>Cadastro de produtos</div>} />
   </Routes></MemoryRouter>);
@@ -108,6 +108,28 @@ it("distingue situacao do plano aprovado da conclusao de entrega", async () => {
   );
   setup();
   expect(await screen.findByText("ABC1D23")).toBeInTheDocument();
-  expect(screen.getByText(/A situação exibida pertence ao plano de carga/)).toBeInTheDocument();
-  expect(screen.getAllByText("Aprovado").length).toBeGreaterThanOrEqual(1);
+  expect(screen.getByText(/A aprovação registra a decisão sobre a carga/)).toBeInTheDocument();
+  expect(screen.getAllByText("Plano: Aprovado").length).toBeGreaterThanOrEqual(1);
+});
+
+
+it("restaura filtro operacional da URL e pagina no servidor", async () => {
+  setup("/planning?scope=completed&page=2", false, true);
+  await screen.findByText("ABC1D23");
+  expect(listLoadPlans).toHaveBeenCalledWith(expect.objectContaining({operationScope: "completed", page: 2}));
+  expect(screen.getByRole("button", {name: "Concluídos"})).toHaveAttribute("aria-pressed", "true");
+  fireEvent.click(screen.getByRole("button", {name: "Em andamento"}));
+  await waitFor(() => expect(listLoadPlans).toHaveBeenLastCalledWith(expect.objectContaining({operationScope: "ongoing", page: 1})));
+});
+
+it("separa aprovacao de entrega parcial sem rotular conclusao", async () => {
+  vi.mocked(listLoadPlans).mockResolvedValue(makePage([{ ...item, status: "APPROVED", operation: {
+    status: "PARTIALLY_DELIVERED", loading_session_id: "load1", loading_status: "FINISHED", trip_id: "trip1", trip_status: "FINISHED",
+    order_count: 1, delivered_order_count: 0, partial_order_count: 1, ready_order_count: 0, delivery_count: 1, delivered_leg_count: 1,
+  }}]));
+  setup("/planning", false, true);
+  expect(await screen.findByText("Entrega parcial")).toBeInTheDocument();
+  expect(screen.getByText("Plano: Aprovado")).toBeInTheDocument();
+  expect(screen.queryByText("Operação concluída")).not.toBeInTheDocument();
+  expect(screen.getByRole("link", {name: "Abrir viagem existente"})).toHaveAttribute("href", "/trips/trip1");
 });
