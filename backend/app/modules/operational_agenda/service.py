@@ -9,10 +9,10 @@ from sqlalchemy.orm import Session
 
 from app.core.exceptions import ApiError
 from app.modules.access_profiles.catalog import Permission, has_permission
-from app.modules.deliveries.models import Delivery, Trip
-from app.modules.deliveries.exception_models import DeliveryException
 from app.modules.deliveries.cancellation_service import TripCancellation
+from app.modules.deliveries.exception_models import DeliveryException
 from app.modules.deliveries.interruption_service import TripInterruptionEvent
+from app.modules.deliveries.models import Delivery, Trip
 from app.modules.drivers.service import DriverNotFoundError, DriverService
 from app.modules.load_planning.models import LoadPlan
 from app.modules.loading.models import LoadingSession
