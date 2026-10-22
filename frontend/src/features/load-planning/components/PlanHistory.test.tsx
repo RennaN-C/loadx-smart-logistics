@@ -100,3 +100,14 @@ it("abre agregado persistido ao reencontrar plano de uma distribuição", async 
   expect(link).toHaveAttribute("href", "/planning/distributions/distribution-1");
   expect(link).toHaveTextContent("Abrir distribuição");
 });
+
+
+it("distingue situacao do plano aprovado da conclusao de entrega", async () => {
+  vi.mocked(listLoadPlans).mockResolvedValue(
+    makePage([{ ...item, status: "APPROVED" }]),
+  );
+  setup();
+  expect(await screen.findByText("ABC1D23")).toBeInTheDocument();
+  expect(screen.getByText(/A situação exibida pertence ao plano de carga/)).toBeInTheDocument();
+  expect(screen.getByText("Aprovado")).toBeInTheDocument();
+});
