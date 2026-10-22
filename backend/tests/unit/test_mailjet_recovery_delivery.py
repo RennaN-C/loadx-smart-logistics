@@ -250,3 +250,53 @@ def test_mailjet_non_2xx_response_is_rejected(monkeypatch, caplog):
     assert '"provider_http_status":503' in caplog.text
     assert '"delivery_provider":"mailjet"' in caplog.text
     assert "private-reset-token" not in caplog.text
+
+
+@pytest.mark.parametrize(
+    ("override", "check"),
+    [
+        ({"password_recovery_provider": "none"}, "provider_mismatch"),
+        ({"password_recovery_url": "http://bad.test/reset"}, "recovery_url_invalid"),
+        ({"mailjet_api_key": None}, "api_key_missing"),
+        ({"mailjet_secret_key": None}, "secret_key_missing"),
+        ({"mailjet_sender": "not-an-address"}, "sender_invalid"),
+    ],
+)
+def test_mailjet_invalid_settings_emit_fixed_safe_reason(override, check, caplog):
+    with pytest.raises(IdentityUnavailableError):
+        MailjetRecoveryDelivery(config(**override))
+    events = [
+        json.loads(record.message)
+        for record in caplog.records
+        if record.name == "loadx.security"
+    ]
+    assert len(events) == 1
+    assert events[0]["event"] == "AUTH_RECOVERY_CONFIG_INVALID"
+    assert events[0]["delivery_provider"] == "mailjet"
+    assert events[0]["failed_checks"] == check
+    assert "sample-private-key" not in caplog.text
+    assert "sample-public-key" not in caplog.text
+    assert "validated@example.test" not in caplog.text
+    assert "loadx-system.vercel.app" not in caplog.text
+
+
+def test_mailjet_reports_multiple_missing_fields_without_values(caplog):
+    invalid = config(
+        mailjet_api_key=None,
+        mailjet_secret_key=None,
+        mailjet_sender="not-an-address",
+        password_recovery_url="http://bad.test/reset",
+    )
+    with pytest.raises(IdentityUnavailableError):
+        MailjetRecoveryDelivery(invalid)
+    events = [
+        json.loads(record.message)
+        for record in caplog.records
+        if record.name == "loadx.security"
+    ]
+    assert len(events) == 1
+    assert events[0]["failed_checks"] == (
+        "recovery_url_invalid,api_key_missing,secret_key_missing,sender_invalid"
+    )
+    assert "not-an-address" not in caplog.text
+    assert "bad.test" not in caplog.text
