@@ -187,3 +187,28 @@ Downgrade vazio testado; com qualquer evento/auditoria OC109, é recusado para
 preservar histórico. Correção com dados deve ser por migration aditiva. Não apagar
 fila para permitir downgrade em produção. Monitorar volume e retenção antes de
 crescimento operacional; não há política aprovada de descarte ou alerta externo.
+
+
+## Consulta contextual da entrega — OC81
+
+`CONFIRMADO`: `communication_router/service/repository/schemas.py` expõem
+`GET /api/v1/deliveries/{delivery_id}/communications`. É uma projeção somente
+leitura dos fatos já persistidos, sem novas tabelas, eventos ou tentativas.
+OccurrenceReferenceService fornece a seleção exata por entrega e viagem;
+o repository de notificações consulta somente suas próprias tabelas e essa
+fronteira pública. `TRIP_STARTED` e ocorrências sem vínculo com a entrega são
+excluídos. Não há inferência por pedido, motorista ou texto.
+
+A autorização reutiliza TripService para leitura de entrega e vínculo/atividade
+do motorista, além de exigir permissão efetiva de leitura de ocorrências.
+Consulta não acessa destinatários/preferências/read_at da OC103 nem expõe
+mensagens, telefone, payload, tokens, correlação, erro interno ou comandos da
+fila administrativa. Somente canal simulado, origem, UUID e datas/status.
+O processamento pode ainda não ter fila (legado): nesse caso o campo é null;
+não é inventado um resultado. Paginação padrão de vinte/máximo cem, ordenação
+determinística `(created_at,id)` e direção asc/desc. GET não chama provider,
+materializa registros, marca leitura ou reprocessa fila.
+
+`CONFIRMADO`: este contrato aditivo foi autorizado pela operação coordenada de
+conclusão v1.2.0; completa a consulta que faltava na OC81, preservando caixa
+pessoal e a administração da OC109 como fluxos distintos.
