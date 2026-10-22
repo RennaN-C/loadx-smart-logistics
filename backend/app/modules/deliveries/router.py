@@ -119,7 +119,9 @@ def list_trips(
     search: Annotated[str | None, Query(min_length=2, max_length=120)] = None,
 ) -> PageResponse[TripListRead] | JSONResponse:
     try:
-        result = service.list_trips(pagination, current_user=current_user, status=trip_status, search=search)
+        result = service.list_trips(
+            pagination, current_user=current_user, status=trip_status, search=search
+        )
     except TRIP_SERVICE_ERRORS as exc:
         return _trip_error_response(exc)
     return to_page_response(
