@@ -107,7 +107,7 @@ export function ManagementReportsPanel() {
     <p className="entity-form-help">Um pedido com uma parte entregue não é necessariamente um pedido completamente entregue. Os indicadores respeitam essa distinção.</p>
     {error && <AlertBanner>{error}</AlertBanner>}
     {status === "loading" && <p role="status">Apurando dados do servidor…</p>}
-    {status === "ready" && summary && <div className="report-kpis">
+    {status === "ready" && summary && <div className="management-kpis">
       {metrics.map(({ key, title }) => <div className="report-kpi" key={key}>
         <span className="report-kpi-label">{title}</span>
         <strong className="report-kpi-value">{summary[key] as number}</strong>
