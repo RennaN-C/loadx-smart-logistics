@@ -151,7 +151,6 @@ def test_resend_rejects_non_success_http_without_logging_payload(monkeypatch, ca
     assert "private-token" not in caplog.text
 
 
-
 def test_sandbox_requires_explicit_account_owner_allowlist():
     with pytest.raises(IdentityUnavailableError):
         ResendRecoveryDelivery(config(resend_sender="onboarding@resend.dev"))
