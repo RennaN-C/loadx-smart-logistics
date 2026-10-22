@@ -4,12 +4,15 @@ import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import literal, select, union_all
+from sqlalchemy import case, literal, select, union_all
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import ApiError
 from app.modules.access_profiles.catalog import Permission, has_permission
 from app.modules.deliveries.models import Delivery, Trip
+from app.modules.deliveries.exception_models import DeliveryException
+from app.modules.deliveries.cancellation_service import TripCancellation
+from app.modules.deliveries.interruption_service import TripInterruptionEvent
 from app.modules.drivers.service import DriverNotFoundError, DriverService
 from app.modules.load_planning.models import LoadPlan
 from app.modules.loading.models import LoadingSession
@@ -124,6 +127,21 @@ class OperationalAgendaService:
                 .join(LoadPlan, LoadPlan.id == Trip.load_plan_id)
             )
 
+        def audited_trip_event(model, kind, timestamp):
+            return (
+                select(
+                    literal(kind).label("kind") if isinstance(kind, str) else kind.label("kind"),
+                    model.id.label("resource_id"),
+                    Trip.id.label("trip_id"),
+                    timestamp.label("occurred_at"),
+                    LoadPlan.truck_id.label("truck_id"),
+                    Trip.driver_id.label("driver_id"),
+                )
+                .select_from(model)
+                .join(Trip, model.trip_id == Trip.id)
+                .join(LoadPlan, LoadPlan.id == Trip.load_plan_id)
+            )
+
         activity = union_all(
             trip_event("TRIP_CREATED", Trip.created_at),
             trip_event("TRIP_STARTED", Trip.started_at),
@@ -131,6 +149,20 @@ class OperationalAgendaService:
             loading_event("LOADING_STARTED", LoadingSession.started_at),
             loading_event("LOADING_FINISHED", LoadingSession.finished_at),
             delivery_event(),
+            audited_trip_event(
+                DeliveryException, "DELIVERY_EXCEPTION", DeliveryException.created_at
+            ),
+            audited_trip_event(
+                TripCancellation, "TRIP_CANCELED", TripCancellation.created_at
+            ),
+            audited_trip_event(
+                TripInterruptionEvent,
+                case(
+                    (TripInterruptionEvent.action == "INTERRUPTED", "TRIP_INTERRUPTED"),
+                    else_="TRIP_RESUMED",
+                ),
+                TripInterruptionEvent.created_at,
+            ),
         ).subquery()
         query = select(activity).where(
             activity.c.occurred_at >= filters.start,
