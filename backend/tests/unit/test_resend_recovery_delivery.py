@@ -217,9 +217,7 @@ def test_sandbox_allows_only_account_owner_case_insensitive(monkeypatch):
 
 
 @pytest.mark.parametrize("status", [401, 403, 422, 429, 500])
-def test_http_rejection_logs_only_safe_status_and_category(
-    status, monkeypatch, caplog
-):
+def test_http_rejection_logs_only_safe_status_and_category(status, monkeypatch, caplog):
     def failing_open(request, *, timeout):
         raise HTTPError(
             request.full_url,
