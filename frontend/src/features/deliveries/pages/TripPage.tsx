@@ -9,8 +9,11 @@ import { AuditTrail } from "../../audit/components/AuditTrail";
 import { downloadTripReport } from "../../reports/api/reportsApi";
 import { ReportDownloadButton } from "../../reports/components/ReportDownloadButton";
 import { canReadReports } from "../../reports/permissions";
-import { changeDeliveryStatus, changeTripStatus } from "../api/tripsApi";
+import { changeDeliveryStatus, changeTripStatus, getTrip } from "../api/tripsApi";
 import { TRIP_ACTION_LABELS, TRIP_STATUS_LABELS, tripStatusTone } from "../components/tripLabels";
+import { DeliveryExceptionsPanel } from "../components/DeliveryExceptionsPanel";
+import { TripCancellationPreflightPanel } from "../components/TripCancellationPreflightPanel";
+import { TripInterruptionPanel } from "../components/TripInterruptionPanel";
 import { TripStops } from "../components/TripStops";
 import { TripSummary } from "../components/TripSummary";
 import { useTripPage } from "../hooks/useTripPage";
@@ -112,7 +115,7 @@ function TripOperations({ trip, user, isWorking, run }: { readonly trip: Trip; r
   const canOperate = canOperateTrip(user);
   const canDeliver = hasPermission(user, "loadx.deliveries.manage") || hasPermission(user, "loadx.trips.own");
   const nextTripStatus = TRIP_TRANSITIONS[trip.status];
-  const pendingDeliveries = trip.deliveries.filter((d) => d.status !== "DELIVERED").length;
+  const pendingDeliveries = trip.deliveries.filter((d) => d.status !== "DELIVERED" && d.status !== "CANCELED").length;
   const canFinish = trip.status !== "IN_ROUTE" || pendingDeliveries === 0;
 
   return (
@@ -146,12 +149,32 @@ function TripOperations({ trip, user, isWorking, run }: { readonly trip: Trip; r
               canReadReceipts={hasPermission(user, "loadx.deliveries.read") || hasPermission(user, "loadx.trips.own")}
               canReadCommunication={(hasPermission(user, "loadx.deliveries.read") || hasPermission(user, "loadx.trips.own")) && (hasPermission(user, "loadx.occurrences.read") || hasPermission(user, "loadx.trips.own"))}
             trip={trip}
-            canOperate={canDeliver}
+            canOperate={canDeliver && trip.status === "IN_ROUTE"}
             isWorking={isWorking}
             onAdvance={(delivery, next) =>
               void run(() => changeDeliveryStatus(delivery.id, next))
             }
           />
+
+          {trip.status === "IN_ROUTE" ? (
+            <DeliveryExceptionsPanel deliveries={trip.deliveries} canOperate={canDeliver} />
+          ) : null}
+
+          {hasPermission(user, "loadx.trips.manage") ? (
+            <TripInterruptionPanel
+              trip={trip}
+              onChanged={() => run(() => getTrip(trip.id))}
+            />
+          ) : null}
+
+          {hasPermission(user, "loadx.trips.manage") ? (
+            <TripCancellationPreflightPanel
+              key={trip.id}
+              tripId={trip.id}
+              canCancel={trip.status === "SCHEDULED"}
+              onCanceled={() => run(() => getTrip(trip.id))}
+            />
+          ) : null}
 
           {hasPermission(user, "loadx.audit.read") ? (
             <AuditTrail entityType="TRIP" entityId={trip.id} title="Histórico da viagem" />

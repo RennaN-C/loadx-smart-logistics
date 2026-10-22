@@ -10,6 +10,7 @@ from app.modules.company_profile.router import router as company_profile_router
 from app.modules.customers.address_router import router as customer_addresses_router
 from app.modules.customers.router import router as customers_router
 from app.modules.deliveries.evidence_router import router as evidence_router
+from app.modules.deliveries.exception_router import router as exception_router
 from app.modules.deliveries.router import router as deliveries_router
 from app.modules.drivers.document_router import router as driver_documents_router
 from app.modules.drivers.document_router import (
@@ -55,6 +56,7 @@ api_router.include_router(customers_router)
 api_router.include_router(customer_addresses_router)
 api_router.include_router(deliveries_router)
 api_router.include_router(evidence_router)
+api_router.include_router(exception_router)
 api_router.include_router(drivers_router)
 api_router.include_router(driver_documents_router)
 api_router.include_router(driver_document_types_router)
