@@ -27,7 +27,7 @@ class RecoveryDeliveryFailure(OSError):
             "tls",
             "network",
             "recipient_not_allowed",
-            "provider_rejected"
+            "provider_rejected",
         ],
         http_status: int | None = None,
         provider: Literal["resend", "mailjet"] = "resend",
