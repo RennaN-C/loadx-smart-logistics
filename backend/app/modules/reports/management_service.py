@@ -11,6 +11,9 @@ from sqlalchemy.orm import Session
 
 from app.core.exceptions import ApiError
 from app.modules.deliveries.models import Delivery, Trip
+from app.modules.deliveries.exception_models import DeliveryException
+from app.modules.deliveries.cancellation_service import TripCancellation
+from app.modules.deliveries.interruption_service import TripInterruptionEvent
 from app.modules.load_planning.models import LoadPlan
 from app.modules.occurrences.models import Occurrence
 from app.modules.reports.service import ReportService
@@ -57,6 +60,9 @@ class ManagementSummary:
     deliveries_completed: int
     orders_with_completed_leg: int
     occurrences_registered: int
+    delivery_exceptions: int = 0
+    trips_canceled: int = 0
+    interruption_events: int = 0
 
     def metrics(self) -> tuple[tuple[str, int], ...]:
         return (
@@ -69,6 +75,9 @@ class ManagementSummary:
                 self.orders_with_completed_leg,
             ),
             ("Ocorrencias registradas", self.occurrences_registered),
+            ("Excecoes de entrega registradas", self.delivery_exceptions),
+            ("Viagens canceladas", self.trips_canceled),
+            ("Interrupcoes e retomadas", self.interruption_events),
         )
 
 
@@ -116,6 +125,9 @@ class ManagementReportService:
                 Delivery, Delivery.delivered_at, distinct_column=Delivery.order_id
             ),
             occurrences_registered=count(Occurrence, Occurrence.created_at),
+            delivery_exceptions=count(DeliveryException, DeliveryException.created_at),
+            trips_canceled=count(TripCancellation, TripCancellation.created_at),
+            interruption_events=count(TripInterruptionEvent, TripInterruptionEvent.created_at),
         )
 
     @staticmethod
