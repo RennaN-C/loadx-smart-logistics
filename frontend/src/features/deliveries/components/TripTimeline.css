@@ -1,0 +1,10 @@
+.trip-timeline { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 20px; margin-top: 22px; }
+.trip-timeline-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.trip-timeline h2 { margin: 0 0 7px; font-size: 1.1rem; }
+.trip-timeline-heading p { color: var(--muted); margin: 0; }
+.trip-timeline ol { margin: 16px 0; padding: 0 0 0 18px; display: grid; gap: 10px; }
+.trip-timeline li { display: grid; grid-template-columns: minmax(150px, 190px) minmax(0, 1fr); border-left: 2px solid var(--accent); padding: 8px 12px; background: var(--paper); border-radius: 4px; gap: 14px; }
+.trip-timeline time { font-variant-numeric: tabular-nums; font-size: 0.83rem; color: var(--muted); }
+.trip-timeline-pagination { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 12px; }
+.trip-timeline-pagination span { font-size: 0.85rem; color: var(--muted); }
+@media(max-width:600px) { .trip-timeline-heading { flex-direction: column; } .trip-timeline li { grid-template-columns: minmax(0,1fr); gap: 3px; } .trip-timeline { padding: 14px; } }
