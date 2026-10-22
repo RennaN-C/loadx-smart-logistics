@@ -14,7 +14,7 @@ from app.integrations.password_recovery.message import build_recovery_message
 from app.modules.auth.totp import IdentityUnavailableError
 
 _RESEND_ENDPOINT = "https://api.resend.com/emails"
-_EMAIL_ADDRESS = re.compile(r"[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)+\\Z")
+_EMAIL_ADDRESS = re.compile(r"[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)+\Z")
 
 
 class ResendRecoveryDelivery:
@@ -34,7 +34,7 @@ class ResendRecoveryDelivery:
                 and (url.scheme == "https" or local_url)
                 and not any((url.username, url.password, url.query, url.fragment))
                 and not any(char.isspace() or ord(char) < 32 for char in raw_url)
-                and "\\\\" not in raw_url
+                and "\\" not in raw_url
                 and url.port != 0
             )
         except ValueError:
