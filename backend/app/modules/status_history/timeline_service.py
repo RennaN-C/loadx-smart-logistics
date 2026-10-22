@@ -7,6 +7,9 @@ from sqlalchemy.orm import Session
 
 from app.core.exceptions import ApiError
 from app.modules.deliveries.service import TripService
+from app.modules.deliveries.exception_models import DeliveryException
+from app.modules.deliveries.cancellation_service import TripCancellation
+from app.modules.deliveries.interruption_service import TripInterruptionEvent
 from app.modules.occurrences.models import Occurrence
 from app.modules.status_history.models import StatusHistory
 from app.modules.status_history.timeline_schemas import (
@@ -57,7 +60,25 @@ class OperationalTimelineService:
             .order_by(Occurrence.created_at, Occurrence.id)
             .limit(MAX_EVENTS_PER_TRIP + 1)
         ).all()
-        if len(history) + len(occurrences) > MAX_EVENTS_PER_TRIP:
+        delivery_exceptions = self.db.scalars(
+            select(DeliveryException)
+            .where(DeliveryException.trip_id == trip.id)
+            .order_by(DeliveryException.created_at, DeliveryException.id)
+            .limit(MAX_EVENTS_PER_TRIP + 1)
+        ).all()
+        cancellations = self.db.scalars(
+            select(TripCancellation)
+            .where(TripCancellation.trip_id == trip.id)
+            .order_by(TripCancellation.created_at, TripCancellation.id)
+            .limit(MAX_EVENTS_PER_TRIP + 1)
+        ).all()
+        interruptions = self.db.scalars(
+            select(TripInterruptionEvent)
+            .where(TripInterruptionEvent.trip_id == trip.id)
+            .order_by(TripInterruptionEvent.created_at, TripInterruptionEvent.id)
+            .limit(MAX_EVENTS_PER_TRIP + 1)
+        ).all()
+        if len(history) + len(occurrences) + len(delivery_exceptions) + len(cancellations) + len(interruptions) > MAX_EVENTS_PER_TRIP:
             raise ApiError(
                 409,
                 "TIMELINE_TOO_LARGE",
@@ -86,6 +107,39 @@ class OperationalTimelineService:
                 occurred_at=row.created_at,
             )
             for row in occurrences
+        )
+        events.extend(
+            TimelineEventRead(
+                id=row.id,
+                source="DELIVERY_EXCEPTION",
+                kind=row.code,
+                entity_id=row.delivery_id,
+                occurred_at=row.created_at,
+                actor_id=row.actor_id,
+            )
+            for row in delivery_exceptions
+        )
+        events.extend(
+            TimelineEventRead(
+                id=row.id,
+                source="TRIP_CANCELLATION",
+                kind="TRIP_CANCELED",
+                entity_id=trip.id,
+                occurred_at=row.created_at,
+                actor_id=row.actor_id,
+            )
+            for row in cancellations
+        )
+        events.extend(
+            TimelineEventRead(
+                id=row.id,
+                source="TRIP_INTERRUPTION",
+                kind=row.action,
+                entity_id=trip.id,
+                occurred_at=row.created_at,
+                actor_id=row.actor_id,
+            )
+            for row in interruptions
         )
         ordered = order_unique_events(events)
         start = (page - 1) * page_size
