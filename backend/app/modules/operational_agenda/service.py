@@ -130,7 +130,9 @@ class OperationalAgendaService:
         def audited_trip_event(model, kind, timestamp):
             return (
                 select(
-                    literal(kind).label("kind") if isinstance(kind, str) else kind.label("kind"),
+                    literal(kind).label("kind")
+                    if isinstance(kind, str)
+                    else kind.label("kind"),
                     model.id.label("resource_id"),
                     Trip.id.label("trip_id"),
                     timestamp.label("occurred_at"),
