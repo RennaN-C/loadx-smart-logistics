@@ -49,8 +49,10 @@ class Settings(BaseSettings):
     trusted_devices_enabled: bool = True
     trusted_device_days: int = Field(default=30, ge=1, le=30)
     mfa_encryption_key: SecretStr | None = None
-    password_recovery_provider: Literal["none", "smtp"] = "none"
+    password_recovery_provider: Literal["none", "smtp", "resend"] = "none"
     password_recovery_url: str | None = None
+    resend_api_key: SecretStr | None = Field(default=None, repr=False)
+    resend_sender: str | None = None
     smtp_security: Literal["ssl", "starttls", "local"] = "ssl"
     smtp_host: str | None = None
     smtp_port: int = Field(default=465, ge=1, le=65535)
@@ -84,7 +86,7 @@ class Settings(BaseSettings):
             )
         return value
 
-    @field_validator("mfa_encryption_key", "smtp_password", mode="before")
+    @field_validator("mfa_encryption_key", "smtp_password", "resend_api_key", mode="before")
     @classmethod
     def optional_secret(cls, value: object) -> object:
         return None if value == "" else value
