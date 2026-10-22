@@ -551,6 +551,9 @@ EXPECTED_ERROR_STATUSES = {
         "422",
         "500",
     },
+    ("/api/v1/reports/management-summary", "get"): {"401", "403", "422", "500"},
+    ("/api/v1/reports/management-summary.csv", "get"): {"401", "403", "422", "500"},
+    ("/api/v1/reports/management-summary.pdf", "get"): {"401", "403", "422", "500"},
     ("/api/v1/operational-indicators", "get"): {"401", "403", "500"},
     ("/api/v1/operations/agenda", "get"): {"401", "403", "409", "422", "500"},
 }
