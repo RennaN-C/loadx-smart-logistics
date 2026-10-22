@@ -6,10 +6,10 @@ No SMTP port, user data or token is included in exception/log messages.
 import hashlib
 import json
 import re
-from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
 
 from app.core.config import Settings
+from app.integrations.password_recovery.delivery import valid_recovery_url
 from app.integrations.password_recovery.message import build_recovery_message
 from app.modules.auth.totp import IdentityUnavailableError
 
@@ -24,23 +24,7 @@ class ResendRecoveryDelivery:
 
     def __init__(self, config: Settings) -> None:
         self.config = config
-        raw_url = config.password_recovery_url or ""
-        try:
-            url = urlsplit(raw_url)
-            local_url = (
-                config.app_env == "local"
-                and raw_url == "http://localhost:5173/password-reset"
-            )
-            valid_url = (
-                bool(url.hostname)
-                and (url.scheme == "https" or local_url)
-                and not any((url.username, url.password, url.query, url.fragment))
-                and not any(char.isspace() or ord(char) < 32 for char in raw_url)
-                and "\\" not in raw_url
-                and url.port != 0
-            )
-        except ValueError:
-            raise IdentityUnavailableError from None
+        valid_url = valid_recovery_url(config)
         sender = config.resend_sender or ""
         key = config.resend_api_key
         if (
