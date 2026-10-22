@@ -1,7 +1,7 @@
 import uuid
-from typing import Annotated
+from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
@@ -112,9 +112,11 @@ def list_trips(
     pagination: Pagination,
     current_user: TripReader,
     service: Annotated[TripService, Depends(get_trip_service)],
+    trip_status: Annotated[Literal["SCHEDULED", "IN_ROUTE", "INTERRUPTED", "FINISHED", "CANCELED"] | None, Query(alias="status")] = None,
+    search: Annotated[str | None, Query(min_length=2, max_length=120)] = None,
 ) -> PageResponse[TripListRead] | JSONResponse:
     try:
-        result = service.list_trips(pagination, current_user=current_user)
+        result = service.list_trips(pagination, current_user=current_user, status=trip_status, search=search)
     except TRIP_SERVICE_ERRORS as exc:
         return _trip_error_response(exc)
     return to_page_response(
