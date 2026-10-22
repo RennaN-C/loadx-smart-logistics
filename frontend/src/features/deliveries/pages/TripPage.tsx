@@ -16,6 +16,7 @@ import { TripCancellationPreflightPanel } from "../components/TripCancellationPr
 import { TripInterruptionPanel } from "../components/TripInterruptionPanel";
 import { TripStops } from "../components/TripStops";
 import { TripSummary } from "../components/TripSummary";
+import { TripTimeline } from "../components/TripTimeline";
 import { useTripPage } from "../hooks/useTripPage";
 import { TRIP_TRANSITIONS, type Trip } from "../types";
 import "./TripPage.css";
@@ -106,6 +107,7 @@ export function TripPage() {
       ) : null}
 
       {trip && !isLoading ? <TripOperations trip={trip} user={user} isWorking={isWorking} run={run} /> : null}
+      {trip && !isLoading ? <TripTimeline tripId={trip.id} /> : null}
     </div>
   );
 }
