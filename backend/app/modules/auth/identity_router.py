@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from datetime import UTC, datetime
 from typing import Annotated, TypeVar
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Request, Response
@@ -98,6 +99,13 @@ class MfaLoginRead(RecoveryCodesRead):
     user: UserRead
 
 
+def trusted_cookie_expiry(value: datetime) -> datetime:
+    """Serialize database expiry in UTC without shifting a naive UTC value."""
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
+
+
 @router.post("/mfa/verify")
 def verify_mfa(
     data: MfaVerify, request: Request, response: Response, db: Db
@@ -128,7 +136,7 @@ def verify_mfa(
             value=result.trusted_device.token,
             max_age=settings.trusted_device_days * 86400,
             path="/",
-            expires=result.trusted_device.device.expires_at,
+            expires=trusted_cookie_expiry(result.trusted_device.device.expires_at),
             secure=settings.session_cookie_secure,
             httponly=True,
             samesite="lax",
