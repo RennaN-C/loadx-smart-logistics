@@ -2,8 +2,9 @@
 
 import hashlib
 import json
+import ssl
 from io import BytesIO
-from urllib.error import HTTPError
+from urllib.error import HTTPError, URLError
 
 import pytest
 
@@ -213,3 +214,153 @@ def test_sandbox_allows_only_account_owner_case_insensitive(monkeypatch):
     assert len(calls) == 1
     assert calls[0]["to"] == ["owner@example.test"]
     assert calls[0]["from"] == "LoadX | Segurança <onboarding@resend.dev>"
+
+
+@pytest.mark.parametrize("status", [401, 403, 422, 429, 500])
+def test_http_rejection_logs_only_safe_status_and_category(
+    status, monkeypatch, caplog
+):
+    def failing_open(request, *, timeout):
+        raise HTTPError(
+            request.full_url,
+            status,
+            "private-token, recipient and secret provider message",
+            {},
+            BytesIO(b"private-token and private@example.test"),
+        )
+
+    monkeypatch.setattr(
+        "app.integrations.password_recovery.resend_delivery.urlopen", failing_open
+    )
+    dispatch_recovery(
+        ResendRecoveryDelivery(config()), "private@example.test", "private-token"
+    )
+    events = [
+        json.loads(record.message)
+        for record in caplog.records
+        if record.name == "loadx.security"
+    ]
+    assert len(events) == 1
+    assert events[0]["event"] == "AUTH_RECOVERY_DELIVERY_FAILED"
+    assert events[0]["delivery_provider"] == "resend"
+    assert events[0]["failure_category"] == "http_rejection"
+    assert events[0]["provider_http_status"] == status
+    assert "private-token" not in caplog.text
+    assert "private@example.test" not in caplog.text
+    assert "secret provider message" not in caplog.text
+    assert "https://api.resend.com/emails" not in caplog.text
+    assert "re_test_only_not_real" not in caplog.text
+
+
+@pytest.mark.parametrize(
+    ("kind", "expected"),
+    [
+        ("timeout", "timeout"),
+        ("tls", "tls"),
+        ("network", "network"),
+    ],
+)
+def test_transport_failure_diagnostics_do_not_include_original_error(
+    kind, expected, monkeypatch, caplog
+):
+    def failing_open(request, *, timeout):
+        if kind == "timeout":
+            raise URLError(TimeoutError("private-token connection timeout"))
+        if kind == "tls":
+            raise URLError(ssl.SSLError("private-token certificate rejection"))
+        raise URLError("private-token network resolution failure")
+
+    monkeypatch.setattr(
+        "app.integrations.password_recovery.resend_delivery.urlopen", failing_open
+    )
+    dispatch_recovery(
+        ResendRecoveryDelivery(config()), "private@example.test", "private-token"
+    )
+    events = [
+        json.loads(record.message)
+        for record in caplog.records
+        if record.name == "loadx.security"
+    ]
+    assert len(events) == 1
+    assert events[0]["delivery_provider"] == "resend"
+    assert events[0]["failure_category"] == expected
+    assert "provider_http_status" not in events[0]
+    assert "private-token" not in caplog.text
+    assert "private@example.test" not in caplog.text
+
+
+def test_sandbox_rejection_logs_fixed_category_without_network(monkeypatch, caplog):
+    def forbidden_network(request, *, timeout):
+        pytest.fail("sandbox must reject before making an HTTP request")
+
+    monkeypatch.setattr(
+        "app.integrations.password_recovery.resend_delivery.urlopen",
+        forbidden_network,
+    )
+    delivery = ResendRecoveryDelivery(
+        config(
+            resend_sender="onboarding@resend.dev",
+            resend_test_recipient="owner@example.test",
+        )
+    )
+    dispatch_recovery(delivery, "private@example.test", "private-token")
+    events = [
+        json.loads(record.message)
+        for record in caplog.records
+        if record.name == "loadx.security"
+    ]
+    assert len(events) == 1
+    assert events[0]["delivery_provider"] == "resend"
+    assert events[0]["failure_category"] == "recipient_not_allowed"
+    assert "provider_http_status" not in events[0]
+    assert "private-token" not in caplog.text
+    assert "private@example.test" not in caplog.text
+
+
+def test_non_http_success_response_reports_only_safe_numeric_status(
+    monkeypatch, caplog
+):
+    class Response:
+        status = 502
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return None
+
+    monkeypatch.setattr(
+        "app.integrations.password_recovery.resend_delivery.urlopen",
+        lambda request, *, timeout: Response(),
+    )
+    dispatch_recovery(
+        ResendRecoveryDelivery(config()), "private@example.test", "private-token"
+    )
+    events = [
+        json.loads(record.message)
+        for record in caplog.records
+        if record.name == "loadx.security"
+    ]
+    assert events[0]["failure_category"] == "http_rejection"
+    assert events[0]["provider_http_status"] == 502
+    assert "private-token" not in caplog.text
+
+
+def test_success_does_not_log_delivery_failure(monkeypatch, caplog):
+    class Response:
+        status = 202
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return None
+
+    monkeypatch.setattr(
+        "app.integrations.password_recovery.resend_delivery.urlopen",
+        lambda request, *, timeout: Response(),
+    )
+    dispatch_recovery(
+        ResendRecoveryDelivery(config()), "private@example.test", "private-token"
+    )
+    assert "AUTH_RECOVERY_DELIVERY_FAILED" not in caplog.text
