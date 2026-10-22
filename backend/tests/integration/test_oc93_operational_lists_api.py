@@ -87,3 +87,26 @@ def test_delivery_discovery_isolated_by_driver_and_filter(
         ).status_code
         == 422
     )
+
+
+def test_oc93_filters_trip_status_and_accepts_canceled_delivery_state(
+    client: TestClient, session_factory: SessionFactory
+) -> None:
+    scenario = seed_operational_scenario(session_factory)
+    trip = create_trip(client, scenario)
+    response = client.get(
+        "/api/v1/trips?status=SCHEDULED",
+        headers=scenario.manager_headers,
+    )
+    assert response.status_code == 200
+    assert any(row["id"] == trip["id"] for row in response.json()["items"])
+    invalid = client.get(
+        "/api/v1/trips?status=INVALID", headers=scenario.manager_headers
+    )
+    assert invalid.status_code == 422
+    canceled = client.get(
+        "/api/v1/deliveries?status=CANCELED",
+        headers=scenario.manager_headers,
+    )
+    assert canceled.status_code == 200
+    assert canceled.json()["items"] == []
