@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from datetime import UTC
 from typing import Annotated, TypeVar
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Request, Response
@@ -128,7 +129,7 @@ def verify_mfa(
             value=result.trusted_device.token,
             max_age=settings.trusted_device_days * 86400,
             path="/",
-            expires=result.trusted_device.device.expires_at,
+            expires=result.trusted_device.device.expires_at.astimezone(UTC),
             secure=settings.session_cookie_secure,
             httponly=True,
             samesite="lax",
