@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -54,6 +54,6 @@ describe("AgendaPage", () => {
     });
     renderAgenda();
     expect(await screen.findByText(/Nenhuma atividade registrada/)).toBeInTheDocument();
-    expect(within(screen.getByRole("main")).queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 });
