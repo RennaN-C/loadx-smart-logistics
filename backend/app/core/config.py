@@ -86,7 +86,9 @@ class Settings(BaseSettings):
             )
         return value
 
-    @field_validator("mfa_encryption_key", "smtp_password", "resend_api_key", mode="before")
+    @field_validator(
+        "mfa_encryption_key", "smtp_password", "resend_api_key", mode="before"
+    )
     @classmethod
     def optional_secret(cls, value: object) -> object:
         return None if value == "" else value
