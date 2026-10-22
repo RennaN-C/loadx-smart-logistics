@@ -1,3 +1,32 @@
+
+/* Atalho de pedidos entregues: usa o filtro paginado no servidor. */
+.order-status-shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.order-status-shortcuts button {
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  border-radius: 8px;
+  padding: 9px 15px;
+  min-height: 40px;
+  font: inherit;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+.order-status-shortcuts button[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+  font-weight: 700;
+}
+.order-status-shortcuts button:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
+}
+
 /* A casca da tela (.entity-*) e o formulário (.entity-form-*) vêm de app/styles.css. */
 
 .order-card {
