@@ -148,6 +148,8 @@ function TripOperations({ trip, user, isWorking, run }: { readonly trip: Trip; r
           </nav> : null}
 
           <TripStops
+              canReadReceipts={hasPermission(user, "loadx.deliveries.read") || hasPermission(user, "loadx.trips.own")}
+              canReadCommunication={(hasPermission(user, "loadx.deliveries.read") || hasPermission(user, "loadx.trips.own")) && (hasPermission(user, "loadx.occurrences.read") || hasPermission(user, "loadx.trips.own"))}
             trip={trip}
             canOperate={canDeliver && trip.status === "IN_ROUTE"}
             isWorking={isWorking}
