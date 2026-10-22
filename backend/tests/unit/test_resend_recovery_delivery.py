@@ -149,3 +149,68 @@ def test_resend_rejects_non_success_http_without_logging_payload(monkeypatch, ca
     )
     assert "AUTH_RECOVERY_DELIVERY_FAILED" in caplog.text
     assert "private-token" not in caplog.text
+
+
+
+def test_sandbox_requires_explicit_account_owner_allowlist():
+    with pytest.raises(IdentityUnavailableError):
+        ResendRecoveryDelivery(config(resend_sender="onboarding@resend.dev"))
+    with pytest.raises(IdentityUnavailableError):
+        ResendRecoveryDelivery(
+            config(
+                resend_sender="onboarding@resend.dev",
+                resend_test_recipient="untrusted,other@example.test",
+            )
+        )
+
+
+def test_sandbox_refuses_other_recipients_before_network(monkeypatch, caplog):
+    def forbidden_network(request, *, timeout):
+        pytest.fail("sandbox must not contact Resend for other recipients")
+
+    monkeypatch.setattr(
+        "app.integrations.password_recovery.resend_delivery.urlopen",
+        forbidden_network,
+    )
+    delivery = ResendRecoveryDelivery(
+        config(
+            resend_sender="onboarding@resend.dev",
+            resend_test_recipient="owner@example.test",
+        )
+    )
+    dispatch_recovery(delivery, "other@example.test", "a-private-reset-token")
+    assert "AUTH_RECOVERY_DELIVERY_FAILED" in caplog.text
+    assert "a-private-reset-token" not in caplog.text
+    assert "other@example.test" not in caplog.text
+
+
+def test_sandbox_allows_only_account_owner_case_insensitive(monkeypatch):
+    calls = []
+
+    class Response:
+        status = 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            pass
+
+    def fake_network(request, *, timeout):
+        calls.append(json.loads(request.data))
+        return Response()
+
+    monkeypatch.setattr(
+        "app.integrations.password_recovery.resend_delivery.urlopen",
+        fake_network,
+    )
+    delivery = ResendRecoveryDelivery(
+        config(
+            resend_sender="onboarding@resend.dev",
+            resend_test_recipient="OWNER@example.test",
+        )
+    )
+    delivery.deliver("owner@example.test", "one-use-test-token")
+    assert len(calls) == 1
+    assert calls[0]["to"] == ["owner@example.test"]
+    assert calls[0]["from"] == "LoadX | Segurança <onboarding@resend.dev>"
