@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -131,4 +131,25 @@ describe("TripListPage", () => {
       "trip-list-scroll",
     );
   });
+  it("consulta no servidor viagens interrompidas sem filtrar apenas pagina corrente", async () => {
+    renderPage();
+    await screen.findByRole("link", { name: "Abrir" });
+    const select = screen.getByRole("combobox", { name: "Filtrar viagens por situação" });
+    fireEvent.change(select, { target: { value: "INTERRUPTED" } });
+    await waitFor(() => expect(listTrips).toHaveBeenLastCalledWith(
+      expect.objectContaining({ status: "INTERRUPTED", page: 1 }),
+    ));
+  });
+
+  it("consulta no servidor identificador da viagem ao buscar", async () => {
+    renderPage();
+    await screen.findByRole("link", { name: "Abrir" });
+    fireEvent.change(screen.getByRole("textbox", { name: "Buscar viagem por identificador" }), {
+      target: { value: "abc" },
+    });
+    await waitFor(() => expect(listTrips).toHaveBeenLastCalledWith(
+      expect.objectContaining({ search: "abc", page: 1 }),
+    ));
+  });
+
 });
