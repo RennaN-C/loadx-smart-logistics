@@ -179,7 +179,9 @@ class TripService:
             raise TripAccessForbiddenError from exc
         if not driver.active:
             raise TripAccessForbiddenError
-        return self.repository.list(pagination, driver_id=driver.id, search=search, status=status)
+        return self.repository.list(
+            pagination, driver_id=driver.id, search=search, status=status
+        )
 
     def create_trip(self, data: TripCreate, *, changed_by: uuid.UUID) -> Trip:
         try:
