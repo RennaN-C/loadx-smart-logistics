@@ -112,10 +112,17 @@ def test_current_document_policy_and_renewal_history(
             .where(AuditEvent.entity_id == uuid.UUID(old["id"]))
             .order_by(AuditEvent.created_at)
         ).all()
-        assert [row.event_type for row in events] == [
+        # PostgreSQL now() is constant inside the test's outer transaction.
+        # Equal timestamps must not impose an arbitrary row order on the audit.
+        assert sorted(row.event_type for row in events) == [
             "TRUCK_DOCUMENT_CREATED",
             "TRUCK_DOCUMENT_RENEWED",
         ]
+        by_type = {row.event_type: row for row in events}
+        assert (
+            by_type["TRUCK_DOCUMENT_CREATED"].created_at
+            <= by_type["TRUCK_DOCUMENT_RENEWED"].created_at
+        )
 
 
 @pytest.mark.parametrize(
