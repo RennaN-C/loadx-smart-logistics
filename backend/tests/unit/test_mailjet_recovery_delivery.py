@@ -45,9 +45,9 @@ def accepted_response(status=200, message_status="success"):
             return None
 
         def read(self, size=-1):
-            return json.dumps(
-                {"Messages": [{"Status": message_status}]}
-            ).encode("utf-8")
+            return json.dumps({"Messages": [{"Status": message_status}]}).encode(
+                "utf-8"
+            )
 
     return Response()
 
@@ -132,9 +132,7 @@ def test_mailjet_selected_only_when_explicitly_configured(monkeypatch):
 
 
 @pytest.mark.parametrize("status", [400, 401, 403, 422, 429, 500])
-def test_mailjet_http_error_reports_only_code_and_category(
-    status, monkeypatch, caplog
-):
+def test_mailjet_http_error_reports_only_code_and_category(status, monkeypatch, caplog):
     def fake_open(request, *, timeout):
         raise HTTPError(
             request.full_url,
