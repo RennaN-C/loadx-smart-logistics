@@ -31,9 +31,14 @@ def test_management_summary_csv_pdf_share_real_counts_and_enforce_rbac(
     assert response.status_code == 200
     result = response.json()
     for key in (
-        "trips_created", "trips_started", "trips_finished",
-        "deliveries_completed", "orders_with_completed_leg",
-        "occurrences_registered", "delivery_exceptions", "trips_canceled",
+        "trips_created",
+        "trips_started",
+        "trips_finished",
+        "deliveries_completed",
+        "orders_with_completed_leg",
+        "occurrences_registered",
+        "delivery_exceptions",
+        "trips_canceled",
         "interruption_events",
     ):
         assert key in result
