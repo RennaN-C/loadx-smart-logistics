@@ -8,6 +8,7 @@ import { AuditPage } from "../features/audit/pages/AuditPage";
 import { ContactsPage } from "../features/customers/pages/ContactsPage";
 import { DashboardPage } from "../features/dashboard/pages/DashboardPage";
 import { TripPage } from "../features/deliveries/pages/TripPage";
+import { AgendaPage } from "../features/operational-agenda/pages/AgendaPage";
 import { DistributionPage } from "../features/load-planning/pages/DistributionPage";
 import { PlanningPage } from "../features/load-planning/pages/PlanningPage";
 import { LoadingPage } from "../features/loading-operation/pages/LoadingPage";
@@ -47,6 +48,7 @@ export function App() {
               <Route path="operations" element={<OperationalAccess overview><Navigate to="/" replace /></OperationalAccess>} />
               <Route path="audit" element={<AuditPage />} />
               <Route path="planning" element={<PlanningPage />} />
+              <Route path="agenda" element={<AgendaPage />} />
               <Route path="planning/distributions/:distributionId" element={<DistributionPage />} />
               <Route path="planning/:planId" element={<PlanningPage />} />
               <Route path="trips/:tripId" element={<TripPage />} />
