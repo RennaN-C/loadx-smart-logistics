@@ -47,7 +47,7 @@ class LoadingContinuityRead(BaseModel):
 
 class TripContinuityRead(BaseModel):
     id: uuid.UUID
-    status: Literal["SCHEDULED", "IN_ROUTE", "FINISHED"]
+    status: Literal["SCHEDULED", "IN_ROUTE", "INTERRUPTED", "FINISHED", "CANCELED"]
 
 
 class LoadPlanContinuityRead(BaseModel):

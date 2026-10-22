@@ -1,3 +1,5 @@
+import type { TripStatus } from "../deliveries/types";
+
 export const LOAD_PLAN_STATUSES = ["CALCULATED", "APPROVED", "REJECTED"] as const;
 export type LoadPlanStatus = (typeof LOAD_PLAN_STATUSES)[number];
 
@@ -128,7 +130,7 @@ export interface LoadPlanListItem {
 
 export interface LoadPlanContinuity {
   loading_session: { id: string; status: "PENDING" | "IN_PROGRESS" | "FINISHED" } | null;
-  trip: { id: string; status: "SCHEDULED" | "IN_ROUTE" | "FINISHED" } | null;
+  trip: { id: string; status: TripStatus } | null;
   operational_ready: boolean;
 }
 

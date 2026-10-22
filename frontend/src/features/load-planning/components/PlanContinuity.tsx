@@ -1,3 +1,4 @@
+import { TRIP_STATUS_LABELS } from "../../deliveries/components/tripLabels";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { hasPermission } from "../../auth/permissions";
 import { useEffect, useState } from "react";
@@ -52,11 +53,11 @@ export function PlanContinuity({ planId, canManage }: {
   </div>;
   if (!data) return <output className="entity-state">Consultando carregamento e viagem…</output>;
   return <section className="plan-continuity" aria-label="Continuidade da operação">
-    <h3>{data.trip?.status === "FINISHED" ? "Operação concluída" : "Próxima etapa"}</h3>
+    <h3>{data.trip?.status === "FINISHED" ? "Viagem concluída" : "Próxima etapa"}</h3>
     <p className="entity-form-help">O plano está aprovado. Carregamento e viagem têm estados próprios; concluir a conferência libera o início da viagem.</p>
     <ContinuityActions data={data} planId={planId} canManage={canManage} refresh={() => { setData(null); setAttempt((value) => value + 1); }} />
     {data.loading_session ? <p className="entity-form-help">Carregamento: {({ PENDING: "pendente", IN_PROGRESS: "em andamento", FINISHED: "concluído" })[data.loading_session.status]}.</p> : null}
-    {data.trip ? <p className="entity-form-help">Viagem: {({ SCHEDULED: "programada", IN_ROUTE: "em rota", FINISHED: "concluída" })[data.trip.status]}.</p> : null}
+    {data.trip ? <p className="entity-form-help">Viagem: {TRIP_STATUS_LABELS[data.trip.status].toLocaleLowerCase("pt-BR")}.</p> : null}
     {!data.operational_ready ? <p className="entity-form-help">Este plano não está liberado para iniciar outra operação. As regras da distribuição são conferidas pelo servidor.</p> : null}
     {!canManage && !data.loading_session ? <p className="entity-form-help">O responsável logístico precisa iniciar o carregamento para disponibilizar a conferência.</p> : null}
   </section>;
