@@ -1,6 +1,7 @@
 import { api } from "../../../services/api";
 import { mapPageFromDto, toPageQuery, type ListParams, type PageDto } from "../../../services/pagination";
 import type { Page } from "../../../types/api";
+import type { DeliveryStatus } from "../types";
 
 export interface LoadingListItem {
   id: string;
@@ -13,7 +14,7 @@ export interface DeliveryListItem {
   id: string;
   tripId: string;
   orderId: string;
-  status: string;
+  status: DeliveryStatus;
   sequence: number;
   deliveredAt: string | null;
 }
@@ -28,7 +29,7 @@ interface DeliveryDto {
   id: string;
   trip_id: string;
   order_id: string;
-  status: string;
+  status: DeliveryStatus;
   sequence: number;
   delivered_at: string | null;
 }
