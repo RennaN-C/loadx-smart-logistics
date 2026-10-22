@@ -17,7 +17,15 @@ const MESSAGES: Readonly<Record<string, string>> = {
   TRUCK_IN_MAINTENANCE: "O caminhão está em manutenção e não pode receber esta carga.",
   TRUCK_DOCUMENT_INELIGIBLE: "O caminhão possui uma pendência documental que impede esta operação.",
 };
+function isUnconfirmedOutcome(error: unknown): boolean {
+  return error instanceof ApiError && error.status === undefined
+    && (error.code === "NETWORK_ERROR" || error.code === "UNKNOWN_ERROR");
+}
+
 function distributionErrorMessage(error: unknown): string {
+  if (isUnconfirmedOutcome(error)) {
+    return "A conexão foi interrompida e não foi possível confirmar o resultado. A distribuição pode ter sido salva no servidor. Consulte Planos existentes antes de repetir a otimização.";
+  }
   if (!(error instanceof ApiError)) return "Não foi possível concluir a solicitação. Tente novamente.";
   return MESSAGES[error.code] ?? mapLoadPlanErrorToMessage(error);
 }
@@ -25,6 +33,7 @@ export function DistributionFeedback({ error }: { readonly error: unknown }) {
   if (!error) return null;
   return <AlertBanner>
     <strong>{distributionErrorMessage(error)}</strong>
+    {isUnconfirmedOutcome(error) ? <p><a href="/planning">Conferir Planos existentes antes de tentar novamente</a></p> : null}
     {error instanceof ApiError ? <details className="distribution-error-detail"><summary>Detalhes da resposta</summary>
       <p>{error.message} ({error.code})</p>
       {/* React escapes API text. Preserve structured diagnostics without interpreting them as success. */}
