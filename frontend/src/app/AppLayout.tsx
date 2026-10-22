@@ -32,7 +32,7 @@ const OPERATION_READERS: readonly Role[] = ["ADMIN", "CHECKER", "LOGISTICS_MANAG
 const PERSONAL_DATA_READERS: readonly Role[] = ["ADMIN", "LOGISTICS_MANAGER"];
 /** Visão consolidada da operação inteira; o backend restringe a ADMIN e LOGISTICS_MANAGER. */
 const OPERATION_OVERVIEW_READERS: readonly Role[] = ["ADMIN", "LOGISTICS_MANAGER"];
-/** O servidor restringe viagens do motorista ao proprio vinculo. */
+/** A API aplica isolamento de viagens/entregas de motorista ativo. */
 const TRIP_READERS: readonly Role[] = ["ADMIN", "LOGISTICS_MANAGER", "DRIVER", "CUSTOM"];
 
 const ALL_ROLES: readonly Role[] = ["ADMIN", "CHECKER", "LOGISTICS_MANAGER", "DRIVER", "CUSTOM"];
