@@ -28,7 +28,7 @@ DeliveryReader = Annotated[
     User, Depends(require_any_permission("loadx.deliveries.read", "loadx.trips.own"))
 ]
 LoadingStatus = Literal["PENDING", "IN_PROGRESS", "FINISHED"]
-DeliveryStatus = Literal["PENDING", "IN_DELIVERY", "DELIVERED"]
+DeliveryStatus = Literal["PENDING", "IN_DELIVERY", "DELIVERED", "CANCELED"]
 
 
 class LoadingListRead(BaseModel):
