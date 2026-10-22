@@ -80,7 +80,7 @@ describe("TripListPage", () => {
 
     renderPage();
 
-    const linha = (await screen.findByText("Em rota")).closest("tr") as HTMLElement;
+    const linha = (await screen.findByText("Em rota", { selector: "span" })).closest("tr") as HTMLElement;
     expect(within(linha).getByText("1 parada")).toBeInTheDocument();
   });
 
