@@ -1,9 +1,9 @@
 """Real PostgreSQL contract checks for OC96 summary and exports."""
 
+import csv
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from io import StringIO
-import csv
 
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
