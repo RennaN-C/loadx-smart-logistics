@@ -53,6 +53,7 @@ class Settings(BaseSettings):
     password_recovery_url: str | None = None
     resend_api_key: SecretStr | None = Field(default=None, repr=False)
     resend_sender: str | None = None
+    resend_test_recipient: str | None = None
     smtp_security: Literal["ssl", "starttls", "local"] = "ssl"
     smtp_host: str | None = None
     smtp_port: int = Field(default=465, ge=1, le=65535)
