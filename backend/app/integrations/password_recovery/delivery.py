@@ -22,13 +22,20 @@ class RecoveryDeliveryFailure(OSError):
     def __init__(
         self,
         category: Literal[
-            "http_rejection", "timeout", "tls", "network", "recipient_not_allowed"
+            "http_rejection",
+            "timeout",
+            "tls",
+            "network",
+            "recipient_not_allowed",
+            "provider_rejected"
         ],
         http_status: int | None = None,
+        provider: Literal["resend", "mailjet"] = "resend",
     ) -> None:
         super().__init__("Recovery delivery failed")
         self.category = category
         self.http_status = http_status
+        self.provider = provider
 
 
 def valid_recovery_url(config: Settings) -> bool:
@@ -123,6 +130,12 @@ def get_recovery_delivery() -> RecoveryDelivery:
         )
 
         return ResendRecoveryDelivery(settings)
+    if settings.password_recovery_provider == "mailjet":
+        from app.integrations.password_recovery.mailjet_delivery import (
+            MailjetRecoveryDelivery,
+        )
+
+        return MailjetRecoveryDelivery(settings)
     return SmtpRecoveryDelivery(settings)
 
 
@@ -133,7 +146,7 @@ def dispatch_recovery(delivery: RecoveryDelivery, email: str, token: str) -> Non
         # Only fixed categories and numeric HTTP status; never log exceptions,
         # recipient, token, request headers, response body or remote URL.
         details: dict[str, str | int | bool] = {
-            "delivery_provider": "resend",
+            "delivery_provider": exc.provider,
             "failure_category": exc.category,
         }
         if exc.http_status is not None:
