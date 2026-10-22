@@ -58,8 +58,8 @@ function mapTripListItem(dto: TripListDto): TripListItem {
  * `DRIVER` recebe SOMENTE as dele — o recorte é feito no backend
  * (`deliveries/service.py`), não aqui.
  */
-export async function listTrips(params: ListParams = {}): Promise<Page<TripListItem>> {
-  const { data } = await api.get<PageDto<TripListDto>>("/trips", { params: toPageQuery(params) });
+export async function listTrips(params: ListParams & { status?: TripStatus; search?: string } = {}): Promise<Page<TripListItem>> {
+  const { data } = await api.get<PageDto<TripListDto>>("/trips", { params: { ...toPageQuery(params), ...(params.status ? { status: params.status } : {}), ...(params.search && params.search.length >= 2 ? { search: params.search } : {}) } });
 
   return mapPageFromDto(data, mapTripListItem);
 }

@@ -6,6 +6,13 @@ from app.core.config import Settings
 from app.main import create_app
 
 EXPECTED_ERROR_STATUSES = {
+    ("/api/v1/deliveries/{delivery_id}/communications", "get"): {
+        "401",
+        "403",
+        "404",
+        "422",
+        "500",
+    },
     **{
         (path, method): {"400", "401", "403", "422", "429", "503", "500"}
         for path, method in [
@@ -344,6 +351,14 @@ EXPECTED_ERROR_STATUSES = {
         "422",
         "500",
     },
+    ("/api/v1/trips/{trip_id}/timeline", "get"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
     ("/api/v1/trips/{trip_id}/status", "patch"): {
         "401",
         "403",
@@ -481,6 +496,8 @@ EXPECTED_ERROR_STATUSES = {
         "422",
         "500",
     },
+    ("/api/v1/loading-sessions", "get"): {"401", "403", "422", "500"},
+    ("/api/v1/deliveries", "get"): {"401", "403", "422", "500"},
     ("/api/v1/loading-sessions/{session_id}", "get"): {
         "401",
         "403",
@@ -542,7 +559,11 @@ EXPECTED_ERROR_STATUSES = {
         "422",
         "500",
     },
+    ("/api/v1/reports/management-summary", "get"): {"401", "403", "422", "500"},
+    ("/api/v1/reports/management-summary.csv", "get"): {"401", "403", "422", "500"},
+    ("/api/v1/reports/management-summary.pdf", "get"): {"401", "403", "422", "500"},
     ("/api/v1/operational-indicators", "get"): {"401", "403", "500"},
+    ("/api/v1/operations/agenda", "get"): {"401", "403", "409", "422", "500"},
 }
 for distribution_path, methods in {
     "/api/v1/load-distributions": ("post",),
@@ -1064,3 +1085,29 @@ def test_oc90_delivery_leg_context_is_additive_and_not_client_assignable():
     assert {"LOAD_DISTRIBUTION", "LOAD_DISTRIBUTION_PART"} <= set(
         entity["schema"]["anyOf"][0]["enum"]
     )
+
+
+def test_oc81_communication_is_read_only_bounded_and_sanitized():
+    schema = get_openapi_schema()
+    path = schema["paths"]["/api/v1/deliveries/{delivery_id}/communications"]
+    assert set(path) == {"get"}
+    listing = path["get"]
+    assert listing["security"] == [{"SessionCookie": []}]
+    assert {p["name"] for p in listing["parameters"]} == {
+        "delivery_id",
+        "page",
+        "page_size",
+        "sort_order",
+    }
+    properties = schema["components"]["schemas"]["DeliveryCommunicationRead"][
+        "properties"
+    ]
+    assert set(properties) == {
+        "id",
+        "occurrence_id",
+        "event_type",
+        "created_at",
+        "channel",
+        "simulation_status",
+        "processing_status",
+    }

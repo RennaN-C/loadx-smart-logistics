@@ -12,6 +12,7 @@ let profileRole = "LOGISTICS_MANAGER";
 vi.mock("../../auth/hooks/useAuth", () => ({ useAuth: () => ({ user: { active: true, role: profileRole } }) }));
 vi.mock("../../orders/api/ordersApi");
 vi.mock("../../customers/api/customersApi");
+vi.mock("../components/ManagementReportsPanel", () => ({ ManagementReportsPanel: () => <div data-testid="management-report-panel" /> }));
 
 /** Bem no passado, para "atrasado" não depender de quando o teste roda. */
 const VENCIDO = "2020-01-01T00:00:00Z";
