@@ -165,7 +165,8 @@ describe("AppLayout", () => {
 
     expect(screen.getByRole("link", { name: "Visão geral" })).toBeInTheDocument();
     expect(screen.queryByText("Cadastros")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Operação" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Agenda operacional" })).toHaveAttribute("href", "/agenda");
+    expect(screen.queryByText("Operação")).not.toBeInTheDocument();
   });
 
   it("marca só a tela atual como ativa", () => {
