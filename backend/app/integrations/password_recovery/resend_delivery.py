@@ -6,10 +6,15 @@ No SMTP port, user data or token is included in exception/log messages.
 import hashlib
 import json
 import re
+import ssl
+from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from app.core.config import Settings
-from app.integrations.password_recovery.delivery import valid_recovery_url
+from app.integrations.password_recovery.delivery import (
+    RecoveryDeliveryFailure,
+    valid_recovery_url,
+)
 from app.integrations.password_recovery.message import build_recovery_message
 from app.modules.auth.totp import IdentityUnavailableError
 
@@ -50,7 +55,7 @@ class ResendRecoveryDelivery:
         if sender.lower() == "onboarding@resend.dev":
             permitted = (self.config.resend_test_recipient or "").strip()
             if email.casefold() != permitted.casefold():
-                raise OSError("Resend sandbox recipient not allowed")
+                raise RecoveryDeliveryFailure("recipient_not_allowed")
         message = build_recovery_message(email, token, sender, url)
         payload = {
             "from": str(message["From"]),
@@ -70,8 +75,37 @@ class ResendRecoveryDelivery:
             },
             method="POST",
         )
-        # urlopen verifies the server certificate by default. Never log its
-        # exception, which could include private response headers or body.
-        with urlopen(request, timeout=5) as response:
-            if not 200 <= response.status < 300:
-                raise OSError("Recovery provider rejected the request")
+        # urlopen verifies the server certificate by default.
+        # Only a closed set of error categories and numeric HTTP status escapes;
+        # never propagate provider error bodies, URL or exception messages.
+        try:
+            with urlopen(request, timeout=5) as response:
+                if not 200 <= response.status < 300:
+                    status = response.status
+                    safe_status = (
+                        status
+                        if isinstance(status, int) and 100 <= status <= 599
+                        else None
+                    )
+                    raise RecoveryDeliveryFailure(
+                        "http_rejection", http_status=safe_status
+                    )
+        except HTTPError as exc:
+            status = exc.code
+            safe_status = (
+                status if isinstance(status, int) and 100 <= status <= 599 else None
+            )
+            raise RecoveryDeliveryFailure(
+                "http_rejection", http_status=safe_status
+            ) from None
+        except RecoveryDeliveryFailure:
+            raise
+        except OSError as exc:
+            reason = exc.reason if isinstance(exc, URLError) else exc
+            if isinstance(reason, TimeoutError):
+                category = "timeout"
+            elif isinstance(reason, ssl.SSLError):
+                category = "tls"
+            else:
+                category = "network"
+            raise RecoveryDeliveryFailure(category) from None
