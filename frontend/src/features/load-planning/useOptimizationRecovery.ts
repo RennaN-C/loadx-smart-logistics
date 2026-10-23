@@ -39,6 +39,8 @@ export function useOptimizationRecovery(actor: string, onResult?: (value: LoadDi
   const request = state.actor === actor ? state.request : read(actor);
   useEffect(() => { setState({ actor, request: read(actor) }); setError(null); }, [actor]);
 
+  const isCurrent = () => alive.current && currentActor.current === actor;
+
   async function execute(value: PendingRequest, consult: boolean) {
     if (busy.current) return;
     busy.current = true; setWorking(true); setError(null);
@@ -46,19 +48,19 @@ export function useOptimizationRecovery(actor: string, onResult?: (value: LoadDi
     try {
       const result = consult ? await recoverOptimization(value.key) : await optimizeDistribution(value.orderIds, value.key);
       write(actor, null);
-      if (alive.current && currentActor.current === actor) {
+      if (isCurrent()) {
         setState({ actor, request: null }); onResult?.(result);
       }
-    } catch (failure) {
-      const clear = !consult && definitivelyRejected(failure);
+    } catch (error_) {
+      const clear = !consult && definitivelyRejected(error_);
       if (clear) write(actor, null);
-      if (alive.current && currentActor.current === actor) {
-        setError(failure);
+      if (isCurrent()) {
+        setError(error_);
         if (clear) setState({ actor, request: null });
       }
     } finally {
       busy.current = false;
-      if (alive.current && currentActor.current === actor) setWorking(false);
+      if (isCurrent()) setWorking(false);
     }
   }
   return { request, working, error,

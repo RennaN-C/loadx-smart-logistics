@@ -69,7 +69,8 @@ def test_replay_and_recovery_do_not_run_optimizer_or_duplicate_after_commit(
     monkeypatch.setattr(LoadDistributionService, "_optimize", forbidden)
     replay = send(s, key)
     recovered = recover(s, key)
-    assert replay.status_code == 201 and recovered.status_code == 200
+    assert replay.status_code == 201
+    assert recovered.status_code == 200
     assert replay.json() == recovered.json() == first.json()
     assert_one(s, first.json()["id"])
 
@@ -250,7 +251,7 @@ def test_record_constraints_and_populated_downgrade_protect_recovery(
     s = distribution_scenario
     key = uuid.uuid4()
     identifier = uuid.UUID(send(s, key).json()["id"])
-    with s.factory() as db, pytest.raises(IntegrityError):
+    with s.factory() as db:
         db.add(
             OptimizationRequest(
                 user_id=s.user.id,
@@ -259,7 +260,8 @@ def test_record_constraints_and_populated_downgrade_protect_recovery(
                 distribution_id=identifier,
             )
         )
-        db.commit()
+        with pytest.raises(IntegrityError):
+            db.commit()
     migration = import_module("migrations.versions.20261023_0035_optimization_requests")
     with (
         s.factory() as db,
@@ -310,6 +312,7 @@ def test_openapi_documents_optional_uuid_header_and_recovery():
     parameter = next(
         p for p in operation["parameters"] if p["name"] == "idempotency-key"
     )
-    assert parameter["in"] == "header" and parameter["required"] is False
+    assert parameter["in"] == "header"
+    assert parameter["required"] is False
     assert {"type": "string", "format": "uuid"} in parameter["schema"]["anyOf"]
     assert "get" in schema["paths"][BASE + "/optimization-requests/{request_key}"]
