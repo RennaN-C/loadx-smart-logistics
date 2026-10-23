@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+import { TRIP_STATUS_LABELS, DELIVERY_STATUS_LABELS } from "./tripLabels";
 import { AlertBanner } from "../../../components/AlertBanner";
 import { getTripTimeline, type TimelinePage, type TimelineEvent } from "../api/timelineApi";
 import "./TripTimeline.css";
@@ -18,9 +19,12 @@ const eventLabels: Readonly<Record<string, string>> = {
   TRIP_CANCELED: "Viagem cancelada",
 };
 
-function description(event: TimelineEvent): string {
+function description(event: TimelineEvent, tripId: string): string {
   const kind = eventLabels[event.kind] ?? event.kind.replaceAll("_", " ");
-  return event.status_after ? `${kind}: ${event.status_before ?? "—"} → ${event.status_after}` : kind;
+  const labels: Readonly<Record<string, string>> = event.entity_id === tripId ? TRIP_STATUS_LABELS : DELIVERY_STATUS_LABELS;
+  const before = event.status_before ? labels[event.status_before] ?? event.status_before : "—";
+  const after = event.status_after ? labels[event.status_after] ?? event.status_after : null;
+  return after ? `${kind}: ${before} → ${after}` : kind;
 }
 
 /** Projecao somente leitura do ledger, sem expor motivos pessoais ou midias. */
@@ -53,7 +57,7 @@ export function TripTimeline({ tripId }: { readonly tripId: string }) {
       <p className="entity-form-help">{data.total} evento(s) persistidos. Não são mostradas descrições livres nem evidências privadas.</p>
       <ol>{data.items.map(event => <li key={`${event.source}:${event.id}`}>
         <time dateTime={event.occurred_at}>{date.format(new Date(event.occurred_at))}</time>
-        <span>{description(event)}</span>
+        <span>{description(event, tripId)}</span>
       </li>)}</ol>
       <nav className="trip-timeline-pagination" aria-label="Páginas do histórico">
         <button className="btn-secondary" type="button" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Anterior</button>

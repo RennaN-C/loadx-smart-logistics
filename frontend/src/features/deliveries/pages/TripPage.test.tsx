@@ -228,6 +228,7 @@ describe("TripPage", () => {
     await screen.findByText("Agendada");
     expect(screen.getByRole("link", { name: "Voltar ao plano de origem" })).toHaveAttribute("href", "/planning/lp1");
     expect(screen.getByRole("link", { name: "Ver pedido o1" })).toHaveAttribute("href", "/orders?order=o1");
+    expect(screen.getByRole("link", { name: "Voltar às viagens" })).toHaveAttribute("href", "/trips");
   });
 
   it("retorna motorista às próprias viagens sem links de pedidos ou planejamento", async () => {
