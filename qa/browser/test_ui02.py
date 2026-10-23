@@ -311,6 +311,43 @@ def test_ui02_browser_five_profiles_and_operations(committed_session_factory):
                             "reason": "Motivo divergente para a mesma solicitação",
                         }, headers=cancel_scenario.manager_headers,
                     ).status_code == 409
+
+                    # UI04-sized viewport matrix for the OC94 trip details.
+                    # The tests keep the same authenticated manager and live API.
+                    for width in SIZES:
+                        for theme in ("light", "dark"):
+                            with browser_context(
+                                browser, scenario.manager_headers, width, theme,
+                            ) as ctx:
+                                page = ctx.new_page()
+                                page.goto(URL + f"/trips/{trip['id']}")
+                                page.get_by_role(
+                                    "heading", name="Acompanhamento da viagem",
+                                ).wait_for()
+                                page.get_by_role(
+                                    "region", name="Interrupção e retomada da viagem",
+                                ).wait_for()
+                                assert page.evaluate(
+                                    "document.documentElement.scrollWidth <= innerWidth + 2"
+                                ), ("oc94", width, theme)
+                                page.screenshot(path=str(
+                                    screenshots / f"oc94-detalhes-{width}-{theme}.png"
+                                ))
+
+                    # The assigned driver may read the trip but must never see
+                    # the manager-only cancellation/interruption controls.
+                    with browser_context(browser, scenario.driver_headers) as ctx:
+                        page = ctx.new_page()
+                        page.goto(URL + f"/trips/{trip['id']}")
+                        page.get_by_role(
+                            "heading", name="Acompanhamento da viagem",
+                        ).wait_for()
+                        assert page.get_by_role(
+                            "button", name="Verificar bloqueios",
+                        ).count() == 0
+                        assert page.get_by_role(
+                            "region", name="Interrupção e retomada da viagem",
+                        ).count() == 0
                 finally:
                     browser.close()
         assert failures == [], failures[:3]
