@@ -673,3 +673,12 @@ it("permite retentar o detalhe persistido sem criar nem recalcular", async () =>
   expect(createLoadPlan).not.toHaveBeenCalled();
   expect(recalculateLoadPlan).not.toHaveBeenCalled();
 });
+
+it("bloqueia aprovacao e recalculo quando o servidor informa pedidos fora de READY", async () => {
+  vi.mocked(getLoadPlan).mockResolvedValue(makePlan({ ordersReadyForApproval: false }));
+  renderAt("/planning/lp1");
+  expect(await screen.findByRole("button", { name: "Aprovar plano" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Recalcular" })).toBeDisabled();
+  expect(screen.getByRole("status")).toHaveTextContent("já saíram da fila de planejamento");
+  expect(approveLoadPlan).not.toHaveBeenCalled();
+});
