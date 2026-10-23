@@ -1,5 +1,6 @@
 import uuid
 from collections.abc import Callable, Sequence
+from dataclasses import dataclass
 from datetime import UTC, datetime
 
 from sqlalchemy.exc import IntegrityError
@@ -16,6 +17,13 @@ from app.modules.trucks.models import Truck
 from app.modules.trucks.repository import TruckRepository
 from app.modules.trucks.schemas import TruckCreate, TruckUpdate
 from app.shared.record_lifecycle import stage_lifecycle_event, validate_reactivation
+
+
+@dataclass(frozen=True, slots=True)
+class TruckConflictSnapshot:
+    documents: frozenset[uuid.UUID]
+    maintenance: frozenset[uuid.UUID]
+    operations: frozenset[uuid.UUID]
 
 
 class TruckNotFoundError(Exception):
@@ -90,6 +98,21 @@ class TruckService:
         ):
             raise TruckOperationConflictError(truck_id)
         return truck
+
+    def get_operational_conflicts(
+        self,
+        truck_ids: Sequence[uuid.UUID] | None = None,
+        *,
+        at: datetime | None = None,
+    ) -> TruckConflictSnapshot:
+        now = at or datetime.now(UTC)
+        return TruckConflictSnapshot(
+            documents=DocumentRepository(self.db).blocked_truck_ids(truck_ids, now),
+            maintenance=MaintenanceRepository(self.db).blocked_truck_ids(
+                truck_ids, now
+            ),
+            operations=self.repository.conflicted_truck_ids(truck_ids),
+        )
 
     def has_maintenance_conflict(
         self, truck_id: uuid.UUID, *, at: datetime | None = None
