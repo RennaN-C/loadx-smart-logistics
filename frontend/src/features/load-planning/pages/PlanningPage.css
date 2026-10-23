@@ -328,7 +328,7 @@
 .plan-history-row a.plan-history-plate { color: var(--ink); font-weight: 700; }
 .plan-history-row a.plan-history-plate:hover { color: var(--accent-strong); }
 
-.plan-operation-filters { display: flex; flex-wrap: wrap; gap: 6px; padding: 5px; margin-bottom: 20px; width: fit-content; max-width: 100%; background: var(--paper); border: 1px solid var(--line); border-radius: 12px; }
+.plan-operation-filters { display: flex; flex-wrap: wrap; gap: 6px; padding: 5px; margin: 0 0 20px; min-width: 0; width: fit-content; max-width: 100%; background: var(--paper); border: 1px solid var(--line); border-radius: 12px; }
 .plan-operation-filters button { padding: 10px 16px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--muted); font: inherit; font-size: .9rem; font-weight: 600; cursor: pointer; }
 .plan-operation-filters button:hover { color: var(--ink); }
 .plan-operation-filters button[aria-pressed="true"] { background: var(--card); border-color: var(--line); color: var(--ink); box-shadow: 0 2px 5px rgb(0 0 0 / .06); }

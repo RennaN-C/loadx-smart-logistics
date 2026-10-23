@@ -61,7 +61,8 @@ export function PlanHistory({ checker, canReadOperations = false }: { readonly c
   const page = Number.isSafeInteger(rawPage) && rawPage > 0 ? rawPage : 1;
   const truckId = params.get("truck") || undefined;
   const rawScope = params.get("scope");
-  const operationScope = canReadOperations ? (rawScope === "completed" || rawScope === "all" ? rawScope : "ongoing") : undefined;
+  const requestedScope = rawScope === "completed" || rawScope === "all" ? rawScope : "ongoing";
+  const operationScope = canReadOperations ? requestedScope : undefined;
   const rawStatus = params.get("status");
   const status = ["CALCULATED", "APPROVED", "REJECTED"].includes(rawStatus ?? "") ? rawStatus as LoadPlanStatus : undefined;
   const sortOrder = params.get("sort") === "asc" ? "asc" : "desc";
@@ -85,9 +86,9 @@ export function PlanHistory({ checker, canReadOperations = false }: { readonly c
     setParams(next);
   }
   return <section className="plan-history" aria-label="Planos existentes">
-    {canReadOperations ? <div className="plan-operation-filters" role="group" aria-label="Filtrar situação logística">
+    {canReadOperations ? <fieldset className="plan-operation-filters" aria-label="Filtrar situação logística"><legend className="sr-only">Filtrar situação logística</legend>
       {([['ongoing', 'Em andamento'], ['completed', 'Concluídos'], ['all', 'Todos']] as const).map(([key, title]) => <button type="button" key={key} aria-pressed={operationScope === key} onClick={() => change("scope", key)}>{title}</button>)}
-    </div> : null}
+    </fieldset> : null}
     <div className="plan-history-toolbar">
       <div><h2>Retome uma carga</h2><p className="entity-lede">Planos salvos no servidor, disponíveis após sair da tela ou entrar novamente.</p><p className="entity-form-help">A aprovação registra a decisão sobre a carga. Uma operação só aparece como concluída após o fim da viagem e a entrega integral dos pedidos de todas as partes.</p></div>
       <div className="plan-history-filters">

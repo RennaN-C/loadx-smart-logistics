@@ -65,7 +65,7 @@ export function PlanSummary({ plan, canManage, approvalAllowed = canManage, isWo
 
       {plan.status === "APPROVED" ? <PlanContinuity key={plan.id} planId={plan.id} canManage={canManage} /> : null}
 
-      {plan.status === "CALCULATED" && plan.ordersReadyForApproval === false ? <p className="entity-form-help" role="status">Os pedidos deste cálculo já saíram da fila de planejamento. Consulte o estado atual em Pedidos; este plano permanece disponível como histórico e não pode ser aprovado novamente.</p> : null}
+      {plan.status === "CALCULATED" && plan.ordersReadyForApproval === false ? <output className="entity-form-help">Os pedidos deste cálculo já saíram da fila de planejamento. Consulte o estado atual em Pedidos; este plano permanece disponível como histórico e não pode ser aprovado novamente.</output> : null}
       {(canManage || approvalAllowed) && plan.status !== "APPROVED" ? (
         <div className="entity-form-actions">
           {canManage && <button type="button" className="btn-secondary" disabled={isWorking || plan.ordersReadyForApproval === false} onClick={onRecalculate}>

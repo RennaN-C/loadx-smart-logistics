@@ -8,6 +8,7 @@ import type {
   LoadPlanInput,
   LoadPlanItem,
   LoadPlanStatus,
+  PlanOperation,
   LoadPlanVisualization,
   PlacedItem,
   RejectionReason,
@@ -219,7 +220,7 @@ export async function recalculateLoadPlan(id: string): Promise<LoadPlan> {
 }
 
 interface LoadPlanListDto {
-  operation?: LoadPlanListItem["operation"];
+  operation?: PlanOperation | null;
   distribution_id?: string | null;
   id: string;
   truck_id: string;
