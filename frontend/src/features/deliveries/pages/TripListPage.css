@@ -140,3 +140,9 @@
     flex-basis: 100%;
   }
 }
+
+.operational-list-filters .field-label {
+  font-family: inherit;
+  font-size: 0.85rem;
+  letter-spacing: normal;
+}
