@@ -43,8 +43,9 @@ export async function preflightDistribution(orderIds: string[]): Promise<Distrib
       lengthCm: v.length_cm, weightKg: v.weight_kg, deliverySequence: v.delivery_sequence,
       fragile: v.fragile, stackable: v.stackable, rotationAllowed: v.rotation_allowed })) };
 }
-export async function optimizeDistribution(orderIds: string[]): Promise<LoadDistribution> {
-  const { data } = await api.post<DistributionDto>("/load-distributions/optimize", { order_ids: orderIds });
+export async function optimizeDistribution(orderIds: string[], requestKey?: string): Promise<LoadDistribution> {
+  const { data } = await api.post<DistributionDto>("/load-distributions/optimize", { order_ids: orderIds },
+    requestKey ? { headers: { "Idempotency-Key": requestKey } } : undefined);
   return mapDistribution(data);
 }
 export async function getDistribution(id: string): Promise<LoadDistribution> {
@@ -60,5 +61,10 @@ export async function reprocessDistributionPart(id: string, partId: string, truc
   const { data } = await api.post<DistributionDto>(`/load-distributions/${id}/parts/${partId}/reprocess`, {
     truck_id: truckId, expected_load_plan_id: expectedLoadPlanId,
   });
+  return mapDistribution(data);
+}
+
+export async function recoverOptimization(requestKey: string): Promise<LoadDistribution> {
+  const { data } = await api.get<DistributionDto>(`/load-distributions/optimization-requests/${requestKey}`);
   return mapDistribution(data);
 }

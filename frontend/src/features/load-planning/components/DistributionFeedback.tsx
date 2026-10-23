@@ -3,6 +3,9 @@ import { ApiError } from "../../../types/api";
 import { mapLoadPlanErrorToMessage } from "./loadPlansErrorMessages";
 
 const MESSAGES: Readonly<Record<string, string>> = {
+  OPTIMIZATION_IN_PROGRESS: "Esta otimização ainda está em andamento. Aguarde e consulte o resultado; não inicie outra solicitação.",
+  OPTIMIZATION_NOT_FOUND: "Ainda não há resultado confirmado para esta solicitação. Você pode consultar novamente ou repetir a mesma solicitação com segurança.",
+  IDEMPOTENCY_PAYLOAD_MISMATCH: "A identidade desta solicitação pertence a outra seleção de pedidos. Consulte o resultado original antes de continuar.",
   DISTRIBUTION_CAPACITY_INSUFFICIENT: "A frota elegível não comportou toda a carga na busca realizada. Nenhuma proposta parcial foi salva. Revise os pedidos ou a disponibilidade da frota.",
   DISTRIBUTION_CAPACITY_REJECTED: "Há volumes que não couberam no veículo. Nenhuma alteração parcial foi salva.",
   DISTRIBUTION_VERSION_CONFLICT: "Esta parte foi atualizada em outra operação. Atualize a distribuição antes de tentar novamente.",
