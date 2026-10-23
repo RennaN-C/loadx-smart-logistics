@@ -143,6 +143,19 @@ describe("LoadingPage — checklist", () => {
   });
 });
 
+describe("LoadingPage — retorno operacional", () => {
+  it("oferece acesso à central de carregamentos, sem mensagem desatualizada", async () => {
+    mockRole("CHECKER");
+    renderPage();
+    await screen.findByText("Televisor 50");
+    expect(screen.getByRole("link", { name: "Voltar aos carregamentos" })).toHaveAttribute(
+      "href",
+      "/loading-sessions",
+    );
+    expect(screen.queryByText(/listagem de carregamentos ainda não está disponível/)).not.toBeInTheDocument();
+  });
+});
+
 describe("LoadingPage — permissões (OC66)", () => {
   it("o conferente recebe o campo de leitura", async () => {
     mockRole("CHECKER");

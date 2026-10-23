@@ -8,6 +8,7 @@ import {
   type DeliveryExceptionCode,
 } from "../api/deliveryExceptionsApi";
 import type { Delivery } from "../types";
+import { DELIVERY_STATUS_LABELS } from "./tripLabels";
 
 const labels: Record<DeliveryExceptionCode, string> = {
   CUSTOMER_ABSENT: "Cliente ausente",
@@ -50,22 +51,27 @@ export function DeliveryExceptionsPanel({ deliveries, canOperate }: Props) {
   const [reason, setReason] = useState("");
   const [scheduledFor, setScheduledFor] = useState("");
   const requestId = useRef<string | null>(null);
+  const latestHistoryRequest = useRef(0);
 
   const selected = deliveries.find((delivery) => delivery.id === deliveryId);
   const codes = nextCodes(events);
   const selectedCode = codes.includes(code) ? code : (codes[0] ?? "CUSTOMER_ABSENT");
-  const canWrite = canOperate && selected?.status !== "DELIVERED";
+  const canWrite = canOperate && selected != null && selected.status !== "DELIVERED" && selected.status !== "CANCELED";
 
   async function refresh(id: string) {
+    const request = ++latestHistoryRequest.current;
     setLoading(true);
     setError("");
     try {
-      setEvents(await listDeliveryExceptions(id));
+      const history = await listDeliveryExceptions(id);
+      if (request === latestHistoryRequest.current) setEvents(history);
     } catch {
-      setError("Não foi possível carregar o histórico de ocorrências.");
-      setEvents([]);
+      if (request === latestHistoryRequest.current) {
+        setError("Não foi possível carregar o histórico de ocorrências.");
+        setEvents([]);
+      }
     } finally {
-      setLoading(false);
+      if (request === latestHistoryRequest.current) setLoading(false);
     }
   }
 
@@ -139,7 +145,7 @@ export function DeliveryExceptionsPanel({ deliveries, canOperate }: Props) {
           >
             {deliveries.map((delivery) => (
               <option key={delivery.id} value={delivery.id}>
-                Parada {delivery.sequence} — {delivery.status}
+                Parada {delivery.sequence} — {DELIVERY_STATUS_LABELS[delivery.status]}
               </option>
             ))}
           </select>
