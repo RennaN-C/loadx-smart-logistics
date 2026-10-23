@@ -117,5 +117,6 @@ def test_existing_webhook_runtime_is_reported_without_configuration_leak(
     )
     assert notifications["status"] == "LIMITED"
     assert notifications["reason_code"] == "WORKER_NOT_OBSERVED"
-    assert "OC83_PENDING" not in response.text and "OC84_PENDING" not in response.text
+    assert "OC83_PENDING" not in response.text
+    assert "OC84_PENDING" not in response.text
     assert set(webhook) == {"component", "mode", "status", "configured", "reason_code"}
