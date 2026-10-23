@@ -1,0 +1,193 @@
+"""UI02: Chromium real, API local e PostgreSQL 16 descartável; sem pentest compartilhada."""
+import json
+import os
+import re
+import subprocess
+import threading
+import time
+import uuid
+from pathlib import Path
+from urllib.request import urlopen
+
+from fastapi.testclient import TestClient
+from playwright.sync_api import sync_playwright
+
+from app.core.config import settings
+from app.database.session import get_db
+from app.main import app
+from app.modules.access_profiles.models import AccessProfile
+from app.modules.users.models import User
+from tests.integration.auth_helpers import issue_session_headers
+from tests.integration.conftest import (
+    postgres_engine, committed_session_factory as session_factory,
+)
+from tests.integration.test_deliveries_api import (
+    create_trip, seed_operational_scenario,
+)
+
+ROOT = Path(__file__).resolve().parents[3]
+URL = "http://localhost:5173"
+SIZES = (375, 768, 1280, 1920)
+
+
+def ready(url):
+    for _ in range(90):
+        try:
+            with urlopen(url, timeout=2) as response:
+                if response.status == 200:
+                    return
+        except Exception:
+            pass
+        time.sleep(0.5)
+    raise AssertionError("Servidor local não iniciou: " + url)
+
+
+def browser_context(browser, headers, width=1280, theme="light"):
+    ctx = browser.new_context(
+        viewport={"width": width, "height": 800}, color_scheme=theme,
+    )
+    ctx.add_cookies([{
+        "name": settings.session_cookie_name,
+        "value": headers["Cookie"].split("=", 1)[1],
+        "url": URL, "httpOnly": True, "sameSite": "Lax",
+    }])
+    return ctx
+
+
+def test_ui02_browser_five_profiles_and_operations(session_factory, tmp_path):
+    """Sessões sintéticas são fixtures; não representam teste de MFA ou login."""
+    def db_for_local_server():
+        with session_factory() as db:
+            yield db
+
+    app.dependency_overrides[get_db] = db_for_local_server
+    vite = None
+    server = None
+    screenshots = Path(os.getenv("UI02_ARTIFACT_DIR", str(tmp_path)))
+    screenshots.mkdir(parents=True, exist_ok=True)
+    failures = []
+    try:
+        with TestClient(app, raise_server_exceptions=False, headers={"Origin": URL}) as api:
+            scenario = seed_operational_scenario(session_factory)
+            with session_factory() as db:
+                profile = AccessProfile(
+                    name="Custom sem acesso", name_key="custom sem acesso",
+                    description="Fixture local", active=True,
+                )
+                db.add(profile)
+                db.flush()
+                user = User(
+                    name="Perfil Custom", email=f"custom-{uuid.uuid4().hex}@example.test",
+                    password_hash="hash-ficticio", role="CUSTOM",
+                    custom_profile_id=profile.id, active=True,
+                )
+                db.add(user)
+                db.commit()
+                custom_id = user.id
+            users = {
+                "ADMIN": scenario.admin_headers,
+                "LOGISTICS_MANAGER": scenario.manager_headers,
+                "CHECKER": scenario.checker_headers,
+                "DRIVER": scenario.driver_headers,
+                "CUSTOM": issue_session_headers(session_factory, custom_id),
+            }
+            expected = {
+                "ADMIN": (200, 200), "LOGISTICS_MANAGER": (200, 200),
+                "CHECKER": (200, 403), "DRIVER": (403, 200),
+                "CUSTOM": (403, 403),
+            }
+            loading_resp = api.post(
+                "/api/v1/loading-sessions",
+                json={"load_plan_id": str(scenario.load_plan_id)},
+                headers=scenario.manager_headers,
+            )
+            assert loading_resp.status_code == 201
+            loading = loading_resp.json()
+            trip = create_trip(api, scenario)
+            for role, headers in users.items():
+                assert api.get("/api/v1/auth/me", headers=headers).status_code == 200
+                assert tuple(
+                    api.get(path, headers=headers).status_code
+                    for path in ("/api/v1/loading-sessions", "/api/v1/deliveries")
+                ) == expected[role], role
+
+            import uvicorn
+            server = uvicorn.Server(uvicorn.Config(
+                app, host="127.0.0.1", port=8000, log_level="warning", lifespan="off",
+            ))
+            threading.Thread(target=server.run, daemon=True).start()
+            env = os.environ.copy()
+            env["DEV_API_PROXY_TARGET"] = "http://127.0.0.1:8000"
+            vite = subprocess.Popen(
+                ["npm", "run", "dev", "--", "--host", "127.0.0.1", "--port", "5173", "--strictPort"],
+                cwd=ROOT / "frontend", env=env,
+                stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT,
+            )
+            ready("http://127.0.0.1:8000/health")
+            ready(URL + "/login")
+            with sync_playwright() as playwright:
+                browser = playwright.chromium.launch(headless=True)
+                try:
+                    for role, headers in users.items():
+                        with browser_context(browser, headers) as ctx:
+                            page = ctx.new_page()
+                            page.on("pageerror", lambda error: failures.append(str(error)))
+                            page.goto(URL + "/")
+                            page.locator("main").first.wait_for(timeout=30000)
+                    for width in SIZES:
+                        for theme in ("light", "dark"):
+                            for name, headers, url, heading in (
+                                ("loading", scenario.checker_headers, "/loading-sessions", "Carregamentos"),
+                                ("deliveries", scenario.manager_headers, "/deliveries", "Entregas"),
+                            ):
+                                with browser_context(browser, headers, width, theme) as ctx:
+                                    page = ctx.new_page()
+                                    page.on("pageerror", lambda error: failures.append(str(error)))
+                                    page.goto(URL + url)
+                                    page.get_by_role("heading", name=heading).wait_for()
+                                    assert page.evaluate(
+                                        "document.documentElement.scrollWidth <= innerWidth + 2"
+                                    ), (name, width, theme)
+                                    page.screenshot(path=str(screenshots / f"{name}-{width}-{theme}.png"))
+
+                    with browser_context(browser, scenario.checker_headers) as ctx:
+                        page = ctx.new_page()
+                        page.goto(URL + f"/loading/{loading['id']}")
+                        page.get_by_role("heading", name="Conferência do carregamento").wait_for()
+                        page.get_by_role("link", name="Voltar aos carregamentos").wait_for()
+                        page.get_by_role("button", name="Iniciar conferência").click()
+                        field = page.get_by_role("textbox", name="LER CÓDIGO DO VOLUME")
+                        field.wait_for(state="visible")
+                        field.fill(loading["items"][0]["code"])
+                        field.press("Enter")
+                        page.locator(".scan-result").get_by_text(re.compile("Conferido")).wait_for()
+                        assert field.evaluate("(el) => document.activeElement === el")
+                        page.reload()
+                        page.get_by_role("heading", name="Conferência do carregamento").wait_for()
+
+                    with browser_context(browser, scenario.manager_headers) as ctx:
+                        page = ctx.new_page()
+                        page.goto(URL + f"/trips/{trip['id']}")
+                        page.get_by_role("heading", name="Acompanhamento da viagem").wait_for()
+                        page.get_by_role("button", name="Verificar bloqueios").click()
+                        page.get_by_text(re.compile("Cancelamento bloqueado|Pré-validação aprovada")).wait_for()
+                        page.screenshot(path=str(screenshots / "oc94-preflight.png"))
+                finally:
+                    browser.close()
+        assert failures == [], failures[:3]
+        (screenshots / "resultado.json").write_text(json.dumps({
+            "result": "passed", "roles": list(users),
+            "viewports": list(SIZES), "themes": ["light", "dark"],
+            "real_api": True, "postgresql_isolated": True,
+            "limits": ["MFA login not tested", "OC94 full transitions not covered"],
+        }, indent=2), encoding="utf-8")
+    finally:
+        if vite is not None:
+            vite.terminate()
+            try:
+                vite.wait(timeout=8)
+            except subprocess.TimeoutExpired:
+                vite.kill()
+        if server is not None:
+            server.should_exit = True
+        app.dependency_overrides.clear()
