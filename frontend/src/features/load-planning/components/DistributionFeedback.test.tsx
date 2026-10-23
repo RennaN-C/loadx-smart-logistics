@@ -9,13 +9,19 @@ describe("DistributionFeedback - resultado incerto da otimizacao", () => {
     render(<DistributionFeedback error={new ApiError("NETWORK_ERROR", "Falha de conexão")} />);
     expect(screen.getByText(/A distribuição pode ter sido salva no servidor/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Conferir Planos existentes/ })).toHaveAttribute("href", "/planning");
-    expect(screen.getByText(/antes de repetir a otimização/)).toBeInTheDocument();
+    expect(screen.getByText(/antes de repetir a operação/)).toBeInTheDocument();
   });
 
-  it("nao trata erro HTTP confirmado como resultado incerto", () => {
-    render(<DistributionFeedback error={new ApiError("UNKNOWN_ERROR", "Erro do servidor", [], 500)} />);
+  it("não trata rejeição de domínio confirmada como resultado incerto", () => {
+    render(<DistributionFeedback error={new ApiError("DISTRIBUTION_CAPACITY_INSUFFICIENT", "Sem capacidade", [], 422)} />);
     expect(screen.queryByText(/A distribuição pode ter sido salva no servidor/)).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Conferir Planos existentes/ })).not.toBeInTheDocument();
+  });
+
+  it.each([408, 500, 502, 503, 504])("HTTP %i não prova rollback nem permite outra identidade", (status) => {
+    render(<DistributionFeedback error={new ApiError("UNKNOWN_ERROR", "Resposta sem confirmação", [], status)} />);
+    expect(screen.getByText(/A distribuição pode ter sido salva no servidor/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Conferir Planos existentes/ })).toBeInTheDocument();
   });
 
   it("mantem o codigo de conflito de pedido sem criar proposta duplicada", () => {

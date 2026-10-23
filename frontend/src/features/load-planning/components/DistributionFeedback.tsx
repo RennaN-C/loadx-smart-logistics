@@ -21,13 +21,13 @@ const MESSAGES: Readonly<Record<string, string>> = {
   TRUCK_DOCUMENT_INELIGIBLE: "O caminhão possui uma pendência documental que impede esta operação.",
 };
 function isUnconfirmedOutcome(error: unknown): boolean {
-  return error instanceof ApiError && error.status === undefined
+  return error instanceof ApiError && (error.status === undefined || error.status === 408 || error.status >= 500)
     && (error.code === "NETWORK_ERROR" || error.code === "UNKNOWN_ERROR");
 }
 
 function distributionErrorMessage(error: unknown): string {
   if (isUnconfirmedOutcome(error)) {
-    return "A conexão foi interrompida e não foi possível confirmar o resultado. A distribuição pode ter sido salva no servidor. Consulte Planos existentes antes de repetir a otimização.";
+    return "Não foi possível confirmar o resultado. A distribuição pode ter sido salva no servidor. Consulte o estado salvo antes de repetir a operação.";
   }
   if (!(error instanceof ApiError)) return "Não foi possível concluir a solicitação. Tente novamente.";
   return MESSAGES[error.code] ?? mapLoadPlanErrorToMessage(error);
