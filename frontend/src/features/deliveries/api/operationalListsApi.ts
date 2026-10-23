@@ -1,12 +1,13 @@
 import { api } from "../../../services/api";
 import { mapPageFromDto, toPageQuery, type ListParams, type PageDto } from "../../../services/pagination";
 import type { Page } from "../../../types/api";
+import type { LoadingSessionStatus } from "../../loading-operation/types";
 import type { DeliveryStatus } from "../types";
 
 export interface LoadingListItem {
   id: string;
   loadPlanId: string;
-  status: string;
+  status: LoadingSessionStatus;
   startedAt: string | null;
   finishedAt: string | null;
 }
@@ -21,7 +22,7 @@ export interface DeliveryListItem {
 interface LoadingDto {
   id: string;
   load_plan_id: string;
-  status: string;
+  status: LoadingSessionStatus;
   started_at: string | null;
   finished_at: string | null;
 }

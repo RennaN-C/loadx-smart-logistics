@@ -45,3 +45,104 @@
   color: var(--muted);
   white-space: nowrap;
 }
+
+/* Central operacional: reutiliza tokens e controles existentes, sem afetar o detalhe. */
+.operational-list-filters {
+  align-items: flex-end;
+}
+
+.operational-list-filters .entity-form-field {
+  flex: 0 1 320px;
+  min-width: 0;
+}
+
+.operational-list-filters select {
+  width: 100%;
+  min-height: 44px;
+}
+
+.operational-list-count {
+  margin: 0;
+  padding-bottom: 12px;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.operational-list .trip-list-scroll {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.operational-list .trip-list-scroll:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 3px;
+}
+
+.operational-list .trip-list {
+  border: 0;
+  min-width: 680px;
+}
+
+.operational-list .trip-list thead th {
+  font-family: inherit;
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+  padding: 16px;
+}
+
+.operational-list .trip-list tbody th,
+.operational-list .trip-list td {
+  padding: 16px;
+}
+
+.operational-list .trip-list tbody th {
+  font-family: inherit;
+  letter-spacing: normal;
+  font-size: inherit;
+  font-weight: 500;
+}
+
+.operational-list-reference,
+.operational-list-context {
+  display: block;
+}
+
+.operational-list-reference {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.operational-list-context {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.operational-list-feedback {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+}
+
+.operational-list-scroll-hint {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+@media (min-width: 901px) {
+  .operational-list-scroll-hint {
+    display: none;
+  }
+}
+
+@media (max-width: 540px) {
+  .operational-list-filters .entity-form-field {
+    flex-basis: 100%;
+  }
+}
+
+.operational-list-filters .field-label {
+  font-family: inherit;
+  font-size: 0.85rem;
+  letter-spacing: normal;
+}

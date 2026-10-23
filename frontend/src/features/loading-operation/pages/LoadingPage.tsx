@@ -6,6 +6,7 @@ import { ApiError } from "../../../types/api";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { canCheckLoading, hasPermission } from "../../auth/permissions";
 import { changeLoadingStatus, checkLoadingItem, scanLoadingItem } from "../api/loadingApi";
+import { LOADING_STATUS_LABELS, loadingStatusTone } from "../components/loadingLabels";
 import { LoadingChecklist } from "../components/LoadingChecklist";
 import { mapLoadingErrorToMessage } from "../components/loadingErrorMessages";
 import { ScanField, type ScanOutcome } from "../components/ScanField";
@@ -13,22 +14,11 @@ import { useLoadingSession } from "../hooks/useLoadingSession";
 import { LOADING_TRANSITIONS, type LoadingSession, type LoadingSessionStatus } from "../types";
 import "./LoadingPage.css";
 
-const STATUS_LABELS: Record<LoadingSessionStatus, string> = {
-  PENDING: "Não iniciado",
-  IN_PROGRESS: "Em conferência",
-  FINISHED: "Concluído",
-};
-
 const ACTION_LABELS: Record<LoadingSessionStatus, string> = {
   PENDING: "Iniciar conferência",
   IN_PROGRESS: "Finalizar carregamento",
   FINISHED: "",
 };
-
-function statusTone(status: LoadingSessionStatus) {
-  if (status === "FINISHED") return "good" as const;
-  return status === "IN_PROGRESS" ? "warn" as const : "neutral" as const;
-}
 
 /**
  * Conferência do carregamento (OC32) com leitura de código (OC75).
@@ -115,8 +105,8 @@ export function LoadingPage() {
         </div>
         {session ? (
           <div className="entity-toolbar">
-            <StatusPill tone={statusTone(session.status)}>
-              {STATUS_LABELS[session.status]}
+            <StatusPill tone={loadingStatusTone(session.status)}>
+              {LOADING_STATUS_LABELS[session.status]}
             </StatusPill>
           </div>
         ) : null}
