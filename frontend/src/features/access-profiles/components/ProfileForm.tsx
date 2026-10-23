@@ -19,8 +19,8 @@ export function ProfileForm({ draft, onDraft, catalog, saving, userCount, onSubm
       <label htmlFor="profile-name">Nome do perfil<input id="profile-name" required maxLength={120} value={draft.name} onChange={(event) => onDraft({ ...draft, name: event.target.value })} /></label>
       <label htmlFor="profile-state">Estado<select id="profile-state" value={String(draft.active)} onChange={(event) => onDraft({ ...draft, active: event.target.value === "true" })}><option value="true">Ativo</option><option value="false" disabled={userCount > 0}>Inativo</option></select></label>
     </div><label htmlFor="profile-description">Descrição<textarea id="profile-description" maxLength={500} value={draft.description} onChange={(event) => onDraft({ ...draft, description: event.target.value })} /></label>
-    {userCount > 0 ? <p className="user-muted">{userCount} usuário(s) associado(s). Remova as associações antes de desativar.</p> : null}</fieldset>
-    <div className="profile-permissions-head"><h3>Permissões por módulo</h3><output>{draft.permissions.length} selecionadas</output></div>
+    {userCount > 0 ? <p className="user-muted">{userCount === 1 ? "1 usuário associado." : `${userCount} usuários associados.`} Remova {userCount === 1 ? "a associação" : "as associações"} antes de desativar.</p> : null}</fieldset>
+    <div className="profile-permissions-head"><h3>Permissões por módulo</h3><output>{draft.permissions.length === 1 ? "1 selecionada" : `${draft.permissions.length} selecionadas`}</output></div>
     <p className="user-muted">Selecione somente as ações necessárias. Gestão não concede consulta automaticamente; inclua ambas para um fluxo completo.</p>
     {draft.permissions.length ? <PermissionDetails permissions={draft.permissions} catalog={catalog} /> : null}
     <PermissionGroups catalog={catalog.filter((item) => item.delegable)} selected={draft.permissions} saving={saving} onToggle={toggle} />

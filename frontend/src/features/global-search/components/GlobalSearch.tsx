@@ -21,6 +21,7 @@ export function GlobalSearch() {
   useEffect(() => {
     if (open && active >= 0) document.getElementById(`${id}-option-${active}`)?.scrollIntoView?.({ block: "nearest" });
   }, [active, open, id]);
+  function clearSearch() { setTerm(""); setActive(-1); setOpen(true); input.current?.focus(); }
   function retrySearch() { retry(); input.current?.focus(); }
   function choose(result: SearchResult) { setOpen(false); setTerm(""); navigate(result.href); }
   function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
@@ -42,6 +43,7 @@ export function GlobalSearch() {
         value={term} aria-expanded={open} aria-controls={`${id}-results`} aria-autocomplete="list"
         aria-activedescendant={open && active >= 0 && active < results.length ? `${id}-option-${active}` : undefined}
         onFocus={() => setOpen(true)} onChange={(event) => { setTerm(event.target.value); setActive(-1); setOpen(true); }} onKeyDown={handleKeyDown} />
+      {term && <button type="button" className="global-search-clear" aria-label="Limpar busca" onClick={clearSearch}>Limpar</button>}
     </div>
     {open ? <SearchResultsPanel id={id} results={results} status={status} active={active} onActive={setActive} onChoose={choose} onRetry={retrySearch} /> : null}
   </div>;

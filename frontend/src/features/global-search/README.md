@@ -17,3 +17,12 @@ Nenhum título pessoal é fabricado ou buscado no cliente. Preferência e formul
 da OC98 não são tocados. `useUrlSearch` sincroniza filtros existentes de clientes,
 motoristas e caminhões com URLs de destino, incluindo F5 e navegação de histórico.
 Não se trata de uma nova central operacional nem persistência de registros locais.
+
+## UI03 — acabamento e acessibilidade
+
+`CONFIRMADO`: limpar consulta devolve foco; painel usa a largura útil no mobile.
+Pedidos/viagens mostram UUID curto, preservando identidade/destino completos.
+Plural e vazio orientam o usuário; acesso negado não oferece retry inútil.
+CUSTOM mantém somente permissões delegáveis; trips.own permanece identidade
+exclusiva, sem regra de autorização nova. Evidências em
+[UI03](../../../../docs/evidencias/qa-v12-pentest/ui-lote3.md).

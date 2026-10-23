@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { AlertBanner } from "../../../components/AlertBanner";
+import { FormField } from "../../../components/FormField";
+import { NOTIFICATION_CATEGORIES } from "../components/notificationPresentation";
 import { Icon } from "../../../components/Icon";
 import { Pagination } from "../../../components/Pagination";
 import { getNotificationSource, listNotifications, markAllNotificationsRead, markNotificationRead, type NotificationCategory, type NotificationItem, type NotificationPage } from "../api/notificationsApi";
@@ -28,6 +30,8 @@ export function NotificationsPage() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const sequence = useRef(0);
+  const actionRevision = useRef(0);
+  const actionPending = useRef(false);
   const feedback = useRef<HTMLOutputElement>(null);
   useEffect(() => { if (notice) feedback.current?.focus(); }, [notice]);
   const { count, synchronize } = useNotificationCounter();
@@ -42,7 +46,7 @@ export function NotificationsPage() {
       if (request === sequence.current) { setResult(null); setError("Não foi possível carregar a central. Tente novamente."); }
     } finally { if (request === sequence.current) setLoading(false); }
   }, [page, sortOrder, category, read, synchronize]);
-  useEffect(() => { void load(); return () => { sequence.current += 1; }; }, [load]);
+  useEffect(() => { actionPending.current = false; setBusy(false); void load(); return () => { sequence.current += 1; actionRevision.current += 1; actionPending.current = false; }; }, [load]);
   useEffect(() => {
     if (result && count !== null && count !== result.unreadCount && !loading && !busy) void load();
   }, [count, result, loading, busy, load]);
@@ -50,27 +54,42 @@ export function NotificationsPage() {
     setNotice("");
     setParams((current) => { const next = new URLSearchParams(current); next.delete("page"); if (value) { next.set(name, value); } else { next.delete(name); } return next; });
   }
+  function clearFilters() {
+    setNotice("");
+    setParams((current) => {
+      const next = new URLSearchParams(current);
+      for (const key of ["category", "read", "sort_order", "page"]) next.delete(key);
+      return next;
+    });
+  }
   async function act(item: NotificationItem | null, openSource = false) {
+    if (actionPending.current) return;
+    actionPending.current = true;
+    const revision = actionRevision.current;
     setBusy(true); setError(""); setNotice("");
     try {
       const href = item && openSource ? await getNotificationSource(item.id) : null;
+      if (revision !== actionRevision.current) return;
       if (item) { if (!item.read_at) await markNotificationRead(item.id); }
       else await markAllNotificationsRead();
+      if (revision !== actionRevision.current) return;
       await load();
+      if (revision !== actionRevision.current) return;
       if (href) navigate(href);
       else setNotice(item ? "Notificação marcada como lida." : "Todas as notificações disponíveis foram marcadas como lidas.");
-    } catch { setError("Não foi possível concluir a ação. Seu acesso pode ter mudado; atualize e tente novamente."); }
-    finally { setBusy(false); }
+    } catch { if (revision === actionRevision.current) setError("Não foi possível concluir a ação. Seu acesso pode ter mudado; atualize e tente novamente."); }
+    finally { if (revision === actionRevision.current) { actionPending.current = false; setBusy(false); } }
   }
   return <div className="entity-page notifications-page">
     <header className="entity-header"><div><span className="notification-kicker">Comunicação operacional</span><h1>Central de notificações</h1><p className="entity-lede">Acompanhe as atualizações destinadas à sua conta e continue a operação.</p></div><Link className="entity-header-link" to="/account#notification-preferences"><Icon name="settings" size={17} /> Preferências</Link></header>
     <section className="notification-workspace" aria-labelledby="notification-inbox-heading" aria-busy={loading || busy}>
-      <header className="notification-workspace-header"><div><h2 id="notification-inbox-heading">Sua caixa de entrada</h2><p>{result ? <><strong>{result.unreadCount}</strong> {result.unreadCount === 1 ? "não lida" : "não lidas"} <span aria-hidden="true">·</span> {result.total} {result.total === 1 ? "resultado" : "resultados"}</> : "Somente notificações disponíveis para sua conta."}</p></div><div className="notification-toolbar-actions"><button type="button" className="btn-secondary" disabled={loading || busy} onClick={() => void load()}>Atualizar</button><button type="button" className="btn-primary" disabled={loading || busy || !result?.unreadCount} onClick={() => void act(null)}>Marcar todas como lidas</button></div></header>
+      <header className="notification-workspace-header"><div><h2 id="notification-inbox-heading">Sua caixa de entrada</h2><p>{result ? <><strong>{result.unreadCount}</strong> {result.unreadCount === 1 ? "não lida na sua caixa" : "não lidas na sua caixa"} <span aria-hidden="true">·</span> {result.total} {result.total === 1 ? "resultado" : "resultados"}</> : "Somente notificações disponíveis para sua conta."}</p></div><div className="notification-toolbar-actions"><button type="button" className="btn-secondary" disabled={loading || busy} onClick={() => void load()}>Atualizar</button><button type="button" className="btn-primary" disabled={loading || busy || !result?.unreadCount} onClick={() => void act(null)}>Marcar todas como lidas</button></div></header>
       <div className="notification-filters">
-        <label>Situação<select value={read === undefined ? "" : String(read)} disabled={busy} onChange={(event) => filter("read", event.target.value)}><option value="">Todas</option><option value="false">Não lidas</option><option value="true">Lidas</option></select></label>
-        <label>Categoria<select value={category ?? ""} disabled={busy} onChange={(event) => filter("category", event.target.value)}><option value="">Todas</option><option value="TRIPS">Viagens</option><option value="OCCURRENCES">Ocorrências</option><option value="SECURITY">Segurança</option></select></label>
-        <label>Ordenação<select value={sortOrder} disabled={busy} onChange={(event) => filter("sort_order", event.target.value)}><option value="desc">Mais recentes primeiro</option><option value="asc">Mais antigas primeiro</option></select></label>
+        <FormField id="notification-read" label="Situação"><select id="notification-read" value={read === undefined ? "" : String(read)} disabled={busy} onChange={(event) => filter("read", event.target.value)}><option value="">Todas</option><option value="false">Não lidas</option><option value="true">Lidas</option></select></FormField>
+        <FormField id="notification-category" label="Categoria"><select id="notification-category" value={category ?? ""} disabled={busy} onChange={(event) => filter("category", event.target.value)}><option value="">Todas</option>{Object.entries(NOTIFICATION_CATEGORIES).map(([value, metadata]) => <option key={value} value={value}>{metadata.label}</option>)}</select></FormField>
+        <FormField id="notification-sort" label="Ordenação"><select id="notification-sort" value={sortOrder} disabled={busy} onChange={(event) => filter("sort_order", event.target.value)}><option value="desc">Mais recentes primeiro</option><option value="asc">Mais antigas primeiro</option></select></FormField>
       </div>
+      {(category || read !== undefined || sortOrder !== "desc") && <div className="notification-filter-summary"><p>Filtros aplicados à sua caixa de entrada.</p><button className="btn-secondary" type="button" disabled={busy} onClick={clearFilters}>Limpar filtros</button></div>}
       {notice && <output ref={feedback} tabIndex={-1} className="notification-success">{notice}</output>}
       {error && <div className="notification-feedback"><AlertBanner>{error}</AlertBanner><button type="button" className="btn-secondary" disabled={loading || busy} onClick={() => void load()}>Tentar novamente</button></div>}
       {loading && <output className="notification-feedback">Carregando suas notificações…</output>}
