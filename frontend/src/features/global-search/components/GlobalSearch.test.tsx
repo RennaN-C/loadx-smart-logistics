@@ -102,8 +102,8 @@ describe("OC107 busca global", () => {
     expect(screen.getByText(`/orders?order=${id}`)).toBeInTheDocument();
   });
 
-  it("não esconde viagens próprias autorizadas de um perfil personalizado", async () => {
-    const input = show("CUSTOM", ["loadx.trips.own"]); await type(input);
+  it("preserva viagens autorizadas por permissão delegável de um perfil personalizado", async () => {
+    const input = show("CUSTOM", ["loadx.trips.read"]); await type(input);
     expect(screen.getAllByRole("option")).toHaveLength(1);
     expect(screen.getByRole("option", { name: "Viagem v1" })).toBeVisible();
     expect(screen.queryByRole("option", { name: "Cliente fictício" })).not.toBeInTheDocument();
