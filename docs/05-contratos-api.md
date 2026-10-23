@@ -1459,8 +1459,12 @@ URLs, traces, dados pessoais ou configuração bruta. Consulta passiva sem envio
 prompts ou alterações. Reusa liveness/readiness e timeouts existentes.
 
 WhatsApp SIMULATED (UI SIMULADO), IA mock SIMULATED, IA externa não implementada
-NOT_CONFIGURED, webhook NOT_IMPLEMENTED/OC83_PENDING e notificações internas
-LIMITED/OC84_PENDING. Sinais futuros aprovados podem informar AVAILABLE,
+NOT_CONFIGURED. Webhook interno: NOT_CONFIGURED quando o runtime está desativado;
+AVAILABLE/RUNTIME_CONFIGURED quando inicializado, sem certificar conexão externa.
+Notificações internas: LIMITED/WORKER_NOT_OBSERVED, reconhecendo OC84/OC103/OC109
+implementadas, sem afirmar que o worker está ativo. Códigos OC83_PENDING e
+OC84_PENDING são mantidos no catálogo por compatibilidade, sem emissão padrão.
+Sinais futuros aprovados podem informar AVAILABLE,
 UNAVAILABLE e TIMEOUT; não são criados providers nesta OC. Consultas paralelas
 com falha isolada e configuração desconhecida null. Histórico durável indisponível;
 falhas atuais são correlacionadas por UUID/data e logs sanitizados.
@@ -1629,3 +1633,46 @@ Relatório de viagem inclui também trip_id. Não mistura volumes nem recalcula.
 GET /audit admite também filtros entity_type=LOAD_DISTRIBUTION e
 LOAD_DISTRIBUTION_PART com a mesma permissão reservada de leitura da auditoria.
 Nenhum dado pessoal adicional foi incorporado aos schemas ou logs.
+
+
+## OC81 — comunicação operacional vinculada à entrega
+
+`CONFIRMADO`: `GET /api/v1/deliveries/{delivery_id}/communications`, somente leitura,
+aceita `page` >=1, `page_size` 1–100 (padrão20), `sort_order` asc/desc (padrãodesc).
+Retorna PageResponse com items, page, page_size, total e total_pages. Cada item:
+`id`, `occurrence_id`, `event_type=OCCURRENCE_REGISTERED`, `created_at` UTC,
+`channel=WHATSAPP_MOCK`, `simulation_status` e `processing_status` opcional.
+
+Simulation_status conserva o fato OC84: NOT_ATTEMPTED, ATTEMPT_CLAIMED,
+SIMULATED, FAILED ou NO_RECIPIENT. Processing_status conserva a projeção OC109:
+PENDING, PROCESSING, SUCCEEDED, RETRYABLE, TERMINAL, UNCERTAIN; null significa
+que não há fila persistida vinculada. São estados de canal **simulado**, nunca
+comprovantes de envio, entrega ou leitura Meta. Não inclui erro interno,
+mensagem, telefone, payload, caminho, credencial, ator ou destinatário pessoal.
+
+A origem é a ocorrência cujo delivery_id/trip_id corresponde exatamente à
+entrega autorizada; TRIP_STARTED e ocorrências gerais não são atribuídos à
+entrega. Ordenação por created_at e UUID na mesma direção. Uma mesma Order em
+outra parte/caminhão não amplia o recorte.
+
+Exige sessão ativa e permissões efetivas deliveries.read + occurrences.read,
+ou trips.own com DRIVER ativo e vinculado. ADMIN conserva acesso administrativo;
+CHECKER e motorista de outra viagem são negados. Erros 401/403/404/422 usam o
+envelope padrão (404 DELIVERY_NOT_FOUND). Não há mudança de estados, escrita,
+leitura da caixa pessoal, envio, retry, acesso a storage ou migration nessa API.
+A UI da OC81 usa exclusivamente este contrato para a seção de comunicação.
+
+
+## Recuperação idempotente — #254
+
+`CONFIRMADO`: contrato implementado para revisão na ADR-047. Tabela aditiva
+`optimization_requests`: PK (user_id, request_key), payload_hash SHA-256 de
+versão/seleção ordenada, distribution_id único com FK RESTRICT, created_at UTC.
+Persistência atômica com distribuição/planos/volumes/histórico; sem pending ou TTL.
+`POST /load-distributions/optimize` aceita header UUID `Idempotency-Key` opcional.
+Replay igual retorna 201 com o mesmo recurso atual; payload diferente: 409
+IDEMPOTENCY_PAYLOAD_MISMATCH. Concorrência: 409 OPTIMIZATION_IN_PROGRESS.
+`GET /load-distributions/optimization-requests/{key}` retorna 200/404/409,
+somente para o ator e com a mesma permissão create. Não cria nada.
+Migration 20261023_0035 → 20261021_0034; downgrade recusa registros existentes.
+Sem alteração de regras físicas, RBAC efetivo, MFA ou OC90/OC94.

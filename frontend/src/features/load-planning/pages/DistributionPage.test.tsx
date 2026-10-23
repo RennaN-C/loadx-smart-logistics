@@ -58,12 +58,13 @@ describe("distribuição persistida", () => {
     await screen.findByText("Carga de TST1A23"); expect(getDistribution).toHaveBeenCalledTimes(3);
     expect(optimizeDistribution).not.toHaveBeenCalled();
   });
-  it("aprova agregado e respeita bloqueio operacional da OC90", async () => {
+  it("aprova agregado e consulta continuidade real da parte selecionada", async () => {
     vi.mocked(distributionAction).mockResolvedValue(makeDistribution(2, "APPROVED")); setup();
     fireEvent.click(await screen.findByRole("button", { name: "Aprovar distribuição completa" }));
     expect(await screen.findByText("Aprovada")).toBeInTheDocument();
     expect(distributionAction).toHaveBeenCalledWith("distribution-1", "approve");
-    expect(screen.getByText(/continuidade operacional com vários caminhões depende da OC90/)).toBeInTheDocument();
+    await waitFor(() => expect(getLoadPlanContinuity).toHaveBeenCalledWith("plan-1"));
+    expect(screen.queryByText(/depende da OC90/)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Iniciar carregamento/ })).not.toBeInTheDocument();
   });
   it("aprovação parcial não oferece operação", async () => {

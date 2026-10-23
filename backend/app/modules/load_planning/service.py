@@ -46,6 +46,7 @@ from app.modules.load_planning.schemas import (
 )
 from app.modules.loading.reference_service import LoadingReferenceService
 from app.modules.orders.models import Order, OrderItem
+from app.modules.orders.reference_service import OrderReferenceService
 from app.modules.orders.service import OrderService
 from app.modules.products.models import Product
 from app.modules.products.service import ProductService
@@ -123,9 +124,22 @@ class LoadPlanningService:
         self.product_service = ProductService(db)
         self.status_history_service = StatusHistoryService(db)
 
+    def orders_ready_for_approval(self, plan: LoadPlan) -> bool:
+        ids = [association.order_id for association in plan.orders]
+        return bool(ids) and self.db.scalar(
+            OrderReferenceService.ready_count_query(ids)
+        ) == len(ids)
+
     def get_continuity(
-        self, plan: LoadPlan, *, requester_role: str, can_read_trips: bool | None = None
+        self,
+        plan: LoadPlan,
+        *,
+        requester_role: str,
+        can_read_trips: bool | None = None,
+        can_read_operations: bool | None = None,
     ) -> LoadPlanContinuityRead:
+        if can_read_operations is None:
+            can_read_operations = requester_role in {"ADMIN", "LOGISTICS_MANAGER"}
         loading = LoadingReferenceService(self.db).get_by_load_plan_id(plan.id)
         if can_read_trips is None:
             can_read_trips = requester_role in {"ADMIN", "LOGISTICS_MANAGER"}
@@ -136,6 +150,9 @@ class LoadPlanningService:
         )
         operational = LoadPlanReferenceService(self.db).get_operational_plan(plan.id)
         return LoadPlanContinuityRead(
+            operation=self.repository.get_operation_summary(plan.id)
+            if can_read_operations
+            else None,
             loading_session=LoadingContinuityRead(id=loading.id, status=loading.status)
             if loading
             else None,
@@ -151,13 +168,21 @@ class LoadPlanningService:
         requester_role: str,
         status: str | None = None,
         truck_id: uuid.UUID | None = None,
+        include_operations: bool = False,
+        operation_scope: str = "all",
     ) -> PageResult[LoadPlanSummary]:
         # Apply the same object-level restriction as the detail BEFORE pagination.
         if requester_role == "CHECKER":
             if status is not None and status != "APPROVED":
                 return PageResult.create([], pagination, 0)
             status = "APPROVED"
-        return self.repository.list(pagination, status=status, truck_id=truck_id)
+        return self.repository.list(
+            pagination,
+            status=status,
+            truck_id=truck_id,
+            include_operations=include_operations,
+            operation_scope=operation_scope,
+        )
 
     def get_distribution_id_for_plan(self, load_plan_id: uuid.UUID) -> uuid.UUID | None:
         part = LoadDistributionRepository(self.db).plan_part(load_plan_id)

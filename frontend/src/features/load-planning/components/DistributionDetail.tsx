@@ -28,8 +28,7 @@ export function DistributionDetail({ distribution, part, canApprove, canCreate, 
         <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
           {tab === "summary" ? <PlanItemsTable items={part.loadPlan.items} /> : <Suspense fallback={<p className="entity-state">Carregando visualização 3D…</p>}><LoadViewer key={part.loadPlan.id} planId={part.loadPlan.id} plan={part.loadPlan} /></Suspense>}
         </div>
-        {distribution.status === "APPROVED" && distribution.truckCount === 1 ? <PlanContinuity key={part.loadPlan.id} planId={part.loadPlan.id} canManage={canCreate} /> : null}
-        {distribution.status === "APPROVED" && distribution.truckCount > 1 ? <p className="distribution-notice">Distribuição aprovada. A continuidade operacional com vários caminhões depende da OC90; esta tela não inicia carregamentos ou viagens dessas partes.</p> : null}
+        {distribution.status === "APPROVED" ? <PlanContinuity key={part.loadPlan.id} planId={part.loadPlan.id} canManage={canCreate} /> : null}
       </section>
   );
 }

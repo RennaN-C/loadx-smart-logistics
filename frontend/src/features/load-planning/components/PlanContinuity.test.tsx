@@ -19,6 +19,20 @@ describe("PlanContinuity", () => {
     expect(screen.getByRole("link", { name: "Abrir carregamento existente" })).toHaveAttribute("href", "/loading/s1");
     expect(screen.queryByRole("button", { name: "Criar viagem" })).not.toBeInTheDocument();
   });
+  it.each(["INTERRUPTED", "CANCELED"] as const)("reabre viagem %s sem oferecer criação duplicada", async status => {
+    vi.mocked(getLoadPlanContinuity).mockResolvedValue({ operational_ready: false, loading_session: null, trip: { id: "v1", status } });
+    setup();
+    expect(await screen.findByRole("link", { name: "Abrir viagem existente" })).toHaveAttribute("href", "/trips/v1");
+    expect(screen.getByText(status === "INTERRUPTED" ? "Viagem: interrompida." : "Viagem: cancelada.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Criar viagem" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Operação concluída")).not.toBeInTheDocument();
+  });
+  it("não confunde viagem finalizada com pedido integralmente entregue", async () => {
+    vi.mocked(getLoadPlanContinuity).mockResolvedValue({ operational_ready: true, loading_session: null, trip: { id: "v1", status: "FINISHED" } });
+    setup();
+    expect(await screen.findByRole("heading", { name: "Viagem concluída" })).toBeInTheDocument();
+    expect(screen.queryByText("Operação concluída")).not.toBeInTheDocument();
+  });
   it("falha fechada ate obter os vinculos e permite retry", async () => {
     vi.mocked(getLoadPlanContinuity).mockRejectedValueOnce(new Error("timeout")).mockResolvedValue({ operational_ready: true, loading_session: null, trip: null });
     setup(); expect(screen.queryByRole("button", { name: "Criar viagem" })).not.toBeInTheDocument();
