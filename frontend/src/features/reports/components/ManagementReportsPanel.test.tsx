@@ -56,3 +56,19 @@ describe("ManagementReportsPanel", () => {
     expect(screen.queryByText("Viagens criadas")).not.toBeInTheDocument();
   });
 });
+
+it("associa campos aos labels e mantem filtros na consulta e exportacao", async () => {
+  vi.mocked(fetchManagementSummary).mockResolvedValue(summary);
+  vi.mocked(downloadManagementReport).mockResolvedValue();
+  render(<ManagementReportsPanel />);
+  await screen.findByText("Viagens criadas");
+  expect(screen.getByRole("form", {name: "Filtros do relatório gerencial"})).toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText("De (UTC)"), {target: {value: "2026-10-01"}});
+  fireEvent.change(screen.getByLabelText("Até (inclusive)"), {target: {value: "2026-10-07"}});
+  fireEvent.change(screen.getByLabelText("Caminhão (ID opcional)"), {target: {value: "11111111-1111-4111-8111-111111111111"}});
+  fireEvent.click(screen.getByRole("button", {name: "Consultar"}));
+  await waitFor(() => expect(fetchManagementSummary).toHaveBeenLastCalledWith({start:"2026-10-01T00:00:00.000Z",end:"2026-10-08T00:00:00.000Z",truck_id:"11111111-1111-4111-8111-111111111111"}));
+  await waitFor(() => expect(screen.getByRole("button", {name: "Exportar CSV"})).toBeEnabled());
+  fireEvent.click(screen.getByRole("button", {name: "Exportar CSV"}));
+  await waitFor(() => expect(downloadManagementReport).toHaveBeenLastCalledWith("csv", {start:"2026-10-01T00:00:00.000Z",end:"2026-10-08T00:00:00.000Z",truck_id:"11111111-1111-4111-8111-111111111111"}));
+});
