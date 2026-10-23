@@ -15,8 +15,8 @@ const RESULTS: SearchResult[] = [
   { category: "trip", id: "v1", title: "Viagem v1", href: "/trips/v1" },
 ];
 function Destination() { const location = useLocation(); return <p>{location.pathname}{location.search}</p>; }
-function show(role: Role = "ADMIN") {
-  vi.mocked(useAuth).mockReturnValue({ user: { id: "u1", name: "Pessoa", email: "p@example.test", role, active: true, createdAt: "2026-01-01" } } as ReturnType<typeof useAuth>);
+function show(role: Role = "ADMIN", permissions?: string[]) {
+  vi.mocked(useAuth).mockReturnValue({ user: { id: "u1", name: "Pessoa", email: "p@example.test", role, permissions, active: true, createdAt: "2026-01-01" } } as ReturnType<typeof useAuth>);
   render(<MemoryRouter><GlobalSearch /><Routes><Route path="*" element={<Destination />} /></Routes></MemoryRouter>);
   const input = screen.getByRole("combobox", { name: "Busca global" });
   fireEvent.focus(input); return input;
@@ -77,4 +77,40 @@ describe("OC107 busca global", () => {
     const input = show(); await type(input); expect(screen.queryByRole("option")).not.toBeInTheDocument();
     fireEvent.blur(input, { relatedTarget: document.body }); expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
   });
+  it("limpa a busca por botão acessível e retorna ao início sem nova consulta", async () => {
+    const input = show(); await type(input);
+    fireEvent.click(screen.getByRole("button", { name: "Limpar busca" }));
+    await advance();
+    expect(input).toHaveValue(""); expect(input).toHaveFocus();
+    expect(screen.getByRole("status")).toHaveTextContent("Digite pelo menos 2 caracteres");
+    expect(screen.queryByRole("option")).not.toBeInTheDocument();
+    expect(searchRecords).toHaveBeenCalledTimes(1);
+  });
+  it("apresenta singular e plural naturais no resultado da busca", async () => {
+    vi.mocked(searchRecords).mockResolvedValueOnce([RESULTS[0]]);
+    const input = show(); await type(input);
+    expect(screen.getByRole("status")).toHaveTextContent("1 resultado encontrado.");
+    await type(input, "outro");
+    expect(screen.getByRole("status")).toHaveTextContent("5 resultados encontrados.");
+  });
+
+  it("exibe referência curta e preserva o destino com UUID completo", async () => {
+    const id = "12345678-1234-1234-1234-123456789abc";
+    vi.mocked(searchRecords).mockResolvedValueOnce([{ ...RESULTS[0], id, title: `Pedido ${id}`, href: `/orders?order=${id}` }]);
+    const input = show(); await type(input);
+    fireEvent.click(screen.getByRole("option", { name: "Pedido #12345678" }));
+    expect(screen.getByText(`/orders?order=${id}`)).toBeInTheDocument();
+  });
+
+  it("não esconde viagens próprias autorizadas de um perfil personalizado", async () => {
+    const input = show("CUSTOM", ["loadx.trips.own"]); await type(input);
+    expect(screen.getAllByRole("option")).toHaveLength(1);
+    expect(screen.getByRole("option", { name: "Viagem v1" })).toBeVisible();
+    expect(screen.queryByRole("option", { name: "Cliente fictício" })).not.toBeInTheDocument();
+  });
+  it("mantém a busca vazia para perfil personalizado sem grants", async () => {
+    const input = show("CUSTOM", []); await type(input);
+    expect(screen.queryByRole("option")).not.toBeInTheDocument();
+  });
+
 });
