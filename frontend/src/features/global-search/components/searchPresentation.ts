@@ -28,3 +28,9 @@ export function visibleResults(items: SearchResult[], user: PermissionSubject) {
   return items.filter((item) => allowed.includes(item.category) && item.href.startsWith(CATEGORIES[item.category].path))
     .sort((a, b) => ALL_CATEGORIES.indexOf(a.category) - ALL_CATEGORIES.indexOf(b.category));
 }
+
+/** Referência curta para exibição; o destino e a identidade permanecem completos. */
+export function searchResultTitle(result: SearchResult): string {
+  if (result.category !== "order" && result.category !== "trip") return result.title;
+  return result.title.replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi, (id) => `#${id.slice(0, 8)}`);
+}

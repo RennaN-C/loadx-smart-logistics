@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
 import * as api from "../api/notificationsApi";
@@ -98,4 +98,23 @@ it("reconsulta a lista quando o contador detecta uma nova atualização", async 
   fireEvent.focus(window);
   expect(await screen.findByText("Ocorrência posterior")).toBeInTheDocument();
   expect(vi.mocked(api.listNotifications).mock.calls.length).toBeGreaterThan(before);
+});
+
+it("limpa filtros e reinicia a paginação sem abandonar a central", async () => {
+  setup("/notifications?read=false&category=TRIPS&sort_order=asc&page=2");
+  const clear = await screen.findByRole("button", { name: "Limpar filtros" });
+  fireEvent.click(clear);
+  await waitFor(() => expect(api.listNotifications).toHaveBeenLastCalledWith(expect.objectContaining({ page: 1, read: undefined, category: undefined, sort_order: "desc" })));
+  expect(screen.queryByRole("button", { name: "Limpar filtros" })).not.toBeInTheDocument();
+});
+
+it("descarta a origem pendente quando a central é desmontada", async () => {
+  let resolve!: (href: string) => void;
+  vi.mocked(api.getNotificationSource).mockReturnValue(new Promise((done) => { resolve = done; }));
+  const view = render(<MemoryRouter><NotificationProvider active><NotificationsPage /></NotificationProvider></MemoryRouter>);
+  fireEvent.click(await screen.findByRole("button", { name: "Abrir operação: Viagem iniciada" }));
+  view.unmount();
+  await act(async () => { resolve("/trips/existing"); });
+  expect(api.markNotificationRead).not.toHaveBeenCalled();
+  expect(api.listNotifications).toHaveBeenCalledTimes(1);
 });

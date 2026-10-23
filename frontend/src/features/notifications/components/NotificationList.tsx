@@ -1,4 +1,5 @@
 import { Icon } from "../../../components/Icon";
+import { NOTIFICATION_CATEGORIES } from "./notificationPresentation";
 import type { NotificationItem } from "../api/notificationsApi";
 
 const dateTime = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" });
@@ -12,11 +13,11 @@ interface Props {
 export function NotificationList({ items, busy, compact = false, onRead, onOpen }: Props) {
   return <ul className={`notification-list${compact ? " notification-list--compact" : ""}`} aria-label="Notificações recebidas">
     {items.map((item) => <li key={item.id} className="notification-item" data-unread={item.read_at === null}>
-      <span className="notification-item-icon"><Icon name={item.category === "TRIPS" ? "truck" : "report"} size={21} /></span>
+      <span className="notification-item-icon"><Icon name={NOTIFICATION_CATEGORIES[item.category].icon} size={21} /></span>
       <div className="notification-item-content">
         <div className="notification-item-heading"><h3>{item.title}</h3><span className={`notification-state${item.read_at ? "" : " notification-state--unread"}`}>{item.read_at ? "Lida" : "Não lida"}</span></div>
         <p>{item.summary}</p>
-        <div className="notification-item-meta"><span>{item.category === "TRIPS" ? "Viagens" : "Ocorrências"}</span><time dateTime={item.created_at}>{dateTime.format(new Date(item.created_at))}</time></div>
+        <div className="notification-item-meta"><span>{NOTIFICATION_CATEGORIES[item.category].label}</span><time dateTime={item.created_at}>{dateTime.format(new Date(item.created_at))}</time></div>
         <div className="notification-item-actions">
           <button type="button" className="notification-text-button" disabled={busy} onClick={() => onOpen(item)} aria-label={`Abrir operação: ${item.title}`}>
             Abrir operação <Icon name="arrow-right" size={15} />

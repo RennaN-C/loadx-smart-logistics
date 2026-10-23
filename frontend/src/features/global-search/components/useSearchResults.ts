@@ -1,9 +1,10 @@
+import { ApiError } from "../../../types/api";
 import { useEffect, useState } from "react";
 import type { PermissionSubject } from "../../auth/permissions";
 import { searchRecords, type SearchResult } from "../api/searchApi";
 import { visibleResults } from "./searchPresentation";
 
-export type SearchStatus = "idle" | "loading" | "ready" | "error";
+export type SearchStatus = "idle" | "loading" | "ready" | "error" | "forbidden";
 export function useSearchResults(query: string, role: PermissionSubject) {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [status, setStatus] = useState<SearchStatus>("idle");
@@ -18,7 +19,11 @@ export function useSearchResults(query: string, role: PermissionSubject) {
       searchRecords(query, controller.signal).then((items) => {
         if (!current) return;
         setResults(visibleResults(items, role)); setStatus("ready");
-      }).catch(() => { if (current) setStatus("error"); });
+      }).catch((error: unknown) => {
+        if (!current) return;
+        const forbidden = error instanceof ApiError && (error.status === 403 || error.code === "AUTH_FORBIDDEN");
+        setStatus(forbidden ? "forbidden" : "error");
+      });
     }, 300);
     return () => { current = false; controller.abort(); window.clearTimeout(timer); };
   }, [query, attempt, role]);
