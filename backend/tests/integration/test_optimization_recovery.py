@@ -267,3 +267,49 @@ def test_record_constraints_and_populated_downgrade_protect_recovery(
         pytest.raises(RuntimeError, match="Downgrade blocked"),
     ):
         migration.downgrade()
+
+
+def test_canceled_result_replays_current_resource_without_new_claim(
+    distribution_scenario,
+):
+    s = distribution_scenario
+    key = uuid.uuid4()
+    first = send(s, key).json()
+    canceled = s.post(f"/{first['id']}/cancel")
+    assert canceled.status_code == 200
+    assert canceled.json()["status"] == "CANCELED"
+    replay = send(s, key)
+    assert replay.status_code == 201
+    assert replay.json()["status"] == "CANCELED"
+    assert replay.json()["id"] == first["id"]
+    assert_one(s, first["id"])
+
+
+def test_abandoned_transaction_releases_lock_for_restart_without_pending_job(
+    distribution_scenario,
+):
+    from app.modules.load_planning.optimization_repository import OptimizationRepository
+
+    s = distribution_scenario
+    key = uuid.uuid4()
+    with s.factory() as old_worker:
+        assert OptimizationRepository(old_worker).try_lock(s.user.id, key)
+        assert recover(s, key).status_code == 409
+        # Closing the connection rolls back the uncommitted attempt, as on worker exit.
+    assert recover(s, key).status_code == 404
+    result = send(s, key)
+    assert result.status_code == 201
+    assert_one(s, result.json()["id"])
+
+
+def test_openapi_documents_optional_uuid_header_and_recovery():
+    from app.main import app
+
+    schema = app.openapi()
+    operation = schema["paths"][BASE + "/optimize"]["post"]
+    parameter = next(
+        p for p in operation["parameters"] if p["name"] == "idempotency-key"
+    )
+    assert parameter["in"] == "header" and parameter["required"] is False
+    assert {"type": "string", "format": "uuid"} in parameter["schema"]["anyOf"]
+    assert "get" in schema["paths"][BASE + "/optimization-requests/{request_key}"]
