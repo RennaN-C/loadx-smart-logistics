@@ -115,7 +115,7 @@ describe("OrderListPage", () => {
     await screen.findByText("Distribuidora Aurora");
 
     // c2 não veio na listagem paginada de clientes
-    expect(screen.getByText("Cliente não encontrado")).toBeInTheDocument();
+    expect(screen.getByText("Cliente não disponível")).toBeInTheDocument();
   });
 
   it("mostra a contagem de itens, já que a listagem não devolve os itens", async () => {
@@ -156,12 +156,12 @@ describe("OrderListPage", () => {
     await screen.findByText("Distribuidora Aurora");
 
     vi.mocked(listOrders).mockResolvedValue(makePage([ORDERS[1]]));
-    fireEvent.change(screen.getByLabelText("Filtrar por situação"), { target: { value: "DELIVERED" } });
+    fireEvent.change(screen.getByLabelText("Situação"), { target: { value: "DELIVERED" } });
 
     await waitFor(() => expect(listOrders).toHaveBeenLastCalledWith(expect.objectContaining({ status: "DELIVERED", page: 1 })));
-    await screen.findByText("Cliente não encontrado");
+    await screen.findByText("Cliente não disponível");
     expect(screen.queryByText("Distribuidora Aurora")).not.toBeInTheDocument();
-    expect(screen.getByText("Cliente não encontrado")).toBeInTheDocument();
+    expect(screen.getByText("Cliente não disponível")).toBeInTheDocument();
   });
 
   it("busca por cliente consultando o servidor", async () => {
@@ -169,13 +169,13 @@ describe("OrderListPage", () => {
     await screen.findByText("Distribuidora Aurora");
 
     vi.mocked(listOrders).mockResolvedValue(makePage([ORDERS[0]]));
-    fireEvent.change(screen.getByLabelText("Buscar por cliente ou referência"), { target: { value: "aurora" } });
+    fireEvent.change(screen.getByLabelText("Buscar pedidos"), { target: { value: "aurora" } });
 
     await waitFor(() => expect(listOrders).toHaveBeenLastCalledWith(expect.objectContaining({ search: "aurora" })));
     await screen.findByText("Distribuidora Aurora");
 
     expect(screen.getByText("Distribuidora Aurora")).toBeInTheDocument();
-    expect(screen.queryByText("Cliente não encontrado")).not.toBeInTheDocument();
+    expect(screen.queryByText("Cliente não disponível")).not.toBeInTheDocument();
     expect(listOrders).toHaveBeenLastCalledWith(expect.objectContaining({ search: "aurora", page: 1 }));
   });
 
@@ -183,9 +183,10 @@ describe("OrderListPage", () => {
     mockRole("CHECKER");
 
     render(<MemoryRouter><OrderListPage /></MemoryRouter>);
-    await screen.findByText("Cliente c1");
+    await screen.findAllByText("Cliente do pedido");
     expect(listCustomers).not.toHaveBeenCalled();
-    expect(screen.getByLabelText("Buscar por referência")).toBeInTheDocument();
+    expect(screen.getByLabelText("Buscar pedidos")).toHaveAttribute("placeholder", "Referência do pedido");
+    expect(screen.queryByText("Cliente c1")).not.toBeInTheDocument();
 
     expect(screen.queryByRole("button", { name: "Novo pedido" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Editar" })).not.toBeInTheDocument();
@@ -199,6 +200,24 @@ describe("OrderListPage", () => {
     await waitFor(() =>
       expect(screen.getByRole("alert")).toHaveTextContent("Seu perfil não tem permissão para esta ação."),
     );
+  });
+  it("permite repetir uma consulta que falhou", async () => {
+    vi.mocked(listOrders)
+      .mockRejectedValueOnce(new ApiError("NETWORK_ERROR", "detalhe privado"))
+      .mockResolvedValueOnce(makePage(ORDERS));
+    render(<MemoryRouter><OrderListPage /></MemoryRouter>);
+    fireEvent.click(await screen.findByRole("button", { name: "Tentar novamente" }));
+    expect(await screen.findByText("Distribuidora Aurora")).toBeInTheDocument();
+    expect(listOrders).toHaveBeenCalledTimes(2);
+  });
+  it("restaura busca pela URL e limpa busca e situação juntas", async () => {
+    render(<MemoryRouter initialEntries={["/orders?search=aurora&status=DELIVERED"]}><OrderListPage /></MemoryRouter>);
+    expect(screen.getByLabelText("Buscar pedidos")).toHaveValue("aurora");
+    expect(screen.getByLabelText("Situação")).toHaveValue("DELIVERED");
+    fireEvent.click(screen.getByRole("button", { name: "Limpar filtros" }));
+    await waitFor(() => expect(listOrders).toHaveBeenLastCalledWith(expect.objectContaining({ search: "", status: undefined, page: 1 })));
+    expect(screen.getByLabelText("Buscar pedidos")).toHaveValue("");
+    expect(screen.getByLabelText("Situação")).toHaveValue("all");
   });
   it("reabre o pedido por URL sem oferecer edição ao conferente", async () => {
     mockRole("CHECKER");
@@ -252,14 +271,14 @@ describe("Atalhos de pedidos entregues", () => {
     expect(screen.getByRole("button", { name: "Pedidos entregues" })).toHaveAttribute(
       "aria-pressed", "true",
     );
-    expect(screen.getByLabelText("Filtrar por situação")).toHaveValue("DELIVERED");
+    expect(screen.getByLabelText("Situação")).toHaveValue("DELIVERED");
   });
 
   it("mantem o filtro de situacao completo e a leitura para conferente", async () => {
     mockRole("CHECKER");
     render(<MemoryRouter><OrderListPage /></MemoryRouter>);
-    await screen.findByText("Cliente c1");
-    fireEvent.change(screen.getByLabelText("Filtrar por situação"), {
+    await screen.findAllByText("Cliente do pedido");
+    fireEvent.change(screen.getByLabelText("Situação"), {
       target: { value: "READY" },
     });
     await waitFor(() => expect(listOrders).toHaveBeenLastCalledWith(

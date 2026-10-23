@@ -95,6 +95,18 @@ describe("OC86 gestão de usuários", () => {
   it("distingue loading, erro/retry e vazio", async () => {
     vi.mocked(listUsers).mockRejectedValueOnce(new ApiError("NETWORK_ERROR", "privado")).mockResolvedValueOnce(page([])); show(); expect(screen.getByText("Carregando usuários…")).toBeInTheDocument(); await screen.findByRole("alert"); fireEvent.click(screen.getByRole("button", { name: "Tentar novamente" })); await screen.findByText("Nenhum usuário encontrado com estes filtros.");
   });
+  it("limpa os filtros administrativos e restaura a ordenação padrão", async () => {
+    show();
+    await screen.findByText(TARGET.email);
+    fireEvent.change(screen.getByLabelText("Buscar por nome"), { target: { value: "Pessoa" } });
+    fireEvent.change(screen.getByLabelText("Filtrar perfil"), { target: { value: "CHECKER" } });
+    fireEvent.change(screen.getByLabelText("Ordenação"), { target: { value: "asc" } });
+    fireEvent.click(screen.getByRole("button", { name: "Limpar filtros" }));
+    await waitFor(() => expect(listUsers).toHaveBeenLastCalledWith(expect.objectContaining({ page: 1, search: "", sortOrder: "desc" })));
+    expect(screen.getByLabelText("Buscar por nome")).toHaveValue("");
+    expect(screen.getByLabelText("Filtrar perfil")).toHaveValue("all");
+    expect(screen.getByLabelText("Ordenação")).toHaveValue("desc");
+  });
   it.each<Role>(["LOGISTICS_MANAGER", "CHECKER", "DRIVER"])("%s não acessa URL administrativa nem consulta usuários", async (profile) => {
     role(profile); render(<MemoryRouter initialEntries={["/settings#settings-users"]}><Routes><Route element={<RequireSettingsAdmin />}><Route path="settings" element={<UserManagementPanel />} /></Route></Routes></MemoryRouter>); expect(await screen.findByRole("heading", { name: "Acesso negado" })).toBeInTheDocument(); expect(listUsers).not.toHaveBeenCalled();
   });

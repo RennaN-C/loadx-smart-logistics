@@ -27,6 +27,40 @@
   outline-offset: 2px;
 }
 
+.order-filters {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) minmax(190px, 240px) auto;
+  align-items: end;
+}
+
+.order-filter {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.order-filter input[type="search"],
+.order-filter select {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  border-radius: 8px;
+}
+
+.order-clear-filters {
+  min-height: 44px;
+  white-space: nowrap;
+}
+
+.order-error {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+}
+
 /* A casca da tela (.entity-*) e o formulário (.entity-form-*) vêm de app/styles.css. */
 
 .order-card {
@@ -152,10 +186,28 @@
 
 .order-card-foot {
   display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
   justify-content: flex-end;
   border-top: 1px solid var(--line);
   padding-top: 12px;
   margin-top: auto;
+}
+
+.order-card-foot .btn-secondary {
+  flex: 1 1 130px;
+  min-height: 40px;
+}
+
+.order-card-foot .btn-link {
+  flex: 0 0 auto;
+  min-height: 40px;
+}
+
+@media (max-width: 700px) {
+  .order-filters { grid-template-columns: minmax(0, 1fr); }
+  .order-clear-filters { width: 100%; }
 }
 
 /* ---- itens no formulário ---- */

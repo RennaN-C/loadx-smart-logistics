@@ -28,8 +28,8 @@ const listHistoricalCustomers = (params: ListParams) => listCustomers({ ...param
 
 export function OrderListPage() {
   const { user } = useAuth();
-  const [search, setSearch] = useState("");
   const [searchParams, setSearchParams] = useSearchParams();
+  const search = (searchParams.get("search") ?? "").slice(0, MAX_SEARCH_LENGTH);
   const requestedStatus = searchParams.get("status");
   const statusFilter: StatusFilter = ORDER_STATUSES.includes(requestedStatus as OrderStatus)
     ? requestedStatus as OrderStatus : "all";
@@ -50,6 +50,20 @@ export function OrderListPage() {
     const next = new URLSearchParams(searchParams);
     if (nextStatus === "all") next.delete("status");
     else next.set("status", nextStatus);
+    setSearchParams(next);
+  }
+  function changeSearch(nextSearch: string) {
+    goToPage(1);
+    const next = new URLSearchParams(searchParams);
+    if (nextSearch) next.set("search", nextSearch);
+    else next.delete("search");
+    setSearchParams(next);
+  }
+  function clearFilters() {
+    goToPage(1);
+    const next = new URLSearchParams(searchParams);
+    next.delete("search");
+    next.delete("status");
     setSearchParams(next);
   }
   const {
@@ -111,32 +125,37 @@ export function OrderListPage() {
         <button type="button" aria-pressed={statusFilter === "DELIVERED"} onClick={() => changeStatusFilter("DELIVERED")}>Pedidos entregues</button>
       </div>
 
-      <div className="entity-toolbar">
-        <input
-          type="search"
-          aria-label={canReadCustomers ? "Buscar por cliente ou referência" : "Buscar por referência"}
-          placeholder={canReadCustomers ? "Buscar por cliente ou referência" : "Buscar por referência"}
-          value={search}
-          onChange={(event) => { goToPage(1); setSearch(event.target.value); }}
-          maxLength={MAX_SEARCH_LENGTH}
-        />
-        <select
-          aria-label="Filtrar por situação"
-          value={statusFilter}
-          onChange={(event) => changeStatusFilter(event.target.value as StatusFilter)}
-        >
-          <option value="all">Todas as situações</option>
-          {ORDER_STATUSES.map((value) => (
-            <option key={value} value={value}>
-              {STATUS_LABELS[value]}
-            </option>
-          ))}
-        </select>
+      <div className="entity-toolbar order-filters">
+        <label className="order-filter order-filter-search">
+          <span>Buscar pedidos</span>
+          <input
+            type="search"
+            placeholder={canReadCustomers ? "Cliente ou referência" : "Referência do pedido"}
+            value={search}
+            onChange={(event) => changeSearch(event.target.value)}
+            maxLength={MAX_SEARCH_LENGTH}
+          />
+        </label>
+        <label className="order-filter">
+          <span>Situação</span>
+          <select
+            value={statusFilter}
+            onChange={(event) => changeStatusFilter(event.target.value as StatusFilter)}
+          >
+            <option value="all">Todas as situações</option>
+            {ORDER_STATUSES.map((value) => (
+              <option key={value} value={value}>
+                {STATUS_LABELS[value]}
+              </option>
+            ))}
+          </select>
+        </label>
+        {search || statusFilter !== "all" ? <button type="button" className="btn-secondary order-clear-filters" onClick={clearFilters}>Limpar filtros</button> : null}
       </div>
 
       {status === "success" && total > 0 ? (
         <p className="entity-summary">
-          Exibindo {orders.length} de {total} pedidos. Busca e filtros consideram toda a lista.
+          Exibindo {orders.length} de {total} {total === 1 ? "pedido" : "pedidos"}. Busca e filtros consideram toda a lista.
         </p>
       ) : null}
 
@@ -147,7 +166,7 @@ export function OrderListPage() {
         </p>
       ) : null}
 
-      {status === "error" && error ? <AlertBanner>{mapOrderErrorToMessage(error)}</AlertBanner> : null}
+      {status === "error" && error ? <div className="order-error"><AlertBanner>{mapOrderErrorToMessage(error)}</AlertBanner><button type="button" className="btn-secondary" onClick={() => void refetch()}>Tentar novamente</button></div> : null}
       {edit.error ? <AlertBanner>{mapOrderErrorToMessage(edit.error)}</AlertBanner> : null}
 
       {status === "success" && orders.length === 0 ? (
@@ -164,7 +183,7 @@ export function OrderListPage() {
             <OrderCard
               key={order.id}
               order={order}
-              customerName={customerNames.get(order.customerId) ?? (canReadCustomers ? "Cliente não encontrado" : `Cliente ${order.customerId}`)}
+              customerName={customerNames.get(order.customerId) ?? (canReadCustomers ? "Cliente não disponível" : "Cliente do pedido")}
               canManage={canManage}
               isOpening={edit.loadingId === order.id}
               onAttachments={setAttachmentOrderId}

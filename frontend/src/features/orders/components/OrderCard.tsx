@@ -64,10 +64,10 @@ export function OrderCard({ order, customerName, canManage, isOpening, onEdit, o
         </div>
       </dl>
 
-      <Link className="btn-secondary" to={`/orders?order=${encodeURIComponent(order.id)}`}>Ver pedido</Link>
-      {onAttachments ? <button type="button" className="btn-secondary" onClick={() => onAttachments(order.id)}>Anexos do pedido</button> : null}
-      {canManage ? (
-        <div className="order-card-foot">
+      <div className="order-card-foot">
+        <Link className="btn-secondary" to={`/orders?order=${encodeURIComponent(order.id)}`}>Ver pedido</Link>
+        {onAttachments ? <button type="button" className="btn-secondary" onClick={() => onAttachments(order.id)}>Anexos</button> : null}
+        {canManage ? (
           <button
             type="button"
             className="btn-link"
@@ -77,8 +77,8 @@ export function OrderCard({ order, customerName, canManage, isOpening, onEdit, o
             <Icon name="edit" size={15} />
             {isOpening ? "Abrindo…" : "Editar"}
           </button>
-        </div>
-      ) : null}
+        ) : null}
+      </div>
     </article>
   );
 }
