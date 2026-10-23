@@ -1,14 +1,13 @@
 """UI02: Chromium real, API local e PostgreSQL 16 descartável; sem pentest compartilhada."""
 import json
-import os
 import re
+import shutil
+import socket
 import subprocess
 import threading
 import time
 import uuid
 from pathlib import Path
-from urllib.error import URLError
-from urllib.request import urlopen
 
 from fastapi.testclient import TestClient
 from playwright.sync_api import sync_playwright
@@ -30,17 +29,16 @@ URL = "http://localhost:5173"
 SIZES = (375, 768, 1280, 1920)
 
 
-def ready(url):
+def ready(port):
+    if port not in (5173, 8000):
+        raise ValueError("Apenas serviços locais de QA são permitidos")
     for _ in range(90):
         try:
-            with urlopen(url, timeout=2) as response:
-                if response.status == 200:
-                    return
-        except (OSError, URLError):
+            with socket.create_connection(("127.0.0.1", port), timeout=2):
+                return
+        except OSError:
             time.sleep(0.5)
-            continue
-        time.sleep(0.5)
-    raise AssertionError("Servidor local não iniciou: " + url)
+    raise AssertionError("Servidor local de QA não iniciou")
 
 
 def browser_context(browser, headers, width=1280, theme="light"):
@@ -65,7 +63,7 @@ def test_ui02_browser_five_profiles_and_operations(committed_session_factory, tm
     app.dependency_overrides[get_db] = db_for_local_server
     vite = None
     server = None
-    screenshots = Path(os.getenv("UI02_ARTIFACT_DIR", str(tmp_path)))
+    screenshots = ROOT / "ui02-evidence"
     screenshots.mkdir(parents=True, exist_ok=True)
     failures = []
     try:
@@ -80,7 +78,7 @@ def test_ui02_browser_five_profiles_and_operations(committed_session_factory, tm
                 db.flush()
                 user = User(
                     name="Perfil Custom", email=f"custom-{uuid.uuid4().hex}@example.test",
-                    password_hash="hash-ficticio", role="CUSTOM",
+                    password_hash=uuid.uuid4().hex, role="CUSTOM",
                     custom_profile_id=profile.id, active=True,
                 )
                 db.add(user)
@@ -120,13 +118,16 @@ def test_ui02_browser_five_profiles_and_operations(committed_session_factory, tm
             threading.Thread(target=server.run, daemon=True).start()
             env = os.environ.copy()
             env["DEV_API_PROXY_TARGET"] = "http://127.0.0.1:8000"
+            npm = shutil.which("npm")
+            if npm is None:
+                raise RuntimeError("npm indisponível no runner de QA")
             vite = subprocess.Popen(
-                ["npm", "run", "dev", "--", "--host", "127.0.0.1", "--port", "5173", "--strictPort"],
+                [npm, "run", "dev", "--", "--host", "127.0.0.1", "--port", "5173", "--strictPort"],
                 cwd=ROOT / "frontend", env=env,
                 stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT,
             )
-            ready("http://127.0.0.1:8000/health")
-            ready(URL + "/login")
+            ready(8000)
+            ready(5173)
             with sync_playwright() as playwright:
                 browser = playwright.chromium.launch(headless=True)
                 try:
