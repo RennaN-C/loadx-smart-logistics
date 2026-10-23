@@ -174,6 +174,69 @@ def test_ui02_browser_five_profiles_and_operations(committed_session_factory, tm
                         page.get_by_role("button", name="Verificar bloqueios").click()
                         page.get_by_text(re.compile("Cancelamento bloqueado|Pré-validação aprovada")).wait_for()
                         page.screenshot(path=str(screenshots / "oc94-preflight.png"))
+
+                        # Finalizar a conferência com o backend real e iniciar a viagem.
+                        current = api.get(
+                            f"/api/v1/loading-sessions/{loading['id']}",
+                            headers=scenario.checker_headers,
+                        )
+                        assert current.status_code == 200
+                        for item in current.json()["items"]:
+                            if item["status"] != "PENDING":
+                                continue
+                            checked = api.patch(
+                                f"/api/v1/loading-sessions/{loading['id']}/items/{item['id']}",
+                                json={"status": "CHECKED"},
+                                headers=scenario.checker_headers,
+                            )
+                            assert checked.status_code == 200
+                        finished = api.patch(
+                            f"/api/v1/loading-sessions/{loading['id']}/status",
+                            json={"status": "FINISHED"},
+                            headers=scenario.checker_headers,
+                        )
+                        assert finished.status_code == 200
+                        page.get_by_role("button", name="Iniciar viagem").click()
+                        page.get_by_role(
+                            "button", name="Consultar ou registrar ocorrência",
+                        ).wait_for(timeout=20000)
+                        page.get_by_role(
+                            "button", name="Consultar ou registrar ocorrência",
+                        ).click()
+                        page.get_by_label(
+                            "Motivo (mínimo de 10 caracteres)",
+                        ).fill("Cliente não localizado no endereço de entrega")
+                        page.get_by_role(
+                            "button", name="Registrar no histórico",
+                        ).click()
+                        page.get_by_text(
+                            "Ocorrência registrada no histórico da entrega.",
+                        ).wait_for(timeout=20000)
+                        page.screenshot(path=str(screenshots / "oc94-ocorrencia.png"))
+
+                        # Interrupção e retomada devem continuar transações distintas.
+                        panel = page.get_by_role(
+                            "region", name="Interrupção e retomada da viagem",
+                        )
+                        panel.get_by_role("button", name="Interromper viagem").click()
+                        panel.get_by_role(
+                            "textbox", name=re.compile("Motivo obrigatório"),
+                        ).fill("Falha mecânica simulada na rota")
+                        panel.get_by_role(
+                            "button", name="Confirmar interrupção",
+                        ).click()
+                        panel.get_by_role(
+                            "button", name="Retomar viagem",
+                        ).wait_for(timeout=20000)
+                        panel.get_by_role("button", name="Retomar viagem").click()
+                        panel.get_by_role(
+                            "textbox", name=re.compile("Motivo obrigatório"),
+                        ).fill("Reparo concluído em ambiente isolado")
+                        panel.get_by_role("button", name="Confirmar retomada").click()
+                        page.get_by_role(
+                            "button", name="Consultar ou registrar ocorrência",
+                        ).wait_for(timeout=20000)
+                        page.screenshot(path=str(screenshots / "oc94-retomada.png"))
                 finally:
                     browser.close()
         assert failures == [], failures[:3]
@@ -181,7 +244,7 @@ def test_ui02_browser_five_profiles_and_operations(committed_session_factory, tm
             "result": "passed", "roles": list(users),
             "viewports": list(SIZES), "themes": ["light", "dark"],
             "real_api": True, "postgresql_isolated": True,
-            "limits": ["MFA login not tested", "OC94 full transitions not covered"],
+            "limits": ["MFA login not tested", "physical scanner not tested", "cancellation execution not covered"],
         }, indent=2), encoding="utf-8")
     finally:
         if vite is not None:
