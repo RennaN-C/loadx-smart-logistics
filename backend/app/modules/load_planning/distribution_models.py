@@ -126,3 +126,25 @@ class LoadDistributionVolume(Base):
     snapshot_quantity: Mapped[int] = mapped_column(Integer, nullable=False)
     part_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
     active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+
+
+class OptimizationRequest(Base):
+    """Committed results only; request identity and physical result share a commit."""
+
+    __tablename__ = "optimization_requests"
+    __table_args__ = (
+        CheckConstraint("length(payload_hash) = 64", name="payload_hash_length"),
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="RESTRICT"), primary_key=True
+    )
+    request_key: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
+    payload_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    distribution_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("load_distributions.id", ondelete="RESTRICT"),
+        nullable=False,
+        unique=True,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )

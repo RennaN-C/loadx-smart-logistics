@@ -1,3 +1,5 @@
+import hashlib
+import json
 import uuid
 from datetime import UTC, datetime
 
@@ -10,6 +12,7 @@ from app.modules.load_planning.distribution_models import (
     LoadDistributionOrder,
     LoadDistributionPart,
     LoadDistributionVolume,
+    OptimizationRequest,
 )
 from app.modules.load_planning.distribution_repository import LoadDistributionRepository
 from app.modules.load_planning.distribution_schemas import (
@@ -25,6 +28,7 @@ from app.modules.load_planning.distribution_schemas import (
     NeedVolumeRead,
     VolumeReference,
 )
+from app.modules.load_planning.optimization_repository import OptimizationRepository
 from app.modules.load_planning.optimizer.capacity import TruckCapacityInput
 from app.modules.load_planning.optimizer.contracts import (
     IndividualVolume,
@@ -178,11 +182,56 @@ class LoadDistributionService:
             ineligible_trucks=ineligible,
         )
 
+    def recover_optimization(
+        self, key: uuid.UUID, *, changed_by: uuid.UUID
+    ) -> DistributionRead:
+        repository = OptimizationRepository(self.db)
+        if not repository.try_lock(changed_by, key):
+            raise DistributionError("OPTIMIZATION_IN_PROGRESS")
+        request = repository.get(changed_by, key)
+        if request is None:
+            raise DistributionError("OPTIMIZATION_NOT_FOUND", status=404)
+        return self.get(request.distribution_id)
+
     def optimize(
         self,
         data: DistributionNeedRequest,
         *,
         changed_by: uuid.UUID,
+        idempotency_key: uuid.UUID | None = None,
+    ) -> DistributionRead:
+        try:
+            request = None
+            if idempotency_key is not None:
+                repository = OptimizationRepository(self.db)
+                if not repository.try_lock(changed_by, idempotency_key):
+                    raise DistributionError("OPTIMIZATION_IN_PROGRESS")
+                payload_hash = hashlib.sha256(
+                    json.dumps(
+                        {"version": 1, "order_ids": sorted(map(str, data.order_ids))}
+                    ).encode()
+                ).hexdigest()
+                request = repository.get(changed_by, idempotency_key)
+                if request is not None:
+                    if request.payload_hash != payload_hash:
+                        raise DistributionError("IDEMPOTENCY_PAYLOAD_MISMATCH")
+                    return self.get(request.distribution_id)
+                request = OptimizationRequest(
+                    user_id=changed_by,
+                    request_key=idempotency_key,
+                    payload_hash=payload_hash,
+                )
+            return self._optimize(data, changed_by=changed_by, request=request)
+        except Exception:
+            self.db.rollback()
+            raise
+
+    def _optimize(
+        self,
+        data: DistributionNeedRequest,
+        *,
+        changed_by: uuid.UUID,
+        request: OptimizationRequest | None,
     ) -> DistributionRead:
         need = self.preflight(data)
 
@@ -282,7 +331,9 @@ class LoadDistributionService:
                 for part in result.parts
             ],
         )
-        return self.create(proposal, changed_by=changed_by)
+        return self.create(
+            proposal, changed_by=changed_by, optimization_request=request
+        )
 
     def _lock_trucks(self, identifiers):
         trucks = {}
@@ -297,7 +348,11 @@ class LoadDistributionService:
         return trucks
 
     def create(
-        self, data: DistributionCreate, *, changed_by: uuid.UUID
+        self,
+        data: DistributionCreate,
+        *,
+        changed_by: uuid.UUID,
+        optimization_request: OptimizationRequest | None = None,
     ) -> DistributionRead:
         try:
             trucks = self._lock_trucks([p.truck_id for p in data.parts])
@@ -359,6 +414,9 @@ class LoadDistributionService:
             self._history(
                 "LOAD_DISTRIBUTION", distribution.id, None, "PROPOSED", changed_by
             )
+            if optimization_request is not None:
+                optimization_request.distribution_id = distribution.id
+                OptimizationRepository(self.db).add(optimization_request)
             return self._commit(distribution.id)
         except Exception as error:
             self._rollback(error)
