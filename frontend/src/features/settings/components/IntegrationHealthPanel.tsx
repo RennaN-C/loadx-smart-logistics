@@ -5,16 +5,29 @@ import { getIntegrationHealth, type ComponentHealth, type HealthComponent, type 
 import "./IntegrationHealthPanel.css";
 
 const COMPONENTS: Record<HealthComponent, { title: string; description: string }> = {
-  api: { title: "API LoadX", description: "Liveness compartilhada com /health: o serviço respondeu à consulta." },
-  database: { title: "Banco e migrations", description: "Readiness existente de /ready: acesso ao PostgreSQL e revision Alembic." },
-  whatsapp: { title: "WhatsApp", description: "Nesta fase, a saída é simulada. Não há conexão, envio ou confirmação de entrega pela Meta." },
-  ai: { title: "Inteligência artificial", description: "Disponibilidade real exige adapter aprovado e configurado. O painel não executa prompts nem implementa o provider." },
-  webhook: { title: "Webhook interno", description: "Recebimento HTTP autenticado pertence à OC83. O simulador de mensagens não é um webhook." },
-  notifications: { title: "Notificações internas", description: "A base existente trata início de viagem e ocorrência após commit, com saída WhatsApp simulada. A evolução é da OC84." },
+  api: { title: "API LoadX", description: "Confirma que o serviço está respondendo; não verifica todas as operações." },
+  database: { title: "Banco de dados", description: "Verifica a conexão e se a estrutura do banco está atualizada." },
+  whatsapp: { title: "WhatsApp", description: "Não há conexão, envio ou confirmação de entrega pela Meta. O funcionamento é simulado." },
+  ai: { title: "Inteligência artificial", description: "Indica o modo de funcionamento e a configuração do provedor aprovado." },
+  webhook: { title: "Webhook interno", description: "Recebimento interno de eventos, conforme a configuração deste ambiente. Não comprova conexão externa." },
+  notifications: { title: "Notificações internas", description: "Eventos persistidos e central de notificações. O processamento em segundo plano tem verificação separada." },
 };
 const STATUSES: Record<HealthStatus, string> = { AVAILABLE: "DISPONÍVEL", SIMULATED: "SIMULADO", NOT_CONFIGURED: "NÃO CONFIGURADO", NOT_IMPLEMENTED: "NÃO IMPLEMENTADO", LIMITED: "LIMITADO", UNAVAILABLE: "FALHA", TIMEOUT: "TEMPO ESGOTADO" };
 const REASONS: Record<HealthReason, string> = {
-  LIVE: "Liveness disponível.", READY: "Verificação disponível.", READINESS_FAILED: "Readiness indisponível; detalhes internos foram omitidos.", TIMEOUT: "A consulta excedeu o limite de espera.", MOCK_PROVIDER: "Provider local simulado, sem serviço externo.", PROVIDER_NOT_IMPLEMENTED: "Nenhum adapter externo aprovado está implementado nesta base.", OC83_PENDING: "Aguardando implementação da OC83.", OC84_PENDING: "Escopo interno atual limitado; OC84 ainda pendente.", NOT_CONFIGURED: "O componente não está configurado.", APPROVAL_REQUIRED: "Ativação real depende de aprovação.", PROVIDER_FAILED: "Não foi possível obter o sinal do componente.", INVALID_SIGNAL: "O componente retornou um sinal incompatível com a política aprovada.",
+  LIVE: "O serviço está respondendo.",
+  READY: "A verificação de disponibilidade foi concluída.",
+  READINESS_FAILED: "A conexão ou a estrutura do banco não está pronta. Detalhes internos foram omitidos.",
+  TIMEOUT: "A consulta excedeu o tempo de espera.",
+  MOCK_PROVIDER: "Funcionamento simulado, sem comunicação com um serviço externo.",
+  PROVIDER_NOT_IMPLEMENTED: "Nenhum provedor externo aprovado está disponível nesta versão.",
+  OC83_PENDING: "Diagnóstico de uma versão anterior. Atualize a consulta para conferir a configuração atual.",
+  OC84_PENDING: "Diagnóstico de uma versão anterior. Atualize a consulta para conferir as limitações atuais.",
+  NOT_CONFIGURED: "O componente não está configurado neste ambiente.",
+  RUNTIME_CONFIGURED: "O componente interno foi inicializado. Isso não comprova envio ou recebimento por um serviço externo.",
+  WORKER_NOT_OBSERVED: "A infraestrutura de notificações está implementada. Esta consulta não verifica se o processador de eventos está ativo nem se há eventos aguardando processamento.",
+  APPROVAL_REQUIRED: "A ativação real depende de aprovação.",
+  PROVIDER_FAILED: "Não foi possível verificar o componente.",
+  INVALID_SIGNAL: "A resposta do componente não permite confirmar sua disponibilidade.",
 };
 const COMPONENT_ICONS: Record<HealthComponent, IconName> = { api: "gauge", database: "orders", whatsapp: "users", ai: "planning", webhook: "settings", notifications: "report" };
 function HealthCard({ item }: { readonly item: ComponentHealth }) {
@@ -57,7 +70,7 @@ export function IntegrationHealthPanel() {
     {error && <p role="alert" className="integration-health-error">{error}</p>}
     {report && <>
       {error && <p className="integration-health-stale">Exibindo a última consulta bem-sucedida; os dados abaixo podem estar desatualizados.</p>}
-      <div className="integration-health-summary" data-status={report.overall_status}><strong>{report.overall_status === "DEGRADED" ? "Saúde degradada: há falha ou timeout." : "Cobertura parcial: há componentes simulados, limitados ou pendentes."}</strong><p>Consulta em <time dateTime={report.checked_at}>{new Date(report.checked_at).toLocaleString("pt-BR")}</time></p></div>
+      <div className="integration-health-summary" data-status={report.overall_status}><strong>{report.overall_status === "DEGRADED" ? "Saúde degradada: há falha ou demora na resposta." : "Há serviços simulados ou com verificação limitada."}</strong><p>Consulta em <time dateTime={report.checked_at}>{new Date(report.checked_at).toLocaleString("pt-BR")}</time></p></div>
       {report.components.length ? <ul className="integration-health-grid">{report.components.map((item) => <HealthCard key={item.component} item={item} />)}</ul> : <p className="integration-health-empty">Nenhum indicador foi disponibilizado nesta consulta.</p>}
       <details className="integration-health-reference"><summary>Referência do diagnóstico</summary><p><code>{report.correlation_id}</code>. Falhas desta consulta podem ser correlacionadas aos eventos operacionais sanitizados. Histórico persistente de integrações não está disponível nesta etapa.</p></details>
     </>}

@@ -1,7 +1,7 @@
 import { api } from "../../../services/api";
 export type HealthComponent = "api" | "database" | "whatsapp" | "ai" | "webhook" | "notifications";
 export type HealthStatus = "AVAILABLE" | "SIMULATED" | "NOT_CONFIGURED" | "NOT_IMPLEMENTED" | "LIMITED" | "UNAVAILABLE" | "TIMEOUT";
-export type HealthReason = "LIVE" | "READY" | "READINESS_FAILED" | "TIMEOUT" | "MOCK_PROVIDER" | "PROVIDER_NOT_IMPLEMENTED" | "OC83_PENDING" | "OC84_PENDING" | "NOT_CONFIGURED" | "APPROVAL_REQUIRED" | "PROVIDER_FAILED" | "INVALID_SIGNAL";
+export type HealthReason = "RUNTIME_CONFIGURED" | "WORKER_NOT_OBSERVED" | "LIVE" | "READY" | "READINESS_FAILED" | "TIMEOUT" | "MOCK_PROVIDER" | "PROVIDER_NOT_IMPLEMENTED" | "OC83_PENDING" | "OC84_PENDING" | "NOT_CONFIGURED" | "APPROVAL_REQUIRED" | "PROVIDER_FAILED" | "INVALID_SIGNAL";
 export interface ComponentHealth {
   component: HealthComponent;
   mode: "INTERNAL" | "MOCK" | "REAL";
