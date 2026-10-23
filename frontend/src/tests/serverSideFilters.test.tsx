@@ -25,7 +25,7 @@ const RECORDS = {
   drivers: { id: "d1", name: "Motorista devolvido", licenseCategory: "D", active: true },
 };
 const CASES = [
-  { resource: "orders", Component: OrderListPage, label: "Buscar por cliente ou referência", visible: "Cliente não encontrado", empty: "Nenhum pedido encontrado com esses filtros." },
+  { resource: "orders", Component: OrderListPage, label: "Buscar pedidos", visible: "Cliente não disponível", empty: "Nenhum pedido encontrado com esses filtros." },
   { resource: "products", Component: ProductListPage, label: "Buscar por código ou nome", visible: "SEM-CORRESPONDENCIA", empty: "Nenhum produto encontrado com esses filtros." },
   { resource: "trucks", Component: TruckListPage, label: "Buscar por placa ou modelo", visible: "ABC1D23", empty: "Nenhum caminhão encontrado com esses filtros." },
   { resource: "customers", Component: CustomerPanel, label: "Buscar cliente por nome ou cidade", visible: "Cliente devolvido", empty: "Nenhum cliente encontrado com essa busca." },
@@ -87,7 +87,7 @@ it.each(CASES.filter((item) => item.resource !== "orders"))("combina search e ar
 });
 
 it.each([
-  { Component: OrderListPage, resource: "orders", searchLabel: CASES[0].label, filterLabel: "Filtrar por situação", value: "READY", key: "status", visible: CASES[0].visible },
+  { Component: OrderListPage, resource: "orders", searchLabel: CASES[0].label, filterLabel: "Situação", value: "READY", key: "status", visible: CASES[0].visible },
   { Component: ProductListPage, resource: "products", searchLabel: CASES[1].label, filterLabel: "Filtrar por restrição", value: "restricted", key: "restriction", visible: CASES[1].visible },
 ] as const)("$resource preserva busca ao alterar $key e não reaplica o filtro aos items", async ({ Component, resource, searchLabel, filterLabel, value, key, visible }) => {
   render(<MemoryRouter><Component /></MemoryRouter>);
