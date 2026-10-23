@@ -6,6 +6,14 @@ from app.core.config import Settings
 from app.main import create_app
 
 EXPECTED_ERROR_STATUSES = {
+    ("/api/v1/load-distributions/optimization-requests/{request_key}", "get"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
     ("/api/v1/deliveries/{delivery_id}/communications", "get"): {
         "401",
         "403",
