@@ -1,0 +1,12 @@
+.optimization-recovery { display: grid; gap: 16px; min-width: 0; }
+.optimization-recovery h2 { margin: 0; font-size: 1.25rem; line-height: 1.35; }
+.optimization-recovery p { margin: 0; line-height: 1.6; }
+.optimization-recovery-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.optimization-recovery-actions button { min-height: 44px; max-width: 100%; }
+.optimization-recovery-link { color: var(--accent-strong); text-underline-offset: 3px; }
+.optimization-recovery-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 3px; }
+@media (max-width: 560px) {
+  .optimization-recovery-actions { flex-direction: column; align-items: stretch; }
+  .optimization-recovery-actions button { width: 100%; justify-content: center; }
+  .optimization-recovery-link { padding: 8px 0; }
+}

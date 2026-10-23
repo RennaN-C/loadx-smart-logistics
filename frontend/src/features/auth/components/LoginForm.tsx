@@ -72,7 +72,7 @@ export function LoginForm() {
               aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
               onClick={() => setShowPassword((value) => !value)}
             >
-              {showPassword ? "ocultar" : "mostrar"}
+              {showPassword ? "Ocultar" : "Mostrar"}
             </button>
           </div>
           <input

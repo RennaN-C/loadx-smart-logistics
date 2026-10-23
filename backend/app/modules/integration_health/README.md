@@ -20,9 +20,14 @@ token, stack trace ou mensagem de exceção é devolvida. Headers no-store exist
 - IA: factory atual é fake local; configuração mock mostra SIMULATED. Nome externo
   no ambiente não instala nem aprova provider e mostra NOT_CONFIGURED. Nunca
   exibe o valor de AI_PROVIDER, que poderia conter informação indevida.
-- Webhook: NOT_IMPLEMENTED/OC83_PENDING; simulador não é recepção HTTP real.
-- Notificações: INTERNAL/LIMITED/OC84_PENDING. Base existente envia avisos de
-  início de viagem e ocorrência após commit para o mock; evolução OC84 pendente.
+- Webhook: INTERNAL/NOT_CONFIGURED quando o runtime existente está desativado;
+  INTERNAL/AVAILABLE/RUNTIME_CONFIGURED quando ele foi inicializado pela factory
+  aprovada. Isso confirma configuração interna, não recebimento ou entrega externa.
+- Notificações: INTERNAL/LIMITED/WORKER_NOT_OBSERVED. Eventos duráveis OC84,
+  central OC103 e fila OC109 existem; esta consulta não observa atividade/atraso
+  do worker nem certifica processamento. Não declara OCs implementadas como pendentes.
+- OC83_PENDING/OC84_PENDING permanecem aceitos por compatibilidade com clientes
+  anteriores, mas não são emitidos pelos diagnósticos padrão atuais.
 
 ## Sinais futuros aprovados
 
@@ -45,6 +50,7 @@ para ocultar ausência de integrações reais.
 
 `CONFIRMADO`: falhas emitidas como INTEGRATION_HEALTH_FAILED, reason permitido e
 request_id, sem mensagens de exceção. UUID/data permitem rastrear esta consulta
-nos logs operacionais existentes. Não há histórico persistido, contagem de envios,
-retries, outbox (OC109), webhook (OC83), evolução notificações (OC84) ou OC103.
+nos logs operacionais existentes. O painel não cria histórico de saúde, contagem de envios, retries ou novos
+componentes operacionais; reutiliza a presença do runtime de webhook e informa
+explicitamente que a saúde do worker não é observada.
 Política: ADR-036 e ADR-037; não exige nova ADR nem altera decisões existentes.

@@ -130,6 +130,15 @@ describe("AppLayout", () => {
     expect(screen.queryByRole("link", { name: "Relatórios e indicadores" })).not.toBeInTheDocument();
   });
 
+  it("motorista encontra viagens e entregas sem acesso aos carregamentos", () => {
+    signedInAs("DRIVER");
+    renderLayout();
+    fireEvent.click(screen.getByRole("button", { name: "Operação" }));
+    expect(screen.getByRole("link", { name: "Viagens" })).toHaveAttribute("href", "/trips");
+    expect(screen.getByRole("link", { name: "Entregas" })).toHaveAttribute("href", "/deliveries");
+    expect(screen.queryByRole("link", { name: "Carregamentos" })).not.toBeInTheDocument();
+  });
+
   it("o gestor preserva acesso à auditoria", () => {
     signedInAs("LOGISTICS_MANAGER");
     renderLayout();
@@ -165,7 +174,9 @@ describe("AppLayout", () => {
 
     expect(screen.getByRole("link", { name: "Visão geral" })).toBeInTheDocument();
     expect(screen.queryByText("Cadastros")).not.toBeInTheDocument();
-    expect(screen.queryByText("Operação")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Operação" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Operação" }));
+    expect(screen.getByRole("link", { name: "Agenda operacional" })).toHaveAttribute("href", "/agenda");
   });
 
   it("marca só a tela atual como ativa", () => {

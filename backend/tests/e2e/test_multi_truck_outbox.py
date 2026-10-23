@@ -322,7 +322,7 @@ def test_oc90_upgrade_downgrade_preserves_existing_outbox_receipts_attempts_and_
     with session_factory() as db:
         assert (
             db.scalar(text("SELECT version_num FROM alembic_version"))
-            == "20261021_0034"
+            == "20261023_0035"
         )
         assert (
             db.scalar(text("SELECT to_regclass('public.outbox_events')"))

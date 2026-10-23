@@ -1735,7 +1735,11 @@ def test_continuity_reports_actual_loading_and_trip_without_writing(
     created = create_load_plan(client, scenario, manager)
     endpoint = f"/api/v1/load-plans/{created['id']}/continuity"
     before = client.get(endpoint, headers=manager.headers).json()
-    assert before == {"loading_session": None, "trip": None, "operational_ready": False}
+    assert before["loading_session"] is None
+    assert before["trip"] is None
+    assert before["operational_ready"] is False
+    assert before["operation"]["status"] == "NOT_STARTED"
+    assert before["operation"]["ready_order_count"] == 1
     checker = create_authenticated_user(session_factory, "CHECKER")
     driver_user = create_authenticated_user(session_factory, "DRIVER")
     assert client.get(endpoint, headers=checker.headers).status_code == 403

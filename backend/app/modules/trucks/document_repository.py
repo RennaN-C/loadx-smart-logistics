@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import Sequence
 from datetime import datetime
 from typing import TypeVar
 
@@ -75,6 +76,11 @@ class DocumentRepository:
         )
 
     def has_block(self, truck_id: uuid.UUID, at: datetime) -> bool:
+        return bool(self.blocked_truck_ids((truck_id,), at))
+
+    def blocked_truck_ids(
+        self, truck_ids: Sequence[uuid.UUID] | None, at: datetime
+    ) -> frozenset[uuid.UUID]:
         valid = (
             select(TruckDocument.id)
             .where(
@@ -86,18 +92,12 @@ class DocumentRepository:
             )
             .exists()
         )
-        return (
-            self.db.scalar(
-                select(TruckDocumentPolicy.id)
-                .where(
-                    TruckDocumentPolicy.truck_id == truck_id,
-                    TruckDocumentPolicy.required.is_(True),
-                    ~valid,
-                )
-                .limit(1)
-            )
-            is not None
+        query = select(TruckDocumentPolicy.truck_id).where(
+            TruckDocumentPolicy.required.is_(True), ~valid
         )
+        if truck_ids is not None:
+            query = query.where(TruckDocumentPolicy.truck_id.in_(truck_ids))
+        return frozenset(self.db.scalars(query.distinct()).all())
 
     def save(self, record: DocumentRecord) -> DocumentRecord:
         self.db.add(record)

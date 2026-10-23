@@ -1,5 +1,8 @@
 import type { ReactNode } from "react";
 import { AlertBanner } from "../../../components/AlertBanner";
+import { useAuth } from "../../auth/hooks/useAuth";
+import { hasPermission } from "../../auth/permissions";
+import { ManagementReportsPanel } from "../components/ManagementReportsPanel";
 import { Avatar } from "../../../components/Avatar";
 import { Icon } from "../../../components/Icon";
 import { StatusPill } from "../../../components/StatusPill";
@@ -24,6 +27,7 @@ function ReportsHeader({ reference, action }: { readonly reference?: Date; reado
 }
 
 export function ReportsPage() {
+  const { user } = useAuth();
   const { status, report, customerNames, notCounted, reference, reload } = useOrderReport();
 
   if (status === "loading") {
@@ -53,6 +57,7 @@ export function ReportsPage() {
   return (
     <div className="entity-page reports-page">
       <ReportsHeader reference={reference} action={<button type="button" className="btn-secondary" onClick={reload}>Atualizar</button>} />
+      {hasPermission(user, "loadx.reports.read") ? <ManagementReportsPanel /> : null}
 
       <p className="entity-summary">Apuração limitada a até 1.000 pedidos carregados nesta consulta.</p>
       {report.unknownVolumeOrders > 0 && <AlertBanner>Volumes físicos não informados em {report.unknownVolumeOrders} pedido(s). Os totais afetados aparecem como “—”; linhas não substituem quantidades físicas.</AlertBanner>}

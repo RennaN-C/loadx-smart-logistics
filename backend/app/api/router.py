@@ -11,6 +11,9 @@ from app.modules.customers.address_router import router as customer_addresses_ro
 from app.modules.customers.router import router as customers_router
 from app.modules.deliveries.evidence_router import router as evidence_router
 from app.modules.deliveries.exception_router import router as exception_router
+from app.modules.deliveries.operational_lists_router import (
+    router as operational_lists_router,
+)
 from app.modules.deliveries.router import router as deliveries_router
 from app.modules.drivers.document_router import router as driver_documents_router
 from app.modules.drivers.document_router import (
@@ -24,9 +27,13 @@ from app.modules.load_planning.router import router as load_planning_router
 from app.modules.loading.router import router as loading_router
 from app.modules.messages.router import router as messages_router
 from app.modules.messages.webhook_router import router as inbound_webhook_router
+from app.modules.notifications.communication_router import (
+    router as delivery_communications_router,
+)
 from app.modules.notifications.outbox_router import router as outbox_router
 from app.modules.notifications.router import router as notifications_router
 from app.modules.occurrences.router import router as occurrences_router
+from app.modules.operational_agenda.router import router as agenda_router
 from app.modules.operational_indicators.router import (
     router as operational_indicators_router,
 )
@@ -35,8 +42,10 @@ from app.modules.products.router import router as products_router
 from app.modules.registration_imports.router import (
     router as registration_imports_router,
 )
+from app.modules.reports.management_router import router as management_router
 from app.modules.reports.router import router as reports_router
 from app.modules.status_history.router import router as audit_router
+from app.modules.status_history.timeline_router import router as timeline_router
 from app.modules.trucks.document_router import router as truck_documents_router
 from app.modules.trucks.maintenance_router import router as maintenance_router
 from app.modules.trucks.router import router as trucks_router
@@ -49,9 +58,11 @@ api_router.include_router(trusted_device_router)
 api_router.include_router(integration_health_router)
 api_router.include_router(company_profile_router)
 api_router.include_router(audit_router)
+api_router.include_router(timeline_router)
 api_router.include_router(customers_router)
 api_router.include_router(customer_addresses_router)
 api_router.include_router(deliveries_router)
+api_router.include_router(operational_lists_router)
 api_router.include_router(evidence_router)
 api_router.include_router(exception_router)
 api_router.include_router(drivers_router)
@@ -63,9 +74,11 @@ api_router.include_router(messages_router)
 api_router.include_router(inbound_webhook_router)
 api_router.include_router(occurrences_router)
 api_router.include_router(operational_indicators_router)
+api_router.include_router(agenda_router)
 api_router.include_router(orders_router)
 api_router.include_router(products_router)
 api_router.include_router(reports_router)
+api_router.include_router(management_router)
 api_router.include_router(trucks_router)
 api_router.include_router(maintenance_router)
 api_router.include_router(truck_documents_router)
@@ -83,3 +96,5 @@ api_router.include_router(profiles_router)
 
 api_router.include_router(notifications_router)
 api_router.include_router(outbox_router)
+
+api_router.include_router(delivery_communications_router)

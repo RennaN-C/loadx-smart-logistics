@@ -16,6 +16,8 @@ HealthStatus = Literal[
     "TIMEOUT",
 ]
 ReasonCode = Literal[
+    "RUNTIME_CONFIGURED",
+    "WORKER_NOT_OBSERVED",
     "LIVE",
     "READY",
     "READINESS_FAILED",

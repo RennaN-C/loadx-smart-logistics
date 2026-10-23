@@ -2,6 +2,7 @@ import { TripAttachments } from "../../attachments/components/TripAttachments";
 import { Link, useParams } from "react-router-dom";
 
 import { AlertBanner } from "../../../components/AlertBanner";
+import { Icon } from "../../../components/Icon";
 import { StatusPill } from "../../../components/StatusPill";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { canOperateTrip, hasPermission } from "../../auth/permissions";
@@ -16,6 +17,7 @@ import { TripCancellationPreflightPanel } from "../components/TripCancellationPr
 import { TripInterruptionPanel } from "../components/TripInterruptionPanel";
 import { TripStops } from "../components/TripStops";
 import { TripSummary } from "../components/TripSummary";
+import { TripTimeline } from "../components/TripTimeline";
 import { useTripPage } from "../hooks/useTripPage";
 import { TRIP_TRANSITIONS, type Trip } from "../types";
 import "./TripPage.css";
@@ -73,6 +75,7 @@ export function TripPage() {
     <div className="entity-page">
       <nav className="entity-toolbar entity-page-nav" aria-label="Caminhos da viagem">
         <Link to="/">{user?.role === "DRIVER" ? "Voltar às minhas viagens" : "Voltar ao início"}</Link>
+        {hasPermission(user, "loadx.trips.read") ? <Link to="/trips">Voltar às viagens</Link> : null}
         {trip && hasPermission(user, "loadx.planning.read") ? <Link to={`/planning/${trip.loadPlanId}`}>Voltar ao plano de origem</Link> : null}
       </nav>
       <header className="entity-header">
@@ -106,6 +109,7 @@ export function TripPage() {
       ) : null}
 
       {trip && !isLoading ? <TripOperations trip={trip} user={user} isWorking={isWorking} run={run} /> : null}
+      {trip && !isLoading ? <TripTimeline tripId={trip.id} /> : null}
     </div>
   );
 }
@@ -141,11 +145,13 @@ function TripOperations({ trip, user, isWorking, run }: { readonly trip: Trip; r
 
           <TripAttachments trip={trip} canManage={canOperate} access={tripAttachmentAccess(user)} />
 
-          {hasPermission(user, "loadx.orders.read") ? <nav className="entity-toolbar" aria-label="Pedidos desta viagem">
-            {[...new Set(trip.deliveries.map((delivery) => delivery.orderId))].map((orderId) => <Link key={orderId} to={`/orders?order=${encodeURIComponent(orderId)}`}>Ver pedido {orderId}</Link>)}
+          {hasPermission(user, "loadx.orders.read") ? <nav className="trip-order-links" aria-label="Pedidos desta viagem">
+            {[...new Set(trip.deliveries.map((delivery) => delivery.orderId))].map((orderId) => <Link key={orderId} className="btn-secondary" to={`/orders?order=${encodeURIComponent(orderId)}`} aria-label={`Ver pedido ${orderId}`}><Icon name="package" size={16} /><span>Pedido {orderId.slice(0, 8)}</span><Icon name="arrow-right" size={16} /></Link>)}
           </nav> : null}
 
           <TripStops
+              canReadReceipts={hasPermission(user, "loadx.deliveries.read") || hasPermission(user, "loadx.trips.own")}
+              canReadCommunication={(hasPermission(user, "loadx.deliveries.read") || hasPermission(user, "loadx.trips.own")) && (hasPermission(user, "loadx.occurrences.read") || hasPermission(user, "loadx.trips.own"))}
             trip={trip}
             canOperate={canDeliver && trip.status === "IN_ROUTE"}
             isWorking={isWorking}

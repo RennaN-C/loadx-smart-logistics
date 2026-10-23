@@ -29,17 +29,27 @@ const listHistoricalCustomers = (params: ListParams) => listCustomers({ ...param
 export function OrderListPage() {
   const { user } = useAuth();
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedStatus = searchParams.get("status");
+  const statusFilter: StatusFilter = ORDER_STATUSES.includes(requestedStatus as OrderStatus)
+    ? requestedStatus as OrderStatus : "all";
   const filteredLoad = useCallback((params: ListParams) => listOrders({
     ...params,
     search,
     status: statusFilter === "all" ? undefined : statusFilter,
   }), [search, statusFilter]);
-  const [searchParams, setSearchParams] = useSearchParams();
   const detailId = searchParams.get("order");
   function closeDetail() {
     const next = new URLSearchParams(searchParams);
     next.delete("order");
+    setSearchParams(next);
+  }
+
+  function changeStatusFilter(nextStatus: StatusFilter) {
+    goToPage(1);
+    const next = new URLSearchParams(searchParams);
+    if (nextStatus === "all") next.delete("status");
+    else next.set("status", nextStatus);
     setSearchParams(next);
   }
   const {
@@ -96,6 +106,11 @@ export function OrderListPage() {
         ) : null}
       </header>
 
+      <div className="order-status-shortcuts" role="group" aria-label="Acesso rápido aos pedidos">
+        <button type="button" aria-pressed={statusFilter === "all"} onClick={() => changeStatusFilter("all")}>Todos os pedidos</button>
+        <button type="button" aria-pressed={statusFilter === "DELIVERED"} onClick={() => changeStatusFilter("DELIVERED")}>Pedidos entregues</button>
+      </div>
+
       <div className="entity-toolbar">
         <input
           type="search"
@@ -108,7 +123,7 @@ export function OrderListPage() {
         <select
           aria-label="Filtrar por situação"
           value={statusFilter}
-          onChange={(event) => { goToPage(1); setStatusFilter(event.target.value as StatusFilter); }}
+          onChange={(event) => changeStatusFilter(event.target.value as StatusFilter)}
         >
           <option value="all">Todas as situações</option>
           {ORDER_STATUSES.map((value) => (
