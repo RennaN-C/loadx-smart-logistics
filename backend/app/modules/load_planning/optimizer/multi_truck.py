@@ -247,7 +247,7 @@ def optimize_multi_truck(
     }
     failures_by_identity: dict[VolumeIdentity, set[str]] = {}
     cache: dict[
-        tuple[UUID, tuple[tuple[int, int], ...]],
+        tuple[TruckCapacityInput, tuple[tuple[int, int], ...]],
         LoadPlanResult,
     ] = {}
     attempt_count = 0
@@ -258,8 +258,9 @@ def optimize_multi_truck(
     ) -> LoadPlanResult:
         nonlocal attempt_count
 
+        # Physical packing depends on capacity and volume identities, not truck UUID.
         key = (
-            candidate.truck_id,
+            candidate.capacity,
             tuple(_identity_key(volume) for volume in remaining),
         )
         cached = cache.get(key)

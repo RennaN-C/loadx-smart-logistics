@@ -33,6 +33,7 @@ class IntegrationHealthService:
         checker: DatabaseReadinessChecker,
         *,
         ai_provider: str = "mock",
+        webhook_configured: bool = False,
         sources: dict[str, IntegrationHealthSource] | None = None,
         signal_timeout_seconds: float = 1.0,
     ) -> None:
@@ -40,6 +41,7 @@ class IntegrationHealthService:
             raise ValueError("signal timeout must be positive")
         self.checker = checker
         self.ai_provider = ai_provider
+        self.webhook_configured = webhook_configured
         self.sources = sources or {}
         self.signal_timeout_seconds = signal_timeout_seconds
 
@@ -130,16 +132,18 @@ class IntegrationHealthService:
             return ComponentHealth(
                 component=component,
                 mode="INTERNAL",
-                status="NOT_IMPLEMENTED",
-                configured=False,
-                reason_code="OC83_PENDING",
+                status="AVAILABLE" if self.webhook_configured else "NOT_CONFIGURED",
+                configured=self.webhook_configured,
+                reason_code="RUNTIME_CONFIGURED"
+                if self.webhook_configured
+                else "NOT_CONFIGURED",
             )
         return ComponentHealth(
             component=component,
             mode="INTERNAL",
             status="LIMITED",
             configured=True,
-            reason_code="OC84_PENDING",
+            reason_code="WORKER_NOT_OBSERVED",
         )
 
     async def _integration(self, component: Component) -> ComponentHealth:

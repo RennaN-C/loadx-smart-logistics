@@ -6,6 +6,10 @@ from uuid import UUID
 
 from app.modules.load_planning.optimizer.contracts import VolumeIdentity
 from app.modules.load_planning.optimizer.placement import PlacementCandidate
+from app.modules.load_planning.optimizer.rejections import (
+    REJECTION_REASON_PRECEDENCE,
+    RejectionReason,
+)
 
 
 class SupportDomainError(ValueError):
@@ -184,6 +188,10 @@ def _analyze_validated_configuration(
 ) -> tuple[SupportAssessment, ...]:
     direct_supporters: dict[VolumeIdentity, tuple[PlacementCandidate, ...]] = {}
     supported_areas_cm2: dict[VolumeIdentity, int] = {}
+    placements_by_top: dict[int, list[PlacementCandidate]] = {}
+    for placement in placements:
+        top = placement.position_y_cm + placement.used_height_cm
+        placements_by_top.setdefault(top, []).append(placement)
 
     for upper in placements:
         base_area_cm2 = upper.used_width_cm * upper.used_length_cm
@@ -194,7 +202,7 @@ def _analyze_validated_configuration(
 
         contacts = tuple(
             (lower, rectangle)
-            for lower in placements
+            for lower in placements_by_top.get(upper.position_y_cm, ())
             if lower.identity != upper.identity
             if (rectangle := _contact_rectangle(upper, lower)) is not None
         )
@@ -290,3 +298,30 @@ def is_candidate_support_valid(
             "must not duplicate a placed candidate identity",
         )
     return _is_validated_configuration_valid((*validated_placed, validated_candidate))
+
+
+def candidate_direct_support_rejections(
+    candidate: PlacementCandidate,
+    placed_candidates: Sequence[PlacementCandidate],
+) -> tuple[RejectionReason, ...]:
+    """Reject local physical violations before full configuration validation.
+
+    This is a rejection-only fast path. An empty result does not approve the
+    candidate: callers must still validate the complete support configuration.
+    """
+    if candidate.position_y_cm == 0:
+        return ()
+    contacts = tuple(
+        (lower, rectangle)
+        for lower in placed_candidates
+        if (rectangle := _contact_rectangle(candidate, lower)) is not None
+    )
+    reasons: set[RejectionReason] = set()
+    if any(not lower.volume.stackable for lower, _ in contacts):
+        reasons.add(RejectionReason.NON_STACKABLE_SUPPORT)
+    if any(lower.volume.fragile for lower, _ in contacts):
+        reasons.add(RejectionReason.FRAGILE_SUPPORT_WEIGHT_EXCEEDED)
+    area = _union_area_cm2(tuple(rectangle for _, rectangle in contacts))
+    if area != candidate.used_width_cm * candidate.used_length_cm:
+        reasons.add(RejectionReason.INSUFFICIENT_SUPPORT)
+    return tuple(reason for reason in REJECTION_REASON_PRECEDENCE if reason in reasons)

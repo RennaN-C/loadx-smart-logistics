@@ -114,30 +114,28 @@ class LoadDistributionService:
             raise DistributionError("DISTRIBUTION_ORDER_CLAIMED")
         _, _, _, volumes = self._sources(data.order_ids, lock=False)
         eligible, ineligible = [], []
-        for truck in self.trucks.list_all_trucks():
-            if self.trucks.has_document_conflict(truck.id):
+        trucks = self.trucks.list_all_trucks()
+        conflicts = self.trucks.get_operational_conflicts()
+        for truck in trucks:
+            if truck.id in conflicts.documents:
                 ineligible.append(
                     IneligibleTruckRead(
                         truck_id=truck.id, reason="TRUCK_DOCUMENT_INELIGIBLE"
                     )
                 )
                 continue
-            if self.trucks.has_maintenance_conflict(truck.id):
+            if truck.id in conflicts.maintenance:
                 ineligible.append(
                     IneligibleTruckRead(
                         truck_id=truck.id, reason="TRUCK_IN_MAINTENANCE"
                     )
                 )
                 continue
-            reason = (
-                "INACTIVE"
-                if not truck.active
-                else (
-                    "TRUCK_OPERATION_CONFLICT"
-                    if self.trucks.has_operation_conflict(truck.id)
-                    else None
-                )
-            )
+            reason = None
+            if not truck.active:
+                reason = "INACTIVE"
+            elif truck.id in conflicts.operations:
+                reason = "TRUCK_OPERATION_CONFLICT"
             if reason:
                 ineligible.append(IneligibleTruckRead(truck_id=truck.id, reason=reason))
             else:
