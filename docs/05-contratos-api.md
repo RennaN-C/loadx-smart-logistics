@@ -1459,8 +1459,12 @@ URLs, traces, dados pessoais ou configuração bruta. Consulta passiva sem envio
 prompts ou alterações. Reusa liveness/readiness e timeouts existentes.
 
 WhatsApp SIMULATED (UI SIMULADO), IA mock SIMULATED, IA externa não implementada
-NOT_CONFIGURED, webhook NOT_IMPLEMENTED/OC83_PENDING e notificações internas
-LIMITED/OC84_PENDING. Sinais futuros aprovados podem informar AVAILABLE,
+NOT_CONFIGURED. Webhook interno: NOT_CONFIGURED quando o runtime está desativado;
+AVAILABLE/RUNTIME_CONFIGURED quando inicializado, sem certificar conexão externa.
+Notificações internas: LIMITED/WORKER_NOT_OBSERVED, reconhecendo OC84/OC103/OC109
+implementadas, sem afirmar que o worker está ativo. Códigos OC83_PENDING e
+OC84_PENDING são mantidos no catálogo por compatibilidade, sem emissão padrão.
+Sinais futuros aprovados podem informar AVAILABLE,
 UNAVAILABLE e TIMEOUT; não são criados providers nesta OC. Consultas paralelas
 com falha isolada e configuração desconhecida null. Histórico durável indisponível;
 falhas atuais são correlacionadas por UUID/data e logs sanitizados.

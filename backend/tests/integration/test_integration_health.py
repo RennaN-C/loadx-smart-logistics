@@ -95,3 +95,28 @@ def test_real_provider_signal_requires_explicit_server_registration(
     assert ai["mode"] == "REAL"
     assert ai["status"] == "AVAILABLE"
     assert "token" not in response.text
+
+
+@pytest.mark.parametrize("configured", [True, False])
+def test_existing_webhook_runtime_is_reported_without_configuration_leak(
+    client, headers, checker, monkeypatch, configured
+):
+    runtime = object() if configured else None
+    monkeypatch.setattr(app.state, "inbound_webhook", runtime)
+    response = client.get("/api/v1/integration-health", headers=headers)
+    assert response.status_code == 200
+    body = response.json()
+    webhook = next(c for c in body["components"] if c["component"] == "webhook")
+    assert webhook["configured"] is configured
+    assert webhook["status"] == ("AVAILABLE" if configured else "NOT_CONFIGURED")
+    assert webhook["reason_code"] == (
+        "RUNTIME_CONFIGURED" if configured else "NOT_CONFIGURED"
+    )
+    notifications = next(
+        c for c in body["components"] if c["component"] == "notifications"
+    )
+    assert notifications["status"] == "LIMITED"
+    assert notifications["reason_code"] == "WORKER_NOT_OBSERVED"
+    assert "OC83_PENDING" not in response.text
+    assert "OC84_PENDING" not in response.text
+    assert set(webhook) == {"component", "mode", "status", "configured", "reason_code"}
