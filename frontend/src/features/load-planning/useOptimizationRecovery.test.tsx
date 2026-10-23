@@ -49,6 +49,13 @@ describe("recuperação idempotente", () => {
     await act(() => result.current.consult());
     expect(result.current.request).toEqual(pending);
   });
+  it("expiração da sessão preserva referência para o próximo login do mesmo ator", async () => {
+    vi.mocked(optimizeDistribution).mockRejectedValue(new ApiError("AUTH_INVALID_TOKEN", "Sessão expirada", [], 401));
+    const { result } = renderHook(() => useOptimizationRecovery("actor-1"));
+    await act(() => result.current.start(["order-1"]));
+    expect(result.current.request).not.toBeNull();
+    expect(sessionStorage.getItem(storedKey)).not.toBeNull();
+  });
   it("rejeição definitiva desfaz apenas a referência local", async () => {
     vi.mocked(optimizeDistribution).mockRejectedValue(new ApiError("DISTRIBUTION_CAPACITY_INSUFFICIENT", "Capacidade", [], 422));
     const { result } = renderHook(() => useOptimizationRecovery("actor-1"));

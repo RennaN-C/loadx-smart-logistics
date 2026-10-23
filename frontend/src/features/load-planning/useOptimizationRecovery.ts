@@ -23,8 +23,7 @@ function write(actor: string, request: PendingRequest | null) {
   } catch { /* Storage unavailable: keep the identity in memory for this mount. */ }
 }
 function definitivelyRejected(error: unknown): boolean {
-  return error instanceof ApiError && error.status !== undefined && error.status >= 400
-    && error.status < 500 && !["OPTIMIZATION_IN_PROGRESS", "IDEMPOTENCY_PAYLOAD_MISMATCH"].includes(error.code);
+  return error instanceof ApiError && error.status !== undefined && [400, 404, 409, 422].includes(error.status) && !["OPTIMIZATION_IN_PROGRESS", "IDEMPOTENCY_PAYLOAD_MISMATCH"].includes(error.code);
 }
 
 /** Metadata only. No automatic POST, plan cache, tokens or geometric data. */

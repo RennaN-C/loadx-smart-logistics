@@ -134,6 +134,12 @@ export function PlanBuilder({ onCalculated, onDistributed }: PlanBuilderProps) {
   const canCalculate = (mode === "automatic" || activeTrucks.some((truck) => truck.id === truckId))
     && selectedOrders.length > 0 && !exceedsVolumeLimit && !isCalculating && !recovery.request && !recovery.working;
 
+  if (recovery.request) return <div className="plan-builder">
+    <DistributionFeedback error={recovery.error} />
+    <OptimizationRecovery count={recovery.request.orderIds.length} working={recovery.working}
+      onConsult={() => void recovery.consult()} onRetry={() => void recovery.retry()} />
+  </div>;
+
   return (
     <div className="plan-builder">
       {onDistributed ? <fieldset className="distribution-mode" disabled={isCalculating}>
@@ -142,8 +148,6 @@ export function PlanBuilder({ onCalculated, onDistributed }: PlanBuilderProps) {
         <label htmlFor="planning-automatic"><input id="planning-automatic" aria-label="Seleção automática da frota" type="radio" name="planning-mode" checked={mode === "automatic"} onChange={() => setMode("automatic")} /><span><strong>Seleção automática da frota</strong><small>O servidor seleciona os veículos elegíveis e salva uma proposta completa.</small></span></label>
       </fieldset> : null}
       <DistributionFeedback error={recovery.error ?? distributionError} />
-      {recovery.request ? <OptimizationRecovery count={recovery.request.orderIds.length} working={recovery.working}
-        onConsult={() => void recovery.consult()} onRetry={() => void recovery.retry()} /> : null}
       {distributionError ? <p className="entity-form-help">Se a conexão caiu após o envio, consulte <Link to="/planning">Planos existentes</Link> antes de repetir: a proposta pode ter sido salva.</p> : null}
       {errorMessage ? <AlertBanner>{errorMessage}</AlertBanner> : null}
 
