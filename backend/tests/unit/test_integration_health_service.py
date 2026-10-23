@@ -48,7 +48,9 @@ def test_current_components_are_honest_without_external_io():
     assert component(result, "database").status == "AVAILABLE"
     assert component(result, "whatsapp").status == "SIMULATED"
     assert component(result, "ai").status == "SIMULATED"
-    assert component(result, "webhook").status == "NOT_IMPLEMENTED"
+    assert component(result, "webhook").status == "NOT_CONFIGURED"
+    assert component(result, "webhook").configured is False
+    assert component(result, "notifications").reason_code == "WORKER_NOT_OBSERVED"
     assert component(result, "notifications").status == "LIMITED"
 
 
@@ -173,3 +175,16 @@ def test_timeout_must_be_positive():
     checker = Checker()
     with pytest.raises(ValueError):
         IntegrationHealthService(checker, signal_timeout_seconds=0)
+
+
+@pytest.mark.parametrize("configured", [True, False])
+def test_webhook_reports_existing_runtime_without_claiming_external_delivery(
+    configured,
+):
+    webhook = component(report(webhook_configured=configured), "webhook")
+    assert webhook.configured is configured
+    assert webhook.status == ("AVAILABLE" if configured else "NOT_CONFIGURED")
+    assert webhook.reason_code == (
+        "RUNTIME_CONFIGURED" if configured else "NOT_CONFIGURED"
+    )
+    assert webhook.mode == "INTERNAL"
