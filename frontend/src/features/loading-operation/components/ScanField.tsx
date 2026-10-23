@@ -35,8 +35,8 @@ export function ScanField({ disabled, disabledReason, onScan }: ScanFieldProps) 
   const inFlight = useRef(false);
 
   useEffect(() => {
-    if (!disabled) inputRef.current?.focus();
-  }, [disabled]);
+    if (!disabled && !isScanning) inputRef.current?.focus();
+  }, [disabled, isScanning]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
