@@ -1,5 +1,6 @@
 """UI02: Chromium real, API local e PostgreSQL 16 descartável; sem pentest compartilhada."""
 import json
+import os
 import re
 import shutil
 import socket
