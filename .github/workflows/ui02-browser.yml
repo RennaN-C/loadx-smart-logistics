@@ -14,17 +14,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
-          POSTGRES_DB: loadx_app
-          POSTGRES_USER: loadx_ci
-          POSTGRES_PASSWORD: ci${{ github.run_id }}_${{ github.run_attempt }}
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U loadx_ci -d loadx_app"
-          --health-interval 2s
-          --health-timeout 5s
-          --health-retries 15
-    env:
       APP_ENV: local
       BACKEND_CORS_ORIGINS: http://localhost:5173
       UI02_ARTIFACT_DIR: ${{ github.workspace }}/ui02-evidence
