@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { api } from "../../../services/api";
 import { ApiError } from "../../../types/api";
 import { distributionDto } from "../testing/distributionFixtures";
-import { distributionAction, getDistribution, mapDistribution, optimizeDistribution, preflightDistribution, reprocessDistributionPart, type DistributionNeedDto } from "./distributionsApi";
+import { distributionAction, getDistribution, mapDistribution, optimizeDistribution, recoverOptimization, preflightDistribution, reprocessDistributionPart, type DistributionNeedDto } from "./distributionsApi";
 vi.mock("../../../services/api", () => ({ api: { get: vi.fn(), post: vi.fn() } }));
 beforeEach(() => vi.resetAllMocks());
 describe("contrato de distribuição", () => {
@@ -20,9 +20,18 @@ describe("contrato de distribuição", () => {
     vi.mocked(api.post).mockResolvedValue({ data: distributionDto() });
     vi.mocked(api.get).mockResolvedValue({ data: distributionDto() });
     await optimizeDistribution(["order-1"]);
-    expect(api.post).toHaveBeenCalledWith("/load-distributions/optimize", { order_ids: ["order-1"] });
+    expect(api.post).toHaveBeenCalledWith("/load-distributions/optimize", { order_ids: ["order-1"] }, undefined);
     await getDistribution("distribution-1");
     expect(api.get).toHaveBeenCalledWith("/load-distributions/distribution-1");
+    expect(api.post).toHaveBeenCalledTimes(1);
+  });
+  it("envia chave idempotente e recupera por GET sem nova escrita", async () => {
+    vi.mocked(api.post).mockResolvedValue({ data: distributionDto() });
+    vi.mocked(api.get).mockResolvedValue({ data: distributionDto() });
+    await optimizeDistribution(["order-1"], "request-key");
+    expect(api.post).toHaveBeenCalledWith("/load-distributions/optimize", { order_ids: ["order-1"] }, { headers: { "Idempotency-Key": "request-key" } });
+    await recoverOptimization("request-key");
+    expect(api.get).toHaveBeenCalledWith("/load-distributions/optimization-requests/request-key");
     expect(api.post).toHaveBeenCalledTimes(1);
   });
   it.each(["approve", "cancel"] as const)("envia %s no agregado ou parte", async (action) => {

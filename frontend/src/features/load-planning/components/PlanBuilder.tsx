@@ -10,7 +10,9 @@ import { listOrders } from "../../orders/api/ordersApi";
 import { listTruckOperationalStatus, listTrucks } from "../../trucks/api/trucksApi";
 import { ApiError } from "../../../types/api";
 import { createLoadPlan } from "../api/loadPlansApi";
-import { optimizeDistribution } from "../api/distributionsApi";
+import { useAuth } from "../../auth/hooks/useAuth";
+import { useOptimizationRecovery } from "../useOptimizationRecovery";
+import { OptimizationRecovery } from "./OptimizationRecovery";
 import { PlanOrderSelection } from "./PlanOrderSelection";
 import { DistributionFeedback } from "./DistributionFeedback";
 import type { LoadDistribution, LoadPlan } from "../types";
@@ -63,6 +65,8 @@ export function PlanBuilder({ onCalculated, onDistributed }: PlanBuilderProps) {
   const { items: orders, status: ordersStatus, refetch: reloadOrders } = useResourceList(listOrders);
   const { items: customers } = useResourceList(listHistoricalCustomers);
 
+  const { user } = useAuth();
+  const recovery = useOptimizationRecovery(user?.id ?? "", onDistributed);
   const [mode, setMode] = useState<"single" | "automatic">("single");
   const requestPending = useRef(false);
   const [distributionError, setDistributionError] = useState<unknown>(null);
@@ -110,7 +114,7 @@ export function PlanBuilder({ onCalculated, onDistributed }: PlanBuilderProps) {
 
     try {
       if (mode === "automatic") {
-        onDistributed?.(await optimizeDistribution(selectedOrders));
+        await recovery.start(selectedOrders);
       } else {
         onCalculated(await createLoadPlan({ truckId, orderIds: selectedOrders }));
       }
@@ -128,7 +132,13 @@ export function PlanBuilder({ onCalculated, onDistributed }: PlanBuilderProps) {
   const isLoading = ordersStatus === "loading" || (mode === "single" && (trucksStatus === "loading" || situationsStatus === "loading"));
   const hasListError = ordersStatus === "error" || (mode === "single" && (trucksStatus === "error" || situationsStatus === "error"));
   const canCalculate = (mode === "automatic" || activeTrucks.some((truck) => truck.id === truckId))
-    && selectedOrders.length > 0 && !exceedsVolumeLimit && !isCalculating;
+    && selectedOrders.length > 0 && !exceedsVolumeLimit && !isCalculating && !recovery.request && !recovery.working;
+
+  if (recovery.request) return <div className="plan-builder">
+    <DistributionFeedback error={recovery.error} />
+    <OptimizationRecovery count={recovery.request.orderIds.length} working={recovery.working}
+      onConsult={() => void recovery.consult()} onRetry={() => void recovery.retry()} />
+  </div>;
 
   return (
     <div className="plan-builder">
@@ -137,7 +147,7 @@ export function PlanBuilder({ onCalculated, onDistributed }: PlanBuilderProps) {
         <label htmlFor="planning-single"><input id="planning-single" aria-label="Um caminhão" type="radio" name="planning-mode" checked={mode === "single"} onChange={() => setMode("single")} /><span><strong>Um caminhão</strong><small>Escolha o veículo e calcule a carga.</small></span></label>
         <label htmlFor="planning-automatic"><input id="planning-automatic" aria-label="Seleção automática da frota" type="radio" name="planning-mode" checked={mode === "automatic"} onChange={() => setMode("automatic")} /><span><strong>Seleção automática da frota</strong><small>O servidor seleciona os veículos elegíveis e salva uma proposta completa.</small></span></label>
       </fieldset> : null}
-      <DistributionFeedback error={distributionError} />
+      <DistributionFeedback error={recovery.error ?? distributionError} />
       {distributionError ? <p className="entity-form-help">Se a conexão caiu após o envio, consulte <Link to="/planning">Planos existentes</Link> antes de repetir: a proposta pode ter sido salva.</p> : null}
       {errorMessage ? <AlertBanner>{errorMessage}</AlertBanner> : null}
 

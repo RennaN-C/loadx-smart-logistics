@@ -19,6 +19,7 @@ from app.modules.load_planning.distribution_models import (
     LoadDistributionOrder,
     LoadDistributionPart,
     LoadDistributionVolume,
+    OptimizationRequest,
 )
 from app.modules.load_planning.distribution_schemas import (
     DistributionCreate,
@@ -162,6 +163,11 @@ def distribution_scenario(postgres_engine):
                 db.execute(
                     delete(LoadDistributionOrder).where(
                         LoadDistributionOrder.order_id == source.order_id
+                    )
+                )
+                db.execute(
+                    delete(OptimizationRequest).where(
+                        OptimizationRequest.distribution_id.in_(identifiers)
                     )
                 )
                 db.execute(

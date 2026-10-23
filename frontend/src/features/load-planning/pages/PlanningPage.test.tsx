@@ -129,6 +129,7 @@ function renderAt(path: string) {
 
 describe("PlanningPage", () => {
   beforeEach(() => {
+    sessionStorage.clear();
     vi.resetAllMocks();
     mockRole("LOGISTICS_MANAGER");
     vi.mocked(listLoadPlans).mockResolvedValue(makePage([]));
@@ -227,7 +228,7 @@ describe("PlanningPage", () => {
     fireEvent.click(await screen.findByRole("checkbox"));
     fireEvent.click(screen.getByRole("button", { name: "Otimizar e salvar distribuição" }));
     expect(await screen.findByText("Distribuição persistida aberta")).toBeInTheDocument();
-    expect(optimizeDistribution).toHaveBeenCalledWith(["o1"]);
+    expect(optimizeDistribution).toHaveBeenCalledWith(["o1"], expect.any(String));
     expect(createLoadPlan).not.toHaveBeenCalled();
   });
 
@@ -640,6 +641,7 @@ it("OC100 remove caminhão em manutenção da seleção de planejamento", async 
 
 describe("PlanningPage — entrada e autorização da retomada", () => {
   beforeEach(() => {
+    sessionStorage.clear();
     vi.resetAllMocks();
     vi.mocked(listLoadPlans).mockResolvedValue(makePage([]));
   });

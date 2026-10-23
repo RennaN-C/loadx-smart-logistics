@@ -149,6 +149,15 @@ documentada e a solução salva, sem inventar por que um caminhão específico f
 Rascunhos não calculados continuam locais à tela, sem localStorage.
 
 
+## Recuperação idempotente (#254)
+
+`CONFIRMADO`: seleção automática usa Idempotency-Key UUID e permite consultar
+resultado no servidor ou repetir a mesma solicitação após falha/F5.
+SessionStorage contém apenas ator/chave/seleção da aba, não plano, token nem
+prova de persistência. Nenhum POST ocorre na montagem. Falha de storage mantém
+chave em memória; fechar aba/perder storage exige consultar Planos existentes.
+Contrato e limites: ADR-047. A performance da PR #262 permanece independente.
+
 ## Plano e operação separados — #255
 
 `CONFIRMADO`: a listagem separa “Plano: aprovado” da situação logística real.

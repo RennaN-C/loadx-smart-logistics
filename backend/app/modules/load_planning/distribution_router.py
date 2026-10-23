@@ -1,7 +1,7 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Header
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
@@ -99,9 +99,22 @@ def optimize(
     data: DistributionNeedRequest,
     user: LoadPlanManager,
     service: Service,
+    idempotency_key: Annotated[uuid.UUID | None, Header()] = None,
 ) -> DistributionRead | JSONResponse:
     try:
-        return service.optimize(data, changed_by=user.id)
+        return service.optimize(
+            data, changed_by=user.id, idempotency_key=idempotency_key
+        )
+    except ERRORS as error:
+        return _error(error)
+
+
+@router.get("/optimization-requests/{request_key}", response_model=DistributionRead)
+def recover_optimization(
+    request_key: uuid.UUID, user: LoadPlanManager, service: Service
+) -> DistributionRead | JSONResponse:
+    try:
+        return service.recover_optimization(request_key, changed_by=user.id)
     except ERRORS as error:
         return _error(error)
 
