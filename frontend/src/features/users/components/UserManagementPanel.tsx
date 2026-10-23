@@ -20,7 +20,9 @@ export function UserManagementPanel({ active = true, onManageProfiles }: { reado
   const list = useResourceList(load, user?.role === "ADMIN" && user.active && active);
   const edit = useEditTarget(getUser);
   const [creating, setCreating] = useState(false); const [notice, setNotice] = useState("");
+  const hasFilters = filters.search !== "" || filters.role !== "all" || filters.active !== "all" || filters.sortOrder !== "desc";
   function filter(next: typeof filters) { setFilters(next); list.goToPage(1); }
+  function clearFilters() { filter({ search: "", role: "all", active: "all", sortOrder: "desc" }); }
   function close() { setCreating(false); edit.close(); }
   function saved(account: UserAccount, revoked: boolean) {
     const wasCreating = creating; close();
@@ -40,13 +42,14 @@ export function UserManagementPanel({ active = true, onManageProfiles }: { reado
       <label>Filtrar estado<select value={filters.active} onChange={(event) => filter({ ...filters, active: event.target.value })}><option value="all">Ativos e inativos</option><option value="true">Somente ativos</option><option value="false">Somente inativos</option></select></label>
       <label>Ordenação<select value={filters.sortOrder} onChange={(event) => filter({ ...filters, sortOrder: event.target.value as "asc" | "desc" })}><option value="desc">Mais recentes</option><option value="asc">Mais antigos</option></select></label>
     </div>
+    {hasFilters ? <div className="user-filter-actions"><button type="button" className="btn-secondary" onClick={clearFilters}>Limpar filtros</button></div> : null}
     {notice ? <output className="user-success">{notice}</output> : null}
     {edit.error ? <AlertBanner>{userError(edit.error)}</AlertBanner> : null}
     {list.status === "loading" ? <output className="user-list-message">Carregando usuários…</output> : null}
     {list.status === "error" ? <div><AlertBanner>{userError(list.error)}</AlertBanner><button type="button" className="btn-secondary" onClick={() => void list.refetch()}>Tentar novamente</button></div> : null}
     {list.status === "success" && list.items.length === 0 ? <p className="user-list-message">Nenhum usuário encontrado com estes filtros.</p> : null}
     {list.status === "success" && list.items.length > 0 ? <>
-      <p className="user-muted">Exibindo {list.items.length} de {list.total} usuários.</p>
+      <p className="user-muted">Exibindo {list.items.length} de {list.total} {list.total === 1 ? "usuário" : "usuários"}.</p>
       <ul className="user-list" aria-label="Contas de usuários">{list.items.map((account) => <li className="user-row" key={account.id}>
         <div className="user-row-identity"><h3>{account.name}{account.id === user.id ? <span className="user-own">Sua conta</span> : null}</h3><p>{account.email}</p></div>
         <div className="user-row-access"><span>{account.customProfileName ?? ROLE_LABELS[account.role]}</span><StatusPill tone={account.active ? "good" : "neutral"}>{account.active ? "Ativo" : "Inativo"}</StatusPill></div>
