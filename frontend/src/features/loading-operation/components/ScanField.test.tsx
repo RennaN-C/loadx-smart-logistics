@@ -28,7 +28,7 @@ describe("ScanField — leitor e recuperação", () => {
     const input = screen.getByRole("textbox", { name: "LER CÓDIGO DO VOLUME" }) as HTMLInputElement;
     fireEvent.change(input, { target: { value: CODE } });
     fireEvent.submit(input.closest("form") as HTMLFormElement);
-    expect(await screen.findByRole("status")).toHaveTextContent("Não foi possível conferir o código.");
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Não foi possível conferir o código."));
     await waitFor(() => expect(input).toHaveFocus());
     expect(input).toBeEnabled();
   });
