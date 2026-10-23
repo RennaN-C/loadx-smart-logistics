@@ -3,6 +3,7 @@ import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAuth } from "../../auth/hooks/useAuth";
 import type { Role } from "../../auth/types";
+import { ApiError } from "../../../types/api";
 import { searchRecords, type SearchResult } from "../api/searchApi";
 import { GlobalSearch } from "./GlobalSearch";
 vi.mock("../api/searchApi");
@@ -110,6 +111,14 @@ describe("OC107 busca global", () => {
   });
   it("mantém a busca vazia para perfil personalizado sem grants", async () => {
     const input = show("CUSTOM", []); await type(input);
+    expect(screen.queryByRole("option")).not.toBeInTheDocument();
+  });
+
+  it("explica acesso negado sem oferecer nova tentativa inútil", async () => {
+    vi.mocked(searchRecords).mockRejectedValueOnce(new ApiError("AUTH_FORBIDDEN", "Forbidden", [], 403));
+    const input = show("CUSTOM", []); await type(input);
+    expect(screen.getByRole("status")).toHaveTextContent("não tem permissão");
+    expect(screen.queryByRole("button", { name: "Tentar novamente" })).not.toBeInTheDocument();
     expect(screen.queryByRole("option")).not.toBeInTheDocument();
   });
 

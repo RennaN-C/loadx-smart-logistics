@@ -40,3 +40,5 @@
 }
 
 .global-search input::-webkit-search-cancel-button { appearance: none; -webkit-appearance: none; }
+
+.global-search .spinner { flex-shrink: 0; }

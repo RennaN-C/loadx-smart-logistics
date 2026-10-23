@@ -3,7 +3,7 @@ import type { SearchResult } from "../api/searchApi";
 import { CATEGORIES, searchResultTitle } from "./searchPresentation";
 import type { SearchStatus } from "./useSearchResults";
 
-const STATUS_TEXT = { idle: "Digite pelo menos 2 caracteres.", loading: "Buscando registros…", error: "Não foi possível pesquisar. Tente novamente." };
+const STATUS_TEXT = { forbidden: "Sua conta não tem permissão para consultar estes registros.", idle: "Digite pelo menos 2 caracteres.", loading: "Buscando registros…", error: "Não foi possível pesquisar. Tente novamente." };
 interface Props { id: string; results: SearchResult[]; status: SearchStatus; active: number; onActive: (index: number) => void; onChoose: (result: SearchResult) => void; onRetry: () => void }
 export function SearchResultsPanel({ id, results, status, active, onActive, onChoose, onRetry }: Readonly<Props>) {
   let feedback: string;

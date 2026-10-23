@@ -19,7 +19,7 @@
 .notification-workspace-header h2 { margin: 0 0 6px; font-size: 1.1rem; font-weight: 600; letter-spacing: -.025em; }
 .notification-workspace-header p { margin: 0; font-size: .85rem; color: var(--muted); }
 .notification-workspace-header strong { color: var(--ink); font-weight: 600; }
-.notification-toolbar-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.notification-toolbar-actions { display: flex; flex-wrap: wrap; align-items: stretch; gap: 10px; }
 .notification-toolbar-actions button { min-height: 44px; white-space: normal; }
 .notification-filters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; padding: 20px 28px; background: var(--paper); border-block: 1px solid var(--line); }
 .notification-filters label { display: grid; gap: 7px; font-size: .8rem; font-weight: 500; color: var(--muted); }
