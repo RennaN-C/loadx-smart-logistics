@@ -94,6 +94,7 @@ export function LoadingPage() {
     <div className="entity-page">
       <nav className="entity-toolbar entity-page-nav" aria-label="Caminhos do carregamento">
         <Link to="/">Voltar ao início</Link>
+        {hasPermission(user, "loadx.loading.read") ? <Link to="/loading-sessions">Voltar aos carregamentos</Link> : null}
         {session ? <Link to={`/planning/${session.loadPlanId}`}>Voltar ao plano de origem</Link> : null}
       </nav>
       <header className="entity-header">
@@ -130,7 +131,7 @@ export function LoadingPage() {
 
       {session && !isLoading ? (
         <>
-          <p className="entity-form-help">Link permanente: <Link to={`/loading/${session.id}`}>Abrir este carregamento</Link>. Guarde o endereço; a listagem de carregamentos ainda não está disponível.</p>
+          <p className="entity-form-help">Link permanente: <Link to={`/loading/${session.id}`}>Abrir este carregamento</Link>. Você também pode acessar pela central de carregamentos.</p>
           {session.status === "FINISHED" && hasPermission(user, "loadx.planning.read") ? <p><Link to={`/planning/${session.loadPlanId}`}>Carregamento concluído: voltar ao plano para criar a viagem</Link></p> : null}
           <section className="loading-head">
             <dl className="loading-metrics">

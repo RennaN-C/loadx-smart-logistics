@@ -78,6 +78,23 @@ describe("DeliveryExceptionsPanel", () => {
     expect(screen.getByRole("option", { name: "Retomar tentativa" })).toBeInTheDocument();
   });
 
+  it("exibe estados legíveis e ignora respostas atrasadas de outra entrega", async () => {
+    let resolveFirst!: (value: DeliveryException[]) => void;
+    vi.mocked(listDeliveryExceptions)
+      .mockImplementationOnce(() => new Promise((resolve) => { resolveFirst = resolve; }))
+      .mockResolvedValueOnce([occurrence]);
+    const other = { ...delivery, id: "delivery-2", sequence: 2, status: "DELIVERED" as const };
+    render(<DeliveryExceptionsPanel deliveries={[delivery, other]} canOperate />);
+    fireEvent.click(screen.getByRole("button", { name: "Consultar ou registrar ocorrência" }));
+    const picker = screen.getByLabelText("Entrega");
+    expect(screen.getByRole("option", { name: "Parada 1 — Em entrega" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Parada 2 — Entregue" })).toBeInTheDocument();
+    fireEvent.change(picker, { target: { value: other.id } });
+    expect(await screen.findByText(occurrence.reason)).toBeInTheDocument();
+    resolveFirst([]);
+    await waitFor(() => expect(screen.getByText(occurrence.reason)).toBeInTheDocument());
+  });
+
   it("não permite registrar nova ocorrência em entrega concluída", async () => {
     render(
       <DeliveryExceptionsPanel
