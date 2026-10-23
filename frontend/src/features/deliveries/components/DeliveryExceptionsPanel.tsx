@@ -56,7 +56,7 @@ export function DeliveryExceptionsPanel({ deliveries, canOperate }: Props) {
   const selected = deliveries.find((delivery) => delivery.id === deliveryId);
   const codes = nextCodes(events);
   const selectedCode = codes.includes(code) ? code : (codes[0] ?? "CUSTOMER_ABSENT");
-  const canWrite = canOperate && selected?.status !== "DELIVERED";
+  const canWrite = canOperate && selected != null && selected.status !== "DELIVERED" && selected.status !== "CANCELED";
 
   async function refresh(id: string) {
     const request = ++latestHistoryRequest.current;

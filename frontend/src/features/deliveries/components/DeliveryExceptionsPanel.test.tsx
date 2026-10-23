@@ -95,6 +95,20 @@ describe("DeliveryExceptionsPanel", () => {
     await waitFor(() => expect(screen.getByText(occurrence.reason)).toBeInTheDocument());
   });
 
+  it("não permite registrar ocorrência em uma entrega cancelada", async () => {
+    render(<DeliveryExceptionsPanel deliveries={[{ ...delivery, status: "CANCELED" }]} canOperate />);
+    fireEvent.click(screen.getByRole("button", { name: "Consultar ou registrar ocorrência" }));
+    await screen.findByText(/Não há ocorrências registradas/);
+    expect(screen.queryByRole("button", { name: "Registrar no histórico" })).not.toBeInTheDocument();
+  });
+
+  it("respeita a permissão apenas de leitura do histórico", async () => {
+    render(<DeliveryExceptionsPanel deliveries={[delivery]} canOperate={false} />);
+    fireEvent.click(screen.getByRole("button", { name: "Consultar ou registrar ocorrência" }));
+    await screen.findByText(/Não há ocorrências registradas/);
+    expect(screen.queryByRole("button", { name: "Registrar no histórico" })).not.toBeInTheDocument();
+  });
+
   it("não permite registrar nova ocorrência em entrega concluída", async () => {
     render(
       <DeliveryExceptionsPanel
