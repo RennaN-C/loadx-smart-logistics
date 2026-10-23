@@ -223,3 +223,12 @@
 /* Grade de métricas gerenciais separada dos KPIs legados de pedidos. */
 .management-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin: 16px 0; }
 .management-kpis .report-kpi { min-width: 0; }
+
+/* Filtros OC96: mesmos campos/tokens dos cadastros, sem controles nativos estreitos. */
+.entity-form.management-report-filters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) auto; align-items: end; gap: 16px; padding: 20px; margin: 16px 0; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+.entity-form.management-report-filters .entity-form-field { min-width: 0; }
+.entity-form.management-report-filters input[type="date"] { width: 100%; min-width: 0; min-height: 44px; border: 1px solid var(--line); border-radius: 3px; padding: 10px 12px; background: var(--card); color: var(--ink); font: inherit; font-size: .95rem; }
+.entity-form.management-report-filters input { min-height: 44px; }
+.entity-form.management-report-filters .field-label { font-size: .85rem; line-height: 1.5; letter-spacing: normal; text-transform: none; }
+@media (max-width: 1280px) { .entity-form.management-report-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); } .entity-form.management-report-filters > button { justify-self: start; } }
+@media (max-width: 520px) { .entity-form.management-report-filters { grid-template-columns: minmax(0, 1fr); padding: 16px; } .entity-form.management-report-filters > button { width: 100%; } }

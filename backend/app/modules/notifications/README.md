@@ -212,3 +212,14 @@ materializa registros, marca leitura ou reprocessa fila.
 `CONFIRMADO`: este contrato aditivo foi autorizado pela operação coordenada de
 conclusão v1.2.0; completa a consulta que faltava na OC81, preservando caixa
 pessoal e a administração da OC109 como fluxos distintos.
+
+
+## Auditoria de processos — #256/#273
+
+`CONFIRMADO`: `tests/integration/test_outbox_process_recovery.py` acrescenta
+cinco cenários PostgreSQL 16 com subprocessos novos, incluindo encerramento
+abrupto pós-claim, backoff/cap, disputa PENDING/RETRYABLE, fencing e API ADMIN.
+Usa exclusivamente MockOutboxTransport e adapters de falha, sem envio externo.
+Fixtures de API usam commits reais para não prender locks em savepoints do
+processo pai. Evidência incremental em
+`docs/evidencias/qa-v12-pentest/lote-outbox-processos.md`.
