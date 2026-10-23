@@ -86,3 +86,15 @@
 
 .notification-dropdown .notification-list { min-height: 0; overflow-y: auto; }
 @media (max-width: 480px) { .notification-preferences .account-actions { flex-direction: column; } .notification-preferences .account-actions button { width: 100%; min-height: 44px; } }
+
+.notification-filters .entity-form-field { min-width: 0; }
+.notification-filters .field-label { font-family: inherit; font-size: .85rem; letter-spacing: normal; }
+.notification-filter-summary { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 16px 28px; border-bottom: 1px solid var(--line); }
+.notification-filter-summary p { margin: 0; color: var(--muted); font-size: .85rem; }
+.notification-filter-summary button { min-height: 44px; }
+@media (max-width: 480px) {
+  .notification-filters { grid-template-columns: minmax(0, 1fr); }
+  .notification-filters label:last-child { grid-column: auto; }
+  .notification-filters select { font-size: .9rem; }
+  .notification-filter-summary { padding-inline: 18px; }
+}
