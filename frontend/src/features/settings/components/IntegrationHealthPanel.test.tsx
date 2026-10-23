@@ -108,3 +108,17 @@ describe("OC108: painel de integrações", () => {
   });
 
 });
+
+it("distingue configuracao do webhook e limitacao do processamento sem prometer entrega externa", async () => {
+  vi.mocked(getIntegrationHealth).mockResolvedValue({...REPORT, components: REPORT.components.map(item => {
+    if (item.component === "webhook") return {...item, status: "AVAILABLE", configured: true, reason_code: "RUNTIME_CONFIGURED"};
+    if (item.component === "notifications") return {...item, status: "LIMITED", reason_code: "WORKER_NOT_OBSERVED"};
+    return item;
+  })});
+  render(<IntegrationHealthPanel />);
+  await screen.findByRole("heading", {name: "Webhook interno"});
+  expect(screen.getByText(/Isso não comprova envio ou recebimento por um serviço externo/)).toBeInTheDocument();
+  expect(screen.getByText(/não verifica se o processador de eventos está ativo/)).toBeInTheDocument();
+  expect(screen.queryByText(/Aguardando implementação da OC83|OC84 ainda pendente/)).not.toBeInTheDocument();
+  expect(screen.getAllByText("SIMULADO")).toHaveLength(2);
+});
