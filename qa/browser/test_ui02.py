@@ -1,10 +1,7 @@
 """UI02: Chromium real, API local e PostgreSQL 16 descartável; sem pentest compartilhada."""
 import json
-import os
 import re
-import shutil
 import socket
-import subprocess
 import threading
 import time
 import uuid
@@ -12,6 +9,12 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 from playwright.sync_api import sync_playwright
+from sqlalchemy import func, select
+
+from app.modules.deliveries.cancellation_service import TripCancellation
+from app.modules.deliveries.models import Trip
+from app.modules.load_planning.models import LoadPlan
+from app.modules.status_history.models import StatusHistory
 
 from app.core.config import settings
 from app.database.session import get_db
@@ -54,7 +57,7 @@ def browser_context(browser, headers, width=1280, theme="light"):
     return ctx
 
 
-def test_ui02_browser_five_profiles_and_operations(committed_session_factory, tmp_path):
+def test_ui02_browser_five_profiles_and_operations(committed_session_factory):
     """Sessões sintéticas são fixtures; não representam teste de MFA ou login."""
     session_factory = committed_session_factory
     def db_for_local_server():
@@ -62,7 +65,6 @@ def test_ui02_browser_five_profiles_and_operations(committed_session_factory, tm
             yield db
 
     app.dependency_overrides[get_db] = db_for_local_server
-    vite = None
     server = None
     screenshots = ROOT / "ui02-evidence"
     screenshots.mkdir(parents=True, exist_ok=True)
@@ -105,6 +107,16 @@ def test_ui02_browser_five_profiles_and_operations(committed_session_factory, tm
             assert loading_resp.status_code == 201
             loading = loading_resp.json()
             trip = create_trip(api, scenario)
+            # A separate fleet reservation is necessary for an eligible
+            # cancellation: the first trip has a loading session already.
+            cancel_scenario = seed_operational_scenario(session_factory)
+            cancel_trip = create_trip(api, cancel_scenario)
+            eligibility = api.get(
+                f"/api/v1/trips/{cancel_trip['id']}/cancellation-preflight",
+                headers=cancel_scenario.manager_headers,
+            )
+            assert eligibility.status_code == 200
+            assert eligibility.json()["safe_for_cancellation_workflow"] is True
             for role, headers in users.items():
                 assert api.get("/api/v1/auth/me", headers=headers).status_code == 200
                 assert tuple(
@@ -117,16 +129,6 @@ def test_ui02_browser_five_profiles_and_operations(committed_session_factory, tm
                 app, host="127.0.0.1", port=8000, log_level="warning", lifespan="off",
             ))
             threading.Thread(target=server.run, daemon=True).start()
-            env = os.environ.copy()
-            env["DEV_API_PROXY_TARGET"] = "http://127.0.0.1:8000"
-            npm = shutil.which("npm")
-            if npm is None:
-                raise RuntimeError("npm indisponível no runner de QA")
-            vite = subprocess.Popen(
-                [npm, "run", "dev", "--", "--host", "127.0.0.1", "--port", "5173", "--strictPort"],
-                cwd=ROOT / "frontend", env=env,
-                stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT,
-            )
             ready(8000)
             ready(5173)
             with sync_playwright() as playwright:
@@ -239,6 +241,76 @@ def test_ui02_browser_five_profiles_and_operations(committed_session_factory, tm
                             "button", name="Consultar ou registrar ocorrência",
                         ).wait_for(timeout=20000)
                         page.screenshot(path=str(screenshots / "oc94-retomada.png"))
+
+                    # A second journey exercises the actual UI cancellation,
+                    # separate from the loaded/started trip.
+                    with browser_context(browser, cancel_scenario.manager_headers) as ctx:
+                        page = ctx.new_page()
+                        page.goto(URL + f"/trips/{cancel_trip['id']}")
+                        page.get_by_role(
+                            "heading", name="Acompanhamento da viagem",
+                        ).wait_for()
+                        page.get_by_role("button", name="Verificar bloqueios").click()
+                        page.get_by_text("Pré-validação aprovada.", exact=False).wait_for()
+                        page.get_by_role("button", name="Solicitar cancelamento").click()
+                        reason = "Reprogramação operacional testada no Chromium"
+                        page.get_by_role(
+                            "textbox", name="Motivo do cancelamento",
+                        ).fill(reason)
+                        page.get_by_role("button", name="Confirmar cancelamento").click()
+                        page.get_by_text("Cancelada", exact=True).first.wait_for()
+                        page.screenshot(path=str(screenshots / "oc94-cancelamento.png"))
+
+                    persisted = api.get(
+                        f"/api/v1/trips/{cancel_trip['id']}",
+                        headers=cancel_scenario.manager_headers,
+                    )
+                    assert persisted.status_code == 200
+                    assert persisted.json()["status"] == "CANCELED"
+                    assert all(
+                        delivery["status"] == "CANCELED"
+                        for delivery in persisted.json()["deliveries"]
+                    )
+                    with session_factory() as db:
+                        canceled_id = uuid.UUID(cancel_trip["id"])
+                        ledger = db.scalar(
+                            select(TripCancellation).where(
+                                TripCancellation.trip_id == canceled_id
+                            )
+                        )
+                        assert ledger is not None and ledger.reason == reason
+                        assert db.scalar(
+                            select(func.count()).select_from(TripCancellation).where(
+                                TripCancellation.trip_id == canceled_id
+                            )
+                        ) == 1
+                        assert db.scalar(
+                            select(func.count()).select_from(StatusHistory).where(
+                                StatusHistory.entity_type == "TRIP",
+                                StatusHistory.entity_id == canceled_id,
+                                StatusHistory.new_status == "CANCELED",
+                            )
+                        ) == 1
+                        assert db.get(Trip, canceled_id).status == "CANCELED"
+                        assert db.get(LoadPlan, cancel_scenario.load_plan_id).status == "APPROVED"
+                        key = str(ledger.idempotency_key)
+                        cancellation_event_id = str(ledger.id)
+                    path = f"/api/v1/trips/{cancel_trip['id']}/cancellation"
+                    payload = {"reason": reason, "idempotency_key": key}
+                    replay = api.post(
+                        path, json=payload, headers=cancel_scenario.manager_headers,
+                    )
+                    assert replay.status_code == 200
+                    assert replay.json()["id"] == cancellation_event_id
+                    assert api.post(
+                        path, json=payload, headers=cancel_scenario.checker_headers,
+                    ).status_code == 403
+                    assert api.post(
+                        path, json={
+                            **payload,
+                            "reason": "Motivo divergente para a mesma solicitação",
+                        }, headers=cancel_scenario.manager_headers,
+                    ).status_code == 409
                 finally:
                     browser.close()
         assert failures == [], failures[:3]
@@ -246,15 +318,9 @@ def test_ui02_browser_five_profiles_and_operations(committed_session_factory, tm
             "result": "passed", "roles": list(users),
             "viewports": list(SIZES), "themes": ["light", "dark"],
             "real_api": True, "postgresql_isolated": True,
-            "limits": ["MFA login not tested", "physical scanner not tested", "cancellation execution not covered"],
+            "limits": ["MFA login not tested", "physical scanner not tested", "cancellation validated with real browser and PostgreSQL"],
         }, indent=2), encoding="utf-8")
     finally:
-        if vite is not None:
-            vite.terminate()
-            try:
-                vite.wait(timeout=8)
-            except subprocess.TimeoutExpired:
-                vite.kill()
         if server is not None:
             server.should_exit = True
         app.dependency_overrides.clear()
