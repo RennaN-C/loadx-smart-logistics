@@ -28,12 +28,8 @@ const ACTION_LABELS: Record<LoadingSessionStatus, string> = {
  * botão não substitui o backend, que continua respondendo 403, só evita
  * oferecer um caminho que terminaria em recusa.
  *
- * `RISCO IDENTIFICADO`: não existe rota de LISTAGEM de sessões, e o plano não
- * expõe o id da sessão. O gestor chega aqui pelo plano aprovado, que cria ou
- * devolve a sessão; o conferente depende de receber o link. Enquanto o backend
- * não oferecer uma porta de entrada por perfil, o `CHECKER` não acha o próprio
- * carregamento sozinho — a mesma lacuna que o motorista teve antes do
- * `GET /trips`.
+ * A central de carregamentos (`/loading-sessions`) permite localizar uma
+ * sessão; detalhes e ações continuam sujeitos às permissões do servidor.
  */
 export function LoadingPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
