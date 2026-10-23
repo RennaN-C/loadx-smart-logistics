@@ -78,3 +78,13 @@ responsivo usam tokens atuais; sessões e reautenticação sensível preservadas
 por conta via /notifications/preferences. O link da central abre a seção por hash
 com foco visual preservado. Aparência, dados, senha e sessões mantêm contratos da
 OC92; nenhuma implementação da OC98 isolada é incorporada.
+
+
+## Retomada de links e acesso mobile — auditoria #256 / #267
+
+`CONFIRMADO`: novos fragmentos de recuperação na mesma aba são consumidos e
+removidos da URL, limpando feedback anterior sem salvar tokens em storage.
+Respostas anteriores não sobrescrevem outro link. Prazo, uso único, revogação e
+MFA continuam definidos pelo backend. F5 não recupera um token apagado da URL.
+A marca fica compacta no mobile; o formulário aparece antes da ilustração
+(desktop), sem título sobreposto ou rodapé com versão/ambiente inventados.
