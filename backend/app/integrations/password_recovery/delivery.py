@@ -3,7 +3,7 @@
 import logging
 import smtplib
 import ssl
-from typing import Protocol
+from typing import Literal, Protocol
 from urllib.parse import urlsplit
 
 from app.core.config import Settings, settings
@@ -16,26 +16,53 @@ class RecoveryDelivery(Protocol):
     def deliver(self, email: str, token: str) -> None: ...
 
 
+class RecoveryDeliveryFailure(OSError):
+    """Safe, allowlisted diagnostics without provider response content."""
+
+    def __init__(
+        self,
+        category: Literal[
+            "http_rejection",
+            "timeout",
+            "tls",
+            "network",
+            "recipient_not_allowed",
+            "provider_rejected",
+        ],
+        http_status: int | None = None,
+        provider: Literal["resend", "mailjet"] = "resend",
+    ) -> None:
+        super().__init__("Recovery delivery failed")
+        self.category = category
+        self.http_status = http_status
+        self.provider = provider
+
+
+def valid_recovery_url(config: Settings) -> bool:
+    """Validate the recovery URL uniformly for all external delivery providers."""
+    try:
+        raw_url = config.password_recovery_url or ""
+        url = urlsplit(raw_url)
+        local_url = (
+            config.app_env == "local"
+            and raw_url == "http://localhost:5173/password-reset"
+        )
+        return (
+            bool(url.hostname)
+            and (url.scheme == "https" or local_url)
+            and not any((url.username, url.password, url.query, url.fragment))
+            and not any(char.isspace() or ord(char) < 32 for char in raw_url)
+            and "\\" not in raw_url
+            and url.port != 0
+        )
+    except ValueError:
+        return False
+
+
 class SmtpRecoveryDelivery:
     def __init__(self, config: Settings) -> None:
         self.config = config
-        try:
-            raw_url = config.password_recovery_url or ""
-            url = urlsplit(raw_url)
-            local_url = (
-                config.app_env == "local"
-                and raw_url == "http://localhost:5173/password-reset"
-            )
-            valid_url = (
-                bool(url.hostname)
-                and (url.scheme == "https" or local_url)
-                and not any((url.username, url.password, url.query, url.fragment))
-                and not any(char.isspace() or ord(char) < 32 for char in raw_url)
-                and "\\" not in raw_url
-                and url.port != 0
-            )
-        except ValueError:
-            raise IdentityUnavailableError from None
+        valid_url = valid_recovery_url(config)
         local_transport = config.smtp_security == "local"
         if (
             config.password_recovery_provider != "smtp"
@@ -97,14 +124,41 @@ class SmtpRecoveryDelivery:
 
 
 def get_recovery_delivery() -> RecoveryDelivery:
+    if settings.password_recovery_provider == "resend":
+        from app.integrations.password_recovery.resend_delivery import (
+            ResendRecoveryDelivery,
+        )
+
+        return ResendRecoveryDelivery(settings)
+    if settings.password_recovery_provider == "mailjet":
+        from app.integrations.password_recovery.mailjet_delivery import (
+            MailjetRecoveryDelivery,
+        )
+
+        return MailjetRecoveryDelivery(settings)
     return SmtpRecoveryDelivery(settings)
 
 
 def dispatch_recovery(delivery: RecoveryDelivery, email: str, token: str) -> None:
     try:
         delivery.deliver(email, token)
+    except RecoveryDeliveryFailure as exc:
+        # Only fixed categories and numeric HTTP status; never log exceptions,
+        # recipient, token, request headers, response body or remote URL.
+        details: dict[str, str | int | bool] = {
+            "delivery_provider": exc.provider,
+            "failure_category": exc.category,
+        }
+        if exc.http_status is not None:
+            details["provider_http_status"] = exc.http_status
+        emit_security_event(
+            SecurityEvent.RECOVERY_DELIVERY_FAILED,
+            level=logging.ERROR,
+            alert=True,
+            **details,
+        )
     except OSError:
-        # Do not include SMTP responses, destination, token, or exception payload.
+        # Preserve the generic SMTP behavior without leaking provider replies.
         emit_security_event(
             SecurityEvent.RECOVERY_DELIVERY_FAILED, level=logging.ERROR, alert=True
         )
