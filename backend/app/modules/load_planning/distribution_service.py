@@ -131,15 +131,11 @@ class LoadDistributionService:
                     )
                 )
                 continue
-            reason = (
-                "INACTIVE"
-                if not truck.active
-                else (
-                    "TRUCK_OPERATION_CONFLICT"
-                    if truck.id in conflicts.operations
-                    else None
-                )
-            )
+            reason = None
+            if not truck.active:
+                reason = "INACTIVE"
+            elif truck.id in conflicts.operations:
+                reason = "TRUCK_OPERATION_CONFLICT"
             if reason:
                 ineligible.append(IneligibleTruckRead(truck_id=truck.id, reason=reason))
             else:
