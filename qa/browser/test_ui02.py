@@ -26,8 +26,6 @@ from tests.integration.test_deliveries_api import (
     create_trip, seed_operational_scenario,
 )
 
-pytest_plugins = ("tests.integration.conftest",)
-
 ROOT = Path(__file__).resolve().parents[2]
 URL = "http://localhost:5173"
 SIZES = (375, 768, 1280, 1920)
@@ -278,7 +276,8 @@ def test_ui02_browser_five_profiles_and_operations(committed_session_factory):
                                 TripCancellation.trip_id == canceled_id
                             )
                         )
-                        assert ledger is not None and ledger.reason == reason
+                        assert ledger is not None
+                        assert ledger.reason == reason
                         assert db.scalar(
                             select(func.count()).select_from(TripCancellation).where(
                                 TripCancellation.trip_id == canceled_id
