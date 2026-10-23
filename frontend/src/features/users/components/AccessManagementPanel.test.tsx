@@ -39,7 +39,7 @@ describe("gestão unificada da OC112", () => {
     expect(users).toHaveFocus();
     fireEvent.keyDown(users, { key: "End" });
     expect(profiles).toHaveFocus();
-    await screen.findByText("Nenhum perfil nesta página.");
+    await screen.findByText("Nenhum perfil de acesso encontrado.");
   });
   it("restaura a aba pelo histórico anterior e próximo", async () => {
     show();
@@ -48,7 +48,7 @@ describe("gestão unificada da OC112", () => {
     expect(await screen.findByRole("tab", { name: "Usuários", selected: true })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Próxima do navegador" }));
     expect(await screen.findByRole("tab", { name: "Perfis de acesso", selected: true })).toBeInTheDocument();
-    await screen.findByText("Nenhum perfil nesta página.");
+    await screen.findByText("Nenhum perfil de acesso encontrado.");
   });
   it("leva do formulário aos perfis e preserva dados da conta ao voltar, limpando senha", async () => {
     show();
