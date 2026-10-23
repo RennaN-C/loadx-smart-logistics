@@ -43,3 +43,14 @@ describe("TripTimeline", () => {
     expect(screen.queryByText("Nenhum evento encontrado")).not.toBeInTheDocument();
   });
 });
+
+it("traduz estados de viagem e entrega sem confundir os recursos", async () => {
+  vi.mocked(getTripTimeline).mockResolvedValue({page: 1, page_size: 20, total: 2, items: [
+    {...item, id: "trip-event", source: "STATUS_HISTORY", kind: "STATUS_CHANGED", entity_id: "trip1", status_before: "SCHEDULED", status_after: "IN_ROUTE"},
+    {...item, id: "delivery-event", source: "STATUS_HISTORY", kind: "STATUS_CHANGED", entity_id: "delivery1", status_before: "IN_DELIVERY", status_after: "DELIVERED"},
+  ]});
+  render(<TripTimeline tripId="trip1" />);
+  expect(await screen.findByText("Mudança de situação: Agendada → Em rota")).toBeInTheDocument();
+  expect(screen.getByText("Mudança de situação: Em entrega → Entregue")).toBeInTheDocument();
+  expect(screen.queryByText(/SCHEDULED|IN_DELIVERY/)).not.toBeInTheDocument();
+});

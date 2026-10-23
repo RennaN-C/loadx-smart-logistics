@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 
+import { FormField } from "../../../components/FormField";
 import { AlertBanner } from "../../../components/AlertBanner";
 import {
   downloadManagementReport,
@@ -95,13 +96,13 @@ export function ManagementReportsPanel() {
   return <section className="report-block" aria-label="Relatório gerencial filtrado">
     <div className="report-block-head">
       <h2>Relatório gerencial filtrado</h2>
-      <p>Fatos reais do PostgreSQL; período por data UTC, com fim exclusivo.</p>
+      <p>Consulte viagens, entregas e ocorrências no período selecionado. Datas em UTC.</p>
     </div>
-    <form onSubmit={submit} className="entity-toolbar">
-      <label>De (UTC)<input type="date" value={from} onChange={(event) => setFrom(event.target.value)} required /></label>
-      <label>Até (inclusive)<input type="date" value={to} onChange={(event) => setTo(event.target.value)} required /></label>
-      <label>Caminhão (UUID opcional)<input value={truck} onChange={(event) => setTruck(event.target.value)} placeholder="Todos" maxLength={36} /></label>
-      <label>Motorista (UUID opcional)<input value={driver} onChange={(event) => setDriver(event.target.value)} placeholder="Todos" maxLength={36} /></label>
+    <form onSubmit={submit} className="entity-form management-report-filters" aria-label="Filtros do relatório gerencial">
+      <FormField id="management-from" label="De (UTC)"><input id="management-from" type="date" value={from} onChange={(event) => setFrom(event.target.value)} required /></FormField>
+      <FormField id="management-until" label="Até (inclusive)"><input id="management-until" type="date" value={to} onChange={(event) => setTo(event.target.value)} required /></FormField>
+      <FormField id="management-truck" label="Caminhão (ID opcional)"><input id="management-truck" value={truck} onChange={(event) => setTruck(event.target.value)} placeholder="Todos os caminhões" maxLength={36} /></FormField>
+      <FormField id="management-driver" label="Motorista (ID opcional)"><input id="management-driver" value={driver} onChange={(event) => setDriver(event.target.value)} placeholder="Todos os motoristas" maxLength={36} /></FormField>
       <button type="submit" className="btn-primary" disabled={status === "loading"}>Consultar</button>
     </form>
     <p className="entity-form-help">Um pedido com uma parte entregue não é necessariamente um pedido completamente entregue. Os indicadores respeitam essa distinção.</p>
