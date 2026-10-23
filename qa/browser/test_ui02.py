@@ -7,6 +7,7 @@ import threading
 import time
 import uuid
 from pathlib import Path
+from urllib.error import URLError
 from urllib.request import urlopen
 
 from fastapi.testclient import TestClient
@@ -18,14 +19,13 @@ from app.main import app
 from app.modules.access_profiles.models import AccessProfile
 from app.modules.users.models import User
 from tests.integration.auth_helpers import issue_session_headers
-from tests.integration.conftest import (
-    postgres_engine, committed_session_factory as session_factory,
-)
 from tests.integration.test_deliveries_api import (
     create_trip, seed_operational_scenario,
 )
 
-ROOT = Path(__file__).resolve().parents[3]
+pytest_plugins = ("tests.integration.conftest",)
+
+ROOT = Path(__file__).resolve().parents[2]
 URL = "http://localhost:5173"
 SIZES = (375, 768, 1280, 1920)
 
@@ -36,8 +36,9 @@ def ready(url):
             with urlopen(url, timeout=2) as response:
                 if response.status == 200:
                     return
-        except Exception:
-            pass
+        except (OSError, URLError):
+            time.sleep(0.5)
+            continue
         time.sleep(0.5)
     raise AssertionError("Servidor local não iniciou: " + url)
 
@@ -54,8 +55,9 @@ def browser_context(browser, headers, width=1280, theme="light"):
     return ctx
 
 
-def test_ui02_browser_five_profiles_and_operations(session_factory, tmp_path):
+def test_ui02_browser_five_profiles_and_operations(committed_session_factory, tmp_path):
     """Sessões sintéticas são fixtures; não representam teste de MFA ou login."""
+    session_factory = committed_session_factory
     def db_for_local_server():
         with session_factory() as db:
             yield db
