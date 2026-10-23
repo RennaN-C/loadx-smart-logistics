@@ -36,8 +36,9 @@ atribuída atualiza os vínculos na tela.
 
 CHECKER vê somente aprovados e pode abrir sessão existente, sem criar ou acessar
 viagem. DRIVER não monta a lista nem consulta planos por URL; suas viagens
-permanecem no início próprio. Distribuições bloqueadas pela fronteira da OC90
-não recebem ações de criação; não há central global nova nesta manutenção.
+permanecem no início próprio. Cada parte de uma distribuição totalmente aprovada
+consulta agora a continuidade real da OC90; partes históricas ou distribuição
+incompleta continuam bloqueadas pelo backend. Não há central global nova.
 
 ## Regras que a tela reflete
 
@@ -156,3 +157,14 @@ SessionStorage contém apenas ator/chave/seleção da aba, não plano, token nem
 prova de persistência. Nenhum POST ocorre na montagem. Falha de storage mantém
 chave em memória; fechar aba/perder storage exige consultar Planos existentes.
 Contrato e limites: ADR-047. A performance da PR #262 permanece independente.
+
+## Plano e operação separados — #255
+
+`CONFIRMADO`: a listagem separa “Plano: aprovado” da situação logística real.
+Usuários com leitura de viagens, pedidos e carregamento recebem filtros
+Em andamento / Concluídos / Todos (`scope` na URL, restaurado após F5) e resumo
+SQL paginado. Em andamento inclui preparações ainda sem operação; conclusão
+requer viagem finalizada e todos os pedidos entregues em todas as partes.
+Viagem interrompida/cancelada é retomável por link, sem oferecer outra criação.
+Pedidos fora de READY desabilitam aprovação/recálculo do cálculo histórico com
+explicação; a decisão permanece validada transacionalmente pelo servidor.

@@ -162,3 +162,33 @@ IDEMPOTENCY_PAYLOAD_MISMATCH. Concorrência: 409 OPTIMIZATION_IN_PROGRESS.
 somente para o ator e com a mesma permissão create. Não cria nada.
 Migration 20261023_0035 → 20261021_0034; downgrade recusa registros existentes.
 Sem alteração de regras físicas, RBAC efetivo, MFA ou OC90/OC94.
+
+## Situação logística na recuperação — #255
+
+`CONFIRMADO`: `GET /load-plans` aceita `operation_scope=all|ongoing|completed`
+(padrão `all`, compatível) antes da paginação e com ordenação estável por data/ID.
+O campo adicional `operation` contém IDs/estados de carregamento/viagem e contagens
+agregadas de pedidos e entregas, sem carregar volumes. Projeções SQL passam pelos
+serviços públicos dos módulos donos; a listagem mantém duas consultas.
+
+O resumo e filtros operacionais exigem simultaneamente as permissões efetivas
+`loadx.trips.read`, `loadx.orders.read` e `loadx.loading.read`. Sem elas o resumo
+é nulo e filtros restritos retornam 403. O recorte APPROVED do CHECKER permanece.
+Não há acesso novo a dados pessoais de motoristas ou notificações.
+
+`CONFIRMADO`: aprovação do plano não significa conclusão logística. `COMPLETED`
+é projeção de viagem FINISHED **e** todos os pedidos relacionados DELIVERED
+(globalmente, incluindo as partes obrigatórias). Uma parte entregue com pedido
+IN_TRANSIT é parcial; viagem CANCELED não é concluída nem em andamento. Planos
+sem operação continuam NOT_STARTED, inclusive cálculos históricos. `ongoing`
+inclui preparações não rejeitadas e operações ativas/parciais; `all` inclui também
+rejeitados/cancelados. Nenhum estado, snapshot ou histórico persistido é alterado.
+
+`GET /{id}/continuity` retorna os cinco estados OC94 da viagem e o mesmo resumo
+autorizado. `orders_ready_for_approval` no detalhe é um booleano atual do servidor
+para evitar oferecer aprovação/recálculo de cálculo cujos pedidos já saíram de
+READY. É orientação de UI; locks e validações da aprovação continuam sendo a
+fonte de verdade, inclusive se os dados mudarem após a consulta.
+
+Sem migration: head confirmado `20261021_0034`. O head antigo mencionado na seção
+histórica da #208 não descreve o schema atual.

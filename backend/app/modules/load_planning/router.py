@@ -27,6 +27,7 @@ from app.modules.load_planning.schemas import (
     LoadPlanRead,
     LoadPlanStatus,
     LoadPlanVisualizationRead,
+    OperationScope,
     TruckComparisonCreate,
     TruckComparisonRead,
     map_load_plan_read,
@@ -198,6 +199,7 @@ def _calculation_error_response(error: Exception) -> JSONResponse | None:
 
 @router.get(
     "",
+    response_model=PageResponse[LoadPlanListRead],
     responses=openapi_error_responses(401, 403, 422),
 )
 def list_load_plans(
@@ -206,12 +208,29 @@ def list_load_plans(
     service: Annotated[LoadPlanningService, Depends(get_load_planning_service)],
     plan_status: Annotated[LoadPlanStatus | None, Query(alias="status")] = None,
     truck_id: uuid.UUID | None = None,
-) -> PageResponse[LoadPlanListRead]:
+    operation_scope: OperationScope = "all",
+) -> PageResponse[LoadPlanListRead] | JSONResponse:
+    include_operations = all(
+        has_permission(current_user, permission)
+        for permission in (
+            Permission.TRIPS_READ,
+            Permission.ORDERS_READ,
+            Permission.LOADING_READ,
+        )
+    )
+    if operation_scope != "all" and not include_operations:
+        return error_response(
+            403,
+            "AUTH_FORBIDDEN",
+            "Usuário sem permissão para esta consulta operacional.",
+        )
     result = service.list_load_plans(
         pagination,
         requester_role=current_user.role,
         status=plan_status,
         truck_id=truck_id,
+        include_operations=include_operations,
+        operation_scope=operation_scope,
     )
     return to_page_response(
         result,
@@ -235,7 +254,10 @@ def create_load_plan(
 ) -> LoadPlanRead | JSONResponse:
     try:
         load_plan = service.create_load_plan(data, changed_by=current_user.id)
-        return map_load_plan_read(load_plan)
+        return map_load_plan_read(
+            load_plan,
+            orders_ready_for_approval=service.orders_ready_for_approval(load_plan),
+        )
     except (
         InvalidLoadPlanInputError,
         LoadPlanOrdersNotEligibleError,
@@ -298,7 +320,9 @@ def get_load_plan(
     if forbidden is not None:
         return forbidden
     return map_load_plan_read(
-        load_plan, distribution_id=service.get_distribution_id_for_plan(load_plan_id)
+        load_plan,
+        distribution_id=service.get_distribution_id_for_plan(load_plan_id),
+        orders_ready_for_approval=service.orders_ready_for_approval(load_plan),
     )
 
 
@@ -323,6 +347,14 @@ def get_load_plan_continuity(
         plan,
         requester_role=current_user.role,
         can_read_trips=has_permission(current_user, Permission.TRIPS_READ),
+        can_read_operations=all(
+            has_permission(current_user, p)
+            for p in (
+                Permission.TRIPS_READ,
+                Permission.ORDERS_READ,
+                Permission.LOADING_READ,
+            )
+        ),
     )
 
 
@@ -402,7 +434,10 @@ def approve_load_plan(
             load_plan_id,
             changed_by=current_user.id,
         )
-        return map_load_plan_read(load_plan)
+        return map_load_plan_read(
+            load_plan,
+            orders_ready_for_approval=service.orders_ready_for_approval(load_plan),
+        )
     except LoadPlanNotFoundError:
         return _not_found_response()
     except LoadPlanInvalidStatusError as exc:
@@ -448,7 +483,10 @@ def recalculate_load_plan(
             load_plan_id,
             changed_by=current_user.id,
         )
-        return map_load_plan_read(load_plan)
+        return map_load_plan_read(
+            load_plan,
+            orders_ready_for_approval=service.orders_ready_for_approval(load_plan),
+        )
     except LoadPlanNotFoundError:
         return _not_found_response()
     except LoadPlanSourceChangedError:

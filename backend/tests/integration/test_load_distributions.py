@@ -37,7 +37,6 @@ from app.modules.products.models import Product
 from app.modules.status_history.models import StatusHistory
 from app.modules.status_history.service import StatusHistoryService
 from app.modules.trucks.models import Truck
-from app.modules.trucks.service import TruckService
 from app.modules.users.models import User
 from tests.integration.test_load_planning_api import (
     create_authenticated_user,
@@ -819,42 +818,47 @@ def test_oc88_optimize_does_not_select_inactive_truck(
 
 
 def test_oc88_optimize_does_not_select_truck_with_operation_conflict(
-    distribution_scenario,
-    monkeypatch,
+    client,
+    session_factory,
 ):
-    s = distribution_scenario
-    _oc88_set_truck_widths(s, 20)
+    from tests.integration.test_deliveries_api import seed_operational_scenario
 
-    blocked_id = s.truck_ids[0]
-    original = TruckService.has_operation_conflict
-
-    def has_operation_conflict(
-        service,
-        truck_id,
-        exclude_load_plan_id=None,
-    ):
-        if truck_id == blocked_id:
-            return True
-        return original(
-            service,
-            truck_id,
-            exclude_load_plan_id=exclude_load_plan_id,
-        )
-
-    monkeypatch.setattr(
-        TruckService,
-        "has_operation_conflict",
-        has_operation_conflict,
+    # A persisted operation exercises both batch reads and commit-time checks.
+    # Patching the previous per-truck read no longer models the database truth.
+    operation = seed_operational_scenario(session_factory)
+    with session_factory() as db:
+        blocked_id = db.get(LoadPlan, operation.load_plan_id).truck_id
+    loading = client.post(
+        "/api/v1/loading-sessions",
+        headers=operation.manager_headers,
+        json={"load_plan_id": str(operation.load_plan_id)},
     )
-
-    response = _oc88_optimize(s)
-
+    assert loading.status_code == 201
+    need = seed_planning_scenario(session_factory, quantity=3, truck_width_cm=20)
+    other = client.post(
+        "/api/v1/trucks",
+        headers=operation.manager_headers,
+        json={
+            "plate": uuid.uuid4().hex[:7].upper(),
+            "model": "Baú fictício livre",
+            "internal_width_cm": 20,
+            "internal_height_cm": 10,
+            "internal_length_cm": 10,
+            "max_weight_kg": 1000,
+        },
+    )
+    assert other.status_code == 201
+    response = client.post(
+        "/api/v1/load-distributions/optimize",
+        headers=operation.manager_headers,
+        json={"order_ids": [str(need.order_id)]},
+    )
     assert response.status_code == 201, response.text
     result = response.json()
     assert result["truck_count"] == 2
-    assert str(blocked_id) not in {
-        part["load_plan"]["truck_id"] for part in result["parts"]
-    }
+    selected = {part["load_plan"]["truck_id"] for part in result["parts"]}
+    assert str(blocked_id) not in selected
+    assert selected == {str(need.truck_id), other.json()["id"]}
 
 
 def test_oc88_optimize_requires_authentication_and_manager_role(

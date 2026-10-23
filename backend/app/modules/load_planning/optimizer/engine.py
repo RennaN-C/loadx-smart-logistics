@@ -45,7 +45,7 @@ from app.modules.load_planning.optimizer.rejections import (
 from app.modules.load_planning.optimizer.rotations import generate_rotations
 from app.modules.load_planning.optimizer.support import (
     analyze_support_configuration,
-    is_candidate_support_valid,
+    candidate_direct_support_rejections,
     is_support_configuration_valid,
 )
 from app.modules.load_planning.optimizer.volumes import (
@@ -216,8 +216,9 @@ def _support_rejection_reasons(
     candidate: PlacementCandidate,
     placed_candidates: tuple[PlacementCandidate, ...],
 ) -> tuple[RejectionReason, ...]:
-    if is_candidate_support_valid(candidate, placed_candidates):
-        return ()
+    direct_reasons = candidate_direct_support_rejections(candidate, placed_candidates)
+    if direct_reasons:
+        return direct_reasons
 
     configuration = (*placed_candidates, candidate)
     placements_by_identity = {
@@ -241,11 +242,6 @@ def _support_rejection_reasons(
     reasons = tuple(
         reason for reason in REJECTION_REASON_PRECEDENCE if reason in detected
     )
-    if not reasons:
-        raise EngineInvariantError(
-            "support_configuration",
-            "invalid support configuration must have a structural reason",
-        )
     return reasons
 
 

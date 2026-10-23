@@ -71,6 +71,8 @@ function PlanningWorkspace({ isNew, canManage, checker, onCalculated, onDistribu
   readonly onCalculated: (plan: LoadPlan) => void;
   readonly onDistributed: (distribution: LoadDistribution) => void;
 }) {
+  const { user } = useAuth();
+  const canReadOperations = hasPermission(user, "loadx.trips.read") && hasPermission(user, "loadx.orders.read") && hasPermission(user, "loadx.loading.read");
   const showBuilder = isNew && canManage;
   return <>
     <nav className="plan-workspace-nav" aria-label="Área de planejamento">
@@ -78,7 +80,7 @@ function PlanningWorkspace({ isNew, canManage, checker, onCalculated, onDistribu
       {canManage ? <Link to="/planning?tab=new" aria-current={showBuilder ? "page" : undefined}>Novo planejamento</Link> : null}
     </nav>
     {showBuilder ? <><p className="entity-form-help">Seleções ainda não calculadas são rascunhos desta tela. O plano será salvo somente ao calcular (até 200 volumes).</p><PlanBuilder onCalculated={onCalculated} onDistributed={onDistributed} /></>
-      : <PlanHistory checker={checker} />}
+      : <PlanHistory checker={checker} canReadOperations={canReadOperations} />}
   </>;
 }
 

@@ -7,6 +7,7 @@ import { StatusPill } from "../../../components/StatusPill";
 import type { Page } from "../../../types/api";
 import { listLoadPlans } from "../api/loadPlansApi";
 import type { LoadPlanListItem, LoadPlanStatus } from "../types";
+import { PlanOperationSummary } from "./PlanOperationSummary";
 import { PLAN_STATUS_LABELS, planStatusTone } from "./loadPlanLabels";
 
 const date = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" });
@@ -22,7 +23,8 @@ function PlanHistoryRow({ plan, canReadOrigin }: { readonly plan: LoadPlanListIt
       <time dateTime={plan.createdAt}>{date.format(new Date(plan.createdAt))}</time>
     </div>
     <div className="plan-history-summary">
-      <StatusPill tone={planStatusTone(plan.status)}>{PLAN_STATUS_LABELS[plan.status]}</StatusPill>
+      <StatusPill tone={planStatusTone(plan.status)}>Plano: {PLAN_STATUS_LABELS[plan.status]}</StatusPill>
+      {plan.operation ? <PlanOperationSummary operation={plan.operation} /> : null}
       <p>{plan.orderCount} pedido(s) · {plan.loadedCount} volumes aceitos · {plan.unloadedCount} recusados</p>
       <p>{plan.occupancyPercent.toLocaleString("pt-BR")}% de ocupação · {plan.totalWeightKg.toLocaleString("pt-BR")} kg</p>
       {plan.recalculatedFromId && canReadOrigin ? <Link to={`/planning/${plan.recalculatedFromId}`}>Ver plano de origem</Link> : null}
@@ -53,11 +55,14 @@ function PlanHistoryContent({ failed, result, page, retry, onPage, checker }: {
         </>;
 }
 
-export function PlanHistory({ checker }: { readonly checker: boolean }) {
+export function PlanHistory({ checker, canReadOperations = false }: { readonly checker: boolean; readonly canReadOperations?: boolean }) {
   const [params, setParams] = useSearchParams();
   const rawPage = Number(params.get("page") ?? 1);
   const page = Number.isSafeInteger(rawPage) && rawPage > 0 ? rawPage : 1;
   const truckId = params.get("truck") || undefined;
+  const rawScope = params.get("scope");
+  const requestedScope = rawScope === "completed" || rawScope === "all" ? rawScope : "ongoing";
+  const operationScope = canReadOperations ? requestedScope : undefined;
   const rawStatus = params.get("status");
   const status = ["CALCULATED", "APPROVED", "REJECTED"].includes(rawStatus ?? "") ? rawStatus as LoadPlanStatus : undefined;
   const sortOrder = params.get("sort") === "asc" ? "asc" : "desc";
@@ -68,11 +73,11 @@ export function PlanHistory({ checker }: { readonly checker: boolean }) {
     let active = true;
     setResult(null);
     setFailed(false);
-    listLoadPlans({ page, status, sortOrder, ...(truckId ? { truckId } : {}) }).then((data) => {
+    listLoadPlans({ page, status, sortOrder, ...(operationScope ? { operationScope } : {}), ...(truckId ? { truckId } : {}) }).then((data) => {
       if (active) setResult(data);
     }).catch(() => { if (active) setFailed(true); });
     return () => { active = false; };
-  }, [page, status, sortOrder, truckId, checker, attempt]);
+  }, [page, status, sortOrder, truckId, checker, attempt, operationScope]);
 
   function change(key: string, value: string) {
     const next = new URLSearchParams(params);
@@ -81,8 +86,11 @@ export function PlanHistory({ checker }: { readonly checker: boolean }) {
     setParams(next);
   }
   return <section className="plan-history" aria-label="Planos existentes">
+    {canReadOperations ? <fieldset className="plan-operation-filters" aria-label="Filtrar situação logística"><legend className="sr-only">Filtrar situação logística</legend>
+      {([['ongoing', 'Em andamento'], ['completed', 'Concluídos'], ['all', 'Todos']] as const).map(([key, title]) => <button type="button" key={key} aria-pressed={operationScope === key} onClick={() => change("scope", key)}>{title}</button>)}
+    </fieldset> : null}
     <div className="plan-history-toolbar">
-      <div><h2>Retome uma carga</h2><p className="entity-lede">Planos salvos no servidor, disponíveis após sair da tela ou entrar novamente.</p><p className="entity-form-help">A situação exibida pertence ao plano de carga, não à entrega. Um plano aprovado pode estar associado a uma viagem já concluída. Confira a operação vinculada para saber se os pedidos foram entregues.</p></div>
+      <div><h2>Retome uma carga</h2><p className="entity-lede">Planos salvos no servidor, disponíveis após sair da tela ou entrar novamente.</p><p className="entity-form-help">A aprovação registra a decisão sobre a carga. Uma operação só aparece como concluída após o fim da viagem e a entrega integral dos pedidos de todas as partes.</p></div>
       <div className="plan-history-filters">
         {!checker ? <label>Situação<select value={status ?? ""} onChange={(event) => change("status", event.target.value)}>
           <option value="">Todas as situações</option>
