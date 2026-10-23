@@ -10,7 +10,7 @@ describe("ScanField — leitor e recuperação", () => {
     let finish!: (value: ScanOutcome) => void;
     const onScan = vi.fn(() => new Promise<ScanOutcome>((resolve) => { finish = resolve; }));
     render(<ScanField disabled={false} onScan={onScan} />);
-    const input = screen.getByRole<HTMLInputElement>("textbox", { name: "LER CÓDIGO DO VOLUME" });
+    const input = screen.getByRole("textbox", { name: "LER CÓDIGO DO VOLUME" }) as HTMLInputElement;
     fireEvent.change(input, { target: { value: CODE } });
     const form = input.closest("form") as HTMLFormElement;
     fireEvent.submit(form);
@@ -25,7 +25,7 @@ describe("ScanField — leitor e recuperação", () => {
   it("mostra erro recuperável se a operação lançar uma exceção", async () => {
     const onScan = vi.fn().mockRejectedValueOnce(new Error("network unavailable"));
     render(<ScanField disabled={false} onScan={onScan} />);
-    const input = screen.getByRole<HTMLInputElement>("textbox", { name: "LER CÓDIGO DO VOLUME" });
+    const input = screen.getByRole("textbox", { name: "LER CÓDIGO DO VOLUME" }) as HTMLInputElement;
     fireEvent.change(input, { target: { value: CODE } });
     fireEvent.submit(input.closest("form") as HTMLFormElement);
     expect(await screen.findByRole("status")).toHaveTextContent("Não foi possível conferir o código.");
