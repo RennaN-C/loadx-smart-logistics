@@ -15,6 +15,7 @@ import { approveLoadPlan, getLoadPlan, recalculateLoadPlan } from "../api/loadPl
 import { PlanHistory } from "../components/PlanHistory";
 import { PlanBuilder } from "../components/PlanBuilder";
 import { PlanItemsTable } from "../components/PlanItemsTable";
+import { PlanningActivityPanel } from "../components/PlanningActivityPanel";
 import { PlanSummary } from "../components/PlanSummary";
 import { mapLoadPlanErrorToMessage } from "../components/loadPlansErrorMessages";
 import type { LoadDistribution, LoadPlan } from "../types";
@@ -83,7 +84,7 @@ function PlanningWorkspace({ isNew, canManage, checker, onCalculated, onDistribu
       {canReadAudit ? <Link to="/audit"><Icon name="chart" size={17} />Atividade</Link> : null}
     </nav>
     {showBuilder ? <><div className="plan-new-intro"><Link to="/planning">← Voltar aos planos</Link><div><h2>Novo planejamento</h2><p>Selecione os pedidos e o modo de alocação. O plano será salvo somente ao calcular, com limite de 200 volumes.</p></div></div><PlanBuilder onCalculated={onCalculated} onDistributed={onDistributed} /></>
-      : <PlanHistory checker={checker} canReadOperations={canReadOperations} />}
+      : <div className="planning-overview-grid"><PlanHistory checker={checker} canReadOperations={canReadOperations} />{canReadAudit ? <PlanningActivityPanel /> : null}</div>}
   </>;
 }
 
@@ -208,7 +209,7 @@ export function PlanningPage() {
     return <div className="entity-page"><h1>Planejamento de carga</h1><AlertBanner>Seu perfil não tem acesso ao planejamento.</AlertBanner><Link to="/">Voltar ao início</Link></div>;
   }
 
-  return <div className="entity-page">
+  return <div className="entity-page planning-page">
     {planId ? <nav className="entity-toolbar entity-page-nav" aria-label="Caminhos do planejamento"><Link to="/planning">Voltar ao planejamento</Link><Link to="/orders">Voltar aos pedidos</Link></nav> : null}
     <PlanningHeader plan={plan} canManage={canManage} canDownload={canDownload} />
     <PlanningFeedback error={errorMessage} loading={isLoading} hasPlanId={Boolean(planId)} hasPlan={Boolean(plan)} retry={() => setLoadAttempt((value) => value + 1)} />
