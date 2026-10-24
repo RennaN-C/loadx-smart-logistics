@@ -31,7 +31,7 @@ const EM_OPERACAO = truck({
 const INATIVO = truck({ id: "t3", plate: "GHI3F45", active: false, available: false });
 
 function cartao(placa: string) {
-  const elemento = screen.getByText(placa).closest("li");
+  const elemento = screen.getByText(placa).closest("tr");
   if (elemento === null) throw new Error(`cartão de ${placa} não encontrado`);
   return elemento;
 }

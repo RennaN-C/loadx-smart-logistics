@@ -1,9 +1,8 @@
 import { RecordLifecycleAction } from "../../../components/RecordLifecycleAction";
 import { StatusPill } from "../../../components/StatusPill";
 import type { Truck } from "../types";
-import { TruckSchematic } from "./TruckSchematic";
-
 const weightFormatter = new Intl.NumberFormat("pt-BR");
+const volumeFormatter = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });
 
 interface TruckCardProps {
   readonly onDocuments?: (truck: Truck) => void;
@@ -15,49 +14,16 @@ interface TruckCardProps {
 }
 
 export function TruckCard({ truck, canManage, onEdit, onChanged, onMaintenance, onDocuments }: TruckCardProps) {
+  const volumeM3 = truck.internalWidthCm * truck.internalHeightCm * truck.internalLengthCm / 1_000_000;
   return (
-    <article className="truck-card">
-      <div className="truck-card-figure">
-        <TruckSchematic
-          view="side"
-          variant="card"
-          dimensions={{
-            widthCm: truck.internalWidthCm,
-            heightCm: truck.internalHeightCm,
-            lengthCm: truck.internalLengthCm,
-          }}
-        />
-      </div>
-
-      <div className="truck-card-body">
-        <div className="truck-card-head">
-          <div>
-            <p className="truck-card-plate">{truck.plate}</p>
-            <p className="truck-card-model">{truck.model}</p>
-          </div>
-          <StatusPill tone={truck.active ? "good" : "neutral"}>{truck.active ? "Ativo" : "Arquivado"}</StatusPill>
-        </div>
-
-        <dl className="truck-card-specs">
-          <div>
-            <dt>LARGURA</dt>
-            <dd>{truck.internalWidthCm} cm</dd>
-          </div>
-          <div>
-            <dt>ALTURA</dt>
-            <dd>{truck.internalHeightCm} cm</dd>
-          </div>
-          <div>
-            <dt>COMPR.</dt>
-            <dd>{truck.internalLengthCm} cm</dd>
-          </div>
-        </dl>
-
-        <div className="truck-card-foot">
-          <span className="truck-card-weight">
-            Peso máx. <strong>{weightFormatter.format(truck.maxWeightKg)} kg</strong>
-          </span>
-          <div className="truck-card-actions" role="group" aria-label={`Ações do caminhão ${truck.plate}`}>
+    <tr className="truck-card">
+      <td data-label="Placa"><strong className="truck-card-plate">{truck.plate}</strong></td>
+      <td data-label="Veículo"><strong className="truck-card-model">{truck.model}</strong><small>{truck.internalWidthCm} × {truck.internalHeightCm} × {truck.internalLengthCm} cm</small></td>
+      <td data-label="Capacidade"><span className="truck-card-weight"><strong>{weightFormatter.format(truck.maxWeightKg)} kg</strong></span></td>
+      <td data-label="Volume interno">{volumeFormatter.format(volumeM3)} m³</td>
+      <td data-label="Situação"><StatusPill tone={truck.active ? "good" : "neutral"}>{truck.active ? "Ativo" : "Arquivado"}</StatusPill></td>
+      <td data-label="Ações">
+        <div className="truck-card-actions" role="group" aria-label={`Ações do caminhão ${truck.plate}`}>
             {onDocuments ? (
               <button type="button" className="btn-link" onClick={() => onDocuments(truck)}>
                 Documentos
@@ -76,9 +42,8 @@ export function TruckCard({ truck, canManage, onEdit, onChanged, onMaintenance, 
                 <RecordLifecycleAction resource="trucks" id={truck.id} active={truck.active} onChanged={onChanged} />
               </>
             ) : null}
-          </div>
         </div>
-      </div>
-    </article>
+      </td>
+    </tr>
   );
 }
