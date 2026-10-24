@@ -1,4 +1,4 @@
-.app-search-header { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; justify-content: space-between; gap: 24px; min-height: 68px; padding: 11px 32px; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--card) 94%, transparent); backdrop-filter: blur(14px); }
+.app-search-header { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; justify-content: space-between; gap: 24px; min-height: 54px; padding: 7px 24px; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--card) 94%, transparent); backdrop-filter: blur(14px); }
 .global-search { position: relative; width: min(100%, 620px); min-width: 0; }
 .global-search-field { display: flex; align-items: center; gap: 12px; padding: 0 14px; min-height: 44px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); color: var(--muted); }
 .global-search-field:focus-within { outline: 2px solid var(--accent-strong); outline-offset: 2px; }

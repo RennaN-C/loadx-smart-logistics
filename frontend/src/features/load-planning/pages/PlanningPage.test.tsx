@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { makePage } from "../../../tests/makePage";
 import { ApiError } from "../../../types/api";
 import { useAuth } from "../../auth/hooks/useAuth";
+import { listAuditEntries } from "../../audit/api/auditApi";
 import { listCustomers } from "../../customers/api/customersApi";
 import { listOrders } from "../../orders/api/ordersApi";
 import { listTruckOperationalStatus, listTrucks } from "../../trucks/api/trucksApi";
@@ -28,6 +29,7 @@ vi.mock("../../trucks/api/trucksApi");
 vi.mock("../../orders/api/ordersApi");
 vi.mock("../../customers/api/customersApi");
 vi.mock("../../auth/hooks/useAuth");
+vi.mock("../../audit/api/auditApi");
 vi.mock("../../audit/components/AuditTrail", () => ({
   AuditTrail: () => <div data-testid="audit-trail">histórico contextual</div>,
 }));
@@ -132,7 +134,9 @@ describe("PlanningPage", () => {
     sessionStorage.clear();
     vi.resetAllMocks();
     mockRole("LOGISTICS_MANAGER");
+    vi.mocked(listAuditEntries).mockResolvedValue(makePage([]));
     vi.mocked(listLoadPlans).mockResolvedValue(makePage([]));
+    vi.mocked(listAuditEntries).mockResolvedValue(makePage([]));
     vi.mocked(getLoadPlanContinuity).mockResolvedValue({ loading_session: null, trip: null, operational_ready: true });
     vi.mocked(listTrucks).mockResolvedValue(
       makePage([
@@ -653,6 +657,7 @@ describe("PlanningPage — entrada e autorização da retomada", () => {
     expect(listTrucks).not.toHaveBeenCalled();
     expect(screen.queryByLabelText("CAMINHÃO")).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Novo planejamento" }) !== null).toBe(role !== "CHECKER");
+    expect(screen.queryByRole("heading", { name: "Atividade e auditoria" }) !== null).toBe(role !== "CHECKER");
   });
   it("DRIVER não consulta lista global nem detalhe mesmo por URL", () => {
     mockRole("DRIVER");
