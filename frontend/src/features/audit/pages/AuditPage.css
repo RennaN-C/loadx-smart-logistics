@@ -1,15 +1,17 @@
 .audit-page {
-  max-width: 1440px;
+  max-width: 1460px;
+  padding-top: 26px;
 }
+.audit-title-block { display: flex; align-items: center; gap: 13px; }.audit-title-block .eyebrow { display: none; }.audit-title-icon { display: grid; place-items: center; color: var(--accent-strong); }.audit-page .entity-header h1 { letter-spacing: -.04em; }
 
 .audit-filters {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  margin: 28px 0 20px;
-  padding: 20px;
+  margin: 18px 0 12px;
+  padding: 15px;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 9px;
   background: var(--card);
   box-shadow: 0 10px 30px rgb(0 0 0 / 0.035);
 }
@@ -17,7 +19,7 @@
 .audit-filter-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
+  gap: 10px;
 }
 
 .audit-filters label {
@@ -30,10 +32,10 @@
 .audit-filters select {
   width: 100%;
   min-width: 0;
-  min-height: 44px;
-  padding: 10px 12px;
+  min-height: 40px;
+  padding: 8px 10px;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 7px;
   background: var(--paper);
   color: var(--ink);
   font: inherit;
@@ -88,7 +90,7 @@
   gap: 8px;
   padding: 52px 24px;
   border: 1px dashed var(--line);
-  border-radius: 12px;
+  border-radius: 9px;
   color: var(--muted);
   text-align: center;
 }
@@ -115,7 +117,8 @@
 
 .audit-table th,
 .audit-table td {
-  padding: 12px 14px;
+  padding: 10px 12px;
+  vertical-align: middle;
   text-align: left;
   vertical-align: top;
   border-bottom: 1px solid var(--line);
@@ -134,28 +137,37 @@
 }
 
 .audit-table tbody > tr:not(.audit-detail-row):hover { background: var(--accent-bg); }
+.audit-table time { display: grid; gap: 2px; }.audit-table time strong { font-weight: 600; }.audit-table time span { color: var(--muted); font-size: .72rem; }
 .audit-table strong { display: block; color: var(--ink); font-weight: 600; }
 .audit-friendly-id { display: block; margin-top: 4px; color: var(--muted); font-size: .75rem; }
 .audit-event-label {
   display: inline-flex;
   padding: 5px 8px;
-  border: 1px solid var(--line);
+  border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
   border-radius: 7px;
-  background: var(--paper);
-  color: var(--ink);
+  background: var(--accent-bg);
+  color: var(--accent-strong);
   font-size: .76rem;
   font-weight: 600;
 }
+.audit-event-label[data-tone="blue"] { color: #6ea6f8; background: color-mix(in srgb, #6ea6f8 13%, transparent); }.audit-event-label[data-tone="green"] { color: var(--good); background: var(--good-bg); }.audit-event-label[data-tone="purple"] { color: #a886e8; background: color-mix(in srgb, #a886e8 14%, transparent); }.audit-event-label[data-tone="red"] { color: var(--danger); background: var(--danger-bg); }
+.audit-entity-cell, .audit-actor { display: flex; align-items: center; gap: 9px; min-width: 0; }.audit-entity-icon { display: grid; place-items: center; flex: 0 0 auto; width: 29px; height: 29px; border-radius: 6px; color: var(--muted); background: var(--paper); border: 1px solid var(--line); }.audit-actor > span { display: grid; place-items: center; flex: 0 0 auto; width: 28px; height: 28px; border-radius: 50%; color: var(--accent-strong); background: var(--accent-bg); border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line)); font-size: .61rem; font-weight: 700; }
 .audit-detail-toggle {
-  border: 0;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
   background: transparent;
-  color: var(--accent-strong);
+  color: var(--muted);
   font: inherit;
   font-size: .8rem;
   font-weight: 700;
   cursor: pointer;
 }
-.audit-detail-toggle:hover { text-decoration: underline; text-underline-offset: 3px; }
+.audit-detail-toggle:hover { color: var(--accent-strong); border-color: var(--line); background: var(--paper); }
 .audit-detail-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .audit-detail-row td { padding: 0 18px 18px; background: var(--paper); }
 .audit-detail-row dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 0; padding: 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); }

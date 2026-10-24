@@ -59,6 +59,19 @@ function toAuditParams(filters: FilterDraft, page: number): AuditListParams {
   };
 }
 
+function eventTone(event: AuditEventType): "amber" | "blue" | "green" | "purple" | "red" {
+  if (event === "STATUS_CHANGED" || event.includes("UPDATED") || event.includes("RENEWED")) return "amber";
+  if (event.includes("ARCHIVED") || event.includes("REVOKED") || event.includes("REJECTED")) return "red";
+  if (event.includes("REACTIVATED") || event.includes("COMPLETED") || event.includes("CLOSED")) return "green";
+  if (event.includes("CREATED") || event.includes("REGISTERED")) return "blue";
+  return "purple";
+}
+
+function actorInitials(name: string | null): string {
+  if (!name) return "SX";
+  return name.split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toLocaleUpperCase("pt-BR");
+}
+
 export function AuditPage() {
   const { user } = useAuth();
   const canReadCompany = user?.role === "ADMIN";
@@ -111,12 +124,15 @@ export function AuditPage() {
   return (
     <div className="entity-page audit-page">
       <header className="entity-header">
-        <div>
+        <div className="audit-title-block">
+          <span className="audit-title-icon"><Icon name="report" size={24} /></span>
+          <div>
           <p className="eyebrow">CONTROLE</p>
           <h1>Auditoria</h1>
           <p className="entity-lede">
             Histórico somente leitura de mudanças operacionais e ações administrativas.
           </p>
+          </div>
         </div>
       </header>
 
@@ -246,21 +262,21 @@ export function AuditPage() {
                   <tr>
                     <td data-label="Quando">
                       <time dateTime={entry.createdAt}>
-                        {new Date(entry.createdAt).toLocaleString("pt-BR")}
+                        <strong>{new Date(entry.createdAt).toLocaleDateString("pt-BR")}</strong>
+                        <span>{new Date(entry.createdAt).toLocaleTimeString("pt-BR")}</span>
                       </time>
                     </td>
-                    <td data-label="Evento"><span className="audit-event-label">{AUDIT_EVENT_LABELS[entry.eventType]}</span></td>
+                    <td data-label="Evento"><span className="audit-event-label" data-tone={eventTone(entry.eventType)}>{AUDIT_EVENT_LABELS[entry.eventType]}</span></td>
                     <td data-label="Entidade">
-                      <strong>{entry.entityName ?? AUDIT_ENTITY_LABELS[entry.entityType]}</strong>
-                      <span className="audit-friendly-id">{AUDIT_ENTITY_LABELS[entry.entityType]} · {shortId}</span>
+                      <span className="audit-entity-cell"><span className="audit-entity-icon"><Icon name="package" size={15} /></span><span><strong>{entry.entityName ?? AUDIT_ENTITY_LABELS[entry.entityType]}</strong><span className="audit-friendly-id">{AUDIT_ENTITY_LABELS[entry.entityType]} · {shortId}</span></span></span>
                     </td>
                     <td data-label="Responsável">
-                      <strong>{entry.actorName ?? "Sistema"}</strong>
+                      <span className="audit-actor"><span>{actorInitials(entry.actorName)}</span><strong>{entry.actorName ?? "Sistema"}</strong></span>
                     </td>
                     <td data-label="Alteração">{describeAuditEntry(entry)}</td>
                     <td data-label="Ações"><button className="audit-detail-toggle" type="button" aria-expanded={isExpanded}
                       aria-label={`${isExpanded ? "Ocultar" : "Ver"} detalhes do evento ${shortId}`}
-                      onClick={() => setExpandedEntry(isExpanded ? null : entry.id)}>{isExpanded ? "Ocultar" : "Detalhes"}</button></td>
+                      onClick={() => setExpandedEntry(isExpanded ? null : entry.id)}><span aria-hidden="true">{isExpanded ? "−" : "›"}</span></button></td>
                   </tr>
                   {isExpanded ? <tr className="audit-detail-row"><td colSpan={6}>
                     <dl>
