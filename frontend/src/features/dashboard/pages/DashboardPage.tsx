@@ -1,19 +1,23 @@
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { Link } from "react-router-dom";
 
-import { StatusPill } from "../../../components/StatusPill";
+import { AlertBanner } from "../../../components/AlertBanner";
 import { Icon, type IconName } from "../../../components/Icon";
+import { StatusPill } from "../../../components/StatusPill";
+import { useResourceList } from "../../../hooks/useResourceList";
+import type { ListParams } from "../../../services/pagination";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { hasPermission } from "../../auth/permissions";
-import type { ListParams } from "../../../services/pagination";
-import { useResourceList } from "../../../hooks/useResourceList";
 import { listCustomers } from "../../customers/api/customersApi";
+import { getOperationalIndicators } from "../../operations/api/operationalIndicatorsApi";
+import type { OperationalIndicators } from "../../operations/types";
 import { STATUS_LABELS, priorityLabel, statusTone } from "../../orders/components/orderLabels";
+import { DriverTrips } from "../components/DriverTrips";
 import { useDashboardTotals } from "../hooks/useDashboardTotals";
 import "./DashboardPage.css";
-import { OperationsDashboardPage } from "../../operations/pages/OperationsDashboardPage";
-import { DriverTrips } from "../components/DriverTrips";
 
-const dateFormatter = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" });
+const dateFormatter = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" });
+const numberFormatter = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });
 
 interface CounterProps {
   readonly label: string;
@@ -24,136 +28,102 @@ interface CounterProps {
 }
 
 function Counter({ label, value, to, icon, description }: CounterProps) {
-  return (
-    <Link className="kpi" to={to}>
-      <span className="kpi-icon"><Icon name={icon} size={20} /></span>
-      <span className="kpi-content"><span className="kpi-label">{label}</span>
-      <span className="kpi-value">{value ?? "—"}</span>
-      <span className="kpi-description">{description}</span></span>
-      <Icon name="arrow-right" size={17} />
-    </Link>
-  );
+  return <Link className="kpi" to={to}>
+    <span className="kpi-icon"><Icon name={icon} size={20} /></span>
+    <span className="kpi-content"><span className="kpi-label">{label}</span><span className="kpi-value">{value ?? "—"}</span><span className="kpi-description">{description}</span></span>
+  </Link>;
 }
 
 const listHistoricalCustomers = (params: ListParams) => listCustomers({ ...params, archiveStatus: "all" });
 
+function useOperationalSnapshot(enabled: boolean) {
+  const [data, setData] = useState<OperationalIndicators | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  useEffect(() => {
+    if (!enabled) return;
+    let active = true;
+    setFailed(false);
+    getOperationalIndicators().then((result) => { if (active) setData(result); }).catch(() => { if (active) setFailed(true); });
+    return () => { active = false; };
+  }, [enabled, attempt]);
+  return { data, failed, retry: useCallback(() => setAttempt((value) => value + 1), []) };
+}
+
+function ComparisonChart({ orders, deliveries }: { readonly orders: number; readonly deliveries: number }) {
+  const max = Math.max(orders, deliveries, 1);
+  return <section className="overview-panel overview-comparison" aria-labelledby="overview-comparison-title">
+    <div className="overview-panel-heading">
+      <div><h2 id="overview-comparison-title">Pedidos e entregas</h2><p>Totais persistidos desde o início</p></div>
+      <ul className="overview-legend"><li><i data-series="orders" />Pedidos</li><li><i data-series="deliveries" />Entregas</li></ul>
+    </div>
+    <div className="overview-chart" role="img" aria-label={`${orders} pedidos e ${deliveries} entregas`}>
+      <span className="overview-grid-line" /><span className="overview-grid-line" /><span className="overview-grid-line" />
+      <div className="overview-chart-column"><strong>{orders}</strong><span className="overview-bar overview-bar-orders" style={{ height: `${Math.max(8, orders / max * 100)}%` }} /><small>Pedidos</small></div>
+      <div className="overview-chart-column"><strong>{deliveries}</strong><span className="overview-bar overview-bar-deliveries" style={{ height: `${Math.max(8, deliveries / max * 100)}%` }} /><small>Entregas</small></div>
+    </div>
+  </section>;
+}
+
+function TripSituation({ trips }: { readonly trips: OperationalIndicators["trips"] }) {
+  const total = Math.max(trips.total, 1);
+  const scheduledEnd = trips.scheduled / total * 360;
+  const routeEnd = scheduledEnd + trips.inRoute / total * 360;
+  const style = { "--scheduled-end": `${scheduledEnd}deg`, "--route-end": `${routeEnd}deg` } as CSSProperties;
+  return <section className="overview-panel overview-trips" aria-labelledby="overview-trips-title">
+    <div className="overview-panel-heading"><div><h2 id="overview-trips-title">Situação das viagens</h2><p>Distribuição desde o início</p></div></div>
+    <div className="overview-trip-content">
+      <div className="overview-donut" style={style} aria-hidden="true"><span><strong>{trips.total}</strong>{trips.total === 1 ? "viagem" : "viagens"}</span></div>
+      <ul><li><i data-trip="route" /><span>Em rota</span><strong>{trips.inRoute}</strong></li><li><i data-trip="scheduled" /><span>Programadas</span><strong>{trips.scheduled}</strong></li><li><i data-trip="finished" /><span>Concluídas</span><strong>{trips.finished}</strong></li></ul>
+    </div>
+  </section>;
+}
+
 export function DashboardPage() {
   const { user } = useAuth();
-  const { status, totals, recentOrders, unavailable, reload } = useDashboardTotals(user);
+  const { status, totals, recentOrders, recentProducts, unavailable, reload } = useDashboardTotals(user);
   const readsPersonalData = hasPermission(user, "loadx.customers.read");
   const { items: customers } = useResourceList(listHistoricalCustomers, readsPersonalData);
-
-  const customerNames = new Map((readsPersonalData ? customers : []).map((customer) => [customer.id, customer.name]));
+  const canSeeOperation = user?.role === "ADMIN" || user?.role === "LOGISTICS_MANAGER";
+  const operational = useOperationalSnapshot(canSeeOperation);
+  const customerNames = useMemo(() => new Map((readsPersonalData ? customers : []).map((customer) => [customer.id, customer.name])), [customers, readsPersonalData]);
   const canPlan = hasPermission(user, "loadx.planning.create");
   const firstName = user?.name.trim().split(/\s+/)[0] ?? "";
 
-  /**
-   * O motorista não lê caminhões, produtos, pedidos nem clientes: TODOS os
-   * contadores deste painel respondem 403 para ele. O painel de cadastros
-   * simplesmente não é para esse perfil — o que interessa a ele são as viagens
-   * que recebeu, e é isso que a tela mostra.
-   */
   if (user?.role === "DRIVER") {
-    return (
-      <div className="entity-page overview-page">
-        <header className="entity-header overview-hero">
-          <div>
-            <p className="overview-eyebrow">Sua operação</p>
-            <h1>Visão geral</h1>
-            <p className="entity-lede">Suas viagens e o que falta entregar.</p>
-          </div>
-        </header>
-
-        <section className="dash-block">
-          <div className="dash-block-head">
-            <h2>Minhas viagens</h2>
-          </div>
-          <DriverTrips />
-        </section>
-      </div>
-    );
+    return <div className="entity-page overview-page"><header className="entity-header overview-hero"><div><p className="overview-eyebrow">Sua operação</p><h1>Visão geral</h1><p className="entity-lede">Suas viagens e o que falta entregar.</p></div></header><section className="dash-block"><div className="dash-block-head"><h2>Minhas viagens</h2></div><DriverTrips /></section></div>;
   }
 
-  return (
-    <div className="entity-page overview-page">
-      <header className="entity-header overview-hero">
-        <div>
-          <p className="overview-eyebrow">Bem-vindo{firstName ? `, ${firstName}` : ""}</p>
-          <h1>Visão geral</h1>
-          <p className="entity-lede">Acompanhe a operação logística e acesse os próximos passos.</p>
-        </div>
-        {canPlan ? (
-          <Link className="btn-primary" to="/planning">
-            <Icon name="plus" size={18} /> Planejar carga
-          </Link>
-        ) : null}
-      </header>
+  return <div className="entity-page overview-page">
+    <header className="entity-header overview-hero">
+      <div><p className="overview-eyebrow">Bem-vindo{firstName ? `, ${firstName}` : ""}</p><h1>Visão geral</h1><p className="entity-lede">Acompanhe a operação logística em tempo real e acesse os principais indicadores.</p></div>
+      <div className="overview-hero-actions">{operational.data ? <span className="overview-live"><i />Dados atualizados</span> : null}{canPlan ? <Link className="btn-primary" to="/planning?tab=new"><Icon name="plus" size={18} />Planejar carga</Link> : null}</div>
+    </header>
 
-      <AuthorizedOperationalOverview user={user} />
+    {status === "loading" && !operational.data ? <p className="entity-state"><span className="spinner" aria-hidden="true" /><span>Carregando painel…</span></p> : null}
+    {canSeeOperation && operational.failed ? <div className="dashboard-partial"><AlertBanner>Não foi possível atualizar os indicadores operacionais. Os demais dados continuam disponíveis.</AlertBanner><button className="btn-secondary" onClick={operational.retry} type="button">Tentar novamente</button></div> : null}
 
-      {status === "loading" ? (
-        <p className="entity-state">
-          <span className="spinner" aria-hidden="true" />
-          <span>Carregando painel…</span>
-        </p>
-      ) : (
-        <>
-          <div className="kpi-grid">
-            {!canPlan && hasPermission(user, "loadx.trucks.read") && <Counter label="Caminhões" value={totals.trucks} to="/trucks" icon="truck" description="cadastrados no sistema" />}
-            {hasPermission(user, "loadx.products.read") && <Counter label="Produtos" value={totals.products} to="/products" icon="package" description="itens no catálogo" />}
-            {readsPersonalData ? (
-              <>
-                <Counter label="Clientes" value={totals.customers} to="/contacts" icon="users" description="relacionamentos ativos e históricos" />
-                {hasPermission(user, "loadx.drivers.read") && <Counter label="Motoristas" value={totals.drivers} to="/contacts?tab=drivers" icon="users" description="profissionais cadastrados" />}
-              </>
-            ) : null}
-            {hasPermission(user, "loadx.orders.read") && <Counter label="Pedidos" value={totals.orders} to="/orders" icon="orders" description="registros persistidos" />}
-          </div>
+    {canSeeOperation && operational.data ? <>
+      <div className="overview-kpis">
+        <Counter label="Pedidos" value={totals.orders} to="/orders" icon="orders" description="registros persistidos" />
+        <Counter label="Entregas" value={operational.data.deliveries.total} to="/deliveries" icon="truck" description="desde o início" />
+        <Counter label="Viagens em rota" value={operational.data.trips.inRoute} to="/trips?status=IN_ROUTE" icon="planning" description="em andamento agora" />
+        <Counter label="Caminhões disponíveis" value={operational.data.fleet.available} to="/trucks?tab=availability" icon="truck" description="prontos para alocação" />
+        {readsPersonalData ? <Counter label="Motoristas" value={totals.drivers} to="/contacts?tab=drivers" icon="users" description="cadastrados no sistema" /> : null}
+      </div>
+      <div className="overview-analytics"><ComparisonChart orders={totals.orders ?? 0} deliveries={operational.data.deliveries.total} /><TripSituation trips={operational.data.trips} /></div>
+    </> : null}
 
-          {unavailable.length > 0 ? (
-            <div className="dashboard-partial"><p className="entity-form-help">
-              Alguns números não puderam ser carregados e aparecem como “—”. O restante do painel
-              continua válido.
-            </p><button className="btn-secondary" onClick={reload} type="button">Tentar novamente o resumo</button></div>
-          ) : null}
+    {!canSeeOperation && status !== "loading" ? <div className="kpi-grid">{hasPermission(user, "loadx.trucks.read") ? <Counter label="Caminhões" value={totals.trucks} to="/trucks" icon="truck" description="cadastrados no sistema" /> : null}{hasPermission(user, "loadx.products.read") ? <Counter label="Produtos" value={totals.products} to="/products" icon="package" description="itens no catálogo" /> : null}{hasPermission(user, "loadx.orders.read") ? <Counter label="Pedidos" value={totals.orders} to="/orders" icon="orders" description="registros persistidos" /> : null}</div> : null}
+    {unavailable.length > 0 ? <div className="dashboard-partial"><p className="entity-form-help">Alguns números não puderam ser carregados e aparecem como “—”. O restante do painel continua válido.</p><button className="btn-secondary" onClick={reload} type="button">Tentar novamente o resumo</button></div> : null}
 
-          {hasPermission(user, "loadx.orders.read") && <section className="dash-block dash-activity">
-            <div className="dash-block-head">
-              <div><p className="overview-eyebrow">Atividade recente</p><h2>Pedidos mais recentes</h2></div>
-              <Link className="btn-link" to="/orders">
-                Ver todos
-              </Link>
-            </div>
-
-            {recentOrders.length === 0 ? (
-              <p className="entity-state">{unavailable.includes("orders") ? "Não foi possível consultar os pedidos recentes." : "Nenhum pedido cadastrado ainda."}</p>
-            ) : (
-              <ul className="dash-orders">
-                {recentOrders.map((order) => (
-                  <li key={order.id}>
-                    <div>
-                      <p className="dash-order-customer">
-                        {customerNames.get(order.customerId) ?? `Pedido ${order.id.slice(0, 8)}`}
-                      </p>
-                      <p className="dash-order-meta">
-                        {dateFormatter.format(new Date(order.createdAt))} · {order.itemCount}{" "}
-                        {order.itemCount === 1 ? "linha" : "linhas"} · {priorityLabel(order.priority)}
-                      </p>
-                    </div>
-                    <StatusPill tone={statusTone(order.status)}>{STATUS_LABELS[order.status]}</StatusPill>
-                    <Link className="btn-link" to={`/orders?order=${order.id}`}>Abrir pedido</Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>}
-        </>
-      )}
-    </div>
-  );
-}
-
-function AuthorizedOperationalOverview({ user }: { readonly user: ReturnType<typeof useAuth>["user"] }) {
-  return <>      {hasPermission(user, "loadx.reports.read") && (user?.role !== "CUSTOM" || hasPermission(user, "loadx.trucks.read")) && <OperationsDashboardPage embedded />}
-      {user?.role === "CUSTOM" && hasPermission(user, "loadx.trips.read") ? <section className="dash-block"><h2>Viagens autorizadas</h2><DriverTrips /></section> : null}</>;
+    {status !== "loading" && hasPermission(user, "loadx.orders.read") ? <div className="overview-lower-grid">
+      <section className="overview-panel overview-events"><div className="overview-panel-heading"><div><h2>Últimos acontecimentos</h2><p>Pedidos atualizados recentemente</p></div><Link className="btn-link" to="/orders">Ver todos <Icon name="arrow-right" size={14} /></Link></div>
+        {recentOrders.length === 0 ? <p className="entity-state">{unavailable.includes("orders") ? "Não foi possível consultar os pedidos recentes." : "Nenhum pedido cadastrado ainda."}</p> : <ul>{recentOrders.map((order) => <li key={order.id}><span className={`overview-event-dot overview-event-${statusTone(order.status)}`} /><time dateTime={order.createdAt}>{dateFormatter.format(new Date(order.createdAt))}</time><div><Link to={`/orders?order=${order.id}`} aria-label={`Abrir pedido ${order.id}`}><strong>{customerNames.get(order.customerId) ?? `Pedido ${order.id.slice(0, 8)}`}</strong></Link><small>{order.itemCount} {order.itemCount === 1 ? "linha" : "linhas"} · prioridade {priorityLabel(order.priority)}</small></div><StatusPill tone={statusTone(order.status)}>{STATUS_LABELS[order.status]}</StatusPill></li>)}</ul>}
+      </section>
+      {hasPermission(user, "loadx.products.read") ? <section className="overview-panel overview-products"><div className="overview-panel-heading"><div><h2>Cargas disponíveis</h2><p>Produtos ativos mais recentes</p></div><Link className="btn-link" to="/products">Ver todas <Icon name="arrow-right" size={14} /></Link></div>
+        {recentProducts.length === 0 ? <p className="entity-state">Nenhum produto disponível para exibir.</p> : <div className="overview-product-grid">{recentProducts.map((product) => <Link to="/products" className="overview-product-card" key={product.id}><span className="overview-product-state"><i />{product.active ? "Ativo" : "Arquivado"}</span><div><strong title={product.code}>{product.code.length > 16 ? `${product.code.slice(0, 12)}…` : product.code}</strong><b>{numberFormatter.format(product.weightKg)} kg</b></div><p>{product.name}</p><dl><div><dt>Largura</dt><dd>{numberFormatter.format(product.widthCm)} cm</dd></div><div><dt>Altura</dt><dd>{numberFormatter.format(product.heightCm)} cm</dd></div><div><dt>Comprimento</dt><dd>{numberFormatter.format(product.lengthCm)} cm</dd></div></dl></Link>)}</div>}
+      </section> : null}
+    </div> : null}
+  </div>;
 }

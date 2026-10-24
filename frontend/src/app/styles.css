@@ -91,7 +91,7 @@ body {
 .app-shell {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: 248px minmax(0, 1fr);
+  grid-template-columns: 200px minmax(0, 1fr);
 }
 
 /* min-width evita que conteúdo largo (canvas 3D, tabelas) estoure a coluna */
@@ -102,8 +102,8 @@ body {
 .app-sidebar {
   display: flex;
   flex-direction: column;
-  gap: 22px;
-  padding: 20px 14px 24px;
+  gap: 14px;
+  padding: 14px 10px 20px;
   border-right: 1px solid var(--line);
   background: var(--card);
   /* A rolagem pertence à página. No desktop não há uma segunda barra interna
@@ -121,7 +121,7 @@ body {
   gap: 9px;
   margin: 0;
   padding: 2px 8px 0;
-  font-size: 1.18rem;
+  font-size: 1.05rem;
   font-weight: 800;
   letter-spacing: 0.13em;
 }
@@ -226,7 +226,7 @@ body {
 .app-nav {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 9px;
 }
 
 /* o ícone acompanha a cor do texto ao lado e não encolhe quando o rótulo é longo */
@@ -288,43 +288,44 @@ body {
   display: flex;
   align-items: center;
   gap: 9px;
-  min-height: 32px;
+  min-height: 22px;
   margin: 0 0 3px;
-  padding: 6px 10px;
+  padding: 3px 10px;
   border: 1px solid transparent;
-  border-radius: 7px;
+  border-radius: 0;
   background: transparent;
   color: var(--muted);
   text-align: left;
-  font-family: inherit;
-  font-size: 0.76rem;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
   font-weight: 600;
-  letter-spacing: 0.03em;
+  letter-spacing: .12em;
+  text-transform: uppercase;
   cursor: pointer;
 }
-.app-nav-group-toggle > .icon { opacity: 0.7; }
+.app-nav-group-toggle > .icon { display: none; }
 .app-nav-group-toggle:hover,
 .app-nav-group-toggle[data-active="true"] {
   color: var(--ink);
-  background: var(--paper);
+  background: transparent;
 }
 .app-nav-group-toggle[data-active="true"] > .icon { color: var(--accent-strong); opacity: 1; }
 .app-nav-group-toggle:focus-visible {
   outline: 2px solid var(--accent-strong);
   outline-offset: 2px;
 }
-.app-nav-chevron { margin-left: auto; font-size: 1rem; line-height: 1; transition: transform 0.15s ease; }
+.app-nav-chevron { display: none; }
 .app-nav-group-toggle[aria-expanded="false"] .app-nav-chevron { transform: rotate(-90deg); }
 
 .app-nav a {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 0.88rem;
+  font-size: 0.78rem;
   color: var(--muted);
   text-decoration: none;
-  min-height: 36px;
-  padding: 8px 10px;
+  min-height: 32px;
+  padding: 6px 9px;
   border-radius: 7px;
   /* a faixa do ativo entra pela borda, então o texto não desloca ao trocar de tela */
   border-left: 2px solid transparent;
