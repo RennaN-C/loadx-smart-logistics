@@ -156,6 +156,7 @@ class AuditEntryRead(BaseModel):
     entity_id: uuid.UUID
     actor_id: uuid.UUID | None
     actor_name: str | None
+    entity_name: str | None
     old_status: str | None
     new_status: str | None
     changed_fields: list[str]

@@ -15,6 +15,7 @@ interface AuditEntryDto {
   entity_id: string;
   actor_id: string | null;
   actor_name: string | null;
+  entity_name?: string | null;
   old_status: string | null;
   new_status: string | null;
   changed_fields: string[];
@@ -29,6 +30,7 @@ export function mapAuditEntryFromDto(dto: AuditEntryDto): AuditEntry {
     entityId: dto.entity_id,
     actorId: dto.actor_id,
     actorName: dto.actor_name,
+    ...(dto.entity_name !== undefined ? { entityName: dto.entity_name } : {}),
     oldStatus: dto.old_status,
     newStatus: dto.new_status,
     changedFields: dto.changed_fields,

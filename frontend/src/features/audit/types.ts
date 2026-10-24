@@ -11,6 +11,7 @@ export interface AuditEntry {
   entityId: string;
   actorId: string | null;
   actorName: string | null;
+  entityName?: string | null;
   oldStatus: string | null;
   newStatus: string | null;
   changedFields: string[];
