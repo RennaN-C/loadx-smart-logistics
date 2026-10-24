@@ -130,7 +130,12 @@ describe("DashboardPage", () => {
     mockRole("LOGISTICS_MANAGER");
     vi.mocked(getOperationalIndicators).mockResolvedValue({ fleet: { period: "CURRENT_SNAPSHOT", total: 6, active: 5, inactive: 1, available: 4, unavailable: 2, withOperationConflict: 1 }, trips: { period: "ALL_TIME", total: 9, scheduled: 3, inRoute: 2, finished: 4 }, deliveries: { period: "ALL_TIME", total: 20, pending: 7, inDelivery: 3, delivered: 10 }, occurrences: { period: "ALL_TIME", total: 2 } });
     vi.mocked(listTrucks).mockResolvedValue(pageWithTotal(4));
-    vi.mocked(listProducts).mockResolvedValue(pageWithTotal(12));
+    vi.mocked(listProducts).mockResolvedValue({ ...makePage([{
+      id: "p1", code: "CX-100", name: "Caixa média", description: null,
+      widthCm: 40, heightCm: 30, lengthCm: 60, weightKg: 12.5,
+      fragile: false, stackable: true, rotationAllowed: true, active: true,
+      createdAt: "2026-08-01T00:00:00Z",
+    }]), total: 12 });
     vi.mocked(listDrivers).mockResolvedValue(pageWithTotal(3));
     vi.mocked(listCustomers).mockResolvedValue(
       makePage([
@@ -195,7 +200,7 @@ describe("DashboardPage", () => {
     renderPage();
     expect(await screen.findByRole("link", { name: "Planejar carga" })).toHaveAttribute(
       "href",
-      "/planning",
+      "/planning?tab=new",
     );
   });
 
@@ -209,11 +214,14 @@ describe("DashboardPage", () => {
   });
   it.each(["ADMIN", "LOGISTICS_MANAGER"] as const)("%s recebe indicadores reais sem duplicar o total de caminhões", async (role) => {
     mockRole(role); renderPage();
-    await screen.findByRole("heading", { name: "Frota" });
+    await screen.findByRole("heading", { name: "Situação das viagens" });
     expect(getOperationalIndicators).toHaveBeenCalledOnce();
     expect(listTrucks).not.toHaveBeenCalled();
-    expect(screen.getByRole("link", { name: "Consultar disponibilidade" })).toHaveAttribute("href", "/trucks?tab=availability");
-    expect(screen.getByRole("link", { name: "Abrir pedido" })).toHaveAttribute("href", "/orders?order=o1");
+    expect(screen.getByRole("link", { name: /Caminhões disponíveis/ })).toHaveAttribute("href", "/trucks?tab=availability");
+    expect(screen.getByRole("link", { name: "Abrir pedido o1" })).toHaveAttribute("href", "/orders?order=o1");
+    expect(screen.getByRole("img", { name: "27 pedidos e 20 entregas" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Cargas disponíveis" })).toBeInTheDocument();
+    expect(screen.getByText("CX-100")).toBeInTheDocument();
   });
 
   it("falha operacional preserva pedidos recentes e permite nova tentativa", async () => {
@@ -222,7 +230,7 @@ describe("DashboardPage", () => {
     expect(await screen.findByRole("alert")).toBeInTheDocument();
     expect(await screen.findByText("Distribuidora Aurora")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Tentar novamente" }));
-    await screen.findByRole("heading", { name: "Frota" });
+    await screen.findByRole("heading", { name: "Situação das viagens" });
     expect(getOperationalIndicators).toHaveBeenCalledTimes(2);
   });
 
