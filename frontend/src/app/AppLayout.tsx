@@ -136,6 +136,8 @@ export function AppLayout() {
   useEffect(() => {
     setMobileOpen(false);
     setSettingsSubmenuExpanded(location.pathname === "/settings");
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
     setExpandedGroups((current) => {
       const activeGroup = NAV_GROUPS.find((group) => group.items.some((item) =>
         location.pathname === item.to || (item.to !== "/" && location.pathname.startsWith(`${item.to}/`)),
