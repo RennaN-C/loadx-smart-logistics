@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { Fragment, useCallback, useEffect, useState, type FormEvent } from "react";
 
 import { useAuth } from "../../auth/hooks/useAuth";
 import { AlertBanner } from "../../../components/AlertBanner";
+import { Icon } from "../../../components/Icon";
 import { Pagination } from "../../../components/Pagination";
 import { ApiError } from "../../../types/api";
 import { listAuditEntries } from "../api/auditApi";
@@ -69,6 +70,7 @@ export function AuditPage() {
   const [totalPages, setTotalPages] = useState(0);
   const [state, setState] = useState<"loading" | "success" | "error">("loading");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [expandedEntry, setExpandedEntry] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setState("loading");
@@ -110,6 +112,7 @@ export function AuditPage() {
     <div className="entity-page audit-page">
       <header className="entity-header">
         <div>
+          <p className="eyebrow">CONTROLE</p>
           <h1>Auditoria</h1>
           <p className="entity-lede">
             Histórico somente leitura de mudanças operacionais e ações administrativas.
@@ -118,6 +121,7 @@ export function AuditPage() {
       </header>
 
       <form className="audit-filters" onSubmit={applyFilters}>
+        <div className="audit-filter-grid">
         <label>
           <span className="field-label">Entidade</span>
           <select
@@ -159,30 +163,6 @@ export function AuditPage() {
         </label>
 
         <label>
-          <span className="field-label">ID da entidade</span>
-          <input
-            type="text"
-            placeholder="UUID"
-            value={draft.entityId}
-            onChange={(event) =>
-              setDraft((current) => ({ ...current, entityId: event.target.value }))
-            }
-          />
-        </label>
-
-        <label>
-          <span className="field-label">ID do responsável</span>
-          <input
-            type="text"
-            placeholder="UUID"
-            value={draft.actorId}
-            onChange={(event) =>
-              setDraft((current) => ({ ...current, actorId: event.target.value }))
-            }
-          />
-        </label>
-
-        <label>
           <span className="field-label">De</span>
           <input
             type="datetime-local"
@@ -203,22 +183,35 @@ export function AuditPage() {
             }
           />
         </label>
+        </div>
+
+        <details className="audit-advanced-filters">
+          <summary>Filtros avançados por identificador</summary>
+          <div className="audit-filter-grid audit-filter-grid-advanced">
+            <label>
+              <span className="field-label">Identificador da entidade</span>
+              <input type="text" placeholder="UUID completo" value={draft.entityId}
+                onChange={(event) => setDraft((current) => ({ ...current, entityId: event.target.value }))} />
+            </label>
+            <label>
+              <span className="field-label">Identificador do responsável</span>
+              <input type="text" placeholder="UUID completo" value={draft.actorId}
+                onChange={(event) => setDraft((current) => ({ ...current, actorId: event.target.value }))} />
+            </label>
+          </div>
+        </details>
 
         <div className="audit-filter-actions">
-          <button type="submit" className="btn-primary">
-            Aplicar filtros
-          </button>
           <button type="button" className="btn-secondary" onClick={clearFilters}>
-            Limpar
+            Limpar filtros
           </button>
+          <button type="submit" className="btn-primary"><Icon name="search" size={17} />Aplicar filtros</button>
         </div>
       </form>
 
-      <p className="entity-summary">
-        Os filtros são aplicados pelo servidor antes da paginação.
-      </p>
+      <div className="audit-results-heading"><p><strong>{state === "success" ? total : "—"}</strong> evento(s) encontrado(s)</p><span>Filtros aplicados pelo servidor antes da paginação</span></div>
 
-      {errorMessage ? <AlertBanner>{errorMessage}</AlertBanner> : null}
+      {errorMessage ? <div className="audit-error"><AlertBanner>{errorMessage}</AlertBanner><button className="btn-secondary" type="button" onClick={() => void load()}>Tentar novamente</button></div> : null}
 
       {state === "loading" ? (
         <p className="entity-state">
@@ -228,12 +221,11 @@ export function AuditPage() {
       ) : null}
 
       {state === "success" && entries.length === 0 ? (
-        <p className="entity-state">Nenhum evento encontrado com esses filtros.</p>
+        <div className="audit-empty"><Icon name="report" size={28} /><h2>Nenhum evento encontrado</h2><p>Ajuste os filtros para consultar outro período ou tipo de alteração.</p></div>
       ) : null}
 
       {entries.length > 0 && state !== "error" ? (
         <>
-          <p className="audit-count">{total} evento(s) encontrado(s).</p>
           <div className="audit-table-wrap">
             <table className="audit-table">
               <thead>
@@ -243,28 +235,42 @@ export function AuditPage() {
                   <th>Entidade</th>
                   <th>Responsável</th>
                   <th>Alteração</th>
+                  <th><span className="sr-only">Ações</span></th>
                 </tr>
               </thead>
               <tbody>
-                {entries.map((entry) => (
-                  <tr key={entry.id}>
-                    <td>
+                {entries.map((entry) => {
+                  const shortId = entry.entityId.slice(0, 8).toLocaleUpperCase("pt-BR");
+                  const isExpanded = expandedEntry === entry.id;
+                  return <Fragment key={entry.id}>
+                  <tr>
+                    <td data-label="Quando">
                       <time dateTime={entry.createdAt}>
                         {new Date(entry.createdAt).toLocaleString("pt-BR")}
                       </time>
                     </td>
-                    <td>{AUDIT_EVENT_LABELS[entry.eventType]}</td>
-                    <td>
-                      <strong>{AUDIT_ENTITY_LABELS[entry.entityType]}</strong>
-                      <code>{entry.entityId}</code>
+                    <td data-label="Evento"><span className="audit-event-label">{AUDIT_EVENT_LABELS[entry.eventType]}</span></td>
+                    <td data-label="Entidade">
+                      <strong>{entry.entityName ?? AUDIT_ENTITY_LABELS[entry.entityType]}</strong>
+                      <span className="audit-friendly-id">{AUDIT_ENTITY_LABELS[entry.entityType]} · {shortId}</span>
                     </td>
-                    <td>
+                    <td data-label="Responsável">
                       <strong>{entry.actorName ?? "Sistema"}</strong>
-                      {entry.actorId ? <code>{entry.actorId}</code> : null}
                     </td>
-                    <td>{describeAuditEntry(entry)}</td>
+                    <td data-label="Alteração">{describeAuditEntry(entry)}</td>
+                    <td data-label="Ações"><button className="audit-detail-toggle" type="button" aria-expanded={isExpanded}
+                      aria-label={`${isExpanded ? "Ocultar" : "Ver"} detalhes do evento ${shortId}`}
+                      onClick={() => setExpandedEntry(isExpanded ? null : entry.id)}>{isExpanded ? "Ocultar" : "Detalhes"}</button></td>
                   </tr>
-                ))}
+                  {isExpanded ? <tr className="audit-detail-row"><td colSpan={6}>
+                    <dl>
+                      <div><dt>Identificador do evento</dt><dd><code>{entry.id}</code></dd></div>
+                      <div><dt>Identificador da entidade</dt><dd><code>{entry.entityId}</code></dd></div>
+                      <div><dt>Identificador do responsável</dt><dd><code>{entry.actorId ?? "Ação do sistema"}</code></dd></div>
+                    </dl>
+                  </td></tr> : null}
+                  </Fragment>;
+                })}
               </tbody>
             </table>
           </div>
