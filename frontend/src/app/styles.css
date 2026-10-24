@@ -91,7 +91,7 @@ body {
 .app-shell {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: 236px minmax(0, 1fr);
+  grid-template-columns: 248px minmax(0, 1fr);
 }
 
 /* min-width evita que conteúdo largo (canvas 3D, tabelas) estoure a coluna */
@@ -102,15 +102,17 @@ body {
 .app-sidebar {
   display: flex;
   flex-direction: column;
-  gap: 26px;
-  padding: 22px 16px;
+  gap: 22px;
+  padding: 20px 14px 24px;
   border-right: 1px solid var(--line);
   background: var(--card);
-  /* acompanha a rolagem: o menu não some ao descer numa lista longa */
+  /* A rolagem pertence à página. No desktop não há uma segunda barra interna
+     competindo com tabelas e formulários longos. */
   position: sticky;
   top: 0;
-  height: 100vh;
-  overflow-y: auto;
+  align-self: start;
+  min-height: 100vh;
+  overflow: visible;
 }
 
 .app-brand {
@@ -224,7 +226,7 @@ body {
 .app-nav {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 15px;
 }
 
 /* o ícone acompanha a cor do texto ao lado e não encolhe quando o rótulo é longo */
@@ -266,7 +268,7 @@ body {
   text-transform: uppercase;
   color: var(--muted);
   font-weight: 600;
-  margin: 0 0 7px;
+  margin: 0 0 5px;
   padding: 0 10px;
 }
 
@@ -286,9 +288,9 @@ body {
   display: flex;
   align-items: center;
   gap: 9px;
-  min-height: 36px;
-  margin: 0 0 6px;
-  padding: 8px 10px;
+  min-height: 32px;
+  margin: 0 0 3px;
+  padding: 6px 10px;
   border: 1px solid transparent;
   border-radius: 7px;
   background: transparent;
@@ -321,8 +323,9 @@ body {
   font-size: 0.88rem;
   color: var(--muted);
   text-decoration: none;
-  padding: 7px 10px;
-  border-radius: 3px;
+  min-height: 36px;
+  padding: 8px 10px;
+  border-radius: 7px;
   /* a faixa do ativo entra pela borda, então o texto não desloca ao trocar de tela */
   border-left: 2px solid transparent;
 }
@@ -395,6 +398,35 @@ body {
   padding: 12px 8px 0;
   border-top: 1px solid var(--line);
   font-size: 0.85rem;
+}
+
+.app-header-actions,
+.app-header-account {
+  display: flex;
+  align-items: center;
+}
+
+.app-header-actions {
+  flex: 0 0 auto;
+  gap: 10px;
+  padding-left: 18px;
+  border-left: 1px solid var(--line);
+}
+
+.app-header-account {
+  gap: 10px;
+  min-width: 0;
+  max-width: 220px;
+  padding: 4px 8px;
+  border-radius: 9px;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.app-header-account:hover { background: var(--accent-bg); }
+.app-header-account:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
 }
 
 /* min-width: 0 é o que autoriza o nome a encurtar em vez de empurrar o botão */
@@ -529,6 +561,14 @@ body {
     border-top: 1px solid var(--line);
   }
   .app-account-role { display: inline; }
+  .app-header-account .app-account-text { display: none; }
+  .app-header-actions { gap: 6px; padding-left: 8px; }
+}
+
+@media (max-width: 560px) {
+  .app-header-account { display: none; }
+  .app-search-header { gap: 8px; }
+  .app-header-actions { padding-left: 0; border-left: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
