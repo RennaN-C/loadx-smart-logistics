@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ApiError } from "../../../types/api";
@@ -55,6 +56,19 @@ describe("OperationsDashboardPage", () => {
     expect(kpi(bloco("Viagens"), "EM ROTA")).toHaveTextContent("2");
     expect(kpi(bloco("Entregas"), "PENDENTES")).toHaveTextContent("10");
     expect(kpi(bloco("Ocorrências"), "REGISTRADAS")).toHaveTextContent("3");
+  });
+
+  it("representa a distribuição com as contagens reais, sem inventar porcentagens", async () => {
+    vi.mocked(getOperationalIndicators).mockResolvedValue(indicadores());
+
+    render(<MemoryRouter><OperationsDashboardPage embedded /></MemoryRouter>);
+    const distribution = await screen.findByLabelText("Distribuição de viagens");
+
+    expect(within(distribution).getByText("Programadas")).toBeInTheDocument();
+    expect(within(distribution).getByText("3")).toBeInTheDocument();
+    expect(within(distribution).getByText("Em rota")).toBeInTheDocument();
+    expect(within(distribution).getByText("2")).toBeInTheDocument();
+    expect(distribution).not.toHaveTextContent("%");
   });
 
   it("diz o período de cada grupo, que faz parte do significado", async () => {

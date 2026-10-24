@@ -66,6 +66,7 @@ describe("AppLayout", () => {
 
     expect(screen.getByText("Ana Souza")).toBeInTheDocument();
     expect(screen.getByText("Administrador")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Abrir perfil de Ana Souza" })).toHaveAttribute("href", "/account");
     fireEvent.click(screen.getByRole("button", { name: "Sair" }));
     expect(logout).toHaveBeenCalledOnce();
   });
