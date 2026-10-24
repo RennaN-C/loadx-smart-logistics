@@ -148,6 +148,14 @@ individual por alternativa descartada; a interface descreve a estratégia heurí
 documentada e a solução salva, sem inventar por que um caminhão específico falhou.
 Rascunhos não calculados continuam locais à tela, sem localStorage.
 
+## UI06 — retomada operacional
+
+`CONFIRMADO`: a entrada do módulo apresenta Planos, Execução e Atividade como
+destinos reais, mantendo novo planejamento como ação explícita. A listagem usa
+somente os resumos paginados existentes e separa situação do plano, continuidade
+operacional, ocupação e recusas. Evidências responsivas claro/escuro em
+`docs/evidencias/qa-v12-pentest/ui-lote6.md`.
+
 
 ## Recuperação idempotente (#254)
 

@@ -307,6 +307,48 @@ def test_admin_user_actions_are_audited_without_sensitive_values(
     assert "Alvo Atualizado" not in serialized
 
 
+def test_audit_returns_real_entity_name_and_accepts_record_event_filter(
+    client: TestClient,
+    admin_headers: dict[str, str],
+) -> None:
+    created = client.post(
+        "/api/v1/products",
+        json={
+            "code": "AUDIT-UI06",
+            "name": "Caixa térmica auditável",
+            "description": None,
+            "width_cm": 40,
+            "height_cm": 30,
+            "length_cm": 60,
+            "weight_kg": 12.5,
+            "fragile": False,
+            "stackable": True,
+            "rotation_allowed": True,
+        },
+        headers=admin_headers,
+    )
+    assert created.status_code == 201
+    product_id = created.json()["id"]
+    archived = client.patch(
+        f"/api/v1/products/{product_id}",
+        json={"active": False},
+        headers=admin_headers,
+    )
+    assert archived.status_code == 200
+
+    response = client.get(
+        "/api/v1/audit",
+        params={"entity_type": "PRODUCT", "event_type": "RECORD_ARCHIVED"},
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 200
+    item = next(
+        item for item in response.json()["items"] if item["entity_id"] == product_id
+    )
+    assert item["entity_name"] == "Caixa térmica auditável"
+
+
 def test_audit_rejects_invalid_period(
     client: TestClient,
     admin_headers: dict[str, str],

@@ -16,17 +16,17 @@ function PlanHistoryRow({ plan, canReadOrigin }: { readonly plan: LoadPlanListIt
   const destination = plan.distributionId ? `/planning/distributions/${plan.distributionId}` : `/planning/${plan.id}`;
   return <li className="plan-history-row">
     <div className="plan-history-identification">
+      <div className="plan-history-title"><h3><Link to={destination}>Plano {plan.id.slice(0, 8).toLocaleUpperCase("pt-BR")}</Link></h3><StatusPill tone={planStatusTone(plan.status)}>Plano: {PLAN_STATUS_LABELS[plan.status]}</StatusPill></div>
       <Link className="plan-history-plate" to={`/planning?truck=${plan.truckId}`} aria-label={`Filtrar planos do caminhão ${plan.truckPlate}`}>{plan.truckPlate}</Link>
-      <h3><Link to={destination}>Plano {plan.id.slice(0, 8)}</Link></h3>
       <p>{plan.truckModel}</p>
       {plan.distributionId ? <p>Parte da distribuição {plan.distributionId.slice(0, 8)}</p> : null}
-      <time dateTime={plan.createdAt}>{date.format(new Date(plan.createdAt))}</time>
+      <time dateTime={plan.createdAt}>Criado em {date.format(new Date(plan.createdAt))}</time>
     </div>
     <div className="plan-history-summary">
-      <StatusPill tone={planStatusTone(plan.status)}>Plano: {PLAN_STATUS_LABELS[plan.status]}</StatusPill>
       {plan.operation ? <PlanOperationSummary operation={plan.operation} /> : null}
-      <p>{plan.orderCount} pedido(s) · {plan.loadedCount} volumes aceitos · {plan.unloadedCount} recusados</p>
-      <p>{plan.occupancyPercent.toLocaleString("pt-BR")}% de ocupação · {plan.totalWeightKg.toLocaleString("pt-BR")} kg</p>
+      <p className="plan-history-facts"><span>{plan.orderCount} pedido(s)</span><span>{plan.loadedCount} volumes</span><span>{plan.totalWeightKg.toLocaleString("pt-BR")} kg</span></p>
+      <div className="plan-history-occupancy"><span style={{ width: `${Math.min(plan.occupancyPercent, 100)}%` }} /><strong>{plan.occupancyPercent.toLocaleString("pt-BR")}% de ocupação</strong></div>
+      {plan.unloadedCount > 0 ? <p className="plan-history-rejected">{plan.unloadedCount} volume(s) recusado(s)</p> : null}
       {plan.recalculatedFromId && canReadOrigin ? <Link to={`/planning/${plan.recalculatedFromId}`}>Ver plano de origem</Link> : null}
     </div>
     <Link className="btn-secondary" to={destination} aria-label={`Abrir plano ${plan.id.slice(0, 8)}`}>{plan.distributionId ? "Abrir distribuição" : "Abrir planejamento"}</Link>
@@ -90,7 +90,7 @@ export function PlanHistory({ checker, canReadOperations = false }: { readonly c
       {([['ongoing', 'Em andamento'], ['completed', 'Concluídos'], ['all', 'Todos']] as const).map(([key, title]) => <button type="button" key={key} aria-pressed={operationScope === key} onClick={() => change("scope", key)}>{title}</button>)}
     </fieldset> : null}
     <div className="plan-history-toolbar">
-      <div><h2>Retome uma carga</h2><p className="entity-lede">Planos salvos no servidor, disponíveis após sair da tela ou entrar novamente.</p><p className="entity-form-help">A aprovação registra a decisão sobre a carga. Uma operação só aparece como concluída após o fim da viagem e a entrega integral dos pedidos de todas as partes.</p></div>
+      <div><h2>Planos de carga</h2><p className="entity-lede">Retome planejamentos persistidos e acompanhe o estado real de cada operação.</p><p className="entity-form-help">A aprovação registra a decisão sobre a carga. A conclusão exige viagem finalizada e entrega integral.</p></div>
       <div className="plan-history-filters">
         {!checker ? <label>Situação<select value={status ?? ""} onChange={(event) => change("status", event.target.value)}>
           <option value="">Todas as situações</option>

@@ -52,9 +52,23 @@ describe("AuditPage", () => {
     render(<AuditPage />);
 
     expect(await screen.findByText("Ana Souza")).toBeInTheDocument();
-    expect(screen.getByText("DRAFT → READY")).toBeInTheDocument();
+    expect(screen.getByText("Rascunho → Pronto para coleta")).toBeInTheDocument();
     expect(within(screen.getByRole("table")).getByText("Pedido")).toBeInTheDocument();
     expect(screen.getByText(/06\/10\/2026/)).toBeInTheDocument();
+  });
+
+  it("prioriza nomes reais e revela UUIDs completos somente nos detalhes", async () => {
+    vi.mocked(listAuditEntries).mockResolvedValue(makePage([{ ...ENTRY, entityName: "Pedido de Mercado Aurora" }]));
+    render(<AuditPage />);
+
+    expect(await screen.findByText("Pedido de Mercado Aurora")).toBeInTheDocument();
+    expect(screen.getByText("Pedido · 11111111")).toBeInTheDocument();
+    expect(screen.queryByText(ENTRY.entityId)).not.toBeInTheDocument();
+    expect(screen.queryByText(ENTRY.actorId!)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Ver detalhes do evento 11111111" }));
+    expect(screen.getByText(ENTRY.entityId)).toBeInTheDocument();
+    expect(screen.getByText(ENTRY.actorId!)).toBeInTheDocument();
   });
 
   it.each([

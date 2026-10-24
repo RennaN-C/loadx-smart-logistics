@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 
 import { StatusPill } from "../../../components/StatusPill";
+import { Icon, type IconName } from "../../../components/Icon";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { hasPermission } from "../../auth/permissions";
 import type { ListParams } from "../../../services/pagination";
@@ -18,13 +19,18 @@ interface CounterProps {
   readonly label: string;
   readonly value: number | null;
   readonly to: string;
+  readonly icon: IconName;
+  readonly description: string;
 }
 
-function Counter({ label, value, to }: CounterProps) {
+function Counter({ label, value, to, icon, description }: CounterProps) {
   return (
     <Link className="kpi" to={to}>
-      <span className="kpi-label">{label}</span>
+      <span className="kpi-icon"><Icon name={icon} size={20} /></span>
+      <span className="kpi-content"><span className="kpi-label">{label}</span>
       <span className="kpi-value">{value ?? "—"}</span>
+      <span className="kpi-description">{description}</span></span>
+      <Icon name="arrow-right" size={17} />
     </Link>
   );
 }
@@ -39,6 +45,7 @@ export function DashboardPage() {
 
   const customerNames = new Map((readsPersonalData ? customers : []).map((customer) => [customer.id, customer.name]));
   const canPlan = hasPermission(user, "loadx.planning.create");
+  const firstName = user?.name.trim().split(/\s+/)[0] ?? "";
 
   /**
    * O motorista não lê caminhões, produtos, pedidos nem clientes: TODOS os
@@ -49,8 +56,9 @@ export function DashboardPage() {
   if (user?.role === "DRIVER") {
     return (
       <div className="entity-page overview-page">
-        <header className="entity-header">
+        <header className="entity-header overview-hero">
           <div>
+            <p className="overview-eyebrow">Sua operação</p>
             <h1>Visão geral</h1>
             <p className="entity-lede">Suas viagens e o que falta entregar.</p>
           </div>
@@ -68,14 +76,15 @@ export function DashboardPage() {
 
   return (
     <div className="entity-page overview-page">
-      <header className="entity-header">
+      <header className="entity-header overview-hero">
         <div>
+          <p className="overview-eyebrow">Bem-vindo{firstName ? `, ${firstName}` : ""}</p>
           <h1>Visão geral</h1>
-          <p className="entity-lede">Acompanhe a operação e acesse os próximos passos.</p>
+          <p className="entity-lede">Acompanhe a operação logística e acesse os próximos passos.</p>
         </div>
         {canPlan ? (
           <Link className="btn-primary" to="/planning">
-            Planejar carga
+            <Icon name="plus" size={18} /> Planejar carga
           </Link>
         ) : null}
       </header>
@@ -90,15 +99,15 @@ export function DashboardPage() {
       ) : (
         <>
           <div className="kpi-grid">
-            {!canPlan && hasPermission(user, "loadx.trucks.read") && <Counter label="CAMINHÕES" value={totals.trucks} to="/trucks" />}
-            {hasPermission(user, "loadx.products.read") && <Counter label="PRODUTOS" value={totals.products} to="/products" />}
+            {!canPlan && hasPermission(user, "loadx.trucks.read") && <Counter label="Caminhões" value={totals.trucks} to="/trucks" icon="truck" description="cadastrados no sistema" />}
+            {hasPermission(user, "loadx.products.read") && <Counter label="Produtos" value={totals.products} to="/products" icon="package" description="itens no catálogo" />}
             {readsPersonalData ? (
               <>
-                <Counter label="CLIENTES" value={totals.customers} to="/contacts" />
-                {hasPermission(user, "loadx.drivers.read") && <Counter label="MOTORISTAS" value={totals.drivers} to="/contacts?tab=drivers" />}
+                <Counter label="Clientes" value={totals.customers} to="/contacts" icon="users" description="relacionamentos ativos e históricos" />
+                {hasPermission(user, "loadx.drivers.read") && <Counter label="Motoristas" value={totals.drivers} to="/contacts?tab=drivers" icon="users" description="profissionais cadastrados" />}
               </>
             ) : null}
-            {hasPermission(user, "loadx.orders.read") && <Counter label="PEDIDOS" value={totals.orders} to="/orders" />}
+            {hasPermission(user, "loadx.orders.read") && <Counter label="Pedidos" value={totals.orders} to="/orders" icon="orders" description="registros persistidos" />}
           </div>
 
           {unavailable.length > 0 ? (
@@ -108,9 +117,9 @@ export function DashboardPage() {
             </p><button className="btn-secondary" onClick={reload} type="button">Tentar novamente o resumo</button></div>
           ) : null}
 
-          {hasPermission(user, "loadx.orders.read") && <section className="dash-block">
+          {hasPermission(user, "loadx.orders.read") && <section className="dash-block dash-activity">
             <div className="dash-block-head">
-              <h2>Pedidos mais recentes</h2>
+              <div><p className="overview-eyebrow">Atividade recente</p><h2>Pedidos mais recentes</h2></div>
               <Link className="btn-link" to="/orders">
                 Ver todos
               </Link>

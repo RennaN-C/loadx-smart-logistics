@@ -115,8 +115,8 @@ export function AppLayout() {
   // Grupos com vários links funcionam como menus sanfonados independentes.
   // Começar com acordeões fechados evita poluição visual no primeiro acesso.
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
-    cadastros: false,
-    operacao: false,
+    cadastros: true,
+    operacao: true,
   });
   const [settingsSubmenuExpanded, setSettingsSubmenuExpanded] = useState(
     () => location.pathname === "/settings",
@@ -136,6 +136,12 @@ export function AppLayout() {
   useEffect(() => {
     setMobileOpen(false);
     setSettingsSubmenuExpanded(location.pathname === "/settings");
+    setExpandedGroups((current) => {
+      const activeGroup = NAV_GROUPS.find((group) => group.items.some((item) =>
+        location.pathname === item.to || (item.to !== "/" && location.pathname.startsWith(`${item.to}/`)),
+      ));
+      return activeGroup ? { ...current, [activeGroup.id]: true } : current;
+    });
   }, [location.pathname, location.search]);
 
   useEffect(() => {
@@ -373,15 +379,20 @@ export function AppLayout() {
           </nav>
         ) : null}
 
-        {user ? (
-          <div className="app-account">
-            <Avatar name={user.name} size={34} />
-            <span className="app-account-text">
-              <span className="app-account-name">{user.name}</span>
-              <span className="app-account-role">{ROLE_LABELS[user.role]}</span>
-            </span>
-            {/* só o ícone cabe ao lado do nome; o rótulo continua existindo para
-                leitor de tela e vira dica ao parar o mouse em cima */}
+      </aside>
+
+      <main id="conteudo">
+        <header className="app-search-header">
+          <GlobalSearch key={`${user?.id}:${user?.role}:${user?.permissions?.join(",")}`} />
+          {user ? <div className="app-header-actions">
+            <NotificationBell />
+            <Link className="app-header-account" to="/account" aria-label={`Abrir perfil de ${user.name}`}>
+              <Avatar name={user.name} size={34} />
+              <span className="app-account-text">
+                <span className="app-account-name">{user.name}</span>
+                <span className="app-account-role">{ROLE_LABELS[user.role]}</span>
+              </span>
+            </Link>
             <button
               type="button"
               className="app-logout"
@@ -391,12 +402,8 @@ export function AppLayout() {
               <Icon name="logout" size={17} />
               <span className="sr-only">Sair</span>
             </button>
-          </div>
-        ) : null}
-      </aside>
-
-      <main id="conteudo">
-        <header className="app-search-header"><GlobalSearch key={`${user?.id}:${user?.role}:${user?.permissions?.join(",")}`} />{user && <NotificationBell />}</header>
+          </div> : null}
+        </header>
         <Outlet />
       </main>
     </div>
