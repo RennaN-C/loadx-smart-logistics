@@ -22,6 +22,10 @@ e aí a tela passa a publicar uma métrica que o domínio não sustenta, que é
 exatamente o que a OC74 põe fora de escopo. Há teste que falha se um `%`
 aparecer na tela.
 
+`CONFIRMADO` (UI05): barras segmentadas representam diretamente as contagens de
+status de viagens e entregas, acompanhadas dos valores absolutos. Elas não
+publicam percentual, tendência ou série histórica derivada.
+
 ## O período faz parte do número
 
 Cada grupo mostra o `period` que a API devolveu: a frota é `CURRENT_SNAPSHOT`
