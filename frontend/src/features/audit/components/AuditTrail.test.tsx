@@ -44,7 +44,7 @@ describe("AuditTrail", () => {
     render(<AuditTrail entityType="TRIP" entityId="t1" title="Histórico da viagem" />);
 
     expect(await screen.findByText("Rennan")).toBeInTheDocument();
-    expect(screen.getByText("SCHEDULED → IN_ROUTE")).toBeInTheDocument();
+    expect(screen.getByText("Agendada → Em rota")).toBeInTheDocument();
     expect(listAuditEntries).toHaveBeenCalledWith({
       entityType: "TRIP",
       entityId: "t1",

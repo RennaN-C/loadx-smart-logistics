@@ -22,3 +22,9 @@ LOGISTICS_MANAGER; os demais recebem acesso negado antes de qualquer consulta.
 contextual — disponibilidade aponta para `/trucks?tab=availability`. Não há
 listagem geral de viagens/entregas nesta consolidação; a central OC93 permanece
 fora do escopo. Nenhum botão de métrica leva a uma rota fictícia.
+
+`CONFIRMADO` (UI05): a apresentação usa cartões compactos e distribuições
+visuais de viagens e entregas construídas diretamente com as contagens do
+contrato. Não calcula nem publica percentuais. A atividade recente continua
+restrita a pedidos persistidos já retornados pela API, sem simular feed de
+auditoria. Sidebar e cabeçalho preservam o recorte de cada perfil.

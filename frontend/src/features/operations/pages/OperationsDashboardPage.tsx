@@ -35,9 +35,20 @@ interface Grupo {
   readonly icon: IconName;
   readonly period: string;
   readonly numbers: readonly Numero[];
+  readonly distribution?: readonly Numero[];
 }
 
 function montarGrupos(dados: OperationalIndicators): readonly Grupo[] {
+  const tripStatuses: readonly Numero[] = [
+    { label: "Programadas", value: dados.trips.scheduled },
+    { label: "Em rota", value: dados.trips.inRoute },
+    { label: "Finalizadas", value: dados.trips.finished },
+  ];
+  const deliveryStatuses: readonly Numero[] = [
+    { label: "Pendentes", value: dados.deliveries.pending },
+    { label: "Em entrega", value: dados.deliveries.inDelivery },
+    { label: "Entregues", value: dados.deliveries.delivered },
+  ];
   return [
     {
       id: "fleet",
@@ -68,6 +79,7 @@ function montarGrupos(dados: OperationalIndicators): readonly Grupo[] {
         { label: "EM ROTA", value: dados.trips.inRoute },
         { label: "FINALIZADAS", value: dados.trips.finished },
       ],
+      distribution: tripStatuses,
     },
     {
       id: "deliveries",
@@ -80,6 +92,7 @@ function montarGrupos(dados: OperationalIndicators): readonly Grupo[] {
         { label: "EM ENTREGA", value: dados.deliveries.inDelivery },
         { label: "ENTREGUES", value: dados.deliveries.delivered },
       ],
+      distribution: deliveryStatuses,
     },
     {
       id: "occurrences",
@@ -141,9 +154,9 @@ export function OperationsDashboardPage({ embedded = false }: { readonly embedde
     <div className={embedded ? "overview-operations" : "entity-page"}>
       <header className="entity-header">
         <div>
-          {embedded ? <h2>Operação em números</h2> : <h1>Painel operacional</h1>}
+          {embedded ? <h2>Situação operacional</h2> : <h1>Painel operacional</h1>}
           <p className="entity-lede">
-            Números apurados pelo servidor. Nenhum é calculado nesta tela.
+            Indicadores apurados pelo servidor, com o período de cada leitura.
           </p>
         </div>
         <button
@@ -203,11 +216,27 @@ function GrupoDeIndicadores({ grupo, compact = false }: { readonly grupo: Grupo;
       </div>
 
       <IndicatorNumbers numbers={primary} />
+      {compact && grupo.distribution ? <StatusDistribution title={grupo.title} numbers={grupo.distribution} /> : null}
       {secondary.length > 0 && <details className="overview-indicator-details"><summary>Mais indicadores de {grupo.title.toLowerCase()}</summary><IndicatorNumbers numbers={secondary} /></details>}
       {compact && grupo.id === "fleet" && <Link className="btn-link" to="/trucks?tab=availability">Consultar disponibilidade</Link>}
 
     </section>
   );
+}
+
+function StatusDistribution({ title, numbers }: { readonly title: string; readonly numbers: readonly Numero[] }) {
+  const hasData = numbers.some((number) => number.value > 0);
+  return <div className="ops-distribution" aria-label={`Distribuição de ${title.toLowerCase()}`}>
+    <div className="ops-distribution-track" aria-hidden="true">
+      {hasData ? numbers.map((number, index) => (
+        <span key={number.label} data-segment={index + 1} style={{ flexGrow: number.value }} />
+      )) : <span className="ops-distribution-empty" />}
+    </div>
+    <ul>{numbers.map((number, index) => <li key={number.label}>
+      <span className="ops-distribution-dot" data-segment={index + 1} aria-hidden="true" />
+      <span>{number.label}</span><strong>{number.value}</strong>
+    </li>)}</ul>
+  </div>;
 }
 
 function IndicatorNumbers({ numbers }: { readonly numbers: readonly Numero[] }) {

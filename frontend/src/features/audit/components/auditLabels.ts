@@ -86,6 +86,36 @@ const FIELD_LABELS: Readonly<Record<string, string>> = {
   role: "perfil",
 };
 
+const STATUS_LABELS: Readonly<Record<string, string>> = {
+  DRAFT: "Rascunho",
+  READY: "Pronto para coleta",
+  PLANNED: "Planejado",
+  IN_TRANSIT: "Em trânsito",
+  DELIVERED: "Entregue",
+  CALCULATED: "Calculado",
+  APPROVED: "Aprovado",
+  REJECTED: "Rejeitado",
+  PROPOSED: "Proposta",
+  PARTIALLY_APPROVED: "Aprovada parcialmente",
+  SCHEDULED: "Agendada",
+  IN_ROUTE: "Em rota",
+  INTERRUPTED: "Interrompida",
+  FINISHED: "Concluída",
+  PENDING: "Pendente",
+  IN_DELIVERY: "Em entrega",
+  CANCELED: "Cancelado",
+  ACTIVE: "Ativo",
+  INACTIVE: "Inativo",
+  PROCESSING: "Em processamento",
+  COMPLETED: "Concluído",
+  FAILED: "Com falha",
+};
+
+export function auditStatusLabel(value: string | null): string {
+  if (!value) return "Sem situação anterior";
+  return STATUS_LABELS[value] ?? value.replaceAll("_", " ").toLocaleLowerCase("pt-BR");
+}
+
 export function describeAuditEntry(entry: {
   readonly eventType: AuditEventType;
   readonly oldStatus: string | null;
@@ -93,8 +123,8 @@ export function describeAuditEntry(entry: {
   readonly changedFields: readonly string[];
 }): string {
   if (entry.eventType === "STATUS_CHANGED") {
-    const oldStatus = entry.oldStatus ?? "sem situação anterior";
-    const newStatus = entry.newStatus ?? "situação não informada";
+    const oldStatus = auditStatusLabel(entry.oldStatus);
+    const newStatus = entry.newStatus ? auditStatusLabel(entry.newStatus) : "Situação não informada";
     return `${oldStatus} → ${newStatus}`;
   }
 

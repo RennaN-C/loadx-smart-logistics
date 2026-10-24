@@ -1,13 +1,23 @@
+from __future__ import annotations
+
 import uuid
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 
 from sqlalchemy import String, asc, desc, func, literal, select, union_all
 from sqlalchemy.orm import Session
 
 from app.core.pagination import PageResult, PaginationParams
+from app.modules.access_profiles.models import AccessProfile
+from app.modules.customers.models import Customer, CustomerAddress
+from app.modules.deliveries.models import Delivery, Trip
+from app.modules.drivers.models import Driver
+from app.modules.load_planning.models import LoadPlan
+from app.modules.orders.models import Order
+from app.modules.products.models import Product
 from app.modules.status_history.models import AuditEvent, StatusHistory
+from app.modules.trucks.models import Truck
 from app.modules.users.models import User
 
 
@@ -19,6 +29,7 @@ class AuditEntryRecord:
     entity_id: uuid.UUID
     actor_id: uuid.UUID | None
     actor_name: str | None
+    entity_name: str | None
     old_status: str | None
     new_status: str | None
     changed_fields: tuple[str, ...]
@@ -107,16 +118,7 @@ class StatusHistoryRepository:
                 )
             statements.append(status_statement)
 
-        if event_type in {
-            None,
-            "OUTBOX_REPROCESSED",
-            "PROFILE_CREATED",
-            "PROFILE_UPDATED",
-            "USER_CREATED",
-            "USER_UPDATED",
-            "COMPANY_PROFILE_CREATED",
-            "COMPANY_PROFILE_UPDATED",
-        }:
+        if event_type is None or event_type != "STATUS_CHANGED":
             audit_statement = (
                 select(
                     AuditEvent.id.label("id"),
@@ -186,6 +188,7 @@ class StatusHistoryRepository:
                 entity_id=row["entity_id"],
                 actor_id=row["actor_id"],
                 actor_name=row["actor_name"],
+                entity_name=None,
                 old_status=row["old_status"],
                 new_status=row["new_status"],
                 changed_fields=tuple(
@@ -195,4 +198,82 @@ class StatusHistoryRepository:
             )
             for row in rows
         ]
-        return PageResult.create(items, pagination, total)
+        return PageResult.create(self._with_entity_names(items), pagination, total)
+
+    def _with_entity_names(
+        self, items: list[AuditEntryRecord]
+    ) -> list[AuditEntryRecord]:
+        """Resolve rótulos em lote apenas para a página já autorizada e paginada."""
+
+        ids_by_type: dict[str, set[uuid.UUID]] = {}
+        for item in items:
+            ids_by_type.setdefault(item.entity_type, set()).add(item.entity_id)
+
+        names: dict[tuple[str, uuid.UUID], str] = {}
+
+        simple_models = {
+            "CUSTOMER": (Customer, Customer.name),
+            "PRODUCT": (Product, Product.name),
+            "DRIVER": (Driver, Driver.name),
+            "CUSTOMER_ADDRESS": (CustomerAddress, CustomerAddress.label),
+            "ACCESS_PROFILE": (AccessProfile, AccessProfile.name),
+        }
+        for entity_type, (model, label_column) in simple_models.items():
+            entity_ids = ids_by_type.get(entity_type)
+            if not entity_ids:
+                continue
+            for entity_id, label in self.db.execute(
+                select(model.id, label_column).where(model.id.in_(entity_ids))
+            ):
+                names[(entity_type, entity_id)] = label
+
+        truck_ids = ids_by_type.get("TRUCK")
+        if truck_ids:
+            for entity_id, plate, model in self.db.execute(
+                select(Truck.id, Truck.plate, Truck.model).where(
+                    Truck.id.in_(truck_ids)
+                )
+            ):
+                names[("TRUCK", entity_id)] = f"{plate} · {model}"
+
+        plan_ids = ids_by_type.get("LOAD_PLAN")
+        if plan_ids:
+            for entity_id, plate in self.db.execute(
+                select(LoadPlan.id, LoadPlan.truck_snapshot_plate).where(
+                    LoadPlan.id.in_(plan_ids)
+                )
+            ):
+                names[("LOAD_PLAN", entity_id)] = f"Caminhão {plate}"
+
+        order_ids = ids_by_type.get("ORDER")
+        if order_ids:
+            for entity_id, customer_name in self.db.execute(
+                select(Order.id, Customer.name)
+                .join(Customer, Customer.id == Order.customer_id)
+                .where(Order.id.in_(order_ids))
+            ):
+                names[("ORDER", entity_id)] = f"Pedido de {customer_name}"
+
+        trip_ids = ids_by_type.get("TRIP")
+        if trip_ids:
+            for entity_id, driver_name in self.db.execute(
+                select(Trip.id, Driver.name)
+                .join(Driver, Driver.id == Trip.driver_id)
+                .where(Trip.id.in_(trip_ids))
+            ):
+                names[("TRIP", entity_id)] = f"Viagem de {driver_name}"
+
+        delivery_ids = ids_by_type.get("DELIVERY")
+        if delivery_ids:
+            for entity_id, customer_name in self.db.execute(
+                select(Delivery.id, Customer.name)
+                .join(Order, Order.id == Delivery.order_id)
+                .join(Customer, Customer.id == Order.customer_id)
+                .where(Delivery.id.in_(delivery_ids))
+            ):
+                names[("DELIVERY", entity_id)] = f"Entrega para {customer_name}"
+
+        return [
+            replace(item, entity_name=names.get((item.entity_type, item.entity_id)))
+            for item in items
+        ]
