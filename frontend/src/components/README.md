@@ -9,7 +9,11 @@ Componentes usados por apenas uma feature permanecem dentro dela.
 - `Modal.tsx`: overlay + diálogo acessível (`role="dialog"`), fecha no Escape e no clique fora.
 - `StatusPill.tsx`: badge de status com tom `good`, `warn` ou `neutral`.
 - `AlertBanner.tsx`: faixa de erro com `role="alert"`.
-- `Tabs.tsx`: barra de abas acessível (`role="tablist"`), controlada por quem usa.
+- `Tabs.tsx`: barra de abas acessível (`role="tablist"`), controlada por quem usa,
+  com seleção e foco por setas, Home e End.
+- `RowActions.tsx`: ações secundárias por registro em disclosure nativo; Escape
+  recolhe e devolve foco ao gatilho. No Chromium, o grupo nativo mantém apenas
+  um menu de registro aberto. Os handlers e as permissões pertencem à feature.
 - `FormField.tsx`: rótulo + controle + dica opcional, com o `htmlFor` já ligado.
 - `Pagination.tsx`: navegação entre páginas a partir dos metadados da ADR-017; some sozinha quando há uma página só.
 - `Icon.tsx`: conjunto de ícones e a marca da LoadX, desenhados aqui.
@@ -18,6 +22,13 @@ Componentes usados por apenas uma feature permanecem dentro dela.
 - `masks.ts`: máscaras de CPF, CNPJ, telefone e CEP. **Funções puras, testadas.**
 - `documentRules.ts`: validade de CPF, CNPJ, CNH e telefone, espelhando a OC63. **Funções puras, testadas.**
 - `fieldErrorProps.ts`: o `aria-invalid` + `aria-describedby` que liga o erro ao controle.
+
+## Camadas dos modais — manutenção #308
+
+`CONFIRMADO` (#308): a camada compartilhada de modais fica acima dos cabeçalhos
+e navegação móvel; dicas ficam acima dos modais administrativos. A correção
+preserva foco, Escape, bloqueio de rolagem e formulários montados. A verificação
+visual usa hit testing no título do diálogo para detectar elementos sobrepostos.
 
 ## Máscaras: por que dígitos viajam e pontuação fica na tela
 
@@ -109,3 +120,10 @@ Os CAMPOS continuam próprios, de propósito. O `FormField` põe rótulo, contro
 campo de senha do login tem um botão "mostrar" na mesma linha do rótulo. Encaixá-lo no `FormField`
 exigiria abrir o componente para um caso que só existe aqui — sai mais caro do que as poucas linhas
 que ele economizaria.
+
+## Gráficos de distribuição — 25/10/2026
+
+`CONFIRMADO`: DistributionChart desenha anel e colunas em SVG, sem dependência
+adicional. Recebe total, contagens, rótulos e período; escala somente a geometria.
+Legenda, títulos acessíveis e estado vazio acompanham o gráfico. Não produz taxas,
+percentuais de desempenho, séries temporais ou indicadores de negócio novos.

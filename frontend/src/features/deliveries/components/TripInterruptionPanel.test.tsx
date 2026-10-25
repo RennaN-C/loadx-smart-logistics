@@ -59,6 +59,30 @@ describe("TripInterruptionPanel", () => {
     await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
   });
 
+  it("confirma a retomada com motivo sem antecipar nova entrega", async () => {
+    const onChanged = vi.fn().mockResolvedValue(undefined);
+    vi.mocked(changeTripInterruption).mockResolvedValue({
+      id: "event-2",
+      trip_id: "trip-one",
+      actor_id: "manager-one",
+      idempotency_key: "key-two",
+      action: "RESUMED",
+      reason: "Veículo reparado e liberado",
+      created_at: "2026-10-21T19:00:00Z",
+      trip_status: "IN_ROUTE",
+    });
+    render(<TripInterruptionPanel trip={trip("INTERRUPTED")} onChanged={onChanged} />);
+    fireEvent.click(screen.getByRole("button", { name: "Retomar viagem" }));
+    fireEvent.change(screen.getByRole("textbox", { name: /Motivo obrigatório/ }), {
+      target: { value: "Veículo reparado e liberado" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar retomada" }));
+    await waitFor(() => expect(changeTripInterruption).toHaveBeenCalledWith(
+      "trip-one", "RESUMED", "Veículo reparado e liberado", expect.any(String),
+    ));
+    await waitFor(() => expect(onChanged).toHaveBeenCalledTimes(1));
+  });
+
   it("oferece retomada apenas quando a viagem esta interrompida", () => {
     render(<TripInterruptionPanel trip={trip("INTERRUPTED")} onChanged={vi.fn()} />);
     expect(screen.getByRole("button", { name: "Retomar viagem" })).toBeInTheDocument();

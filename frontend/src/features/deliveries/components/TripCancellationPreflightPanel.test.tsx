@@ -46,6 +46,20 @@ describe("TripCancellationPreflightPanel", () => {
     expect(cancelScheduledTrip).not.toHaveBeenCalled();
   });
 
+  it("não permite cancelar sem permissão mesmo após preflight favorável", async () => {
+    vi.mocked(getCancellationPreflight).mockResolvedValue({
+      trip_id: "trip-1",
+      safe_for_cancellation_workflow: true,
+      blocking_reasons: [],
+      next_action: "PREPARAR_RECONCILIACAO_TRANSACIONAL",
+    });
+    render(<TripCancellationPreflightPanel tripId="trip-1" canCancel={false} />);
+    fireEvent.click(screen.getByRole("button", { name: "Verificar bloqueios" }));
+    expect(await screen.findByText(/Pré-validação aprovada/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Solicitar cancelamento" })).not.toBeInTheDocument();
+    expect(cancelScheduledTrip).not.toHaveBeenCalled();
+  });
+
   it("não confunde elegibilidade preliminar com cancelamento executado", async () => {
     vi.mocked(getCancellationPreflight).mockResolvedValue({
       trip_id: "trip-1",

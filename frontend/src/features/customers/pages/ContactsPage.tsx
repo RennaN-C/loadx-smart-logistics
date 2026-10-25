@@ -36,11 +36,12 @@ export function ContactsPage() {
   const onlyCustomers = tabs.length === 1 && tabs[0]?.id === "customers";
   const onlyDrivers = tabs.length === 1 && tabs[0]?.id === "drivers";
   return (
-    <div className="entity-page">
+    <div className="entity-page contacts-page">
       <header className="entity-header">
         <div>
+          <p className="registry-eyebrow">Cadastros</p>
           <h1>{onlyCustomers ? "Clientes" : onlyDrivers ? "Motoristas" : "Clientes e motoristas"}</h1>
-          <p className="entity-lede">{onlyCustomers ? "Quem recebe a carga." : onlyDrivers ? "Quem leva a carga." : "Quem recebe a carga e quem leva."}</p>
+          <p className="entity-lede">{onlyCustomers ? "Gerencie os destinatários e endereços da operação." : onlyDrivers ? "Gerencie os motoristas e seus documentos operacionais." : "Gerencie os destinatários e motoristas da sua operação."}</p>
         </div>
       </header>
 

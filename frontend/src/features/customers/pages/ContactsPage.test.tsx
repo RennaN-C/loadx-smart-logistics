@@ -80,11 +80,11 @@ describe("ContactsPage", () => {
     expect(listDrivers).not.toHaveBeenCalled();
   });
 
-  it("agrupa as ações de clientes em rodapé que pode quebrar linhas", async () => {
+  it("agrupa as ações de clientes na linha da tabela", async () => {
     render(<MemoryRouter><ContactsPage /></MemoryRouter>);
     const name = await screen.findByText("Distribuidora Aurora");
-    const card = name.closest(".contact-card");
-    const footer = card?.querySelector<HTMLElement>(".contact-card-foot");
+    const card = name.closest("tr");
+    const footer = card?.querySelector<HTMLElement>("details");
     expect(footer).toBeTruthy();
     const actionNames = within(footer!).getAllByRole("button").map((button) => button.textContent);
     expect(actionNames).toEqual(["Endereços", "Arquivar", "Editar"]);
@@ -100,12 +100,12 @@ describe("ContactsPage", () => {
     expect(screen.queryByText("Distribuidora Aurora")).not.toBeInTheDocument();
   });
 
-  it("mantém Documentos no rodapé de ações dos motoristas", async () => {
+  it("mantém Documentos nas ações da linha do motorista", async () => {
     render(<MemoryRouter><ContactsPage /></MemoryRouter>);
     await screen.findByText("Distribuidora Aurora");
     fireEvent.click(screen.getByRole("tab", { name: "Motoristas" }));
     const name = await screen.findByText("Carlos Pereira");
-    const footer = name.closest(".contact-card")?.querySelector<HTMLElement>(".contact-card-foot");
+    const footer = name.closest("tr")?.querySelector<HTMLElement>("details");
     expect(footer).toBeTruthy();
     expect(within(footer!).getAllByRole("button").map((button) => button.textContent)).toEqual([
       "Documentos", "Arquivar", "Editar",
@@ -198,7 +198,7 @@ describe("ContactsPage", () => {
     mockRole("CUSTOM", ["loadx.customers.read"]);
     render(<MemoryRouter><ContactsPage /></MemoryRouter>);
     expect(screen.getByRole("heading", { name: "Clientes" })).toBeInTheDocument();
-    expect(screen.getByText("Quem recebe a carga.")).toBeInTheDocument();
+    expect(screen.getByText("Gerencie os destinatários e endereços da operação.")).toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: "Motoristas" })).not.toBeInTheDocument();
     expect(await screen.findByText("Distribuidora Aurora")).toBeInTheDocument();
     expect(listDrivers).not.toHaveBeenCalled();
@@ -210,7 +210,7 @@ describe("ContactsPage", () => {
     mockRole("CUSTOM", ["loadx.drivers.read"]);
     render(<MemoryRouter initialEntries={["/contacts?tab=drivers"]}><ContactsPage /></MemoryRouter>);
     expect(screen.getByRole("heading", { name: "Motoristas" })).toBeInTheDocument();
-    expect(screen.getByText("Quem leva a carga.")).toBeInTheDocument();
+    expect(screen.getByText("Gerencie os motoristas e seus documentos operacionais.")).toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: "Clientes" })).not.toBeInTheDocument();
     expect(await screen.findByText("Carlos Pereira")).toBeInTheDocument();
     expect(listCustomers).not.toHaveBeenCalled();

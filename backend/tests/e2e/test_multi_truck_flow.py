@@ -113,7 +113,7 @@ def test_two_trucks_complete_independent_legs_and_aggregate_order(
                 assert required in compact_text
             assert s.parts[1 - index]["id"] not in compact_text
             assert truck["plate"] in text
-            assert "Volumesdaparte:1" in compact_text
+            assert "VOLUMESDAPARTE1" in compact_text
             volume = part["load_plan"]["items"][0]
             if resource == "load-plans":
                 assert (

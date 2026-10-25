@@ -223,3 +223,12 @@ a estratégia como heurística, não como solver exato global.
 
 A engine física existente continua sendo a autoridade para dimensões, peso,
 rotação, posicionamento, colisão, apoio, fragilidade, profundidade e sequência.
+
+## Regressão de limite multi-caminhão — 25/10/2026
+
+`CONFIRMADO`: teste adicional distribui 200 identidades físicas em dez caminhões
+com capacidades idênticas de 20 volumes; verifica cobertura exata, ausência de
+duplicação e resultado idêntico com entradas invertidas. Não modifica a engine,
+a busca, suas regras ou o limite. Benchmark sintético por chamada documentado
+em docs/evidencias/qa-v12-pentest/planejamento-multi-atividade/validation.json;
+não equivale a p95 ou garantia para cargas heterogêneas de produção.

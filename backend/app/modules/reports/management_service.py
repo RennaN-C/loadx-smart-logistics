@@ -18,6 +18,14 @@ from app.modules.load_planning.models import LoadPlan
 from app.modules.occurrences.models import Occurrence
 from app.modules.reports.service import ReportService
 
+_PDF_LABELS = {
+    "Pernas de entrega concluidas": "Pernas de entrega concluídas",
+    "Pedidos com ao menos uma perna concluida": "Pedidos com ao menos uma perna concluída",
+    "Ocorrencias registradas": "Ocorrências registradas",
+    "Excecoes de entrega registradas": "Exceções de entrega registradas",
+    "Interrupcoes e retomadas": "Interrupções e retomadas",
+}
+
 
 @dataclass(frozen=True, slots=True)
 class ManagementFilters:
@@ -143,15 +151,25 @@ class ManagementReportService:
     @staticmethod
     def pdf_content(summary: ManagementSummary) -> bytes:
         return ReportService._build_pdf(
-            "Relatorio gerencial",
+            "Relatório gerencial",
             (
-                ("Inicio UTC", summary.start.isoformat()),
+                ("Início UTC", summary.start.isoformat()),
                 ("Fim exclusivo UTC", summary.end.isoformat()),
                 (
                     "Contagem",
-                    "Fatos operacionais; cada perna multi-caminhao conta uma vez",
+                    "Fatos operacionais; cada perna multi-caminhão conta uma vez",
                 ),
             ),
             ("Indicador", "Total"),
-            summary.metrics(),
+            tuple(
+                (_PDF_LABELS.get(label, label), total)
+                for label, total in summary.metrics()
+            ),
+            section_title="Indicadores do período",
+            chart=True,
+            metrics=(
+                ("Viagens criadas", summary.trips_created),
+                ("Pernas de entrega concluídas", summary.deliveries_completed),
+                ("Ocorrências registradas", summary.occurrences_registered),
+            ),
         )

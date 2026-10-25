@@ -232,3 +232,8 @@
 .entity-form.management-report-filters .field-label { font-size: .85rem; line-height: 1.5; letter-spacing: normal; text-transform: none; }
 @media (max-width: 1280px) { .entity-form.management-report-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); } .entity-form.management-report-filters > button { justify-self: start; } }
 @media (max-width: 520px) { .entity-form.management-report-filters { grid-template-columns: minmax(0, 1fr); padding: 16px; } .entity-form.management-report-filters > button { width: 100%; } }
+
+.report-kpi, .report-bars { border-radius: 10px; }
+.report-kpi-label { font-family: inherit; font-size: .72rem; letter-spacing: .02em; }
+.report-kpi-label .icon, .report-block-head .icon { color: var(--accent-strong); }
+.report-block-head h2 { font-size: 1rem; }

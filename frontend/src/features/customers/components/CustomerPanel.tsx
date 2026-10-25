@@ -20,6 +20,8 @@ import type { Customer } from "../types";
 import { CustomerForm } from "./CustomerForm";
 import { mapCustomerErrorToMessage } from "./customersErrorMessages";
 import { Icon } from "../../../components/Icon";
+import { RowActions } from "../../../components/RowActions";
+import "../../../components/RegistryTable.css";
 
 export function CustomerPanel() {
   const { user } = useAuth();
@@ -59,7 +61,7 @@ export function CustomerPanel() {
 
   return (
     <>
-      <div className="entity-toolbar">
+      <div className="entity-toolbar contact-filterbar">
         <ImportAction enabled={hasPermission(user, "loadx.imports.manage")} entity="customers" onImported={refetch} />
         <ArchiveFilter value={archiveStatus} onChange={setArchiveStatus} />
         <input
@@ -91,7 +93,7 @@ export function CustomerPanel() {
         </p>
       ) : null}
 
-      {status === "error" && error ? <AlertBanner>{mapCustomerErrorToMessage(error)}</AlertBanner> : null}
+      {status === "error" && error ? <><AlertBanner>{mapCustomerErrorToMessage(error)}</AlertBanner><button type="button" className="btn-secondary" onClick={() => void refetch()}>Tentar novamente</button></> : null}
       {edit.error ? <AlertBanner>{mapCustomerErrorToMessage(edit.error)}</AlertBanner> : null}
 
       {status === "success" && customers.length === 0 ? (
@@ -103,18 +105,20 @@ export function CustomerPanel() {
       ) : null}
 
       {customers.length > 0 ? (
-        <div className="entity-grid">
+        <div className="registry-table-wrap"><table className="registry-table contact-table">
+          <caption className="sr-only">Clientes cadastrados</caption>
+          <thead><tr><th scope="col">Cliente</th><th scope="col">Cidade</th><th scope="col">Situação</th><th scope="col">Ações</th></tr></thead>
+          <tbody>
           {customers.map((customer) => (
-            <article key={customer.id} className="contact-card">
-              <div className="contact-card-head">
-                <p className="contact-card-name">{customer.name}</p>
-                <StatusPill tone={customer.active ? "good" : "neutral"}>{customer.active ? "Ativo" : "Arquivado"}</StatusPill>
-              </div>
-              <p className="contact-card-line">
+            <tr key={customer.id}>
+              <td data-label="Cliente"><strong>{customer.name}</strong></td>
+              <td data-label="Cidade">
                 {customer.city} · {customer.state}
-              </p>
+              </td>
+              <td data-label="Situação"><StatusPill tone={customer.active ? "good" : "neutral"}>{customer.active ? "Ativo" : "Arquivado"}</StatusPill></td>
+              <td data-label="Ações">
               {canManage ? (
-                <div className="contact-card-foot">
+                <RowActions label={`Ações de ${customer.name}`}>
                   <button type="button" className="btn-link" onClick={() => setAddressCustomer(customer)}>Endereços</button>
                   <RecordLifecycleAction resource="customers" id={customer.id} active={customer.active} onChanged={refetch} />
                   <button
@@ -125,11 +129,12 @@ export function CustomerPanel() {
                   >
                     {edit.loadingId === customer.id ? "Abrindo…" : "Editar"}
                   </button>
-                </div>
-              ) : null}
-            </article>
+                </RowActions>
+              ) : <span className="registry-no-action">Somente consulta</span>}
+              </td>
+            </tr>
           ))}
-        </div>
+          </tbody></table></div>
       ) : null}
 
       {status === "success" ? (

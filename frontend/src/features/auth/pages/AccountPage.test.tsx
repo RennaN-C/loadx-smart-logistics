@@ -20,24 +20,40 @@ vi.mock("../../dashboard/pages/DashboardPage", () => ({ DashboardPage: () => <h1
 const USER = { id: "u1", name: "Conta Fictícia", email: "conta@example.test", role: "ADMIN" as Role, active: true, createdAt: "2026-10-10T00:00:00Z" };
 const SESSION: OwnSession = { id: "session-current", current: true, created_at: "2026-10-10T00:00:00Z", last_seen_at: "2026-10-10T00:01:00Z", idle_expires_at: "2026-10-10T00:31:00Z", absolute_expires_at: "2026-10-10T08:00:00Z" };
 beforeEach(() => { vi.resetAllMocks(); vi.mocked(listTrustedDevices).mockResolvedValue({ enabled: false, lifetime_days: 30, items: [] }); vi.mocked(getMfaStatus).mockResolvedValue({ enabled: true, required: true }); window.history.replaceState({}, "", "/account"); vi.mocked(getCurrentUser).mockResolvedValue(USER); vi.mocked(listOwnSessions).mockResolvedValue([SESSION, { ...SESSION, id: "session-other", current: false }]); });
-async function show() { render(<App />); await screen.findByRole("heading", { name: "Meu perfil", level: 1 }); await screen.findByRole("heading", { name: "Sessão atual" }); }
+async function show(tab = "data") { window.history.replaceState({}, "", `/account?tab=${tab}`); render(<App />); await screen.findByRole("heading", { name: "Meu perfil", level: 1 }); await screen.findByRole("heading", { name: "Sessão atual", hidden: true }); }
 function fillPassword(confirm = "Nova-senha-ficticia-2026") {
+  fireEvent.click(screen.getByRole("tab", { name: "Segurança e MFA" }));
   fireEvent.change(screen.getByLabelText("Senha atual"), { target: { value: "Senha-atual-ficticia" } });
   fireEvent.change(screen.getByLabelText("Nova senha"), { target: { value: "Nova-senha-ficticia-2026" } });
   fireEvent.change(screen.getByLabelText("Confirmar nova senha"), { target: { value: confirm } });
 }
 describe("OC92 Meu perfil", () => {
+  it("preserva o rascunho ao alternar abas e mantém a seção na URL", async () => {
+    await show();
+    fireEvent.change(screen.getByLabelText("Nome"), { target: { value: "Nome em edição" } });
+    fireEvent.click(screen.getByRole("tab", { name: "Segurança e MFA" }));
+    expect(window.location.search).toBe("?tab=security");
+    expect(screen.getByRole("form", { name: "Autenticação multifator" })).toBeVisible();
+    expect(screen.getByRole("form", { name: "Dados pessoais", hidden: true })).not.toBeVisible();
+    fireEvent.click(screen.getByRole("tab", { name: "Dados pessoais" }));
+    expect(screen.getByLabelText("Nome")).toHaveValue("Nome em edição");
+    expect(updateOwnProfile).not.toHaveBeenCalled();
+  });
   it("preserva notificações OC103 junto da segurança OC98 e dispositivos confiáveis", async () => {
     await show();
+    fireEvent.click(screen.getByText("Aparência e notificações"));
     await screen.findByRole("form", { name: "Preferências de notificações" });
     expect(getNotificationPreferences).toHaveBeenCalled();
     expect(screen.getByRole("link", { name: /Abrir central/ })).toHaveAttribute("href", "/notifications");
+    fireEvent.click(screen.getByRole("tab", { name: "Segurança e MFA" }));
     expect(screen.getByRole("form", { name: "Autenticação multifator" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: "Sessões e dispositivos" }));
     expect(screen.getByRole("region", { name: "Dispositivos confiáveis" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Sessão atual" })).toBeInTheDocument();
   });
   it.each<Role>(["ADMIN", "LOGISTICS_MANAGER", "CHECKER", "DRIVER"])("%s acessa sua conta por URL e menu sem novos privilégios", async (role) => {
     vi.mocked(getCurrentUser).mockResolvedValue({ ...USER, role }); await show();
+    fireEvent.click(screen.getByText("Aparência e notificações"));
     expect(screen.getByRole("radio", { name: /Automático/ })).toBeInTheDocument();
     expect(screen.getByLabelText("Nome")).toHaveValue(USER.name);
     expect(screen.getByRole("form", { name: "Dados pessoais" })).toHaveTextContent({ CUSTOM: "Personalizado", ADMIN: "Administrador", LOGISTICS_MANAGER: "Gestor de logística", CHECKER: "Conferente", DRIVER: "Motorista" }[role]);
@@ -80,18 +96,18 @@ describe("OC92 Meu perfil", () => {
     vi.mocked(changeOwnPassword).mockResolvedValue(); await show(); fillPassword(); fireEvent.click(screen.getByRole("button", { name: "Alterar senha" })); await screen.findByText(/Senha alterada. Todas as sessões/); expect(window.location.pathname).toBe("/login"); expect(changeOwnPassword).toHaveBeenCalledWith("Senha-atual-ficticia", "Nova-senha-ficticia-2026");
   });
   it("revoga outras sessões apenas após confirmação e atualiza lista", async () => {
-    vi.mocked(revokeOtherSessions).mockResolvedValue(); await show(); fireEvent.click(screen.getByRole("button", { name: "Encerrar outras sessões" })); expect(revokeOtherSessions).not.toHaveBeenCalled(); fireEvent.click(screen.getByRole("button", { name: "Cancelar encerramento" })); expect(revokeOtherSessions).not.toHaveBeenCalled(); fireEvent.click(screen.getByRole("button", { name: "Encerrar outras sessões" })); vi.mocked(listOwnSessions).mockResolvedValue([SESSION]); fireEvent.click(screen.getByRole("button", { name: "Confirmar encerramento" })); await screen.findByText("Sessões selecionadas encerradas."); await waitFor(() => expect(screen.queryByRole("heading", { name: "Outra sessão" })).not.toBeInTheDocument()); expect(revokeOtherSessions).toHaveBeenCalledOnce();
+    vi.mocked(revokeOtherSessions).mockResolvedValue(); await show("sessions"); fireEvent.click(screen.getByRole("button", { name: "Encerrar outras sessões" })); expect(revokeOtherSessions).not.toHaveBeenCalled(); fireEvent.click(screen.getByRole("button", { name: "Cancelar encerramento" })); expect(revokeOtherSessions).not.toHaveBeenCalled(); fireEvent.click(screen.getByRole("button", { name: "Encerrar outras sessões" })); vi.mocked(listOwnSessions).mockResolvedValue([SESSION]); fireEvent.click(screen.getByRole("button", { name: "Confirmar encerramento" })); await screen.findByText("Sessões selecionadas encerradas."); await waitFor(() => expect(screen.queryByRole("heading", { name: "Outra sessão" })).not.toBeInTheDocument()); expect(revokeOtherSessions).toHaveBeenCalledOnce();
   });
   it("revoga sessão individual e preserva a conta", async () => {
-    vi.mocked(revokeOwnSession).mockResolvedValue(); await show(); fireEvent.click(screen.getByRole("button", { name: "Encerrar esta sessão" })); fireEvent.click(screen.getByRole("button", { name: "Confirmar encerramento" })); await screen.findByText("Sessões selecionadas encerradas."); expect(revokeOwnSession).toHaveBeenCalledWith("session-other"); expect(screen.getByRole("heading", { name: "Meu perfil" })).toBeInTheDocument();
+    vi.mocked(revokeOwnSession).mockResolvedValue(); await show("sessions"); fireEvent.click(screen.getByRole("button", { name: "Encerrar esta sessão" })); fireEvent.click(screen.getByRole("button", { name: "Confirmar encerramento" })); await screen.findByText("Sessões selecionadas encerradas."); expect(revokeOwnSession).toHaveBeenCalledWith("session-other"); expect(screen.getByRole("heading", { name: "Meu perfil" })).toBeInTheDocument();
   });
   it("revogar sessão atual redireciona ao login", async () => {
-    vi.mocked(revokeOwnSession).mockResolvedValue(); await show(); fireEvent.click(screen.getByRole("button", { name: "Encerrar sessão atual" })); fireEvent.click(screen.getByRole("button", { name: "Confirmar encerramento" })); await screen.findByText(/Sessão encerrada. Entre novamente/); expect(window.location.pathname).toBe("/login");
+    vi.mocked(revokeOwnSession).mockResolvedValue(); await show("sessions"); fireEvent.click(screen.getByRole("button", { name: "Encerrar sessão atual" })); fireEvent.click(screen.getByRole("button", { name: "Confirmar encerramento" })); await screen.findByText(/Sessão encerrada. Entre novamente/); expect(window.location.pathname).toBe("/login");
   });
   it("falha parcial em sessões preserva os demais formulários e permite repetir", async () => {
-    vi.mocked(listOwnSessions).mockRejectedValue(new ApiError("NETWORK_ERROR", "segredo")); render(<App />); await screen.findByRole("alert"); expect(screen.getByLabelText("Nome")).toHaveValue(USER.name); vi.mocked(listOwnSessions).mockResolvedValue([SESSION]); fireEvent.click(screen.getByRole("button", { name: "Atualizar sessões" })); await screen.findByRole("heading", { name: "Sessão atual" }); expect(screen.queryByText("segredo")).not.toBeInTheDocument();
+    vi.mocked(listOwnSessions).mockRejectedValue(new ApiError("NETWORK_ERROR", "segredo")); window.history.replaceState({}, "", "/account?tab=sessions"); render(<App />); await screen.findByRole("alert"); expect(screen.getByLabelText("Nome")).toHaveValue(USER.name); vi.mocked(listOwnSessions).mockResolvedValue([SESSION]); fireEvent.click(screen.getByRole("button", { name: "Atualizar sessões" })); await screen.findByRole("heading", { name: "Sessão atual" }); expect(screen.queryByText("segredo")).not.toBeInTheDocument();
   });
-  it("trata vazio real", async () => { vi.mocked(listOwnSessions).mockResolvedValue([]); render(<App />); await screen.findByText("Nenhuma sessão ativa foi encontrada."); expect(revokeOwnSession).not.toHaveBeenCalled(); });
+  it("trata vazio real", async () => { vi.mocked(listOwnSessions).mockResolvedValue([]); window.history.replaceState({}, "", "/account?tab=sessions"); render(<App />); await screen.findByText("Nenhuma sessão ativa foi encontrada."); expect(revokeOwnSession).not.toHaveBeenCalled(); });
   it("nega visitante não autenticado", async () => { vi.mocked(getCurrentUser).mockRejectedValue(new ApiError("AUTH_INVALID_TOKEN", "Sessão inválida")); render(<App />); await screen.findByRole("heading", { name: "Entrar" }); expect(listOwnSessions).not.toHaveBeenCalled(); });
-  it("mostra carregamento durante a consulta", async () => { vi.mocked(listOwnSessions).mockReturnValue(new Promise(() => {})); render(<App />); await screen.findByText("Carregando sessões…"); expect(within(screen.getByRole("region", { name: "Dados pessoais" })).getByLabelText("Nome")).toBeInTheDocument(); });
+  it("mostra carregamento durante a consulta", async () => { vi.mocked(listOwnSessions).mockReturnValue(new Promise(() => {})); window.history.replaceState({}, "", "/account?tab=sessions"); render(<App />); await screen.findByText("Carregando sessões…"); fireEvent.click(screen.getByRole("tab", { name: "Dados pessoais" })); expect(within(screen.getByRole("region", { name: "Dados pessoais" })).getByLabelText("Nome")).toBeInTheDocument(); });
 });

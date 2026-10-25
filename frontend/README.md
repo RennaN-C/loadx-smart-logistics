@@ -151,3 +151,35 @@ sincronizadas; logout não apaga a preferência.
 [docs/evidencias/issue-212](../docs/evidencias/issue-212/README.md).
 `PENDENTE DE DEFINIÇÃO`: validação conjunta das telas MFA/recuperação da PR #211
 após sua integração; nenhum código da OC98 foi incorporado nesta manutenção.
+
+## Revisão visual das referências de 39 telas — 24/10/2026
+
+`CONFIRMADO`: a apresentação compartilhada usa azul profundo/âmbar no escuro e
+superfícies claras no claro, respeitando a preferência de aparência existente.
+Clientes, motoristas e pedidos usam tabelas responsivas; ações secundárias de
+cadastros e pedidos ficam no menu de cada registro. O filtro de situação dos
+pedidos substitui os dois atalhos redundantes.
+
+`CONFIRMADO`: o planejamento apresenta Pedidos, Modalidade, Veículos e Revisão;
+alternar etapas não persiste rascunho nem inicia operação. Meu perfil usa
+`?tab=data`, `?tab=security` e `?tab=sessions`, preservando edições ao alternar.
+A agenda oferece calendário diário/semanal e lista dos mesmos eventos históricos
+em UTC. O intervalo da API continua limitado às opções existentes.
+
+`CONFIRMADO`: contratos, RBAC, MFA e coordenadas 3D foram preservados. Evidências,
+comandos e limites estão na [revisão visual](../docs/evidencias/qa-v12-pentest/ui-refinamento-39/README.md).
+
+## Dados e acompanhamento — 25/10/2026
+
+`CONFIRMADO`: a visão geral ganhou gráficos SVG com contagens reais da API.
+Execução permanece no planejamento e Configurações usa navegação horizontal,
+coerente com a frota. Transições novas respeitam redução de movimento.
+O seed local é documentado em [backend/scripts](../backend/scripts/README.md).
+Evidências e limites da revisão estão em
+[população e gráficos](../docs/evidencias/qa-v12-pentest/ui-populacao-graficos/README.md).
+
+## Gravação e avaliação de usabilidade local
+
+`CONFIRMADO`: [roteiro e dados de gravação](../docs/usabilidade/README.md)
+e [ensaio técnico com login/MFA reais](../docs/evidencias/usabilidade-local/README.md)
+acompanham os ajustes de prontidão do planejamento da Issue #302.

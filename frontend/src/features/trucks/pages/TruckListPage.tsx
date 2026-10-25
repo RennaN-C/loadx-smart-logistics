@@ -17,6 +17,7 @@ import { listTrucks } from "../api/trucksApi";
 import type { Truck } from "../types";
 import "./TruckListPage.css";
 import { Icon } from "../../../components/Icon";
+import "../../../components/RegistryTable.css";
 
 export function TruckListPage({ embedded = false, active = true }: { readonly embedded?: boolean; readonly active?: boolean }) {
   const { user } = useAuth();
@@ -69,18 +70,17 @@ export function TruckListPage({ embedded = false, active = true }: { readonly em
         ) : null}
       </header>
 
-      <div className="entity-toolbar">
-        <ImportAction enabled={hasPermission(user, "loadx.imports.manage")} entity="trucks" onImported={refetch} />
-        <ArchiveFilter value={archiveStatus} onChange={setArchiveStatus} />
-        <input
+      <div className="entity-toolbar registry-filterbar truck-filterbar">
+        <label className="registry-filter-field registry-filter-search"><span>Busca</span><input
           type="search"
           aria-label="Buscar por placa ou modelo"
-          placeholder="Buscar por placa ou modelo"
+          placeholder="Buscar placa ou modelo…"
           value={search}
           onChange={(event) => { goToPage(1); setSearch(event.target.value); }}
           maxLength={MAX_SEARCH_LENGTH}
-        />
-
+        /></label>
+        <label className="registry-filter-field"><span>Situação</span><ArchiveFilter value={archiveStatus} onChange={setArchiveStatus} /></label>
+        <div className="registry-import-action"><ImportAction enabled={hasPermission(user, "loadx.imports.manage")} entity="trucks" onImported={refetch} /></div>
       </div>
 
       {status === "success" && total > 0 ? (
@@ -109,10 +109,12 @@ export function TruckListPage({ embedded = false, active = true }: { readonly em
       ) : null}
 
       {trucks.length > 0 ? (
-        <div className="entity-grid">
-          {trucks.map((truck) => (
-            <TruckCard key={truck.id} truck={truck} canManage={canManage} onEdit={setEditingTruck} onChanged={refetch} onMaintenance={setMaintenanceTruck} onDocuments={setDocumentsTruck} />
-          ))}
+        <div className="registry-table-wrap">
+          <table className="registry-table truck-table">
+            <caption className="sr-only">Caminhões cadastrados</caption>
+            <thead><tr><th scope="col">Placa</th><th scope="col">Veículo</th><th scope="col">Capacidade</th><th scope="col">Volume interno</th><th scope="col">Situação</th><th scope="col">Ações</th></tr></thead>
+            <tbody>{trucks.map((truck) => <TruckCard key={truck.id} truck={truck} canManage={canManage} onEdit={setEditingTruck} onChanged={refetch} onMaintenance={setMaintenanceTruck} onDocuments={setDocumentsTruck} />)}</tbody>
+          </table>
         </div>
       ) : null}
 

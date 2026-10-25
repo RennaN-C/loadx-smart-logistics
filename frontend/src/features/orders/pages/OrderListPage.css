@@ -1,32 +1,5 @@
 
 /* Atalho de pedidos entregues: usa o filtro paginado no servidor. */
-.order-status-shortcuts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-block: 16px 12px;
-}
-.order-status-shortcuts button {
-  border: 1px solid var(--line);
-  background: var(--card);
-  color: var(--ink);
-  border-radius: 8px;
-  padding: 9px 15px;
-  min-height: 40px;
-  font: inherit;
-  font-size: 0.88rem;
-  cursor: pointer;
-}
-.order-status-shortcuts button[aria-pressed="true"] {
-  border-color: var(--accent);
-  background: var(--accent-bg);
-  font-weight: 700;
-}
-.order-status-shortcuts button:focus-visible {
-  outline: 2px solid var(--accent-strong);
-  outline-offset: 2px;
-}
-
 .order-filters {
   display: grid;
   grid-template-columns: minmax(240px, 1fr) minmax(190px, 240px) auto;

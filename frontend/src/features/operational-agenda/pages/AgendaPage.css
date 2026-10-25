@@ -14,3 +14,21 @@
   .agenda-controls input, .agenda-controls select { width: 100%; }
   .agenda-day li { grid-template-columns: 1fr; gap: 4px; }
 }
+
+.agenda-calendar { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: 10px; background: var(--card); overflow: hidden; }
+.agenda-calendar[data-mode="day"] { grid-template-columns: minmax(0, 1fr); }
+.agenda-calendar-day { min-width: 0; padding: 14px; border-right: 1px solid var(--line); min-height: 260px; }
+.agenda-calendar-day:last-child { border-right: 0; }
+.agenda-calendar-day[data-today="true"] { background: var(--accent-bg); }
+.agenda-calendar-day h2 { display: flex; flex-direction: column; gap: 8px; margin: 0 0 20px; font-size: .9rem; }
+.agenda-calendar-day h2 > span { color: var(--muted); font-size: .7rem; font-weight: 500; text-transform: uppercase; }
+.agenda-calendar-day > p { color: var(--muted); font-size: .75rem; }
+.agenda-calendar-day ol { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+.agenda-calendar-day li { display: grid; gap: 6px; padding: 10px; border-left: 3px solid var(--accent); border-radius: 4px; background: var(--paper); overflow-wrap: anywhere; }
+.agenda-calendar-day li time { color: var(--muted); font-size: .7rem; }
+.agenda-calendar-day li strong, .agenda-calendar-day li a { font-size: .75rem; }
+.agenda-calendar-day a { color: var(--accent-strong); }
+.agenda-calendar-day a:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 3px; }
+.agenda-controls { padding: 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); }
+@media (max-width: 1100px) { .agenda-calendar { grid-template-columns: repeat(4, minmax(0, 1fr)); } .agenda-calendar-day { border-bottom: 1px solid var(--line); min-height: 180px; } }
+@media (max-width: 620px) { .agenda-calendar { grid-template-columns: minmax(0, 1fr); } .agenda-calendar-day { min-height: 100px; border-right: 0; } .agenda-calendar-day h2 { flex-direction: row; align-items: center; margin-bottom: 12px; } }

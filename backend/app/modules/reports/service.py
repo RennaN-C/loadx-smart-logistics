@@ -1,18 +1,6 @@
 import uuid
-from collections.abc import Iterable
 from datetime import UTC, datetime
-from io import BytesIO
-from pathlib import Path
-from xml.sax.saxutils import escape
 
-from reportlab import __file__ as reportlab_file
-from reportlab.lib import colors
-from reportlab.lib.pagesizes import A4
-from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
-from reportlab.lib.units import mm
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 from sqlalchemy.orm import Session
 
 from app.modules.deliveries.service import TripService
@@ -20,6 +8,7 @@ from app.modules.load_planning.reference_service import LoadPlanReferenceService
 from app.modules.load_planning.service import LoadPlanningService
 from app.modules.loading.reference_service import LoadingReferenceService
 from app.modules.occurrences.service import OccurrenceService
+from app.modules.reports.pdf_renderer import build_pdf
 from app.modules.users.models import User
 
 
@@ -71,6 +60,13 @@ class ReportService:
             metadata,
             ("Sequência", "Código", "Volume", "Conferência"),
             rows,
+            section_title="Sequência e conferência dos volumes",
+            column_weights=(0.14, 0.16, 0.48, 0.22),
+            metrics=(
+                ("Volumes no plano", len(rows)),
+                ("Conferidos", sum(row[3] == "CHECKED" for row in rows)),
+                ("Conferência pendente", sum(row[3] == "PENDING" for row in rows)),
+            ),
         )
 
     def build_trip_report(self, trip_id: uuid.UUID, *, current_user: User) -> bytes:
@@ -115,12 +111,22 @@ class ReportService:
         return self._build_pdf(
             "Relatório de viagem",
             metadata,
-            ("Sequência", "Entrega", "Status", "Data"),
+            ("Seq.", "Entrega", "Status", "Data"),
             delivery_rows,
             secondary_title="Ocorrências",
             secondary_headers=("Tipo", "Descrição", "Data"),
             secondary_rows=occurrence_rows,
             volume_rows=volume_rows,
+            section_title="Entregas da viagem",
+            column_weights=(0.10, 0.39, 0.22, 0.29),
+            metrics=(
+                ("Entregas da viagem", len(delivery_rows)),
+                (
+                    "Entregas concluídas",
+                    sum(row[2] == "DELIVERED" for row in delivery_rows),
+                ),
+                ("Ocorrências", len(occurrences)),
+            ),
         )
 
     def _distribution_metadata(self, load_plan_id: uuid.UUID) -> list[tuple[str, str]]:
@@ -135,116 +141,9 @@ class ReportService:
             ("Volumes da parte", str(len(part.volumes))),
         ]
 
-    @staticmethod
-    def _build_pdf(
-        title: str,
-        metadata: Iterable[tuple[str, str]],
-        headers: tuple[str, ...],
-        rows: Iterable[tuple[object, ...]],
-        *,
-        secondary_title: str | None = None,
-        secondary_headers: tuple[str, ...] = (),
-        secondary_rows: Iterable[tuple[object, ...]] = (),
-        volume_rows: Iterable[tuple[object, ...]] = (),
-    ) -> bytes:
-        stream = BytesIO()
-        document = SimpleDocTemplate(
-            stream,
-            pagesize=A4,
-            rightMargin=16 * mm,
-            leftMargin=16 * mm,
-            topMargin=16 * mm,
-            bottomMargin=16 * mm,
-            title=title,
-        )
-        ReportService._register_fonts()
-        styles = getSampleStyleSheet()
-        for style_name in ("BodyText", "Title", "Heading2"):
-            styles[style_name].fontName = "LoadX"
-        styles["Title"].fontName = "LoadX-Bold"
-        styles["Heading2"].fontName = "LoadX-Bold"
-        story = [Paragraph(escape(title), styles["Title"]), Spacer(1, 5 * mm)]
-        for label, value in metadata:
-            story.append(
-                Paragraph(
-                    f"{escape(label)}: {escape(value)}",
-                    styles["BodyText"],
-                )
-            )
-        story.extend((Spacer(1, 7 * mm), Paragraph("Detalhes", styles["Heading2"])))
-        story.append(ReportService._table(headers, rows))
-        if secondary_title is not None:
-            story.extend(
-                (
-                    Spacer(1, 7 * mm),
-                    Paragraph(escape(secondary_title), styles["Heading2"]),
-                    ReportService._table(secondary_headers, secondary_rows),
-                )
-            )
-        if volume_rows:
-            story.extend(
-                (
-                    Spacer(1, 7 * mm),
-                    Paragraph("Volumes transportados", styles["Heading2"]),
-                    ReportService._table(
-                        ("Item do pedido", "Índice do volume", "Pedido"), volume_rows
-                    ),
-                )
-            )
-        document.build(story)
-        return stream.getvalue()
-
-    @staticmethod
-    def _table(headers: tuple[str, ...], rows: Iterable[tuple[object, ...]]) -> Table:
-        ReportService._register_fonts()
-        body_style = ParagraphStyle("LoadXBody", fontName="LoadX", fontSize=9)
-        header_style = ParagraphStyle(
-            "LoadXHeader",
-            fontName="LoadX-Bold",
-            fontSize=9,
-            textColor=colors.white,
-        )
-        data = [[Paragraph(escape(str(value)), header_style) for value in headers]]
-        data.extend(
-            [
-                [Paragraph(escape(str(value)), body_style) for value in row]
-                for row in rows
-            ]
-        )
-        table = Table(
-            data,
-            colWidths=[178 * mm / len(headers)] * len(headers),
-            repeatRows=1,
-            hAlign="LEFT",
-        )
-        table.setStyle(
-            TableStyle(
-                [
-                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#17324D")),
-                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-                    ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#AAB7C4")),
-                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                    ("LEFTPADDING", (0, 0), (-1, -1), 5),
-                    ("RIGHTPADDING", (0, 0), (-1, -1), 5),
-                ]
-            )
-        )
-        return table
-
-    @staticmethod
-    def _register_fonts() -> None:
-        if "LoadX" in pdfmetrics.getRegisteredFontNames():
-            return
-        fonts_dir = Path(reportlab_file).resolve().parent / "fonts"
-        pdfmetrics.registerFont(TTFont("LoadX", str(fonts_dir / "Vera.ttf")))
-        pdfmetrics.registerFont(TTFont("LoadX-Bold", str(fonts_dir / "VeraBd.ttf")))
-        pdfmetrics.registerFontFamily(
-            "LoadX",
-            normal="LoadX",
-            bold="LoadX-Bold",
-            italic="LoadX",
-            boldItalic="LoadX-Bold",
-        )
+    # Shared renderer also serves the management export; keep this internal
+    # entry point for callers while presentation stays independent of services.
+    _build_pdf = staticmethod(build_pdf)
 
     @staticmethod
     def _format_datetime(value: datetime | None) -> str:

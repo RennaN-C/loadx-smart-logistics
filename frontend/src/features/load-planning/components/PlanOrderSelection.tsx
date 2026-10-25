@@ -63,7 +63,7 @@ export function PlanOrderSelection({ readyOrders, selectedOrders, customerNames,
               A seleção possui {selectedVolumeCount} volumes, acima do limite de {maxVolumes} por cálculo.
               Desmarque pedidos até ficar dentro do limite. Se um único pedido ultrapassar {maxVolumes},
               revise suas quantidades na tela de <Link to="/orders">Pedidos</Link>.
-              O sistema não divide pedidos automaticamente.
+              O limite considera a seleção completa, inclusive na modalidade multi-caminhões.
             </div>
           ) : null}
   </>;
