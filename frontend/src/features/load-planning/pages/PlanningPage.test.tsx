@@ -5,11 +5,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { makePage } from "../../../tests/makePage";
 import { ApiError } from "../../../types/api";
 import { useAuth } from "../../auth/hooks/useAuth";
+import { listDrivers, listDriverOperationalStatus } from "../../drivers/api/driversApi";
 import { listCustomers } from "../../customers/api/customersApi";
 import { listOrders } from "../../orders/api/ordersApi";
 import { listTruckOperationalStatus, listTrucks } from "../../trucks/api/trucksApi";
 import { approveLoadPlan, createLoadPlan, getLoadPlan, getLoadPlanContinuity, listLoadPlans, recalculateLoadPlan } from "../api/loadPlansApi";
-import { optimizeDistribution } from "../api/distributionsApi";
+import { optimizeDistribution, preflightDistribution } from "../api/distributionsApi";
 import { makeDistribution } from "../testing/distributionFixtures";
 import type { LoadPlan, LoadPlanItem } from "../types";
 import { PlanningPage } from "./PlanningPage";
@@ -22,7 +23,7 @@ vi.mock("../api/loadPlansApi", async (importOriginal) => ({
   getLoadPlan: vi.fn(), listLoadPlans: vi.fn(), getLoadPlanContinuity: vi.fn(),
   createLoadPlan: vi.fn(), approveLoadPlan: vi.fn(), recalculateLoadPlan: vi.fn(),
 }));
-vi.mock("../api/distributionsApi", async (importOriginal) => ({ ...await importOriginal<typeof import("../api/distributionsApi")>(), optimizeDistribution: vi.fn() }));
+vi.mock("../api/distributionsApi", async (importOriginal) => ({ ...await importOriginal<typeof import("../api/distributionsApi")>(), optimizeDistribution: vi.fn(), preflightDistribution: vi.fn() }));
 // WebGL nao existe em jsdom: a cena e testada pela geometria pura, em sceneGeometry.test.ts
 vi.mock("../../load-visualization/components/LoadViewer", () => ({
   LoadViewer: ({ planId }: { planId: string }) => <div data-testid="viewer">cena de {planId}</div>,
@@ -30,6 +31,7 @@ vi.mock("../../load-visualization/components/LoadViewer", () => ({
 vi.mock("../../trucks/api/trucksApi");
 vi.mock("../../orders/api/ordersApi");
 vi.mock("../../customers/api/customersApi");
+vi.mock("../../drivers/api/driversApi");
 vi.mock("../../auth/hooks/useAuth");
 vi.mock("../../audit/components/AuditTrail", () => ({
   AuditTrail: () => <div data-testid="audit-trail">histórico contextual</div>,
@@ -168,6 +170,9 @@ describe("PlanningPage", () => {
   beforeEach(() => {
     sessionStorage.clear();
     vi.resetAllMocks();
+    vi.mocked(listDrivers).mockResolvedValue(makePage([]));
+    vi.mocked(listDriverOperationalStatus).mockResolvedValue(makePage([]));
+    vi.mocked(preflightDistribution).mockResolvedValue({ orderIds: ["o1"], volumes: [], eligibleTrucks: [{ id: "t1", plate: "ABC1D23", model: "Baú", widthCm: 240, heightCm: 260, lengthCm: 600, maxWeightKg: 8000 }], ineligibleTrucks: [] });
     vi.mocked(listAuditEntries).mockResolvedValue(makePage([]));
     mockRole("LOGISTICS_MANAGER");
     vi.mocked(listLoadPlans).mockResolvedValue(makePage([]));
@@ -256,6 +261,46 @@ describe("PlanningPage", () => {
     );
   });
 
+  it("explica os bloqueios de pedido e veículo junto das ações", async () => {
+    renderAt("/planning");
+    await screen.findByRole("checkbox");
+    expect(screen.getByRole("button", { name: "Continuar" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Continuar" })).toHaveAccessibleDescription("Selecione pelo menos um pedido na etapa Pedidos.");
+    fireEvent.click(screen.getByRole("checkbox"));
+    const calculate = calculationButton();
+    expect(calculate).toBeDisabled();
+    expect(calculate).toHaveAccessibleDescription("Selecione um caminhão na etapa Veículos.");
+  });
+
+  it.each(["empty", "error"] as const)("impede cálculo automático com preflight %s mesmo ao saltar para Revisão", async (state) => {
+    if (state === "empty") vi.mocked(preflightDistribution).mockResolvedValue({ orderIds: ["o1"], volumes: [], eligibleTrucks: [], ineligibleTrucks: [] });
+    else vi.mocked(preflightDistribution).mockRejectedValue(new Error("offline"));
+    renderAt("/planning");
+    fireEvent.click(await screen.findByRole("checkbox"));
+    fireEvent.click(screen.getByRole("button", { name: "Modalidade" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Seleção automática da frota" }));
+    const calculate = calculationButton("Otimizar e salvar distribuição");
+    await waitFor(() => expect(calculate).toHaveAccessibleDescription(state === "empty" ? "Nenhum caminhão elegível. Revise a disponibilidade da frota antes de calcular." : "Consulte a frota novamente na etapa Veículos antes de calcular."));
+    expect(calculate).toBeDisabled();
+    fireEvent.click(calculate);
+    expect(optimizeDistribution).not.toHaveBeenCalled();
+  });
+
+  it("aguarda a consulta de frota e só libera cálculo após resposta elegível", async () => {
+    const need = await preflightDistribution(["o1"]);
+    let resolve!: (value: typeof need) => void;
+    vi.mocked(preflightDistribution).mockReturnValue(new Promise((done) => { resolve = done; }));
+    renderAt("/planning");
+    fireEvent.click(await screen.findByRole("checkbox"));
+    fireEvent.click(screen.getByRole("button", { name: "Modalidade" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Seleção automática da frota" }));
+    const calculate = calculationButton("Otimizar e salvar distribuição");
+    expect(calculate).toBeDisabled();
+    expect(calculate).toHaveAccessibleDescription("Aguarde a validação da frota para os pedidos selecionados.");
+    resolve(need);
+    await waitFor(() => expect(calculate).toBeEnabled());
+  });
+
   it("otimiza pedidos sem caminhão manual e salva a proposta real", async () => {
     vi.mocked(optimizeDistribution).mockResolvedValue(makeDistribution());
     render(<MemoryRouter initialEntries={["/planning?tab=new"]}><Routes>
@@ -266,7 +311,9 @@ describe("PlanningPage", () => {
     fireEvent.click(await screen.findByRole("radio", { name: /Seleção automática/ }));
     ordersStep();
     fireEvent.click(await screen.findByRole("checkbox"));
-    fireEvent.click(calculationButton("Otimizar e salvar distribuição"));
+    const calculate = calculationButton("Otimizar e salvar distribuição");
+    await waitFor(() => expect(calculate).toBeEnabled());
+    fireEvent.click(calculate);
     expect(await screen.findByText("Distribuição persistida aberta")).toBeInTheDocument();
     expect(optimizeDistribution).toHaveBeenCalledWith(["o1"], expect.any(String));
     expect(createLoadPlan).not.toHaveBeenCalled();
@@ -279,7 +326,9 @@ describe("PlanningPage", () => {
     fireEvent.click(await screen.findByRole("radio", { name: /Seleção automática/ }));
     ordersStep();
     fireEvent.click(await screen.findByRole("checkbox"));
-    fireEvent.click(calculationButton("Otimizar e salvar distribuição"));
+    const calculate = calculationButton("Otimizar e salvar distribuição");
+    await waitFor(() => expect(calculate).toBeEnabled());
+    fireEvent.click(calculate);
     expect(await screen.findByRole("alert")).toBeInTheDocument();
     ordersStep();
     expect(screen.getByRole("checkbox")).toBeChecked();
@@ -692,6 +741,9 @@ describe("PlanningPage — entrada e autorização da retomada", () => {
   beforeEach(() => {
     sessionStorage.clear();
     vi.resetAllMocks();
+    vi.mocked(listDrivers).mockResolvedValue(makePage([]));
+    vi.mocked(listDriverOperationalStatus).mockResolvedValue(makePage([]));
+    vi.mocked(preflightDistribution).mockResolvedValue({ orderIds: ["o1"], volumes: [], eligibleTrucks: [{ id: "t1", plate: "ABC1D23", model: "Baú", widthCm: 240, heightCm: 260, lengthCm: 600, maxWeightKg: 8000 }], ineligibleTrucks: [] });
     vi.mocked(listAuditEntries).mockResolvedValue(makePage([]));
     vi.mocked(listLoadPlans).mockResolvedValue(makePage([]));
   });
@@ -716,6 +768,9 @@ describe("PlanningPage — entrada e autorização da retomada", () => {
 
 it("permite retentar o detalhe persistido sem criar nem recalcular", async () => {
   vi.resetAllMocks();
+    vi.mocked(listDrivers).mockResolvedValue(makePage([]));
+    vi.mocked(listDriverOperationalStatus).mockResolvedValue(makePage([]));
+    vi.mocked(preflightDistribution).mockResolvedValue({ orderIds: ["o1"], volumes: [], eligibleTrucks: [{ id: "t1", plate: "ABC1D23", model: "Baú", widthCm: 240, heightCm: 260, lengthCm: 600, maxWeightKg: 8000 }], ineligibleTrucks: [] });
     vi.mocked(listAuditEntries).mockResolvedValue(makePage([]));
   mockRole("LOGISTICS_MANAGER");
   vi.mocked(getLoadPlan).mockRejectedValueOnce(new ApiError("NETWORK_ERROR", "Falha de rede")).mockResolvedValue(makePlan());

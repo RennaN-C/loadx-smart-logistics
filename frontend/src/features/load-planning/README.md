@@ -208,3 +208,18 @@ revalida tudo. A carga pode usar um caminhão se couber; não força divisão
 artificial. O limite permanece 200 volumes físicos, até 10 caminhões.
 
 Evidências: docs/evidencias/qa-v12-pentest/planejamento-multi-atividade/.
+
+## Prontidão e mensagens das ações — Issue #302
+
+`CONFIRMADO`: o cálculo automático exige preflight da seleção atual com frota
+elegível; consulta pendente, falha ou sem veículos bloqueia Continuar na etapa
+Veículos e o cálculo, inclusive ao saltar diretamente para Revisão. A seleção e
+a modalidade invalidam resultados anteriores. Respostas tardias são ignoradas;
+a nova consulta invalida o resultado imediatamente. O guard também existe no
+handler, preservando a validação final obrigatória do backend.
+
+`CONFIRMADO`: mensagens próximas às ações usam aria-describedby e explicam
+pedido ausente, seleção desatualizada, limite, veículo ausente, consulta pendente,
+falha e indisponibilidade. Pré-validação permanece montada ao alternar etapas,
+sem transformar uma consulta em reserva. A explicação do limite de 200 volumes
+agora deixa explícita sua aplicação à seleção inteira, inclusive multi-caminhões.
