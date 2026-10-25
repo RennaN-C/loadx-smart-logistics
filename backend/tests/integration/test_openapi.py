@@ -6,6 +6,15 @@ from app.core.config import Settings
 from app.main import create_app
 
 EXPECTED_ERROR_STATUSES = {
+    # Disponível somente na homologação: conferência em lote.
+    ("/api/v1/loading-sessions/{session_id}/check-all", "post"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
     ("/api/v1/load-distributions/optimization-requests/{request_key}", "get"): {
         "401",
         "403",
