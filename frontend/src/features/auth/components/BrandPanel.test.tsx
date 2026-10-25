@@ -17,6 +17,8 @@ it("permite pausar e retomar os efeitos decorativos sem alterar o acesso", () =>
   expect(pause).toHaveAttribute("aria-pressed", "false");
   fireEvent.click(pause);
   expect(screen.getByRole("button", { name: "Ativar efeitos" })).toHaveAttribute("aria-pressed", "true");
+  expect(pause.closest("aside")).toHaveClass("is-motion-paused");
   fireEvent.click(screen.getByRole("button", { name: "Ativar efeitos" }));
   expect(screen.getByRole("button", { name: "Pausar efeitos" })).toHaveAttribute("aria-pressed", "false");
+  expect(pause.closest("aside")).not.toHaveClass("is-motion-paused");
 });
