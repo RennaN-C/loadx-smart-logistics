@@ -131,3 +131,21 @@ com chave idempotente estável. No banco demonstrativo, gera 2 partes para
 As transações de cadastro são independentes; não execute simultaneamente.
 Os totais da demonstração básica passam a incluir este exemplo e qualquer
 registro criado posteriormente pelo usuário. Nenhum banco remoto é populado.
+
+## Preparação da gravação de usabilidade — Issue #302
+
+`CONFIRMADO`: `python -m scripts.prepare_usability --batch gravacao-01`
+(no container backend) prepara cliente, produtos, três veículos documentados,
+três motoristas com CNH vigente e três pedidos fictícios. O script é exclusivo
+do banco local, usa serviços existentes e serializa preparações com advisory lock.
+Valida o nome do lote antes de escrever. Não cria usuários, credenciais, planos,
+carregamentos ou viagens. Lotes de ensaio e gravação são distintos.
+
+`CONFIRMADO`: reexecutar reutiliza registros pelos identificadores do lote;
+códigos de produto são consultados na mesma forma normalizada pelo serviço.
+A saída informa estados e disponibilidade atuais. Não apaga ou restaura dados
+consumidos. Em falha intermediária, parte dos cadastros pode persistir; reexecute
+o lote para completar e confira a saída. Documentos não são renovados à força.
+Para nova tomada após operar os dados, escolha outro lote.
+
+Roteiro, ficha e manifesto: [usabilidade local](../../docs/usabilidade/README.md).

@@ -177,3 +177,9 @@ coerente com a frota. Transições novas respeitam redução de movimento.
 O seed local é documentado em [backend/scripts](../backend/scripts/README.md).
 Evidências e limites da revisão estão em
 [população e gráficos](../docs/evidencias/qa-v12-pentest/ui-populacao-graficos/README.md).
+
+## Gravação e avaliação de usabilidade local
+
+`CONFIRMADO`: [roteiro e dados de gravação](../docs/usabilidade/README.md)
+e [ensaio técnico com login/MFA reais](../docs/evidencias/usabilidade-local/README.md)
+acompanham os ajustes de prontidão do planejamento da Issue #302.

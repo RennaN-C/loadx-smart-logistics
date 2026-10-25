@@ -1,0 +1,986 @@
+{
+  "date": "2026-10-25",
+  "browser": "Chromium / Playwright; real local API and PostgreSQL; real password and TOTP MFA",
+  "single": {
+    "authentication": "Real password and TOTP MFA, dedicated fictitious ADMIN account",
+    "http": "Real local frontend/API/PostgreSQL; no route mocks or dependency overrides",
+    "progress": {
+      "orderId": "99ed2165-d8b5-4ab3-bbf2-adbc1c398684",
+      "ready": true,
+      "planId": "f0b4100e-944d-429e-a464-507718959013",
+      "scene": true,
+      "approved": true,
+      "loadingId": "709bff96-537c-4936-8d12-edddf282d331",
+      "loaded": true,
+      "tripId": "4e205db2-151e-49ab-9451-222f0b823ca4",
+      "inRoute": true,
+      "delivered": true,
+      "finished": true,
+      "completed": true
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/v1/drivers",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/customers",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/notifications/unread-count",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/products",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/orders",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/customers",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/drivers",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/orders",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/products",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/customers",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/notifications/unread-count",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/orders",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/products",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/customers",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/notifications/unread-count",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/customers",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/customers/28a1657a-29d6-4fcb-bb3f-af9cb361e4ce/addresses",
+        "status": 200
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/orders",
+        "status": 201
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/orders",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/auth/me",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/auth/me",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/orders",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/customers",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/products",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/notifications/unread-count",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/orders",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/customers",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/products",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/notifications/unread-count",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/orders/99ed2165-d8b5-4ab3-bbf2-adbc1c398684",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/customers/28a1657a-29d6-4fcb-bb3f-af9cb361e4ce/addresses",
+        "status": 200
+      },
+      {
+        "method": "PATCH",
+        "path": "/api/v1/orders/99ed2165-d8b5-4ab3-bbf2-adbc1c398684",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/customers/28a1657a-29d6-4fcb-bb3f-af9cb361e4ce/addresses",
+        "status": 200
+      },
+      {
+        "method": "PATCH",
+        "path": "/api/v1/orders/99ed2165-d8b5-4ab3-bbf2-adbc1c398684/status",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/orders",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/load-plans",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/audit",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/audit",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/notifications/unread-count",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/audit",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/trucks",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/trucks/operational-status",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/orders",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/customers",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/load-plans",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/audit",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/audit",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/audit",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/trucks",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/trucks/operational-status",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/orders",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/customers",
+        "status": 200
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/load-plans",
+        "status": 201
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/audit",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/load-plans/f0b4100e-944d-429e-a464-507718959013",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/notifications/unread-count",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/auth/me",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/auth/me",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/load-plans/f0b4100e-944d-429e-a464-507718959013",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/notifications/unread-count",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/load-plans/f0b4100e-944d-429e-a464-507718959013",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/notifications/unread-count",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/audit",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/audit",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/load-plans/f0b4100e-944d-429e-a464-507718959013/visualization",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/load-plans/f0b4100e-944d-429e-a464-507718959013/visualization",
+        "status": 200
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/load-plans/f0b4100e-944d-429e-a464-507718959013/approve",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/load-plans/f0b4100e-944d-429e-a464-507718959013/continuity",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/load-plans/f0b4100e-944d-429e-a464-507718959013/continuity",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/drivers",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/drivers/operational-status",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/drivers",
+        "status": 200
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/loading-sessions",
+        "status": 201
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/drivers/operational-status",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/loading-sessions/709bff96-537c-4936-8d12-edddf282d331",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/notifications/unread-count",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/auth/me",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/auth/me",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/loading-sessions/709bff96-537c-4936-8d12-edddf282d331",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/notifications/unread-count",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/loading-sessions/709bff96-537c-4936-8d12-edddf282d331",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/notifications/unread-count",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/load-plans/f0b4100e-944d-429e-a464-507718959013",
+        "status": 200
+      },
+      {
+        "method": "PATCH",
+        "path": "/api/v1/loading-sessions/709bff96-537c-4936-8d12-edddf282d331/status",
+        "status": 200
+      },
+      {
+        "method": "PATCH",
+        "path": "/api/v1/loading-sessions/709bff96-537c-4936-8d12-edddf282d331/items/a716d869-bcec-46e7-bb04-6fc3557041fd",
+        "status": 200
+      },
+      {
+        "method": "PATCH",
+        "path": "/api/v1/loading-sessions/709bff96-537c-4936-8d12-edddf282d331/items/c271a6aa-ba96-4a4e-b955-3ac6529dcc7f",
+        "status": 200
+      },
+      {
+        "method": "PATCH",
+        "path": "/api/v1/loading-sessions/709bff96-537c-4936-8d12-edddf282d331/items/85715c6e-a3e4-45b5-8bd5-3e9d0d61ed5a",
+        "status": 200
+      },
+      {
+        "method": "PATCH",
+        "path": "/api/v1/loading-sessions/709bff96-537c-4936-8d12-edddf282d331/items/40c802d4-3a03-4b4b-aac2-305b24677931",
+        "status": 200
+      },
+      {
+        "method": "PATCH",
+        "path": "/api/v1/loading-sessions/709bff96-537c-4936-8d12-edddf282d331/items/a31b00e2-21b3-4568-9993-1b03588d70e3",
+        "status": 200
+      },
+      {
+        "method": "PATCH",
+        "path": "/api/v1/loading-sessions/709bff96-537c-4936-8d12-edddf282d331/items/762e7d15-75f1-4e7b-aa5c-fdb44b341368",
+        "status": 200
+      },
+      {
+        "method": "PATCH",
+        "path": "/api/v1/loading-sessions/709bff96-537c-4936-8d12-edddf282d331/status",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/load-plans/f0b4100e-944d-429e-a464-507718959013",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/notifications/unread-count",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/load-plans/f0b4100e-944d-429e-a464-507718959013",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/load-plans/f0b4100e-944d-429e-a464-507718959013/continuity",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/audit",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/load-plans/f0b4100e-944d-429e-a464-507718959013/continuity",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/audit",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/drivers",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/drivers/operational-status",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/drivers",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/drivers/operational-status",
+        "status": 200
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/trips",
+        "status": 201
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/trips/4e205db2-151e-49ab-9451-222f0b823ca4",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/notifications/unread-count",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/trips/4e205db2-151e-49ab-9451-222f0b823ca4",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/auth/me",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/auth/me",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/notifications/unread-count",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/trips/4e205db2-151e-49ab-9451-222f0b823ca4",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/notifications/unread-count",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/trips/4e205db2-151e-49ab-9451-222f0b823ca4",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/trips/4e205db2-151e-49ab-9451-222f0b823ca4/interruptions",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/audit",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/trips/4e205db2-151e-49ab-9451-222f0b823ca4/timeline",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/trips/4e205db2-151e-49ab-9451-222f0b823ca4/interruptions",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/audit",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/trips/4e205db2-151e-49ab-9451-222f0b823ca4/timeline",
+        "status": 200
+      },
+      {
+        "method": "PATCH",
+        "path": "/api/v1/trips/4e205db2-151e-49ab-9451-222f0b823ca4/status",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/trips/4e205db2-151e-49ab-9451-222f0b823ca4/interruptions",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/auth/me",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/auth/me",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/trips/4e205db2-151e-49ab-9451-222f0b823ca4",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/notifications/unread-count",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/trips/4e205db2-151e-49ab-9451-222f0b823ca4",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/notifications/unread-count",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/trips/4e205db2-151e-49ab-9451-222f0b823ca4/interruptions",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/audit",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/trips/4e205db2-151e-49ab-9451-222f0b823ca4/timeline",
+        "status": 200
+      },
+      {
+        "method": "PATCH",
+        "path": "/api/v1/deliveries/be026fe1-8055-441d-a6a3-604a41e3f4a6/status",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/trips/4e205db2-151e-49ab-9451-222f0b823ca4/interruptions",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/audit",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/trips/4e205db2-151e-49ab-9451-222f0b823ca4/timeline",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/trips/4e205db2-151e-49ab-9451-222f0b823ca4",
+        "status": 200
+      },
+      {
+        "method": "PATCH",
+        "path": "/api/v1/deliveries/be026fe1-8055-441d-a6a3-604a41e3f4a6/status",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/trips/4e205db2-151e-49ab-9451-222f0b823ca4",
+        "status": 200
+      },
+      {
+        "method": "PATCH",
+        "path": "/api/v1/trips/4e205db2-151e-49ab-9451-222f0b823ca4/status",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/trips/4e205db2-151e-49ab-9451-222f0b823ca4/interruptions",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/auth/me",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/auth/me",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/orders/99ed2165-d8b5-4ab3-bbf2-adbc1c398684",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/orders",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/customers",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/products",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/notifications/unread-count",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/orders/99ed2165-d8b5-4ab3-bbf2-adbc1c398684",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/orders",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/customers",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/products",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/notifications/unread-count",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/audit",
+        "status": 200
+      }
+    ],
+    "errors": []
+  },
+  "multi": {
+    "authentication": "Real session from password and TOTP MFA",
+    "distributionId": "17c4280b-3725-4576-ba8a-a489ca4c2a34",
+    "truckCount": 2,
+    "volumeCount": 24,
+    "uniqueVolumeCount": 24,
+    "status": "PROPOSED",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/v1/orders",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/products",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/customers",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/drivers",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/auth/me",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/auth/me",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/trucks",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/trucks/operational-status",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/orders",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/customers",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/notifications/unread-count",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/trucks",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/trucks/operational-status",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/orders",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/customers",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/notifications/unread-count",
+        "status": 200
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/load-distributions/preflight",
+        "status": 200
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/load-distributions/preflight",
+        "status": 200
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/load-distributions/optimize",
+        "status": 201
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/load-distributions/preflight",
+        "status": 409
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/load-distributions/preflight",
+        "status": 409
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/load-distributions/17c4280b-3725-4576-ba8a-a489ca4c2a34",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/notifications/unread-count",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/load-distributions/17c4280b-3725-4576-ba8a-a489ca4c2a34",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/auth/me",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/auth/me",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/trucks",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/trucks/operational-status",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/customers",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/orders",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/notifications/unread-count",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/trucks",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/trucks/operational-status",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/customers",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/orders",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/notifications/unread-count",
+        "status": 200
+      }
+    ],
+    "errors": []
+  },
+  "databaseProof": {
+    "order_status": "DELIVERED",
+    "trip_status": "FINISHED",
+    "loading_status": "FINISHED",
+    "delivery_statuses": [
+      "DELIVERED"
+    ]
+  },
+  "tests": {
+    "frontend": 1129,
+    "backend": 11
+  },
+  "recordingBatch": "gravacao-01",
+  "recordingBatchRepeatedWithoutChanges": true,
+  "humanUsabilityEvaluation": "Not performed; observation form intentionally blank"
+}
