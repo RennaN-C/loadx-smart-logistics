@@ -127,7 +127,41 @@ function renderAt(path: string) {
   );
 }
 
+function calculationButton(name = "Calcular plano de carga") {
+ fireEvent.click(screen.getByRole("button", { name: "Revisão" }));
+ return screen.getByRole("button", { name });
+}
+function ordersStep() { fireEvent.click(screen.getByRole("button", { name: "Pedidos" })); }
+
 describe("PlanningPage", () => {
+  it("abre Execução dentro do planejamento sem redirecionar para Carregamentos", async () => {
+    renderAt("/planning");
+    const execution = screen.getByRole("link", { name: "Execução" });
+    expect(execution).toHaveAttribute("href", "/planning?tab=execution");
+    fireEvent.click(execution);
+    expect(await screen.findByRole("heading", { name: "Execução dos planos" })).toBeVisible();
+    await waitFor(() => expect(listLoadPlans).toHaveBeenLastCalledWith(expect.objectContaining({ status: "APPROVED", operationScope: "ongoing" })));
+    expect(execution).toHaveAttribute("aria-current", "page");
+    expect(createLoadPlan).not.toHaveBeenCalled();
+  });
+  it("guia pedidos, modalidade, veículo e revisão sem salvar durante a navegação", async () => {
+    renderAt("/planning");
+    await screen.findByRole("checkbox");
+    expect(screen.getByRole("button", { name: "Continuar" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("checkbox"));
+    fireEvent.click(screen.getByRole("button", { name: "Continuar" }));
+    expect(screen.getByRole("radio", { name: "Um caminhão" })).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Continuar" }));
+    expect(screen.getByLabelText("CAMINHÃO")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Continuar" })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText("CAMINHÃO"), { target: { value: "t1" } });
+    fireEvent.click(screen.getByRole("button", { name: "Continuar" }));
+    expect(screen.getByRole("heading", { name: "Revise antes de calcular" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Calcular plano de carga" })).toBeEnabled();
+    ordersStep();
+    expect(screen.getByRole("checkbox")).toBeChecked();
+    expect(createLoadPlan).not.toHaveBeenCalled();
+  });
   beforeEach(() => {
     sessionStorage.clear();
     vi.resetAllMocks();
@@ -224,9 +258,11 @@ describe("PlanningPage", () => {
       <Route path="/planning" element={<PlanningPage />} />
       <Route path="/planning/distributions/:distributionId" element={<div>Distribuição persistida aberta</div>} />
     </Routes></MemoryRouter>);
+    fireEvent.click(screen.getByRole("button", { name: "Modalidade" }));
     fireEvent.click(await screen.findByRole("radio", { name: /Seleção automática/ }));
+    ordersStep();
     fireEvent.click(await screen.findByRole("checkbox"));
-    fireEvent.click(screen.getByRole("button", { name: "Otimizar e salvar distribuição" }));
+    fireEvent.click(calculationButton("Otimizar e salvar distribuição"));
     expect(await screen.findByText("Distribuição persistida aberta")).toBeInTheDocument();
     expect(optimizeDistribution).toHaveBeenCalledWith(["o1"], expect.any(String));
     expect(createLoadPlan).not.toHaveBeenCalled();
@@ -235,12 +271,15 @@ describe("PlanningPage", () => {
   it.each(["DISTRIBUTION_CAPACITY_INSUFFICIENT", "TRUCK_OPERATION_CONFLICT", "LOAD_PLAN_ORDER_NOT_ELIGIBLE"])("preserva seleção e trata %s", async (code) => {
     vi.mocked(optimizeDistribution).mockRejectedValue(new ApiError(code, "Resposta real", [{ volume_index: 1 }], 422));
     renderAt("/planning");
+    fireEvent.click(screen.getByRole("button", { name: "Modalidade" }));
     fireEvent.click(await screen.findByRole("radio", { name: /Seleção automática/ }));
+    ordersStep();
     fireEvent.click(await screen.findByRole("checkbox"));
-    fireEvent.click(screen.getByRole("button", { name: "Otimizar e salvar distribuição" }));
+    fireEvent.click(calculationButton("Otimizar e salvar distribuição"));
     expect(await screen.findByRole("alert")).toBeInTheDocument();
+    ordersStep();
     expect(screen.getByRole("checkbox")).toBeChecked();
-    expect(screen.getByRole("button", { name: "Otimizar e salvar distribuição" })).toBeEnabled();
+    expect(calculationButton("Otimizar e salvar distribuição")).toBeEnabled();
     expect(createLoadPlan).not.toHaveBeenCalled();
   });
 
@@ -350,12 +389,13 @@ describe("PlanningPage", () => {
     renderAt("/planning");
     await screen.findByLabelText("CAMINHÃO");
 
-    const button = screen.getByRole("button", { name: "Calcular plano de carga" });
+    const button = calculationButton();
     expect(button).toBeDisabled();
 
     fireEvent.change(screen.getByLabelText("CAMINHÃO"), { target: { value: "t1" } });
     expect(button).toBeDisabled();
 
+    ordersStep();
     fireEvent.click(screen.getByRole("checkbox"));
     expect(button).toBeEnabled();
   });
@@ -379,12 +419,13 @@ describe("PlanningPage", () => {
     await screen.findByLabelText("CAMINHÃO");
     expect(screen.getByText(new RegExp(`1 item.*${volumes} volumes`))).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("CAMINHÃO"), { target: { value: "t1" } });
+    ordersStep();
     fireEvent.click(screen.getByRole("checkbox"));
     expect(screen.getByText(`${volumes} de 200 volumes físicos`)).toBeInTheDocument();
     if (exceeds) {
-      expect(screen.getByRole("button", { name: "Calcular plano de carga" })).toBeDisabled();
+      expect(calculationButton()).toBeDisabled();
     } else {
-      expect(screen.getByRole("button", { name: "Calcular plano de carga" })).toBeEnabled();
+      expect(calculationButton()).toBeEnabled();
     }
     if (exceeds) {
       expect(screen.getByRole("alert")).toHaveTextContent("Desmarque pedidos");
@@ -407,14 +448,15 @@ describe("PlanningPage", () => {
     renderAt("/planning");
     await screen.findByLabelText("CAMINHÃO");
     fireEvent.change(screen.getByLabelText("CAMINHÃO"), { target: { value: "t1" } });
+    ordersStep();
     const checkboxes = screen.getAllByRole("checkbox");
     fireEvent.click(checkboxes[0]);
     expect(screen.getByText("120 de 200 volumes físicos")).toBeInTheDocument();
     fireEvent.click(checkboxes[1]);
     expect(screen.getByText("210 de 200 volumes físicos")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Calcular plano de carga" })).toBeDisabled();
+    expect(calculationButton()).toBeDisabled();
     fireEvent.click(checkboxes[1]);
-    expect(screen.getByRole("button", { name: "Calcular plano de carga" })).toBeEnabled();
+    expect(calculationButton()).toBeEnabled();
   });
 
   it("traduz erro 422 do servidor com contagem efetiva se os pedidos mudarem", async () => {
@@ -432,8 +474,9 @@ describe("PlanningPage", () => {
     renderAt("/planning");
     await screen.findByLabelText("CAMINHÃO");
     fireEvent.change(screen.getByLabelText("CAMINHÃO"), { target: { value: "t1" } });
+    ordersStep();
     fireEvent.click(screen.getByRole("checkbox"));
-    fireEvent.click(screen.getByRole("button", { name: "Calcular plano de carga" }));
+    fireEvent.click(calculationButton());
     expect(await screen.findByRole("alert")).toHaveTextContent("215 volumes físicos");
     expect(createLoadPlan).toHaveBeenCalledOnce();
   });
@@ -446,8 +489,9 @@ describe("PlanningPage", () => {
     await screen.findByLabelText("CAMINHÃO");
 
     fireEvent.change(screen.getByLabelText("CAMINHÃO"), { target: { value: "t1" } });
+    ordersStep();
     fireEvent.click(screen.getByRole("checkbox"));
-    fireEvent.click(screen.getByRole("button", { name: "Calcular plano de carga" }));
+    fireEvent.click(calculationButton());
 
     await waitFor(() => expect(createLoadPlan).toHaveBeenCalledWith({ truckId: "t1", orderIds: ["o1"] }));
     await waitFor(() => expect(getLoadPlan).toHaveBeenCalledWith("lp1"));
@@ -615,8 +659,9 @@ describe("PlanningPage", () => {
     </MemoryRouter>);
     await screen.findByLabelText("CAMINHÃO");
     fireEvent.change(screen.getByLabelText("CAMINHÃO"), { target: { value: "t1" } });
+    ordersStep();
     fireEvent.click(screen.getByRole("checkbox"));
-    fireEvent.click(screen.getByRole("button", { name: "Calcular plano de carga" }));
+    fireEvent.click(calculationButton());
     await waitFor(() => expect(createLoadPlan).toHaveBeenCalled());
     fireEvent.click(screen.getByRole("link", { name: "Sair da operação" }));
     await screen.findByText("Lista de pedidos");

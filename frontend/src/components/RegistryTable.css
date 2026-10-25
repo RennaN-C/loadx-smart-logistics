@@ -83,3 +83,15 @@
   .registry-filter-search { grid-column: auto; }
   .registry-table tbody tr { grid-template-columns: 1fr; }
 }
+
+.contact-table { min-width: 650px; }
+.contact-table td:first-child { width: 40%; }
+.contact-table td:last-child { width: 160px; }
+.registry-table th { background: color-mix(in srgb, var(--line) 35%, var(--card)); }
+.contact-filterbar > input { order: -2; }
+.contact-filterbar > select { order: -1; }
+.contact-filterbar > .btn-primary { margin-left: auto; }
+@media (max-width: 820px) {
+  .contact-table { min-width: 0; }
+  .contact-table td:first-child, .contact-table td:last-child { width: auto; }
+}

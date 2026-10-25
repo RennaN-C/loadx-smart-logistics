@@ -13,6 +13,7 @@ import { ReportDownloadButton } from "../../reports/components/ReportDownloadBut
 import { canReadReports } from "../../reports/permissions";
 import { approveLoadPlan, getLoadPlan, recalculateLoadPlan } from "../api/loadPlansApi";
 import { PlanHistory } from "../components/PlanHistory";
+import { PlanExecution } from "../components/PlanExecution";
 import { PlanBuilder } from "../components/PlanBuilder";
 import { PlanItemsTable } from "../components/PlanItemsTable";
 import { PlanSummary } from "../components/PlanSummary";
@@ -43,11 +44,11 @@ function PlanningHeader({ plan, canManage, canDownload }: {
 }) {
   return <header className="entity-header">
     <div><p className="eyebrow">OPERAÇÃO</p><h1>Planejamento de carga</h1><p className="entity-lede">Organize cargas, acompanhe a execução e retome planejamentos salvos.</p></div>
-    <div className="entity-toolbar">
+    {(plan && canDownload) || canManage ? <div className="entity-toolbar">
       {plan && canDownload ? <ReportDownloadButton label="Relatório de carregamento"
         filename={`relatorio-carregamento-${plan.id}.pdf`} download={() => downloadLoadingReport(plan.id)} /> : null}
       {canManage ? <Link className="btn-primary" to="/planning?tab=new"><Icon name="plus" size={18} />Novo planejamento</Link> : null}
-    </div>
+    </div> : null}
   </header>;
 }
 
@@ -73,17 +74,19 @@ function PlanningWorkspace({ isNew, canManage, checker, onCalculated, onDistribu
   readonly onDistributed: (distribution: LoadDistribution) => void;
 }) {
   const { user } = useAuth();
+  const [params] = useSearchParams();
+  const execution = params.get("tab") === "execution";
   const canReadOperations = hasPermission(user, "loadx.trips.read") && hasPermission(user, "loadx.orders.read") && hasPermission(user, "loadx.loading.read");
   const canReadAudit = hasPermission(user, "loadx.audit.read");
   const showBuilder = isNew && canManage;
   return <>
-    <nav className="plan-workspace-nav" aria-label="Área de planejamento">
-      <Link to="/planning" aria-current={!showBuilder ? "page" : undefined}><Icon name="planning" size={17} />Planos</Link>
-      {canReadOperations ? <Link to="/loading-sessions"><Icon name="truck" size={17} />Execução</Link> : null}
+    <nav className="plan-workspace-nav section-navigation" aria-label="Área de planejamento">
+      <Link to="/planning" aria-current={!showBuilder && !execution ? "page" : undefined}><Icon name="planning" size={17} />Planos</Link>
+      {canReadOperations ? <Link to="/planning?tab=execution" aria-current={execution ? "page" : undefined}><Icon name="truck" size={17} />Execução</Link> : null}
       {canReadAudit ? <Link to="/audit"><Icon name="chart" size={17} />Atividade</Link> : null}
     </nav>
     {showBuilder ? <><div className="plan-new-intro"><Link to="/planning">← Voltar aos planos</Link><div><h2>Novo planejamento</h2><p>Selecione os pedidos e o modo de alocação. O plano será salvo somente ao calcular, com limite de 200 volumes.</p></div></div><PlanBuilder onCalculated={onCalculated} onDistributed={onDistributed} /></>
-      : <PlanHistory checker={checker} canReadOperations={canReadOperations} />}
+      : execution && canReadOperations ? <PlanExecution /> : <PlanHistory checker={checker} canReadOperations={canReadOperations} />}
   </>;
 }
 
@@ -210,7 +213,7 @@ export function PlanningPage() {
 
   return <div className="entity-page">
     {planId ? <nav className="entity-toolbar entity-page-nav" aria-label="Caminhos do planejamento"><Link to="/planning">Voltar ao planejamento</Link><Link to="/orders">Voltar aos pedidos</Link></nav> : null}
-    <PlanningHeader plan={plan} canManage={canManage} canDownload={canDownload} />
+    <PlanningHeader plan={plan} canManage={canManage && !isNew} canDownload={canDownload} />
     <PlanningFeedback error={errorMessage} loading={isLoading} hasPlanId={Boolean(planId)} hasPlan={Boolean(plan)} retry={() => setLoadAttempt((value) => value + 1)} />
     {!planId && !isLoading ? <PlanningWorkspace isNew={isNew} canManage={canManage} checker={user?.role === "CHECKER"} onCalculated={handleCalculated} onDistributed={(created) => { if (mounted.current && currentId.current === undefined) navigate(`/planning/distributions/${created.id}`); }} /> : null}
     {plan && !isLoading ? <PlanningResult plan={plan} canManage={canManage} approvalAllowed={hasPermission(user, "loadx.planning.approve")} isWorking={isWorking}

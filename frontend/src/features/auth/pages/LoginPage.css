@@ -208,3 +208,27 @@
   .login-brand-tag, .login-brand-roles, .login-brand-diagram, .login-brand-foot { display: none; }
   .login-formside { padding: 24px 20px; align-items: flex-start; }
 }
+
+/* Access screens share one continuous background and a compact form card. */
+.login-page { grid-template-columns: minmax(0, 1fr) minmax(0, .85fr); align-items: center; padding: 6vh max(32px, calc((100vw - 1140px) / 2)); gap: 90px; background: radial-gradient(ellipse at 15% 25%, color-mix(in srgb, var(--card) 75%, #345b72) 0, var(--paper) 65%); }
+.login-brand { background: transparent; color: var(--ink); text-align: left; align-items: flex-start; padding: 0; gap: 48px; }
+.login-wordmark { display: flex; align-items: center; gap: 10px; font-size: 1.35rem; font-weight: 750; letter-spacing: .05em; margin: 0; }
+.login-wordmark svg { color: var(--accent); }
+.login-brand-main { align-items: flex-start; gap: 24px; }
+.login-brand-eyebrow { color: var(--accent-strong); font-family: inherit; font-size: .68rem; font-weight: 750; }
+.login-brand-mark { font-size: clamp(1.8rem, 3.3vw, 2.8rem); line-height: 1.12; letter-spacing: -.04em; margin: 12px 0 18px; }
+.login-brand-tag { color: var(--muted); font-size: .9rem; margin: 0; max-width: 43ch; }
+.login-brand-diagram { max-width: 440px; padding: 22px; border: 1px solid var(--line); border-radius: 10px; background: linear-gradient(150deg, #1b3445, #10212e); }
+.login-brand-foot { color: var(--muted); font-family: inherit; font-size: .65rem; }
+.login-formside { padding: 0; background: transparent; min-width: 0; }
+.login-card { max-width: 400px; border-radius: 9px; padding: 30px; box-shadow: 0 20px 60px #0002; }
+.login-field-label, .login-toggle { font-family: inherit; letter-spacing: 0; font-size: .78rem; }
+.login-card input[type="email"], .login-card input[type="password"], .login-card input[type="text"] { background: var(--paper); border-radius: 5px; }
+.login-submit { border-radius: 5px; }
+@media (max-width: 780px) {
+  .login-page { padding: 28px 20px; gap: 30px; grid-template-columns: minmax(0, 1fr); align-content: center; }
+  .login-brand { gap: 0; width: min(100%, 400px); margin: auto; }
+  .login-brand-main, .login-brand-foot { display: none; }
+  .login-formside { padding: 0; }
+  .login-card { padding: 24px; }
+}

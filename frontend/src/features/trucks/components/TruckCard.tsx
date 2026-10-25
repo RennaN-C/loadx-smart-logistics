@@ -1,5 +1,6 @@
 import { RecordLifecycleAction } from "../../../components/RecordLifecycleAction";
 import { StatusPill } from "../../../components/StatusPill";
+import { RowActions } from "../../../components/RowActions";
 import type { Truck } from "../types";
 const weightFormatter = new Intl.NumberFormat("pt-BR");
 const volumeFormatter = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });
@@ -23,7 +24,7 @@ export function TruckCard({ truck, canManage, onEdit, onChanged, onMaintenance, 
       <td data-label="Volume interno">{volumeFormatter.format(volumeM3)} m³</td>
       <td data-label="Situação"><StatusPill tone={truck.active ? "good" : "neutral"}>{truck.active ? "Ativo" : "Arquivado"}</StatusPill></td>
       <td data-label="Ações">
-        <div className="truck-card-actions" role="group" aria-label={`Ações do caminhão ${truck.plate}`}>
+        <RowActions label={`Ações do caminhão ${truck.plate}`}>
             {onDocuments ? (
               <button type="button" className="btn-link" onClick={() => onDocuments(truck)}>
                 Documentos
@@ -42,7 +43,7 @@ export function TruckCard({ truck, canManage, onEdit, onChanged, onMaintenance, 
                 <RecordLifecycleAction resource="trucks" id={truck.id} active={truck.active} onChanged={onChanged} />
               </>
             ) : null}
-        </div>
+        </RowActions>
       </td>
     </tr>
   );

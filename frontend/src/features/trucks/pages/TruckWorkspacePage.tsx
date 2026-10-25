@@ -23,7 +23,7 @@ export function TruckWorkspacePage() {
       : "Gerencie veículos e consulte sua disponibilidade operacional.";
   return <div className="entity-page truck-workspace">
     <header className="entity-header"><div><p className="truck-workspace-eyebrow">Cadastros</p><h1>{title}</h1><p className="entity-lede">{description}</p></div></header>
-    <nav className="truck-workspace-tabs" aria-label="Seções de caminhões e frota">
+    <nav className="truck-workspace-tabs section-navigation" aria-label="Seções de caminhões e frota">
       <Link to="/trucks" aria-current={!availability && !documents ? "location" : undefined}>Veículos</Link>
       <Link to="/trucks?tab=availability" aria-current={availability ? "location" : undefined}>Disponibilidade</Link>
       <Link to="/trucks?tab=documents" aria-current={documents ? "location" : undefined}>Documentação</Link>

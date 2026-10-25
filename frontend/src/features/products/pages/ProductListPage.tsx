@@ -109,7 +109,7 @@ export function ProductListPage() {
         </p>
       ) : null}
 
-      {status === "error" && error ? <AlertBanner>{mapProductErrorToMessage(error)}</AlertBanner> : null}
+      {status === "error" && error ? <><AlertBanner>{mapProductErrorToMessage(error)}</AlertBanner><button type="button" className="btn-secondary" onClick={() => void refetch()}>Tentar novamente</button></> : null}
 
       <ProductEmptyState show={status === "success" && products.length === 0} unfiltered={unfilteredEmpty} />
 

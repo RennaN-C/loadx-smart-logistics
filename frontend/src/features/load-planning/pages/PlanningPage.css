@@ -352,3 +352,22 @@
 .plan-operation-summary .status-pill { justify-self: start; }
 .plan-operation-links { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: .88rem; }
 @media (max-width: 520px) { .plan-operation-filters { width: 100%; } .plan-operation-filters button { flex: 1; padding: 10px 8px; } }
+
+.planning-steps ol { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); list-style: none; padding: 12px; margin: 0 0 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); gap: 8px; }
+.planning-steps button { display: flex; align-items: center; gap: 9px; width: 100%; padding: 8px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); font: inherit; font-size: .8rem; cursor: pointer; }
+.planning-steps button > span { display: grid; place-items: center; flex: 0 0 auto; width: 24px; height: 24px; border-radius: 50%; background: var(--line); color: var(--ink); font-size: .7rem; }
+.planning-steps button[aria-current="step"] { color: var(--accent-strong); background: var(--accent-bg); }
+.planning-steps button[aria-current="step"] > span { background: var(--accent); color: var(--accent-contrast); }
+.planning-steps button:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
+.plan-builder .distribution-mode[hidden], .planning-step-content[hidden] { display: none; }
+.planning-step-content h3 { margin: 4px 0 18px; font-size: 1rem; }
+.planning-step-content .plan-order-list { margin: 16px 0; }
+.planning-review { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; padding: 20px; margin: 0 0 18px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); }
+.planning-review dt { color: var(--muted); font-size: .75rem; }
+.planning-review dd { margin: 6px 0 0; font-size: .9rem; font-weight: 650; }
+.planning-step-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+@media (max-width: 620px) {
+  .planning-steps ol { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 8px; }
+  .planning-review { grid-template-columns: minmax(0, 1fr); }
+  .plan-builder { padding: 16px; }
+}

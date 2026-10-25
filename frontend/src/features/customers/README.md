@@ -8,7 +8,7 @@ Cadastro de clientes (OC28). Consome `GET/POST/PATCH /customers`.
   **Clientes** e **Motoristas** somente quando permitidas. A OC28 compõe os
   painéis de clientes e motoristas; na OC112, título e descrição refletem a única
   aba disponível para o perfil, sem conceder acesso à outra categoria.
-- `components/CustomerPanel.tsx`: busca, grade paginada e modal de clientes.
+- `components/CustomerPanel.tsx`: busca, tabela responsiva paginada e modal de clientes.
 - `components/CustomerForm.tsx`: criação e edição.
 - `components/CepLookupField.tsx`: consulta de endereço por CEP (OC70).
 - `components/customersErrorMessages.ts`: tradução dos códigos de erro.
@@ -22,7 +22,7 @@ detalhe antes de editar.
 `GET /customers` responde `CustomerListRead`: só `id`, `name`, `city`, `state` e `created_at`. **Documento,
 telefone, endereço e observações não saem na listagem** — dado pessoal só no detalhe. Consequências:
 
-- o card mostra apenas nome e cidade/UF;
+- a linha mostra apenas nome, cidade/UF e situação;
 - a busca server-side cobre nome e cidade, sem documento;
 - editar exige `GET /customers/{id}` antes de abrir o formulário, senão o PATCH iria sem os campos que
   o usuário não viu. O botão vira "Abrindo…" enquanto isso.

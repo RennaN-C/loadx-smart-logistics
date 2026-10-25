@@ -10,7 +10,6 @@ import { Avatar } from "../components/Avatar";
 import { BrandMark, Icon, type IconName } from "../components/Icon";
 import type { Role } from "../features/auth/types";
 import { useAuth } from "../features/auth/hooks/useAuth";
-import { activeSettingsSection, SETTINGS_SECTIONS } from "../features/settings/settingsSections";
 
 interface NavItem {
   readonly to: string;
@@ -79,6 +78,12 @@ const NAV_GROUPS: readonly NavGroup[] = [
       { to: "/deliveries", label: "Entregas", icon: "truck", roles: TRIP_READERS },
       { to: "/planning", label: "Planejamento de carga", icon: "planning", roles: OPERATION_READERS },
       { to: "/agenda", label: "Agenda operacional", icon: "calendar", roles: AGENDA_READERS },
+    ],
+  },
+  {
+    id: "controle",
+    title: "Controle",
+    items: [
       { to: "/reports", label: "Relatórios e indicadores", icon: "chart", roles: OPERATION_READERS },
       {
         to: "/audit",
@@ -86,6 +91,7 @@ const NAV_GROUPS: readonly NavGroup[] = [
         icon: "report",
         roles: OPERATION_OVERVIEW_READERS,
       },
+      { to: "/notifications", label: "Notificações", icon: "bell", roles: ALL_ROLES },
     ],
   },
   { id: "conta", title: "Minha conta", items: [{ to: "/account", label: "Meu perfil", icon: "users", roles: ALL_ROLES }] },
@@ -113,14 +119,11 @@ export function AppLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(initialSidebarCollapsed);
   const [mobileOpen, setMobileOpen] = useState(false);
   // Grupos com vários links funcionam como menus sanfonados independentes.
-  // Começar com acordeões fechados evita poluição visual no primeiro acesso.
+  // Os destinos começam visíveis, como nas referências; cada grupo pode ser recolhido.
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
     cadastros: true,
     operacao: true,
   });
-  const [settingsSubmenuExpanded, setSettingsSubmenuExpanded] = useState(
-    () => location.pathname === "/settings",
-  );
   const mobileTriggerRef = useRef<HTMLButtonElement>(null);
   const mobileCloseRef = useRef<HTMLButtonElement>(null);
   const sidebarRef = useRef<HTMLElement>(null);
@@ -135,7 +138,6 @@ export function AppLayout() {
 
   useEffect(() => {
     setMobileOpen(false);
-    setSettingsSubmenuExpanded(location.pathname === "/settings");
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
     setExpandedGroups((current) => {
@@ -196,7 +198,7 @@ export function AppLayout() {
         item.to === "/reports"
           ? canReadReports(user)
           : user.role === "CUSTOM"
-            ? item.to === "/account" || (CUSTOM_NAV[item.to] ?? []).some((code) => hasPermission(user, code))
+            ? item.to === "/account" || item.to === "/notifications" || (CUSTOM_NAV[item.to] ?? []).some((code) => hasPermission(user, code))
             : item.roles.includes(user.role)
       ))
       .map((item) => {
@@ -302,7 +304,7 @@ export function AppLayout() {
                       }
                     }}
                   >
-                    <Icon name={group.id === "cadastros" ? "package" : "planning"} size={16} />
+                    <Icon name={group.id === "cadastros" ? "package" : group.id === "controle" ? "chart" : "planning"} size={16} />
                     <span className="app-nav-group-title">{group.title}</span>
                     <span className="app-nav-chevron" aria-hidden="true">⌄</span>
                   </button>
@@ -323,55 +325,12 @@ export function AppLayout() {
                         end={item.to === "/"}
                         aria-label={sidebarCollapsed ? item.label : undefined}
                         title={sidebarCollapsed ? item.label : undefined}
-                        aria-expanded={item.to === "/settings" ? settingsSubmenuExpanded && (!sidebarCollapsed || mobileOpen) : undefined}
-                        aria-controls={item.to === "/settings" ? "loadx-settings-submenu" : undefined}
-                        onClick={(event) => {
-                          if (item.to === "/settings") {
-                            if (mobileOpen) {
-                              // No drawer, tocar no pai expande/recolhe, sem sair da página.
-                              event.preventDefault();
-                              setSettingsSubmenuExpanded((expanded) => !expanded);
-                              return;
-                            }
-                            if (sidebarCollapsed) {
-                              // Abrir o trilho não deve apagar a subseção atualmente selecionada.
-                              event.preventDefault();
-                              setSidebarCollapsed(false);
-                              setSettingsSubmenuExpanded(true);
-                              return;
-                            }
-                            if (location.pathname === "/settings") {
-                              // Alternar o submenu nunca remove o hash da seção atual.
-                              event.preventDefault();
-                            }
-                            setSettingsSubmenuExpanded((expanded) => !expanded);
-                          }
-                          setMobileOpen(false);
-                        }}
+                        onClick={() => setMobileOpen(false)}
                       >
                         <Icon name={item.icon} size={17} />
                         <span className="app-nav-label">{item.label}</span>
                       </NavLink>
-                      {item.to === "/settings" ? (
-                        <ul
-                          id="loadx-settings-submenu"
-                          className="app-settings-submenu"
-                          aria-label="Subseções de Configurações"
-                          hidden={!settingsSubmenuExpanded || (sidebarCollapsed && !mobileOpen)}
-                        >
-                          {SETTINGS_SECTIONS.map((section) => (
-                            <li key={section.id}>
-                              <Link
-                                to={`/settings#${section.id}`}
-                                aria-current={location.pathname === "/settings" && activeSettingsSection(location.hash) === section.id ? "location" : undefined}
-                                onClick={() => { setSettingsSubmenuExpanded(true); setMobileOpen(false); }}
-                              >
-                                {section.label}
-                              </Link>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : null}
+
                     </li>
                   ))}
                 </ul>

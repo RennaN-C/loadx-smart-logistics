@@ -30,3 +30,9 @@
   .fleet-documents-filter { grid-template-columns: 1fr; }
   .fleet-documents-filter p { grid-column: 1; grid-row: auto; }
 }
+
+/* One primary action stays aligned with the workspace title. */
+@media (min-width: 901px) {
+  .truck-workspace > .entity-header { padding-right: 190px; }
+  .truck-section > .entity-header > .btn-primary { position: absolute; top: 30px; right: 32px; }
+}

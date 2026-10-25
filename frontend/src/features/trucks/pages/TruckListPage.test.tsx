@@ -94,7 +94,9 @@ describe("TruckListPage", () => {
     mockRole("ADMIN");
     render(<TruckListPage />);
 
-    const actions = await screen.findByRole("group", { name: "Ações do caminhão ABC1D23" });
+    const trigger = await screen.findByLabelText("Ações do caminhão ABC1D23");
+    fireEvent.click(trigger);
+    const actions = trigger.closest("details")!;
     expect(within(actions).getByRole("button", { name: "Documentos" })).toBeInTheDocument();
     expect(within(actions).getByRole("button", { name: "Manutenções" })).toBeInTheDocument();
     expect(within(actions).getByRole("button", { name: "Arquivar" })).toBeInTheDocument();

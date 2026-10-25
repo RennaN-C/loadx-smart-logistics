@@ -89,8 +89,6 @@ export function DashboardPage() {
         ) : null}
       </header>
 
-      <AuthorizedOperationalOverview user={user} />
-
       {status === "loading" ? (
         <p className="entity-state">
           <span className="spinner" aria-hidden="true" />
@@ -109,6 +107,8 @@ export function DashboardPage() {
             ) : null}
             {hasPermission(user, "loadx.orders.read") && <Counter label="Pedidos" value={totals.orders} to="/orders" icon="orders" description="registros persistidos" />}
           </div>
+
+          <AuthorizedOperationalOverview user={user} />
 
           {unavailable.length > 0 ? (
             <div className="dashboard-partial"><p className="entity-form-help">

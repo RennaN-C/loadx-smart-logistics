@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { AlertBanner } from "../../../components/AlertBanner";
 import { Icon, type IconName } from "../../../components/Icon";
+import { DistributionChart } from "../../../components/DistributionChart";
 import { ApiError } from "../../../types/api";
 import { getOperationalIndicators } from "../api/operationalIndicatorsApi";
 import type { OperationalIndicators } from "../types";
@@ -195,6 +196,10 @@ export function OperationsDashboardPage({ embedded = false }: { readonly embedde
       {dados !== null && status !== "error"
         ?  <div className={embedded ? "overview-indicator-groups" : undefined}>{montarGrupos(dados).map((grupo) => <GrupoDeIndicadores key={grupo.id} grupo={grupo} compact={embedded} />)}</div>
         : null}
+      {dados !== null && status !== "error" ? <div className="operational-charts">
+        <DistributionChart title="Situação das viagens" total={dados.trips.total} period={PERIOD_LABELS[dados.trips.period] ?? dados.trips.period} entries={[{ label: "Programadas", value: dados.trips.scheduled }, { label: "Em rota", value: dados.trips.inRoute }, { label: "Finalizadas", value: dados.trips.finished }]} />
+        <DistributionChart title="Situação das entregas" total={dados.deliveries.total} period={PERIOD_LABELS[dados.deliveries.period] ?? dados.deliveries.period} variant="columns" entries={[{ label: "Pendentes", value: dados.deliveries.pending }, { label: "Em entrega", value: dados.deliveries.inDelivery }, { label: "Entregues", value: dados.deliveries.delivered }]} />
+      </div> : null}
     </div>
   );
 }

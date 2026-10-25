@@ -1,5 +1,6 @@
 import { RecordLifecycleAction } from "../../../components/RecordLifecycleAction";
 import { StatusPill } from "../../../components/StatusPill";
+import { RowActions } from "../../../components/RowActions";
 import type { Product } from "../types";
 
 const weightFormatter = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 3 });
@@ -45,7 +46,7 @@ export function ProductCard({ product, canManage, onEdit, onChanged }: ProductCa
           )}
         </div></td>
       <td data-label="Situação"><StatusPill tone={product.active ? "good" : "neutral"}>{product.active ? "Ativo" : "Arquivado"}</StatusPill></td>
-      <td data-label="Ações">{canManage ? <div className="product-card-actions" role="group" aria-label={`Ações do produto ${product.code}`}><button type="button" className="btn-link" onClick={() => onEdit(product)}>Editar</button><RecordLifecycleAction resource="products" id={product.id} active={product.active} onChanged={onChanged} /></div> : <span className="registry-no-action">Somente consulta</span>}</td>
+      <td data-label="Ações">{canManage ? <RowActions label={`Ações do produto ${product.code}`}><button type="button" className="btn-link" onClick={() => onEdit(product)}>Editar</button><RecordLifecycleAction resource="products" id={product.id} active={product.active} onChanged={onChanged} /></RowActions> : <span className="registry-no-action">Somente consulta</span>}</td>
     </tr>
   );
 }
