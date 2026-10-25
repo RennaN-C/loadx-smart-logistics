@@ -69,3 +69,11 @@ pedidos já em trânsito ainda precisam carregar.
 da área administrativa, tabelas responsivas com controles nativos de rolagem por teclado/toque e nomes
 longos legíveis. Fonte e escopo dos indicadores são independentes da OC69.
 PDFs de viagem/carregamento e suas permissões próprias permanecem intactos.
+
+## PDFs profissionais — manutenção #308
+
+`CONFIRMADO`: os downloads existentes recebem o novo padrão do backend para
+carregamento, viagem e gerencial, incluindo resumo, tabelas, paginação e gráficos
+gerenciais. O frontend continua baixando os mesmos endpoints; CSV e indicadores
+da tela mantêm seus dados, limites e permissões. Evidências e exemplos em
+[relatórios e controles](../../../../docs/evidencias/relatorios-controles/README.md).

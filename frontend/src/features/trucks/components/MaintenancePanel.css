@@ -1,0 +1,15 @@
+.maintenance-panel { display: grid; gap: 16px; min-width: 0; }
+.maintenance-panel > p { margin: 0; color: var(--muted); font-size: .84rem; line-height: 1.6; }
+.maintenance-toolbar { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 16px; padding: 18px; background: var(--paper); border: 1px solid var(--line); border-radius: 10px; }
+.maintenance-toolbar .odometer-form { flex: 1; flex-direction: row; align-items: flex-end; flex-wrap: wrap; gap: 12px; }
+.odometer-form .entity-form-field { margin: 0; }
+.odometer-input { position: relative; display: block; }
+.odometer-form .odometer-input input { padding-right: 52px; }
+.odometer-input > span { position: absolute; right: 28px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: .76rem; pointer-events: none; }
+.maintenance-toolbar button { min-height: 42px; }
+@media (max-width: 600px) {
+  .maintenance-toolbar { align-items: stretch; padding: 14px; }
+  .maintenance-toolbar .odometer-form { flex-basis: 100%; }
+  .odometer-form .entity-form-field { flex-basis: 100%; }
+  .maintenance-toolbar button { width: 100%; }
+}

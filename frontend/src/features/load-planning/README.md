@@ -3,6 +3,10 @@
 Tela de planejamento de carga (OC30). Consome `POST /load-plans`,
 `GET /load-plans/{id}`, `POST /load-plans/{id}/approve` e `POST /load-plans/{id}/recalculate`.
 
+`CONFIRMADO` (#308): confirmação de plano salvo usa aviso contextual com
+referência e links com aparência de botão para Abrir este plano e Planos
+existentes. Navegação e IDs permanecem os mesmos, sem gerar novo cálculo.
+
 ## O que existe hoje
 
 - `pages/PlanningPage.tsx` (+ `.css`): monta o plano, mostra o resultado e executa aprovar/recalcular.

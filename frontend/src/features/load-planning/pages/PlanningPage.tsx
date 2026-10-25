@@ -104,7 +104,10 @@ function PlanningResult({ plan, canManage, approvalAllowed, isWorking, onApprove
   const distributionId = plan.distributionId;
   return <>
     {distributionId ? <div className="distribution-notice"><p>Este plano pertence a uma distribuição. Aprovação, cancelamento e reprocessamento são feitos pela necessidade completa.</p><Link className="btn-secondary" to={`/planning/distributions/${distributionId}`}>Abrir distribuição completa</Link></div> : null}
-    <p className="entity-form-help">Plano {plan.id.slice(0, 8)} salvo. <Link to={`/planning/${plan.id}`}>Abrir este plano</Link> ou reencontre em <Link to="/planning">Planos existentes</Link>.</p>
+    <div className="plan-saved-notice">
+      <div><span className="plan-saved-icon" aria-hidden="true"><Icon name="planning" size={19} /></span><p><strong>Plano salvo</strong><span>Referência {plan.id.slice(0, 8)} · Disponível para consulta em Planos existentes.</span></p></div>
+      <div className="plan-saved-actions"><Link className="btn-secondary" to="/planning">Planos existentes</Link><Link className="btn-primary" to={`/planning/${plan.id}`}>Abrir este plano<Icon name="arrow-right" size={16} /></Link></div>
+    </div>
     <PlanSummary plan={plan} canManage={canManage && !distributionId} approvalAllowed={approvalAllowed && !distributionId} isWorking={isWorking} onApprove={onApprove} onRecalculate={onRecalculate} />
     <Tabs items={PLAN_TABS} active={tab} onChange={onTabChange} label="Formato do resultado" />
     <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>

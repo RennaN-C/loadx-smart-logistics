@@ -23,6 +23,13 @@ Componentes usados por apenas uma feature permanecem dentro dela.
 - `documentRules.ts`: validade de CPF, CNPJ, CNH e telefone, espelhando a OC63. **Funções puras, testadas.**
 - `fieldErrorProps.ts`: o `aria-invalid` + `aria-describedby` que liga o erro ao controle.
 
+## Camadas dos modais — manutenção #308
+
+`CONFIRMADO` (#308): a camada compartilhada de modais fica acima dos cabeçalhos
+e navegação móvel; dicas ficam acima dos modais administrativos. A correção
+preserva foco, Escape, bloqueio de rolagem e formulários montados. A verificação
+visual usa hit testing no título do diálogo para detectar elementos sobrepostos.
+
 ## Máscaras: por que dígitos viajam e pontuação fica na tela
 
 A formatação é PROGRESSIVA — "1234" vira "123.4" — porque máscara que só aparece

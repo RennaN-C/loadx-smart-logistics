@@ -1,0 +1,33 @@
+{
+  "frontend": {
+    "success": true,
+    "numPassedTests": 1130,
+    "numFailedTests": 0,
+    "numTotalTests": 1130
+  },
+  "components": {
+    "success": true,
+    "numPassedTests": 185,
+    "numFailedTests": 0,
+    "numTotalTests": 185
+  },
+  "pdf_unit_tests": {
+    "passed": 11,
+    "failed": 0
+  },
+  "api_and_multi_truck_e2e": {
+    "passed": 3,
+    "failed": 0,
+    "seconds": 224.44,
+    "runtime": "Python 3.12, PostgreSQL 16, exclusive loadx_test"
+  },
+  "visual_checks": 30,
+  "lint": "passed",
+  "ruff": "passed",
+  "bundle_budget": "LoadViewer 229.6 KiB gzip <= 250 KiB",
+  "final_driver_document_tests": {
+    "passed": 7,
+    "failed": 0
+  },
+  "build": "passed"
+}

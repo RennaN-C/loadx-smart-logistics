@@ -32,3 +32,22 @@ quantidade de volumes quando existe distribuição. Ambos preservam identidades
 transportados. Dados vêm do plano persistido e da fronteira pública de
 load_planning, sem acesso privado, escrita ou recálculo. Legado não exige parte.
 Teste E2E extrai o texto real do PDF com pypdf (dependência apenas de testes).
+
+## Apresentação dos PDFs — manutenção #308
+
+`CONFIRMADO`: `pdf_renderer.py` centraliza a apresentação de carregamento,
+viagem e gerencial: cabeçalho LoadX navy/âmbar, identificação em duas colunas,
+resumo numérico, tabelas proporcionais e alternadas, emissão UTC e paginação.
+O gerencial acrescenta barras relativas ao maior total; os fatos distintos não
+são somados. Situações e tipos conhecidos são apresentados em português apenas
+nas respectivas colunas, preservando códigos de produto e identificadores.
+
+`CONFIRMADO`: cabeçalhos repetem em páginas subsequentes; linhas maiores que uma
+página podem ser divididas. Conteúdo é escapado antes de criar Paragraphs.
+Fontes continuam incorporadas pelo ReportLab existente. Nenhuma dependência,
+consulta, regra operacional, permissão, endpoint ou formato CSV foi alterado.
+O E2E multi-caminhão foi adaptado à nova apresentação do rótulo de contagem,
+mantendo as verificações de UUIDs, escopo da parte e índices físicos.
+
+`CONFIRMADO`: exemplos fictícios e resultados em
+[relatórios e controles](../../../../docs/evidencias/relatorios-controles/README.md).

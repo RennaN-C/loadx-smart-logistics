@@ -121,3 +121,11 @@ A API usa SearchListParams e tipos específicos somente onde necessário; o
 loader estável não refiltra items localmente. O total vem do conjunto filtrado.
 Busca limitada a 120 caracteres; vazio/erro/loading permanecem tratados.
 Nenhum campo pessoal proibido pela ADR-017 foi incluído no resumo ou na busca.
+
+## Acabamento operacional — manutenção #308
+
+`CONFIRMADO`: manutenção usa barra responsiva para odômetro e nova manutenção,
+com unidade km e botões padronizados. DocumentForm usa campos verticais,
+ajuda e ações primária/secundária no padrão compartilhado; envio exibe Salvando…
+e impede interação enquanto pendente. Handlers, validação nativa, renovação
+versionada, datas UTC e permissões são preservados.

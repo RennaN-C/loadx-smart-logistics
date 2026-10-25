@@ -391,6 +391,14 @@
 .planning-activity .status-pill { font-size: .65rem; padding: 3px 8px; }
 .plan-history-title .status-pill-warn { box-shadow: 0 0 16px var(--accent-bg); }
 .plan-history-occupancy > span { box-shadow: 0 0 9px var(--accent-bg); transition: width .35s ease; }
+.plan-saved-notice { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 18px; padding: 18px 20px; border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 10px; background: var(--card); }
+.plan-saved-notice > div:first-child { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.plan-saved-icon { display: flex; flex-shrink: 0; padding: 10px; color: var(--accent-strong); border-radius: 10px; background: var(--accent-bg); }
+.plan-saved-notice p { display: grid; gap: 5px; margin: 0; }
+.plan-saved-notice strong { font-size: .86rem; }
+.plan-saved-notice p > span { color: var(--muted); font-size: .76rem; line-height: 1.5; }
+.plan-saved-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+@media (max-width: 600px) { .plan-saved-notice { padding: 16px; } .plan-saved-actions { width: 100%; } .plan-saved-actions a { flex: 1 1 100%; } }
 .fleet-preflight > ul { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(230px, 100%), 1fr)); gap: 10px; }
 .fleet-preflight li { display: flex; flex-direction: column; gap: 6px; padding: 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
 .fleet-preflight li small { color: var(--muted); }
