@@ -9,7 +9,7 @@ Login, sessão e proteção de rotas.
 - `components/AuthContext.ts`: o Context em si, separado do provider para preservar o Fast Refresh.
 - `components/RequireAuth.tsx`: guarda de rota, redireciona para `/login` quando não autenticado.
 - `components/SessionLoading.tsx`: estado de carregamento compartilhado por `RequireAuth` e `LoginPage`.
-- `components/BrandPanel.tsx`: painel estático de marca da tela de login.
+- `components/BrandPanel.tsx`: painel de marca com ilustração decorativa e controle de movimento.
 - `components/LoginForm.tsx`: formulário controlado de e-mail/senha.
 - `components/loginErrorMessages.ts`: tradução dos códigos de erro do backend para texto de interface.
 - `api/authApi.ts`: login, restauração e logout revogável.
@@ -23,8 +23,8 @@ cookie `HttpOnly`; o frontend não lê nem persiste credenciais. O
 
 ## Pendências
 
-- `PENDENTE DE DEFINIÇÃO`: recuperação de senha e MFA para funções críticas
-  pertencem a ocorrências futuras.
+- `CONFIRMADO`: recuperação e MFA foram implementados na OC98, descrita abaixo.
+  O aceite externo de recuperação permanece no relatório de prontidão da v1.2.0.
 
 
 ## OC92 — Meu perfil
@@ -101,3 +101,17 @@ mesmos contratos e confirmações.
 `CONFIRMADO`: login e recuperação compartilham painel de marca e ilustração SVG
 decorativa de volumes. A ilustração não representa resultado do otimizador nem
 estado operacional.
+
+## Acesso profissional — Issue #304, 25/10/2026
+
+`CONFIRMADO`: LoginPage.css unifica o layout de login/recuperação com painel
+navy, formulário no tema escolhido, foco/hover e entrada discreta. BrandPanel
+usa LoginIllustration: SVG decorativo com caminhão e volumes, sem dados reais,
+métricas, reservas ou promessa de rastreamento GPS. O fluxo luminoso, brilho e
+flutuação podem ser pausados pelo botão Pausar efeitos; a preferência de movimento
+reduzido desativa animações/transições e oculta o controle desnecessário.
+
+`CONFIRMADO`: formulários, senhas, desafio MFA, recuperação, cookies, CSRF e
+redirecionamentos mantêm seus contratos. Nenhum envio externo foi realizado
+na verificação visual. Capturas e matriz em
+[login profissional](../../../../docs/evidencias/login-profissional/README.md).

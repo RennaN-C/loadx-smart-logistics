@@ -7,6 +7,7 @@ import { ApiError } from "../../../types/api";
 import { useAuth } from "../hooks/useAuth";
 import { mapLoginErrorToMessage } from "./loginErrorMessages";
 import { AlertBanner } from "../../../components/AlertBanner";
+import { BrandMark, Icon } from "../../../components/Icon";
 
 export function LoginForm() {
   const { login, pendingMfa, beginMfa } = useAuth();
@@ -38,9 +39,11 @@ export function LoginForm() {
     <form className="login-card" onSubmit={handleSubmit}>
       {errorMessage ? <AlertBanner>{errorMessage}</AlertBanner> : null}
 
-      <div>
+      <div className="login-card-intro">
+        <span className="login-access-mark" aria-hidden="true"><BrandMark size={25} /></span>
+        <p className="login-access-eyebrow">ACESSO À PLATAFORMA</p>
         <h2>Entrar</h2>
-        <p className="login-lede">Use suas credenciais internas para continuar.</p>
+        <p className="login-lede">Sua operação começa com uma visão clara.<br />Use suas credenciais internas para continuar.</p>
       </div>
 
       <fieldset disabled={isSubmitting} className="login-fieldset">
@@ -95,7 +98,7 @@ export function LoginForm() {
             <span>Entrando…</span>
           </>
         ) : (
-          "Entrar"
+          <><span>Entrar</span><Icon name="arrow-right" size={18} /></>
         )}
       </button>
 
