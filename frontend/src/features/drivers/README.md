@@ -4,7 +4,8 @@ Cadastro de motoristas (OC28). Consome `GET/POST/PATCH /drivers`.
 
 ## O que existe hoje
 
-- `components/DriverPanel.tsx`: busca, filtro por status, grade paginada e modal de motoristas.
+- `components/DriverPanel.tsx`: busca, filtro por status, tabela responsiva paginada
+  e modal de motoristas. Documentos, edição e ciclo de vida ficam no menu da linha.
 - `components/DriverForm.tsx`: criação e edição.
 - `components/driversErrorMessages.ts`: tradução dos códigos de erro — o backend distingue
   documento duplicado de CNH duplicada, e as mensagens seguem essa distinção.

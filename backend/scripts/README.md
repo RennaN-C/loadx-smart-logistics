@@ -89,3 +89,45 @@ Contrato completo: ../app/modules/messages/inbound.md.
 `CONFIRMADO`: a verificação live preserva serviços existentes e é explicitamente
 pulada se a porta 8000 estiver ocupada; libere-a por operação do responsável
 para executar a homologação, sem interromper processos de terceiros.
+
+## Dados fictícios de demonstração local — 25/10/2026
+
+`CONFIRMADO`: `seed_demo.py` popula o banco local usando os serviços existentes
+para cadastros, pedidos, cálculo, aprovação, carregamento, viagens, comprovantes e
+ocorrências. Não cria schema, usuários, senhas, sessões ou exceções de MFA.
+O administrador deve existir pelo bootstrap oficial. A seleção do ator não exibe
+seus dados. Documentos/nomes de demonstração são sintéticos e identificados como DEMO.
+
+`CONFIRMADO`: o comando recusa produção, hosts externos e bancos diferentes de
+`loadx`. Usa a configuração do backend do Compose e um advisory lock em conexão
+separada durante os commits dos serviços. Não apaga registros existentes.
+
+`CONFIRMADO`: execute da raiz:
+
+```powershell
+docker compose exec -T backend python -m scripts.seed_demo
+```
+
+`CONFIRMADO`: a execução inicial adiciona 8 caminhões, 12 produtos, 8 clientes,
+6 motoristas, 24 pedidos, 6 planos, 5 carregamentos, 4 viagens, 8 entregas e
+2 ocorrências. Cenários: calculado, conferência em andamento, viagem programada,
+viagem em rota, entrega parcial e concluída. Migrations devem estar aplicadas.
+A segunda execução reutiliza os registros e preserva os totais; os totais de saída
+incluem registros previamente existentes no banco. Operações não são regressadas.
+
+`RISCO IDENTIFICADO`: os serviços persistem suas próprias transações. Uma falha
+intermediária pode deixar parte da demonstração criada; reexecutar reutiliza o
+que já existe. Se um usuário editar/arquivar os exemplos, conflitos do domínio
+continuam sendo respeitados; o seed não força transições nem reativa cadastros.
+
+## Demonstração multi-caminhões — 25/10/2026
+
+`CONFIRMADO`: após `scripts.seed_demo`, execute
+`docker compose exec -T backend python -m scripts.seed_multi_truck_demo`.
+Usa a mesma proteção de destino exclusivamente local. Adiciona um produto DEMO
+com 800 kg, um pedido com 24 volumes e chama a distribuição automática real
+com chave idempotente estável. No banco demonstrativo, gera 2 partes para
+19.200 kg e preserva o mesmo ID na reexecução. Não aprova nem inicia operações.
+As transações de cadastro são independentes; não execute simultaneamente.
+Os totais da demonstração básica passam a incluir este exemplo e qualquer
+registro criado posteriormente pelo usuário. Nenhum banco remoto é populado.

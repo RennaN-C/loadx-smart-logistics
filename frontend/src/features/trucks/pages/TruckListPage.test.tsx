@@ -85,6 +85,8 @@ describe("TruckListPage", () => {
     expect(screen.getByText("QRT2B88")).toBeInTheDocument();
     expect(screen.getByText("Ativo")).toBeInTheDocument();
     expect(screen.getByText("Arquivado")).toBeInTheDocument();
+    expect(screen.getByRole("table", { name: "Caminhões cadastrados" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Volume interno" })).toBeInTheDocument();
   });
 
   it("organiza as ações em grupo separado do peso máximo de cada caminhão", async () => {
@@ -92,7 +94,9 @@ describe("TruckListPage", () => {
     mockRole("ADMIN");
     render(<TruckListPage />);
 
-    const actions = await screen.findByRole("group", { name: "Ações do caminhão ABC1D23" });
+    const trigger = await screen.findByLabelText("Ações do caminhão ABC1D23");
+    fireEvent.click(trigger);
+    const actions = trigger.closest("details")!;
     expect(within(actions).getByRole("button", { name: "Documentos" })).toBeInTheDocument();
     expect(within(actions).getByRole("button", { name: "Manutenções" })).toBeInTheDocument();
     expect(within(actions).getByRole("button", { name: "Arquivar" })).toBeInTheDocument();

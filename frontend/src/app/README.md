@@ -106,3 +106,28 @@ Nenhum código de gestão de usuários/autenticação ou evidências OC81 foi re
 `CONFIRMADO`: os grupos com múltiplas opções **Cadastros** e **Operação** iniciam fechados a cada montagem do menu; o usuário expande/recolhe pelo clique, inclusive no drawer mobile. O item ativo e a página atual não são alterados ao alternar o acordeão. A sidebar inteira mantém sua preferência independente de largura compacta. O submenu administrativo continua associado à rota de Configurações, preservando a seleção ativa e a navegação direta.
 
 A continuidade de planos e viagens entre telas é uma lacuna funcional independente, rastreada pela Issue #208; não deve ser contornada com rascunho simulado ou plano criado automaticamente.
+
+## Apresentação e navegação — revisão de 24/10/2026
+
+`CONFIRMADO`: Controle reúne Relatórios, Auditoria e Notificações, preservando
+as guardas específicas. A central de notificações também fica acessível no menu
+para contas autenticadas. Os destinos começam expandidos; acordeões, trilho e
+gaveta continuam operacionais. A sidebar permite rolagem própria para que todas
+as subseções administrativas sejam alcançáveis em janelas baixas.
+
+`CONFIRMADO`: tokens, tipografia de interface, foco, cabeçalhos e ações seguem
+a composição azul/âmbar das referências, com equivalente claro. Não foram
+adicionados endpoints, permissões ou dados de demonstração ao produto.
+
+## Navegação padronizada — solicitação de 25/10/2026
+
+`CONFIRMADO`: Configurações passa a ser um destino simples da sidebar, assim
+como as demais áreas. Foram removidos o submenu e seu estado de expansão.
+Selecionar Configurações fecha a gaveta móvel imediatamente e preserva o trilho
+compacto. Suas seções usam navegação horizontal no conteúdo, mantendo os mesmos
+fragmentos de URL e o controle ADMIN. Este comportamento substitui a apresentação
+em submenu descrita nas seções históricas acima.
+
+`CONFIRMADO`: `.section-navigation` padroniza frota, planejamento e configurações.
+Gráficos, cabeçalhos e controles têm transições discretas; movimentos novos são
+desativados com `prefers-reduced-motion: reduce`.

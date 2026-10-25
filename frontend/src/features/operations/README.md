@@ -71,3 +71,11 @@ indicadores prioritários e mantendo os demais em detalhes expansíveis. Períod
 zeros, falhas, nova tentativa e atualização manual continuam funcionando. Não
 consulta séries históricas nem calcula porcentagens. O contrato independente de
 `/reports` continua distinto: aquela página apura somente pedidos, com teto.
+
+## Gráficos operacionais — 25/10/2026
+
+`CONFIRMADO`: a Visão geral e o painel operacional apresentam anel de viagens
+e colunas de entregas usando exatamente totais/estados/períodos da OC69.
+Ângulos e alturas são escalas de desenho, sem publicar métricas derivadas.
+Zeros e falhas preservam o comportamento anterior. Gráficos não simulam evolução
+semanal nem alteram a autorização do endpoint.

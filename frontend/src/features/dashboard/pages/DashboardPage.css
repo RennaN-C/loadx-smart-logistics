@@ -136,3 +136,12 @@
   .kpi-grid { grid-template-columns: minmax(0, 1fr); }
   .dash-orders li { align-items: flex-start; }
 }
+
+.overview-page .kpi-grid { margin-top: 20px; }
+.overview-hero { border-bottom: 0; padding-bottom: 0; }
+.overview-page .dash-block { padding: 20px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
+.overview-page .dash-orders { border: 0; box-shadow: none; }
+.overview-page .dash-orders li { padding-inline: 0; }
+.overview-page .dash-block-head h2 { font-size: 1rem; }
+.overview-page .kpi { box-shadow: none; min-height: 116px; }
+@media (min-width: 1100px) { .overview-page .kpi-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }

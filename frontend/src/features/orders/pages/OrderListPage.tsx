@@ -21,6 +21,7 @@ import { mapOrderErrorToMessage } from "../components/ordersErrorMessages";
 import { ORDER_STATUSES, type Order, type OrderStatus } from "../types";
 import "./OrderListPage.css";
 import { Icon } from "../../../components/Icon";
+import "../../../components/RegistryTable.css";
 
 type StatusFilter = OrderStatus | "all";
 
@@ -120,11 +121,6 @@ export function OrderListPage() {
         ) : null}
       </header>
 
-      <div className="order-status-shortcuts" role="group" aria-label="Acesso rápido aos pedidos">
-        <button type="button" aria-pressed={statusFilter === "all"} onClick={() => changeStatusFilter("all")}>Todos os pedidos</button>
-        <button type="button" aria-pressed={statusFilter === "DELIVERED"} onClick={() => changeStatusFilter("DELIVERED")}>Pedidos entregues</button>
-      </div>
-
       <div className="entity-toolbar order-filters">
         <label className="order-filter order-filter-search">
           <span>Buscar pedidos</span>
@@ -139,6 +135,7 @@ export function OrderListPage() {
         <label className="order-filter">
           <span>Situação</span>
           <select
+            aria-label="Situação"
             value={statusFilter}
             onChange={(event) => changeStatusFilter(event.target.value as StatusFilter)}
           >
@@ -178,7 +175,10 @@ export function OrderListPage() {
       ) : null}
 
       {orders.length > 0 ? (
-        <div className="entity-grid">
+        <div className="registry-table-wrap"><table className="registry-table order-table">
+          <caption className="sr-only">Pedidos cadastrados</caption>
+          <thead><tr><th scope="col">Pedido</th><th scope="col">Cliente</th><th scope="col">Prioridade</th><th scope="col">Itens</th><th scope="col">Previsão</th><th scope="col">Situação</th><th scope="col">Ações</th></tr></thead>
+          <tbody>
           {orders.map((order) => (
             <OrderCard
               key={order.id}
@@ -190,7 +190,7 @@ export function OrderListPage() {
               onEdit={(id) => void edit.open(id)}
             />
           ))}
-        </div>
+          </tbody></table></div>
       ) : null}
 
       {status === "success" ? (

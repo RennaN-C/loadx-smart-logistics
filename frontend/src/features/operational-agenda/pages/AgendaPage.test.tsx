@@ -1,6 +1,6 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { fetchAgenda } from "../api/agendaApi";
 import { AgendaPage } from "./AgendaPage";
@@ -22,11 +22,26 @@ function renderAgenda() {
 
 describe("AgendaPage", () => {
   beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-22T12:00:00Z"));
     vi.clearAllMocks();
     vi.mocked(fetchAgenda).mockResolvedValue({
       start: "2026-10-22T00:00:00Z", end: "2026-10-23T00:00:00Z",
       total: 1, items: [event],
     });
+  });
+  afterEach(() => { vi.useRealTimers(); });
+
+  it("alterna calendário e lista sem repetir a consulta nem criar eventos", async () => {
+    renderAgenda();
+    await screen.findByRole("link", { name: "Abrir viagem" });
+    expect(screen.getByRole("tabpanel")).toHaveAttribute("id", "panel-calendar");
+    fireEvent.click(screen.getByRole("tab", { name: "Lista de eventos" }));
+    expect(screen.getByRole("tabpanel")).toHaveAttribute("id", "panel-list");
+    expect(within(screen.getByRole("tabpanel")).getByText("Viagem criada")).toBeVisible();
+    expect(fetchAgenda).toHaveBeenCalledOnce();
+    fireEvent.click(screen.getByRole("tab", { name: "Calendário" }));
+    expect(screen.getAllByText("Sem eventos")).toHaveLength(6);
   });
 
   it("exibe fatos reais com navegação para viagem e sem ETA inventado", async () => {

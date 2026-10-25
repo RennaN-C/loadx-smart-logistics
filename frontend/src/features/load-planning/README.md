@@ -6,7 +6,10 @@ Tela de planejamento de carga (OC30). Consome `POST /load-plans`,
 ## O que existe hoje
 
 - `pages/PlanningPage.tsx` (+ `.css`): monta o plano, mostra o resultado e executa aprovar/recalcular.
-- `components/PlanBuilder.tsx`: seleção de caminhão e pedidos.
+- `components/PlanBuilder.tsx`: fluxo de Pedidos → Modalidade → Veículos → Revisão.
+  Alternar etapas mantém a seleção em memória; somente calcular envia a operação
+  de escrita. A revisão continua bloqueando cálculo sem pedidos/veículo e acima
+  do limite de volumes. A modalidade automática preserva o contrato multi-caminhão.
 - `components/PlanSummary.tsx`: métricas do cálculo e as ações.
 - `components/PlanItemsTable.tsx`: sequência de carregamento e volumes recusados.
 - `components/loadPlanLabels.ts`: rótulos de situação, rotação e motivo de recusa.
@@ -176,3 +179,32 @@ requer viagem finalizada e todos os pedidos entregues em todas as partes.
 Viagem interrompida/cancelada é retomável por link, sem oferecer outra criação.
 Pedidos fora de READY desabilitam aprovação/recálculo do cálculo histórico com
 explicação; a decisão permanece validada transacionalmente pelo servidor.
+
+## Execução dos planos — 25/10/2026
+
+`CONFIRMADO`: Execução aponta para `/planning?tab=execution`, sem redirecionar
+para a central de carregamentos. PlanExecution consulta `GET /load-plans` com
+`status=APPROVED`, paginação e `operation_scope` do contrato existente. Exibe
+ocupação e situação logística publicadas pelo servidor; filtros de acompanhamento,
+concluídas e todas as operações são enviados à API. Abrir planejamento, Conferir
+carregamento e Abrir viagem são ações explícitas, com destinos distintos.
+Erro, nova tentativa, vazio e ausência de projeção operacional são tratados.
+Somente quem possui os grants operacionais existentes recebe essa visão.
+
+## Atividade e frota automática — 25/10/2026
+
+`CONFIRMADO`: PlanningActivity exibe os oito eventos mais recentes da união das
+consultas paginadas existentes LOAD_PLAN, LOAD_DISTRIBUTION e
+LOAD_DISTRIBUTION_PART. Cada consulta pede os oito mais recentes; a união
+ordenada por data/ID contém os oito globais destes tipos. Erro em um fluxo
+exibe retry, sem apresentar histórico parcial como completo. Montado apenas
+com grant de auditoria; em desktop fica ao lado dos planos/execução e em telas
+menores aparece abaixo. Não sintetiza eventos de criação não registrados.
+
+`CONFIRMADO`: FleetPreflight consulta o endpoint de preflight existente na
+etapa Veículos da modalidade automática. Mostra veículos elegíveis e excluídos
+pelo backend, medidas e peso máximo. É uma consulta sem reserva; a otimização
+revalida tudo. A carga pode usar um caminhão se couber; não força divisão
+artificial. O limite permanece 200 volumes físicos, até 10 caminhões.
+
+Evidências: docs/evidencias/qa-v12-pentest/planejamento-multi-atividade/.

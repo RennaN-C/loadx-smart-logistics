@@ -95,6 +95,25 @@ def test_optimizer_uses_minimum_level_needed_for_complete_load(
     )
 
 
+def test_maximum_load_can_span_ten_trucks_without_losing_volume_identity() -> None:
+    candidates = tuple(
+        make_candidate(identifier, width_cm=100, length_cm=20)
+        for identifier in range(1, 11)
+    )
+    volumes = tuple(make_volume(index) for index in range(1, 201))
+    result = optimize_multi_truck(candidates, volumes)
+    assert result.complete
+    assert len(result.parts) == 10
+    placed = [volume.identity for part in result.parts for volume in part.volumes]
+    assert len(placed) == len(set(placed)) == 200
+    assert set(placed) == {volume.identity for volume in volumes}
+    assert all(part.load_plan.metrics.loaded_count == 20 for part in result.parts)
+    repeated = optimize_multi_truck(
+        tuple(reversed(candidates)), tuple(reversed(volumes))
+    )
+    assert repeated == result
+
+
 def test_optimizer_prefers_smaller_complete_single_truck() -> None:
     candidates = (
         make_candidate(2, width_cm=40),

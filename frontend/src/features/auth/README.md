@@ -88,3 +88,16 @@ Respostas anteriores não sobrescrevem outro link. Prazo, uso único, revogaçã
 MFA continuam definidos pelo backend. F5 não recupera um token apagado da URL.
 A marca fica compacta no mobile; o formulário aparece antes da ilustração
 (desktop), sem título sobreposto ou rodapé com versão/ambiente inventados.
+
+## Perfil e acesso — revisão visual de 24/10/2026
+
+`CONFIRMADO`: Meu perfil tem abas Dados pessoais, Segurança e MFA, e Sessões e
+dispositivos. A seleção usa `/account?tab=data|security|sessions`; valor ausente
+ou desconhecido abre Dados pessoais. Painéis permanecem montados para preservar
+rascunhos. Aparência e notificações ficam em detalhes expansíveis. Dispositivos
+confiáveis acompanham as sessões; MFA e alteração de senha continuam usando os
+mesmos contratos e confirmações.
+
+`CONFIRMADO`: login e recuperação compartilham painel de marca e ilustração SVG
+decorativa de volumes. A ilustração não representa resultado do otimizador nem
+estado operacional.

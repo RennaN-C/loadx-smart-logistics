@@ -129,7 +129,7 @@ describe("OC85: navegação e autorização na aplicação", () => {
   it("separa regiões acessíveis e oferece entrada real para gestão de usuários", async () => {
     render(<App />);
     await screen.findByRole("heading", { name: "Configurações", level: 1 });
-    const menu = screen.getByRole("navigation", { name: "Navegação principal" });
+    const menu = screen.getByRole("navigation", { name: "Seções de Configurações" });
     expect(screen.queryByRole("region", { name: "Configurações do LoadX" })).not.toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "Integrações e Saúde" })).not.toBeInTheDocument();
     expect(within(menu).getByRole("link", { name: "Integrações e Saúde" })).toHaveAttribute("href", "/settings#settings-integrations");
@@ -141,17 +141,17 @@ describe("OC85: navegação e autorização na aplicação", () => {
     expect(within(account()).getByRole("link", { name: "Meu perfil, senha e sessões" })).toHaveClass("settings-account-link");
     expect(screen.queryByRole("region", { name: "Dados da empresa" })).not.toBeInTheDocument();
     expect(within(menu).getByRole("link", { name: "Dados da empresa" })).toHaveAttribute("href", "/settings#settings-company");
-    expect(screen.queryByRole("navigation", { name: "Seções de configurações" })).not.toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "Seções de Configurações" })).toBeInTheDocument();
     for (const link of within(menu).getAllByRole("link").filter((item) => item.getAttribute("href")?.includes("/settings#"))) {
       expect(document.getElementById(link.getAttribute("href")!.split("#")[1])).not.toBeNull();
     }
     await waitFor(() => expect(getCurrentUser).toHaveBeenCalledOnce());
   });
 
-  it("ADMIN alterna uma única seção pelo menu lateral com seleção na URL", async () => {
+  it("ADMIN alterna uma única seção pelas abas com seleção na URL", async () => {
     render(<App />);
     await screen.findByRole("heading", { name: "Configurações", level: 1 });
-    const menu = screen.getByRole("navigation", { name: "Navegação principal" });
+    const menu = screen.getByRole("navigation", { name: "Seções de Configurações" });
     for (const [label, id] of [
       ["Dados da empresa", "settings-company"],
       ["Integrações e Saúde", "settings-integrations"],
@@ -180,11 +180,11 @@ describe("OC85: navegação e autorização na aplicação", () => {
     expect(screen.getByRole("region", { name: "Conta e administração" })).toBeVisible();
   });
 
-  it("mantém componentes premium sem navegação interna duplicada", async () => {
+  it("mantém os formulários nas abas e remove as subseções da sidebar", async () => {
     render(<App />);
     await screen.findByRole("heading", { name: "Configurações", level: 1 });
-    const sidebar = screen.getByRole("navigation", { name: "Navegação principal" });
-    expect(screen.queryByRole("navigation", { name: "Seções de configurações" })).not.toBeInTheDocument();
+    const sidebar = screen.getByRole("navigation", { name: "Seções de Configurações" });
+    expect(screen.getByRole("navigation", { name: "Seções de Configurações" })).toBeInTheDocument();
     expect(screen.getByText("Perfil e segurança")).toBeInTheDocument();
 
     fireEvent.click(within(sidebar).getByRole("link", { name: "Dados da empresa" }));
@@ -206,7 +206,7 @@ it("OC112 integra o link antigo na gestão de usuários e remove a entrada dupli
   render(<App />);
   await screen.findByRole("tab", { name: "Perfis de acesso" });
   await waitFor(() => expect(window.location.hash).toBe("#settings-users-profiles"));
-  const menu = screen.getByRole("navigation", { name: "Navegação principal" });
+  const menu = screen.getByRole("navigation", { name: "Seções de Configurações" });
   expect(within(menu).queryByRole("link", { name: "Perfis e permissões" })).not.toBeInTheDocument();
   expect(within(menu).getByRole("link", { name: "Gestão de usuários" })).toHaveAttribute("aria-current", "location");
   expect(screen.getByRole("tab", { name: "Perfis de acesso" })).toHaveAttribute("aria-selected", "true");

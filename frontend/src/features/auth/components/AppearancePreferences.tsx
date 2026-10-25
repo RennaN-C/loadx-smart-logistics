@@ -8,8 +8,8 @@ export function AppearancePreferences() {
     <fieldset className="appearance-options" aria-describedby="appearance-help">
       <legend className="sr-only">Tema da interface</legend>
       {([
-        ["light", "Claro", "Bege, com leitura confortável."],
-        ["dark", "Escuro", "Grafite, com detalhes em âmbar."],
+        ["light", "Claro", "Superfícies claras e detalhes em âmbar."],
+        ["dark", "Escuro", "Azul profundo e detalhes em âmbar."],
         ["system", "Automático", "Seguir a aparência do sistema."],
       ] as const).map(([value, label, description]) => <label key={value} className="appearance-option" aria-label={label} htmlFor={`appearance-${value}`}>
         <input id={`appearance-${value}`} type="radio" name="appearance" aria-describedby={`appearance-${value}-description`} value={value} checked={preference === value} onChange={() => setPreference(value)} />

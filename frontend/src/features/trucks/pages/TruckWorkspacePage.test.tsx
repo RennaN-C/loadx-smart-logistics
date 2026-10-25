@@ -37,6 +37,13 @@ describe("Caminhões e frota", () => {
     fireEvent.change(screen.getByLabelText("Filtrar por disponibilidade"), { target: { value: "unavailable" } });
     expect(screen.getByText("Nenhum caminhão nesta situação, nesta página.")).toBeVisible();
   });
+  it("abre a documentação da frota por veículo sem inventar uma listagem global", async () => {
+    page("/trucks?tab=documents");
+    expect(await screen.findByRole("heading", { name: `Documentos de ${TRUCK.plate}` })).toBeVisible();
+    expect(screen.getByRole("combobox", { name: "Veículo" })).toHaveValue(TRUCK.id);
+    expect(screen.getByText(/consulta documentos por veículo/i)).toBeVisible();
+    expect(listDocuments).toHaveBeenCalledWith(TRUCK.id, expect.anything());
+  });
   it("preserva rascunho do cadastro ao trocar abas", async () => {
     page(); await screen.findByText(TRUCK.plate);
     fireEvent.click(screen.getByRole("button", { name: "Novo caminhão" }));

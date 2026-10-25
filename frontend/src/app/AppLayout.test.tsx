@@ -261,41 +261,28 @@ describe("AppLayout", () => {
   });
 
 
-  it("ADMIN abre Configurações no menu existente, com subseções apenas nessa área", () => {
-    signedInAs("ADMIN");
-    renderLayout();
-    expect(within(menu()).queryByRole("link", { name: "Dados da empresa" })).not.toBeInTheDocument();
+  it("ADMIN abre Configurações como destino simples, sem submenu", () => {
+    signedInAs("ADMIN"); renderLayout();
     fireEvent.click(within(menu()).getByRole("link", { name: "Configurações" }));
     expect(screen.getByText("conteudo das configurações")).toBeInTheDocument();
-    expect(within(menu()).getByRole("link", { name: "Configurações" })).toHaveAttribute("aria-expanded", "true");
-    expect(within(menu()).getByRole("link", { name: "Dados da empresa" })).toHaveAttribute("href", "/settings#settings-company");
-    expect(within(menu()).getByRole("link", { name: "Conta e administração" })).toHaveAttribute("aria-current", "location");
-    fireEvent.click(within(menu()).getByRole("link", { name: "Visão geral" }));
+    expect(within(menu()).getByRole("link", { name: "Configurações" })).not.toHaveAttribute("aria-expanded");
     expect(within(menu()).queryByRole("link", { name: "Dados da empresa" })).not.toBeInTheDocument();
   });
 
-  it("expande a sidebar compacta ao selecionar Configurações e marca hash direto", () => {
-    signedInAs("ADMIN");
-    renderLayout("/settings#settings-integrations");
-    expect(within(menu()).getByRole("link", { name: "Integrações e Saúde" })).toHaveAttribute("aria-current", "location");
+  it("Configurações preserva o trilho compacto como os demais destinos", () => {
+    signedInAs("ADMIN"); renderLayout("/settings#settings-integrations");
     fireEvent.click(screen.getByRole("button", { name: "Recolher menu lateral" }));
-    expect(document.querySelector(".app-shell")).toHaveAttribute("data-sidebar-collapsed", "true");
-    expect(within(menu()).queryByRole("link", { name: "Integrações e Saúde" })).not.toBeInTheDocument();
     fireEvent.click(within(menu()).getByRole("link", { name: "Configurações" }));
-    expect(document.querySelector(".app-shell")).toHaveAttribute("data-sidebar-collapsed", "false");
-    expect(within(menu()).getByRole("link", { name: "Integrações e Saúde" })).toHaveAttribute("aria-current", "location");
+    expect(document.querySelector(".app-shell")).toHaveAttribute("data-sidebar-collapsed", "true");
+    expect(screen.getByText("conteudo das configurações")).toBeInTheDocument();
   });
 
-  it("no drawer, primeiro expande Configurações e só fecha ao escolher subseção", () => {
-    signedInAs("ADMIN");
-    renderLayout();
+  it("Configurações navega e fecha a gaveta no primeiro clique", () => {
+    signedInAs("ADMIN"); renderLayout();
     fireEvent.click(screen.getByRole("button", { name: "Abrir menu" }));
     fireEvent.click(within(menu()).getByRole("link", { name: "Configurações" }));
-    expect(document.querySelector(".app-shell")).toHaveAttribute("data-mobile-open", "true");
-    expect(within(menu()).getByRole("link", { name: "Dados da empresa" })).toBeInTheDocument();
-    fireEvent.click(within(menu()).getByRole("link", { name: "Dados da empresa" }));
     expect(document.querySelector(".app-shell")).toHaveAttribute("data-mobile-open", "false");
-    expect(within(menu()).getByRole("link", { name: "Dados da empresa" })).toHaveAttribute("aria-current", "location");
+    expect(screen.getByText("conteudo das configurações")).toBeInTheDocument();
   });
 
   it("não apresenta subseções administrativas para LOGISTICS_MANAGER, CHECKER e DRIVER", () => {
@@ -327,20 +314,13 @@ describe("AppLayout", () => {
     expect(within(menu()).getByRole("link", { name: "Visão geral" })).toHaveAttribute("aria-current", "page");
   });
 
-  it("fecha Configurações no segundo clique e reabre no terceiro sem sair da página", () => {
-    signedInAs("ADMIN");
-    renderLayout("/settings#settings-company");
-    const parent = within(menu()).getByRole("link", { name: "Configurações" });
-    expect(parent).toHaveAttribute("aria-expanded", "true");
-    expect(within(menu()).getByRole("link", { name: "Dados da empresa" })).toHaveAttribute("aria-current", "location");
-    fireEvent.click(parent);
-    expect(parent).toHaveAttribute("aria-expanded", "false");
+  it("Configurações mantém um único destino ao clicar novamente", () => {
+    signedInAs("ADMIN"); renderLayout("/settings#settings-company");
+    const link = within(menu()).getByRole("link", { name: "Configurações" });
+    fireEvent.click(link); fireEvent.click(link);
+    expect(link).toHaveAttribute("aria-current", "page");
+    expect(link).not.toHaveAttribute("aria-controls");
     expect(within(menu()).queryByRole("link", { name: "Dados da empresa" })).not.toBeInTheDocument();
-    expect(screen.getByText("conteudo das configurações")).toBeInTheDocument();
-
-    fireEvent.click(parent);
-    expect(parent).toHaveAttribute("aria-expanded", "true");
-    expect(within(menu()).getByRole("link", { name: "Dados da empresa" })).toHaveAttribute("aria-current", "location");
   });
 
   it("abre e fecha os grupos também dentro da gaveta mobile", () => {
@@ -359,9 +339,7 @@ describe("AppLayout", () => {
 
     const settings = within(menu()).getByRole("link", { name: "Configurações" });
     fireEvent.click(settings);
-    expect(within(menu()).getByRole("link", { name: "Dados da empresa" })).toBeInTheDocument();
-    fireEvent.click(settings);
     expect(within(menu()).queryByRole("link", { name: "Dados da empresa" })).not.toBeInTheDocument();
-    expect(document.querySelector(".app-shell")).toHaveAttribute("data-mobile-open", "true");
+    expect(document.querySelector(".app-shell")).toHaveAttribute("data-mobile-open", "false");
   });
 });

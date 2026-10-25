@@ -17,6 +17,7 @@ import { listProducts } from "../api/productsApi";
 import type { Product } from "../types";
 import "./ProductListPage.css";
 import { Icon } from "../../../components/Icon";
+import "../../../components/RegistryTable.css";
 
 type RestrictionFilter = "all" | "restricted" | "free";
 
@@ -59,11 +60,11 @@ export function ProductListPage() {
 
   const unfilteredEmpty = search.trim() === "" && restrictionFilter === "all" && archiveStatus === "active" && total === 0;
   return (
-    <div className="entity-page">
+    <div className="entity-page products-page">
       <header className="entity-header">
         <div>
-          <h1>Produtos</h1>
-          <p className="entity-lede">Volumes disponíveis para compor a carga.</p>
+          <p className="registry-eyebrow">Cadastros</p><h1>Produtos</h1>
+          <p className="entity-lede">Centralize o catálogo de produtos e embalagens usados no transporte.</p>
         </div>
         {canManage ? (
           <button type="button" className="btn-primary" onClick={() => setIsCreating(true)}>
@@ -73,18 +74,16 @@ export function ProductListPage() {
         ) : null}
       </header>
 
-      <div className="entity-toolbar">
-        <ImportAction enabled={hasPermission(user, "loadx.imports.manage")} entity="products" onImported={refetch} />
-        <ArchiveFilter value={archiveStatus} onChange={setArchiveStatus} />
-        <input
+      <div className="entity-toolbar registry-filterbar product-filterbar">
+        <label className="registry-filter-field registry-filter-search"><span>Busca</span><input
           type="search"
           aria-label="Buscar por código ou nome"
-          placeholder="Buscar por código ou nome"
+          placeholder="Buscar código ou produto…"
           value={search}
           onChange={(event) => { goToPage(1); setSearch(event.target.value); }}
           maxLength={MAX_SEARCH_LENGTH}
-        />
-        <select
+        /></label>
+        <label className="registry-filter-field"><span>Restrições</span><select
           aria-label="Filtrar por restrição"
           value={restrictionFilter}
           onChange={(event) => { goToPage(1); setRestrictionFilter(event.target.value as RestrictionFilter); }}
@@ -92,7 +91,9 @@ export function ProductListPage() {
           <option value="all">Todas as restrições</option>
           <option value="restricted">Com restrição</option>
           <option value="free">Sem restrição</option>
-        </select>
+        </select></label>
+        <label className="registry-filter-field"><span>Situação</span><ArchiveFilter value={archiveStatus} onChange={setArchiveStatus} /></label>
+        <div className="registry-import-action"><ImportAction enabled={hasPermission(user, "loadx.imports.manage")} entity="products" onImported={refetch} /></div>
       </div>
 
       {status === "success" && total > 0 ? (
@@ -108,21 +109,17 @@ export function ProductListPage() {
         </p>
       ) : null}
 
-      {status === "error" && error ? <AlertBanner>{mapProductErrorToMessage(error)}</AlertBanner> : null}
+      {status === "error" && error ? <><AlertBanner>{mapProductErrorToMessage(error)}</AlertBanner><button type="button" className="btn-secondary" onClick={() => void refetch()}>Tentar novamente</button></> : null}
 
       <ProductEmptyState show={status === "success" && products.length === 0} unfiltered={unfilteredEmpty} />
 
       {products.length > 0 ? (
-        <div className="entity-grid">
-          {products.map((product) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              canManage={canManage}
-              onEdit={setEditingProduct}
-              onChanged={refetch}
-            />
-          ))}
+        <div className="registry-table-wrap">
+          <table className="registry-table product-table">
+            <caption className="sr-only">Produtos cadastrados</caption>
+            <thead><tr><th scope="col">Código</th><th scope="col">Produto</th><th scope="col">Dimensões</th><th scope="col">Peso</th><th scope="col">Restrições</th><th scope="col">Situação</th><th scope="col">Ações</th></tr></thead>
+            <tbody>{products.map((product) => <ProductCard key={product.id} product={product} canManage={canManage} onEdit={setEditingProduct} onChanged={refetch} />)}</tbody>
+          </table>
         </div>
       ) : null}
 
