@@ -702,7 +702,7 @@ body {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  z-index: 20;
+  z-index: 50;
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -1297,6 +1297,26 @@ input[type="checkbox"]:disabled {
   padding-top: 18px;
 }
 
+.document-form .entity-form-field { flex: initial; min-width: 0; }
+.document-form .entity-form-actions { flex-wrap: wrap; }
+.document-form .entity-form-actions button { min-height: 42px; }
+.document-form input, .document-form select { border-radius: 8px; }
+.driver-documents-panel { display: grid; gap: 18px; min-width: 0; }
+.driver-documents-panel > h3, .driver-documents-panel > p { margin: 0; }
+.driver-documents-panel > p { color: var(--muted); font-size: .82rem; line-height: 1.6; }
+.driver-documents-panel > .btn-primary { justify-self: start; }
+.document-type-form { padding: 18px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); }
+.document-type-form .entity-form-field { flex: initial; min-width: 0; }
+.document-policy-form fieldset { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; min-width: 0; padding: 16px 18px; border: 1px solid var(--line); border-radius: 10px; margin: 0; }
+.document-policy-form legend { padding: 0 6px; font-size: .82rem; font-weight: 650; }
+.document-policy-form label { display: inline-flex; align-items: center; gap: 8px; font-size: .78rem; }
+.document-policy-form p { flex-basis: 100%; color: var(--muted); font-size: .76rem; line-height: 1.6; margin: 0; }
+.document-policy-form button { margin-left: auto; }
+@media (max-width: 600px) {
+  .document-form .entity-form-actions { flex-direction: column-reverse; }
+  .document-form .entity-form-actions button, .document-policy-form button { width: 100%; }
+}
+
 
 /* ---- dica de contexto ---- */
 
@@ -1341,12 +1361,12 @@ input[type="checkbox"]:disabled {
   box-shadow: 0 0 0 3px rgba(201, 122, 34, 0.35);
 }
 
-/* z-index acima do modal (20): a dica é a camada mais alta enquanto está aberta */
+/* Acima dos modais, inclusive os painéis administrativos (70). */
 .tooltip-bubble {
   position: absolute;
   bottom: calc(100% + 8px);
   left: -8px;
-  z-index: 30;
+  z-index: 80;
   width: max-content;
   max-width: 240px;
   padding: 8px 10px;
