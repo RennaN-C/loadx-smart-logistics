@@ -4,7 +4,7 @@ import type { DistributionNeed } from "../types";
 import { DistributionFeedback } from "./DistributionFeedback";
 
 export function FleetPreflight({ orderIds }: { readonly orderIds: readonly string[] }) {
-  const selection = [...orderIds].sort().join(",");
+  const selection = [...orderIds].sort((a, b) => a.localeCompare(b)).join(",");
   const [need, setNeed] = useState<DistributionNeed | null>(null);
   const [error, setError] = useState<unknown>(null);
   const [attempt, setAttempt] = useState(0);
