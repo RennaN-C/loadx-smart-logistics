@@ -146,7 +146,10 @@
 .login-motion-toggle { border: 1px solid #63879c50; background: #ffffff06; color: #b3c6d4; padding: 7px 10px; border-radius: 7px; font: inherit; font-size: .65rem; cursor: pointer; white-space: nowrap; }
 .login-motion-toggle:hover { border-color: #ffca7080; color: #ffca70; }
 .login-motion-toggle:focus-visible { outline: 2px solid #ffca70; outline-offset: 3px; }
-.login-brand.is-motion-paused::before, .login-brand.is-motion-paused * { animation-play-state: paused; }
+.login-brand.is-motion-paused::before,
+.login-brand.is-motion-paused .login-truck-art,
+.login-brand.is-motion-paused .login-route-signal,
+.login-brand.is-motion-paused .login-route-node { animation-play-state: paused; }
 @media (max-width: 820px) { .login-brand-footer { display: none; } }
 @media (prefers-reduced-motion: reduce) { .login-motion-toggle { display: none; } }
 @media (max-height: 820px) and (min-width: 821px) {
