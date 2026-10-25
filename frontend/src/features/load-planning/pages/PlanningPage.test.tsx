@@ -13,6 +13,9 @@ import { optimizeDistribution } from "../api/distributionsApi";
 import { makeDistribution } from "../testing/distributionFixtures";
 import type { LoadPlan, LoadPlanItem } from "../types";
 import { PlanningPage } from "./PlanningPage";
+import { listAuditEntries } from "../../audit/api/auditApi";
+
+vi.mock("../../audit/api/auditApi");
 
 vi.mock("../api/loadPlansApi", async (importOriginal) => ({
   ...await importOriginal<typeof import("../api/loadPlansApi")>(),
@@ -165,6 +168,7 @@ describe("PlanningPage", () => {
   beforeEach(() => {
     sessionStorage.clear();
     vi.resetAllMocks();
+    vi.mocked(listAuditEntries).mockResolvedValue(makePage([]));
     mockRole("LOGISTICS_MANAGER");
     vi.mocked(listLoadPlans).mockResolvedValue(makePage([]));
     vi.mocked(getLoadPlanContinuity).mockResolvedValue({ loading_session: null, trip: null, operational_ready: true });
@@ -688,6 +692,7 @@ describe("PlanningPage — entrada e autorização da retomada", () => {
   beforeEach(() => {
     sessionStorage.clear();
     vi.resetAllMocks();
+    vi.mocked(listAuditEntries).mockResolvedValue(makePage([]));
     vi.mocked(listLoadPlans).mockResolvedValue(makePage([]));
   });
   it.each(["ADMIN", "LOGISTICS_MANAGER", "CHECKER"] as const)("%s entra na listagem sem criar plano", async (role) => {
@@ -711,6 +716,7 @@ describe("PlanningPage — entrada e autorização da retomada", () => {
 
 it("permite retentar o detalhe persistido sem criar nem recalcular", async () => {
   vi.resetAllMocks();
+    vi.mocked(listAuditEntries).mockResolvedValue(makePage([]));
   mockRole("LOGISTICS_MANAGER");
   vi.mocked(getLoadPlan).mockRejectedValueOnce(new ApiError("NETWORK_ERROR", "Falha de rede")).mockResolvedValue(makePlan());
   renderAt("/planning/lp1");

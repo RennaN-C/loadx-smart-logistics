@@ -190,3 +190,21 @@ concluídas e todas as operações são enviados à API. Abrir planejamento, Con
 carregamento e Abrir viagem são ações explícitas, com destinos distintos.
 Erro, nova tentativa, vazio e ausência de projeção operacional são tratados.
 Somente quem possui os grants operacionais existentes recebe essa visão.
+
+## Atividade e frota automática — 25/10/2026
+
+`CONFIRMADO`: PlanningActivity exibe os oito eventos mais recentes da união das
+consultas paginadas existentes LOAD_PLAN, LOAD_DISTRIBUTION e
+LOAD_DISTRIBUTION_PART. Cada consulta pede os oito mais recentes; a união
+ordenada por data/ID contém os oito globais destes tipos. Erro em um fluxo
+exibe retry, sem apresentar histórico parcial como completo. Montado apenas
+com grant de auditoria; em desktop fica ao lado dos planos/execução e em telas
+menores aparece abaixo. Não sintetiza eventos de criação não registrados.
+
+`CONFIRMADO`: FleetPreflight consulta o endpoint de preflight existente na
+etapa Veículos da modalidade automática. Mostra veículos elegíveis e excluídos
+pelo backend, medidas e peso máximo. É uma consulta sem reserva; a otimização
+revalida tudo. A carga pode usar um caminhão se couber; não força divisão
+artificial. O limite permanece 200 volumes físicos, até 10 caminhões.
+
+Evidências: docs/evidencias/qa-v12-pentest/planejamento-multi-atividade/.

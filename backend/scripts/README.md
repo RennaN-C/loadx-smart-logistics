@@ -119,3 +119,15 @@ incluem registros previamente existentes no banco. Operações não são regress
 intermediária pode deixar parte da demonstração criada; reexecutar reutiliza o
 que já existe. Se um usuário editar/arquivar os exemplos, conflitos do domínio
 continuam sendo respeitados; o seed não força transições nem reativa cadastros.
+
+## Demonstração multi-caminhões — 25/10/2026
+
+`CONFIRMADO`: após `scripts.seed_demo`, execute
+`docker compose exec -T backend python -m scripts.seed_multi_truck_demo`.
+Usa a mesma proteção de destino exclusivamente local. Adiciona um produto DEMO
+com 800 kg, um pedido com 24 volumes e chama a distribuição automática real
+com chave idempotente estável. No banco demonstrativo, gera 2 partes para
+19.200 kg e preserva o mesmo ID na reexecução. Não aprova nem inicia operações.
+As transações de cadastro são independentes; não execute simultaneamente.
+Os totais da demonstração básica passam a incluir este exemplo e qualquer
+registro criado posteriormente pelo usuário. Nenhum banco remoto é populado.

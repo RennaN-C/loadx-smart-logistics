@@ -14,6 +14,7 @@ import { canReadReports } from "../../reports/permissions";
 import { approveLoadPlan, getLoadPlan, recalculateLoadPlan } from "../api/loadPlansApi";
 import { PlanHistory } from "../components/PlanHistory";
 import { PlanExecution } from "../components/PlanExecution";
+import { PlanningActivity } from "../components/PlanningActivity";
 import { PlanBuilder } from "../components/PlanBuilder";
 import { PlanItemsTable } from "../components/PlanItemsTable";
 import { PlanSummary } from "../components/PlanSummary";
@@ -86,7 +87,10 @@ function PlanningWorkspace({ isNew, canManage, checker, onCalculated, onDistribu
       {canReadAudit ? <Link to="/audit"><Icon name="chart" size={17} />Atividade</Link> : null}
     </nav>
     {showBuilder ? <><div className="plan-new-intro"><Link to="/planning">← Voltar aos planos</Link><div><h2>Novo planejamento</h2><p>Selecione os pedidos e o modo de alocação. O plano será salvo somente ao calcular, com limite de 200 volumes.</p></div></div><PlanBuilder onCalculated={onCalculated} onDistributed={onDistributed} /></>
-      : execution && canReadOperations ? <PlanExecution /> : <PlanHistory checker={checker} canReadOperations={canReadOperations} />}
+      : <div className={`planning-workspace${canReadAudit ? " planning-workspace-with-activity" : ""}`}>
+        <div>{execution && canReadOperations ? <PlanExecution /> : <PlanHistory checker={checker} canReadOperations={canReadOperations} />}</div>
+        {canReadAudit ? <PlanningActivity /> : null}
+      </div>}
   </>;
 }
 

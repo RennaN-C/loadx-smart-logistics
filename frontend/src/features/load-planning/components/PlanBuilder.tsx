@@ -11,6 +11,7 @@ import { listTruckOperationalStatus, listTrucks } from "../../trucks/api/trucksA
 import { ApiError } from "../../../types/api";
 import { createLoadPlan } from "../api/loadPlansApi";
 import { useAuth } from "../../auth/hooks/useAuth";
+import { FleetPreflight } from "./FleetPreflight";
 import { useOptimizationRecovery } from "../useOptimizationRecovery";
 import { OptimizationRecovery } from "./OptimizationRecovery";
 import { PlanOrderSelection } from "./PlanOrderSelection";
@@ -157,7 +158,7 @@ export function PlanBuilder({ onCalculated, onDistributed }: PlanBuilderProps) {
       {onDistributed ? <fieldset className="distribution-mode" disabled={isCalculating} hidden={step !== 1}>
         <legend>Como planejar esta carga?</legend>
         <label htmlFor="planning-single"><input id="planning-single" aria-label="Um caminhão" type="radio" name="planning-mode" checked={mode === "single"} onChange={() => setMode("single")} /><span><strong>Um caminhão</strong><small>Escolha o veículo e calcule a carga.</small></span></label>
-        <label htmlFor="planning-automatic"><input id="planning-automatic" aria-label="Seleção automática da frota" type="radio" name="planning-mode" checked={mode === "automatic"} onChange={() => setMode("automatic")} /><span><strong>Seleção automática da frota</strong><small>O servidor seleciona os veículos elegíveis e salva uma proposta completa.</small></span></label>
+        <label htmlFor="planning-automatic"><input id="planning-automatic" aria-label="Seleção automática da frota" type="radio" name="planning-mode" checked={mode === "automatic"} onChange={() => setMode("automatic")} /><span><strong>Seleção automática da frota · multi-caminhões</strong><small>Distribua os volumes entre veículos elegíveis e revise a proposta antes de aprovar.</small></span></label>
       </fieldset> : null}
       {!onDistributed && step === 1 ? <p className="entity-form-help">Escolha um caminhão para calcular o plano de carga.</p> : null}
       <DistributionFeedback error={recovery.error ?? distributionError} />
@@ -204,7 +205,7 @@ export function PlanBuilder({ onCalculated, onDistributed }: PlanBuilderProps) {
                 ))}
               </select>
             </FormField>
-          </div> : <p className="entity-form-help">A otimização pode usar de 1 a 10 caminhões. Só será salva uma proposta que comporte todos os volumes, até o limite de 200. Disponibilidade não significa reserva da frota.</p>}
+          </div> : <><p className="entity-form-help">A otimização pode usar de 1 a 10 caminhões. Só será salva uma proposta que comporte todos os volumes, até o limite de 200. Disponibilidade não significa reserva da frota.</p>{step === 2 ? <FleetPreflight orderIds={selectedOrders} /> : null}</>}
           </div>
 
           <div hidden={step !== 0} className="planning-step-content">
