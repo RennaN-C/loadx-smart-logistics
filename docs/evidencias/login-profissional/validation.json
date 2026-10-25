@@ -1,0 +1,16 @@
+{
+  "date": "2026-10-25",
+  "frontend": {
+    "total": 1130,
+    "passed": 1130,
+    "failed": 0
+  },
+  "authFeature": {
+    "passed": 85
+  },
+  "visualScenarios": 48,
+  "compactViewports": 3,
+  "lint": "passed",
+  "build": "passed",
+  "newDependencies": 0
+}

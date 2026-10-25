@@ -86,12 +86,9 @@ export async function changeLoadingStatus(
   return mapSession(data);
 }
 
-/** Homologação somente (pentest-lab): confere todos os volumes ainda pendentes. */
+/** Atalho exclusivo da homologação: conferência em lote após confirmação. */
 export async function checkAllLoadingItems(sessionId: string): Promise<LoadingSession> {
-  const { data } = await api.post<LoadingSessionDto>(
-    `/loading-sessions/${sessionId}/check-all`,
-  );
-
+  const { data } = await api.post<LoadingSessionDto>(`/loading-sessions/${sessionId}/check-all`);
   return mapSession(data);
 }
 

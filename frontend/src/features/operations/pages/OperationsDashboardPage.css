@@ -120,3 +120,21 @@
 @media (max-width: 480px) {
   .overview-indicator-groups .ops-grid { grid-template-columns: minmax(0, 1fr); }
 }
+
+.overview-indicator-groups .ops-block { border-radius: 10px; box-shadow: none; }
+.overview-indicator-groups .ops-block:last-child { grid-column: span 6; }
+.overview-indicator-groups .ops-block-head p { font-family: inherit; letter-spacing: 0; font-size: .72rem; }
+.overview-indicator-groups .ops-kpi { padding-left: 0; }
+.overview-indicator-groups .ops-kpi::before { display: none; }
+.overview-indicator-groups .ops-kpi-value { font-size: 1.75rem; }
+.overview-indicator-groups .ops-block:has(.ops-kpi-alert) { border-color: var(--danger-line); }
+@media (max-width: 760px) { .overview-indicator-groups .ops-block:last-child { grid-column: auto; } }
+
+@media (min-width: 1200px) {
+  .overview-indicator-groups .ops-block,
+  .overview-indicator-groups .ops-block:last-child { grid-column: span 3; }
+  .overview-indicator-groups .ops-block { padding: 18px; }
+  .overview-indicator-groups .ops-grid { gap: 10px; }
+  .overview-indicator-groups .ops-kpi-label { font-size: .68rem; }
+  .overview-indicator-groups .ops-kpi-note { font-size: .72rem; }
+}

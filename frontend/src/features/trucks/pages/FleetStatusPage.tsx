@@ -48,6 +48,9 @@ export function FleetStatusPage({ embedded = false }: { readonly embedded?: bool
     [items, filtro],
   );
   const disponiveis = useMemo(() => items.filter((truck) => truck.available).length, [items]);
+  const operando = useMemo(() => items.filter((truck) => truck.hasOperationConflict).length, [items]);
+  const manutencao = useMemo(() => items.filter((truck) => truck.hasMaintenanceConflict).length, [items]);
+  const documentos = useMemo(() => items.filter((truck) => truck.hasDocumentConflict).length, [items]);
 
   return (
     <div className={embedded ? "truck-section" : "entity-page"}>
@@ -62,8 +65,16 @@ export function FleetStatusPage({ embedded = false }: { readonly embedded?: bool
         </button>
       </header>
 
-      <div className="entity-toolbar">
-        <select
+      {status === "success" && items.length > 0 ? <div className="fleet-metrics" aria-label="Resumo da página da frota">
+        <FleetMetric icon="truck" label="Veículos cadastrados" value={total} detail="Total filtrado" />
+        <FleetMetric icon="gauge" label="Disponíveis" value={disponiveis} detail="Nesta página" />
+        <FleetMetric icon="planning" label="Em operação" value={operando} detail="Nesta página" />
+        <FleetMetric icon="settings" label="Em manutenção" value={manutencao} detail="Nesta página" />
+        <FleetMetric icon="report" label="Pendência documental" value={documentos} detail="Nesta página" />
+      </div> : null}
+
+      <div className="entity-toolbar fleet-filterbar">
+        <label className="registry-filter-field"><span>Disponibilidade</span><select
           aria-label="Filtrar por disponibilidade"
           value={filtro}
           onChange={(event) => setFiltro(event.target.value as Filtro)}
@@ -73,7 +84,7 @@ export function FleetStatusPage({ embedded = false }: { readonly embedded?: bool
               {opcao.label}
             </option>
           ))}
-        </select>
+        </select></label>
       </div>
 
       {status === "success" && items.length > 0 ? (
@@ -108,11 +119,7 @@ export function FleetStatusPage({ embedded = false }: { readonly embedded?: bool
       ) : null}
 
       {visiveis.length > 0 ? (
-        <ul className="fleet-grid">
-          {visiveis.map((truck) => (
-            <FleetStatusCard key={truck.id} truck={truck} />
-          ))}
-        </ul>
+        <div className="registry-table-wrap"><table className="registry-table fleet-table"><caption className="sr-only">Disponibilidade operacional dos caminhões</caption><thead><tr><th scope="col">Placa</th><th scope="col">Modelo</th><th scope="col">Disponibilidade</th><th scope="col">Motivo</th></tr></thead><tbody>{visiveis.map((truck) => <FleetStatusCard key={truck.id} truck={truck} />)}</tbody></table></div>
       ) : null}
 
       {status === "success" ? (
@@ -122,18 +129,19 @@ export function FleetStatusPage({ embedded = false }: { readonly embedded?: bool
   );
 }
 
+function FleetMetric({ icon, label, value, detail }: { readonly icon: "truck" | "gauge" | "planning" | "settings" | "report"; readonly label: string; readonly value: number; readonly detail: string }) {
+  return <div className="fleet-metric"><span><Icon name={icon} size={19} /></span><div><p>{label}</p><strong>{value}</strong><small>{detail}</small></div></div>;
+}
+
 function FleetStatusCard({ truck }: { readonly truck: TruckOperationalStatus }) {
   const { tone, label, reason } = describeFleetStatus(truck);
 
   return (
-    <li className={truck.available ? "fleet-card" : "fleet-card fleet-card-off"}>
-      <div className="fleet-card-head">
-        <p className="fleet-card-plate">{truck.plate}</p>
-        <StatusPill tone={tone}>{label}</StatusPill>
-      </div>
-      <p className="fleet-card-model">{truck.model}</p>
-      {/* Sem motivo, nada ocupa a linha: um traço ou "—" pareceria informação. */}
-      {reason === null ? null : <p className="fleet-card-reason">{reason}</p>}
-    </li>
+    <tr className={truck.available ? "fleet-card" : "fleet-card fleet-card-off"}>
+      <td data-label="Placa"><strong className="fleet-card-plate">{truck.plate}</strong></td>
+      <td data-label="Modelo">{truck.model}</td>
+      <td data-label="Disponibilidade"><StatusPill tone={tone}>{label}</StatusPill></td>
+      <td data-label="Motivo">{reason}</td>
+    </tr>
   );
 }

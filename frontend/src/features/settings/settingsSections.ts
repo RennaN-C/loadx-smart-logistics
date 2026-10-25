@@ -1,4 +1,4 @@
-/** Seções reais de Configurações. Uma fonte para a sidebar e o conteúdo. */
+/** Seções reais de Configurações. Uma fonte para a navegação horizontal e o conteúdo. */
 export const SETTINGS_SECTIONS = [
   { id: "settings-account", label: "Conta e administração" },
   { id: "settings-users", label: "Gestão de usuários" },

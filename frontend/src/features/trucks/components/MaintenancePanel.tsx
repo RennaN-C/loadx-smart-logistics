@@ -11,6 +11,7 @@ import { listMaintenances } from "../api/maintenanceApi";
 import { getTruck, updateTruck } from "../api/trucksApi";
 import type { Truck, TruckMaintenance } from "../types";
 import { MaintenanceForm } from "./MaintenanceForm";
+import "./MaintenancePanel.css";
 function date(value: string) { return new Date(value).toLocaleString("pt-BR"); }
 function maintenanceLabel(record: TruckMaintenance): string {
   if (record.closedAt) return new Date(record.closedAt) < new Date(record.startsAt) ? "Cancelada" : "Encerrada";
@@ -29,11 +30,19 @@ export function MaintenancePanel({ truck: initial, onChanged }: { readonly truck
   async function saveKm(event: FormEvent) { event.preventDefault(); setPending(true); setActionError(null); try { await updateTruck(truck.id, { odometerKm: Number(km) }); await changed(); } catch(error_) { setActionError(error_ instanceof ApiError ? error_.message : "Não foi possível atualizar a quilometragem."); } finally { setPending(false); } }
   if (creating || closing) return <MaintenanceForm truck={truck} closing={closing} onSaved={changed} onCancel={() => { setCreating(false); setClosing(undefined); }} />;
   const overdue = !!((truck.nextServiceAt && new Date(truck.nextServiceAt) <= new Date()) || (truck.nextServiceKm != null && truck.odometerKm != null && truck.odometerKm >= truck.nextServiceKm));
-  return <div>
+  return <div className="maintenance-panel">
     <p>Quilometragem atual: {truck.odometerKm ?? "não informada"}{truck.odometerKm != null ? " km" : ""}</p>
     <p>Próxima revisão: {truck.nextServiceAt ? date(truck.nextServiceAt) : "data não informada"} · {truck.nextServiceKm != null ? `${truck.nextServiceKm} km` : "quilometragem não informada"}</p>
     {overdue ? <StatusPill tone="warn">Revisão vencida</StatusPill> : null}
-    {canManage ? <><form onSubmit={(e) => void saveKm(e)}><label>Atualizar quilometragem<input aria-label="Atualizar quilometragem" type="number" min={truck.odometerKm ?? 0} step={1} required value={km} onChange={(e) => setKm(e.target.value)} disabled={pending} /></label><button type="submit" disabled={pending}>Salvar quilometragem</button></form>{truck.active ? <button type="button" className="btn-primary" onClick={() => setCreating(true)}>Nova manutenção</button> : null}</> : null}
+    {canManage ? <div className="maintenance-toolbar">
+      <form className="entity-form odometer-form" onSubmit={(e) => void saveKm(e)}>
+        <label className="entity-form-field">Atualizar quilometragem
+          <span className="odometer-input"><input aria-label="Atualizar quilometragem" type="number" min={truck.odometerKm ?? 0} step={1} required value={km} onChange={(e) => setKm(e.target.value)} disabled={pending} /><span aria-hidden="true">km</span></span>
+        </label>
+        <button type="submit" className="btn-secondary" disabled={pending}>{pending ? "Salvando…" : "Salvar quilometragem"}</button>
+      </form>
+      {truck.active ? <button type="button" className="btn-primary" onClick={() => setCreating(true)}>Nova manutenção</button> : null}
+    </div> : null}
     {actionError ? <AlertBanner>{actionError}</AlertBanner> : null}
     {status === "loading" ? <output>Carregando manutenções…</output> : null}
     {error ? <AlertBanner>{error.message}</AlertBanner> : null}

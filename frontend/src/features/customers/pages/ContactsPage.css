@@ -84,3 +84,9 @@
 .contact-card-foot > * {
   max-width: 100%;
 }
+
+.contacts-page { position: relative; }
+@media (min-width: 901px) {
+  .contacts-page > .entity-header { padding-right: 190px; }
+  .contacts-panel .contact-filterbar > .btn-primary { position: absolute; top: 30px; right: 32px; }
+}

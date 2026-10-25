@@ -31,6 +31,7 @@ export function TripCancellationPreflightPanel({ tripId, canCancel = true, onCan
   const requestKey = useRef<string | null>(null);
 
   async function check() {
+    if (loading || submitting) return;
     setLoading(true);
     setError("");
     setReport(null);
@@ -45,7 +46,7 @@ export function TripCancellationPreflightPanel({ tripId, canCancel = true, onCan
   }
 
   async function cancel() {
-    if (!report?.safe_for_cancellation_workflow || reason.trim().length < 8) return;
+    if (submitting || loading || !canCancel || !report?.safe_for_cancellation_workflow || reason.trim().length < 8) return;
     setSubmitting(true);
     setError("");
     if (!requestKey.current) requestKey.current = crypto.randomUUID();
@@ -70,7 +71,7 @@ export function TripCancellationPreflightPanel({ tripId, canCancel = true, onCan
         Consulta os bloqueios operacionais sem cancelar a viagem nem liberar
         caminhões. O cancelamento exige motivo, confirmação e uma nova validação transacional.
       </p>
-      <button type="button" className="btn-secondary" disabled={loading} onClick={() => void check()}>
+      <button type="button" className="btn-secondary" disabled={loading || submitting} onClick={() => void check()}>
         {loading ? "Verificando..." : "Verificar bloqueios"}
       </button>
       {error ? <AlertBanner>{error}</AlertBanner> : null}

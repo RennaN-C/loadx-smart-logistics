@@ -1,0 +1,19 @@
+{
+  "auth": {
+    "success": true,
+    "numPassedTests": 85,
+    "numFailedTests": 0,
+    "numTotalTests": 85
+  },
+  "frontend": {
+    "success": true,
+    "numPassedTests": 1130,
+    "numFailedTests": 0,
+    "numTotalTests": 1130
+  },
+  "brand_panel_updated_test": "2 passed, pause/resume class and accessible state",
+  "lint": "passed",
+  "build": "passed",
+  "bundle_budget": "LoadViewer 229.6 KiB gzip <= 250 KiB",
+  "early_pause": "passed, headline remains visible and photo animation pauses"
+}

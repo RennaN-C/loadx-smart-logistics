@@ -1,0 +1,245 @@
+{
+  "source": "Actual local React app with controlled fictitious HTTP fixtures; visual checks only, no production data changes",
+  "results": [
+    {
+      "name": "quilometragem",
+      "theme": "dark",
+      "width": 1366,
+      "overflow": false,
+      "errors": [],
+      "unstyledButtons": 0
+    },
+    {
+      "name": "renovacao-caminhao",
+      "theme": "dark",
+      "width": 1366,
+      "overflow": false,
+      "errors": [],
+      "unstyledButtons": 0
+    },
+    {
+      "name": "documentos-motorista",
+      "theme": "dark",
+      "width": 1366,
+      "overflow": false,
+      "errors": [],
+      "unstyledButtons": 0
+    },
+    {
+      "name": "renovacao-motorista",
+      "theme": "dark",
+      "width": 1366,
+      "overflow": false,
+      "errors": [],
+      "unstyledButtons": 0
+    },
+    {
+      "name": "plano-salvo",
+      "theme": "dark",
+      "width": 1366,
+      "overflow": false,
+      "errors": [],
+      "unstyledButtons": 0
+    },
+    {
+      "name": "quilometragem",
+      "theme": "dark",
+      "width": 768,
+      "overflow": false,
+      "errors": [],
+      "unstyledButtons": 0
+    },
+    {
+      "name": "renovacao-caminhao",
+      "theme": "dark",
+      "width": 768,
+      "overflow": false,
+      "errors": [],
+      "unstyledButtons": 0
+    },
+    {
+      "name": "documentos-motorista",
+      "theme": "dark",
+      "width": 768,
+      "overflow": false,
+      "errors": [],
+      "unstyledButtons": 0
+    },
+    {
+      "name": "renovacao-motorista",
+      "theme": "dark",
+      "width": 768,
+      "overflow": false,
+      "errors": [],
+      "unstyledButtons": 0
+    },
+    {
+      "name": "plano-salvo",
+      "theme": "dark",
+      "width": 768,
+      "overflow": false,
+      "errors": [],
+      "unstyledButtons": 0
+    },
+    {
+      "name": "quilometragem",
+      "theme": "dark",
+      "width": 375,
+      "overflow": false,
+      "errors": [],
+      "unstyledButtons": 0
+    },
+    {
+      "name": "renovacao-caminhao",
+      "theme": "dark",
+      "width": 375,
+      "overflow": false,
+      "errors": [],
+      "unstyledButtons": 0
+    },
+    {
+      "name": "documentos-motorista",
+      "theme": "dark",
+      "width": 375,
+      "overflow": false,
+      "errors": [],
+      "unstyledButtons": 0
+    },
+    {
+      "name": "renovacao-motorista",
+      "theme": "dark",
+      "width": 375,
+      "overflow": false,
+      "errors": [],
+      "unstyledButtons": 0
+    },
+    {
+      "name": "plano-salvo",
+      "theme": "dark",
+      "width": 375,
+      "overflow": false,
+      "errors": [],
+      "unstyledButtons": 0
+    },
+    {
+      "name": "quilometragem",
+      "theme": "light",
+      "width": 1366,
+      "overflow": false,
+      "errors": [],
+      "unstyledButtons": 0
+    },
+    {
+      "name": "renovacao-caminhao",
+      "theme": "light",
+      "width": 1366,
+      "overflow": false,
+      "errors": [],
+      "unstyledButtons": 0
+    },
+    {
+      "name": "documentos-motorista",
+      "theme": "light",
+      "width": 1366,
+      "overflow": false,
+      "errors": [],
+      "unstyledButtons": 0
+    },
+    {
+      "name": "renovacao-motorista",
+      "theme": "light",
+      "width": 1366,
+      "overflow": false,
+      "errors": [],
+      "unstyledButtons": 0
+    },
+    {
+      "name": "plano-salvo",
+      "theme": "light",
+      "width": 1366,
+      "overflow": false,
+      "errors": [],
+      "unstyledButtons": 0
+    },
+    {
+      "name": "quilometragem",
+      "theme": "light",
+      "width": 768,
+      "overflow": false,
+      "errors": [],
+      "unstyledButtons": 0
+    },
+    {
+      "name": "renovacao-caminhao",
+      "theme": "light",
+      "width": 768,
+      "overflow": false,
+      "errors": [],
+      "unstyledButtons": 0
+    },
+    {
+      "name": "documentos-motorista",
+      "theme": "light",
+      "width": 768,
+      "overflow": false,
+      "errors": [],
+      "unstyledButtons": 0
+    },
+    {
+      "name": "renovacao-motorista",
+      "theme": "light",
+      "width": 768,
+      "overflow": false,
+      "errors": [],
+      "unstyledButtons": 0
+    },
+    {
+      "name": "plano-salvo",
+      "theme": "light",
+      "width": 768,
+      "overflow": false,
+      "errors": [],
+      "unstyledButtons": 0
+    },
+    {
+      "name": "quilometragem",
+      "theme": "light",
+      "width": 375,
+      "overflow": false,
+      "errors": [],
+      "unstyledButtons": 0
+    },
+    {
+      "name": "renovacao-caminhao",
+      "theme": "light",
+      "width": 375,
+      "overflow": false,
+      "errors": [],
+      "unstyledButtons": 0
+    },
+    {
+      "name": "documentos-motorista",
+      "theme": "light",
+      "width": 375,
+      "overflow": false,
+      "errors": [],
+      "unstyledButtons": 0
+    },
+    {
+      "name": "renovacao-motorista",
+      "theme": "light",
+      "width": 375,
+      "overflow": false,
+      "errors": [],
+      "unstyledButtons": 0
+    },
+    {
+      "name": "plano-salvo",
+      "theme": "light",
+      "width": 375,
+      "overflow": false,
+      "errors": [],
+      "unstyledButtons": 0
+    }
+  ]
+}

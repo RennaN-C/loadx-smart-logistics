@@ -330,3 +330,18 @@
   display: flex;
   flex-direction: column;
 }
+
+/* Listagem densa da referência: os detalhes completos continuam no formulário. */
+.registry-table .truck-card { display: table-row; background: transparent; border: 0; border-radius: 0; }
+.truck-table .truck-card-plate { padding: 0; border: 0; border-radius: 0; font-size: .82rem; }
+.truck-table .truck-card-model { display: block; margin: 0; font-size: .82rem; }
+.truck-table .truck-card-weight { display: inline; color: var(--ink); font-size: .82rem; }
+.truck-table .truck-card-actions { display: flex; flex-wrap: wrap; gap: 5px 10px; min-width: 150px; }
+.truck-table .truck-card-actions > *,
+.truck-table .truck-card-actions .btn-link { width: auto; min-height: 30px; padding: 4px 0; border: 0; background: transparent; color: var(--accent-strong); font-size: .7rem; white-space: nowrap; }
+.truck-table .truck-card-actions .btn-link:hover { background: transparent; color: var(--ink); }
+
+@media (max-width: 820px) {
+  .registry-table .truck-card { display: grid; }
+  .truck-table .truck-card-actions { min-width: 0; }
+}

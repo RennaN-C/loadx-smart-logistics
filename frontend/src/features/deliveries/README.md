@@ -177,3 +177,13 @@ ou promessa de retomada de arquivo após F5. O backend continua autoritativo.
 `CONFIRMADO`: os commits originais de Marlon foram reaproveitados com autoria e
 referência de cherry-pick; sua branch não foi sobrescrita. Não há migration,
 nova dependência, envio Meta ou alteração de domínio da OC90.
+
+## Central operacional — auditoria UI01 / #276
+
+`CONFIRMADO`: Carregamentos e Entregas reutilizam FormField, StatusPill e
+paginação server-side existentes. Referências curtas distinguem registros;
+links preservam UUID completo e nomes acessíveis por recurso. Carregamentos
+reutiliza os rótulos do detalhe da conferência. Filtros reiniciam a página,
+loading/erro/retry/vazio são explícitos e o total vem da API, sem reconstruir
+estados de domínio no navegador. Tokens, RBAC e contratos HTTP preservados.
+Evidências: [UI01](../../../../docs/evidencias/qa-v12-pentest/ui-lote1.md).
