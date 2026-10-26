@@ -39,7 +39,6 @@ from app.modules.load_planning.optimizer.engine import (
     calculate_volume_load_plan,
 )
 from app.modules.load_planning.optimizer.loading_sequence import SequencedPlacement
-from app.modules.load_planning.optimizer.metrics import calculate_load_metrics
 from app.modules.load_planning.reference_service import LoadPlanReferenceService
 from app.modules.load_planning.repository import LoadPlanRepository, LoadPlanSummary
 from app.modules.load_planning.schemas import (
@@ -613,10 +612,20 @@ class LoadPlanningService:
         if candidate is not None:
             placed = tuple(row.volume for row in candidate.placed_volumes)
             rejected = tuple(row.volume for row in candidate.rejected_volumes)
-            normalize = lambda volume: replace(volume, product_name=None)
-            expected = sorted((normalize(v) for v in volumes), key=lambda v: (v.order_item_id.int, v.volume_index))
-            actual = sorted((normalize(v) for v in (*placed, *rejected)), key=lambda v: (v.order_item_id.int, v.volume_index))
-            if candidate.capacity != calculate_truck_capacity(capacity) or actual != expected:
+            def normalize(volume: IndividualVolume) -> IndividualVolume:
+                return replace(volume, product_name=None)
+
+            def volume_key(volume: IndividualVolume) -> tuple[int, int]:
+                return volume.order_item_id.int, volume.volume_index
+
+            expected = sorted((normalize(v) for v in volumes), key=volume_key)
+            actual = sorted(
+                (normalize(v) for v in (*placed, *rejected)), key=volume_key
+            )
+            if (
+                candidate.capacity != calculate_truck_capacity(capacity)
+                or actual != expected
+            ):
                 candidate = None
         result = candidate or calculate_volume_load_plan(capacity, volumes)
         plan = self._build_load_plan(

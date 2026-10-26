@@ -317,8 +317,15 @@ def test_packing_runs_without_read_transaction_and_lock_is_still_held(
     key = uuid.uuid4()
     original = distribution_service.optimize_multi_truck
     observed = []
+    owner = {}
+    original_optimize = LoadDistributionService._optimize
+
+    def tracked_optimize(service, *args, **kwargs):
+        owner["db"] = service.db
+        return original_optimize(service, *args, **kwargs)
 
     def during_packing(candidates, volumes):
+        assert not owner["db"].in_transaction()
         with s.factory() as competing:
             # Another request with the same actor/key sees the committed
             # session advisory lock, although no transaction is held for packing.
@@ -329,11 +336,30 @@ def test_packing_runs_without_read_transaction_and_lock_is_still_held(
 
     from app.modules.load_planning.optimization_repository import OptimizationRepository
 
+    monkeypatch.setattr(LoadDistributionService, "_optimize", tracked_optimize)
     monkeypatch.setattr(distribution_service, "optimize_multi_truck", during_packing)
     first = send(s, key)
     assert first.status_code == 201, first.text
     assert observed
     assert recover(s, key).status_code == 200
+
+
+def test_automatic_distribution_reuses_computed_layout_during_persistence(
+    distribution_scenario, monkeypatch
+):
+    """Do not rerun the expensive physical search under the write transaction."""
+    from app.modules.load_planning import service as planning_service
+
+    def repeated_search(*args, **kwargs):
+        raise AssertionError("Physical planning was already calculated")
+
+    monkeypatch.setattr(
+        planning_service, "calculate_volume_load_plan", repeated_search
+    )
+    s = distribution_scenario
+    result = send(s, uuid.uuid4())
+    assert result.status_code == 201, result.text
+    assert result.json()["volume_count"] == 3
 
 
 def test_openapi_documents_optional_uuid_header_and_recovery():
