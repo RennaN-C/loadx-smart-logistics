@@ -29,6 +29,8 @@ export function mapOrderErrorToMessage(error: ApiError): string {
     return "Um dos produtos do pedido não existe mais. Revise os itens.";
   }
 
+  if (error.code === "ORDER_EDIT_NOT_ALLOWED") return "Volte o pedido para Rascunho antes de editar os dados.";
+
   if (error.code === "ORDER_ITEMS_REFERENCED_BY_LOAD_PLAN") {
     return "Os itens deste pedido já estão em um plano de carga e não podem ser alterados.";
   }
