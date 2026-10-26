@@ -231,3 +231,12 @@ agora deixa explícita sua aplicação à seleção inteira, inclusive multi-cam
 ## Recuperação após erro do cálculo multi-caminhão
 
 `CONFIRMADO`: a UI mantém uma chave idempotente por usuário em `sessionStorage` para recuperar um resultado após timeout, 500 ou falha de rede, sem repetir a operação automaticamente. A tela de recuperação não cria plano ao abrir. Se o GET de recuperação retornar `OPTIMIZATION_NOT_FOUND` (404) após a consulta explícita, o usuário pode **encerrar apenas a referência local**, mediante confirmação, e iniciar outro planejamento. Erros 409 (`OPTIMIZATION_IN_PROGRESS`) ou 500 na consulta não habilitam descarte. O botão de encerramento não apaga pedidos, planos ou dados do backend; antes de iniciar outra solicitação o usuário deve consultar os planos existentes. Nenhum timeout/limite do otimizador foi modificado por esta correção.
+
+## Sincronização de estados cancelados e explicação de IA (manutenção #330)
+
+- `CALCULATED` permanece o **resultado físico histórico** do cálculo; não se converte artificialmente em `CANCELED` por cancelar uma distribuição.
+- A listagem `GET /load-plans` recebe também `distribution_status`, `part_status` e `is_current_part`, derivados da distribuição persistida, inclusive versões anteriores por recálculo.
+- O filtro operacional `ongoing` é aplicado no servidor **antes da contagem/paginação** e exclui distribuições canceladas, incompletas e partes antigas/canceladas. `all` preserva o histórico completo e mostra a situação atual da distribuição, em vez de apresentar `CALCULATED` como se a operação estivesse em andamento.
+- As transições de viagem, carregamento, pedido, distribuição e partes são consultadas nas projeções já existentes. Cancelar não exclui registros nem altera a cena 3D histórica. Perfis sem acesso aos detalhes da operação não recebem esses dados.
+- Após salvar um plano aparece uma área **separada de Assistente de IA**, com botão de consulta opcional a `POST /load-plans/{id}/explain`. O backend já diferencia resposta real `source=AI` de fallback `source=FALLBACK`; a interface identifica a origem e não diz que foi IA quando for fallback. A área nunca recalcula posições, não aprova e não altera a distribuição.
+- Mensagens da UI orientam o usuário a consultar o histórico ou iniciar um novo planejamento quando a distribuição estiver cancelada.

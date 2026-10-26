@@ -52,6 +52,9 @@ interface LoadPlanItemDto extends ItemSnapshotDto {
 export interface LoadPlanDto {
   orders_ready_for_approval?: boolean | null;
   distribution_id?: string | null;
+  distribution_status?: LoadPlan["distributionStatus"];
+  part_status?: LoadPlan["partStatus"];
+  is_current_part?: boolean;
   id: string;
   truck_id: string;
   recalculated_from_id: string | null;
@@ -134,6 +137,9 @@ function mapItem(dto: LoadPlanItemDto): LoadPlanItem {
 export function mapLoadPlanFromDto(dto: LoadPlanDto): LoadPlan {
   return {
     distributionId: dto.distribution_id ?? null,
+    distributionStatus: dto.distribution_status ?? null,
+    partStatus: dto.part_status ?? null,
+    isCurrentPart: dto.is_current_part ?? true,
     id: dto.id,
     truckId: dto.truck_id,
     recalculatedFromId: dto.recalculated_from_id,
@@ -193,6 +199,25 @@ export async function createLoadPlan(input: LoadPlanInput): Promise<LoadPlan> {
   return mapLoadPlanFromDto(data);
 }
 
+export interface PlanAIExplanationResult {
+  loadPlanId: string;
+  source: "AI" | "FALLBACK";
+  explanation: string;
+  algorithmVersion: string;
+}
+
+/** Advisory-only explanation. Never changes physical placement or approval. */
+export async function explainLoadPlan(id: string): Promise<PlanAIExplanationResult> {
+  const { data } = await api.post<{
+    load_plan_id: string; source: "AI" | "FALLBACK";
+    explanation: string; algorithm_version: string;
+  }>(`/load-plans/${id}/explain`, {});
+  return {
+    loadPlanId: data.load_plan_id, source: data.source,
+    explanation: data.explanation, algorithmVersion: data.algorithm_version,
+  };
+}
+
 export async function getLoadPlan(id: string): Promise<LoadPlan> {
   const { data } = await api.get<LoadPlanDto>(`/load-plans/${id}`);
 
@@ -222,6 +247,9 @@ export async function recalculateLoadPlan(id: string): Promise<LoadPlan> {
 interface LoadPlanListDto {
   operation?: PlanOperation | null;
   distribution_id?: string | null;
+  distribution_status?: LoadPlanListItem["distributionStatus"];
+  part_status?: LoadPlanListItem["partStatus"];
+  is_current_part?: boolean;
   id: string;
   truck_id: string;
   truck_plate: string;
@@ -245,6 +273,9 @@ export async function listLoadPlans(
   return mapPageFromDto(data, (dto) => ({
     operation: dto.operation ?? null,
     distributionId: dto.distribution_id ?? null,
+    distributionStatus: dto.distribution_status ?? null,
+    partStatus: dto.part_status ?? null,
+    isCurrentPart: dto.is_current_part ?? true,
     id: dto.id, truckId: dto.truck_id, truckPlate: dto.truck_plate,
     truckModel: dto.truck_model, status: dto.status, createdAt: dto.created_at,
     recalculatedFromId: dto.recalculated_from_id, loadedCount: dto.loaded_count,
