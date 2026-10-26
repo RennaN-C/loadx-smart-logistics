@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useNavigate } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
 import { useAuth } from "../auth/hooks/useAuth";
 import { Assistant } from "./Assistant";
@@ -14,8 +14,9 @@ beforeEach(() => {
   vi.mocked(useAuth).mockReturnValue({ user } as ReturnType<typeof useAuth>);
   vi.mocked(askAssistant).mockResolvedValue(REPLY);
 });
+function RouteChangeButton() { const navigate = useNavigate(); return <button onClick={() => navigate("/orders")}>Abrir pedidos</button>; }
 function show(path = "/planning/11111111-1111-4111-8111-111111111111") {
-  return render(<MemoryRouter initialEntries={[path]}><Assistant /></MemoryRouter>);
+  return render(<MemoryRouter initialEntries={[path]}><Assistant /><RouteChangeButton /></MemoryRouter>);
 }
 function open() { const button = screen.getByRole("button", { name: "Perguntar ao LoadX" }); button.focus(); fireEvent.click(button); }
 function send() { fireEvent.change(screen.getByLabelText("Sua pergunta"), { target: { value: "Quantos pedidos entregues?" } }); fireEvent.click(screen.getByRole("button", { name: "Enviar pergunta" })); }
@@ -104,4 +105,29 @@ it("envia diagnóstico separado do plano da rota e sem consulta automática", as
   fireEvent.click(screen.getByRole("button", { name: "Enviar pergunta" }));
   await waitFor(() => expect(askAssistant).toHaveBeenCalledOnce());
   expect(vi.mocked(askAssistant).mock.calls[0][2]).toEqual({ diagnosticToken: receipt });
+});
+
+it("é um widget flutuante global, sem bloquear a tela ou o scroll", () => {
+  show();
+  const launch = screen.getByRole("button", { name: "Perguntar ao LoadX" });
+  expect(launch).toHaveClass("assistant-launch");
+  expect(launch).toHaveAttribute("aria-expanded", "false");
+  open();
+  const panel = screen.getByRole("dialog", { name: "Assistente LoadX" });
+  expect(panel).toHaveClass("assistant-panel");
+  expect(panel).toHaveAttribute("aria-modal", "false");
+  expect(launch).toHaveAttribute("aria-expanded", "true");
+  expect(document.body.style.overflow).not.toBe("hidden");
+});
+it("permanece disponível ao mudar de aba sem apagar as mensagens", async () => {
+  show("/");
+  open(); send();
+  expect(await screen.findByText(REPLY.answer)).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Abrir pedidos" }));
+  expect(screen.getByRole("dialog", { name: "Assistente LoadX" })).toBeInTheDocument();
+  expect(screen.getByText(REPLY.answer)).toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText("Sua pergunta"), { target: { value: "Pedidos pendentes?" } });
+  fireEvent.click(screen.getByRole("button", { name: "Enviar pergunta" }));
+  await waitFor(() => expect(askAssistant).toHaveBeenCalledTimes(2));
+  expect(vi.mocked(askAssistant).mock.calls[1][2]).toEqual({});
 });

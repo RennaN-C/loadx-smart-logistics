@@ -1,7 +1,9 @@
 """Fixed HTTPS Groq endpoint, bounded bodies, no redirects/retries/raw logging."""
 
 import json
+import logging
 import ssl
+from urllib.error import HTTPError
 from urllib.request import HTTPRedirectHandler, HTTPSHandler, Request, build_opener
 
 from app.core.config import Settings
@@ -14,6 +16,7 @@ from app.integrations.ai.provider import (
 
 ENDPOINT = "https://api.groq.com/openai/v1/chat/completions"
 MAX_BODY_BYTES = 65_536
+logger = logging.getLogger(__name__)
 
 
 class _NoRedirect(HTTPRedirectHandler):
@@ -70,7 +73,12 @@ class GroqProvider:
             if len(body) > MAX_BODY_BYTES:
                 raise AIProviderUnavailableError
             return self._parse_response(body)
+        except HTTPError as error:
+            # Only the upstream status is recorded. Never log URL/body/headers or the key.
+            logger.warning("GROQ_HTTP_FAILURE status=%s", error.code)
+            raise AIProviderUnavailableError from None
         except TimeoutError:
+            logger.warning("GROQ_TIMEOUT")
             raise AIProviderTimeoutError from None
         except (
             OSError,
@@ -80,6 +88,7 @@ class GroqProvider:
             TypeError,
             RecursionError,
         ):
+            logger.warning("GROQ_TRANSPORT_OR_RESPONSE_INVALID")
             raise AIProviderUnavailableError from None
 
     @staticmethod

@@ -1,6 +1,7 @@
 """Small read-only tool loop. The provider cannot grant permissions or write."""
 
 import json
+import logging
 import re
 import time
 import uuid
@@ -34,6 +35,8 @@ from app.modules.reports.assistant_service import (
     allowed_tool,
 )
 from app.modules.users.models import User
+
+logger = logging.getLogger(__name__)
 
 SYSTEM = """Você é o Assistente LoadX, guia operacional de logística em português brasileiro.
 Somente consultas e explicações; nunca execute nem afirme ter feito alterações.
@@ -125,6 +128,7 @@ class AssistantService:
         deadline = time.monotonic() + self.config.ai_chat_timeout_seconds
         definitions = tool_definitions(user)
         allowed_names = frozenset(tool["function"]["name"] for tool in definitions)
+        stage = "initial_provider_call"
         try:
             reply = self.provider.complete(
                 messages,
@@ -135,6 +139,7 @@ class AssistantService:
             if not isinstance(calls, list) or len(calls) > 3:
                 raise AIProviderUnavailableError
             if calls:
+                stage = "authorized_tools"
                 messages.append(reply)
                 results = [
                     self._run_tool(
@@ -143,6 +148,7 @@ class AssistantService:
                     for raw in calls
                 ]
                 _append_results(results, messages, facts, links)
+                stage = "final_provider_call"
                 reply = self.provider.complete(
                     messages, timeout_seconds=self._remaining(deadline)
                 )
@@ -151,6 +157,7 @@ class AssistantService:
             answer = reply.get("content")
             if not isinstance(answer, str) or not answer.strip() or len(answer) > 8000:
                 raise AIProviderUnavailableError
+            stage = "answer_contract"
             answer = grounded_answer(answer, facts)
             return ChatResponse(
                 source="GROQ",
@@ -169,7 +176,9 @@ class AssistantService:
             KeyError,
             TypeError,
             RecursionError,
-        ):
+        ) as error:
+            # Safe operational diagnostics: no prompt, credentials or customer information.
+            logger.warning("ASSISTANT_FALLBACK stage=%s category=%s", stage, type(error).__name__)
             return ChatResponse(
                 source="FALLBACK",
                 answer="A IA está indisponível. Este é um resumo automático, sem resposta válida do provedor. Os fatos abaixo vêm do LoadX; nenhum registro foi alterado. Use as ações da operação para continuar.",

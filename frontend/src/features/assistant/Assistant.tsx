@@ -1,8 +1,7 @@
 import { AssistantConversation, type Turn } from "./AssistantConversation";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import { useLocation } from "react-router-dom";
-import { Modal } from "../../components/Modal";
 import { Icon } from "../../components/Icon";
 import { AlertBanner } from "../../components/AlertBanner";
 import { useAuth } from "../auth/hooks/useAuth";
@@ -26,12 +25,33 @@ export function Assistant() {
   const [working, setWorking] = useState(false);
   const [failed, setFailed] = useState<string | null>(null);
   const request = useRef<AbortController | null>(null);
+  const launchRef = useRef<HTMLButtonElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const panelId = useId();
   const identity = `${user?.id}:${user?.role}:${user?.permissions?.join(",")}`;
   const enabled = user && ["ADMIN", "LOGISTICS_MANAGER", "CHECKER"].includes(user.role);
   useEffect(() => {
     request.current?.abort(); request.current = null;
-    setOpen(false); setSelectedCustomer(null); setTurns([]); setDraft(""); setFailed(null); setWorking(false); setContext(routeContext(pathname));
-  }, [identity, pathname]);
+    setOpen(false); setSelectedCustomer(null); setTurns([]); setDraft(""); setFailed(null); setWorking(false);
+  }, [identity]);
+  useEffect(() => {
+    // Route context changes without discarding the conversation or remounting the widget.
+    setContext(routeContext(pathname));
+    setSelectedCustomer(null);
+  }, [pathname]);
+  useEffect(() => {
+    if (!open) return;
+    inputRef.current?.focus();
+    function onEscape(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      const dialogs = document.querySelectorAll('[role="dialog"]');
+      if (dialogs[dialogs.length - 1]?.id !== panelId) return;
+      event.preventDefault();
+      close();
+    }
+    document.addEventListener("keydown", onEscape);
+    return () => document.removeEventListener("keydown", onEscape);
+  }, [open, panelId]);
   useEffect(() => {
     const listener = (event: Event) => {
       request.current?.abort(); request.current = null;
@@ -49,7 +69,7 @@ export function Assistant() {
     setDraft(turns.at(-1)?.question ?? "Consultar pedidos deste cliente");
   }
   function clearCustomer() { setSelectedCustomer(null); setContext((current) => ({ ...current, customerId: undefined })); }
-  function close() { request.current?.abort(); request.current = null; setWorking(false); setOpen(false); }
+  function close() { request.current?.abort(); request.current = null; setWorking(false); setOpen(false); launchRef.current?.focus(); }
   async function send(question = draft) {
     if (request.current || !question.trim() || working || question.length > 2000) return;
     const controller = new AbortController(); request.current = controller;
@@ -69,10 +89,16 @@ export function Assistant() {
   if (!enabled) return null;
   const sendLabel = working ? "Consultando…" : "Enviar pergunta";
   const submitLabel = failed && !working ? "Tentar novamente" : sendLabel;
-  return <>
-    <button type="button" className="btn-secondary assistant-launch" aria-label="Perguntar ao LoadX" aria-haspopup="dialog" onClick={() => setOpen(true)}><Icon name="search" size={16} /><span>Perguntar ao LoadX</span></button>
-    {open ? createPortal(<div className="assistant-shell"><Modal title="Assistente LoadX" subtitle="Orientação e consultas autorizadas, sem alterar registros." onClose={close}>
-      <button type="button" className="btn-secondary assistant-close" aria-label="Fechar assistente" onClick={close}><span aria-hidden="true">×</span></button>
+  return createPortal(<>
+    <button ref={launchRef} type="button" className="assistant-launch" aria-label="Perguntar ao LoadX" aria-haspopup="dialog" aria-expanded={open} aria-controls={panelId} onClick={() => open ? close() : setOpen(true)}>
+      <Icon name="planning" size={22} /><span>Assistente LoadX</span>
+    </button>
+    {open ? <section id={panelId} className="assistant-panel" role="dialog" aria-modal="false" aria-label="Assistente LoadX">
+      <header className="assistant-panel-header">
+        <div><h2>Assistente LoadX</h2><p>Consultas autorizadas e orientação contextual.</p></div>
+        <button type="button" className="assistant-close" aria-label="Fechar assistente" onClick={close}><span aria-hidden="true">×</span></button>
+      </header>
+      <div className="assistant-panel-body">
       <p className="entity-form-help">Não informe senhas, documentos, endereços ou dados pessoais. A IA pode errar; confira os fatos do sistema.</p>
       <AssistantConversation turns={turns} onLink={close} onSelectCustomer={selectCustomer} working={working} />
       {working ? <output><span className="spinner" aria-hidden="true" /> Consultando informações autorizadas…</output> : null}
@@ -80,9 +106,10 @@ export function Assistant() {
       <div className="assistant-suggestions" aria-label="Perguntas sugeridas">{(turns.at(-1)?.reply?.suggestions ?? ["Por que a carga não coube?", "Quantos pedidos foram entregues nos últimos 30 dias?", "O que faço agora?"]).map((suggestion) => <button type="button" className="btn-secondary" key={suggestion} disabled={working} onClick={() => setDraft(suggestion === "Tentar novamente" ? turns.at(-1)?.question ?? suggestion : suggestion)}>{suggestion}</button>)}</div>
       {selectedCustomer ? <div className="assistant-filter"><span>Cliente: {selectedCustomer.label}</span><button type="button" className="btn-secondary" disabled={working} onClick={clearCustomer}>Limpar filtro de cliente</button></div> : null}
       <form onSubmit={(event: FormEvent) => { event.preventDefault(); void send(); }}>
-        <label htmlFor="assistant-message">Sua pergunta</label><textarea id="assistant-message" value={draft} onChange={(event) => setDraft(event.target.value)} maxLength={2000} rows={2} disabled={working} placeholder="Pergunte sobre a operação ou os indicadores disponíveis" />
+        <label htmlFor="assistant-message">Sua pergunta</label><textarea ref={inputRef} id="assistant-message" value={draft} onChange={(event) => setDraft(event.target.value)} maxLength={2000} rows={2} disabled={working} placeholder="Pergunte sobre a operação ou os indicadores disponíveis" />
         <div className="entity-form-actions"><button className="btn-secondary" type="button" disabled={working || turns.length === 0} onClick={() => { setTurns([]); setFailed(null); }}>Limpar conversa</button><button className="btn-primary" type="submit" disabled={working || !draft.trim()}>{submitLabel}</button></div>
       </form>
-    </Modal></div>, document.body) : null}
-  </>;
+      </div>
+    </section> : null}
+  </>, document.body);
 }
