@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { AlertBanner } from "../../../components/AlertBanner";
+import { Tabs } from "../../../components/Tabs";
 import {
   agendaKinds, fetchAgenda, type AgendaItem, type AgendaKind,
 } from "../api/agendaApi";
@@ -17,6 +18,8 @@ const labels: Record<AgendaKind, string> = {
 };
 const fmtDate = new Intl.DateTimeFormat("pt-BR", { dateStyle: "full", timeZone: "UTC" });
 const fmtTime = new Intl.DateTimeFormat("pt-BR", { timeStyle: "short", timeZone: "UTC" });
+const weekday = new Intl.DateTimeFormat("pt-BR", { weekday: "short", timeZone: "UTC" });
+const VIEW_TABS = [{ id: "calendar", label: "Calendário" }, { id: "list", label: "Lista de eventos" }] as const;
 
 function dateShift(value: string, days: number): string {
   const date = new Date(`${value}T00:00:00.000Z`);
@@ -25,6 +28,7 @@ function dateShift(value: string, days: number): string {
 function today(): string { return new Date().toISOString().slice(0, 10); }
 
 export function AgendaPage() {
+  const [view, setView] = useState<"calendar" | "list">("calendar");
   const [day, setDay] = useState(today);
   const [mode, setMode] = useState<"day" | "week">("week");
   const [kind, setKind] = useState<AgendaKind | "">("");
@@ -74,6 +78,7 @@ export function AgendaPage() {
         <p className="entity-lede">Atividades reais de viagens, carregamentos, entregas e ocorrências registradas.</p>
       </div>
     </header>
+    <Tabs items={VIEW_TABS} active={view} onChange={setView} label="Exibição da agenda" />
     <p className="entity-form-help">Calendário de eventos históricos, não de horários previstos de entrega. Datas e horários exibidos em UTC.</p>
     <div className="agenda-controls" role="group" aria-label="Navegar pela agenda">
       <button type="button" className="btn-secondary" onClick={() => setDay(dateShift(day, mode === "week" ? -7 : -1))}>Anterior</button>
@@ -91,7 +96,19 @@ export function AgendaPage() {
     {state === "error" && <><AlertBanner>{reason}</AlertBanner><button type="button" className="btn-secondary" onClick={() => setAttempt(n => n + 1)}>Tentar novamente</button></>}
     {state === "ready" && items.length === 0 && <p className="entity-state">Nenhuma atividade registrada neste período.</p>}
     {state === "ready" && <p className="entity-summary">{items.length} evento(s) registrados no período consultado.</p>}
-    {state === "ready" && <div className="agenda-days">
+    {state === "ready" && view === "calendar" && <div role="tabpanel" id="panel-calendar" aria-labelledby="tab-calendar" className="agenda-calendar" data-mode={mode}>
+      {Array.from({ length: mode === "week" ? 7 : 1 }, (_, index) => dateShift(day, index)).map((date) => {
+        const events = groups.find(([key]) => key === date)?.[1] ?? [];
+        return <section className="agenda-calendar-day" key={date} data-today={date === today()}>
+          <h2><span>{weekday.format(new Date(`${date}T00:00:00Z`))}</span><time dateTime={date}>{date.slice(8, 10)}/{date.slice(5, 7)}</time></h2>
+          {events.length ? <ol>{events.map((event) => <li key={`${event.kind}-${event.resource_id}`}>
+            <time dateTime={event.occurred_at}>{fmtTime.format(new Date(event.occurred_at))}</time>
+            <strong>{labels[event.kind]}</strong><Link to={`/trips/${event.trip_id}`}>Abrir viagem</Link>
+          </li>)}</ol> : <p>Sem eventos</p>}
+        </section>;
+      })}
+    </div>}
+    {state === "ready" && view === "list" && <div className="agenda-days" role="tabpanel" id="panel-list" aria-labelledby="tab-list">
       {groups.map(([date, events]) => <section className="agenda-day" key={date}>
         <h2>{fmtDate.format(new Date(`${date}T00:00:00Z`))}</h2>
         <ol>{events.map(e => <li key={`${e.kind}-${e.resource_id}`}>

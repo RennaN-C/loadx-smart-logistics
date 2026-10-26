@@ -127,3 +127,11 @@ de rede. Somente RETRYABLE/TERMINAL/UNCERTAIN oferecem reprocessamento. Não usa
 localStorage, dados fictícios nem promete entrega Meta. Códigos de erro têm
 tradução pública sanitizada; falha parcial preserva só respostas autorizadas.
 Temas usam tokens existentes; tabela vira cards rotulados no celular.
+
+## Navegação horizontal — 25/10/2026
+
+`CONFIRMADO`: por solicitação do responsável pelo projeto, as seis seções agora
+ficam na navegação horizontal de SettingsPage, e não em submenu da sidebar.
+Os hashes existentes continuam válidos, incluindo aliases de perfis de acesso.
+Os painéis de empresa/conta permanecem montados para preservar rascunhos. Guards,
+permissões e as abas internas de gestão de acessos foram preservados.

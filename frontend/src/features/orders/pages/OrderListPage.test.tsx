@@ -122,7 +122,7 @@ describe("OrderListPage", () => {
     render(<MemoryRouter><OrderListPage /></MemoryRouter>);
     await screen.findByText("Distribuidora Aurora");
 
-    const grid = within(document.querySelector(".entity-grid") as HTMLElement);
+    const grid = within(document.querySelector(".registry-table") as HTMLElement);
 
     expect(grid.getByText("2")).toBeInTheDocument();
   });
@@ -144,7 +144,7 @@ describe("OrderListPage", () => {
     await screen.findByText("Distribuidora Aurora");
 
     // escopado à grade: os mesmos rótulos aparecem nas opções do filtro
-    const grid = within(document.querySelector(".entity-grid") as HTMLElement);
+    const grid = within(document.querySelector(".registry-table") as HTMLElement);
 
     expect(grid.getByText("Rascunho")).toBeInTheDocument();
     expect(grid.getByText("Entregue")).toBeInTheDocument();
@@ -246,18 +246,16 @@ describe("OrderListPage", () => {
 });
 
 
-describe("Atalhos de pedidos entregues", () => {
+describe("Filtro único de situação dos pedidos", () => {
   it("consulta pedidos entregues no servidor e permite voltar a todos", async () => {
     render(<MemoryRouter><OrderListPage /></MemoryRouter>);
     await screen.findByText("Distribuidora Aurora");
-    fireEvent.click(screen.getByRole("button", { name: "Pedidos entregues" }));
+    fireEvent.change(screen.getByLabelText("Situação"), { target: { value: "DELIVERED" } });
     await waitFor(() => expect(listOrders).toHaveBeenLastCalledWith(
       expect.objectContaining({ status: "DELIVERED", page: 1 }),
     ));
-    expect(screen.getByRole("button", { name: "Pedidos entregues" })).toHaveAttribute(
-      "aria-pressed", "true",
-    );
-    fireEvent.click(screen.getByRole("button", { name: "Todos os pedidos" }));
+    expect(screen.getByLabelText("Situação")).toHaveValue("DELIVERED");
+    fireEvent.change(screen.getByLabelText("Situação"), { target: { value: "all" } });
     await waitFor(() => expect(listOrders).toHaveBeenLastCalledWith(
       expect.objectContaining({ status: undefined, page: 1 }),
     ));
@@ -268,9 +266,6 @@ describe("Atalhos de pedidos entregues", () => {
     await waitFor(() => expect(listOrders).toHaveBeenCalledWith(
       expect.objectContaining({ status: "DELIVERED" }),
     ));
-    expect(screen.getByRole("button", { name: "Pedidos entregues" })).toHaveAttribute(
-      "aria-pressed", "true",
-    );
     expect(screen.getByLabelText("Situação")).toHaveValue("DELIVERED");
   });
 
@@ -284,7 +279,8 @@ describe("Atalhos de pedidos entregues", () => {
     await waitFor(() => expect(listOrders).toHaveBeenLastCalledWith(
       expect.objectContaining({ status: "READY" }),
     ));
-    expect(screen.getByRole("button", { name: "Pedidos entregues" })).toBeEnabled();
+    expect(screen.getByLabelText("Situação")).toBeEnabled();
+    expect(screen.queryByRole("button", { name: "Pedidos entregues" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Novo pedido" })).not.toBeInTheDocument();
   });
 });

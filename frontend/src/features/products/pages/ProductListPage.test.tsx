@@ -74,6 +74,8 @@ describe("ProductListPage", () => {
 
     expect(await screen.findByText("CX-100")).toBeInTheDocument();
     expect(screen.getByText("VD-200")).toBeInTheDocument();
+    expect(screen.getByRole("table", { name: "Produtos cadastrados" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Restrições" })).toBeInTheDocument();
   });
 
   it("mostra só as restrições reais de cada produto", async () => {

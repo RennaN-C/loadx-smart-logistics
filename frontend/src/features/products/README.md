@@ -4,7 +4,7 @@ Listagem e cadastro de produtos (OC26 → **OC27**). Consome `GET/POST/PATCH /pr
 
 ## O que existe hoje
 
-- `pages/ProductListPage.tsx` (+ `.css`): grid **paginado** de cards, busca por código/nome e filtro por
+- `pages/ProductListPage.tsx` (+ `.css`): tabela responsiva **paginada**, busca por código/nome e filtro por
   restrição, ambos no servidor antes da paginação (OC95), estados de carregando/vazio/erro e o modal.
 - `components/ProductCard.tsx`: código, nome, descrição, medidas, volume unitário e os chips de restrição.
 - `components/ProductForm.tsx`: criação e edição, com volume unitário calculado ao vivo.

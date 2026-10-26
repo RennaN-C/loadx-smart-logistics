@@ -5,7 +5,7 @@ Consome `GET/POST/PATCH /trucks` e `GET /trucks/operational-status`.
 
 ## O que existe hoje
 
-- `pages/TruckListPage.tsx` (+ `.css`): grid paginado de cards, busca e filtro de
+- `pages/TruckListPage.tsx` (+ `.css`): tabela responsiva paginada, busca e filtro de
   arquivamento no servidor antes da paginação (OC95), estados de carregando/vazio/erro e o
   modal de cadastro.
 - `components/TruckCard.tsx`: placa, modelo, status, desenho técnico e specs de um caminhão.
@@ -55,7 +55,9 @@ depois de paginar; movê-los exige evolução arquitetural sem duplicar regras
 de conflito, documento ou manutenção e sem carregar toda a frota em memória.
 
 `CONFIRMADO`: na manutenção #206, a disponibilidade integra **Caminhões e frota**
-em Cadastros, com as abas Veículos e Disponibilidade. O item separado Frota foi
+em Cadastros. O lote UI08 acrescenta a aba Documentação, que reutiliza o contrato
+real por caminhão e exige a seleção do veículo em vez de simular uma coleção global.
+As abas são Veículos, Disponibilidade e Documentação. O item separado Frota foi
 removido; a mudança de organização não altera a fonte dos estados operacionais.
 
 ## Permissões
@@ -98,7 +100,8 @@ não há link público, upload ou download. Notificações externas ficam na OC1
 
 `CONFIRMADO`: `TruckWorkspacePage` monta os componentes existentes sem reescrever
 cadastro, importação, arquivamento, documentos ou manutenção. `/trucks` abre
-Veículos; `/trucks?tab=availability` abre Disponibilidade; `/fleet` é um alias
+Veículos; `/trucks?tab=availability` abre Disponibilidade;
+`/trucks?tab=documents` abre a consulta documental por veículo; `/fleet` é um alias
 seguro para a segunda URL. ADMIN/LOGISTICS_MANAGER/CHECKER preservam leitura;
 DRIVER não monta a área nem faz consultas protegidas.
 
@@ -118,3 +121,11 @@ A API usa SearchListParams e tipos específicos somente onde necessário; o
 loader estável não refiltra items localmente. O total vem do conjunto filtrado.
 Busca limitada a 120 caracteres; vazio/erro/loading permanecem tratados.
 Nenhum campo pessoal proibido pela ADR-017 foi incluído no resumo ou na busca.
+
+## Acabamento operacional — manutenção #308
+
+`CONFIRMADO`: manutenção usa barra responsiva para odômetro e nova manutenção,
+com unidade km e botões padronizados. DocumentForm usa campos verticais,
+ajuda e ações primária/secundária no padrão compartilhado; envio exibe Salvando…
+e impede interação enquanto pendente. Handlers, validação nativa, renovação
+versionada, datas UTC e permissões são preservados.

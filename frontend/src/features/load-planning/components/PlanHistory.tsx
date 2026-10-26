@@ -16,21 +16,20 @@ function PlanHistoryRow({ plan, canReadOrigin }: { readonly plan: LoadPlanListIt
   const destination = plan.distributionId ? `/planning/distributions/${plan.distributionId}` : `/planning/${plan.id}`;
   return <li className="plan-history-row">
     <div className="plan-history-identification">
-      <div className="plan-history-title"><h3><Link to={destination}>Plano {plan.id.slice(0, 8).toLocaleUpperCase("pt-BR")}</Link></h3></div>
+      <div className="plan-history-title"><h3><Link to={destination}>Plano {plan.id.slice(0, 8).toLocaleUpperCase("pt-BR")}</Link></h3><StatusPill tone={planStatusTone(plan.status)}>Plano: {PLAN_STATUS_LABELS[plan.status]}</StatusPill></div>
       <Link className="plan-history-plate" to={`/planning?truck=${plan.truckId}`} aria-label={`Filtrar planos do caminhão ${plan.truckPlate}`}>{plan.truckPlate}</Link>
       <p>{plan.truckModel}</p>
       {plan.distributionId ? <p>Parte da distribuição {plan.distributionId.slice(0, 8)}</p> : null}
       <time dateTime={plan.createdAt}>Criado em {date.format(new Date(plan.createdAt))}</time>
     </div>
     <div className="plan-history-summary">
-      <StatusPill tone={planStatusTone(plan.status)}>Plano: {PLAN_STATUS_LABELS[plan.status]}</StatusPill>
       {plan.operation ? <PlanOperationSummary operation={plan.operation} /> : null}
       <p className="plan-history-facts"><span>{plan.orderCount} pedido(s)</span><span>{plan.loadedCount} volumes</span><span>{plan.totalWeightKg.toLocaleString("pt-BR")} kg</span></p>
       <div className="plan-history-occupancy"><span style={{ width: `${Math.min(plan.occupancyPercent, 100)}%` }} /><strong>{plan.occupancyPercent.toLocaleString("pt-BR")}% de ocupação</strong></div>
       {plan.unloadedCount > 0 ? <p className="plan-history-rejected">{plan.unloadedCount} volume(s) recusado(s)</p> : null}
       {plan.recalculatedFromId && canReadOrigin ? <Link to={`/planning/${plan.recalculatedFromId}`}>Ver plano de origem</Link> : null}
     </div>
-    <Link className="btn-secondary" to={destination} aria-label={`Abrir plano ${plan.id.slice(0, 8)}`}>{plan.distributionId ? "Abrir distribuição" : "Abrir plano"}</Link>
+    <Link className="btn-secondary" to={destination} aria-label={`Abrir plano ${plan.id.slice(0, 8)}`}>{plan.distributionId ? "Abrir distribuição" : "Abrir planejamento"}</Link>
   </li>;
 }
 
@@ -48,7 +47,7 @@ function PlanHistoryContent({ failed, result, page, retry, onPage, checker }: {
   </div>;
   if (!result) return <output className="entity-state"><span className="spinner" aria-hidden="true" />Carregando planos…</output>;
   return <>
-          <p className="plan-history-page-count">Página {result.page} de {Math.max(result.totalPages, 1)}</p>
+          <p className="entity-form-help">{result.total} plano(s) encontrado(s) · página {result.page}</p>
           {result.items.length === 0 ? <div className="plan-history-empty"><h3>Nenhum plano nesta consulta</h3><p>Altere os filtros ou a página. Um novo planejamento só será salvo após calcular.</p></div>
             : <ul className="plan-history-list">{result.items.map((plan) => <PlanHistoryRow key={plan.id} plan={plan} canReadOrigin={!checker} />)}</ul>}
           {result.items.length === 0 && page > 1 ? <button className="btn-secondary" type="button" onClick={() => onPage(1)}>Voltar à primeira página</button> : null}
@@ -87,10 +86,11 @@ export function PlanHistory({ checker, canReadOperations = false }: { readonly c
     setParams(next);
   }
   return <section className="plan-history" aria-label="Planos existentes">
-    <div className="plan-history-filterbar">
-      {canReadOperations ? <fieldset className="plan-operation-filters" aria-label="Filtrar situação logística"><legend className="sr-only">Filtrar situação logística</legend>
-        {([['ongoing', 'Em andamento'], ['completed', 'Concluídos'], ['all', 'Todos']] as const).map(([key, title]) => <button type="button" key={key} aria-pressed={operationScope === key} onClick={() => change("scope", key)}>{title}</button>)}
-      </fieldset> : null}
+    {canReadOperations ? <fieldset className="plan-operation-filters" aria-label="Filtrar situação logística"><legend className="sr-only">Filtrar situação logística</legend>
+      {([['ongoing', 'Em andamento'], ['completed', 'Concluídos'], ['all', 'Todos']] as const).map(([key, title]) => <button type="button" key={key} aria-pressed={operationScope === key} onClick={() => change("scope", key)}>{title}</button>)}
+    </fieldset> : null}
+    <div className="plan-history-toolbar">
+      <div><h2>Planos de carga</h2><p className="entity-lede">Retome planejamentos persistidos e acompanhe o estado real de cada operação.</p><p className="entity-form-help">A aprovação registra a decisão sobre a carga. A conclusão exige viagem finalizada e entrega integral.</p></div>
       <div className="plan-history-filters">
         {!checker ? <label>Situação<select value={status ?? ""} onChange={(event) => change("status", event.target.value)}>
           <option value="">Todas as situações</option>
@@ -102,9 +102,7 @@ export function PlanHistory({ checker, canReadOperations = false }: { readonly c
       </div>
     </div>
     {truckId ? <p className="entity-form-help">Filtro de caminhão ativo. <button type="button" className="btn-secondary" onClick={() => change("truck", "")}>Limpar filtro de caminhão</button></p> : null}
-    <div className="plan-history-panel"><header><div><h2>Planos de carga</h2><p>Retome planejamentos persistidos e acompanhe a execução.</p><span className="sr-only">A aprovação registra a decisão sobre a carga. A conclusão exige viagem finalizada e entrega integral.</span></div>{result ? <strong>{result.total} {result.total === 1 ? "plano" : "planos"}</strong> : null}</header>
-      <PlanHistoryContent checker={checker} failed={failed} result={result} page={page}
-        retry={() => setAttempt((value) => value + 1)} onPage={(value) => change("page", String(value))} />
-    </div>
+    <PlanHistoryContent checker={checker} failed={failed} result={result} page={page}
+      retry={() => setAttempt((value) => value + 1)} onPage={(value) => change("page", String(value))} />
   </section>;
 }

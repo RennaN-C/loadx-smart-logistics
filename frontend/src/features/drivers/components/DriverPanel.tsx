@@ -19,6 +19,8 @@ import { DocumentsPanel } from "./DocumentsPanel";
 import { DriverForm } from "./DriverForm";
 import { mapDriverErrorToMessage } from "./driversErrorMessages";
 import { Icon } from "../../../components/Icon";
+import { RowActions } from "../../../components/RowActions";
+import "../../../components/RegistryTable.css";
 
 export function DriverPanel() {
   const { user } = useAuth();
@@ -58,7 +60,7 @@ export function DriverPanel() {
 
   return (
     <>
-      <div className="entity-toolbar">
+      <div className="entity-toolbar contact-filterbar">
         <ImportAction enabled={hasPermission(user, "loadx.imports.manage")} entity="drivers" onImported={refetch} />
         <ArchiveFilter value={archiveStatus} onChange={setArchiveStatus} />
         <input
@@ -91,7 +93,7 @@ export function DriverPanel() {
         </p>
       ) : null}
 
-      {status === "error" && error ? <AlertBanner>{mapDriverErrorToMessage(error)}</AlertBanner> : null}
+      {status === "error" && error ? <><AlertBanner>{mapDriverErrorToMessage(error)}</AlertBanner><button type="button" className="btn-secondary" onClick={() => void refetch()}>Tentar novamente</button></> : null}
       {edit.error ? <AlertBanner>{mapDriverErrorToMessage(edit.error)}</AlertBanner> : null}
 
       {status === "success" && drivers.length === 0 ? (
@@ -103,22 +105,20 @@ export function DriverPanel() {
       ) : null}
 
       {drivers.length > 0 ? (
-        <div className="entity-grid">
+        <div className="registry-table-wrap"><table className="registry-table contact-table">
+          <caption className="sr-only">Motoristas cadastrados</caption>
+          <thead><tr><th scope="col">Motorista</th><th scope="col">Categoria CNH</th><th scope="col">Situação</th><th scope="col">Ações</th></tr></thead>
+          <tbody>
           {drivers.map((driver) => (
-            <article key={driver.id} className="contact-card">
-              <div className="contact-card-head">
-                <p className="contact-card-name">{driver.name}</p>
+            <tr key={driver.id}>
+              <td data-label="Motorista"><strong>{driver.name}</strong></td>
+              <td data-label="Categoria CNH">{driver.licenseCategory ?? "—"}</td>
+              <td data-label="Situação">
                 <StatusPill tone={driver.active ? "good" : "neutral"}>
                   {driver.active ? "Ativo" : "Arquivado"}
                 </StatusPill>
-              </div>
-              <dl className="contact-card-license">
-                <div>
-                  <dt>CATEGORIA</dt>
-                  <dd>{driver.licenseCategory ?? "—"}</dd>
-                </div>
-              </dl>
-              <div className="contact-card-foot">
+              </td>
+              <td data-label="Ações"><RowActions label={`Ações de ${driver.name}`}>
                 <button type="button" className="btn-link" onClick={() => setDocumentsDriver(driver)}>
                   Documentos
                 </button>
@@ -135,10 +135,10 @@ export function DriverPanel() {
                     </button>
                   </>
                 ) : null}
-              </div>
-            </article>
+              </RowActions></td>
+            </tr>
           ))}
-        </div>
+          </tbody></table></div>
       ) : null}
 
       {status === "success" ? (

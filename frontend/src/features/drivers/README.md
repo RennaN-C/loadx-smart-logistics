@@ -4,7 +4,8 @@ Cadastro de motoristas (OC28). Consome `GET/POST/PATCH /drivers`.
 
 ## O que existe hoje
 
-- `components/DriverPanel.tsx`: busca, filtro por status, grade paginada e modal de motoristas.
+- `components/DriverPanel.tsx`: busca, filtro por status, tabela responsiva paginada
+  e modal de motoristas. Documentos, edição e ciclo de vida ficam no menu da linha.
 - `components/DriverForm.tsx`: criação e edição.
 - `components/driversErrorMessages.ts`: tradução dos códigos de erro — o backend distingue
   documento duplicado de CNH duplicada, e as mensagens seguem essa distinção.
@@ -85,3 +86,10 @@ A API usa SearchListParams e tipos específicos somente onde necessário; o
 loader estável não refiltra items localmente. O total vem do conjunto filtrado.
 Busca limitada a 120 caracteres; vazio/erro/loading permanecem tratados.
 Nenhum campo pessoal proibido pela ADR-017 foi incluído no resumo ou na busca.
+
+## Acabamento documental — manutenção #308
+
+`CONFIRMADO`: criação/renovação, aprovação de tipos e políticas documentais usam
+botões e campos do padrão compartilhado, com foco visível e feedback de envio.
+Ações da renovação se reorganizam no celular. Contratos, permissões, exigências
+de CNH e preservação de versões anteriores permanecem os existentes.

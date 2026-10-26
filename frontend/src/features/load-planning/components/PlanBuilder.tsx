@@ -11,6 +11,8 @@ import { listTruckOperationalStatus, listTrucks } from "../../trucks/api/trucksA
 import { ApiError } from "../../../types/api";
 import { createLoadPlan } from "../api/loadPlansApi";
 import { useAuth } from "../../auth/hooks/useAuth";
+import { FleetPreflight } from "./FleetPreflight";
+import { fleetReadinessHelp, fleetSelectionKey, type FleetPreflightState } from "./fleetPreflightState";
 import { useOptimizationRecovery } from "../useOptimizationRecovery";
 import { OptimizationRecovery } from "./OptimizationRecovery";
 import { PlanOrderSelection } from "./PlanOrderSelection";
@@ -26,6 +28,7 @@ interface PlanBuilderProps {
 const listHistoricalCustomers = (params: ListParams) => listCustomers({ ...params, archiveStatus: "all" });
 /** Limite operacional do cálculo síncrono, imposto novamente pelo backend. */
 const MAX_SYNC_VOLUMES = 200;
+const BUILDER_STEPS = ["Pedidos", "Modalidade", "Veículos", "Revisão"] as const;
 
 function PlanCalculateAction({ selectedCount, isCalculating, canCalculate, mode, onCalculate }: {
   readonly selectedCount: number; readonly isCalculating: boolean; readonly canCalculate: boolean;
@@ -40,6 +43,7 @@ function PlanCalculateAction({ selectedCount, isCalculating, canCalculate, mode,
               type="button"
               className="btn-primary"
               disabled={!canCalculate}
+              aria-describedby="planning-calculation-help"
               aria-busy={isCalculating}
               onClick={onCalculate}
             >
@@ -68,12 +72,19 @@ export function PlanBuilder({ onCalculated, onDistributed }: PlanBuilderProps) {
   const { user } = useAuth();
   const recovery = useOptimizationRecovery(user?.id ?? "", onDistributed);
   const [mode, setMode] = useState<"single" | "automatic">("single");
+  const [fleetPreflight, setFleetPreflight] = useState<FleetPreflightState | null>(null);
   const requestPending = useRef(false);
   const [distributionError, setDistributionError] = useState<unknown>(null);
   const [truckId, setTruckId] = useState("");
   const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
   const [isCalculating, setIsCalculating] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [step, setStep] = useState(0);
+  const stepsRef = useRef<HTMLElement>(null);
+  function selectStep(index: number) {
+    setStep(index);
+    requestAnimationFrame(() => stepsRef.current?.querySelector<HTMLButtonElement>('[aria-current="step"]')?.focus());
+  }
 
   // Só caminhão ativo carrega, e só pedido READY entra em plano (regra do backend).
   const activeTrucks = useMemo(() => trucks.filter((truck) => truck.active && !situacoes.some((status) => status.id === truck.id && (status.hasMaintenanceConflict || status.hasDocumentConflict))), [trucks, situacoes]);
@@ -100,13 +111,14 @@ export function PlanBuilder({ onCalculated, onDistributed }: PlanBuilderProps) {
   const exceedsVolumeLimit = selectedVolumeCount > MAX_SYNC_VOLUMES;
 
   function toggleOrder(orderId: string) {
+    setFleetPreflight(null);
     setSelectedOrders((current) =>
       current.includes(orderId) ? current.filter((id) => id !== orderId) : [...current, orderId],
     );
   }
 
   async function handleCalculate() {
-    if (requestPending.current) return;
+    if (requestPending.current || !canCalculate) return;
     requestPending.current = true;
     setErrorMessage(null);
     setDistributionError(null);
@@ -131,8 +143,22 @@ export function PlanBuilder({ onCalculated, onDistributed }: PlanBuilderProps) {
 
   const isLoading = ordersStatus === "loading" || (mode === "single" && (trucksStatus === "loading" || situationsStatus === "loading"));
   const hasListError = ordersStatus === "error" || (mode === "single" && (trucksStatus === "error" || situationsStatus === "error"));
-  const canCalculate = (mode === "automatic" || activeTrucks.some((truck) => truck.id === truckId))
-    && selectedOrders.length > 0 && !exceedsVolumeLimit && !isCalculating && !recovery.request && !recovery.working;
+  const orderSelectionHelp = selectedOrders.length === 0 ? "Selecione pelo menos um pedido na etapa Pedidos."
+    : selectedReadyOrders.length !== selectedOrders.length ? "Há pedidos que não estão mais prontos. Revise a seleção na etapa Pedidos."
+      : exceedsVolumeLimit ? `A seleção ultrapassa ${MAX_SYNC_VOLUMES} volumes. Reduza as quantidades na etapa Pedidos.` : null;
+  const currentFleet = fleetPreflight?.selection === fleetSelectionKey(selectedOrders) ? fleetPreflight : null;
+  const fleetHelp = fleetReadinessHelp(mode, activeTrucks.some((truck) => truck.id === truckId), currentFleet);
+  const calculationHelp = isCalculating || recovery.working ? "Aguarde a conclusão do cálculo."
+    : isLoading ? "Aguarde o carregamento dos dados do planejamento."
+      : hasListError ? "Recarregue os dados do planejamento antes de continuar."
+        : orderSelectionHelp ?? fleetHelp;
+  const canCalculate = !calculationHelp && !recovery.request;
+  const nextHelp = step === 0 ? orderSelectionHelp : step === 2 ? calculationHelp : null;
+
+  function changeMode(value: "single" | "automatic") {
+    setFleetPreflight(null);
+    setMode(value);
+  }
 
   if (recovery.request) return <div className="plan-builder">
     <DistributionFeedback error={recovery.error} />
@@ -142,11 +168,17 @@ export function PlanBuilder({ onCalculated, onDistributed }: PlanBuilderProps) {
 
   return (
     <div className="plan-builder">
-      {onDistributed ? <fieldset className="distribution-mode" disabled={isCalculating}>
+      <nav ref={stepsRef} aria-label="Etapas do planejamento" className="planning-steps"><ol>{BUILDER_STEPS.map((title, index) => <li key={title}>
+        <button type="button" aria-current={step === index ? "step" : undefined} disabled={isCalculating} onClick={() => selectStep(index)}>
+          <span aria-hidden="true">{index + 1}</span>{title}
+        </button>
+      </li>)}</ol></nav>
+      {onDistributed ? <fieldset className="distribution-mode" disabled={isCalculating} hidden={step !== 1}>
         <legend>Como planejar esta carga?</legend>
-        <label htmlFor="planning-single"><input id="planning-single" aria-label="Um caminhão" type="radio" name="planning-mode" checked={mode === "single"} onChange={() => setMode("single")} /><span><strong>Um caminhão</strong><small>Escolha o veículo e calcule a carga.</small></span></label>
-        <label htmlFor="planning-automatic"><input id="planning-automatic" aria-label="Seleção automática da frota" type="radio" name="planning-mode" checked={mode === "automatic"} onChange={() => setMode("automatic")} /><span><strong>Seleção automática da frota</strong><small>O servidor seleciona os veículos elegíveis e salva uma proposta completa.</small></span></label>
+        <label htmlFor="planning-single"><input id="planning-single" aria-label="Um caminhão" type="radio" name="planning-mode" checked={mode === "single"} onChange={() => changeMode("single")} /><span><strong>Um caminhão</strong><small>Escolha o veículo e calcule a carga.</small></span></label>
+        <label htmlFor="planning-automatic"><input id="planning-automatic" aria-label="Seleção automática da frota" type="radio" name="planning-mode" checked={mode === "automatic"} onChange={() => changeMode("automatic")} /><span><strong>Seleção automática da frota · multi-caminhões</strong><small>Distribua os volumes entre veículos elegíveis e revise a proposta antes de aprovar.</small></span></label>
       </fieldset> : null}
+      {!onDistributed && step === 1 ? <p className="entity-form-help">Escolha um caminhão para calcular o plano de carga.</p> : null}
       <DistributionFeedback error={recovery.error ?? distributionError} />
       {distributionError ? <p className="entity-form-help">Se a conexão caiu após o envio, consulte <Link to="/planning">Planos existentes</Link> antes de repetir: a proposta pode ter sido salva.</p> : null}
       {errorMessage ? <AlertBanner>{errorMessage}</AlertBanner> : null}
@@ -172,6 +204,8 @@ export function PlanBuilder({ onCalculated, onDistributed }: PlanBuilderProps) {
 
       {!isLoading && !hasListError ? (
         <>
+          <div hidden={step !== 2} className="planning-step-content">
+          <h3>Selecione o veículo</h3>
           {mode === "single" ? <div className="entity-form-row">
             <FormField
               id="plan-truck"
@@ -189,15 +223,35 @@ export function PlanBuilder({ onCalculated, onDistributed }: PlanBuilderProps) {
                 ))}
               </select>
             </FormField>
-          </div> : <p className="entity-form-help">A otimização pode usar de 1 a 10 caminhões. Só será salva uma proposta que comporte todos os volumes, até o limite de 200. Disponibilidade não significa reserva da frota.</p>}
+          </div> : <><p className="entity-form-help">A otimização pode usar de 1 a 10 caminhões. Só será salva uma proposta que comporte todos os volumes, até o limite de 200. Disponibilidade não significa reserva da frota.</p>{selectedOrders.length > 0 && !orderSelectionHelp ? <FleetPreflight orderIds={selectedOrders} onStateChange={setFleetPreflight} /> : null}</>}
+          </div>
 
+          <div hidden={step !== 0} className="planning-step-content">
+          <h3>Selecione os pedidos</h3>
           <PlanOrderSelection readyOrders={readyOrders} selectedOrders={selectedOrders} customerNames={customerNames}
             isCalculating={isCalculating} selectedVolumeCount={selectedVolumeCount} hasUnknownVolumeCounts={hasUnknownVolumeCounts}
             exceedsVolumeLimit={exceedsVolumeLimit} maxVolumes={MAX_SYNC_VOLUMES} onToggle={toggleOrder} />
+          </div>
+          <div hidden={step !== 3} className="planning-step-content">
+          <h3>Revise antes de calcular</h3>
+          <dl className="planning-review">
+            <div><dt>Pedidos selecionados</dt><dd>{selectedOrders.length}</dd></div>
+            <div><dt>Volumes físicos</dt><dd>{selectedVolumeCount}{hasUnknownVolumeCounts ? " · quantidades parciais" : ""}</dd></div>
+            <div><dt>Modalidade</dt><dd>{mode === "automatic" ? "Seleção automática da frota" : "Um caminhão"}</dd></div>
+            <div><dt>Veículo</dt><dd>{mode === "automatic" ? "Definido pelo otimizador" : activeTrucks.find((truck) => truck.id === truckId)?.plate ?? "Não selecionado"}</dd></div>
+          </dl>
+          <p className="entity-form-help">O cálculo salva o planejamento. A aprovação e o início da operação continuam sendo ações separadas.</p>
+          <p id="planning-calculation-help" className="entity-form-help" role={exceedsVolumeLimit ? "alert" : "status"}>{exceedsVolumeLimit ? <>Desmarque pedidos para ficar dentro do limite de {MAX_SYNC_VOLUMES} volumes. Revise a seleção na etapa Pedidos ou ajuste as quantidades em <Link to="/orders">Pedidos</Link>.</> : calculationHelp ?? "Tudo pronto. O cálculo salvará o planejamento para revisão e aprovação."}</p>
           <PlanCalculateAction selectedCount={selectedOrders.length} isCalculating={isCalculating}
             canCalculate={canCalculate} mode={mode} onCalculate={() => void handleCalculate()} />
+          </div>
         </>
       ) : null}
+      <div className="planning-step-actions">
+        {step > 0 ? <button type="button" className="btn-secondary" disabled={isCalculating} onClick={() => selectStep(step - 1)}>Voltar</button> : <span />}
+        {step < BUILDER_STEPS.length - 1 ? <button type="button" className="btn-primary" aria-describedby="planning-step-help" disabled={isCalculating || isLoading || hasListError || Boolean(nextHelp)} onClick={() => selectStep(step + 1)}>Continuar</button> : null}
+      </div>
+      {step < BUILDER_STEPS.length - 1 ? <p id="planning-step-help" className="entity-form-help" aria-live="polite">{isLoading ? "Aguarde o carregamento dos dados do planejamento." : hasListError ? "Recarregue os dados do planejamento antes de continuar." : nextHelp}</p> : null}
     </div>
   );
 }

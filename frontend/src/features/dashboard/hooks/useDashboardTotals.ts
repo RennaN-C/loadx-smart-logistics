@@ -7,7 +7,6 @@ import { listProducts } from "../../products/api/productsApi";
 import { listTrucks } from "../../trucks/api/trucksApi";
 import { hasPermission, type PermissionSubject } from "../../auth/permissions";
 import type { OrderListItem } from "../../orders/types";
-import type { Product } from "../../products/types";
 
 export interface DashboardTotals {
   trucks: number | null;
@@ -21,7 +20,6 @@ export interface UseDashboardResult {
   status: "loading" | "ready";
   totals: DashboardTotals;
   recentOrders: OrderListItem[];
-  recentProducts: Product[];
   /** Recursos que responderam erro; a tela mostra "—" no lugar do número. */
   unavailable: string[];
   reload: () => void;
@@ -47,7 +45,6 @@ export function useDashboardTotals(user: PermissionSubject): UseDashboardResult 
   const [status, setStatus] = useState<"loading" | "ready">("loading");
   const [totals, setTotals] = useState<DashboardTotals>(EMPTY);
   const [recentOrders, setRecentOrders] = useState<OrderListItem[]>([]);
-  const [recentProducts, setRecentProducts] = useState<Product[]>([]);
   const [unavailable, setUnavailable] = useState<string[]>([]);
 
   const role = typeof user === "string" ? user : user?.role;
@@ -79,18 +76,14 @@ export function useDashboardTotals(user: PermissionSubject): UseDashboardResult 
 
     const [trucks, products, customers, drivers, orders] = await Promise.all([
       (role === "CHECKER" || role === "CUSTOM") && hasPermission(user, "loadx.trucks.read") ? countOf("trucks", listTrucks) : Promise.resolve(null),
-      hasPermission(user, "loadx.products.read") ? listProducts({ pageSize: 2 }).catch(() => {
-        missing.push("products");
-        return null;
-      }) : Promise.resolve(null),
+      hasPermission(user, "loadx.products.read") ? countOf("products", listProducts) : Promise.resolve(null),
       hasPermission(user, "loadx.customers.read") ? countOf("customers", listCustomers) : Promise.resolve(null),
       hasPermission(user, "loadx.drivers.read") ? countOf("drivers", listDrivers) : Promise.resolve(null),
       ordersPromise,
     ]);
 
-    setTotals({ trucks, products: products?.total ?? null, customers, drivers, orders: orders?.total ?? null });
+    setTotals({ trucks, products, customers, drivers, orders: orders?.total ?? null });
     setRecentOrders(orders?.items ?? []);
-    setRecentProducts(products?.items ?? []);
     setUnavailable(missing);
     setStatus("ready");
   }, [user, role]);
@@ -99,5 +92,5 @@ export function useDashboardTotals(user: PermissionSubject): UseDashboardResult 
     void load();
   }, [load]);
 
-  return { status, totals, recentOrders, recentProducts, unavailable, reload: () => void load() };
+  return { status, totals, recentOrders, unavailable, reload: () => void load() };
 }

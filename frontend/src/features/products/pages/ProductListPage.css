@@ -101,3 +101,20 @@
 .product-card, .product-card-head > div { min-width: 0; }
 .product-card-code { max-width: 100%; overflow-wrap: anywhere; }
 .product-card-name { overflow-wrap: anywhere; }
+
+.products-page { max-width: 1460px; padding-top: 26px; }
+.products-page .entity-header h1 { letter-spacing: -.04em; }
+.registry-table .product-card { display: table-row; padding: 0; background: transparent; border: 0; border-radius: 0; }
+.product-table .product-card-code { padding: 0; border: 0; border-radius: 0; font-size: .8rem; }
+.product-table .product-card-name { display: block; margin: 0; font-size: .82rem; }
+.product-table .product-card-weight { font-family: inherit; font-size: .82rem; }
+.product-table .product-card-flags { display: flex; flex-wrap: wrap; gap: 5px; }
+.product-table .product-card-actions { display: flex; flex-wrap: wrap; gap: 6px 12px; min-width: 105px; }
+.product-table .product-card-actions > *,
+.product-table .product-card-actions .btn-link { width: auto; margin: 0; }
+.product-table .product-card-actions .btn-link { min-height: 30px; padding: 4px 0; color: var(--accent-strong); }
+
+@media (max-width: 820px) {
+  .registry-table .product-card { display: grid; }
+  .product-table .product-card-actions { min-width: 0; }
+}

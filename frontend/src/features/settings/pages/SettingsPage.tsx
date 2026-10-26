@@ -2,7 +2,7 @@ import { OutboxPanel } from "../components/OutboxPanel";
 import { AccessManagementPanel } from "../../users/components/AccessManagementPanel";
 import { Link, useLocation } from "react-router-dom";
 import { Icon } from "../../../components/Icon";
-import { activeSettingsSection } from "../settingsSections";
+import { activeSettingsSection, SETTINGS_SECTIONS } from "../settingsSections";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { CompanyProfileForm } from "../components/CompanyProfileForm";
 import { IntegrationHealthPanel } from "../components/IntegrationHealthPanel";
@@ -24,7 +24,9 @@ export function SettingsPage() {
           <p className="entity-lede">{accessManagement ? "Pessoas, perfis e permissões em um único lugar." : "Gerencie os dados da empresa e acompanhe os serviços do LoadX."}</p></div>
         <span className="settings-access"><Icon name="settings" size={16} />Acesso administrativo</span>
       </header>
-      {/* Seções controladas pela sidebar global; sem navegação duplicada. */}
+      <nav className="section-navigation" aria-label="Seções de Configurações">
+        {SETTINGS_SECTIONS.map((section) => <Link key={section.id} to={`/settings#${section.id}`} aria-current={activeId === section.id ? "location" : undefined}>{section.label}</Link>)}
+      </nav>
       <div className="settings-content">
           {/* Manter os painéis montados preserva o rascunho ao trocar de seção. */}
           <SettingsSection id="settings-account" title="Conta e administração" description="Informações da sessão e acesso às configurações pessoais." hidden={activeId !== "settings-account"}><SettingsAccountPanel user={user} /></SettingsSection>

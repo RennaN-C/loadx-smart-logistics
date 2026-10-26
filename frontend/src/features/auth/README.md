@@ -9,7 +9,7 @@ Login, sessão e proteção de rotas.
 - `components/AuthContext.ts`: o Context em si, separado do provider para preservar o Fast Refresh.
 - `components/RequireAuth.tsx`: guarda de rota, redireciona para `/login` quando não autenticado.
 - `components/SessionLoading.tsx`: estado de carregamento compartilhado por `RequireAuth` e `LoginPage`.
-- `components/BrandPanel.tsx`: painel estático de marca da tela de login.
+- `components/BrandPanel.tsx`: painel de marca com ilustração decorativa e controle de movimento.
 - `components/LoginForm.tsx`: formulário controlado de e-mail/senha.
 - `components/loginErrorMessages.ts`: tradução dos códigos de erro do backend para texto de interface.
 - `api/authApi.ts`: login, restauração e logout revogável.
@@ -23,8 +23,8 @@ cookie `HttpOnly`; o frontend não lê nem persiste credenciais. O
 
 ## Pendências
 
-- `PENDENTE DE DEFINIÇÃO`: recuperação de senha e MFA para funções críticas
-  pertencem a ocorrências futuras.
+- `CONFIRMADO`: recuperação e MFA foram implementados na OC98, descrita abaixo.
+  O aceite externo de recuperação permanece no relatório de prontidão da v1.2.0.
 
 
 ## OC92 — Meu perfil
@@ -88,3 +88,41 @@ Respostas anteriores não sobrescrevem outro link. Prazo, uso único, revogaçã
 MFA continuam definidos pelo backend. F5 não recupera um token apagado da URL.
 A marca fica compacta no mobile; o formulário aparece antes da ilustração
 (desktop), sem título sobreposto ou rodapé com versão/ambiente inventados.
+
+## Perfil e acesso — revisão visual de 24/10/2026
+
+`CONFIRMADO`: Meu perfil tem abas Dados pessoais, Segurança e MFA, e Sessões e
+dispositivos. A seleção usa `/account?tab=data|security|sessions`; valor ausente
+ou desconhecido abre Dados pessoais. Painéis permanecem montados para preservar
+rascunhos. Aparência e notificações ficam em detalhes expansíveis. Dispositivos
+confiáveis acompanham as sessões; MFA e alteração de senha continuam usando os
+mesmos contratos e confirmações.
+
+`CONFIRMADO`: login e recuperação compartilham painel de marca. O visual
+decorativo não representa resultado do otimizador nem estado operacional.
+
+## Acesso profissional — Issue #304, 25/10/2026
+
+`CONFIRMADO`: LoginPage.css unifica o layout de login/recuperação com painel
+navy, formulário no tema escolhido, foco/hover e entrada discreta. BrandPanel
+usava LoginIllustration: SVG decorativo com caminhão e volumes, substituído pela
+revisão fotográfica da Issue #306 abaixo. Os efeitos contínuos
+podem ser pausados pelo botão Pausar efeitos; a preferência de movimento
+reduzido desativa animações/transições e oculta o controle desnecessário.
+
+`CONFIRMADO`: formulários, senhas, desafio MFA, recuperação, cookies, CSRF e
+redirecionamentos mantêm seus contratos. Nenhum envio externo foi realizado
+na verificação visual. Capturas e matriz em
+[login profissional](../../../../docs/evidencias/login-profissional/README.md).
+
+## Painel fotográfico — Issue #306, 25/10/2026
+
+`CONFIRMADO`: a ilustração e sua moldura foram removidas. BrandPanel usa uma
+imagem própria de aparência fotográfica como fundo, com gradientes para leitura,
+etapas discretas no rodapé e zoom lento pausável. Mobile mantém a marca compacta
+e o formulário visível. O asset WebP é local, decorativo e tem carregamento
+prioritário; não adiciona dependências nem utiliza hotlink.
+
+`CONFIRMADO`: proveniência e prompt em
+[images/README.md](../../../public/images/README.md). Capturas e verificações em
+[login fotográfico](../../../../docs/evidencias/login-fotografico/README.md).

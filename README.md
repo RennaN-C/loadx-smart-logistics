@@ -680,3 +680,10 @@ O objetivo é aplicar conceitos de:
 Este projeto possui finalidade acadêmica.
 
 A definição de uma licença de código aberto poderá ser realizada posteriormente.
+
+## Teste de usabilidade local
+
+`CONFIRMADO`: o [guia de gravação e avaliação](docs/usabilidade/README.md)
+contém preparação de dados fictícios, roteiro de tarefas, ficha de observação e
+evidências do ensaio técnico com autenticação real. Resultados humanos devem
+ser registrados durante as sessões com participantes.

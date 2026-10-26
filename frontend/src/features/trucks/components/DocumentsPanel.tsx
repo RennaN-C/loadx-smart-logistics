@@ -11,6 +11,7 @@ import { listDocuments, listDocumentPolicies, setDocumentPolicy, type DocumentKi
 import type { Truck } from "../types";
 import { DocumentForm } from "./DocumentForm";
 import { documentKinds, documentStatuses } from "./documentLabels";
+import "./DocumentsPanel.css";
 
 function date(value: string | null) { return value ? new Date(value).toLocaleString("pt-BR") : "não informada"; }
 export function DocumentsPanel({ truck, onChanged }: { readonly truck: Truck; readonly onChanged: () => Promise<void> }) {
@@ -40,24 +41,24 @@ export function DocumentsPanel({ truck, onChanged }: { readonly truck: Truck; re
     finally { setPending(false); }
   }
   if (creating || replacing) return <DocumentForm truckId={truck.id} replacing={replacing} onSaved={changed} onCancel={() => { setCreating(false); setReplacing(undefined); }} />;
-  return <div>
-    <h3>Elegibilidade documental</h3>
-    <p>Tipos exigidos bloqueiam novas operações quando ausentes, vencidos ou com emissão futura. Alertas não enviam notificações.</p>
+  return <div className="documents-panel">
+    <header className="documents-panel-heading"><div><h3>Documentos de {truck.plate}</h3><p>Validade, histórico e regras que afetam a elegibilidade operacional.</p></div>{canManage ? <button type="button" className="btn-primary" onClick={() => setCreating(true)}>Novo documento</button> : null}</header>
+    <section className="documents-policy" aria-labelledby={`documents-policy-${truck.id}`}><div><h4 id={`documents-policy-${truck.id}`}>Elegibilidade documental</h4><p>Tipos exigidos bloqueiam novas operações quando ausentes, vencidos ou com emissão futura.</p></div>
     {policyStatus === "loading" ? <output>Carregando política documental…</output> : null}
-    {policyStatus === "success" ? Object.entries(documentKinds).map(([kind, label]) => <label key={kind}><input type="checkbox" checked={policies.some((row) => row.kind === kind && row.required)} disabled={!canManage || pending} onChange={(event) => void toggle(kind as DocumentKind, event.target.checked)} />Exigir {label}</label>) : null}
-    {canManage ? <button type="button" onClick={() => setCreating(true)}>Novo documento</button> : null}
+    {policyStatus === "success" ? <div className="documents-policy-options">{Object.entries(documentKinds).map(([kind, label]) => <label key={kind}><input type="checkbox" checked={policies.some((row) => row.kind === kind && row.required)} disabled={!canManage || pending} onChange={(event) => void toggle(kind as DocumentKind, event.target.checked)} />Exigir {label}</label>)}</div> : null}
+    </section>
     {actionError ? <AlertBanner>{actionError}</AlertBanner> : null}
     {status === "loading" ? <output>Carregando documentos…</output> : null}
     {error ? <AlertBanner>{error.message}</AlertBanner> : null}
     {status === "success" && items.length === 0 ? <p>Nenhum documento registrado.</p> : null}
-    {items.map((row) => <article key={row.id} className="contact-card">
+    {items.length > 0 ? <div className="documents-list">{items.map((row) => <article key={row.id} className="document-row">
       <strong>{documentKinds[row.kind]} — {row.reference}</strong>
       <StatusPill tone={row.status === "VALID" ? "good" : "warn"}>{documentStatuses[row.status]}</StatusPill>
       <p>Emissão: {date(row.issued_at)} · Validade: {date(row.expires_at)}</p>
       <p>Registrado: {date(row.created_at)}{row.superseded_at ? ` · Substituído: ${date(row.superseded_at)}` : ""}</p>
       {row.file_reference ? <p>Referência de arquivo: {row.file_reference}</p> : null}
-      {canManage && !row.superseded_at ? <button type="button" onClick={() => setReplacing(row)}>Renovar {documentKinds[row.kind]}</button> : null}
-    </article>)}
+      {canManage && !row.superseded_at ? <button type="button" className="btn-link" onClick={() => setReplacing(row)}>Renovar {documentKinds[row.kind]}</button> : null}
+    </article>)}</div> : null}
     {status === "success" ? <Pagination page={page} totalPages={totalPages} onChange={goToPage} label="documentos" /> : null}
   </div>;
 }

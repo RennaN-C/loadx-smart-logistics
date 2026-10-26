@@ -4,9 +4,10 @@ Listagem e cadastro de pedidos (OC29). Consome `GET/POST/PATCH /orders`.
 
 ## O que existe hoje
 
-- `pages/OrderListPage.tsx` (+ `.css`): grid **paginado** de cards, busca por cliente e filtro por
+- `pages/OrderListPage.tsx` (+ `.css`): tabela responsiva **paginada**, busca por cliente e filtro por
   situação, ambos no servidor antes da paginação (OC95), estados de carregando/vazio/erro e o modal.
-- `components/OrderCard.tsx`: cliente, situação, prioridade, previsão e a **contagem** de itens.
+- `components/OrderCard.tsx`: linha com referência navegável, cliente, situação,
+  prioridade, previsão e a **contagem** de itens; ações secundárias sob demanda.
 - `components/OrderForm.tsx`: formulário mestre-detalhe — o primeiro do projeto com lista de itens.
 - `components/orderDateTime.ts`: ponte entre o `<input type="datetime-local">` e o contrato da API.
 - `components/orderLabels.ts`: rótulos em português para situação e prioridade.
@@ -94,3 +95,11 @@ A API usa SearchListParams e tipos específicos somente onde necessário; o
 loader estável não refiltra items localmente. O total vem do conjunto filtrado.
 Busca limitada a 120 caracteres; vazio/erro/loading permanecem tratados.
 Nenhum campo pessoal proibido pela ADR-017 foi incluído no resumo ou na busca.
+
+## Revisão visual de 24/10/2026
+
+`CONFIRMADO`: o seletor de situação é o ponto único para filtrar todos os
+estados, incluindo Entregue. Foram removidos os botões redundantes Todos os
+pedidos/Pedidos entregues; URLs com `status=DELIVERED` continuam compatíveis.
+Ver pedido, Anexos e Editar preservam os handlers existentes no menu da linha.
+O UUID abreviado abre o detalhe persistido.
