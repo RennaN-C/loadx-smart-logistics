@@ -6,10 +6,11 @@ from unittest.mock import Mock
 from urllib.error import HTTPError
 
 import pytest
+from pydantic import SecretStr
+
 from app.core.config import Settings
 from app.integrations.ai import AIProviderTimeoutError, AIProviderUnavailableError
 from app.integrations.ai.groq import GroqProvider
-from pydantic import SecretStr
 
 
 def config(**overrides):

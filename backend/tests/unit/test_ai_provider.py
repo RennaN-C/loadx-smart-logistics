@@ -1,6 +1,8 @@
 from decimal import Decimal
 
 import pytest
+from pydantic import ValidationError
+
 from app.integrations.ai import (
     AIExplanationContext,
     AIPlacedVolumeContext,
@@ -12,7 +14,6 @@ from app.integrations.ai import (
     get_ai_provider,
     validate_ai_provider_output,
 )
-from pydantic import ValidationError
 
 
 def make_context() -> AIExplanationContext:
