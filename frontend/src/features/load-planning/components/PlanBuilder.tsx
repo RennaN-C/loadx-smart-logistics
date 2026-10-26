@@ -242,6 +242,10 @@ export function PlanBuilder({ onCalculated, onDistributed }: PlanBuilderProps) {
             <div><dt>Veículo</dt><dd>{mode === "automatic" ? "Definido pelo otimizador" : activeTrucks.find((truck) => truck.id === truckId)?.plate ?? "Não selecionado"}</dd></div>
           </dl>
           <p className="entity-form-help">O cálculo salva o planejamento. A aprovação e o início da operação continuam sendo ações separadas.</p>
+          <aside className="planning-ai-precalculation" aria-label="Etapa de IA">
+            <strong>Explicação por IA — etapa separada e opcional</strong>
+            <p>Primeiro o sistema calcula e valida as posições dos volumes pelas regras físicas. Depois, no resultado salvo, você pode solicitar uma explicação por IA sobre o aproveitamento e as decisões do plano. A IA não altera a distribuição, os pesos ou a segurança do carregamento.</p>
+          </aside>
           <p id="planning-calculation-help" className="entity-form-help" role={exceedsVolumeLimit ? "alert" : "status"}>{exceedsVolumeLimit ? <>Desmarque pedidos para ficar dentro do limite de {MAX_SYNC_VOLUMES} volumes. Revise a seleção na etapa Pedidos ou ajuste as quantidades em <Link to="/orders">Pedidos</Link>.</> : calculationHelp ?? "Tudo pronto. O cálculo salvará o planejamento para revisão e aprovação."}</p>
           <PlanCalculateAction selectedCount={selectedOrders.length} isCalculating={isCalculating}
             canCalculate={canCalculate} mode={mode} onCalculate={() => void handleCalculate()} />

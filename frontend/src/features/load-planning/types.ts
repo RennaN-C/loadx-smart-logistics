@@ -57,6 +57,9 @@ export interface LoadPlanItem extends LoadPlanItemSnapshot {
 export interface LoadPlan {
   ordersReadyForApproval?: boolean | null;
   distributionId?: string | null;
+  distributionStatus?: DistributionStatus | null;
+  partStatus?: DistributionPartStatus | null;
+  isCurrentPart?: boolean;
   id: string;
   truckId: string;
   /** Preenchido quando este plano nasceu de um recálculo de outro. */
@@ -113,7 +116,7 @@ export interface LoadPlanVisualization {
   unloadedItems: UnloadedItem[];
 }
 
-export type PlanOperationStatus = "NOT_STARTED" | "IN_PROGRESS" | "PARTIALLY_DELIVERED" | "COMPLETED" | "CANCELED";
+export type PlanOperationStatus = "NOT_STARTED" | "IN_PROGRESS" | "PARTIALLY_DELIVERED" | "COMPLETED" | "INCOMPLETE" | "CANCELED";
 export interface PlanOperation {
   status: PlanOperationStatus;
   loading_session_id: string | null;
@@ -131,6 +134,9 @@ export interface PlanOperation {
 export interface LoadPlanListItem {
   operation?: PlanOperation | null;
   distributionId?: string | null;
+  distributionStatus?: DistributionStatus | null;
+  partStatus?: DistributionPartStatus | null;
+  isCurrentPart?: boolean;
   id: string;
   truckId: string;
   truckPlate: string;

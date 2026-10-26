@@ -361,6 +361,87 @@ def test_cancel_releases_claims_but_preserves_history_and_blocks_legacy_bypass(
         ]
 
 
+def test_cancelled_distribution_is_hidden_from_active_plans_and_kept_in_history(
+    distribution_scenario,
+):
+    s = distribution_scenario
+    result = s.create()
+    plan_ids = {part["load_plan"]["id"] for part in result["parts"]}
+    endpoint = "/api/v1/load-plans"
+
+    active = s.client.get(
+        endpoint, params={"operation_scope": "ongoing"}, headers=s.user.headers
+    )
+    assert active.status_code == 200, active.text
+    assert plan_ids <= {p["id"] for p in active.json()["items"]}
+
+    cancel = s.post(f"/{result['id']}/cancel")
+    assert cancel.status_code == 200
+    assert cancel.json()["status"] == "CANCELED"
+
+    active = s.client.get(
+        endpoint, params={"operation_scope": "ongoing"}, headers=s.user.headers
+    )
+    assert active.status_code == 200, active.text
+    assert not plan_ids.intersection(p["id"] for p in active.json()["items"])
+    finished = s.client.get(
+        endpoint, params={"operation_scope": "completed"}, headers=s.user.headers
+    )
+    assert finished.status_code == 200, finished.text
+    assert not plan_ids.intersection(p["id"] for p in finished.json()["items"])
+
+    history = s.client.get(
+        endpoint, params={"operation_scope": "all"}, headers=s.user.headers
+    )
+    assert history.status_code == 200, history.text
+    records = [p for p in history.json()["items"] if p["id"] in plan_ids]
+    assert len(records) == 2
+    for plan in records:
+        assert plan["status"] == "CALCULATED"  # Snapshot must remain immutable.
+        assert plan["distribution_id"] == result["id"]
+        assert plan["distribution_status"] == "CANCELED"
+        assert plan["part_status"] == "CANCELED"
+        assert plan["is_current_part"] is True
+        assert plan["operation"]["status"] == "CANCELED"
+        detail = s.client.get(
+            f"/api/v1/load-plans/{plan['id']}", headers=s.user.headers
+        )
+        assert detail.status_code == 200
+        assert detail.json()["distribution_status"] == "CANCELED"
+        assert detail.json()["part_status"] == "CANCELED"
+
+
+def test_part_cancellation_moves_distribution_out_of_active_scope(
+    distribution_scenario,
+):
+    s = distribution_scenario
+    created = s.create()
+    part_id = created["parts"][0]["id"]
+    canceled = s.post(f"/{created['id']}/parts/{part_id}/cancel")
+    assert canceled.status_code == 200, canceled.text
+    assert canceled.json()["status"] == "INCOMPLETE"
+    plan_ids = {p["load_plan"]["id"] for p in created["parts"]}
+
+    active = s.client.get(
+        "/api/v1/load-plans",
+        params={"operation_scope": "ongoing"},
+        headers=s.user.headers,
+    )
+    assert active.status_code == 200, active.text
+    assert not plan_ids.intersection(p["id"] for p in active.json()["items"])
+    all_plans = s.client.get(
+        "/api/v1/load-plans",
+        params={"operation_scope": "all"},
+        headers=s.user.headers,
+    )
+    assert all_plans.status_code == 200, all_plans.text
+    records = [p for p in all_plans.json()["items"] if p["id"] in plan_ids]
+    assert len(records) == 2
+    assert {p["distribution_status"] for p in records} == {"INCOMPLETE"}
+    assert {p["part_status"] for p in records} == {"CANCELED", "PENDING"}
+    assert {p["operation"]["status"] for p in records} == {"INCOMPLETE", "CANCELED"}
+
+
 def test_history_failure_rolls_back_distribution_and_approval(
     distribution_scenario, monkeypatch
 ):
