@@ -54,6 +54,9 @@ payload do provider; frontend testa seleção sem consulta automática e filtro 
 - Redação de tokens contendo @ sem expressão de backtracking superlinear.
 - Permissões são revalidadas entre chamadas; promoção não amplia ferramentas
   anunciadas e revogação impede consultas pendentes.
-- Unitários Groq/orquestração/saúde: 57 aprovados. PostgreSQL 16
+- Unitários Groq/orquestração/saúde: 58 aprovados. PostgreSQL 16
   Assistente/saúde/OpenAPI: 37 aprovados. Frontend focado: 16 aprovados.
 - Resultados completos e Quality Gate finais são registrados no corpo da PR.
+
+- Placas retornadas pela disponibilidade permanecem nos fatos autorizados da UI;
+  teste confirma que não seguem no resultado estruturado enviado à Groq.

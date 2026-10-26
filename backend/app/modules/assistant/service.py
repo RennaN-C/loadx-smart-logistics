@@ -248,7 +248,8 @@ class AssistantService:
         provider_fact["values"] = {
             key: (
                 "cadastro autorizado"
-                if key in {"company", "top_customer_name"} and value
+                if key in {"company", "top_customer_name", "unavailable_vehicles"}
+                and value
                 else value
             )
             for key, value in fact.values.items()

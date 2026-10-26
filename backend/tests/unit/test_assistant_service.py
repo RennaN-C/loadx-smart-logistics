@@ -252,3 +252,36 @@ def test_deeply_nested_provider_arguments_fail_closed_without_query(no_database)
     assert result.source == "FALLBACK"
     db.refresh.assert_not_called()
     assert provider.complete.call_count == 1
+
+
+def test_vehicle_identifiers_remain_in_authorized_facts_only(no_database, monkeypatch):
+    provider = Mock()
+    provider.complete.side_effect = [
+        {
+            "tool_calls": [
+                {
+                    "id": "availability",
+                    "type": "function",
+                    "function": {"name": "get_fleet_availability", "arguments": "{}"},
+                }
+            ]
+        },
+        {"content": "Há um veículo indisponível. Consulte a relação no painel."},
+    ]
+    monkeypatch.setattr(
+        AssistantMetricsService,
+        "query",
+        Mock(
+            return_value=Source(
+                name="Disponibilidade",
+                criteria="Snapshot autorizado",
+                values={"page_unavailable_count": 1, "unavailable_vehicles": "FIC1A23"},
+            )
+        ),
+    )
+    result = AssistantService(Mock(), config(), provider).chat(
+        actor("CHECKER"), ChatRequest(message="Quais veículos estão indisponíveis?")
+    )
+    assert result.source == "GROQ"
+    assert result.facts[0].values["unavailable_vehicles"] == "FIC1A23"
+    assert "FIC1A23" not in str(provider.complete.call_args)
