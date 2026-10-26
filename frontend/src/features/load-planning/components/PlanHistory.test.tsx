@@ -131,7 +131,7 @@ it("distingue situacao do plano aprovado da conclusao de entrega", async () => {
   );
   setup();
   expect(await screen.findByText("ABC1D23")).toBeInTheDocument();
-  expect(screen.getByText(/A aprovação registra a decisão sobre a carga/)).toBeInTheDocument();
+  expect(screen.getByText(/Cancelamentos e versões substituídas ficam fora de Em andamento/)).toBeInTheDocument();
   expect(screen.getAllByText("Plano: Aprovado").length).toBeGreaterThanOrEqual(1);
 });
 
