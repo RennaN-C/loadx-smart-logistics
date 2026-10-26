@@ -1,3 +1,4 @@
+import { Assistant } from "../features/assistant/Assistant";
 import { NotificationProvider } from "../features/notifications/components/NotificationProvider";
 import { NotificationBell } from "../features/notifications/components/NotificationBell";
 import { hasPermission } from "../features/auth/permissions";
@@ -346,6 +347,7 @@ export function AppLayout() {
         <header className="app-search-header">
           <GlobalSearch key={`${user?.id}:${user?.role}:${user?.permissions?.join(",")}`} />
           {user ? <div className="app-header-actions">
+            <Assistant key={`${user.id}:${user.role}:${user.permissions?.join(",")}`} />
             <NotificationBell />
             <Link className="app-header-account" to="/account" aria-label={`Abrir perfil de ${user.name}`}>
               <Avatar name={user.name} size={34} />

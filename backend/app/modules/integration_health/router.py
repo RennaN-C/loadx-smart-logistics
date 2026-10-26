@@ -21,6 +21,10 @@ def get_service(request: Request) -> IntegrationHealthService:
     return IntegrationHealthService(
         request.app.state.readiness_checker,
         ai_provider=request.app.state.integration_health_settings.ai_provider,
+        ai_configured=bool(
+            request.app.state.integration_health_settings.groq_api_key
+            and request.app.state.integration_health_settings.groq_api_key.get_secret_value().strip()
+        ),
         webhook_configured=request.app.state.inbound_webhook is not None,
         sources=request.app.state.integration_health_sources,
     )

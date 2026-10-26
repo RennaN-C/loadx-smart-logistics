@@ -1,3 +1,4 @@
+import { openAssistant } from "../../assistant/assistantApi";
 import { AlertBanner } from "../../../components/AlertBanner";
 import { ApiError } from "../../../types/api";
 import { mapLoadPlanErrorToMessage } from "./loadPlansErrorMessages";
@@ -63,18 +64,32 @@ function capacityDiagnostics(error: ApiError): { remaining: number; hints: strin
   };
 }
 
-export function DistributionFeedback({ error }: { readonly error: unknown }) {
-  if (!error) return null;
-  const isCapacityFailure = error instanceof ApiError && error.code === "DISTRIBUTION_CAPACITY_INSUFFICIENT";
-  const diagnostic = isCapacityFailure ? capacityDiagnostics(error) : null;
-  return <AlertBanner>
-    <strong>{distributionErrorMessage(error)}</strong>
-    {isUnconfirmedOutcome(error) ? <p><a href="/planning">Conferir Planos existentes antes de tentar novamente</a></p> : null}
-    {isCapacityFailure ? <div className="distribution-feedback-guidance">
+function CapacityGuidance({ diagnostic }: { readonly diagnostic: ReturnType<typeof capacityDiagnostics> }) {
+  return <div className="distribution-feedback-guidance">
         {diagnostic?.remaining ? <p>{diagnostic.remaining} {diagnostic.remaining === 1 ? "volume ficou" : "volumes ficaram"} sem posição segura nesta tentativa.</p> : null}
         {diagnostic?.hints.length ? <p><strong>Possíveis impedimentos:</strong> {diagnostic.hints.join(" ")}</p> : null}
         {diagnostic?.unavailableTrucks ? <p>{diagnostic.unavailableTrucks} {diagnostic.unavailableTrucks === 1 ? "caminhão não estava elegível" : "caminhões não estavam elegíveis"} para participar do cálculo.</p> : null}
         <p><strong>Como resolver:</strong> confira dimensões, peso, fragilidade e quantidade dos volumes; verifique quais caminhões estão disponíveis e tente novamente com uma seleção adequada.</p>
-      </div> : null}
+      </div>;
+}
+
+function diagnosticReceipt(error: unknown): string | undefined {
+  if (!(error instanceof ApiError)) return undefined;
+  const item = error.details.find((entry): entry is { assistant_diagnostic: string } =>
+    typeof entry === "object" && entry !== null && "assistant_diagnostic" in entry
+    && typeof entry.assistant_diagnostic === "string" && entry.assistant_diagnostic.length > 0 && entry.assistant_diagnostic.length <= 4096);
+  return item?.assistant_diagnostic;
+}
+
+export function DistributionFeedback({ error }: { readonly error: unknown }) {
+  if (!error) return null;
+  const isCapacityFailure = error instanceof ApiError && error.code === "DISTRIBUTION_CAPACITY_INSUFFICIENT";
+  const diagnostic = isCapacityFailure ? capacityDiagnostics(error) : null;
+  const proof = diagnosticReceipt(error);
+  return <AlertBanner>
+    <strong>{distributionErrorMessage(error)}</strong>
+    {isUnconfirmedOutcome(error) ? <p><a href="/planning">Conferir Planos existentes antes de tentar novamente</a></p> : null}
+    {isCapacityFailure ? <CapacityGuidance diagnostic={diagnostic} /> : null}
+    {proof ? <button type="button" className="btn-secondary" onClick={() => openAssistant({ diagnosticToken: proof, question: "Por que esta tentativa de otimização falhou e como resolver os impedimentos?" })}>Perguntar ao LoadX sobre esta tentativa</button> : null}
   </AlertBanner>;
 }
