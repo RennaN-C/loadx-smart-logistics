@@ -93,3 +93,15 @@ it("exige seleção explícita de cliente ambíguo e conserva filtro visível", 
   await waitFor(() => expect(askAssistant).toHaveBeenCalledTimes(2));
   expect(vi.mocked(askAssistant).mock.calls[1][2].customerId).toBe(reference);
 });
+
+
+it("envia diagnóstico separado do plano da rota e sem consulta automática", async () => {
+  show();
+  const receipt = "opaque-signed-receipt";
+  fireEvent(window, new CustomEvent("loadx:assistant", { detail: { diagnosticToken: receipt, question: "Por que falhou?" } }));
+  await screen.findByRole("dialog");
+  expect(askAssistant).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Enviar pergunta" }));
+  await waitFor(() => expect(askAssistant).toHaveBeenCalledOnce());
+  expect(vi.mocked(askAssistant).mock.calls[0][2]).toEqual({ diagnosticToken: receipt });
+});

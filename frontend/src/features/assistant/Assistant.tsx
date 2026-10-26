@@ -36,7 +36,7 @@ export function Assistant() {
     const listener = (event: Event) => {
       request.current?.abort(); request.current = null;
       const detail = (event as CustomEvent<AssistantOpenContext>).detail ?? {};
-      setContext({ ...routeContext(pathname), planId: detail.planId ?? routeContext(pathname).planId, distributionId: detail.distributionId ?? routeContext(pathname).distributionId });
+      setContext(detail.diagnosticToken ? { diagnosticToken: detail.diagnosticToken } : { ...routeContext(pathname), planId: detail.planId ?? routeContext(pathname).planId, distributionId: detail.distributionId ?? routeContext(pathname).distributionId });
       setSelectedCustomer(null);
       setDraft(typeof detail.question === "string" ? detail.question.slice(0, 2000) : ""); setTurns([]); setFailed(null); setWorking(false); setOpen(true);
     };

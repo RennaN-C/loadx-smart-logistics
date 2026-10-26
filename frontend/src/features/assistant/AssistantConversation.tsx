@@ -6,9 +6,12 @@ const LABELS: Record<string, string> = {
   ...PLAN_STATUS_LABELS, ...REJECTION_LABELS,
   DRAFT: "Rascunho", READY: "Pronto para coleta", PLANNED: "Planejado", IN_TRANSIT: "Em trânsito", DELIVERED: "Entregue", CANCELED: "Cancelado",
   PROPOSED: "Proposta", PARTIALLY_APPROVED: "Parcialmente aprovada", INCOMPLETE: "Incompleta",
+  DISTRIBUTION_CAPACITY_INSUFFICIENT: "Capacidade insuficiente nesta tentativa",
   insufficient_data: "Dados insuficientes", ambiguous_customer: "Mais de um cliente encontrado", customer_not_found: "Cliente não encontrado",
 };
 const FACT_LABELS: Record<string, string> = {
+  "remaining_volumes": "Volumes sem posição segura",
+  "unavailable_trucks": "Caminhões inelegíveis nesta tentativa",
   "fully_delivered_orders": "Pedidos totalmente entregues",
   "dispatched_orders": "Pedidos expedidos distintos",
   "completed_delivery_legs": "Pernas de entrega concluídas",
