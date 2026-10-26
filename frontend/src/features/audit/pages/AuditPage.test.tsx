@@ -81,6 +81,16 @@ describe("AuditPage", () => {
     expect(within(screen.getByRole("table")).getByText(label)).toBeInTheDocument();
   });
 
+  it("preserva rastreabilidade de eventos do sistema sem responsável pessoal", async () => {
+    vi.mocked(listAuditEntries).mockResolvedValue(makePage([{ ...ENTRY, actorId: null, actorName: null }]));
+    render(<AuditPage />);
+    expect(await screen.findByText("Sistema")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Ver detalhes do evento 11111111" }));
+    expect(screen.getByText(ENTRY.entityId)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Ocultar detalhes do evento 11111111" }));
+    expect(screen.queryByText(ENTRY.entityId)).not.toBeInTheDocument();
+  });
+
   it("aplica filtros por entidade e evento no servidor", async () => {
     render(<AuditPage />);
     await screen.findByText("Ana Souza");

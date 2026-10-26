@@ -271,7 +271,7 @@ export function AuditPage() {
                       <span className="audit-entity-cell"><span className="audit-entity-icon"><Icon name="package" size={15} /></span><span><strong>{entry.entityName ?? AUDIT_ENTITY_LABELS[entry.entityType]}</strong><span className="audit-friendly-id">{AUDIT_ENTITY_LABELS[entry.entityType]} · {shortId}</span></span></span>
                     </td>
                     <td data-label="Responsável">
-                      <span className="audit-actor"><span>{actorInitials(entry.actorName)}</span><strong>{entry.actorName ?? "Sistema"}</strong></span>
+                      <span className="audit-actor"><span aria-hidden="true">{actorInitials(entry.actorName)}</span><strong>{entry.actorName ?? "Sistema"}</strong></span>
                     </td>
                     <td data-label="Alteração">{describeAuditEntry(entry)}</td>
                     <td data-label="Ações"><button className="audit-detail-toggle" type="button" aria-expanded={isExpanded}
