@@ -1,0 +1,69 @@
+{
+  "database": "PostgreSQL 16 isolado loadx_assistant_review",
+  "authentication": "Sessão LOGISTICS_MANAGER sintética criada por fixture, não valida login/MFA",
+  "http_interception": false,
+  "optimizer_status": 422,
+  "chat_status": 200,
+  "source": "FALLBACK",
+  "collision": 2,
+  "remaining_volumes": 2,
+  "escape": true,
+  "scenarios": [
+    {
+      "theme": "dark",
+      "width": 1920,
+      "height": 1080,
+      "overflow": false,
+      "diagnostic_matches": true
+    },
+    {
+      "theme": "dark",
+      "width": 1280,
+      "height": 900,
+      "overflow": false,
+      "diagnostic_matches": true
+    },
+    {
+      "theme": "dark",
+      "width": 768,
+      "height": 1024,
+      "overflow": false,
+      "diagnostic_matches": true
+    },
+    {
+      "theme": "dark",
+      "width": 375,
+      "height": 812,
+      "overflow": false,
+      "diagnostic_matches": true
+    },
+    {
+      "theme": "light",
+      "width": 1920,
+      "height": 1080,
+      "overflow": false,
+      "diagnostic_matches": true
+    },
+    {
+      "theme": "light",
+      "width": 1280,
+      "height": 900,
+      "overflow": false,
+      "diagnostic_matches": true
+    },
+    {
+      "theme": "light",
+      "width": 768,
+      "height": 1024,
+      "overflow": false,
+      "diagnostic_matches": true
+    },
+    {
+      "theme": "light",
+      "width": 375,
+      "height": 812,
+      "overflow": false,
+      "diagnostic_matches": true
+    }
+  ]
+}

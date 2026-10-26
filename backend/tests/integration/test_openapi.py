@@ -6,6 +6,7 @@ from app.core.config import Settings
 from app.main import create_app
 
 EXPECTED_ERROR_STATUSES = {
+    ("/api/v1/assistant/messages", "post"): {"401", "403", "404", "422", "429", "500"},
     # Disponível somente na homologação: conferência em lote.
     ("/api/v1/loading-sessions/{session_id}/check-all", "post"): {
         "401",

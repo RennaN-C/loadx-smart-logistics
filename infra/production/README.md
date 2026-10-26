@@ -144,3 +144,11 @@ ativação real nesta etapa. Contrato no
 
 `PENDENTE DE DEFINIÇÃO`: integração real adiada; definir fornecedor/API,
 credenciais no ambiente seguro e garantias de envio antes de retomar esse escopo.
+
+## Assistente Groq opcional — #336
+
+`CONFIRMADO`: `compose.groq.yaml` é override opt-in da referência de produção.
+Seleciona AI_PROVIDER=groq somente no backend e acrescenta GROQ_API_KEY via secret,
+sem passar chave ao frontend. Modelo e limites no README do módulo assistant.
+Não configura contas, não hospeda modelo e não realiza deploy. Sem o override,
+a referência existente permanece com provider mock/fallback, sem chamada externa.
