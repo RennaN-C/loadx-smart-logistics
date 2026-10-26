@@ -1,6 +1,11 @@
 # Backend
 
-API FastAPI do LoadX.
+API FastAPI do LoadX — código publicado na [v1.2.0](https://github.com/RennaN-C/loadx-smart-logistics/releases/tag/v1.2.0) (26/10/2026).
+
+O backend inclui autenticação/MFA, permissões, cadastros, planejamento tridimensional e multi-caminhão, carregamentos, viagens, entregas, outbox, anexos, auditoria e relatórios. A instalação do sistema completo e requisitos ficam no [README principal](../README.md) e no [guia de ambientes](../docs/13-guia-execucao-ambientes.md).
+
+**Limites:** até 200 volumes físicos por otimização síncrona (total, não por caminhão), comunicação WhatsApp externa simulada e armazenamento de arquivos local. A implantação de adapters persistentes e worker externos exige configuração e testes separados. Para testar a fila localmente, consulte `app/modules/notifications/README.md`.
+
 
 ## Organização
 
