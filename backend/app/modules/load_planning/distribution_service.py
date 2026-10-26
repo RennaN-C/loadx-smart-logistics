@@ -1,6 +1,8 @@
 import hashlib
 import json
+import logging
 import uuid
+from time import perf_counter
 from datetime import UTC, datetime
 
 from sqlalchemy.exc import IntegrityError
@@ -58,6 +60,9 @@ from app.modules.products.service import ProductService
 from app.modules.status_history.schemas import StatusHistoryCreate
 from app.modules.status_history.service import StatusHistoryService
 from app.modules.trucks.service import TruckNotFoundError, TruckService
+
+
+logger = logging.getLogger(__name__)
 
 
 class DistributionError(Exception):
@@ -184,12 +189,13 @@ class LoadDistributionService:
         self, key: uuid.UUID, *, changed_by: uuid.UUID
     ) -> DistributionRead:
         repository = OptimizationRepository(self.db)
-        if not repository.try_lock(changed_by, key):
-            raise DistributionError("OPTIMIZATION_IN_PROGRESS")
-        request = repository.get(changed_by, key)
-        if request is None:
-            raise DistributionError("OPTIMIZATION_NOT_FOUND", status=404)
-        return self.get(request.distribution_id)
+        with repository.session_lock(changed_by, key) as acquired:
+            if not acquired:
+                raise DistributionError("OPTIMIZATION_IN_PROGRESS")
+            request = repository.get(changed_by, key)
+            if request is None:
+                raise DistributionError("OPTIMIZATION_NOT_FOUND", status=404)
+            return self.get(request.distribution_id)
 
     def optimize(
         self,
@@ -199,10 +205,11 @@ class LoadDistributionService:
         idempotency_key: uuid.UUID | None = None,
     ) -> DistributionRead:
         try:
-            request = None
-            if idempotency_key is not None:
-                repository = OptimizationRepository(self.db)
-                if not repository.try_lock(changed_by, idempotency_key):
+            if idempotency_key is None:
+                return self._optimize(data, changed_by=changed_by, request=None)
+            repository = OptimizationRepository(self.db)
+            with repository.session_lock(changed_by, idempotency_key) as acquired:
+                if not acquired:
                     raise DistributionError("OPTIMIZATION_IN_PROGRESS")
                 payload_hash = hashlib.sha256(
                     json.dumps(
@@ -219,7 +226,7 @@ class LoadDistributionService:
                     request_key=idempotency_key,
                     payload_hash=payload_hash,
                 )
-            return self._optimize(data, changed_by=changed_by, request=request)
+                return self._optimize(data, changed_by=changed_by, request=request)
         except Exception:
             self.db.rollback()
             raise
@@ -267,7 +274,20 @@ class LoadDistributionService:
             for volume in need.volumes
         )
 
-        result = optimize_multi_truck(candidates, volumes)
+        # Everything needed by the pure optimizer is now an immutable snapshot.
+        # End the read transaction before expensive CPU work: a PostgreSQL
+        # idle-in-transaction timeout must never interrupt physical packing.
+        self.db.rollback()
+        started = perf_counter()
+        try:
+            result = optimize_multi_truck(candidates, volumes)
+        finally:
+            logger.info(
+                "multi_truck_packing elapsed_ms=%.0f volumes=%d candidates=%d",
+                (perf_counter() - started) * 1000,
+                len(volumes),
+                len(candidates),
+            )
 
         if not result.complete:
             failures = {
