@@ -1676,3 +1676,15 @@ IDEMPOTENCY_PAYLOAD_MISMATCH. Concorrência: 409 OPTIMIZATION_IN_PROGRESS.
 somente para o ator e com a mesma permissão create. Não cria nada.
 Migration 20261023_0035 → 20261021_0034; downgrade recusa registros existentes.
 Sem alteração de regras físicas, RBAC efetivo, MFA ou OC90/OC94.
+
+## Assistente LoadX consultivo — #336
+
+`CONFIRMADO`: POST `/api/v1/assistant/messages`, sessão/Origin/CSRF, perfis
+ADMIN/LOGISTICS_MANAGER/CHECKER. Schema e limites no [README do módulo](../backend/app/modules/assistant/README.md)
+e ADR-048. Mensagem até 2.000 caracteres, histórico limitado a oito mensagens;
+contexto opcional por plano/distribuição é reconsultado e autorizado no servidor.
+Resposta distingue GROQ de FALLBACK e inclui fatos, período, critérios e links
+internos autorizados. Sem mutações, cálculos físicos ou autorização pela IA.
+Contagens de pedidos completos, pernas e expedição possuem definições separadas.
+API legada de explicação permanece; runtime mock usa fallback em vez de declarar
+simulação como resposta de IA real. Nenhuma migration ou mudança de estado.

@@ -25,7 +25,8 @@ Registro fechado com schemas Pydantic, sem dispatcher de métodos arbitrários.
 Consultas usam projeções agregadas parametrizadas do módulo reports;
 serviço aplica permissões efetivas antes das queries. Empresa institucional
 somente ADMIN. Métricas globais exigem reports.read e permissões dos recursos
-envolvidos; CHECKER fica com orientação/contexto aprovado, não métricas de negócio.
+envolvidos; CHECKER fica com orientação/contexto aprovado e consulta paginada de disponibilidade
+operacional já autorizada por trucks.read, não métricas globais de negócio.
 Nenhum comando de escrita, confirmação ou nova permissão financeira é criado.
 Impacto financeiro só informa insufficient_data, sem consultar valores financeiros.
 A fase futura de escrita requer Issue, permissões próprias, prévia, confirmação,

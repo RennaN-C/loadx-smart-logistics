@@ -240,3 +240,12 @@ agora deixa explícita sua aplicação à seleção inteira, inclusive multi-cam
 - As transições de viagem, carregamento, pedido, distribuição e partes são consultadas nas projeções já existentes. Cancelar não exclui registros nem altera a cena 3D histórica. Perfis sem acesso aos detalhes da operação não recebem esses dados.
 - Após salvar um plano aparece uma área **separada de Assistente de IA**, com botão de consulta opcional a `POST /load-plans/{id}/explain`. O backend já diferencia resposta real `source=AI` de fallback `source=FALLBACK`; a interface identifica a origem e não diz que foi IA quando for fallback. A área nunca recalcula posições, não aprova e não altera a distribuição.
 - Mensagens da UI orientam o usuário a consultar o histórico ou iniciar um novo planejamento quando a distribuição estiver cancelada.
+
+## Assistente contextual — #336
+
+`PlanAIExplanation` abre o Assistente LoadX do layout com o plano selecionado;
+retira a explicação estática sem recalcular nem mudar a API legada. O painel
+compartilhado fica em `features/assistant`, usa Modal por portal para evitar
+recorte do cabeçalho, temas existentes e foco/Escape. Dados vêm de contrato real,
+com marcador GROQ/FALLBACK, fatos inspecionáveis e navegação autorizada. Histórico
+curto em memória, limpo ao trocar contexto, identidade, perfil ou rota.

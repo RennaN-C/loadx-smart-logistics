@@ -165,3 +165,12 @@ distribuição entre caminhões e demais evoluções futuras permanecem no
 [roadmap canônico de versões](docs/planejamento/roadmap-versoes.md).
 Recuperação de senha, MFA, storage real e observabilidade operacional continuam
 em [riscos e pendências](docs/11-riscos-pendencias.md).
+
+## Em desenvolvimento — Assistente LoadX (#336)
+
+- Chat contextual opt-in com adapter Groq, conversação limitada e fallback honesto.
+- Ferramentas consultivas de pedidos, entregas, frota e empresa, com métricas
+  calculadas no servidor, RBAC e fontes/períodos explícitos; sem escrita ou ROI fictício.
+- Painel responsivo integrado ao tema existente, contexto de plano/distribuição,
+  fatos verificáveis, foco/Escape e substituição da explicação estática.
+- Sem nova migration, dependência ou alteração da tag/release v1.2.0.
