@@ -49,7 +49,7 @@ const FACT_LABELS: Record<string, string> = {
 };
 function readable(value: string): string { return LABELS[value] ?? FACT_LABELS[value] ?? value.replaceAll("_", " "); }
 
-export interface Turn { readonly id: string; question: string; reply?: AssistantReply & { facts: (AssistantFact & { clientKey: string })[] } }
+export interface Turn { readonly id: string; question: string; reply?: Omit<AssistantReply, "facts"> & { facts: (AssistantFact & { clientKey: string })[] } }
 function formatValue(value: string | number | null): string {
   if (value === null) return "Sem dados";
   return typeof value === "number" ? value.toLocaleString("pt-BR") : readable(value);
