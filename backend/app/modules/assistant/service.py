@@ -142,10 +142,7 @@ class AssistantService:
             answer = reply.get("content")
             if not isinstance(answer, str) or not answer.strip() or len(answer) > 8000:
                 raise AIProviderUnavailableError
-            if re.search(
-                r"(?i)lucro|roi|receita|economia|ganho|melhoria", answer
-            ) and re.search(r"\d+\s*%|(?i:por cento)|R\$\s*\d", answer):
-                # No approved financial inputs or comparable baseline exist in this phase.
+            if _unsupported_financial_claim(answer):
                 raise AIProviderUnavailableError
             if re.search(
                 r"(?i)\b(cancelei|aprovei|atualizei|excluí|removi|criei|iniciei|recalculei|alterei|salvei|enviei|executei|concluí|reativei|arquivei)\b",
@@ -336,3 +333,15 @@ def _append_results(
     for result in results:
         if result.link and result.link not in links:
             links.append(result.link)
+
+
+def _unsupported_financial_claim(answer: str) -> bool:
+    if re.search(r"(?:R\$|US\$|\$|€)\s*\d", answer):
+        return True
+    financial = r"(?:lucro|roi|receita|economia|ganho|melhoria)"
+    forward = financial + r"[^.!?\n;]{0,80}\d+(?:[.,]\d+)?\s*%"
+    reverse = r"\d+(?:[.,]\d+)?\s*%\s+(?:de|em)\s+" + financial
+    return bool(
+        re.search(forward, answer, re.IGNORECASE)
+        or re.search(reverse, answer, re.IGNORECASE)
+    )

@@ -169,3 +169,23 @@ def test_provider_cannot_claim_that_a_write_was_executed(no_database):
     )
     assert result.source == "FALLBACK"
     assert "nenhum registro foi alterado" in result.answer
+
+
+def test_real_occupancy_is_not_confused_with_unavailable_financial_metrics(
+    no_database, monkeypatch
+):
+    fact = Source(
+        name="Plano autorizado", criteria="Snapshot", values={"occupancy_percent": 40}
+    )
+    monkeypatch.setattr(
+        "app.modules.assistant.service.planning_context", lambda *_: ([fact], [])
+    )
+    provider = Mock()
+    provider.complete.return_value = {
+        "content": "A ocupação é 40%. Não há dados para calcular lucro."
+    }
+    result = AssistantService(Mock(), config(), provider).chat(
+        actor(), ChatRequest(message="Qual a ocupação?")
+    )
+    assert result.source == "GROQ"
+    assert result.facts[0].values["occupancy_percent"] == 40
