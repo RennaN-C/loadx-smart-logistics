@@ -159,3 +159,13 @@ def test_provider_cannot_turn_missing_baseline_into_financial_improvement(no_dat
     )
     assert result.source == "FALLBACK"
     assert "30%" not in result.answer
+
+
+def test_provider_cannot_claim_that_a_write_was_executed(no_database):
+    provider = Mock()
+    provider.complete.return_value = {"content": "Pronto, cancelei a distribuição."}
+    result = AssistantService(Mock(), config(), provider).chat(
+        actor(), ChatRequest(message="Cancele a distribuição")
+    )
+    assert result.source == "FALLBACK"
+    assert "nenhum registro foi alterado" in result.answer

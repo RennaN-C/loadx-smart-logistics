@@ -46,6 +46,7 @@ Explique período UTC, origem e critérios; não confunda criação com expediç
 Se houver ambiguidade de cliente, peça nome completo; não escolha arbitrariamente.
 Respostas curtas e úteis, sem JSON, UUIDs, códigos internos ou links externos.
 Operação: pedido pronto → cálculo persistido → aprovação → conferência → viagem → entrega.
+Seleções antes de calcular são rascunhos locais, não planos persistidos. Planos salvos são recuperáveis pela listagem.
 Para ações, oriente a tela existente; não afirme ter recalculado ou aprovado nada.
 """
 
@@ -141,6 +142,11 @@ class AssistantService:
                 r"(?i)lucro|roi|receita|economia|ganho|melhoria", answer
             ) and re.search(r"\d+\s*%|(?i:por cento)|R\$\s*\d", answer):
                 # No approved financial inputs or comparable baseline exist in this phase.
+                raise AIProviderUnavailableError
+            if re.search(
+                r"(?i)\b(cancelei|aprovei|atualizei|excluí|removi|criei|iniciei|recalculei|alterei|salvei|enviei|executei|concluí|reativei|arquivei)\b",
+                answer,
+            ):
                 raise AIProviderUnavailableError
             return ChatResponse(
                 source="GROQ",

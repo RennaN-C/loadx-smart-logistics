@@ -6,7 +6,7 @@ import { Assistant } from "./Assistant";
 import { askAssistant, type AssistantReply } from "./assistantApi";
 
 vi.mock("../auth/hooks/useAuth");
-vi.mock("./assistantApi", () => ({ askAssistant: vi.fn() }));
+vi.mock("./assistantApi", () => ({ askAssistant: vi.fn(), assistantErrorMessage: () => "Não foi possível responder agora. Tente novamente." }));
 const user = { id: "synthetic-user", name: "Pessoa de teste", role: "ADMIN", active: true };
 const REPLY: AssistantReply = { source: "GROQ", answer: "O pedido foi entregue integralmente.", facts: [], links: [], suggestions: [] };
 beforeEach(() => {
@@ -60,4 +60,23 @@ it("bloqueia cliques duplicados e ignora resposta após fechar", async () => {
   resolve(REPLY);
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   open(); expect(screen.queryByText(REPLY.answer)).not.toBeInTheDocument(); expect(askAssistant).toHaveBeenCalledTimes(1);
+});
+
+it("mostra registros cancelados com rótulos legíveis e navegação real", async () => {
+  const href = "/planning/distributions/22222222-2222-4222-8222-222222222222";
+  vi.mocked(askAssistant).mockResolvedValue({ ...REPLY, facts: [{ name: "Distribuições canceladas", criteria: "Criadas no período", timezone: "UTC", period_start: null, period_end: null, values: { currently_canceled_distributions_created_in_period: 1 }, links: [{ label: "Distribuição criada em 26/10/2026", href }] }] });
+  show(); open(); send();
+  expect(await screen.findByText("Distribuições canceladas criadas no período")).toBeInTheDocument();
+  const link = screen.getByRole("link", { name: "Distribuição criada em 26/10/2026" });
+  expect(link).toHaveAttribute("href", href);
+  fireEvent.click(link);
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+});
+
+it("abre ajuda de falha com pergunta preparada sem enviar automaticamente", () => {
+  show("/planning");
+  fireEvent(window, new CustomEvent("loadx:assistant", { detail: { question: "Como resolver uma falha sem perder o trabalho salvo?" } }));
+  expect(screen.getByRole("dialog")).toBeInTheDocument();
+  expect(screen.getByLabelText("Sua pergunta")).toHaveValue("Como resolver uma falha sem perder o trabalho salvo?");
+  expect(askAssistant).not.toHaveBeenCalled();
 });

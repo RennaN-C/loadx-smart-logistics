@@ -2,12 +2,11 @@ import { AssistantConversation, type Turn } from "./AssistantConversation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import { useLocation } from "react-router-dom";
-import { ApiError } from "../../types/api";
 import { Modal } from "../../components/Modal";
 import { Icon } from "../../components/Icon";
 import { AlertBanner } from "../../components/AlertBanner";
 import { useAuth } from "../auth/hooks/useAuth";
-import { askAssistant, type AssistantContext, type ChatMessage } from "./assistantApi";
+import { askAssistant, assistantErrorMessage, type AssistantContext, type AssistantOpenContext, type ChatMessage } from "./assistantApi";
 import "./Assistant.css";
 
 function routeContext(path: string): AssistantContext {
@@ -34,14 +33,16 @@ export function Assistant() {
   useEffect(() => {
     const listener = (event: Event) => {
       request.current?.abort(); request.current = null;
-      setContext({ ...routeContext(pathname), ...(event as CustomEvent<AssistantContext>).detail }); setTurns([]); setFailed(null); setWorking(false); setOpen(true);
+      const detail = (event as CustomEvent<AssistantOpenContext>).detail ?? {};
+      setContext({ ...routeContext(pathname), planId: detail.planId ?? routeContext(pathname).planId, distributionId: detail.distributionId ?? routeContext(pathname).distributionId });
+      setDraft(typeof detail.question === "string" ? detail.question.slice(0, 2000) : ""); setTurns([]); setFailed(null); setWorking(false); setOpen(true);
     };
     window.addEventListener("loadx:assistant", listener);
     return () => { window.removeEventListener("loadx:assistant", listener); request.current?.abort(); };
   }, [pathname]);
   function close() { request.current?.abort(); request.current = null; setWorking(false); setOpen(false); }
   async function send(question = draft) {
-    if (!question.trim() || working || question.length > 2000) return;
+    if (request.current || !question.trim() || working || question.length > 2000) return;
     const controller = new AbortController(); request.current = controller;
     setWorking(true); setFailed(null);
     const history: ChatMessage[] = turns.flatMap((turn) => turn.reply ? [{ role: "user" as const, content: turn.question }, { role: "assistant" as const, content: turn.reply.answer.slice(0, 2000) }] : []);
@@ -50,14 +51,7 @@ export function Assistant() {
       if (!controller.signal.aborted && request.current === controller) { setTurns((previous) => [...previous.slice(-3), { question, reply }]); setDraft(""); }
     } catch (error) {
       if (!controller.signal.aborted && request.current === controller) {
-        const messages: Record<number, string> = {
-          401: "Sua sessão expirou. Entre novamente para consultar o assistente.",
-          403: "Seu perfil não tem permissão para esta consulta. As permissões da operação continuam preservadas.",
-          404: "Não foi possível localizar o planejamento. Volte à lista e abra um registro existente.",
-          422: "Revise sua pergunta e o período informado. As consultas aceitam até 93 dias.",
-          429: "Aguarde um instante antes de perguntar novamente. Há uma consulta em andamento ou o limite temporário foi atingido.",
-        };
-        setFailed(error instanceof ApiError && error.status && messages[error.status] ? messages[error.status] : "Não foi possível responder agora. Verifique sua conexão e tente novamente; nenhum registro foi alterado.");
+        setFailed(assistantErrorMessage(error));
       }
     } finally {
       if (request.current === controller) { request.current = null; setWorking(false); }

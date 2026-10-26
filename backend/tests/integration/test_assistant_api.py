@@ -215,3 +215,26 @@ def test_customer_normalization_exact_match_and_no_wildcard_expansion(session_fa
         repository = AssistantMetricsRepository(db)
         assert repository.customers("cliente opera")[0].id == customer.id
         assert repository.customers("%_") == []
+
+
+def test_canceled_distributions_return_real_bounded_records_and_authorized_links(
+    client, session_factory
+):
+    from tests.integration.oc90_helpers import seed_multi_flow
+
+    flow = seed_multi_flow(client, session_factory)
+    flow.request("POST", f"/load-distributions/{flow.distribution['id']}/cancel", {})
+    now = datetime.now(UTC)
+    with session_factory() as db:
+        source = AssistantMetricsService(db).query(
+            db.get(User, flow.manager_id),
+            "get_canceled_distributions",
+            ToolArguments(start=now - timedelta(days=1), end=now + timedelta(days=1)),
+        )
+        assert source.values["currently_canceled_distributions_created_in_period"] == 1
+        assert source.values["page_records"] == 1
+        assert (
+            source.links[0]["href"]
+            == f"/planning/distributions/{flow.distribution['id']}"
+        )
+        assert flow.distribution["id"] not in source.links[0]["label"]
