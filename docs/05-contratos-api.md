@@ -1676,3 +1676,28 @@ IDEMPOTENCY_PAYLOAD_MISMATCH. Concorrência: 409 OPTIMIZATION_IN_PROGRESS.
 somente para o ator e com a mesma permissão create. Não cria nada.
 Migration 20261023_0035 → 20261021_0034; downgrade recusa registros existentes.
 Sem alteração de regras físicas, RBAC efetivo, MFA ou OC90/OC94.
+
+## Assistente LoadX consultivo — #336
+
+`CONFIRMADO`: POST `/api/v1/assistant/messages`, sessão/Origin/CSRF, perfis
+ADMIN/LOGISTICS_MANAGER/CHECKER. Schema e limites no [README do módulo](../backend/app/modules/assistant/README.md)
+e ADR-048. Mensagem até 2.000 caracteres, histórico limitado a oito mensagens;
+contexto opcional por plano/distribuição é reconsultado e autorizado no servidor.
+Resposta distingue GROQ de FALLBACK e inclui fatos, período, critérios e links
+internos autorizados. Sem mutações, cálculos físicos ou autorização pela IA.
+Contagens de pedidos completos, pernas e expedição possuem definições separadas.
+API legada de explicação permanece; runtime mock usa fallback em vez de declarar
+simulação como resposta de IA real. Nenhuma migration ou mudança de estado.
+
+### Assistente: indicadores verificados e falhas de otimização
+
+- Resposta HTTP do chat continua com `answer`, `facts`, `source`, `suggestions`,
+  `links`. O texto final do provider é um seletor JSON de orientações, validado
+  internamente; não é repassado como prosa ou indicador operacional ao cliente.
+- `POST /load-distributions/optimize`, em capacidade insuficiente, preserva código,
+  status e detalhes existentes e acrescenta `details[].assistant_diagnostic`.
+- `POST /assistant/messages` aceita `diagnostic_token` opcional (até 4.096 caracteres).
+  Assinatura, validade de 15 minutos, usuário e permissão são verificados no servidor.
+  O diagnóstico é da tentativa anterior, não um novo cálculo nem situação atual.
+  `422 ASSISTANT_DIAGNOSTIC_INVALID` para comprovante inválido/expirado/de outro usuário;
+  `403` para ausência de permissão. Nunca tratar texto do navegador como diagnóstico.

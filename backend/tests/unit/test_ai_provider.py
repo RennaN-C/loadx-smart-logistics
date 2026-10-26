@@ -176,10 +176,12 @@ def test_fake_provider_rejects_invalid_timeout(timeout_seconds: float) -> None:
     assert provider.calls == []
 
 
-def test_provider_dependency_returns_independent_fakes() -> None:
+def test_runtime_mock_dependency_cannot_claim_real_ai() -> None:
     first = get_ai_provider()
     second = get_ai_provider()
 
-    assert isinstance(first, FakeAIProvider)
-    assert isinstance(second, FakeAIProvider)
+    from app.integrations.ai.groq import UnconfiguredAIProvider
+
+    assert isinstance(first, UnconfiguredAIProvider)
+    assert isinstance(second, UnconfiguredAIProvider)
     assert first is not second

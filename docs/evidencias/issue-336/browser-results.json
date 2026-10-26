@@ -1,0 +1,80 @@
+{
+  "backend": "FastAPI/PostgreSQL 16 isolado",
+  "provider": "Não configurado; fallback real, sem interceptação HTTP",
+  "results": [
+    {
+      "theme": "dark",
+      "width": 1920,
+      "height": 1080,
+      "overflowing": false,
+      "http": 200,
+      "source": "FALLBACK",
+      "real_api": true
+    },
+    {
+      "theme": "dark",
+      "width": 1280,
+      "height": 900,
+      "overflowing": false,
+      "http": 200,
+      "source": "FALLBACK",
+      "real_api": true
+    },
+    {
+      "theme": "dark",
+      "width": 768,
+      "height": 1024,
+      "overflowing": false,
+      "http": 200,
+      "source": "FALLBACK",
+      "real_api": true
+    },
+    {
+      "theme": "dark",
+      "width": 375,
+      "height": 812,
+      "overflowing": false,
+      "http": 200,
+      "source": "FALLBACK",
+      "real_api": true
+    },
+    {
+      "theme": "light",
+      "width": 1920,
+      "height": 1080,
+      "overflowing": false,
+      "http": 200,
+      "source": "FALLBACK",
+      "real_api": true
+    },
+    {
+      "theme": "light",
+      "width": 1280,
+      "height": 900,
+      "overflowing": false,
+      "http": 200,
+      "source": "FALLBACK",
+      "real_api": true
+    },
+    {
+      "theme": "light",
+      "width": 768,
+      "height": 1024,
+      "overflowing": false,
+      "http": 200,
+      "source": "FALLBACK",
+      "real_api": true
+    },
+    {
+      "theme": "light",
+      "width": 375,
+      "height": 812,
+      "overflowing": false,
+      "http": 200,
+      "source": "FALLBACK",
+      "real_api": true
+    }
+  ],
+  "escape": true,
+  "page_errors": []
+}

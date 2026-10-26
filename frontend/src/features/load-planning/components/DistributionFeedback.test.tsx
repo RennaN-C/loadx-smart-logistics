@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 
 import { ApiError } from "../../../types/api";
 import { DistributionFeedback } from "./DistributionFeedback";
@@ -75,4 +75,19 @@ describe("DistributionFeedback - resultado incerto da otimizacao", () => {
     render(<DistributionFeedback error={null} />);
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
+});
+
+
+it("abre diagnóstico da tentativa pelo comprovante opaco, sem reenviar IDs ou motivos do navegador", () => {
+  const onOpen = vi.fn();
+  window.addEventListener("loadx:assistant", onOpen);
+  const receipt = "opaque-signed-receipt";
+  render(<DistributionFeedback error={new ApiError("DISTRIBUTION_CAPACITY_INSUFFICIENT", "private", [
+    { remaining_volumes: [{ order_item_id: "private-id", reasons: ["COLLISION"] }] },
+    { assistant_diagnostic: receipt },
+  ], 422)} />);
+  expect(screen.getByRole("alert")).not.toHaveTextContent(receipt);
+  fireEvent.click(screen.getByRole("button", { name: "Perguntar ao LoadX sobre esta tentativa" }));
+  expect(onOpen.mock.calls[0][0].detail).toEqual({ diagnosticToken: receipt, question: "Por que esta tentativa de otimização falhou e como resolver os impedimentos?" });
+  window.removeEventListener("loadx:assistant", onOpen);
 });

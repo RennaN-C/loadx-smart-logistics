@@ -1,3 +1,4 @@
+import { openAssistant } from "../../assistant/assistantApi";
 import { useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -181,7 +182,7 @@ export function PlanBuilder({ onCalculated, onDistributed }: PlanBuilderProps) {
       </fieldset> : null}
       {!onDistributed && step === 1 ? <p className="entity-form-help">Escolha um caminhão para calcular o plano de carga.</p> : null}
       <DistributionFeedback error={recovery.error ?? distributionError} />
-      {errorMessage ? <AlertBanner>{errorMessage}</AlertBanner> : null}
+      {errorMessage ? <AlertBanner><div><p>{errorMessage}</p><button type="button" className="btn-secondary" onClick={() => openAssistant({ question: "Como resolver uma falha de planejamento sem perder o trabalho salvo?" })}>Perguntar ao LoadX sobre esta falha</button></div></AlertBanner> : null}
 
       {isLoading ? (
         <output className="plan-builder-loading" aria-live="polite">
