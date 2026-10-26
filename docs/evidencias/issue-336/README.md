@@ -46,3 +46,14 @@ com portal, e composer fixo enquanto a conversa rola. Não equivalem a E2E Groq 
 Seleção ambígua adicional: teste PostgreSQL de dois clientes homônimos confirmou
 opções autorizadas, seleção revalidada e ausência de UUIDs/metadados de filtro no
 payload do provider; frontend testa seleção sem consulta automática e filtro visível.
+
+## Revalidação dos apontamentos da PR
+
+- TLS explicitamente exige CERT_REQUIRED e hostname; teste captura o contexto
+  HTTPS real criado pelo adapter, além de validar endpoint e payload.
+- Redação de tokens contendo @ sem expressão de backtracking superlinear.
+- Permissões são revalidadas entre chamadas; promoção não amplia ferramentas
+  anunciadas e revogação impede consultas pendentes.
+- Unitários Groq/orquestração/saúde: 57 aprovados. PostgreSQL 16
+  Assistente/saúde/OpenAPI: 37 aprovados. Frontend focado: 16 aprovados.
+- Resultados completos e Quality Gate finais são registrados no corpo da PR.

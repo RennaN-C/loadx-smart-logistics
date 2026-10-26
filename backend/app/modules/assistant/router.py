@@ -20,7 +20,6 @@ def get_assistant_service(db: Annotated[Session, Depends(get_db)]) -> AssistantS
 
 @router.post(
     "/messages",
-    response_model=ChatResponse,
     responses=openapi_error_responses(401, 403, 404, 422, 429),
 )
 def chat(

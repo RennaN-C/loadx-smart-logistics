@@ -24,28 +24,30 @@ GET_FLEET_AVAILABILITY = "get_fleet_availability"
 GET_CANCELED_DISTRIBUTIONS = "get_canceled_distributions"
 GET_FINANCIAL_IMPACT = "get_financial_impact"
 
+REPORTS_READ_PERMISSION = "loadx.reports.read"
+
 TOOL_PERMISSIONS = {
     GET_FLEET_AVAILABILITY: ("loadx.trucks.read",),
     GET_COMPANY_SUMMARY: (),
     GET_CUSTOMER_ORDER_METRICS: (
-        "loadx.reports.read",
+        REPORTS_READ_PERMISSION,
         "loadx.orders.read",
         "loadx.customers.read",
     ),
     GET_DELIVERY_METRICS: (
-        "loadx.reports.read",
+        REPORTS_READ_PERMISSION,
         "loadx.deliveries.read",
         "loadx.orders.read",
         "loadx.customers.read",
         "loadx.trips.read",
     ),
     GET_FLEET_UTILIZATION: (
-        "loadx.reports.read",
+        REPORTS_READ_PERMISSION,
         "loadx.trucks.read",
         "loadx.trips.read",
         "loadx.planning.read",
     ),
-    GET_CANCELED_DISTRIBUTIONS: ("loadx.reports.read", "loadx.planning.read"),
+    GET_CANCELED_DISTRIBUTIONS: (REPORTS_READ_PERMISSION, "loadx.planning.read"),
     GET_FINANCIAL_IMPACT: (),
 }
 

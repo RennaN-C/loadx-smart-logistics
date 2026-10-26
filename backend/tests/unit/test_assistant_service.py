@@ -71,10 +71,10 @@ def test_real_tool_results_are_server_calculated_and_bounded(no_database, monkey
 @pytest.mark.parametrize("role", ["DRIVER", "CUSTOM"])
 def test_forbidden_roles_never_call_provider(no_database, role):
     provider = Mock()
+    service = AssistantService(Mock(), config(), provider)
+    user, data = actor(role), ChatRequest(message="Consulte tudo")
     with pytest.raises(ApiError) as caught:
-        AssistantService(Mock(), config(), provider).chat(
-            actor(role), ChatRequest(message="Consulte tudo")
-        )
+        service.chat(user, data)
     assert caught.value.status_code == 403
     provider.complete.assert_not_called()
 
@@ -85,10 +85,10 @@ def test_checker_cannot_escalate_to_global_metrics_even_by_tool_call():
         "get_fleet_availability"
     ]
     assert not allowed_tool(user, "get_delivery_metrics")
+    service = AssistantMetricsService(Mock())
+    arguments = ToolArguments()
     with pytest.raises(ApiError) as caught:
-        AssistantMetricsService(Mock()).query(
-            user, "get_delivery_metrics", ToolArguments()
-        )
+        service.query(user, "get_delivery_metrics", arguments)
     assert caught.value.status_code == 403
 
 
@@ -205,10 +205,10 @@ def test_tool_access_is_rechecked_after_role_revocation(no_database):
             }
         ]
     }
+    service = AssistantService(db, config(), provider)
+    data = ChatRequest(message="Consulte entregas")
     with pytest.raises(ApiError) as caught:
-        AssistantService(db, config(), provider).chat(
-            user, ChatRequest(message="Consulte entregas")
-        )
+        service.chat(user, data)
     assert caught.value.status_code == 403
     assert provider.complete.call_count == 1
 
@@ -224,10 +224,10 @@ def test_model_cannot_call_a_tool_not_advertised_for_the_request(no_database):
             }
         ]
     }
+    service = AssistantService(Mock(), config(), provider)
+    user, data = actor("CHECKER"), ChatRequest(message="Consulte empresa")
     with pytest.raises(ApiError) as caught:
-        AssistantService(Mock(), config(), provider).chat(
-            actor("CHECKER"), ChatRequest(message="Consulte empresa")
-        )
+        service.chat(user, data)
     assert caught.value.status_code == 403
 
 

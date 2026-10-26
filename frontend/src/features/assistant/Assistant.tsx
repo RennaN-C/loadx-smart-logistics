@@ -10,9 +10,10 @@ import { askAssistant, assistantErrorMessage, type AssistantContext, type Assist
 import "./Assistant.css";
 
 function routeContext(path: string): AssistantContext {
-  const distribution = path.match(/^\/planning\/distributions\/([0-9a-f-]{36})$/i);
-  const plan = path.match(/^\/planning\/([0-9a-f-]{36})$/i);
-  return distribution ? { distributionId: distribution[1] } : plan ? { planId: plan[1] } : {};
+  const distribution = /^\/planning\/distributions\/([0-9a-f-]{36})$/i.exec(path);
+  const plan = /^\/planning\/([0-9a-f-]{36})$/i.exec(path);
+  if (distribution) return { distributionId: distribution[1] };
+  return plan ? { planId: plan[1] } : {};
 }
 export function Assistant() {
   const { user } = useAuth();
@@ -56,7 +57,7 @@ export function Assistant() {
     const history: ChatMessage[] = turns.flatMap((turn) => turn.reply ? [{ role: "user" as const, content: turn.question }, { role: "assistant" as const, content: turn.reply.answer.slice(0, 2000) }] : []);
     try {
       const reply = await askAssistant(question.trim(), history, context, controller.signal);
-      if (!controller.signal.aborted && request.current === controller) { setTurns((previous) => [...previous.slice(-3), { question, reply }]); setDraft(""); }
+      if (!controller.signal.aborted && request.current === controller) { setTurns((previous) => [...previous.slice(-3), { id: crypto.randomUUID(), question, reply: { ...reply, facts: reply.facts.map((fact) => ({ ...fact, clientKey: crypto.randomUUID() })) } }]); setDraft(""); }
     } catch (error) {
       if (!controller.signal.aborted && request.current === controller) {
         setFailed(assistantErrorMessage(error));
@@ -66,19 +67,21 @@ export function Assistant() {
     }
   }
   if (!enabled) return null;
+  const sendLabel = working ? "Consultando…" : "Enviar pergunta";
+  const submitLabel = failed && !working ? "Tentar novamente" : sendLabel;
   return <>
     <button type="button" className="btn-secondary assistant-launch" aria-label="Perguntar ao LoadX" aria-haspopup="dialog" onClick={() => setOpen(true)}><Icon name="search" size={16} /><span>Perguntar ao LoadX</span></button>
     {open ? createPortal(<div className="assistant-shell"><Modal title="Assistente LoadX" subtitle="Orientação e consultas autorizadas, sem alterar registros." onClose={close}>
       <button type="button" className="btn-secondary assistant-close" aria-label="Fechar assistente" onClick={close}><span aria-hidden="true">×</span></button>
       <p className="entity-form-help">Não informe senhas, documentos, endereços ou dados pessoais. A IA pode errar; confira os fatos do sistema.</p>
       <AssistantConversation turns={turns} onLink={close} onSelectCustomer={selectCustomer} working={working} />
-      {working ? <p role="status"><span className="spinner" aria-hidden="true" /> Consultando informações autorizadas…</p> : null}
+      {working ? <output><span className="spinner" aria-hidden="true" /> Consultando informações autorizadas…</output> : null}
       {failed ? <AlertBanner>{failed}</AlertBanner> : null}
       <div className="assistant-suggestions" aria-label="Perguntas sugeridas">{(turns.at(-1)?.reply?.suggestions ?? ["Por que a carga não coube?", "Quantos pedidos foram entregues nos últimos 30 dias?", "O que faço agora?"]).map((suggestion) => <button type="button" className="btn-secondary" key={suggestion} disabled={working} onClick={() => setDraft(suggestion === "Tentar novamente" ? turns.at(-1)?.question ?? suggestion : suggestion)}>{suggestion}</button>)}</div>
       {selectedCustomer ? <div className="assistant-filter"><span>Cliente: {selectedCustomer.label}</span><button type="button" className="btn-secondary" disabled={working} onClick={clearCustomer}>Limpar filtro de cliente</button></div> : null}
       <form onSubmit={(event: FormEvent) => { event.preventDefault(); void send(); }}>
         <label htmlFor="assistant-message">Sua pergunta</label><textarea id="assistant-message" value={draft} onChange={(event) => setDraft(event.target.value)} maxLength={2000} rows={2} disabled={working} placeholder="Pergunte sobre a operação ou os indicadores disponíveis" />
-        <div className="entity-form-actions"><button className="btn-secondary" type="button" disabled={working || turns.length === 0} onClick={() => { setTurns([]); setFailed(null); }}>Limpar conversa</button><button className="btn-primary" type="submit" disabled={working || !draft.trim()}>{working ? "Consultando…" : failed ? "Tentar novamente" : "Enviar pergunta"}</button></div>
+        <div className="entity-form-actions"><button className="btn-secondary" type="button" disabled={working || turns.length === 0} onClick={() => { setTurns([]); setFailed(null); }}>Limpar conversa</button><button className="btn-primary" type="submit" disabled={working || !draft.trim()}>{submitLabel}</button></div>
       </form>
     </Modal></div>, document.body) : null}
   </>;

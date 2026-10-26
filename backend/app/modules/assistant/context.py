@@ -34,10 +34,7 @@ def planning_context(
             raise ApiError(
                 404, "LOAD_PLAN_NOT_FOUND", "Plano não encontrado."
             ) from None
-        if user.role == "CHECKER" and plan.status != "APPROVED":
-            raise ApiError(
-                403, "AUTH_FORBIDDEN", "Este plano não está disponível para seu perfil."
-            )
+        require_checker_approval(user, plan.status)
         reasons = Counter(
             item.rejection_reason for item in plan.items if item.rejection_reason
         )
@@ -69,12 +66,7 @@ def planning_context(
             raise ApiError(
                 404, "DISTRIBUTION_NOT_FOUND", "Distribuição não encontrada."
             ) from None
-        if user.role == "CHECKER" and distribution.status != "APPROVED":
-            raise ApiError(
-                403,
-                "AUTH_FORBIDDEN",
-                "Esta distribuição não está disponível para seu perfil.",
-            )
+        require_checker_approval(user, distribution.status)
         if data.plan_id and not any(
             part.load_plan.id == data.plan_id for part in distribution.parts
         ):
@@ -101,3 +93,12 @@ def planning_context(
             }
         )
     return facts, links
+
+
+def require_checker_approval(user: User, status: str) -> None:
+    if user.role == "CHECKER" and status != "APPROVED":
+        raise ApiError(
+            403,
+            "AUTH_FORBIDDEN",
+            "Este planejamento não está disponível para seu perfil.",
+        )
