@@ -95,7 +95,9 @@ class LoadPlanRepository:
             ),
         )
         if hide_inactive or operation_scope in ("ongoing", "completed"):
-            filters.append(~inactive)
+            # SQL OR(NULL, FALSE) is NULL, not FALSE: COALESCE keeps standalone
+            # plans visible when they have no parent distribution.
+            filters.append(~func.coalesce(inactive, False))
         if operation is not None:
             base = base.join(operation, operation.c.load_plan_id == LoadPlan.id)
             if operation_scope == "completed":
