@@ -18,7 +18,7 @@
 - Migration `20261009_0023`, encadeada em `20261009_0022`; downgrade bloqueia
   remoção de cadastro/histórico existentes. ADR-035 documenta limites standalone.
 
-## [Unreleased] — v1.2.0
+## [1.2.0] — candidata, publicação pendente
 
 `CONFIRMADO`: a v1.2.0 — Administração, comunicação real e operação
 multi-caminhão é o ciclo atual.
