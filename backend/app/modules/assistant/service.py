@@ -203,10 +203,11 @@ class AssistantService:
             )
         # Recheck current privileges without expanding the request's original tool set.
         self.db.refresh(user)
+        end = call.arguments.end or now
         arguments = call.arguments.model_copy(
             update={
-                "start": call.arguments.start or now - timedelta(days=30),
-                "end": call.arguments.end or now,
+                "start": call.arguments.start or end - timedelta(days=30),
+                "end": end,
             }
         )
         fact = AssistantMetricsService(self.db).query(

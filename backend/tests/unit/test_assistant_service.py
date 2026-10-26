@@ -36,7 +36,10 @@ def test_no_provider_never_labels_fallback_real(no_database):
     assert "nenhum registro foi alterado" in result.answer
 
 
-def test_real_tool_results_are_server_calculated_and_bounded(no_database, monkeypatch):
+@pytest.mark.parametrize("arguments", ["{}", '{"end":"2026-06-01T00:00:00Z"}'])
+def test_real_tool_results_are_server_calculated_and_bounded(
+    no_database, monkeypatch, arguments
+):
     provider = Mock()
     provider.complete.side_effect = [
         {
@@ -44,7 +47,10 @@ def test_real_tool_results_are_server_calculated_and_bounded(no_database, monkey
                 {
                     "id": "call_1",
                     "type": "function",
-                    "function": {"name": "get_delivery_metrics", "arguments": "{}"},
+                    "function": {
+                        "name": "get_delivery_metrics",
+                        "arguments": arguments,
+                    },
                 }
             ]
         },
