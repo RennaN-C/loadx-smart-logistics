@@ -181,7 +181,6 @@ export function PlanBuilder({ onCalculated, onDistributed }: PlanBuilderProps) {
       </fieldset> : null}
       {!onDistributed && step === 1 ? <p className="entity-form-help">Escolha um caminhão para calcular o plano de carga.</p> : null}
       <DistributionFeedback error={recovery.error ?? distributionError} />
-      {distributionError ? <p className="entity-form-help">Se a conexão caiu após o envio, consulte <Link to="/planning">Planos existentes</Link> antes de repetir: a proposta pode ter sido salva.</p> : null}
       {errorMessage ? <AlertBanner>{errorMessage}</AlertBanner> : null}
 
       {isLoading ? (
