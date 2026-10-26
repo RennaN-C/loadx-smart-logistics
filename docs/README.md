@@ -1,43 +1,34 @@
-# Documentação
+# Documentação do LoadX
 
-Esta pasta concentra decisões oficiais do produto, arquitetura, dados, contratos, processo e uso de IA. Código não deve contradizer estes documentos.
+**Versão publicada:** [v1.2.0](https://github.com/RennaN-C/loadx-smart-logistics/releases/tag/v1.2.0) (26/10/2026).
 
-Alterações nesta documentação devem ser rastreáveis por ocorrência, PR ou motivo técnico claro.
+Esta pasta reúne **documentação ativa**, **planejamento histórico**, **decisões arquiteturais** e **evidências de teste**. O registro de uma ocorrência antiga não significa que ela permaneça aberta.
 
-## Ordem de leitura
+## Onde encontrar cada assunto
 
-- `00-visao-produto.md`: problema, usuários, objetivo e fonte de verdade.
-- `01-escopo-mvp.md`: escopo, requisitos funcionais e não funcionais.
-- `02-arquitetura.md`: componentes, camadas, tecnologias e responsabilidades por pasta.
-- `03-modelo-dados.md`: entidades, tabelas, colunas, relações, chaves, índices e migrations.
-- `04-regras-negocio.md`: regras obrigatórias, estados, ocorrências, WhatsApp, IA e relatórios.
-- `05-contratos-api.md`: endpoints, formatos, erros, segurança de API e integrações.
-- `06-fluxo-operacional.md`: jornadas principais do cadastro ao relatório.
-- `07-divisao-equipe.md`: histórico/MVP de `OC01` a `OC48` e acesso à divisão pós-v1.0.0.
-- `08-padroes-desenvolvimento.md`: Git, PR, nomenclatura, camadas, banco, testes, logs e segurança.
-- `09-guia-para-ia.md`: como orientar agentes de programação.
-- `10-roadmap-inicial.md`: histórico da construção do MVP e da seleção da v1.1.0.
-- `planejamento/roadmap-versoes.md`: roadmap canônico das releases posteriores à v1.1.0, política SemVer, responsáveis e gates de planejamento.
-- `11-riscos-pendencias.md`: decisões necessárias, riscos, dúvidas e pendências.
-- `12-ocorrencias-propostas-backend.md`: registro histórico das propostas e entregas OC49–OC60; não representa planejamento ativo.
-- `13-guia-execucao-ambientes.md`: referência central para configuração, execução, testes, CI e produção de referência.
-- `decisoes-equipe-backend.txt`: registro histórico das decisões DXX usadas na consolidação do backend; decisões atuais devem estar nos documentos oficiais e ADRs.
-- `decisions/`: registros de decisões arquiteturais.
-- `prompts/`: modelos de prompt para IA.
-- [planejamento/v1.1.0](planejamento/v1.1.0/00-visao-geral.md): histórico oficial
-  da v1.1.0, com OC62–OC78.
-- [planejamento/v1.2.0](planejamento/v1.2.0/00-visao-geral.md): planejamento atual
-  da v1.2.0, com OC79–OC112, Issues #122–#133, #136–#141 e #144–#159, dependências e sequência recomendada.
-  OC01–OC78 permanecem como histórico e não são renumeradas.
+| Assunto | Referência |
+| --- | --- |
+| Visão geral e início rápido | [README principal](../README.md) |
+| Instalação, CI, execução e diagnóstico | [Guia de ambientes](13-guia-execucao-ambientes.md) |
+| Produto e requisitos de origem | [Visão do produto](00-visao-produto.md) e [escopo inicial](01-escopo-mvp.md) |
+| Arquitetura, dados, contratos, regras e fluxos | [Arquitetura](02-arquitetura.md), [dados](03-modelo-dados.md), [regras](04-regras-negocio.md), [API](05-contratos-api.md) e [fluxo](06-fluxo-operacional.md) |
+| Contribuição e agentes | [Padrões](08-padroes-desenvolvimento.md), [guia para IA](09-guia-para-ia.md), [CONTRIBUTING](../CONTRIBUTING.md), [AGENTS](../AGENTS.md) |
+| Releases e próximos ciclos | [Roadmap canônico](planejamento/roadmap-versoes.md), [Changelog](../CHANGELOG.md), [notas da v1.2.0](releases/v1.2.0.md) |
+| Qualidade, riscos e histórico de aceite | [Riscos](11-riscos-pendencias.md), [registro de publicação](releases/v1.2.0-readiness.md), `evidencias/`, `validacoes/` |
+| Decisões arquiteturais | [ADRs](decisions/README.md) |
 
-`CONFIRMADO`: as entregas da v1.0.0 estão no [Changelog](../CHANGELOG.md).
+## Versões
 
-## Regra de manutenção
+- **Publicadas:** v1.0.0 (fundação), v1.1.0 (maturidade operacional), v1.2.0 (administração e multi-caminhão).
+- **Planejamento histórico:** [v1.1.0](planejamento/v1.1.0/00-visao-geral.md) e [v1.2.0](planejamento/v1.2.0/00-visao-geral.md). O histórico mantém atribuições e dependências como foram planejadas.
+- **Próximo ciclo proposto:** v1.3.0 — multiempresa e integração por contratos com CoreFlow. **Não** está automaticamente autorizado para implementação.
 
-Antes de criar um novo documento:
+## Histórico e limpeza segura
 
-1. verifique se o assunto já está coberto em um guia existente;
-2. atualize o arquivo existente quando ele for o local adequado;
-3. crie novo guia somente quando não houver lugar apropriado;
-4. mantenha a numeração e nomes em português usados nesta pasta;
-5. registre incertezas com os marcadores definidos em `AGENTS.md`.
+Os documentos `07-divisao-equipe.md`, `10-roadmap-inicial.md`, `12-ocorrencias-propostas-backend.md`, `decisoes-equipe-backend.txt` e `referencia-arquivo-original.md` preservam decisões e material acadêmico anterior. São arquivos históricos, não versões concorrentes do roadmap.
+
+`evidencias/`, `validacoes/` e `usabilidade/` mantêm capturas, relatórios, roteiros e testes associados a revisões específicas. Não apagar evidências apenas por serem antigas. `decisions/` guarda ADRs e `prompts/` guarda modelos auxiliares.
+
+Arquivos temporários como `.tmp/`, `node_modules/`, `dist/`, caches, ambientes virtuais e logs devem permanecer ignorados pelo Git. Antes de excluir qualquer arquivo versionado, conferir links, testes, CI, módulos que o utilizam e relevância histórica.
+
+**Regra:** preferir atualizar a documentação canônica a criar outro arquivo com o mesmo assunto. Manutenção pós-release não altera o conteúdo de uma tag publicada.
