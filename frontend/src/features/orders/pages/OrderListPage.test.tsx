@@ -7,7 +7,7 @@ import { ApiError } from "../../../types/api";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { listCustomers } from "../../customers/api/customersApi";
 import { listProducts } from "../../products/api/productsApi";
-import { getOrder, listOrders } from "../api/ordersApi";
+import { changeOrderStatus, getOrder, listOrders } from "../api/ordersApi";
 import type { OrderListItem } from "../types";
 import { OrderListPage } from "./OrderListPage";
 
@@ -66,6 +66,7 @@ describe("OrderListPage", () => {
   beforeEach(() => {
     vi.mocked(listOrders).mockReset().mockResolvedValue(makePage(ORDERS));
     vi.mocked(getOrder).mockReset().mockResolvedValue(ORDER_FULL);
+    vi.mocked(changeOrderStatus).mockReset().mockResolvedValue(ORDER_FULL);
     vi.mocked(listCustomers)
       .mockReset()
       .mockResolvedValue(makePage([
@@ -192,6 +193,29 @@ describe("OrderListPage", () => {
     expect(screen.queryByRole("button", { name: "Editar" })).not.toBeInTheDocument();
   });
 
+  it("permite voltar READY para DRAFT com endpoint próprio sem alterar campos", async () => {
+    vi.mocked(listOrders).mockResolvedValue(makePage([{ ...ORDERS[0], status: "READY" }]));
+    render(<MemoryRouter><OrderListPage /></MemoryRouter>);
+    fireEvent.click(await screen.findByRole("button", { name: "Voltar para rascunho" }));
+    await waitFor(() => expect(changeOrderStatus).toHaveBeenCalledWith("o1", "DRAFT"));
+    expect(listOrders).toHaveBeenCalledTimes(2);
+  });
+  it("só cancela pedido depois da confirmação", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(false);
+    render(<MemoryRouter><OrderListPage /></MemoryRouter>);
+    const button = await screen.findByRole("button", { name: "Cancelar pedido" });
+    fireEvent.click(button);
+    expect(changeOrderStatus).not.toHaveBeenCalled();
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    fireEvent.click(button);
+    await waitFor(() => expect(changeOrderStatus).toHaveBeenCalledWith("o1", "CANCELED"));
+  });
+  it("não oferece editar ou cancelar no pedido entregue", async () => {
+    render(<MemoryRouter><OrderListPage /></MemoryRouter>);
+    await screen.findByText("Distribuidora Aurora");
+    expect(screen.getAllByRole("button", { name: "Editar" })).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: "Cancelar pedido" })).toHaveLength(1);
+  });
   it("mostra a mensagem mapeada quando a busca falha", async () => {
     vi.mocked(listOrders).mockRejectedValue(new ApiError("AUTH_FORBIDDEN", "Acesso negado."));
 

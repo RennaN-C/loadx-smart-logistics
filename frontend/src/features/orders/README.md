@@ -103,3 +103,9 @@ estados, incluindo Entregue. Foram removidos os botões redundantes Todos os
 pedidos/Pedidos entregues; URLs com `status=DELIVERED` continuam compatíveis.
 Ver pedido, Anexos e Editar preservam os handlers existentes no menu da linha.
 O UUID abreviado abre o detalhe persistido.
+
+## Correção do fluxo de edição e cancelamento pós-v1.2.0
+
+`CONFIRMADO`: o backend permite `READY → DRAFT`, desde que o pedido não esteja vinculado a distribuição ativa. Na edição de um pedido `READY`, alterar a situação para `DRAFT` deve ocorrer **antes** de enviar o PATCH dos campos; fazer o inverso causa `ORDER_EDIT_NOT_ALLOWED` (409). De `DRAFT` para `READY`, salvar os campos antes da situação continua correto.
+
+A listagem oferece **Voltar para rascunho** quando `READY` e **Cancelar pedido** quando `DRAFT`/`READY`. O cancelamento exige confirmação e utiliza o endpoint de situação; não exclui dados nem apaga o histórico. Pedidos `PLANNED`, `IN_TRANSIT`, `DELIVERED` e `CANCELED` não oferecem edição manual. Exclusão física de pedidos continua fora do contrato até aprovação da política de retenção e vínculos (Issue #323).
