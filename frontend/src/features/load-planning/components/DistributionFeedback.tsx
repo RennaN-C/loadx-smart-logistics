@@ -65,17 +65,16 @@ function capacityDiagnostics(error: ApiError): { remaining: number; hints: strin
 
 export function DistributionFeedback({ error }: { readonly error: unknown }) {
   if (!error) return null;
+  const isCapacityFailure = error instanceof ApiError && error.code === "DISTRIBUTION_CAPACITY_INSUFFICIENT";
+  const diagnostic = isCapacityFailure ? capacityDiagnostics(error) : null;
   return <AlertBanner>
     <strong>{distributionErrorMessage(error)}</strong>
     {isUnconfirmedOutcome(error) ? <p><a href="/planning">Conferir Planos existentes antes de tentar novamente</a></p> : null}
-    {error instanceof ApiError && error.code === "DISTRIBUTION_CAPACITY_INSUFFICIENT" ? (() => {
-      const diagnostic = capacityDiagnostics(error);
-      return <div className="distribution-feedback-guidance">
+    {isCapacityFailure ? <div className="distribution-feedback-guidance">
         {diagnostic?.remaining ? <p>{diagnostic.remaining} {diagnostic.remaining === 1 ? "volume ficou" : "volumes ficaram"} sem posição segura nesta tentativa.</p> : null}
         {diagnostic?.hints.length ? <p><strong>Possíveis impedimentos:</strong> {diagnostic.hints.join(" ")}</p> : null}
         {diagnostic?.unavailableTrucks ? <p>{diagnostic.unavailableTrucks} {diagnostic.unavailableTrucks === 1 ? "caminhão não estava elegível" : "caminhões não estavam elegíveis"} para participar do cálculo.</p> : null}
         <p><strong>Como resolver:</strong> confira dimensões, peso, fragilidade e quantidade dos volumes; verifique quais caminhões estão disponíveis e tente novamente com uma seleção adequada.</p>
-      </div>;
-    })() : null}
+      </div> : null}
   </AlertBanner>;
 }
