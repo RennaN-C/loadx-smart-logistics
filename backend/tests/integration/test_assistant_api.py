@@ -238,3 +238,80 @@ def test_canceled_distributions_return_real_bounded_records_and_authorized_links
             == f"/planning/distributions/{flow.distribution['id']}"
         )
         assert flow.distribution["id"] not in source.links[0]["label"]
+
+
+def test_ambiguous_customer_requires_explicit_authorized_selection(
+    client, session_factory, monkeypatch
+):
+    from app.integrations.ai.groq import GroqProvider
+    from app.modules.customers.models import Customer
+
+    scenario = seed_operational_scenario(session_factory)
+    with session_factory() as db:
+        original = db.query(Customer).first()
+        original_id = original.id
+        duplicate = Customer(
+            name=original.name,
+            document="DUP-" + uuid.uuid4().hex[:16],
+            address="Endereço fictício",
+            city="Outra cidade",
+            state="SP",
+            active=True,
+        )
+        db.add(duplicate)
+        db.commit()
+        duplicate_id = duplicate.id
+    call = {
+        "role": "assistant",
+        "content": None,
+        "tool_calls": [
+            {
+                "id": "customer_read",
+                "type": "function",
+                "function": {
+                    "name": "get_customer_order_metrics",
+                    "arguments": '{"customer":"Cliente Operacional"}',
+                },
+            }
+        ],
+    }
+    complete = Mock(
+        side_effect=[
+            call,
+            {"role": "assistant", "content": "Escolha o cliente nas opções."},
+            call,
+            {
+                "role": "assistant",
+                "content": "Consulte os fatos calculados do cliente selecionado.",
+            },
+        ]
+    )
+    monkeypatch.setattr(GroqProvider, "complete", complete)
+    endpoint = "/api/v1/assistant/messages"
+    first = client.post(
+        endpoint,
+        headers=scenario.manager_headers,
+        json={"message": "Quantos pedidos para Cliente Operacional?"},
+    )
+    assert first.status_code == 200, first.text
+    fact = first.json()["facts"][0]
+    assert fact["values"]["result"] == "ambiguous_customer"
+    assert {choice["reference"] for choice in fact["choices"]} == {
+        str(original_id),
+        str(duplicate_id),
+    }
+    assert str(duplicate_id) not in str(complete.call_args)
+    selected = client.post(
+        endpoint,
+        headers=scenario.manager_headers,
+        json={
+            "message": "Consulte o cliente selecionado",
+            "customer_id": str(original_id),
+        },
+    )
+    assert selected.status_code == 200, selected.text
+    actual = selected.json()["facts"][0]
+    assert sum(actual["values"].values()) == len(scenario.order_ids)
+    assert "Cliente Operacional" in actual["filter_label"]
+    assert str(original_id) not in str(complete.call_args)
+    assert "filter_label" not in str(complete.call_args)

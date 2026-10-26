@@ -40,7 +40,10 @@ Frota usa viagens efetivamente iniciadas e snapshots dos respectivos planos:
 ocupação média aritmética por plano, volumes/pesos planejados, veículos distintos.
 Canceladas usa estado atual e data de criação, nunca presume data de cancelamento.
 Sem baseline/receita/custos comparáveis não existe ROI, lucro ou melhoria percentual.
-Nomes ambíguos solicitam identificação inequívoca, sem escolher cliente ao acaso.
+Nomes ambíguos exigem escolha explícita entre cadastros autorizados. Apenas nome,
+cidade/UF e final mascarado do documento são exibidos. A referência escolhida é
+revalidada no servidor; opções, UUIDs e rótulo do filtro ficam fora do payload Groq.
+Não há escolha automática nem permissão concedida pela seleção no navegador.
 
 ## Segurança e limites
 

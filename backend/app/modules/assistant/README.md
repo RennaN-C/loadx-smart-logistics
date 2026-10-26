@@ -8,7 +8,8 @@ Nenhum comando de escrita, SQL livre, hospedagem de modelo ou tenant é criado.
 
 `POST /api/v1/assistant/messages`: `message` (1–2.000 caracteres), até 8 mensagens
 `history` (`user`/`assistant`, 2.000 caracteres cada), `plan_id`/`distribution_id`
-opcionais. Contexto e vínculos são verificados contra serviços existentes.
+opcionais; customer_id é uma seleção explícita, revalidada apenas por ferramentas
+autorizadas de cliente. Contexto e vínculos são verificados contra serviços existentes.
 Resposta: `source=GROQ|FALLBACK`, `answer`, fatos/critério/período UTC, sugestões e
 links internos montados no servidor. Sessão, Origin e CSRF obrigatórios.
 ADMIN/LOGISTICS_MANAGER/CHECKER; DRIVER/CUSTOM negados. Cada ferramenta verifica
@@ -34,7 +35,9 @@ falha de autorização. Requisições não alteram estado operacional.
 
 Período padrão: 30 dias UTC, máximo 93, início inclusivo/fim exclusivo. Cliente
 normalizado com equivalência de caixa/acentos; correspondência exata tem prioridade.
-Nomes ambíguos pedem identificação inequívoca, sem escolher cliente automaticamente.
+Nomes ambíguos oferecem seleção explícita (nome/cidade/UF/documento mascarado).
+A referência é revalidada e o filtro fica visível e registrado nos fatos. Opções,
+referências e rótulo do filtro não são enviados ao provider. Não há escolha automática.
 Consultas agregadas parametrizadas pertencem ao módulo reports; nenhuma migration.
 
 ## Configuração (Render ou processo backend)

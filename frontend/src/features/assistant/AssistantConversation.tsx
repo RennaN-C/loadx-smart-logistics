@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { PLAN_STATUS_LABELS, REJECTION_LABELS } from "../load-planning/components/loadPlanLabels";
-import type { AssistantFact, AssistantReply } from "./assistantApi";
+import type { AssistantFact, AssistantReply, CustomerChoice } from "./assistantApi";
 
 const LABELS: Record<string, string> = {
   ...PLAN_STATUS_LABELS, ...REJECTION_LABELS,
@@ -57,26 +57,27 @@ function formatValue(value: string | number | null): string {
 function allowedLink(href: string): boolean {
   return ["/trucks?tab=availability", "/orders", "/deliveries", "/reports", "/planning"].includes(href) || /^\/planning\/(?:distributions\/)?[0-9a-f-]{36}$/i.test(href);
 }
-function Fact({ fact, onLink }: { readonly fact: AssistantFact; readonly onLink: () => void }) {
-  return <details className="assistant-fact" open><summary>{fact.name}</summary><p>{fact.criteria}</p>
+function Fact({ fact, onLink, onSelectCustomer, working }: { readonly fact: AssistantFact; readonly onLink: () => void; readonly onSelectCustomer: (choice: CustomerChoice) => void; readonly working: boolean }) {
+  return <details className="assistant-fact" open><summary>{fact.name}</summary><p>{fact.criteria}</p>{fact.filter_label ? <p>{fact.filter_label}</p> : null}
+    <div className="assistant-suggestions">{fact.choices?.map((choice) => <button type="button" className="btn-secondary" disabled={working} key={choice.reference} onClick={() => onSelectCustomer(choice)}>Selecionar {choice.label}</button>)}</div>
     {fact.period_start && fact.period_end ? <p>Período: {new Date(fact.period_start).toLocaleString("pt-BR", { timeZone: "UTC" })} até {new Date(fact.period_end).toLocaleString("pt-BR", { timeZone: "UTC" })} (fim exclusivo, UTC).</p> : null}
     <nav aria-label="Registros da consulta">{fact.links?.filter((link) => allowedLink(link.href)).map((link) => <Link key={link.href} to={link.href} onClick={onLink}>{link.label}</Link>)}</nav>
     <dl>{Object.entries(fact.values).map(([key, value]) => <div key={key}><dt>{readable(key)}</dt><dd>{formatValue(value)}</dd></div>)}</dl>
   </details>;
 }
-function TurnRow({ turn, onLink }: { readonly turn: Turn; readonly onLink: () => void }) {
+function TurnRow({ turn, onLink, onSelectCustomer, working }: { readonly turn: Turn; readonly onLink: () => void; readonly onSelectCustomer: (choice: CustomerChoice) => void; readonly working: boolean }) {
   const question = <p className="assistant-question"><strong>Você</strong>{turn.question}</p>;
   const reply = turn.reply;
   if (!reply) return <section className="assistant-turn">{question}</section>;
   return <section className="assistant-turn">{question}
     <strong className="assistant-source">{reply.source === "GROQ" ? "Assistente LoadX · IA real (Groq)" : "Resumo automático · IA indisponível"}</strong><p className="assistant-answer">{reply.answer}</p>
-    {reply.facts.map((fact, index) => <Fact key={index} fact={fact} onLink={onLink} />)}
+    {reply.facts.map((fact, index) => <Fact key={index} fact={fact} onLink={onLink} onSelectCustomer={onSelectCustomer} working={working} />)}
     <nav aria-label="Recursos relacionados">{reply.links.filter((link) => allowedLink(link.href)).map((link) => <Link key={link.href} to={link.href} onClick={onLink}>{link.label}</Link>)}</nav>
   </section>;
 }
-export function AssistantConversation({ turns, onLink }: { readonly turns: readonly Turn[]; readonly onLink: () => void }) {
+export function AssistantConversation({ turns, onLink, onSelectCustomer, working }: { readonly turns: readonly Turn[]; readonly onLink: () => void; readonly onSelectCustomer: (choice: CustomerChoice) => void; readonly working: boolean }) {
   return <div className="assistant-conversation" role="log" aria-label="Conversa com o LoadX" aria-live="polite">
     {turns.length === 0 ? <div className="assistant-welcome"><h3>Como posso ajudar na operação?</h3><p>Entenda uma carga, consulte indicadores ou encontre o próximo passo permitido.</p></div> : null}
-    {turns.map((turn, index) => <TurnRow key={index} turn={turn} onLink={onLink} />)}
+    {turns.map((turn, index) => <TurnRow key={index} turn={turn} onLink={onLink} onSelectCustomer={onSelectCustomer} working={working} />)}
   </div>;
 }

@@ -8,8 +8,9 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import ApiError
 from app.core.pagination import PaginationParams
 from app.modules.access_profiles.catalog import has_permission
-from app.modules.assistant.schemas import Source, ToolArguments
+from app.modules.assistant.schemas import CustomerChoice, Source, ToolArguments
 from app.modules.company_profile.service import CompanyProfileService
+from app.modules.customers.service import CustomerNotFoundError, CustomerService
 from app.modules.reports.assistant_repository import AssistantMetricsRepository
 from app.modules.reports.management_service import ManagementFilters, validate_window
 from app.modules.trucks.operational_status_service import TruckOperationalStatusService
@@ -70,7 +71,14 @@ class AssistantMetricsService:
         self.db = db
         self.repository = AssistantMetricsRepository(db)
 
-    def query(self, user: User, name: str, arguments: ToolArguments) -> Source:
+    def query(
+        self,
+        user: User,
+        name: str,
+        arguments: ToolArguments,
+        *,
+        selected_customer_id: uuid.UUID | None = None,
+    ) -> Source:
         if not allowed_tool(user, name):
             raise ApiError(
                 403,
@@ -82,7 +90,9 @@ class AssistantMetricsService:
         end = arguments.end or datetime.now(UTC)
         start = arguments.start or end - timedelta(days=30)
         window = validate_window(ManagementFilters(start=start, end=end))
-        customer_id, selection = self._customer(name, arguments)
+        customer_id, selection, customer_label = self._customer(
+            name, arguments, selected_customer_id
+        )
         if selection is not None:
             return selection
         metadata = self._metadata(name)
@@ -112,6 +122,9 @@ class AssistantMetricsService:
             period_end=window.end,
             criteria=criteria,
             values=values,
+            filter_label="Cliente filtrado: " + customer_label
+            if customer_label
+            else None,
         )
 
     def _availability(self, page: int) -> Source:
@@ -153,27 +166,54 @@ class AssistantMetricsService:
         return None
 
     def _customer(
-        self, name: str, arguments: ToolArguments
-    ) -> tuple[uuid.UUID | None, Source | None]:
+        self,
+        name: str,
+        arguments: ToolArguments,
+        selected_customer_id: uuid.UUID | None,
+    ) -> tuple[uuid.UUID | None, Source | None, str | None]:
         customer_id = None
+        if (
+            name in {GET_CUSTOMER_ORDER_METRICS, GET_DELIVERY_METRICS}
+            and selected_customer_id is not None
+        ):
+            try:
+                customer = CustomerService(self.db).get_customer(selected_customer_id)
+            except CustomerNotFoundError:
+                raise ApiError(
+                    404, "CUSTOMER_NOT_FOUND", "Cliente não encontrado."
+                ) from None
+            return customer.id, None, _customer_label(customer)
         if arguments.customer and name in {
             GET_CUSTOMER_ORDER_METRICS,
             GET_DELIVERY_METRICS,
         }:
             customers = self.repository.customers(arguments.customer)
             if len(customers) != 1:
-                return None, Source(
-                    name="Seleção de cliente",
-                    criteria="Informe o nome completo para identificar um único cliente autorizado.",
-                    values={
-                        "result": "ambiguous_customer"
+                return (
+                    None,
+                    Source(
+                        name="Seleção de cliente",
+                        criteria="Selecione um cliente autorizado nas opções para consultar sem ambiguidade."
                         if customers
-                        else "customer_not_found",
-                        "bounded_matches": len(customers),
-                    },
+                        else "Nenhum cliente corresponde ao nome informado. Revise o nome ou consulte os cadastros autorizados.",
+                        choices=[
+                            CustomerChoice(
+                                reference=customer.id,
+                                label=_customer_label(customer),
+                            )
+                            for customer in customers
+                        ],
+                        values={
+                            "result": "ambiguous_customer"
+                            if customers
+                            else "customer_not_found",
+                            "bounded_matches": len(customers),
+                        },
+                    ),
+                    None,
                 )
             customer_id = customers[0].id
-        return customer_id, None
+        return customer_id, None, _customer_label(customers[0]) if customer_id else None
 
     def _canceled(self, window: ManagementFilters, page: int) -> Source:
         values = self.repository.canceled(window.start, window.end)
@@ -197,3 +237,7 @@ class AssistantMetricsService:
                 for identifier, created_at in items
             ],
         )
+
+
+def _customer_label(customer) -> str:
+    return f"{customer.name.strip()} — {customer.city}/{customer.state} · documento …{customer.document[-4:]}"

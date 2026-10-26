@@ -42,3 +42,7 @@ com portal, e composer fixo enquanto a conversa rola. Não equivalem a E2E Groq 
 - Redação por padrões não é classificador universal de PII. A UI orienta não
   inserir dados pessoais ou segredos; contexto estruturado minimiza dados.
 - ADR-048 segue em revisão; sem comandos de escrita ou arquitetura multiempresa.
+
+Seleção ambígua adicional: teste PostgreSQL de dois clientes homônimos confirmou
+opções autorizadas, seleção revalidada e ausência de UUIDs/metadados de filtro no
+payload do provider; frontend testa seleção sem consulta automática e filtro visível.

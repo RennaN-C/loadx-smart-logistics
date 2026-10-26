@@ -17,6 +17,7 @@ class ChatRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     message: str = Field(min_length=1, max_length=2000)
     history: list[Message] = Field(default_factory=list, max_length=8)
+    customer_id: uuid.UUID | None = None
     plan_id: uuid.UUID | None = None
     distribution_id: uuid.UUID | None = None
 
@@ -47,7 +48,14 @@ class ToolCall(BaseModel):
     arguments: ToolArguments
 
 
+class CustomerChoice(BaseModel):
+    reference: uuid.UUID
+    label: str
+
+
 class Source(BaseModel):
+    filter_label: str | None = None
+    choices: list[CustomerChoice] = Field(default_factory=list, max_length=6)
     links: list[dict[str, str]] = Field(default_factory=list, max_length=10)
     name: str
     period_start: datetime | None = None

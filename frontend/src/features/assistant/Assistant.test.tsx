@@ -80,3 +80,16 @@ it("abre ajuda de falha com pergunta preparada sem enviar automaticamente", () =
   expect(screen.getByLabelText("Sua pergunta")).toHaveValue("Como resolver uma falha sem perder o trabalho salvo?");
   expect(askAssistant).not.toHaveBeenCalled();
 });
+
+it("exige seleção explícita de cliente ambíguo e conserva filtro visível", async () => {
+  const reference = "33333333-3333-4333-8333-333333333333";
+  vi.mocked(askAssistant).mockResolvedValue({ ...REPLY, facts: [{ name: "Seleção de cliente", criteria: "Selecione um cliente", timezone: "UTC", period_start: null, period_end: null, values: { result: "ambiguous_customer" }, choices: [{ reference, label: "Cliente Operacional — Outra cidade/SP" }] }] });
+  show(); open(); send();
+  fireEvent.click(await screen.findByRole("button", { name: "Selecionar Cliente Operacional — Outra cidade/SP" }));
+  expect(askAssistant).toHaveBeenCalledTimes(1);
+  expect(screen.getByText("Cliente: Cliente Operacional — Outra cidade/SP")).toBeInTheDocument();
+  expect(screen.getByLabelText("Sua pergunta")).toHaveValue("Quantos pedidos entregues?");
+  fireEvent.click(screen.getByRole("button", { name: "Enviar pergunta" }));
+  await waitFor(() => expect(askAssistant).toHaveBeenCalledTimes(2));
+  expect(vi.mocked(askAssistant).mock.calls[1][2].customerId).toBe(reference);
+});

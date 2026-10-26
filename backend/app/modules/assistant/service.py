@@ -3,6 +3,7 @@
 import json
 import re
 import time
+import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
@@ -128,7 +129,10 @@ class AssistantService:
                 raise AIProviderUnavailableError
             if calls:
                 messages.append(reply)
-                results = [self._run_tool(user, raw, now, deadline) for raw in calls]
+                results = [
+                    self._run_tool(user, raw, now, deadline, data.customer_id)
+                    for raw in calls
+                ]
                 _append_results(results, messages, facts, links)
                 reply = self.provider.complete(
                     messages, timeout_seconds=self._remaining(deadline)
@@ -177,7 +181,12 @@ class AssistantService:
             )
 
     def _run_tool(
-        self, user: User, raw: dict, now: datetime, deadline: float
+        self,
+        user: User,
+        raw: dict,
+        now: datetime,
+        deadline: float,
+        selected_customer_id: uuid.UUID | None,
     ) -> "_ToolResult":
         self._remaining(deadline)
         tool_id, call = self._parse_call(raw)
@@ -187,7 +196,9 @@ class AssistantService:
                 "end": call.arguments.end or now,
             }
         )
-        fact = AssistantMetricsService(self.db).query(user, call.name, arguments)
+        fact = AssistantMetricsService(self.db).query(
+            user, call.name, arguments, selected_customer_id=selected_customer_id
+        )
         resource_links = {
             "get_fleet_availability": {
                 "label": "Consultar disponibilidade",
@@ -217,7 +228,9 @@ class AssistantService:
             actor_id=str(user.id),
             tool=call.name,
         )
-        provider_fact = fact.model_dump(mode="json", exclude={"links"})
+        provider_fact = fact.model_dump(
+            mode="json", exclude={"links", "choices", "filter_label"}
+        )
         # Business names are shown only in the authorized UI, not sent back to Groq.
         provider_fact["values"] = {
             key: (
@@ -281,7 +294,12 @@ def _messages(data: ChatRequest, facts: list[Source], now: datetime) -> list[dic
                 "role": "system",
                 "content": "Fatos autorizados: "
                 + json.dumps(
-                    [f.model_dump(mode="json", exclude={"links"}) for f in facts]
+                    [
+                        f.model_dump(
+                            mode="json", exclude={"links", "choices", "filter_label"}
+                        )
+                        for f in facts
+                    ]
                 ),
             }
         )
@@ -294,6 +312,13 @@ def _messages(data: ChatRequest, facts: list[Source], now: datetime) -> list[dic
                 + message.role
                 + "): "
                 + sanitize(message.content),
+            }
+        )
+    if data.customer_id:
+        messages.append(
+            {
+                "role": "system",
+                "content": "O usuário selecionou explicitamente um cliente no painel. Ferramentas de pedidos/entregas aplicam esse filtro; para consultar outro cliente, oriente limpar a seleção. A referência interna não é enviada ao modelo.",
             }
         )
     messages.append({"role": "user", "content": sanitize(data.message)})
