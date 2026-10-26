@@ -612,6 +612,7 @@ class LoadPlanningService:
         if candidate is not None:
             placed = tuple(row.volume for row in candidate.placed_volumes)
             rejected = tuple(row.volume for row in candidate.rejected_volumes)
+
             def normalize(volume: IndividualVolume) -> IndividualVolume:
                 return replace(volume, product_name=None)
 

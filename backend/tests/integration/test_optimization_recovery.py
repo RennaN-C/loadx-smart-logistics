@@ -357,9 +357,7 @@ def test_automatic_distribution_reuses_computed_layout_during_persistence(
     def repeated_search(*args, **kwargs):
         raise AssertionError("Physical planning was already calculated")
 
-    monkeypatch.setattr(
-        planning_service, "calculate_volume_load_plan", repeated_search
-    )
+    monkeypatch.setattr(planning_service, "calculate_volume_load_plan", repeated_search)
     s = distribution_scenario
     result = send(s, uuid.uuid4())
     assert result.status_code == 201, result.text

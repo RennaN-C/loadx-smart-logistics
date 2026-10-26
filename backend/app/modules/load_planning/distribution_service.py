@@ -367,7 +367,9 @@ class LoadDistributionService:
                 ),
             )
         return self.create(
-            proposal, changed_by=changed_by, optimization_request=request,
+            proposal,
+            changed_by=changed_by,
+            optimization_request=request,
             precomputed_parts=prepared,
         )
 
@@ -425,7 +427,8 @@ class LoadDistributionService:
                     changed_by,
                     precomputed_result=(
                         precomputed_parts.get(proposed.truck_id)
-                        if precomputed_parts is not None else None
+                        if precomputed_parts is not None
+                        else None
                     ),
                 )
                 part = LoadDistributionPart(
@@ -464,7 +467,14 @@ class LoadDistributionService:
             raise
 
     def _stage_part_plan(
-        self, truck, orders, items, products, volumes, actor, source=None,
+        self,
+        truck,
+        orders,
+        items,
+        products,
+        volumes,
+        actor,
+        source=None,
         precomputed_result=None,
     ):
         related_ids = {v.order_id for v in volumes}
