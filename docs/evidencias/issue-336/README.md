@@ -74,7 +74,8 @@ payload do provider; frontend testa seleção sem consulta automática e filtro 
   atual. Testes rejeitam adulteração, expiração, outro usuário, Unicode malformado
   e acesso CHECKER. O comprovante não é enviado ao provider nem persistido.
 - Bateria focada: 60 testes backend aprovados com PostgreSQL 16, incluindo a falha
-  real de empacotamento sem persistência parcial, e 29 testes frontend aprovados.
+  real de empacotamento sem persistência parcial, e 74 testes frontend aprovados
+  incluindo a regressão da página de planejamento.
   Ruff check/format (579 arquivos), ESLint, TypeScript e build aprovados.
 - Chromium adicional (`review-browser-results.json`): sessão gerencial sintética
   criada por fixture, não teste de login/MFA; navegador → otimização HTTP 422 real
