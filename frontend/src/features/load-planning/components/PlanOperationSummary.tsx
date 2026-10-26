@@ -6,9 +6,9 @@ import type { PlanOperation, PlanOperationStatus } from "../types";
 
 const labels: Record<PlanOperationStatus, string> = {
   NOT_STARTED: "Operação não iniciada", IN_PROGRESS: "Operação em andamento",
-  PARTIALLY_DELIVERED: "Entrega parcial", COMPLETED: "Operação concluída", CANCELED: "Viagem cancelada",
+  PARTIALLY_DELIVERED: "Entrega parcial", COMPLETED: "Operação concluída", INCOMPLETE: "Distribuição incompleta", CANCELED: "Operação cancelada",
 };
-const tones: Partial<Record<PlanOperationStatus, StatusTone>> = { COMPLETED: "good", PARTIALLY_DELIVERED: "warn" };
+const tones: Partial<Record<PlanOperationStatus, StatusTone>> = { COMPLETED: "good", PARTIALLY_DELIVERED: "warn", CANCELED: "neutral", INCOMPLETE: "warn" };
 const loadingLabels = { PENDING: "Pendente", IN_PROGRESS: "Em andamento", FINISHED: "Concluído" };
 
 export function PlanOperationSummary({ operation, showLinks = true }: { readonly operation: PlanOperation; readonly showLinks?: boolean }) {

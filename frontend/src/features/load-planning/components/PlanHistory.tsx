@@ -9,27 +9,39 @@ import { listLoadPlans } from "../api/loadPlansApi";
 import type { LoadPlanListItem, LoadPlanStatus } from "../types";
 import { PlanOperationSummary } from "./PlanOperationSummary";
 import { PLAN_STATUS_LABELS, planStatusTone } from "./loadPlanLabels";
+import { DISTRIBUTION_LABELS } from "./distributionLabels";
 
 const date = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" });
 
 function PlanHistoryRow({ plan, canReadOrigin }: { readonly plan: LoadPlanListItem; readonly canReadOrigin: boolean }) {
   const destination = plan.distributionId ? `/planning/distributions/${plan.distributionId}` : `/planning/${plan.id}`;
+  const isCanceled = plan.distributionStatus === "CANCELED" || plan.partStatus === "CANCELED" || plan.operation?.status === "CANCELED";
+  const isIncomplete = plan.distributionStatus === "INCOMPLETE" || plan.operation?.status === "INCOMPLETE";
+  const historicalVersion = plan.isCurrentPart === false;
+  const lifecycleStatus = isCanceled ? "Cancelada"
+    : isIncomplete ? "Incompleta"
+      : historicalVersion ? "Versão anterior"
+        : plan.distributionStatus ? DISTRIBUTION_LABELS[plan.distributionStatus] : null;
   return <li className="plan-history-row">
     <div className="plan-history-identification">
-      <div className="plan-history-title"><h3><Link to={destination}>Plano {plan.id.slice(0, 8).toLocaleUpperCase("pt-BR")}</Link></h3><StatusPill tone={planStatusTone(plan.status)}>Plano: {PLAN_STATUS_LABELS[plan.status]}</StatusPill></div>
+      <div className="plan-history-title"><h3><Link to={destination}>Plano {plan.id.slice(0, 8).toLocaleUpperCase("pt-BR")}</Link></h3>{lifecycleStatus ? <StatusPill tone={isCanceled || historicalVersion ? "neutral" : plan.distributionStatus === "APPROVED" ? "good" : "warn"}>{plan.distributionId ? "Distribuição" : "Operação"}: {lifecycleStatus}</StatusPill> : <StatusPill tone={planStatusTone(plan.status)}>Plano: {PLAN_STATUS_LABELS[plan.status]}</StatusPill>}</div>
       <Link className="plan-history-plate" to={`/planning?truck=${plan.truckId}`} aria-label={`Filtrar planos do caminhão ${plan.truckPlate}`}>{plan.truckPlate}</Link>
       <p>{plan.truckModel}</p>
       {plan.distributionId ? <p>Parte da distribuição {plan.distributionId.slice(0, 8)}</p> : null}
       <time dateTime={plan.createdAt}>Criado em {date.format(new Date(plan.createdAt))}</time>
     </div>
     <div className="plan-history-summary">
-      {plan.operation ? <PlanOperationSummary operation={plan.operation} /> : null}
+      {isCanceled ? <p className="entity-form-help" role="status">Esta distribuição foi cancelada. A carga não está ativa; o cálculo permanece para consulta e auditoria.</p>
+        : isIncomplete ? <p className="entity-form-help" role="status">Distribuição incompleta. Uma parte precisa ser reprocessada antes de continuar.</p>
+          : historicalVersion ? <p className="entity-form-help">Versão substituída por um reprocessamento. Consulte a distribuição para ver a carga atual.</p>
+            : plan.operation ? <PlanOperationSummary operation={plan.operation} /> : null}
+      {lifecycleStatus ? <p className="entity-form-help">Resultado físico do cálculo: {PLAN_STATUS_LABELS[plan.status].toLowerCase()}.</p> : null}
       <p className="plan-history-facts"><span>{plan.orderCount} pedido(s)</span><span>{plan.loadedCount} volumes</span><span>{plan.totalWeightKg.toLocaleString("pt-BR")} kg</span></p>
       <div className="plan-history-occupancy"><span style={{ width: `${Math.min(plan.occupancyPercent, 100)}%` }} /><strong>{plan.occupancyPercent.toLocaleString("pt-BR")}% de ocupação</strong></div>
       {plan.unloadedCount > 0 ? <p className="plan-history-rejected">{plan.unloadedCount} volume(s) recusado(s)</p> : null}
       {plan.recalculatedFromId && canReadOrigin ? <Link to={`/planning/${plan.recalculatedFromId}`}>Ver plano de origem</Link> : null}
     </div>
-    <Link className="btn-secondary" to={destination} aria-label={`Abrir plano ${plan.id.slice(0, 8)}`}>{plan.distributionId ? "Abrir distribuição" : "Abrir planejamento"}</Link>
+    <Link className="btn-secondary" to={destination} aria-label={`Abrir plano ${plan.id.slice(0, 8)}`}>{plan.distributionId ? isCanceled || isIncomplete || historicalVersion ? "Ver histórico da distribuição" : "Abrir distribuição" : "Abrir planejamento"}</Link>
   </li>;
 }
 
@@ -87,10 +99,10 @@ export function PlanHistory({ checker, canReadOperations = false }: { readonly c
   }
   return <section className="plan-history" aria-label="Planos existentes">
     {canReadOperations ? <fieldset className="plan-operation-filters" aria-label="Filtrar situação logística"><legend className="sr-only">Filtrar situação logística</legend>
-      {([['ongoing', 'Em andamento'], ['completed', 'Concluídos'], ['all', 'Todos']] as const).map(([key, title]) => <button type="button" key={key} aria-pressed={operationScope === key} onClick={() => change("scope", key)}>{title}</button>)}
+      {([['ongoing', 'Em andamento'], ['completed', 'Concluídos'], ['all', 'Todos (inclui cancelados)']] as const).map(([key, title]) => <button type="button" key={key} aria-pressed={operationScope === key} onClick={() => change("scope", key)}>{title}</button>)}
     </fieldset> : null}
     <div className="plan-history-toolbar">
-      <div><h2>Planos de carga</h2><p className="entity-lede">Retome planejamentos persistidos e acompanhe o estado real de cada operação.</p><p className="entity-form-help">A aprovação registra a decisão sobre a carga. A conclusão exige viagem finalizada e entrega integral.</p></div>
+      <div><h2>Planos de carga</h2><p className="entity-lede">Retome planejamentos persistidos e acompanhe o estado real de cada operação.</p><p className="entity-form-help">Cancelamentos e versões substituídas ficam fora de Em andamento. Para consultar registros históricos, selecione Todos (inclui cancelados).</p></div>
       <div className="plan-history-filters">
         {!checker ? <label>Situação<select value={status ?? ""} onChange={(event) => change("status", event.target.value)}>
           <option value="">Todas as situações</option>

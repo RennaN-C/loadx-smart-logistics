@@ -222,6 +222,9 @@ export async function recalculateLoadPlan(id: string): Promise<LoadPlan> {
 interface LoadPlanListDto {
   operation?: PlanOperation | null;
   distribution_id?: string | null;
+  distribution_status?: LoadPlanListItem["distributionStatus"];
+  part_status?: LoadPlanListItem["partStatus"];
+  is_current_part?: boolean;
   id: string;
   truck_id: string;
   truck_plate: string;
@@ -245,6 +248,9 @@ export async function listLoadPlans(
   return mapPageFromDto(data, (dto) => ({
     operation: dto.operation ?? null,
     distributionId: dto.distribution_id ?? null,
+    distributionStatus: dto.distribution_status ?? null,
+    partStatus: dto.part_status ?? null,
+    isCurrentPart: dto.is_current_part ?? true,
     id: dto.id, truckId: dto.truck_id, truckPlate: dto.truck_plate,
     truckModel: dto.truck_model, status: dto.status, createdAt: dto.created_at,
     recalculatedFromId: dto.recalculated_from_id, loadedCount: dto.loaded_count,
