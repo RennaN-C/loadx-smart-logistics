@@ -294,12 +294,14 @@ def test_abandoned_transaction_releases_lock_for_restart_without_pending_job(
 
     s = distribution_scenario
     key = uuid.uuid4()
-    with s.factory() as old_worker:
-        # A session-scoped advisory lock has its acquisition committed,
-        # so the CPU worker can calculate without an idle DB transaction.
-        with OptimizationRepository(old_worker).session_lock(s.user.id, key) as acquired:
-            assert acquired
-            assert recover(s, key).status_code == 409
+    # A session-scoped advisory lock has its acquisition committed,
+    # so the CPU worker can calculate without an idle DB transaction.
+    with (
+        s.factory() as old_worker,
+        OptimizationRepository(old_worker).session_lock(s.user.id, key) as acquired,
+    ):
+        assert acquired
+        assert recover(s, key).status_code == 409
     # Leaving the lock scope releases it on PostgreSQL, even after failure.
     assert recover(s, key).status_code == 404
     result = send(s, key)
@@ -326,11 +328,13 @@ def test_packing_runs_without_read_transaction_and_lock_is_still_held(
 
     def during_packing(candidates, volumes):
         assert not owner["db"].in_transaction()
-        with s.factory() as competing:
-            # Another request with the same actor/key sees the committed
-            # session advisory lock, although no transaction is held for packing.
-            with OptimizationRepository(competing).session_lock(s.user.id, key) as locked:
-                assert not locked
+        # Another request with the same actor/key sees the committed
+        # session advisory lock, although no transaction is held for packing.
+        with (
+            s.factory() as competing,
+            OptimizationRepository(competing).session_lock(s.user.id, key) as locked,
+        ):
+            assert not locked
         observed.append(True)
         return original(candidates, volumes)
 

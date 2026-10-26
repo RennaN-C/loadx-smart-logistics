@@ -2,8 +2,8 @@ import hashlib
 import json
 import logging
 import uuid
-from time import perf_counter
 from datetime import UTC, datetime
+from time import perf_counter
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -36,12 +36,12 @@ from app.modules.load_planning.optimizer.contracts import (
     IndividualVolume,
     VolumeIdentity,
 )
-from app.modules.load_planning.optimizer.engine import LoadPlanResult
-from app.modules.load_planning.optimizer.metrics import calculate_load_metrics
 from app.modules.load_planning.optimizer.engine import (
     MAX_VOLUMES,
+    LoadPlanResult,
     LoadPlanVolumeLimitExceededError,
 )
+from app.modules.load_planning.optimizer.metrics import calculate_load_metrics
 from app.modules.load_planning.optimizer.multi_truck import (
     MultiTruckCandidate,
     optimize_multi_truck,
