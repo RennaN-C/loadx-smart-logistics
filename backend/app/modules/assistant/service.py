@@ -59,7 +59,11 @@ def sanitize(text: str) -> str:
         text,
     )
     text = re.sub(r"https?://\S+", "[link omitido]", text)
-    text = re.sub(r"[\w.+-]+@[\w.-]+\.[a-zA-Z]{2,}", "[e-mail oculto]", text)
+    text = re.sub(
+        r"\S+",
+        lambda token: "[e-mail oculto]" if "@" in token[0] else token[0],
+        text,
+    )
     text = re.sub(r"\b[0-9a-fA-F]{8}-[0-9a-fA-F-]{27,}\b", "[referência interna]", text)
     return re.sub(
         r"(?<!\w)(?:\+?\d[\s()./-]?){10,}(?!\w)", "[documento/contato oculto]", text

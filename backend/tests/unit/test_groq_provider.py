@@ -2,6 +2,7 @@
 
 import io
 import json
+import ssl
 from unittest.mock import Mock
 from urllib.error import HTTPError
 
@@ -32,10 +33,19 @@ def test_groq_fixed_endpoint_and_bounded_payload(monkeypatch):
     response = io.BytesIO(json.dumps(reply).encode())
     opener = Mock()
     opener.open.return_value = response
-    monkeypatch.setattr("app.integrations.ai.groq.build_opener", lambda *_: opener)
+    handlers = []
+
+    def capture_handlers(*items):
+        handlers.extend(items)
+        return opener
+
+    monkeypatch.setattr("app.integrations.ai.groq.build_opener", capture_handlers)
     result = GroqProvider(config()).complete(
         [{"role": "user", "content": "Pergunta fictícia"}], timeout_seconds=2
     )
+    tls = handlers[1]._context
+    assert tls.verify_mode == ssl.CERT_REQUIRED
+    assert tls.check_hostname is True
     request = opener.open.call_args.args[0]
     assert request.full_url == "https://api.groq.com/openai/v1/chat/completions"
     assert opener.open.call_args.kwargs["timeout"] == 2
@@ -63,8 +73,9 @@ def test_groq_normalizes_failures_without_raw_response(monkeypatch, error, expec
     opener = Mock()
     opener.open.side_effect = error
     monkeypatch.setattr("app.integrations.ai.groq.build_opener", lambda *_: opener)
+    provider = GroqProvider(config())
     with pytest.raises(expected) as caught:
-        GroqProvider(config()).complete([], timeout_seconds=1)
+        provider.complete([], timeout_seconds=1)
     assert "private body" not in str(caught.value)
 
 
@@ -81,8 +92,9 @@ def test_groq_rejects_invalid_or_excessive_response(monkeypatch, body):
     opener = Mock()
     opener.open.return_value = io.BytesIO(body)
     monkeypatch.setattr("app.integrations.ai.groq.build_opener", lambda *_: opener)
+    provider = GroqProvider(config())
     with pytest.raises(AIProviderUnavailableError):
-        GroqProvider(config()).complete([], timeout_seconds=1)
+        provider.complete([], timeout_seconds=1)
 
 
 def test_missing_secret_never_opens_network(monkeypatch):
@@ -90,6 +102,7 @@ def test_missing_secret_never_opens_network(monkeypatch):
     monkeypatch.setattr("app.integrations.ai.groq.build_opener", open_network)
     instance = config()
     instance.groq_api_key = None
+    provider = GroqProvider(instance)
     with pytest.raises(AIProviderUnavailableError):
-        GroqProvider(instance).complete([], timeout_seconds=1)
+        provider.complete([], timeout_seconds=1)
     open_network.assert_not_called()

@@ -2,7 +2,6 @@
 
 import json
 import ssl
-from urllib.error import HTTPError, URLError
 from urllib.request import HTTPRedirectHandler, HTTPSHandler, Request, build_opener
 
 from app.core.config import Settings
@@ -61,9 +60,10 @@ class GroqProvider:
             },
             method="POST",
         )
-        opener = build_opener(
-            _NoRedirect(), HTTPSHandler(context=ssl.create_default_context())
-        )
+        context = ssl.create_default_context()
+        context.check_hostname = True
+        context.verify_mode = ssl.CERT_REQUIRED
+        opener = build_opener(_NoRedirect(), HTTPSHandler(context=context))
         try:
             with opener.open(request, timeout=timeout_seconds) as response:
                 body = response.read(MAX_BODY_BYTES + 1)
@@ -73,8 +73,6 @@ class GroqProvider:
         except TimeoutError:
             raise AIProviderTimeoutError from None
         except (
-            HTTPError,
-            URLError,
             OSError,
             ValueError,
             KeyError,
