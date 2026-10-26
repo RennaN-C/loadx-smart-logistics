@@ -218,6 +218,10 @@ class FakeAIProvider:
 
 
 def get_ai_provider() -> AIProvider:
-    """Fornece o fake local até o Dev4 integrar um adapter concreto."""
+    """Runtime never labels a mock answer as real AI; explicit fakes stay in tests."""
+    from app.core.config import settings
+    from app.integrations.ai.groq import GroqProvider, UnconfiguredAIProvider
 
-    return FakeAIProvider()
+    if settings.ai_provider == "groq":
+        return GroqProvider(settings)
+    return UnconfiguredAIProvider()

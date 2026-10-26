@@ -1,0 +1,126 @@
+"""Fixed HTTPS Groq endpoint, bounded bodies, no redirects/retries/raw logging."""
+
+import json
+import ssl
+from urllib.error import HTTPError, URLError
+from urllib.request import HTTPRedirectHandler, HTTPSHandler, Request, build_opener
+
+from app.core.config import Settings
+from app.integrations.ai.provider import (
+    AIExplanationContext,
+    AIProviderOutput,
+    AIProviderTimeoutError,
+    AIProviderUnavailableError,
+)
+
+ENDPOINT = "https://api.groq.com/openai/v1/chat/completions"
+MAX_BODY_BYTES = 65_536
+
+
+class _NoRedirect(HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        raise AIProviderUnavailableError
+
+
+class GroqProvider:
+    def __init__(self, config: Settings) -> None:
+        self.config = config
+
+    def complete(
+        self,
+        messages: list[dict],
+        *,
+        tools: list[dict] | None = None,
+        timeout_seconds: float,
+    ) -> dict:
+        key = self.config.groq_api_key
+        if (
+            self.config.ai_provider != "groq"
+            or key is None
+            or not key.get_secret_value()
+        ):
+            raise AIProviderUnavailableError
+        payload = {
+            "model": self.config.groq_model,
+            "messages": messages,
+            "temperature": 0,
+            "max_completion_tokens": 700,
+        }
+        if tools:
+            payload.update(tools=tools, tool_choice="auto", parallel_tool_calls=False)
+        request = Request(
+            ENDPOINT,
+            data=json.dumps(payload).encode(),
+            headers={
+                "Authorization": "Bearer " + key.get_secret_value(),
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            },
+            method="POST",
+        )
+        opener = build_opener(
+            _NoRedirect(), HTTPSHandler(context=ssl.create_default_context())
+        )
+        try:
+            with opener.open(request, timeout=timeout_seconds) as response:
+                body = response.read(MAX_BODY_BYTES + 1)
+            if len(body) > MAX_BODY_BYTES:
+                raise AIProviderUnavailableError
+            result = json.loads(body)["choices"][0]["message"]
+            if not isinstance(result, dict):
+                raise AIProviderUnavailableError
+            content = result.get("content")
+            calls = result.get("tool_calls", [])
+            if content is not None and (
+                not isinstance(content, str) or len(content) > 8000
+            ):
+                raise AIProviderUnavailableError
+            if not isinstance(calls, list) or len(calls) > 3:
+                raise AIProviderUnavailableError
+            if not content and not calls:
+                raise AIProviderUnavailableError
+            # Do not forward provider metadata or arbitrary message fields.
+            return {
+                "role": "assistant",
+                "content": content,
+                **({"tool_calls": calls} if calls else {}),
+            }
+        except TimeoutError:
+            raise AIProviderTimeoutError from None
+        except (
+            HTTPError,
+            URLError,
+            OSError,
+            ValueError,
+            KeyError,
+            IndexError,
+            TypeError,
+        ):
+            raise AIProviderUnavailableError from None
+
+    def explain_load_plan(
+        self, context: AIExplanationContext, *, timeout_seconds: float
+    ) -> object:
+        summary = context.model_dump(
+            mode="json", exclude={"placed_volumes", "rejected_volumes"}
+        )
+        result = self.complete(
+            [
+                {
+                    "role": "system",
+                    "content": "Você é o Assistente LoadX. Explique somente os fatos técnicos fornecidos em português. Não recalcule nem aprove a carga. Não invente capacidade ou resultados.",
+                },
+                {"role": "user", "content": json.dumps(summary)},
+            ],
+            timeout_seconds=timeout_seconds,
+        )
+        if result.get("tool_calls"):
+            raise AIProviderUnavailableError
+        return AIProviderOutput(explanation=result["content"])
+
+
+class UnconfiguredAIProvider:
+    def explain_load_plan(
+        self, context: AIExplanationContext, *, timeout_seconds: float
+    ) -> object:
+        raise AIProviderUnavailableError
