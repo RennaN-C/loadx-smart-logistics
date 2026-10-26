@@ -9,7 +9,10 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.core.pagination import PageResult, PaginationParams
 from app.modules.deliveries.reference_service import DeliveryReferenceService
-from app.modules.load_planning.distribution_models import LoadDistributionPart
+from app.modules.load_planning.distribution_models import (
+    LoadDistribution,
+    LoadDistributionPart,
+)
 from app.modules.load_planning.models import LoadPlan, LoadPlanItem, LoadPlanOrder
 from app.modules.loading.reference_service import LoadingReferenceService
 from app.modules.orders.reference_service import OrderReferenceService
@@ -30,6 +33,9 @@ class LoadPlanSummary:
     total_weight_kg: Decimal
     order_count: int
     distribution_id: uuid.UUID | None = None
+    distribution_status: str | None = None
+    part_status: str | None = None
+    is_current_part: bool = True
     operation: dict[str, object] | None = None
 
 
@@ -45,6 +51,7 @@ class LoadPlanRepository:
         truck_id: uuid.UUID | None = None,
         include_operations: bool = False,
         operation_scope: str = "all",
+        hide_inactive: bool = False,
     ) -> PageResult[LoadPlanSummary]:
         filters = []
         if status is not None:
@@ -53,7 +60,47 @@ class LoadPlanRepository:
             filters.append(LoadPlan.truck_id == truck_id)
         direction = asc if pagination.sort_order == "asc" else desc
         operation = self._operation_projection() if include_operations else None
-        base = select(LoadPlan.id).select_from(LoadPlan)
+        # A physical plan can remain CALCULATED after the parent distribution
+        # has been canceled. Resolve the authoritative distribution and current
+        # part before filtering/counting so canceled items cannot leak into
+        # default operational pages or distort pagination.
+        versions = select(
+            LoadDistributionPart.load_plan_id.label("plan_id"),
+            LoadDistributionPart.distribution_id,
+            LoadDistributionPart.status.label("part_status"),
+            LoadDistributionPart.load_plan_id.label("current_plan_id"),
+        ).cte("plan_list_versions", recursive=True)
+        versions = versions.union(
+            select(
+                LoadPlan.recalculated_from_id,
+                versions.c.distribution_id,
+                versions.c.part_status,
+                versions.c.current_plan_id,
+            )
+            .join(versions, LoadPlan.id == versions.c.plan_id)
+            .where(LoadPlan.recalculated_from_id.is_not(None))
+        )
+        base = (
+            select(LoadPlan.id)
+            .select_from(LoadPlan)
+            .outerjoin(versions, versions.c.plan_id == LoadPlan.id)
+            .outerjoin(
+                LoadDistribution, LoadDistribution.id == versions.c.distribution_id
+            )
+        )
+        inactive = or_(
+            LoadPlan.status == "CANCELED",
+            LoadDistribution.status.in_(("CANCELED", "INCOMPLETE")),
+            versions.c.part_status == "CANCELED",
+            and_(
+                versions.c.current_plan_id.is_not(None),
+                versions.c.current_plan_id != LoadPlan.id,
+            ),
+        )
+        if hide_inactive or operation_scope in ("ongoing", "completed"):
+            # SQL OR(NULL, FALSE) is NULL, not FALSE: COALESCE keeps standalone
+            # plans visible when they have no parent distribution.
+            filters.append(~func.coalesce(inactive, False))
         if operation is not None:
             base = base.join(operation, operation.c.load_plan_id == LoadPlan.id)
             if operation_scope == "completed":
@@ -80,16 +127,6 @@ class LoadPlanRepository:
             .correlate(LoadPlan)
             .scalar_subquery()
         )
-        # Follow ancestors from each current part; old versions stay discoverable.
-        versions = select(
-            LoadDistributionPart.load_plan_id.label("plan_id"),
-            LoadDistributionPart.distribution_id,
-        ).cte("distribution_versions", recursive=True)
-        versions = versions.union(
-            select(LoadPlan.recalculated_from_id, versions.c.distribution_id)
-            .join(versions, LoadPlan.id == versions.c.plan_id)
-            .where(LoadPlan.recalculated_from_id.is_not(None))
-        )
         statement = (
             select(
                 LoadPlan.id,
@@ -105,8 +142,19 @@ class LoadPlanRepository:
                 LoadPlan.total_weight_kg,
                 order_count.label("order_count"),
                 versions.c.distribution_id,
+                LoadDistribution.status.label("distribution_status"),
+                versions.c.part_status,
+                case(
+                    (versions.c.current_plan_id.is_(None), True),
+                    (versions.c.current_plan_id == LoadPlan.id, True),
+                    else_=False,
+                ).label("is_current_part"),
             )
             .outerjoin(versions, versions.c.plan_id == LoadPlan.id)
+            .outerjoin(
+                LoadDistribution,
+                LoadDistribution.id == versions.c.distribution_id,
+            )
             .where(*filters)
             .order_by(direction(LoadPlan.created_at), direction(LoadPlan.id))
             .offset(pagination.offset)
@@ -166,6 +214,9 @@ class LoadPlanRepository:
                 func.count()
                 .filter(orders.c.status == "READY")
                 .label("ready_order_count"),
+                func.count()
+                .filter(orders.c.status == "CANCELED")
+                .label("canceled_order_count"),
             )
             .join(orders, orders.c.order_id == LoadPlanOrder.order_id)
             .group_by(LoadPlanOrder.load_plan_id)
@@ -174,7 +225,17 @@ class LoadPlanRepository:
         trip = DeliveryReferenceService.plan_operation_projection()
         loading = LoadingReferenceService.plan_operation_projection()
         state = case(
+            (LoadDistribution.status == "CANCELED", "CANCELED"),
+            (LoadDistributionPart.status == "CANCELED", "CANCELED"),
+            (LoadDistribution.status == "INCOMPLETE", "INCOMPLETE"),
             (trip.c.trip_status == "CANCELED", "CANCELED"),
+            (
+                and_(
+                    counts.c.operation_order_count > 0,
+                    counts.c.canceled_order_count == counts.c.operation_order_count,
+                ),
+                "CANCELED",
+            ),
             (
                 and_(
                     trip.c.trip_status == "FINISHED",
@@ -229,6 +290,14 @@ class LoadPlanRepository:
                 ),
             )
             .select_from(LoadPlan)
+            .outerjoin(
+                LoadDistributionPart,
+                LoadDistributionPart.load_plan_id == LoadPlan.id,
+            )
+            .outerjoin(
+                LoadDistribution,
+                LoadDistribution.id == LoadDistributionPart.distribution_id,
+            )
             .outerjoin(counts, counts.c.load_plan_id == LoadPlan.id)
             .outerjoin(trip, trip.c.load_plan_id == LoadPlan.id)
             .outerjoin(loading, loading.c.load_plan_id == LoadPlan.id)

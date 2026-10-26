@@ -13,6 +13,7 @@ import { ReportDownloadButton } from "../../reports/components/ReportDownloadBut
 import { canReadReports } from "../../reports/permissions";
 import { approveLoadPlan, getLoadPlan, recalculateLoadPlan } from "../api/loadPlansApi";
 import { PlanHistory } from "../components/PlanHistory";
+import { PlanAIExplanation } from "../components/PlanAIExplanation";
 import { PlanExecution } from "../components/PlanExecution";
 import { PlanningActivity } from "../components/PlanningActivity";
 import { PlanBuilder } from "../components/PlanBuilder";
@@ -103,12 +104,17 @@ function PlanningResult({ plan, canManage, approvalAllowed, isWorking, onApprove
   const { user } = useAuth();
   const distributionId = plan.distributionId;
   return <>
-    {distributionId ? <div className="distribution-notice"><p>Este plano pertence a uma distribuição. Aprovação, cancelamento e reprocessamento são feitos pela necessidade completa.</p><Link className="btn-secondary" to={`/planning/distributions/${distributionId}`}>Abrir distribuição completa</Link></div> : null}
+    {distributionId ? <div className="distribution-notice"><p>{plan.distributionStatus === "CANCELED"
+        ? "Distribuição cancelada: este plano é apenas um registro histórico. Para calcular novamente, inicie uma nova distribuição."
+        : plan.distributionStatus === "INCOMPLETE"
+          ? "Distribuição incompleta: consulte as partes canceladas e reprocesse a carga antes de aprovar."
+          : "Este plano pertence a uma distribuição. Aprovação, cancelamento e reprocessamento são feitos pela necessidade completa."}</p><Link className="btn-secondary" to={`/planning/distributions/${distributionId}`}>Abrir distribuição completa</Link></div> : null}
     <div className="plan-saved-notice">
       <div><span className="plan-saved-icon" aria-hidden="true"><Icon name="planning" size={19} /></span><p><strong>Plano salvo</strong><span>Referência {plan.id.slice(0, 8)} · Disponível para consulta em Planos existentes.</span></p></div>
       <div className="plan-saved-actions"><Link className="btn-secondary" to="/planning">Planos existentes</Link><Link className="btn-primary" to={`/planning/${plan.id}`}>Abrir este plano<Icon name="arrow-right" size={16} /></Link></div>
     </div>
     <PlanSummary plan={plan} canManage={canManage && !distributionId} approvalAllowed={approvalAllowed && !distributionId} isWorking={isWorking} onApprove={onApprove} onRecalculate={onRecalculate} />
+    <PlanAIExplanation key={plan.id} planId={plan.id} />
     <Tabs items={PLAN_TABS} active={tab} onChange={onTabChange} label="Formato do resultado" />
     <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
       {tab === "summary" ? <PlanItemsTable items={plan.items} /> :

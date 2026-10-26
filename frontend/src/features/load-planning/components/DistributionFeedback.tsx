@@ -4,7 +4,7 @@ import { mapLoadPlanErrorToMessage } from "./loadPlansErrorMessages";
 
 const MESSAGES: Readonly<Record<string, string>> = {
   OPTIMIZATION_IN_PROGRESS: "Esta otimização ainda está em andamento. Aguarde e consulte o resultado; não inicie outra solicitação.",
-  OPTIMIZATION_NOT_FOUND: "Ainda não há resultado confirmado para esta solicitação. Você pode consultar novamente ou repetir a mesma solicitação com segurança.",
+  OPTIMIZATION_NOT_FOUND: "Nenhum resultado foi encontrado para esta tentativa. Consulte novamente; se o servidor confirmar a ausência, você poderá encerrar a tentativa e iniciar outro planejamento.",
   IDEMPOTENCY_PAYLOAD_MISMATCH: "A identidade desta solicitação pertence a outra seleção de pedidos. Consulte o resultado original antes de continuar.",
   DISTRIBUTION_CAPACITY_INSUFFICIENT: "A frota elegível não comportou toda a carga na busca realizada. Nenhuma proposta parcial foi salva. Revise os pedidos ou a disponibilidade da frota.",
   DISTRIBUTION_CAPACITY_REJECTED: "Há volumes que não couberam no veículo. Nenhuma alteração parcial foi salva.",
@@ -13,7 +13,7 @@ const MESSAGES: Readonly<Record<string, string>> = {
   DISTRIBUTION_NOT_FOUND: "Esta distribuição não foi encontrada.",
   DISTRIBUTION_PART_NOT_FOUND: "Esta parte não foi encontrada. Atualize a distribuição.",
   DISTRIBUTION_INCOMPLETE: "A distribuição está incompleta. Reprocesse as partes canceladas antes de aprovar.",
-  DISTRIBUTION_IMMUTABLE: "A situação atual da distribuição não permite alterações.",
+  DISTRIBUTION_IMMUTABLE: "Esta distribuição já foi concluída ou cancelada e não pode mais ser alterada. Consulte o histórico ou crie uma nova proposta.",
   DISTRIBUTION_TRUCK_DUPLICATED: "Este caminhão já pertence a outra parte da distribuição.",
   DISTRIBUTION_INTEGRITY_CONFLICT: "Houve um conflito com outra operação. Atualize os dados antes de continuar.",
   TRUCK_OPERATION_CONFLICT: "O caminhão está comprometido com outra operação. Atualize a disponibilidade ou escolha outro.",
