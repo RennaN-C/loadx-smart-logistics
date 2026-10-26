@@ -36,6 +36,8 @@ from app.modules.load_planning.optimizer.contracts import (
     IndividualVolume,
     VolumeIdentity,
 )
+from app.modules.load_planning.optimizer.engine import LoadPlanResult
+from app.modules.load_planning.optimizer.metrics import calculate_load_metrics
 from app.modules.load_planning.optimizer.engine import (
     MAX_VOLUMES,
     LoadPlanVolumeLimitExceededError,
@@ -349,8 +351,25 @@ class LoadDistributionService:
                 for part in result.parts
             ],
         )
+        # The multi-truck engine has already computed a valid layout for each
+        # selected part. Build an all-placed view; other trucks' rejected items
+        # are not rejections of the selected part and must not be persisted.
+        prepared = {}
+        for part in result.parts:
+            original = part.load_plan
+            prepared[part.truck_id] = LoadPlanResult(
+                capacity=original.capacity,
+                placed_volumes=original.placed_volumes,
+                rejected_volumes=(),
+                metrics=calculate_load_metrics(
+                    internal_volume_cm3=original.capacity.internal_volume_cm3,
+                    placed_volumes=[row.volume for row in original.placed_volumes],
+                    rejected_volumes=(),
+                ),
+            )
         return self.create(
-            proposal, changed_by=changed_by, optimization_request=request
+            proposal, changed_by=changed_by, optimization_request=request,
+            precomputed_parts=prepared,
         )
 
     def _lock_trucks(self, identifiers):
@@ -371,6 +390,7 @@ class LoadDistributionService:
         *,
         changed_by: uuid.UUID,
         optimization_request: OptimizationRequest | None = None,
+        precomputed_parts: dict[uuid.UUID, LoadPlanResult] | None = None,
     ) -> DistributionRead:
         try:
             trucks = self._lock_trucks([p.truck_id for p in data.parts])
@@ -404,6 +424,10 @@ class LoadDistributionService:
                     products,
                     part_volumes,
                     changed_by,
+                    precomputed_result=(
+                        precomputed_parts.get(proposed.truck_id)
+                        if precomputed_parts is not None else None
+                    ),
                 )
                 part = LoadDistributionPart(
                     id=uuid.uuid4(),
@@ -441,7 +465,8 @@ class LoadDistributionService:
             raise
 
     def _stage_part_plan(
-        self, truck, orders, items, products, volumes, actor, source=None
+        self, truck, orders, items, products, volumes, actor, source=None,
+        precomputed_result=None,
     ):
         related_ids = {v.order_id for v in volumes}
         plan, result = self.planning.stage_plan_for_volumes(
@@ -452,6 +477,7 @@ class LoadDistributionService:
             volumes=volumes,
             changed_by=actor,
             recalculated_from_id=source,
+            precomputed_result=precomputed_result,
         )
         if result.rejected_volumes:
             raise DistributionError(
