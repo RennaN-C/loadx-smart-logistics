@@ -1,5 +1,7 @@
 # Riscos, pendências e decisões necessárias
 
+> **Leitura contextual:** este documento acumula decisões e riscos desde o MVP, inclusive registros históricos. Após a publicação da [v1.2.0](https://github.com/RennaN-C/loadx-smart-logistics/releases/tag/v1.2.0) em 26/10/2026, os bloqueios ativos devem ser verificados nas Issues e nas [notas técnicas da release](releases/v1.2.0.md). As Issues [#268](https://github.com/RennaN-C/loadx-smart-logistics/issues/268) (cobertura SonarCloud) e [#256](https://github.com/RennaN-C/loadx-smart-logistics/issues/256) (auditoria incremental) permanecem abertas. Não usar itens historicamente pendentes aqui como prova de falha da versão publicada.
+
 Este documento concentra pontos que ainda precisam de validação da equipe. Não use itens daqui como decisão aprovada enquanto estiverem marcados como pendência, suposição ou risco.
 
 ## Decisões já confirmadas

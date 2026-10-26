@@ -6,6 +6,10 @@ Este arquivo é a fonte principal de contexto para qualquer IA que ajude a progr
 assistido por IA. Este `AGENTS.md` continua sendo a fonte obrigatória de contexto
 e restrições para agentes de IA.
 
+## Situação das versões (26/10/2026)
+
+A release [v1.2.0](https://github.com/RennaN-C/loadx-smart-logistics/releases/tag/v1.2.0) foi publicada pela PR #314. A v1.3.0 (multiempresa/CoreFlow) é **direção proposta**, não autorização para implementar novas OCs. Para decisões atuais, consultar `docs/planejamento/roadmap-versoes.md` e `docs/releases/v1.2.0.md`. O planejamento e as pendências de versões passadas não substituem Issues atuais. Não reescrever tags já publicadas; manutenção deve passar por PR e preservar código funcional.
+
 ## Antes de qualquer alteração
 
 1. Leia o `README.md` da raiz.
