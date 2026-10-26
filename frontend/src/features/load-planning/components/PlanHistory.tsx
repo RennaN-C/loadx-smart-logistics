@@ -15,13 +15,16 @@ const date = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "
 
 function PlanHistoryRow({ plan, canReadOrigin }: { readonly plan: LoadPlanListItem; readonly canReadOrigin: boolean }) {
   const destination = plan.distributionId ? `/planning/distributions/${plan.distributionId}` : `/planning/${plan.id}`;
-  const isCanceled = plan.distributionStatus === "CANCELED" || plan.partStatus === "CANCELED" || plan.operation?.status === "CANCELED";
+  const isDistributionCanceled = plan.distributionStatus === "CANCELED";
   const isIncomplete = plan.distributionStatus === "INCOMPLETE" || plan.operation?.status === "INCOMPLETE";
+  const isCanceled = isDistributionCanceled || (!isIncomplete &&
+    (plan.partStatus === "CANCELED" || plan.operation?.status === "CANCELED"));
   const historicalVersion = plan.isCurrentPart === false;
-  const lifecycleStatus = isCanceled ? "Cancelada"
+  const lifecycleStatus = isDistributionCanceled ? "Cancelada"
     : isIncomplete ? "Incompleta"
-      : historicalVersion ? "Versão anterior"
-        : plan.distributionStatus ? DISTRIBUTION_LABELS[plan.distributionStatus] : null;
+      : isCanceled ? "Cancelada"
+        : historicalVersion ? "Versão anterior"
+          : plan.distributionStatus ? DISTRIBUTION_LABELS[plan.distributionStatus] : null;
   return <li className="plan-history-row">
     <div className="plan-history-identification">
       <div className="plan-history-title"><h3><Link to={destination}>Plano {plan.id.slice(0, 8).toLocaleUpperCase("pt-BR")}</Link></h3>{lifecycleStatus ? <StatusPill tone={isCanceled || historicalVersion ? "neutral" : plan.distributionStatus === "APPROVED" ? "good" : "warn"}>{plan.distributionId ? "Distribuição" : "Operação"}: {lifecycleStatus}</StatusPill> : <StatusPill tone={planStatusTone(plan.status)}>Plano: {PLAN_STATUS_LABELS[plan.status]}</StatusPill>}</div>
@@ -31,7 +34,8 @@ function PlanHistoryRow({ plan, canReadOrigin }: { readonly plan: LoadPlanListIt
       <time dateTime={plan.createdAt}>Criado em {date.format(new Date(plan.createdAt))}</time>
     </div>
     <div className="plan-history-summary">
-      {isCanceled ? <p className="entity-form-help" role="status">Esta distribuição foi cancelada. A carga não está ativa; o cálculo permanece para consulta e auditoria.</p>
+      {isDistributionCanceled ? <p className="entity-form-help" role="status">Esta distribuição foi cancelada. A carga não está ativa; o cálculo permanece para consulta e auditoria.</p>
+        : isCanceled ? <p className="entity-form-help" role="status">Esta operação foi cancelada. O registro está disponível apenas para consulta histórica.</p>
         : isIncomplete ? <p className="entity-form-help" role="status">Distribuição incompleta. Uma parte precisa ser reprocessada antes de continuar.</p>
           : historicalVersion ? <p className="entity-form-help">Versão substituída por um reprocessamento. Consulte a distribuição para ver a carga atual.</p>
             : plan.operation ? <PlanOperationSummary operation={plan.operation} /> : null}
