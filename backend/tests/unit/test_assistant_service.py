@@ -54,7 +54,7 @@ def test_real_tool_results_are_server_calculated_and_bounded(
                 }
             ]
         },
-        {"content": "Uma entrega completa no período consultado."},
+        {"content": '{"guidance":["facts"]}'},
     ]
     query = Mock(
         return_value=Source(
@@ -188,7 +188,7 @@ def test_real_occupancy_is_not_confused_with_unavailable_financial_metrics(
     )
     provider = Mock()
     provider.complete.return_value = {
-        "content": "A ocupação é 40%. Não há dados para calcular lucro."
+        "content": '{"guidance":["facts","financial_limits"]}'
     }
     result = AssistantService(Mock(), config(), provider).chat(
         actor(), ChatRequest(message="Qual a ocupação?")
@@ -272,7 +272,7 @@ def test_vehicle_identifiers_remain_in_authorized_facts_only(no_database, monkey
                 }
             ]
         },
-        {"content": "Há um veículo indisponível. Consulte a relação no painel."},
+        {"content": '{"guidance":["facts","availability"]}'},
     ]
     monkeypatch.setattr(
         AssistantMetricsService,

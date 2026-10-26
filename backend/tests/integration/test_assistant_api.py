@@ -1,5 +1,6 @@
 """Real PostgreSQL, session/CSRF and persisted metrics; external Groq is not called."""
 
+import json
 import uuid
 from datetime import UTC, datetime, timedelta
 from unittest.mock import Mock
@@ -184,7 +185,7 @@ def test_chat_tool_loop_queries_postgresql_without_exposing_personal_data(
             },
             {
                 "role": "assistant",
-                "content": "Consulte os pedidos por situação nos fatos do sistema.",
+                "content": '{"guidance":["facts"]}',
             },
         ]
     )
@@ -200,7 +201,15 @@ def test_chat_tool_loop_queries_postgresql_without_exposing_personal_data(
     assert response.json()["source"] == "GROQ"
     assert complete.call_count == 2
     assert scenario.driver_id.hex not in str(complete.call_args)
-    assert "document" not in str(complete.call_args).lower()
+    payload = next(
+        message["content"]
+        for message in complete.call_args.args[0]
+        if message["role"] == "tool"
+    )
+    tool_data = json.loads(payload)
+    assert set(tool_data["values"]) == set(values)
+    assert "choices" not in tool_data
+    assert "filter_label" not in tool_data
 
 
 def test_customer_normalization_exact_match_and_no_wildcard_expansion(session_factory):
@@ -278,11 +287,11 @@ def test_ambiguous_customer_requires_explicit_authorized_selection(
     complete = Mock(
         side_effect=[
             call,
-            {"role": "assistant", "content": "Escolha o cliente nas opções."},
+            {"role": "assistant", "content": '{"guidance":["customer_selection"]}'},
             call,
             {
                 "role": "assistant",
-                "content": "Consulte os fatos calculados do cliente selecionado.",
+                "content": '{"guidance":["facts"]}',
             },
         ]
     )
