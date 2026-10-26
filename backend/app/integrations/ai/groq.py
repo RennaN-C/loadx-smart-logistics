@@ -37,7 +37,7 @@ class GroqProvider:
         if (
             self.config.ai_provider != "groq"
             or key is None
-            or not key.get_secret_value()
+            or not key.get_secret_value().strip()
         ):
             raise AIProviderUnavailableError
         payload = {
@@ -48,9 +48,12 @@ class GroqProvider:
         }
         if tools:
             payload.update(tools=tools, tool_choice="auto", parallel_tool_calls=False)
+        encoded = json.dumps(payload).encode()
+        if len(encoded) > MAX_BODY_BYTES:
+            raise AIProviderUnavailableError
         request = Request(
             ENDPOINT,
-            data=json.dumps(payload).encode(),
+            data=encoded,
             headers={
                 "Authorization": "Bearer " + key.get_secret_value(),
                 "Content-Type": "application/json",
@@ -66,25 +69,7 @@ class GroqProvider:
                 body = response.read(MAX_BODY_BYTES + 1)
             if len(body) > MAX_BODY_BYTES:
                 raise AIProviderUnavailableError
-            result = json.loads(body)["choices"][0]["message"]
-            if not isinstance(result, dict):
-                raise AIProviderUnavailableError
-            content = result.get("content")
-            calls = result.get("tool_calls", [])
-            if content is not None and (
-                not isinstance(content, str) or len(content) > 8000
-            ):
-                raise AIProviderUnavailableError
-            if not isinstance(calls, list) or len(calls) > 3:
-                raise AIProviderUnavailableError
-            if not content and not calls:
-                raise AIProviderUnavailableError
-            # Do not forward provider metadata or arbitrary message fields.
-            return {
-                "role": "assistant",
-                "content": content,
-                **({"tool_calls": calls} if calls else {}),
-            }
+            return self._parse_response(body)
         except TimeoutError:
             raise AIProviderTimeoutError from None
         except (
@@ -97,6 +82,28 @@ class GroqProvider:
             TypeError,
         ):
             raise AIProviderUnavailableError from None
+
+    @staticmethod
+    def _parse_response(body: bytes) -> dict:
+        result = json.loads(body)["choices"][0]["message"]
+        if not isinstance(result, dict) or result.get("role") != "assistant":
+            raise AIProviderUnavailableError
+        content = result.get("content")
+        calls = result.get("tool_calls", [])
+        if content is not None and (
+            not isinstance(content, str) or len(content) > 8000
+        ):
+            raise AIProviderUnavailableError
+        if not isinstance(calls, list) or len(calls) > 3:
+            raise AIProviderUnavailableError
+        if not content and not calls:
+            raise AIProviderUnavailableError
+        # Do not forward provider metadata or arbitrary message fields.
+        return {
+            "role": "assistant",
+            "content": content,
+            **({"tool_calls": calls} if calls else {}),
+        }
 
     def explain_load_plan(
         self, context: AIExplanationContext, *, timeout_seconds: float
