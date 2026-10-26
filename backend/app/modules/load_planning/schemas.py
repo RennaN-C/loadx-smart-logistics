@@ -25,7 +25,7 @@ RejectionReasonValue = Literal[
 
 
 OperationStatus = Literal[
-    "NOT_STARTED", "IN_PROGRESS", "PARTIALLY_DELIVERED", "COMPLETED", "CANCELED"
+    "NOT_STARTED", "IN_PROGRESS", "PARTIALLY_DELIVERED", "COMPLETED", "INCOMPLETE", "CANCELED"
 ]
 OperationScope = Literal["ongoing", "completed", "all"]
 
@@ -49,6 +49,11 @@ class PlanOperationRead(BaseModel):
 class LoadPlanListRead(BaseModel):
     operation: PlanOperationRead | None = None
     distribution_id: uuid.UUID | None = None
+    distribution_status: (
+        Literal["PROPOSED", "PARTIALLY_APPROVED", "APPROVED", "INCOMPLETE", "CANCELED"] | None
+    ) = None
+    part_status: Literal["PENDING", "APPROVED", "CANCELED"] | None = None
+    is_current_part: bool = True
     id: uuid.UUID
     truck_id: uuid.UUID
     truck_plate: str

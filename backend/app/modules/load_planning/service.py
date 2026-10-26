@@ -186,6 +186,7 @@ class LoadPlanningService:
             truck_id=truck_id,
             include_operations=include_operations,
             operation_scope=operation_scope,
+            hide_inactive=requester_role == "CHECKER",
         )
 
     def get_distribution_id_for_plan(self, load_plan_id: uuid.UUID) -> uuid.UUID | None:
