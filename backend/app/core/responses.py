@@ -11,6 +11,11 @@ class ErrorResponse(BaseModel):
 
 
 _ERROR_RESPONSE_DESCRIPTIONS = {
+    408: "Tempo de recebimento excedido.",
+    410: "Evento expirado.",
+    413: "Corpo da requisição excede o limite.",
+    415: "Formato de conteúdo não suportado.",
+    400: "Requisição inválida.",
     401: "Autenticação ausente ou inválida.",
     403: "Acesso negado ou usuário inativo.",
     404: "Entidade relacionada não encontrada.",

@@ -296,7 +296,7 @@ def test_read_only_roles_can_read_trucks(
     assert response.status_code == 200
 
 
-@pytest.mark.parametrize("role", ["ADMIN", "CHECKER"])
+@pytest.mark.parametrize("role", ["CHECKER"])
 @pytest.mark.parametrize("method", ["POST", "PATCH"])
 def test_read_only_roles_cannot_manage_trucks(
     client: TestClient,
@@ -435,6 +435,8 @@ def test_operational_status_returns_available_truck(
         "model": "Bau medio",
         "active": True,
         "has_operation_conflict": False,
+        "has_maintenance_conflict": False,
+        "has_document_conflict": False,
         "available": True,
     }
 

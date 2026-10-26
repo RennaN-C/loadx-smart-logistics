@@ -24,8 +24,7 @@ Crie somente os arquivos necessários para a ocorrência atual.
 - `PATCH /api/v1/orders/{id}`: atualiza campos enviados.
 - `PATCH /api/v1/orders/{id}/status`: executa uma transição manual de status.
 
-`CONFIRMADO`: `ADMIN`, `CHECKER` e `LOGISTICS_MANAGER` podem consultar. Somente
-`LOGISTICS_MANAGER` pode criar, atualizar ou executar transições manuais.
+`CONFIRMADO`: `ADMIN`, `CHECKER` e `LOGISTICS_MANAGER` podem consultar. `ADMIN` e `LOGISTICS_MANAGER` podem criar, atualizar ou executar transições manuais.
 `DRIVER` não acessa os endpoints do módulo; sua operação atualiza pedidos pela
 viagem atribuída.
 
@@ -57,3 +56,43 @@ viagem atribuída.
   do usuário no banco.
 
 `CONFIRMADO`: estas regras foram aprovadas em D04 e D05 e registradas na ADR-015.
+
+## OC99 — destino selecionado e snapshot
+
+`CONFIRMADO`: POST aceita exatamente um de `customer_address_id` (UUID de
+endereço ativo do cliente ativo) ou `delivery_address` textual legado. O cliente
+não envia `delivery_address_snapshot`: o servidor copia `label`, `address`,
+`city`, `state`, `postal_code` e `customer_address_id` para JSONB, mantendo o
+texto em `delivery_address`. Payload legado recebe snapshot com somente seu
+texto. Read detalhado inclui os dois campos novos; resumo da lista continua sem
+endereço. ADMIN e LOGISTICS_MANAGER mantêm gestão conforme a matriz atual.
+
+`CONFIRMADO`: PATCH DRAFT sem endereço mantém a cópia; seleção explícita produz
+uma nova cópia, e texto explícito remove a proveniência. Alterar cliente exige
+um desses dois campos. Origem inválida/outro cliente recebe 422; origem
+arquivada recebe 409. FK composta protege pertencimento fora do service.
+Alterações cadastrais posteriores não modificam destinos contratados.
+
+## OC95 — busca e filtros antes da paginação
+
+`CONFIRMADO`: GET da coleção aceita `search` opcional. ADMIN e LOGISTICS_MANAGER
+pesquisam por nome do cliente, UUID do pedido e UUID do cliente. CHECKER pesquisa
+somente UUID do pedido e UUID do cliente; um termo que só corresponde ao nome
+retorna 200 com coleção filtrada vazia. DRIVER continua recebendo 403.
+Trim no servidor; vazio equivale à ausência. Substring case-insensitive de até
+120 caracteres após trim; `%`, `_` e `\` literais via SQLAlchemy parametrizado.
+`status` aceita apenas o catálogo público ORDER_STATUS_VALUES; combina por AND com search.
+COUNT e SELECT usam os mesmos predicados antes de OFFSET/LIMIT; ordenação
+created_at/id na mesma direção. Envelope, RBAC e schemas detalhados/resumidos
+permanecem preservados, sem novos dados pessoais.
+Contrato completo: [docs/05](../../../../docs/05-contratos-api.md).
+
+`CONFIRMADO`: CustomerService.matching_name_ids fornece a projeção SQL pública
+composta pelo repository de customers, sem executar consulta ou materializar
+clientes. O router deriva allow_customer_name_search do papel autenticado;
+o service só constrói a consulta de nomes quando essa capacidade é verdadeira
+e existe termo. A capacidade é interna, com default false, e não é query param.
+CHECKER não constrói essa subconsulta: nomes não participam de SELECT ou COUNT.
+Isso preserva o RBAC dos endpoints e impede consulta indireta ao cadastro de
+clientes. OrderRepository usa IN com subconsulta, sem JOIN multiplicador;
+selectinload de items continua restrito à página. O frontend não é fonte da busca.

@@ -1,10 +1,7 @@
-import logging
 import uuid
 
 from sqlalchemy.orm import Session
 
-from app.core.observability import OperationalEvent, emit_operational_event
-from app.modules.deliveries.models import Trip
 from app.modules.deliveries.reference_service import DeliveryReferenceService
 from app.modules.deliveries.service import (
     TripAccessForbiddenError,
@@ -17,6 +14,10 @@ from app.modules.occurrences.models import Occurrence
 from app.modules.occurrences.repository import OccurrenceRepository
 from app.modules.occurrences.schemas import OccurrenceCreate
 from app.modules.users.models import User
+
+
+class OccurrenceNotFoundError(Exception):
+    pass
 
 
 class OccurrenceTripNotFoundError(Exception):
@@ -47,13 +48,26 @@ class OccurrenceService:
         self.trip_service = TripService(db)
         self.delivery_reference_service = DeliveryReferenceService(db)
         self.driver_service = DriverService(db)
-        self.notification_service = notification_service
+        self.notification_service = (
+            notification_service or OperationalNotificationService()
+        )
+
+    def get_occurrence_for_access(
+        self, occurrence_id: uuid.UUID, *, current_user: User
+    ) -> Occurrence:
+        occurrence = self.repository.get(occurrence_id)
+        if occurrence is None:
+            raise OccurrenceNotFoundError
+        self.trip_service.get_trip(occurrence.trip_id, current_user=current_user)
+        return occurrence
 
     def register_occurrence(
         self, data: OccurrenceCreate, *, current_user: User
     ) -> Occurrence:
         try:
-            trip = self.trip_service.get_trip(data.trip_id, current_user=current_user)
+            trip = self.trip_service.get_trip(
+                data.trip_id, current_user=current_user, for_update=True
+            )
         except TripNotFoundError as exc:
             raise OccurrenceTripNotFoundError from exc
         except TripAccessForbiddenError as exc:
@@ -69,9 +83,16 @@ class OccurrenceService:
         occurrence = Occurrence(**data.model_dump())
         try:
             occurrence = self.repository.add(occurrence)
+            self.notification_service.stage(
+                self.db,
+                event_type="OCCURRENCE_REGISTERED",
+                trip_id=trip.id,
+                recipient_driver_id=trip.driver_id,
+                occurrence_id=occurrence.id,
+            )
             self.db.commit()
+            OperationalNotificationService.dispatch_after_commit(self.db)
             self.db.refresh(occurrence)
-            self._notify_occurrence_registered(trip, occurrence)
             return occurrence
         except Exception:
             self.db.rollback()
@@ -90,26 +111,3 @@ class OccurrenceService:
         except TripAccessForbiddenError as exc:
             raise OccurrenceAccessForbiddenError from exc
         return self.repository.list_by_trip_id(trip_id)
-
-    def _notify_occurrence_registered(
-        self,
-        trip: Trip,
-        occurrence: Occurrence,
-    ) -> None:
-        if self.notification_service is None:
-            return
-        try:
-            driver = self.driver_service.get_driver(trip.driver_id)
-            self.notification_service.notify_occurrence_registered(
-                recipient_phone=driver.phone,
-                trip_id=trip.id,
-                occurrence_type=occurrence.type,
-            )
-        except Exception as error:  # noqa: BLE001 - notification failure must not undo operation
-            emit_operational_event(
-                OperationalEvent.NOTIFICATION_FAILED,
-                level=logging.WARNING,
-                alert=True,
-                reason="OCCURRENCE_PREPARATION_FAILED",
-                exception_type=type(error).__name__,
-            )

@@ -85,3 +85,12 @@
   font-size: 0.8rem;
   color: var(--muted);
 }
+
+.trip-stop { flex-wrap: wrap; }
+.trip-stop-body { min-width: 0; overflow-wrap: anywhere; }
+.trip-meta > div { min-width: 0; }
+
+.trip-order-links { display: flex; flex-wrap: wrap; gap: 10px; margin-block: 20px; }
+.trip-order-links a { max-width: 100%; text-decoration: none; }
+.trip-order-links a span { overflow-wrap: anywhere; }
+@media (max-width: 520px) { .trip-order-links a { justify-content: space-between; flex: 1 1 100%; } }

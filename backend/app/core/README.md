@@ -45,3 +45,7 @@ backend também emite HSTS; o terminador TLS precisa preservar esse header.
 por UUID, templates de rota e duração/status sem payload de requisição ou
 exceção. Configuração, eventos, diagnóstico e limites estão em
 `infra/production/README.md`; ADR-025 permanece proposta para revisão.
+
+`CONFIRMADO` (OC82): `WHATSAPP_PROVIDER` aceita somente `mock` nesta etapa.
+Outro valor impede a inicialização; não há configuração de credenciais ou
+ativação real. Contrato em [whatsapp/README](../integrations/whatsapp/README.md).

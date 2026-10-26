@@ -1,0 +1,141 @@
+import type { AuditEntityType, AuditEventType } from "../types";
+
+export const AUDIT_ENTITY_LABELS: Record<AuditEntityType, string> = {
+  OUTBOX_EVENT: "Evento de saída",
+  ACCESS_PROFILE: "Perfil de acesso",
+  COMPANY_PROFILE: "Dados da empresa",
+  ORDER: "Pedido",
+  LOAD_PLAN: "Plano de carga",
+  LOAD_DISTRIBUTION: "Distribuição de carga",
+  LOAD_DISTRIBUTION_PART: "Parte da distribuição",
+  TRIP: "Viagem",
+  DELIVERY: "Entrega",
+  USER: "Usuário",
+  CUSTOMER: "Cliente",
+  REGISTRATION_IMPORT: "Importação de cadastros",
+  ATTACHMENT: "Anexo operacional",
+  DRIVER_DOCUMENT: "Documento de motorista",
+  DRIVER_DOCUMENT_POLICY: "Política documental de motorista",
+  DRIVER_DOCUMENT_TYPE: "Tipo documental de motorista",
+  TRUCK_DOCUMENT: "Documento de caminhão",
+  TRUCK_DOCUMENT_POLICY: "Política documental",
+  TRUCK_MAINTENANCE: "Manutenção de caminhão",
+  CUSTOMER_ADDRESS: "Endereço de cliente",
+  PRODUCT: "Produto",
+  TRUCK: "Caminhão",
+  DRIVER: "Motorista",
+};
+
+export const AUDIT_EVENT_LABELS: Record<AuditEventType, string> = {
+  OUTBOX_REPROCESSED: "Evento reagendado para reprocessamento",
+  PROFILE_CREATED: "Perfil criado",
+  PROFILE_UPDATED: "Permissões do perfil atualizadas",
+  COMPANY_PROFILE_CREATED: "Dados da empresa cadastrados",
+  COMPANY_PROFILE_UPDATED: "Dados da empresa atualizados",
+  STATUS_CHANGED: "Situação alterada",
+  USER_CREATED: "Usuário criado",
+  USER_UPDATED: "Usuário atualizado",
+  RECORD_ARCHIVED: "Cadastro arquivado",
+  MAINTENANCE_CREATED: "Manutenção registrada",
+  MAINTENANCE_CLOSED: "Manutenção encerrada",
+  IMPORT_COMPLETED: "Importação concluída",
+  IMPORT_REJECTED: "Importação rejeitada",
+  ATTACHMENT_REGISTERED: "Anexo registrado",
+  ATTACHMENT_REVOKED: "Anexo removido",
+  DRIVER_DOCUMENT_CREATED: "Documento de motorista registrado",
+  DRIVER_DOCUMENT_RENEWED: "Documento de motorista renovado",
+  DRIVER_DOCUMENT_POLICY_UPDATED: "Política de motorista atualizada",
+  DRIVER_DOCUMENT_TYPE_APPROVED: "Tipo documental aprovado",
+  TRUCK_DOCUMENT_CREATED: "Documento registrado",
+  TRUCK_DOCUMENT_RENEWED: "Documento substituído",
+  TRUCK_DOCUMENT_POLICY_UPDATED: "Política documental alterada",
+  TRUCK_ODOMETER_UPDATED: "Quilometragem atualizada",
+  CUSTOMER_ADDRESS_CREATED: "Endereço criado",
+  CUSTOMER_ADDRESS_UPDATED: "Endereço atualizado",
+  CUSTOMER_ADDRESS_ARCHIVED: "Endereço arquivado",
+  CUSTOMER_ADDRESS_REACTIVATED: "Endereço reativado",
+  RECORD_REACTIVATED: "Cadastro reativado",
+};
+
+const FIELD_LABELS: Readonly<Record<string, string>> = {
+  status: "situação",
+  next_attempt_at: "agendamento da tentativa",
+  legal_name: "nome empresarial",
+  display_name: "nome de exibição",
+  cnpj: "CNPJ",
+  phone: "telefone",
+  logo_reference: "referência de logotipo",
+  permissions: "permissões",
+  custom_profile_id: "perfil personalizado",
+  description: "descrição",
+  active: "ativo",
+  odometer_km: "quilometragem",
+  next_service_at: "data da revisão",
+  next_service_km: "quilometragem da revisão",
+  closed_at: "encerramento",
+  is_primary: "principal",
+  label: "identificação",
+  address: "endereço",
+  city: "cidade",
+  state: "UF",
+  postal_code: "CEP",
+  driver_id: "motorista vinculado",
+  email: "e-mail",
+  name: "nome",
+  password: "senha",
+  role: "perfil",
+};
+
+const STATUS_LABELS: Readonly<Record<string, string>> = {
+  DRAFT: "Rascunho",
+  READY: "Pronto para coleta",
+  PLANNED: "Planejado",
+  IN_TRANSIT: "Em trânsito",
+  DELIVERED: "Entregue",
+  CALCULATED: "Calculado",
+  APPROVED: "Aprovado",
+  REJECTED: "Rejeitado",
+  PROPOSED: "Proposta",
+  PARTIALLY_APPROVED: "Aprovada parcialmente",
+  SCHEDULED: "Agendada",
+  IN_ROUTE: "Em rota",
+  INTERRUPTED: "Interrompida",
+  FINISHED: "Concluída",
+  PENDING: "Pendente",
+  IN_DELIVERY: "Em entrega",
+  CANCELED: "Cancelado",
+  ACTIVE: "Ativo",
+  INACTIVE: "Inativo",
+  PROCESSING: "Em processamento",
+  COMPLETED: "Concluído",
+  FAILED: "Com falha",
+};
+
+export function auditStatusLabel(value: string | null): string {
+  if (!value) return "Sem situação anterior";
+  return STATUS_LABELS[value] ?? value.replaceAll("_", " ").toLocaleLowerCase("pt-BR");
+}
+
+export function describeAuditEntry(entry: {
+  readonly eventType: AuditEventType;
+  readonly oldStatus: string | null;
+  readonly newStatus: string | null;
+  readonly changedFields: readonly string[];
+}): string {
+  if (entry.eventType === "STATUS_CHANGED") {
+    const oldStatus = auditStatusLabel(entry.oldStatus);
+    const newStatus = entry.newStatus ? auditStatusLabel(entry.newStatus) : "Situação não informada";
+    return `${oldStatus} → ${newStatus}`;
+  }
+
+  if (entry.eventType === "USER_CREATED") {
+    return "Cadastro administrativo criado.";
+  }
+
+  if (entry.changedFields.length === 0) {
+    return "Cadastro administrativo atualizado.";
+  }
+
+  const fields = entry.changedFields.map((field) => FIELD_LABELS[field] ?? field);
+  return `Campos alterados: ${fields.join(", ")}.`;
+}

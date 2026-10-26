@@ -98,3 +98,12 @@ divergir.
 - `components/StartLoadingAction.tsx`: porta de entrada no plano aprovado.
 - `components/loadingErrorMessages.ts`: mensagens e validação de formato.
 - `pages/LoadingPage.tsx`: a tela.
+
+## Retorno e recuperação (#188)
+
+`CONFIRMADO`: `/loading/:sessionId` mostra o link permanente e caminhos para
+início e plano de origem. Após finalizar, ADMIN/LOGISTICS_MANAGER recebem o
+caminho para criar a viagem no plano. A tabela possui rolagem horizontal própria
+com região identificada e foco pelo teclado. Trocar a sessão limpa os itens e
+ignora respostas de ações anteriores. A listagem geral permanece pendente dos
+contratos e da OC93; ver [fluxo operacional](../../../../docs/06-fluxo-operacional.md).

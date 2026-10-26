@@ -6,6 +6,22 @@ from pydantic import ValidationError
 from app.core.config import Settings
 
 
+def test_whatsapp_defaults_to_mock_without_provider_environment(monkeypatch) -> None:
+    monkeypatch.delenv("WHATSAPP_PROVIDER", raising=False)
+
+    configured = Settings(app_env="local", _env_file=None)
+
+    assert configured.whatsapp_provider == "mock"
+
+
+@pytest.mark.parametrize("provider", ["meta", "unknown"])
+def test_whatsapp_rejects_real_or_unknown_provider(provider: str, monkeypatch) -> None:
+    monkeypatch.setenv("WHATSAPP_PROVIDER", provider)
+
+    with pytest.raises(ValidationError, match="whatsapp_provider"):
+        Settings(app_env="local", _env_file=None)
+
+
 @pytest.mark.parametrize("app_env", ["local", "production"])
 def test_database_url_is_required(app_env: str, monkeypatch) -> None:
     monkeypatch.delenv("DATABASE_URL", raising=False)

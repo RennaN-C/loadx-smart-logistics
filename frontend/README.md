@@ -45,3 +45,141 @@ HTTPS; a configuração do Vite não acompanha os arquivos após a publicação.
 serve `dist/` com Caddy. O `Caddyfile` reproduz os headers, aplica cache imutável
 apenas aos assets versionados e mantém o HTML sem cache. Essa imagem é usada
 somente por `compose.production.yaml`.
+
+## OC99 — múltiplos endereços por cliente
+
+`CONFIRMADO`: o botão Endereços no cadastro abre lista paginada, filtro de
+ativos/arquivados, formulário com ViaCEP e ações de edição, principal,
+arquivamento e reativação. ADMIN e LOGISTICS_MANAGER usam a gestão atual.
+Pedidos carregam os endereços ativos do cliente e permitem seleção explícita;
+texto manual continua compatível. Edição preserva snapshot se o destino não
+foi alterado, mesmo que a origem tenha mudado. Trocar cliente limpa o destino.
+Consulta e ações possuem estados de carregamento, erro e vazio.
+
+## OC100 — manutenção da frota
+
+`CONFIRMADO`: Manutenções no card do caminhão abre histórico paginado e próxima
+revisão por data/km, com alerta de vencimento e quilometragem atual. Gestores e
+administradores registram preventiva/corretiva com período, descrição,
+oficina/observação/custo opcional, encerram/cancelam período e atualizam odômetro.
+Conferente consulta sem ações de gestão. Estados de carregamento, erro e vazio
+são apresentados. Frota explica manutenção; planejamento omite veículos com
+bloqueio atual recebido do backend. Não duplica cálculo de disponibilidade.
+
+## OC101 — documentos dos caminhões
+
+`CONFIRMADO`: Documentos no card abre histórico, tipos, validade, renovação
+e política explícita de elegibilidade. ADMIN/LOGISTICS_MANAGER gerenciam ativos;
+CHECKER e cadastro arquivado consultam. UI destaca vencido, próximo (30 dias),
+emissão futura e substituído usando status do backend. Frota explica política
+pendente; planejamento oculta veículos documentalmente inelegíveis. Há estados
+de loading/erro/vazio e paginação. Referência UUID de arquivo é metadado, sem
+upload/download; envio de notificações permanece na OC103.
+
+## OC85 — configurações administrativas
+
+`CONFIRMADO`: Administração → Configurações (`/settings`) somente ADMIN ativo.
+Contexto da conta vem da sessão existente, somente leitura. Seções distinguem
+conta/administração de configurações do LoadX. Dados da empresa (OC91),
+Integrações e Saúde (OC108) e Meu perfil (OC92) usam seus contratos reais;
+gestão de usuários continua em preparação, sem ações nem rotas falsas.
+Sessão ausente/expirada segue login; perfil negado recebe alerta e volta ao início;
+carregamento usa SessionLoading. Não cria API, preferências locais, tenant ou
+integração CoreFlow. [Estrutura extensível](src/features/settings/README.md).
+
+## Polimento visual e de navegação — v1.2.0
+
+`CONFIRMADO`: links de retorno nas telas de conta, planejamento, viagem e
+carregamento usam ações contextuais com cores, foco visível e área clicável
+consistente. Configurações utiliza as quatro subseções da sidebar principal (Conta, Empresa, Integrações e Operação), sem abas horizontais ou navegação duplicada. Fragmentos da URL preservam acesso direto e histórico
+do navegador; rascunhos permanecem ao alternar seções. Dados institucionais usam
+um formulário com grupos e divisórias, sem cards aninhados; integrações apresentam indicadores
+compactos com limites expansíveis. Rotas, contratos e autorizações preservados.
+
+`CONFIRMADO`: o detalhe do pedido diferencia referência, situação, endereço,
+itens e histórico sem alterar contratos. A frota apresenta ações em grade de
+duas colunas, sem botões soltos em linhas irregulares.
+
+`CONFIRMADO`: no planejamento, falha ao obter caminhões, pedidos ou
+disponibilidade não aparece como lista vazia; a tela oferece nova consulta.
+Histórico contextual oferece retry quando sua consulta falha, sem bloquear
+outras informações do pedido.
+
+`CONFIRMADO`: a validação visual da manutenção #198 utiliza Chromium com
+API/PostgreSQL locais e dados fictícios, em temas claro/escuro e larguras
+375/768/1280/1920 px (desktop 1280×720 e 1920×1080). Inclui screenshots,
+textos extensos, estados vazios, falha/retry das consultas, loading, foco no
+modal e Escape. Resultados e limites da publicação ficam no PR #199.
+
+`CONFIRMADO`: links com aparência de botão preservam hover/focus sem
+sublinhado nativo; modelos extensos da frota quebram dentro do card. O histórico
+contextual oculta os eventos anteriores enquanto consulta outra entidade, e a
+ação de calcular distingue indisponibilidade de processamento em andamento.
+
+`CONFIRMADO`: a manutenção não adiciona listagens de planos/carregamentos
+nem muda RBAC, contratos HTTP, backend ou migrations. A publicação na
+`pentest-lab`, autorizada separadamente, deve preservar o proxy e headers de
+`frontend/vercel.json`, o gatilho da CI e a identificação do ambiente de testes.
+Validação autenticada online exige conta de testes autorizada; liveness/readiness
+não comprovam por si só o SHA nem ausência de erros nos logs do Render.
+
+## Consolidação de navegação — #206
+
+`CONFIRMADO`: Visão geral integra indicadores reais da OC69 para gestores e
+preserva início por perfil. Caminhões e frota reúne Veículos/Disponibilidade;
+Relatórios e indicadores apura pedidos e volumes físicos com limite explícito.
+Aliases `/operations` e `/fleet` continuam protegidos e navegáveis. Sidebar,
+acordeões e submenu de Configurações da base #201/#203/#205 são preservados.
+
+## Preferência de aparência — #212
+
+`CONFIRMADO`: Meu perfil → Aparência está disponível aos quatro perfis. Claro e
+Escuro têm prioridade sobre o sistema; Automático é o padrão e acompanha mudanças
+de `prefers-color-scheme`. A escolha é local por navegador/origem, compartilhada
+entre contas nesse navegador, sem API, credenciais ou migração.
+
+`CONFIRMADO`: `public/theme.js` é carregado antes da aplicação por script externo
+compatível com a CSP existente. Resolve `data-theme` antes da montagem do React;
+`app/theme/useAppearance.ts` conecta os controles e a cena 3D ao mesmo estado.
+Os tokens e `color-scheme` ficam centralizados em `app/styles.css`. A chave
+`loadx.appearance` admite `light`, `dark` e `system`; valores inválidos usam o
+sistema. Falhas no armazenamento mantêm o controle funcional em memória, sem
+garantir persistência após recarregar. Alterações e limpeza em outra aba são
+sincronizadas; logout não apaga a preferência.
+
+`CONFIRMADO`: a validação visual em Chromium está em
+[docs/evidencias/issue-212](../docs/evidencias/issue-212/README.md).
+`PENDENTE DE DEFINIÇÃO`: validação conjunta das telas MFA/recuperação da PR #211
+após sua integração; nenhum código da OC98 foi incorporado nesta manutenção.
+
+## Revisão visual das referências de 39 telas — 24/10/2026
+
+`CONFIRMADO`: a apresentação compartilhada usa azul profundo/âmbar no escuro e
+superfícies claras no claro, respeitando a preferência de aparência existente.
+Clientes, motoristas e pedidos usam tabelas responsivas; ações secundárias de
+cadastros e pedidos ficam no menu de cada registro. O filtro de situação dos
+pedidos substitui os dois atalhos redundantes.
+
+`CONFIRMADO`: o planejamento apresenta Pedidos, Modalidade, Veículos e Revisão;
+alternar etapas não persiste rascunho nem inicia operação. Meu perfil usa
+`?tab=data`, `?tab=security` e `?tab=sessions`, preservando edições ao alternar.
+A agenda oferece calendário diário/semanal e lista dos mesmos eventos históricos
+em UTC. O intervalo da API continua limitado às opções existentes.
+
+`CONFIRMADO`: contratos, RBAC, MFA e coordenadas 3D foram preservados. Evidências,
+comandos e limites estão na [revisão visual](../docs/evidencias/qa-v12-pentest/ui-refinamento-39/README.md).
+
+## Dados e acompanhamento — 25/10/2026
+
+`CONFIRMADO`: a visão geral ganhou gráficos SVG com contagens reais da API.
+Execução permanece no planejamento e Configurações usa navegação horizontal,
+coerente com a frota. Transições novas respeitam redução de movimento.
+O seed local é documentado em [backend/scripts](../backend/scripts/README.md).
+Evidências e limites da revisão estão em
+[população e gráficos](../docs/evidencias/qa-v12-pentest/ui-populacao-graficos/README.md).
+
+## Gravação e avaliação de usabilidade local
+
+`CONFIRMADO`: [roteiro e dados de gravação](../docs/usabilidade/README.md)
+e [ensaio técnico com login/MFA reais](../docs/evidencias/usabilidade-local/README.md)
+acompanham os ajustes de prontidão do planejamento da Issue #302.

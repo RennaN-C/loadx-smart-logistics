@@ -1,30 +1,30 @@
-# Feature: dashboard
+# Feature: dashboard — Visão geral
 
-Painel inicial (OC25). É a rota raiz `/`, no lugar do placeholder da OC23.
+`CONFIRMADO`: a rota `/` consolida o início OC25 e os indicadores operacionais
+OC74 na manutenção #206. ADMIN e LOGISTICS_MANAGER veem os quatro grupos reais
+(frota, viagens, entregas, ocorrências) de `GET /operational-indicators`.
+Períodos `CURRENT_SNAPSHOT`/`ALL_TIME` permanecem explícitos. Indicadores
+complementares ficam em detalhes expansíveis, sem métricas derivadas.
 
-## O que existe hoje
+`CONFIRMADO`: o contador de caminhões do cadastro não é repetido para gestores;
+a frota vem somente da OC69. Produtos, clientes, motoristas e pedidos continuam
+usando os totais de seus envelopes de paginação. Pedidos recentes têm links
+`/orders?order=ID`, reabrindo o detalhe persistido. Falha de um bloco não derruba
+os demais; há retentativa para indicadores e resumo de cadastros/pedidos.
 
-- `pages/DashboardPage.tsx` (+ `.css`): contadores por recurso e os pedidos mais recentes.
-- `hooks/useDashboardTotals.ts`: busca os números e a lista recente.
+`CONFIRMADO`: CHECKER mantém o resumo de recursos autorizados, sem consultas de
+clientes, motoristas ou indicadores globais. DRIVER mantém `DriverTrips`, com
+recorte de viagens aplicado pelo backend e links de detalhe existentes. Nenhum
+perfil é ampliado. `/operations` redireciona para a raiz somente para ADMIN e
+LOGISTICS_MANAGER; os demais recebem acesso negado antes de qualquer consulta.
 
-## Os números vêm do envelope de paginação
+`CONFIRMADO`: apenas os indicadores com destino existente oferecem navegação
+contextual — disponibilidade aponta para `/trucks?tab=availability`. Não há
+listagem geral de viagens/entregas nesta consolidação; a central OC93 permanece
+fora do escopo. Nenhum botão de métrica leva a uma rota fictícia.
 
-**Não existe endpoint de agregação no backend.** Os contadores usam o `total` que a ADR-017 já devolve
-em toda coleção: pedindo `page_size=1`, o número é exato e a resposta é mínima — sem baixar a coleção
-inteira só para contar.
-
-Os pedidos recentes usam a primeira página com `page_size=5`. Como `sort_order` já é `desc` por
-`created_at` por padrão, a primeira página **é** a dos mais recentes, sem precisar de parâmetro novo.
-
-## Falha parcial não derruba o painel
-
-Cada recurso é buscado de forma independente. `CHECKER` não lê clientes nem motoristas, e um 403 ali
-não pode zerar a tela: o contador que falhou vira "—", os outros continuam válidos, e a página avisa
-que alguns números não carregaram. Para quem não lê dado pessoal, esses contadores nem são pedidos.
-
-## Fora de escopo
-
-`CONFIRMADO`: `/reports` já apresenta indicadores de pedidos e o backend gera
-PDFs de carregamento e viagem. Ocupação média da frota e evolução no tempo
-continuam futuras; não há endpoint de agregação geral. O painel do motorista
-já usa `DriverTrips` para listar suas viagens.
+`CONFIRMADO` (UI05): a apresentação usa cartões compactos e distribuições
+visuais de viagens e entregas construídas diretamente com as contagens do
+contrato. Não calcula nem publica percentuais. A atividade recente continua
+restrita a pedidos persistidos já retornados pela API, sem simular feed de
+auditoria. Sidebar e cabeçalho preservam o recorte de cada perfil.

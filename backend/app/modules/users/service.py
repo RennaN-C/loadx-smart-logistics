@@ -1,6 +1,7 @@
 import uuid
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 
+from sqlalchemy import Select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -10,6 +11,8 @@ from app.core.security_events import SecurityEvent, emit_security_event
 from app.database.integrity import get_integrity_constraint_name
 from app.modules.auth.sessions import AuthSessionService
 from app.modules.drivers.service import DriverNotFoundError, DriverService
+from app.modules.status_history.schemas import AuditEventCreate
+from app.modules.status_history.service import AuditService
 from app.modules.users.models import User
 from app.modules.users.repository import UserRepository
 from app.modules.users.schemas import UserCreate, UserUpdate
@@ -45,15 +48,75 @@ class UserService:
         self.repository = UserRepository(db)
         self.auth_sessions = AuthSessionService(db)
         self.driver_service = DriverService(db)
+        self.audit_service = AuditService(db)
 
-    def list_users(self, pagination: PaginationParams) -> PageResult[User]:
-        return self.repository.list(pagination)
+    def notification_recipient_ids(
+        self, codes: tuple[str, ...], driver_id: uuid.UUID
+    ) -> Select[tuple[uuid.UUID]]:
+        """Public scope: fixed/effective profile permissions or the active DRIVER identity."""
+        from app.modules.access_profiles.catalog import SYSTEM_PERMISSIONS
+        from app.modules.access_profiles.service import ProfileService
+
+        roles = [
+            role for role, grants in SYSTEM_PERMISSIONS.items() if set(codes) <= grants
+        ]
+        driver = self.driver_service.get_driver(driver_id)
+        return self.repository.notification_recipient_ids(
+            roles,
+            ProfileService(self.db).ids_with_permissions(codes),
+            driver_id if driver.active else None,
+        )
+
+    def list_users(
+        self,
+        pagination: PaginationParams,
+        *,
+        search: str | None = None,
+        role: str | None = None,
+        active: bool | None = None,
+    ) -> PageResult[User]:
+        result = self.repository.list(
+            pagination, search=search, role=role, active=active
+        )
+        from app.modules.access_profiles.service import ProfileService
+
+        names = ProfileService(self.db).names(
+            [user.custom_profile_id for user in result.items if user.custom_profile_id]
+        )
+        for user in result.items:
+            user._custom_profile_name = names.get(user.custom_profile_id)
+        return result
+
+    def driver_names(self, users: Sequence[User]) -> dict[uuid.UUID, str]:
+        identities = tuple(
+            user.driver_id for user in users if user.driver_id is not None
+        )
+        return self.driver_service.names_for_ids(identities)
 
     def has_users(self) -> bool:
         return self.repository.has_any()
 
     def get_user(self, user_id: uuid.UUID) -> User:
         user = self.repository.get(user_id)
+        if user is None:
+            raise UserNotFoundError
+        from app.modules.access_profiles.service import ProfileService
+
+        ProfileService(self.db).resolve(user)
+        return user
+
+    def get_user_for_authorization(self, user_id: uuid.UUID) -> User:
+        """Resolve current security state under a transaction-owned shared lock."""
+        user = self.repository.get_for_authorization(user_id)
+        if user is None:
+            raise UserNotFoundError
+        from app.modules.access_profiles.service import ProfileService
+
+        ProfileService(self.db).resolve(user, lock=True)
+        return user
+
+    def lock_account(self, user_id: uuid.UUID) -> User:
+        user = self.repository.get_for_update(user_id)
         if user is None:
             raise UserNotFoundError
         return user
@@ -65,28 +128,63 @@ class UserService:
         user.password_hash = password_hash
         return self._persist(lambda: self.repository.update(user))
 
-    def create_user(self, data: UserCreate) -> User:
+    def create_user(
+        self,
+        data: UserCreate,
+        *,
+        actor_id: uuid.UUID | None = None,
+    ) -> User:
         if self.repository.get_by_email(data.email) is not None:
             raise UserEmailAlreadyExistsError
+        from app.modules.access_profiles.service import ProfileService
+
+        ProfileService(self.db).validate_assignment(data.role, data.custom_profile_id)
         self._ensure_driver_link_is_valid(data.role, data.driver_id)
 
         user_data = data.model_dump(exclude={"password"})
         user = User(**user_data, password_hash=hash_password(data.password))
-        return self._persist(lambda: self.repository.add(user))
 
-    def update_user(self, user_id: uuid.UUID, data: UserUpdate) -> User:
-        user = self.get_user(user_id)
+        def persist_user_with_audit() -> User:
+            created_user = self.repository.add(user)
+            if actor_id is not None:
+                self.audit_service.stage_administrative_event(
+                    AuditEventCreate(
+                        event_type="USER_CREATED",
+                        entity_type="USER",
+                        entity_id=created_user.id,
+                        actor_id=actor_id,
+                        changed_fields=[
+                            "active",
+                            "driver_id",
+                            "email",
+                            "name",
+                            "role",
+                        ],
+                    )
+                )
+            return created_user
+
+        return self._persist(persist_user_with_audit)
+
+    def update_user(
+        self,
+        user_id: uuid.UUID,
+        data: UserUpdate,
+        *,
+        actor_id: uuid.UUID | None = None,
+    ) -> User:
+        user = self._lock_update_target(user_id, data)
         update_data = data.model_dump(exclude_unset=True)
-
-        new_email = update_data.get("email")
-        if new_email is not None and new_email != user.email:
-            existing_user = self.repository.get_by_email(new_email)
-            if existing_user is not None and existing_user.id != user.id:
-                raise UserEmailAlreadyExistsError
+        self._ensure_updated_email_available(user, update_data.get("email"))
 
         self._ensure_active_admin_remains(user.id, update_data)
 
         final_role = update_data.get("role", user.role)
+        from app.modules.access_profiles.service import ProfileService
+
+        final_profile_id = update_data.get("custom_profile_id", user.custom_profile_id)
+        ProfileService(self.db).validate_assignment(str(final_role), final_profile_id)
+        profile_changed = final_profile_id != user.custom_profile_id
         final_driver_id = update_data.get("driver_id", user.driver_id)
         self._ensure_driver_link_is_valid(
             str(final_role),
@@ -95,7 +193,16 @@ class UserService:
         )
 
         password = update_data.pop("password", None)
+        changed_fields = [
+            field_name
+            for field_name, value in update_data.items()
+            if getattr(user, field_name) != value
+        ]
         password_changed = password is not None
+        if password_changed:
+            changed_fields.append("password")
+        changed_fields.sort()
+
         if password is not None:
             user.password_hash = hash_password(password)
 
@@ -105,22 +212,39 @@ class UserService:
             "driver_id" in update_data and update_data["driver_id"] != user.driver_id
         )
 
+        security_changed = any(
+            (
+                password_changed,
+                role_changed,
+                user_deactivated,
+                driver_link_changed,
+                profile_changed,
+            )
+        )
+
         for field_name, value in update_data.items():
             setattr(user, field_name, value)
 
-        def persist_user_and_revoke_sessions() -> User:
+        def persist_user_revoke_sessions_and_audit() -> User:
             updated_user = self.repository.update(user)
-            if (
-                password_changed
-                or role_changed
-                or user_deactivated
-                or driver_link_changed
-            ):
+            if "email" in changed_fields:
+                self.auth_sessions.stage_invalidate_access_credentials(user.id)
+            if security_changed:
                 self.auth_sessions.stage_revoke_all_for_user(user.id)
+            if actor_id is not None and changed_fields:
+                self.audit_service.stage_administrative_event(
+                    AuditEventCreate(
+                        event_type="USER_UPDATED",
+                        entity_type="USER",
+                        entity_id=user.id,
+                        actor_id=actor_id,
+                        changed_fields=changed_fields,
+                    )
+                )
             return updated_user
 
-        updated_user = self._persist(persist_user_and_revoke_sessions)
-        if password_changed or role_changed or user_deactivated or driver_link_changed:
+        updated_user = self._persist(persist_user_revoke_sessions_and_audit)
+        if security_changed:
             emit_security_event(
                 SecurityEvent.USER_SECURITY_STATE_CHANGED,
                 alert=role_changed or user_deactivated,
@@ -131,6 +255,29 @@ class UserService:
                 driver_link_changed=driver_link_changed,
             )
         return updated_user
+
+    def _lock_update_target(self, user_id: uuid.UUID, data: UserUpdate) -> User:
+        user = self.get_user(user_id)
+        if (
+            user.role == "CUSTOM"
+            or data.role == "CUSTOM"
+            or "custom_profile_id" in data.model_fields_set
+        ):
+            from app.modules.access_profiles.service import ProfileService
+
+            ProfileService(self.db).serialize_mutations()
+            self._ensure_active_admin_remains(
+                user.id, data.model_dump(exclude_unset=True)
+            )
+            user = self.repository.get_for_update(user_id)
+        return user
+
+    def _ensure_updated_email_available(self, user: User, email: str | None) -> None:
+        if email is None or email == user.email:
+            return
+        existing = self.repository.get_by_email(email)
+        if existing is not None and existing.id != user.id:
+            raise UserEmailAlreadyExistsError
 
     def _ensure_driver_link_is_valid(
         self,
@@ -184,4 +331,16 @@ class UserService:
         except Exception:
             self.db.rollback()
             raise
+        from app.modules.access_profiles.service import ProfileService
+
+        ProfileService(self.db).resolve(user)
         return user
+
+    def profile_counts(self):
+        return self.repository.profile_counts()
+
+    def lock_profile_members(self, identity):
+        return self.repository.lock_profile_members(identity)
+
+    def revoke_profile_members(self, members):
+        self.auth_sessions.stage_revoke_all_for_users([member.id for member in members])

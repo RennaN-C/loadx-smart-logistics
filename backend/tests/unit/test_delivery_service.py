@@ -7,7 +7,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.pagination import PaginationParams
-from app.modules.customers.models import Customer
+from app.modules.access_profiles.models import AccessProfile
+from app.modules.customers.models import Customer, CustomerAddress
+from app.modules.deliveries.cancellation_service import TripCancellation
+from app.modules.deliveries.exception_models import DeliveryException
 from app.modules.deliveries.models import Delivery, Trip
 from app.modules.deliveries.repository import TripRepository
 from app.modules.deliveries.schemas import TripCreate
@@ -24,21 +27,45 @@ from app.modules.deliveries.service import (
     TripLoadPlanAlreadyAssignedError,
     TripService,
 )
-from app.modules.drivers.models import Driver
+from app.modules.drivers.models import (
+    Driver,
+    DriverDocument,
+    DriverDocumentPolicy,
+    DriverDocumentType,
+)
+from app.modules.load_planning.distribution_models import (
+    LoadDistribution,
+    LoadDistributionOrder,
+    LoadDistributionPart,
+    LoadDistributionVolume,
+)
 from app.modules.load_planning.models import LoadPlan, LoadPlanItem, LoadPlanOrder
 from app.modules.loading.models import LoadingSession
 from app.modules.orders.models import Order, OrderItem
 from app.modules.products.models import Product
 from app.modules.status_history.models import StatusHistory
-from app.modules.trucks.models import Truck
+from app.modules.trucks.models import (
+    Truck,
+    TruckDocument,
+    TruckDocumentPolicy,
+    TruckMaintenance,
+)
 from app.modules.trucks.service import TruckOperationConflictError
 from app.modules.users.models import User
 
 SQLITE_TABLES = (
     Driver.__table__,
+    DriverDocumentType.__table__,
+    DriverDocument.__table__,
+    DriverDocumentPolicy.__table__,
+    AccessProfile.__table__,
     User.__table__,
     Customer.__table__,
+    CustomerAddress.__table__,
     Truck.__table__,
+    TruckMaintenance.__table__,
+    TruckDocument.__table__,
+    TruckDocumentPolicy.__table__,
     Product.__table__,
     Order.__table__,
     OrderItem.__table__,
@@ -46,9 +73,15 @@ SQLITE_TABLES = (
     LoadPlan.__table__,
     LoadPlanOrder.__table__,
     LoadPlanItem.__table__,
+    LoadDistribution.__table__,
+    LoadDistributionOrder.__table__,
+    LoadDistributionPart.__table__,
+    LoadDistributionVolume.__table__,
     LoadingSession.__table__,
     Trip.__table__,
     Delivery.__table__,
+    DeliveryException.__table__,
+    TripCancellation.__table__,
 )
 
 
@@ -439,7 +472,6 @@ def test_receipt_denies_unlinked_inactive_and_wrong_role_before_history(
     service, _manager, driver, _trip, delivery, _orders = prepare_receipt_delivery(
         db_session
     )
-    admin = create_user(db_session, role="ADMIN")
     checker = create_user(db_session, role="CHECKER")
     unlinked = create_user(db_session, role="DRIVER")
     linked = create_user(db_session, role="DRIVER", driver_id=driver.id)
@@ -452,7 +484,7 @@ def test_receipt_denies_unlinked_inactive_and_wrong_role_before_history(
     monkeypatch.setattr(
         service.status_history_service, "list_status_history", forbidden_history
     )
-    for user in (admin, checker, unlinked, linked):
+    for user in (checker, unlinked, linked):
         with pytest.raises(TripAccessForbiddenError):
             service.register_delivery_receipt(delivery.id, current_user=user)
     for user in (checker, unlinked, linked):

@@ -1,4 +1,5 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
+import { fireEvent, render as renderView, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ApiError } from "../../../types/api";
@@ -7,6 +8,8 @@ import { useAuth } from "../../auth/hooks/useAuth";
 import { listTrucks } from "../api/trucksApi";
 import type { Truck } from "../types";
 import { TruckListPage } from "./TruckListPage";
+
+function render(ui: React.ReactElement) { return renderView(<MemoryRouter>{ui}</MemoryRouter>); }
 
 vi.mock("../api/trucksApi");
 vi.mock("../../auth/hooks/useAuth");
@@ -62,6 +65,7 @@ function mockRole(role: "LOGISTICS_MANAGER" | "ADMIN") {
       createdAt: "2026-08-01T00:00:00Z",
     },
     login: vi.fn(),
+    updateUser: vi.fn(),
     logout: vi.fn(),
   });
 }
@@ -80,22 +84,48 @@ describe("TruckListPage", () => {
     expect(await screen.findByText("ABC1D23")).toBeInTheDocument();
     expect(screen.getByText("QRT2B88")).toBeInTheDocument();
     expect(screen.getByText("Ativo")).toBeInTheDocument();
-    expect(screen.getByText("Inativo")).toBeInTheDocument();
+    expect(screen.getByText("Arquivado")).toBeInTheDocument();
+    expect(screen.getByRole("table", { name: "Caminhões cadastrados" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Volume interno" })).toBeInTheDocument();
   });
 
-  it("filtra por placa ou modelo sem chamar o backend de novo", async () => {
+  it("organiza as ações em grupo separado do peso máximo de cada caminhão", async () => {
+    vi.mocked(listTrucks).mockResolvedValue(makePage(TRUCKS));
+    mockRole("ADMIN");
+    render(<TruckListPage />);
+
+    const trigger = await screen.findByLabelText("Ações do caminhão ABC1D23");
+    fireEvent.click(trigger);
+    const actions = trigger.closest("details")!;
+    expect(within(actions).getByRole("button", { name: "Documentos" })).toBeInTheDocument();
+    expect(within(actions).getByRole("button", { name: "Manutenções" })).toBeInTheDocument();
+    expect(within(actions).getByRole("button", { name: "Arquivar" })).toBeInTheDocument();
+    expect(within(actions).getByRole("button", { name: "Editar" })).toBeInTheDocument();
+    expect(within(actions).getAllByRole("button").map((button) => button.textContent)).toEqual([
+      "Documentos", "Manutenções", "Editar", "Arquivar",
+    ]);
+    const card = actions.closest(".truck-card");
+    expect(card?.querySelector(".truck-card-weight")).toHaveTextContent("8.000 kg");
+    expect(actions.contains(card?.querySelector(".truck-card-weight") ?? null)).toBe(false);
+  });
+
+  it("filtra por placa ou modelo consultando o servidor", async () => {
     vi.mocked(listTrucks).mockResolvedValue(makePage(TRUCKS));
 
     render(<TruckListPage />);
     await screen.findByText("ABC1D23");
 
+    vi.mocked(listTrucks).mockResolvedValue(makePage([TRUCKS[1]]));
     fireEvent.change(screen.getByLabelText("Buscar por placa ou modelo"), {
       target: { value: "reforçado" },
     });
 
+    await waitFor(() => expect(listTrucks).toHaveBeenLastCalledWith(expect.objectContaining({ search: "reforçado" })));
+    await screen.findByText("QRT2B88");
+
     expect(screen.queryByText("ABC1D23")).not.toBeInTheDocument();
     expect(screen.getByText("QRT2B88")).toBeInTheDocument();
-    expect(listTrucks).toHaveBeenCalledOnce();
+    expect(listTrucks).toHaveBeenLastCalledWith(expect.objectContaining({ search: "reforçado", page: 1 }));
   });
 
   it("filtra por status", async () => {
@@ -104,21 +134,23 @@ describe("TruckListPage", () => {
     render(<TruckListPage />);
     await screen.findByText("ABC1D23");
 
-    fireEvent.change(screen.getByLabelText("Filtrar por status"), { target: { value: "inactive" } });
+    vi.mocked(listTrucks).mockResolvedValue(makePage([TRUCKS[1]]));
+    fireEvent.change(screen.getByLabelText("Filtrar cadastros por arquivamento"), { target: { value: "archived" } });
 
+    await waitFor(() => expect(listTrucks).toHaveBeenLastCalledWith({ page: 1, pageSize: 20, archiveStatus: "archived", search: "" }));
+    expect(await screen.findByText("QRT2B88")).toBeInTheDocument();
     expect(screen.queryByText("ABC1D23")).not.toBeInTheDocument();
-    expect(screen.getByText("QRT2B88")).toBeInTheDocument();
   });
 
-  it("esconde as ações de gestão para quem só tem leitura", async () => {
+  it("permite ao ADMIN gerenciar caminhões", async () => {
     vi.mocked(listTrucks).mockResolvedValue(makePage(TRUCKS));
     mockRole("ADMIN");
 
     render(<TruckListPage />);
     await screen.findByText("ABC1D23");
 
-    expect(screen.queryByRole("button", { name: "Novo caminhão" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Editar" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Novo caminhão" })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Editar" }).length).toBeGreaterThan(0);
   });
 
   it("abre o formulário de cadastro para o gestor de logística", async () => {
@@ -165,6 +197,6 @@ describe("TruckListPage", () => {
 
     expect(await screen.findByText("QRT2B88")).toBeInTheDocument();
     expect(screen.getByText("Página 2 de 2")).toBeInTheDocument();
-    expect(listTrucks).toHaveBeenLastCalledWith({ page: 2, pageSize: 20 });
+    expect(listTrucks).toHaveBeenLastCalledWith({ page: 2, pageSize: 20, archiveStatus: "active", search: "" });
   });
 });

@@ -1,0 +1,124 @@
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import { makePage } from "../../../tests/makePage";
+import { useAuth } from "../../auth/hooks/useAuth";
+import { listAuditEntries } from "../api/auditApi";
+import type { AuditEntry } from "../types";
+import { AuditPage } from "./AuditPage";
+
+vi.mock("../api/auditApi");
+vi.mock("../../auth/hooks/useAuth");
+
+const ENTRY: AuditEntry = {
+  id: "a1",
+  eventType: "STATUS_CHANGED",
+  entityType: "ORDER",
+  entityId: "11111111-1111-1111-1111-111111111111",
+  actorId: "22222222-2222-2222-2222-222222222222",
+  actorName: "Ana Souza",
+  oldStatus: "DRAFT",
+  newStatus: "READY",
+  changedFields: [],
+  createdAt: "2026-10-06T18:00:00Z",
+};
+
+describe("AuditPage", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    vi.mocked(useAuth).mockReturnValue({ user: { role: "ADMIN" } } as ReturnType<typeof useAuth>);
+    vi.mocked(listAuditEntries).mockResolvedValue(makePage([ENTRY]));
+  });
+
+  it("oculta filtros institucionais de gestores", async () => {
+    vi.mocked(useAuth).mockReturnValue({ user: { role: "LOGISTICS_MANAGER" } } as ReturnType<typeof useAuth>);
+    render(<AuditPage />);
+    await screen.findByText("Ana Souza");
+    expect(screen.queryByRole("option", { name: "Evento de saída" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "Evento reagendado para reprocessamento" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "Dados da empresa" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "Dados da empresa atualizados" })).not.toBeInTheDocument();
+  });
+
+  it("ADMIN consulta intervenção da OC109 com rótulos reais", async () => {
+    vi.mocked(listAuditEntries).mockResolvedValue(makePage([{ ...ENTRY, eventType: "OUTBOX_REPROCESSED", entityType: "OUTBOX_EVENT", oldStatus: null, newStatus: null, changedFields: ["status", "next_attempt_at"] }]));
+    render(<AuditPage />);
+    await screen.findByText("Campos alterados: situação, agendamento da tentativa.");
+    expect(within(screen.getByRole("table")).getByText("Evento de saída")).toBeInTheDocument();
+    expect(within(screen.getByRole("table")).getByText("Evento reagendado para reprocessamento")).toBeInTheDocument();
+  });
+
+  it("mostra quem alterou, quando e o que mudou", async () => {
+    render(<AuditPage />);
+
+    expect(await screen.findByText("Ana Souza")).toBeInTheDocument();
+    expect(screen.getByText("Rascunho → Pronto para coleta")).toBeInTheDocument();
+    expect(within(screen.getByRole("table")).getByText("Pedido")).toBeInTheDocument();
+    expect(screen.getByText(/06\/10\/2026/)).toBeInTheDocument();
+  });
+
+  it("prioriza nomes reais e revela UUIDs completos somente nos detalhes", async () => {
+    vi.mocked(listAuditEntries).mockResolvedValue(makePage([{ ...ENTRY, entityName: "Pedido de Mercado Aurora" }]));
+    render(<AuditPage />);
+
+    expect(await screen.findByText("Pedido de Mercado Aurora")).toBeInTheDocument();
+    expect(screen.getByText("Pedido · 11111111")).toBeInTheDocument();
+    expect(screen.queryByText(ENTRY.entityId)).not.toBeInTheDocument();
+    expect(screen.queryByText(ENTRY.actorId!)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Ver detalhes do evento 11111111" }));
+    expect(screen.getByText(ENTRY.entityId)).toBeInTheDocument();
+    expect(screen.getByText(ENTRY.actorId!)).toBeInTheDocument();
+  });
+
+  it.each([
+    ["LOAD_DISTRIBUTION", "Distribuição de carga"],
+    ["LOAD_DISTRIBUTION_PART", "Parte da distribuição"],
+  ] as const)("identifica histórico da OC87 para %s", async (entityType, label) => {
+    vi.mocked(listAuditEntries).mockResolvedValue(makePage([{ ...ENTRY, entityType }]));
+    render(<AuditPage />);
+    await screen.findByText("Ana Souza");
+    expect(within(screen.getByRole("table")).getByText(label)).toBeInTheDocument();
+  });
+
+  it("preserva rastreabilidade de eventos do sistema sem responsável pessoal", async () => {
+    vi.mocked(listAuditEntries).mockResolvedValue(makePage([{ ...ENTRY, actorId: null, actorName: null }]));
+    render(<AuditPage />);
+    expect(await screen.findByText("Sistema")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Ver detalhes do evento 11111111" }));
+    expect(screen.getByText(ENTRY.entityId)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Ocultar detalhes do evento 11111111" }));
+    expect(screen.queryByText(ENTRY.entityId)).not.toBeInTheDocument();
+  });
+
+  it("aplica filtros por entidade e evento no servidor", async () => {
+    render(<AuditPage />);
+    await screen.findByText("Ana Souza");
+
+    fireEvent.change(screen.getByLabelText("Entidade"), {
+      target: { value: "ORDER" },
+    });
+    fireEvent.change(screen.getByLabelText("Evento"), {
+      target: { value: "STATUS_CHANGED" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Aplicar filtros" }));
+
+    await waitFor(() =>
+      expect(listAuditEntries).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          entityType: "ORDER",
+          eventType: "STATUS_CHANGED",
+          page: 1,
+          pageSize: 20,
+        }),
+      ),
+    );
+  });
+
+  it("informa que os filtros acontecem antes da paginação", async () => {
+    render(<AuditPage />);
+
+    await screen.findByText("Ana Souza");
+    expect(screen.getByText(/aplicados pelo servidor antes da paginação/i)).toBeInTheDocument();
+  });
+});

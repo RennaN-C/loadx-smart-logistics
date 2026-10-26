@@ -31,7 +31,25 @@ def test_alembic_has_current_revision_head() -> None:
     config = Config(str(BACKEND_ROOT / "alembic.ini"))
     script = ScriptDirectory.from_config(config)
 
-    assert script.get_current_head() == "20260830_0011"
+    assert script.get_heads() == ["20261023_0035"]
+    assert script.get_revision("20261023_0035").down_revision == "20261021_0034"
+    assert script.get_revision("20261021_0033").down_revision == "20261021_0032"
+    assert script.get_revision("20261021_0032").down_revision == "20261021_0031"
+    assert script.get_revision("20261021_0031").down_revision == "20261021_0030"
+    assert script.get_revision("20261021_0030").down_revision == "20261021_0029"
+    assert script.get_revision("20261021_0029").down_revision == "20261020_0028"
+    assert script.get_revision("20261020_0028").down_revision == "20261020_0027"
+    assert script.get_revision("20261020_0027").down_revision == "20261020_0026"
+    assert script.get_revision("20261020_0026").down_revision == "20261020_0025"
+    assert script.get_revision("20261020_0025").down_revision == "20261016_0024"
+    assert script.get_revision("20261016_0024").down_revision == "20261009_0023"
+    assert script.get_revision("20261009_0023").down_revision == "20261009_0022"
+    assert script.get_revision("20261009_0022").down_revision == "20261009_0021"
+    assert script.get_revision("20261009_0021").down_revision == "20261009_0020"
+    assert script.get_revision("20261009_0020").down_revision == "20261009_0019"
+    assert script.get_revision("20261009_0019").down_revision == "20261009_0018"
+    assert script.get_revision("20261009_0018").down_revision == "20261008_0017"
+    assert script.get_revision("20261006_0012").down_revision == "20260830_0011"
 
 
 def test_initial_migration_renders_expected_check_constraint_names() -> None:
@@ -54,6 +72,13 @@ def test_initial_migration_renders_expected_check_constraint_names() -> None:
     assert "CREATE TABLE status_history" in result.stdout
     assert "CONSTRAINT fk_status_history__users" in result.stdout
     assert "CREATE INDEX ix_status_history__entity" in result.stdout
+    assert "CREATE TABLE audit_events" in result.stdout
+    assert "CONSTRAINT fk_audit_events__users" in result.stdout
+    assert "CONSTRAINT ck_audit_events__event_type_allowed" in result.stdout
+    assert "CONSTRAINT ck_audit_events__entity_type_allowed" in result.stdout
+    assert "CREATE INDEX ix_audit_events__entity" in result.stdout
+    assert "CREATE INDEX ix_audit_events__actor_id" in result.stdout
+    assert "CREATE INDEX ix_audit_events__created_at" in result.stdout
     assert "CREATE TABLE load_plans" in result.stdout
     assert "CREATE TABLE load_plan_orders" in result.stdout
     assert "CREATE TABLE load_plan_items" in result.stdout
@@ -73,8 +98,20 @@ def test_initial_migration_renders_expected_check_constraint_names() -> None:
     assert "CREATE TABLE auth_login_throttles" in result.stdout
     assert "CONSTRAINT ck_auth_login_throttles__scope_allowed" in result.stdout
     assert "CREATE TABLE auth_sessions" in result.stdout
+    assert "CREATE TABLE external_commands" in result.stdout
+    assert "uq_external_commands__integration_id_event_hash" in result.stdout
     assert "CONSTRAINT fk_auth_sessions__users" in result.stdout
     assert "CONSTRAINT uq_auth_sessions__token_hash" in result.stdout
     assert "ck_users__ck_users" not in result.stdout
     assert "ck_trucks__ck_trucks" not in result.stdout
     assert "ck_products__ck_products" not in result.stdout
+
+
+def test_oc98_revision_chains_real_head():
+    script = ScriptDirectory.from_config(Config("alembic.ini"))
+    assert script.get_revision("20261021_0029").down_revision == "20261020_0028"
+
+
+def test_trusted_devices_revision_extends_oc98():
+    script = ScriptDirectory.from_config(Config("alembic.ini"))
+    assert script.get_revision("20261021_0030").down_revision == "20261021_0029"

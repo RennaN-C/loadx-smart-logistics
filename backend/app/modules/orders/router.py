@@ -1,19 +1,22 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.core.pagination import PageResponse, Pagination, to_page_response
 from app.core.responses import error_response, openapi_error_responses
+from app.core.search import SearchQuery
 from app.database.session import get_db
-from app.modules.auth.dependencies import require_roles
+from app.modules.access_profiles.catalog import Permission, has_permission
+from app.modules.auth.dependencies import require_permission
 from app.modules.orders.models import Order
 from app.modules.orders.schemas import (
     OrderCreate,
     OrderListRead,
     OrderRead,
+    OrderStatus,
     OrderStatusChange,
     OrderUpdate,
 )
@@ -29,14 +32,8 @@ from app.modules.orders.service import (
 from app.modules.users.models import User
 
 router = APIRouter(prefix="/orders", tags=["orders"])
-OrderReader = Annotated[
-    User,
-    Depends(require_roles("ADMIN", "CHECKER", "LOGISTICS_MANAGER")),
-]
-OrderManager = Annotated[
-    User,
-    Depends(require_roles("LOGISTICS_MANAGER")),
-]
+OrderReader = Annotated[User, Depends(require_permission("loadx.orders.read"))]
+OrderManager = Annotated[User, Depends(require_permission("loadx.orders.manage"))]
 
 
 def get_order_service(db: Annotated[Session, Depends(get_db)]) -> OrderService:
@@ -50,10 +47,19 @@ def get_order_service(db: Annotated[Session, Depends(get_db)]) -> OrderService:
 )
 def list_orders(
     pagination: Pagination,
-    _current_user: OrderReader,
+    current_user: OrderReader,
     service: Annotated[OrderService, Depends(get_order_service)],
+    search: SearchQuery = None,
+    status: Annotated[OrderStatus | None, Query()] = None,
 ) -> PageResponse[OrderListRead]:
-    result = service.list_orders(pagination)
+    result = service.list_orders(
+        pagination,
+        search=search,
+        status=status,
+        allow_customer_name_search=has_permission(
+            current_user, Permission.CUSTOMERS_READ
+        ),
+    )
     return to_page_response(
         result,
         (
@@ -65,6 +71,7 @@ def list_orders(
                 expected_delivery_at=order.expected_delivery_at,
                 created_at=order.created_at,
                 item_count=len(order.items),
+                volume_count=sum(item.quantity for item in order.items),
             )
             for order in result.items
         ),

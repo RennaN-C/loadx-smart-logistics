@@ -1,7 +1,7 @@
 import uuid
-from typing import Annotated
+from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
@@ -9,7 +9,8 @@ from app.core.pagination import PageResponse, Pagination, to_page_response
 from app.core.responses import error_response, openapi_error_responses
 from app.database.session import get_db
 from app.integrations.whatsapp import WhatsAppProvider, get_whatsapp_provider
-from app.modules.auth.dependencies import require_roles
+from app.modules.access_profiles.catalog import Permission
+from app.modules.auth.dependencies import require_any_permission
 from app.modules.deliveries.models import Delivery, Trip
 from app.modules.deliveries.schemas import (
     DeliveryRead,
@@ -23,6 +24,7 @@ from app.modules.deliveries.schemas import (
 )
 from app.modules.deliveries.service import (
     DeliveryNotFoundError,
+    DeliveryOperationalExceptionPendingError,
     DeliveryReceiptHistoryInvalidError,
     DeliveryReceiptNotAvailableError,
     DeliveryStatusTransitionNotAllowedError,
@@ -48,17 +50,16 @@ from app.modules.trucks.service import TruckOperationConflictError
 from app.modules.users.models import User
 
 router = APIRouter(tags=["trips"])
-ManagerUser = Annotated[User, Depends(require_roles("LOGISTICS_MANAGER"))]
+ManagerUser = Annotated[User, Depends(require_any_permission("loadx.trips.manage"))]
 TripReader = Annotated[
-    User,
-    Depends(require_roles("ADMIN", "LOGISTICS_MANAGER", "DRIVER")),
+    User, Depends(require_any_permission("loadx.trips.read", Permission.TRIPS_OWN))
 ]
 TripOperator = Annotated[
-    User,
-    Depends(require_roles("LOGISTICS_MANAGER", "DRIVER")),
+    User, Depends(require_any_permission("loadx.trips.manage", Permission.TRIPS_OWN))
 ]
 TRIP_SERVICE_ERRORS = (
     DeliveryNotFoundError,
+    DeliveryOperationalExceptionPendingError,
     DeliveryReceiptHistoryInvalidError,
     DeliveryReceiptNotAvailableError,
     DeliveryStatusTransitionNotAllowedError,
@@ -81,6 +82,17 @@ TRIP_SERVICE_ERRORS = (
 )
 
 
+DeliveryOperator = Annotated[
+    User,
+    Depends(require_any_permission("loadx.deliveries.manage", Permission.TRIPS_OWN)),
+]
+
+
+DeliveryReader = Annotated[
+    User, Depends(require_any_permission("loadx.deliveries.read", Permission.TRIPS_OWN))
+]
+
+
 def get_trip_service(
     db: Annotated[Session, Depends(get_db)],
     provider: Annotated[WhatsAppProvider, Depends(get_whatsapp_provider)],
@@ -100,9 +112,16 @@ def list_trips(
     pagination: Pagination,
     current_user: TripReader,
     service: Annotated[TripService, Depends(get_trip_service)],
+    trip_status: Annotated[
+        Literal["SCHEDULED", "IN_ROUTE", "INTERRUPTED", "FINISHED", "CANCELED"] | None,
+        Query(alias="status"),
+    ] = None,
+    search: Annotated[str | None, Query(min_length=2, max_length=120)] = None,
 ) -> PageResponse[TripListRead] | JSONResponse:
     try:
-        result = service.list_trips(pagination, current_user=current_user)
+        result = service.list_trips(
+            pagination, current_user=current_user, status=trip_status, search=search
+        )
     except TRIP_SERVICE_ERRORS as exc:
         return _trip_error_response(exc)
     return to_page_response(
@@ -206,7 +225,7 @@ def change_delivery_status(
 def register_delivery_receipt(
     delivery_id: uuid.UUID,
     data: DeliveryReceiptCreate,
-    current_user: TripOperator,
+    current_user: DeliveryOperator,
     service: Annotated[TripService, Depends(get_trip_service)],
 ) -> DeliveryReceiptRead | JSONResponse:
     try:
@@ -222,7 +241,7 @@ def register_delivery_receipt(
 )
 def get_delivery_receipt(
     delivery_id: uuid.UUID,
-    current_user: TripReader,
+    current_user: DeliveryReader,
     service: Annotated[TripService, Depends(get_trip_service)],
 ) -> DeliveryReceiptRead | JSONResponse:
     try:
@@ -232,6 +251,12 @@ def get_delivery_receipt(
 
 
 def _trip_error_response(exc: Exception) -> JSONResponse:
+    if isinstance(exc, DeliveryOperationalExceptionPendingError):
+        return error_response(
+            status.HTTP_409_CONFLICT,
+            "DELIVERY_EXCEPTION_PENDING",
+            "Resolva a ocorrencia antes de concluir a entrega.",
+        )
     if isinstance(exc, DeliveryReceiptNotAvailableError):
         return error_response(
             status.HTTP_409_CONFLICT,

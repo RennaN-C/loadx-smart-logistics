@@ -1,21 +1,37 @@
 import uuid
+from collections.abc import Sequence
 
-from sqlalchemy import asc, desc, func, select
+from sqlalchemy import asc, desc, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.core.pagination import PageResult, PaginationParams
 from app.modules.drivers.models import Driver
+from app.shared.search import search_pattern
 
 
 class DriverRepository:
     def __init__(self, db: Session) -> None:
         self.db = db
 
-    def list(self, pagination: PaginationParams) -> PageResult[Driver]:
+    def list(
+        self,
+        pagination: PaginationParams,
+        *,
+        active: bool | None = None,
+        search: str | None = None,
+    ) -> PageResult[Driver]:
         direction = asc if pagination.sort_order == "asc" else desc
-        total = self.db.scalar(select(func.count()).select_from(Driver)) or 0
+        filters = [] if active is None else [Driver.active.is_(active)]
+        pattern = search_pattern(search)
+        if pattern is not None:
+            filters.append(or_(Driver.name.ilike(pattern, escape="\\")))
+        total = (
+            self.db.scalar(select(func.count()).select_from(Driver).where(*filters))
+            or 0
+        )
         statement = (
             select(Driver)
+            .where(*filters)
             .order_by(direction(Driver.created_at), direction(Driver.id))
             .offset(pagination.offset)
             .limit(pagination.page_size)
@@ -26,12 +42,40 @@ class DriverRepository:
             total,
         )
 
+    def names_for_ids(self, driver_ids: Sequence[uuid.UUID]) -> dict[uuid.UUID, str]:
+        if not driver_ids:
+            return {}
+        return dict(
+            self.db.execute(
+                select(Driver.id, Driver.name).where(Driver.id.in_(driver_ids))
+            ).all()
+        )
+
     def get(self, driver_id: uuid.UUID) -> Driver | None:
         return self.db.get(Driver, driver_id)
 
     def get_for_update(self, driver_id: uuid.UUID) -> Driver | None:
-        statement = select(Driver).where(Driver.id == driver_id).with_for_update()
+        statement = (
+            select(Driver)
+            .where(Driver.id == driver_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
         return self.db.scalar(statement)
+
+    def existing_registration_keys(
+        self, keys: dict[str, set[str]]
+    ) -> dict[str, set[str]]:
+        return {
+            field: set(
+                self.db.scalars(
+                    select(getattr(Driver, field)).where(
+                        getattr(Driver, field).in_(keys.get(field, set()))
+                    )
+                )
+            )
+            for field in ("document", "license_number")
+        }
 
     def get_by_document(self, document: str) -> Driver | None:
         statement = select(Driver).where(Driver.document == document)

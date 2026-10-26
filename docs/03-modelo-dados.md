@@ -1,10 +1,134 @@
 # Modelo de dados inicial
 
+## OC84 — notificações operacionais duráveis
+
+`CONFIRMADO`: a Issue #127 e a ADR-037 autorizam notificações internas reais
+com saída WhatsApp exclusivamente mock. Antes da OC84, a base `c9b634c` não
+armazenava notificações duráveis. `status_history` e `occurrences` comprovam os fatos,
+mas não armazenam uma notificação nem o resultado de sua simulação.
+`external_commands` deduplica comandos, não notificações ou tentativas de saída.
+Reutilizar essas tabelas como histórico de envio mudaria seu significado.
+
+`CONFIRMADO`: implementação autorizada pela revisão de Rennan na PR #226,
+comentário 6289881953. Tabela `operational_notifications`, módulo notifications,
+migration `20261020_0025` sobre `20261016_0024`. Sem backfill fictício.
+
+| Campo | Tipo | Finalidade e restrição |
+| --- | --- | --- |
+| `id` | UUID | PK, gerada pelo servidor |
+| `event_type` | varchar(32) | Catálogo fechado `TRIP_STARTED` / `OCCURRENCE_REGISTERED` |
+| `status_history_id` | UUID nullable | FK `status_history.id` RESTRICT, somente para início efetivo `TRIP: SCHEDULED -> IN_ROUTE` |
+| `occurrence_id` | UUID nullable | FK `occurrences.id` RESTRICT, somente para ocorrência registrada |
+| `trip_id` | UUID | FK `trips.id` RESTRICT; recurso operacional de origem |
+| `recipient_driver_id` | UUID | FK `drivers.id` RESTRICT; motorista da viagem no momento do fato |
+| `created_at` | timestamptz | UTC do servidor, na transação do fato |
+| `mock_status` | varchar(24) | `NOT_ATTEMPTED`, `ATTEMPT_CLAIMED`, `SIMULATED`, `FAILED` ou `NO_RECIPIENT`; sem semântica de entrega externa |
+| `correlation_id` | UUID | Contexto técnico gerado pelo servidor, sem payload ou segredo |
+| `claimed_at` | timestamptz nullable | Commit do claim, separado do resultado |
+| `completed_at` | timestamptz nullable | Finalização local; não comprova entrega externa |
+
+`CONFIRMADO`: a existência da linha confirmada representa o registro interno;
+não adicionar `read_at`, preferências ou estado lida/não lida da OC103. Não copiar
+telefone, texto, descrição de ocorrência, assinatura, subject, dados de sessão ou
+identificador bruto de integração. `recipient_driver_id` preserva o destinatário
+operacional atual mesmo quando não existe conta `users` vinculada; isso **não
+concede acesso HTTP** nem aprova inferir um futuro destinatário da central.
+
+`CONFIRMADO`: CHECK exige exatamente a origem correspondente ao `event_type`;
+CHECK fecha `mock_status`. Dois índices UNIQUE parciais protegem
+`(event_type, status_history_id, recipient_driver_id)` quando o histórico não é
+nulo e `(event_type, occurrence_id, recipient_driver_id)` quando a ocorrência
+não é nula. Índice `(trip_id, created_at, id)` atende rastreamento técnico. UUIDs
+das origens vêm exclusivamente dos services públicos donos; a validação de
+proveniência verifica viagem, transição e destinatário na mesma transação.
+FK isolada não comprova esses vínculos semânticos.
+
+`CONFIRMADO`: triggers PostgreSQL validam viagem/transição efetiva da origem,
+viagem da ocorrência e destinatário operacional no INSERT. A identidade registrada
+é imutável; alterações de estado permitem apenas NOT_ATTEMPTED → ATTEMPT_CLAIMED
+→ SIMULATED/FAILED/NO_RECIPIENT, com timestamps coerentes. FKs RESTRICT conservam
+histórico. Downgrade recusa perda de notificações já registradas.
+
+## OC87 — necessidade multi-caminhão
+
+`RECOMENDAÇÃO`: ADR-028 propõe quatro tabelas no módulo load_planning. Migration
+20261007_0015 sucede 20261007_0014; planos/itens legados não são reescritos.
+
+- `load_distributions`: id UUID, status fechado, created_by FK users RESTRICT,
+  created_at UTC. Necessidade completa; nenhuma seleção automática de frota.
+- `load_distribution_orders`: PK (distribution_id,order_id), FKs RESTRICT,
+  active boolean; índice único parcial order_id WHERE active para ownership.
+- `load_distribution_parts`: id UUID estável, distribution_id FK RESTRICT,
+  load_plan_id FK RESTRICT único, status PENDING/APPROVED/CANCELED. UNIQUE
+  (id,distribution_id) para FK composta dos volumes. Recálculo troca somente a
+  referência ao plano, preservando sua cadeia recalculated_from_id.
+- `load_distribution_volumes`: PK (distribution_id,order_item_id,volume_index),
+  order_id/product_id com FK composta para proveniência em order_items,
+  snapshot_quantity positivo, volume_index 1..snapshot_quantity, part_id com
+  FK composta para a mesma distribuição, active boolean. FK composta para
+  load_distribution_orders. Índice único parcial (order_item_id,volume_index)
+  WHERE active impede duas necessidades reivindicarem a mesma unidade.
+
+`RECOMENDAÇÃO`: triggers diferidas verificam a necessidade exata, proveniência,
+quantidades, volumes de cada plano e estados no COMMIT. Caminhões das partes
+são distintos, derivados dos planos. Histórico amplia catálogo com
+LOAD_DISTRIBUTION/LOAD_DISTRIBUTION_PART; nenhuma nova máquina de estados ORDER.
+Retenção histórica e cancelamento/reprocessamento estão na ADR-028.
+
+## OC80 — evidências de entrega
+
+`RECOMENDAÇÃO`: ADR-027 propõe delivery_evidences no módulo deliveries, sem mudar
+Delivery/receipt OC78. Migration 20261007_0014 sucede 20261006_0013.
+
+| Campo | Tipo | Regra |
+|---|---|---|
+| id | UUID | PK e chave opaca de storage, gerada pelo servidor |
+| delivery_id | UUID | FK deliveries RESTRICT |
+| receipt_id | UUID | FK status_history RESTRICT; conclusão validada pelo service |
+| recorded_by | UUID | FK users RESTRICT, ator do servidor |
+| event_id | UUID | identidade idempotente, UNIQUE com recorded_by |
+| kind | varchar(16) | PHOTO / SIGNATURE |
+| media_type | varchar(32) | image/png / image/jpeg detectado nos bytes |
+| size_bytes | integer | 1–5242880 |
+| sha256 | varchar(64) | checksum do binário |
+| fingerprint | varchar(64) | hash de entrega/tipo/bytes para conflito |
+| status | varchar(16) | ACTIVE / REVOKED |
+| recorded_at | timestamptz | servidor |
+| revoked_at | timestamptz nullable | presente somente REVOKED |
+| revoked_by | UUID nullable | FK users RESTRICT; presente somente REVOKED |
+
+`RECOMENDAÇÃO`: índice (delivery_id, recorded_at, id) para consulta paginada;
+CHECKs de tipo/formato/tamanho e consistência de revogação. Metadados não guardam
+payload, caminho, URL, segredo ou nome de recebedor. Retenção/remoção na ADR-027.
+
+## OC79 — registro de comandos externos
+
+`RECOMENDAÇÃO`: estrutura proposta pela Issue #122 e ADR-026, sujeita à revisão.
+`external_commands` pertence ao módulo `external_commands`; não guarda payload,
+assinatura, subject, telefone ou chave secreta.
+
+| Campo | Tipo | Regra |
+|---|---|---|
+| id | UUID | PK, receipt gerado pelo servidor |
+| integration_id | varchar(64) | identidade configurada no servidor |
+| event_hash | varchar(64) | SHA-256 do event_id |
+| fingerprint | varchar(64) | SHA-256 dos bytes assinados |
+| user_id | UUID | FK users, ator resolvido pelo servidor |
+| command | varchar(32) | START_TRIP / START_DELIVERY / FINISH_DELIVERY |
+| expires_at | timestamptz | limite exclusivo de validade |
+| completed_at | timestamptz, nullable | preenchido antes do commit externo |
+
+`RECOMENDAÇÃO`: UNIQUE `(integration_id, event_hash)` serializa duplicatas.
+Hashes têm CHECK de formato hexadecimal de 64 caracteres; command tem CHECK
+fechado. Linha sem completed_at existe somente dentro da transação: falha remove
+também efeitos de domínio. Não há limpeza automática. Migration `20261006_0012`
+sucede `20260830_0011`, mantendo um único head.
+
 ## Estado atual
 
 `CONFIRMADO`: o repositório possui models SQLAlchemy e migrations para `users`,
 `auth_sessions`, `auth_login_throttles`, `customers`, `drivers`, `trucks`,
-`products`, `orders`, `order_items`, `status_history`, `load_plans`,
+`products`, `orders`, `order_items`, `status_history`, `audit_events`, `load_plans`,
 `load_plan_orders`, `load_plan_items`, `trips` e `deliveries`. As tabelas de
 autenticação foram aprovadas por D18 e `ADR-020`; viagens e entregas seguem
 D07 a D10, D21 e `ADR-022`.
@@ -412,6 +536,7 @@ Entregas planejadas dentro de uma viagem.
 - `id`: UUID, PK.
 - `trip_id`: UUID, FK para `trips.id`, obrigatório.
 - `order_id`: UUID, FK para `orders.id`, obrigatório.
+- `distribution_part_id`: UUID nullable, FK RESTRICT para `load_distribution_parts.id` (OC90).
 - `status`: texto ou enum, obrigatório.
 - `sequence`: inteiro, obrigatório.
 - `delivered_at`: timestamptz UTC.
@@ -420,10 +545,12 @@ Entregas planejadas dentro de uma viagem.
 
 - `fk_deliveries__trips`.
 - `fk_deliveries__orders`.
+- `fk_deliveries__load_distribution_parts`.
 - `ix_deliveries__trip_id`.
 - `ix_deliveries__order_id`.
 - `ix_deliveries__status`.
-- `uq_deliveries__order_id`.
+- `uq_deliveries__legacy_order`: índice único parcial por order_id quando parte NULL.
+- `uq_deliveries__part_order`: UNIQUE distribution_part_id/order_id.
 - `uq_deliveries__trip_order`.
 - `uq_deliveries__trip_sequence`.
 - `ck_deliveries__status_allowed`.
@@ -431,7 +558,8 @@ Entregas planejadas dentro de uma viagem.
 - `ck_deliveries__completion_consistent`.
 
 `CONFIRMADO`: `status` aceita `PENDING`, `IN_DELIVERY` e `DELIVERED`. Cada pedido
-gera no máximo uma entrega no MVP. `sequence` é 1-based, positiva, contígua e
+legado gera no máximo uma entrega. Na OC90, cada parte que transporta volumes
+do pedido gera sua própria entrega, com contexto validado por triggers. `sequence` é 1-based, positiva, contígua e
 única na viagem; sua ordenação deriva de `order_items.delivery_sequence` e do
 UUID do pedido como desempate. Todos os itens de um pedido devem informar a
 mesma sequência. `delivered_at` existe se e somente se o status é `DELIVERED`.
@@ -491,6 +619,35 @@ Histórico auditável de mudanças de status.
 `LOAD_PLAN`, `TRIP` e `DELIVERY`. A OC09 não expõe consulta pública desse
 histórico.
 
+### `audit_events` — OC97
+
+Auditoria administrativa somente leitura, complementar a `status_history`.
+
+- `id`: UUID, PK.
+- `event_type`: catálogo fechado do tipo de evento administrativo.
+- `entity_type`: catálogo fechado da entidade auditada.
+- `entity_id`: UUID do registro afetado.
+- `actor_id`: UUID, FK obrigatória para `users.id`.
+- `changed_fields`: nomes dos campos alterados, em ordem determinística e sem valores.
+- `created_at`: timestamptz UTC, obrigatório.
+
+Índices e constraints:
+
+- `fk_audit_events__users`.
+- `ix_audit_events__entity`.
+- `ix_audit_events__actor_id`.
+- `ix_audit_events__created_at`.
+- `ck_audit_events__event_type_allowed`.
+- `ck_audit_events__entity_type_allowed`.
+
+`CONFIRMADO` pela OC97: a primeira entrega registra somente `USER_CREATED` e
+`USER_UPDATED`, ambos com `entity_type = USER`. A tabela não persiste valores de
+senha, token, sessão, e-mail, nome ou payload completo; `changed_fields` contém
+apenas nomes de campos para informar o que foi alterado sem replicar dado sensível.
+
+`CONFIRMADO`: o histórico operacional existente continua em `status_history`.
+A consulta da OC97 agrega as duas fontes sem modificar nem apagar registros.
+
 ## Relacionamentos principais
 
 - `customers` 1:N `orders`.
@@ -505,10 +662,11 @@ histórico.
 - `drivers` 1:N `trips`.
 - `drivers` 1:0..1 `users` por `users.driver_id`.
 - `trips` 1:N `deliveries`.
-- `orders` 1:0..1 `deliveries` no MVP.
+- `orders` 1:0..1 `deliveries` no legado; 1:N por partes na OC90, no máximo uma por parte/pedido.
 - `trips` 1:N `occurrences`.
 - `deliveries` 1:N `occurrences`.
 - `users` 1:N `status_history` por `changed_by`.
+- `users` 1:N `audit_events` por `actor_id`.
 
 ## Volumes
 
@@ -533,6 +691,8 @@ deterministicamente a partir de `order_items.quantity`, usam identidade
 
 `CONFIRMADO`: a migration `20260730_0003` cria `status_history` para a ocorrência `OC10`.
 
+`CONFIRMADO`: a migration `20261006_0013` cria `audit_events` para a OC97 e sucede a `20261006_0012` da OC79.
+
 `CONFIRMADO`: a migration `20260804_0004` cria `load_plans`,
 `load_plan_orders` e `load_plan_items` para a integração da `OC20`.
 
@@ -546,3 +706,272 @@ gerado pelo PostgreSQL e retrocompatibilidade para viagens existentes.
 ## Observação
 
 O modelo é inicial. Qualquer mudança estrutural relevante deve ser registrada por migration e por ADR quando alterar uma decisão arquitetural, unidade, contrato público ou regra permanente.
+
+## OC105 — ciclo de vida dos cadastros
+
+`CONFIRMADO`: clientes, produtos, caminhões e motoristas usam `active` não nulo,
+com default `true`. `false` significa arquivado; conflitos operacionais continuam
+sendo calculados separadamente. A migration `20261008_0016` adiciona o campo
+somente a clientes e produtos, preservando dados existentes como ativos.
+Unicidades permanecem globais, inclusive para arquivados; FKs e histórico não
+são removidos. O catálogo de `audit_events` aceita `RECORD_ARCHIVED` e
+`RECORD_REACTIVATED` para CUSTOMER, PRODUCT, TRUCK e DRIVER.
+
+## OC99 — múltiplos endereços por cliente
+
+`CONFIRMADO`: `customer_addresses` pertence a customers: UUID `id`, FK
+`customer_id` RESTRICT, `label`, `address` (texto até 255), `city`, `state`,
+`postal_code` opcional (8 dígitos), `active`, `is_primary` e `created_at` UTC.
+Há UNIQUE parcial de principal por cliente, CHECK principal implica ativo,
+índice por cliente e UNIQUE `(id, customer_id)` para proveniência composta.
+Cada cliente com endereços ativos mantém um principal pelo service, serializado
+pelo bloqueio da linha do cliente. Arquivar o principal promove o ativo mais
+antigo; sem ativos, os campos legados mantêm o último endereço conhecido.
+
+`CONFIRMADO`: `customers.address/city/state` permanecem como projeção do
+principal para compatibilidade. Create/PATCH legado sincroniza a projeção e o
+principal na mesma transação. Backfill cria um principal por cliente sem alterar
+os campos existentes. Pedidos antigos não recebem vínculo inferido ao cadastro.
+
+`CONFIRMADO`: orders adiciona `customer_address_id` opcional, FK composta
+`(customer_address_id, customer_id)` → customer_addresses e
+`delivery_address_snapshot` JSONB opcional. Seleção copia endereço, cidade, UF,
+CEP e rótulo; `delivery_address` continua o texto contratado até 255 caracteres.
+Backfill de pedidos copia apenas seu próprio texto, sem presumir cidade/UF
+históricas. Alterar/arquivar o cadastro não modifica snapshot nem pedido.
+Auditoria administrativa inclui CUSTOMER_ADDRESS e eventos próprios de criação,
+edição, arquivamento e reativação, sem conteúdo do endereço no evento.
+
+## OC100 — manutenção da frota
+
+`CONFIRMADO`: trucks acrescenta odometer_km, next_service_at (UTC) e
+next_service_km opcionais. Quilometragens são inteiros não negativos; informação
+omitida não inventa valores e odômetro informado não pode diminuir.
+truck_maintenances pertence a trucks, com UUID, truck_id RESTRICT, kind
+PREVENTIVE/CORRECTIVE, starts_at/ends_at UTC (fim opcional, maior que início),
+description, workshop/notes opcionais, cost opcional não negativo, odometer_km,
+completion_odometer_km, next_service_at/km opcionais, closed_at e created_at.
+Índice por truck_id/starts_at atende histórico e consulta de período.
+Manutenção aberta bloqueia em [starts_at, ends_at), ou sem fim indefinidamente;
+closed_at encerra o bloqueio. Histórico e auditoria permanecem sem DELETE.
+O catálogo administrativo aceita TRUCK_MAINTENANCE, MAINTENANCE_CREATED,
+MAINTENANCE_CLOSED e TRUCK_ODOMETER_UPDATED. Lock do caminhão serializa
+manutenção, quilometragem e reserva operacional; não altera active da OC105.
+
+## OC101 — documentos dos caminhões
+
+`RECOMENDAÇÃO`: `truck_documents`: id UUID PK, truck_id UUID FK RESTRICT,
+kind varchar(16) limitado a CRLV/LICENSING/INSURANCE, reference varchar(120)
+não vazio, issued_at/expires_at UTC opcionais (expires > issued quando ambas
+presentes), file_reference UUID opaco opcional, superseded_at UTC opcional,
+created_at UTC obrigatório default now. Índice único parcial (truck_id, kind)
+onde superseded_at IS NULL; índice (truck_id, created_at) para histórico.
+`truck_document_policies`: id UUID PK, truck_id FK RESTRICT, kind mesmo catálogo,
+required boolean obrigatório default false; unique (truck_id, kind).
+Auditoria acrescenta entidades TRUCK_DOCUMENT/TRUCK_DOCUMENT_POLICY e eventos
+TRUCK_DOCUMENT_CREATED/TRUCK_DOCUMENT_RENEWED/TRUCK_DOCUMENT_POLICY_UPDATED.
+Migration sequencial 20261009_0019, down_revision 20261009_0018. ADR-031.
+
+## OC102 — documentos de motoristas
+
+`RECOMENDAÇÃO`: drivers acrescenta license_expires_at UTC opcional.
+DriverDocumentType: driver_document_types (id UUID PK, code varchar32 unique
+não vazio, name varchar120 não vazio); CNH é tipo nativo com UUID reservado.
+DriverDocument: driver_documents (id UUID PK, driver_id FK RESTRICT,
+document_type_id FK RESTRICT, reference varchar120 não vazio, category varchar8
+opcional, issued_at/expires_at UTC opcionais, superseded_at UTC opcional,
+created_at UTC default now). Check expires > issued; índice único parcial
+(driver_id, document_type_id) onde superseded_at IS NULL; índice histórico
+(driver_id, created_at).
+DriverDocumentPolicy: driver_document_policies (id UUID PK, driver_id FK
+RESTRICT, document_type_id FK RESTRICT, required boolean default false,
+allowed_categories JSONB array obrigatório default []), unique por motorista/tipo.
+Auditoria: DRIVER_DOCUMENT, DRIVER_DOCUMENT_POLICY, DRIVER_DOCUMENT_TYPE e
+DRIVER_DOCUMENT_CREATED/RENEWED/POLICY_UPDATED/TYPE_APPROVED. ADR-032.
+
+`CONFIRMADO` (OC102): driver_documents também possui legacy_backfill boolean
+obrigatório default false, exclusivo do backfill e da proteção de downgrade.
+Policy tem CHECK PostgreSQL jsonb_typeof(allowed_categories)='array'.
+
+## OC110 — anexos operacionais
+
+`CONFIRMADO`: contrato aditivo da Issue #157, detalhado na ADR-033. Tabela
+`operational_attachments`: UUID `id`, exatamente uma FK RESTRICT entre `order_id`,
+`trip_id`, `delivery_id`, `occurrence_id`; `recorded_by`/`revoked_by` referenciam
+usuários com RESTRICT. `event_id` com UNIQUE por autor permite retry sem outro
+blob. `media_type` PNG/JPEG, `size_bytes` 1–5242880, `sha256` e `fingerprint`
+64 caracteres, `recorded_at` UTC e estado ACTIVE/REVOKED com revogação consistente.
+Índices por recurso/data/id suportam consulta paginada. Nenhum caminho ou URL é
+persistido; chave do adapter é o UUID interno. FK impede órfãos fora do service.
+Auditoria adiciona ATTACHMENT_REGISTERED/ATTACHMENT_REVOKED para ATTACHMENT,
+na mesma transação; remoção nunca exclui metadata/histórico nem bytes confirmados.
+Migration 20261009_0021 encadeada em 20261009_0020. Downgrade recusa perda de
+anexos ou auditoria, inclusive revogados.
+
+## OC104 — importação controlada de cadastros
+
+`CONFIRMADO`: Issue #151 e ADR-034 definem `registration_imports`: id UUID,
+entity_type customers/products/trucks/drivers, recorded_by FK RESTRICT users,
+event_id UUID UNIQUE com recorded_by, sha256/fingerprint (64 hex), recorded_at UTC,
+status PROCESSING/COMPLETED/REJECTED, row_count/created_count/rejected_count
+limitados a 0–1000, errors/records JSONB arrays. Records associa número da linha
+a UUID criado; errors contém linha/campo/código/mensagem sem valor pessoal.
+CHECK protege conservação dos totais, resultado completo ou rejeição total e
+tipos dos JSONs. Índices por entidade/data/id e ator suportam histórico paginado.
+Não persiste nome, CSV original nem valores dos cadastros. PROCESSING só existe
+dentro da transação de confirmação; rollback remove tentativa não confirmada.
+AuditEvent adiciona IMPORT_COMPLETED/IMPORT_REJECTED para REGISTRATION_IMPORT,
+na mesma transação do resultado. Migration 20261009_0022 → 20261009_0021;
+downgrade recusa histórico ou auditoria OC104 para evitar perda.
+
+## OC91 — company_profiles
+
+`CONFIRMADO`: cadastro institucional singleton standalone, conforme ADR-035.
+UUID local fixo `00000000-0000-0000-0000-000000000091`, PK e CHECK singleton;
+`legal_name`/`display_name` obrigatórios, `cnpj`/`phone`/`email`/`logo_reference`
+opcionais, `created_at`/`updated_at` UTC. Não representa tenant e não possui
+vínculos dos agregados logísticos. Eventos COMPANY_PROFILE_CREATED/UPDATED
+registram somente nomes de campos e ator, na mesma transação.
+
+## OC98 — identidade standalone
+
+`CONFIRMADO`: ADR-038 acrescenta tabelas do módulo auth, sem campos em users:
+- auth_password_resets: UUID, user_id (CASCADE), token_hash único, created_at,
+  expires_at e consumed_at; CHECK prazo positivo; índice por usuário.
+- auth_factors: UUID, user_id único (CASCADE), encrypted_secret opcional,
+  enabled, last_totp_step e security_version não negativos; nenhum segredo puro.
+- auth_challenges: UUID, user_id (CASCADE), token_hash único, purpose LOGIN/ENROLL,
+  password_fingerprint, role, security_version, created_at, expires_at,
+  consumed_at e failed_count 0–5; índice por usuário e CHECKs de prazo/escopo.
+- auth_recovery_codes: UUID, user_id (CASCADE), code_hash único, consumed_at;
+  índice por usuário. Código aleatório é apresentado somente na emissão.
+
+Todas as operações concorrentes serializam por lock users antes das tabelas auth.
+A migration 20261021_0029 sucede o head da OC112 20261016_0024; revoga sessões
+antigas de ADMIN/LOGISTICS_MANAGER para exigir o bootstrap MFA seguro.
+
+## OC112 — Perfis locais e permissões
+
+`CONFIRMADO`: migration `20261016_0024` sobre `20261009_0023`:
+
+- `access_profiles`: UUID, nome/nome normalizado único, descrição, active, versão
+  positiva e created_at UTC. Nome normalizado é validado também no PostgreSQL.
+- `access_permissions`: catálogo fechado, PK code e unique(code, delegable).
+- `access_profile_permissions`: PK(profile_id, permission_code), FKs restritivas,
+  delegable=true com CHECK e FK composta; não admite permissão reservada.
+- `users.custom_profile_id`: FK opcional/indexada/restritiva. CHECK exige
+  exatamente role=CUSTOM com perfil preenchido, ou papel fixo com perfil nulo.
+  Usuários existentes mantêm papel, UUID e acesso, sem reclassificação.
+- Auditoria inclui ACCESS_PROFILE e PROFILE_CREATED/PROFILE_UPDATED, somente
+  nomes de campos. Não existe exclusão HTTP de perfis.
+
+`CONFIRMADO`: rollback estrutural é recusado enquanto usuários CUSTOM ou eventos
+históricos de perfil existirem, para evitar perda silenciosa de acesso/histórico.
+
+### auth_trusted_devices — OC98 / Issue #222
+
+`CONFIRMADO`: credencial opaca de dispositivo, distinta de `auth_sessions`.
+UUID `id`, FK `user_id` → users (CASCADE), `token_hash` SHA-256 único,
+`security_binding` SHA-256 da credencial/fator/papel/perfil atuais, UTC
+`created_at`, `last_used_at`, `expires_at`, `revoked_at` opcional. Índices por
+usuário e expiração. Constraints limitam vida absoluta a 30 dias e ordenam
+uso/revogação após criação. Não guarda senha, TOTP, recuperação, IP ou User-Agent.
+Token CSPRNG só no cookie HttpOnly; consultas retornam UUID/datas/current.
+No máximo vinte dispositivos ativos por conta; novo opt-in substitui o cookie
+anterior próprio e revoga os mais antigos quando necessário. Histórico revogado
+permanece. Migration aditiva `20261021_0030` sucede `20261021_0029`; downgrade
+bloqueia registros existentes, preservando credenciais e histórico.
+
+## OC103 — destinatários e preferências da central
+
+`CONFIRMADO`: ADR-042; migration 20261020_0026 sobre 20261020_0025.
+`notification_recipients`: PK composta notification_id/user_id (UUID), FKs RESTRICT
+para operational_notifications/users, created_at UTC obrigatório (default now),
+read_at UTC opcional. Índices user_id/created_at/notification_id e parcial user_id
+para não lidas. Trigger protege identidade/criação e primeira leitura imutáveis.
+`notification_preferences`: PK user_id/category, FK RESTRICT users, enabled boolean
+obrigatório default true, updated_at UTC default now. CHECK category em
+TRIPS/OCCURRENCES/SECURITY e SECURITY sempre habilitada. Sem telefone/texto/segredo.
+Backfill só cria associações das contas elegíveis no corte. Downgrade com qualquer
+associação/preferência é recusado; fatos da OC84 são preservados integralmente.
+
+## OC109 — Outbox persistente (ADR-043)
+
+`CONFIRMADO`: outbox_events pertence a notifications: id UUID, notification_id FK
+RESTRICT/UNIQUE, channel WHATSAPP_MOCK, event_type, contract_version=1, correlation_id,
+idempotency_key UNIQUE, status, attempt_count por ciclo, generation monotônica,
+next_attempt_at/lease_expires_at UTC, last_error_code sanitizado, created_at/updated_at.
+Índices por status/agendamento e created_at/id. outbox_attempts registra UUID,
+outbox_event_id FK RESTRICT, generation UNIQUE por evento, started_at/finished_at,
+result e error_code; outbox_retry_commands fixa UUID idempotente, evento, ator FK
+RESTRICT e data. Auditoria acrescenta OUTBOX_REPROCESSED/OUTBOX_EVENT. Sem payload
+de texto/telefone, sem exclusão automática. Migration 20261020_0027.
+
+
+## OC90 — entrega por perna física
+
+`CONFIRMADO`: a revisão `20261020_0028` sucede `20261020_0027`. Delivery recebe
+`distribution_part_id` UUID nullable, FK RESTRICT para `load_distribution_parts`.
+NULL preserva o legado: índice único parcial `uq_deliveries__legacy_order`
+por `order_id WHERE distribution_part_id IS NULL`. Para distribuição, a UNIQUE
+`uq_deliveries__part_order` limita uma entrega por parte/pedido. Permanecem as
+unicidades de trip/order, trip/sequence e trips/load_plan_id.
+
+`CONFIRMADO`: trigger de contexto serializa atribuições pelo pedido e valida
+parte atual/aprovada, distribuição aprovada, plano da viagem e existência de
+volume do pedido nessa parte. Impede mistura legado/distribuição e distribuições
+distintas para o mesmo pedido. Contexto da entrega e plano da viagem com entregas
+são imutáveis; estrutura/status da distribuição com entregas também ficam
+protegidos no banco. Identidades continuam somente no planejamento, sem cópia
+ou renumeração em Delivery. As FKs e CHECKs anteriores permanecem vigentes.
+
+`CONFIRMADO`: upgrade associa entregas antigas de partes operacionais únicas à
+parte já persistida. Downgrade aborta se existir qualquer entrega com contexto
+de parte: não remove vínculos, entregas nem auditoria para restaurar o schema
+anterior. Sem esse estado operacional, o downgrade restaura a unicidade global.
+Ver ADR-044 (proposta para revisão da equipe).
+
+`CONFIRMADO` (OC90): upgrade revalida entregas antigas com a mesma trigger de
+contexto usada por escritas futuras. Vínculo antigo inconsistente aborta o upgrade
+transacional, preservando schema/dados anteriores; não há correção silenciosa.
+
+
+`CONFIRMADO` (correção de integridade OC90): a primeira LoadingSession persistida
+marca a imutabilidade operacional do LoadPlan; a existência de Trip também é
+verificada defensivamente, incluindo planos legados. A função PostgreSQL
+`protect_operated_load_plan()` protege UPDATE/DELETE da linha inteira de
+`load_plans` e INSERT/UPDATE/DELETE de `load_plan_orders` e `load_plan_items`.
+Os triggers `protect_operated_load_plans`, `protect_operated_load_plan_orders` e
+`protect_operated_load_plan_items` rejeitam mudanças com SQLSTATE 23514 e
+constraint `ck_load_plans__operational_snapshot`. UPDATE sem mudança real é
+permitido. Ambos os pais são verificados em reatribuições; não há lista parcial
+de colunas editáveis, cópia de volumes ou alteração do contrato HTTP.
+
+`CONFIRMADO`: criação de LoadingSession serializa pelo LoadPlan FOR UPDATE,
+recarrega snapshots/itens do identity map após o lock e só então materializa o
+checklist e adquire o caminhão. Trip create já adquire plano antes de caminhão,
+motorista e pedidos. Escrita direta de filho pode já possuir lock da tupla antes
+da trigger; por isso a guarda tenta pais em UUID crescente com FOR UPDATE NOWAIT.
+Contenção rejeita a mutação com a mesma constraint e mensagem para repetir a
+transação, inclusive antes da operação. Não espera por um pai que possa estar
+aguardando a FK do checklist nesse filho, evitando esse ciclo. A guarda não
+bloqueia sessão, viagem, distribuição ou pedido; apenas consulta evidências
+persistidas. Planejamento sem evidência operacional conserva criação, aprovação
+e reprocessamento permitidos. Constraints e locks de contexto/distribuição
+existentes permanecem; o congelamento do snapshot físico começa no loading,
+antes da primeira entrega que protege a estrutura da distribuição.
+
+
+## Recuperação idempotente — #254
+
+`CONFIRMADO`: contrato implementado para revisão na ADR-047. Tabela aditiva
+`optimization_requests`: PK (user_id, request_key), payload_hash SHA-256 de
+versão/seleção ordenada, distribution_id único com FK RESTRICT, created_at UTC.
+Persistência atômica com distribuição/planos/volumes/histórico; sem pending ou TTL.
+`POST /load-distributions/optimize` aceita header UUID `Idempotency-Key` opcional.
+Replay igual retorna 201 com o mesmo recurso atual; payload diferente: 409
+IDEMPOTENCY_PAYLOAD_MISMATCH. Concorrência: 409 OPTIMIZATION_IN_PROGRESS.
+`GET /load-distributions/optimization-requests/{key}` retorna 200/404/409,
+somente para o ator e com a mesma permissão create. Não cria nada.
+Migration 20261023_0035 → 20261021_0034; downgrade recusa registros existentes.
+Sem alteração de regras físicas, RBAC efetivo, MFA ou OC90/OC94.

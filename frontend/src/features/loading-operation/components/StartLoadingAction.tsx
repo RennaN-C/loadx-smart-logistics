@@ -15,7 +15,7 @@ interface StartLoadingActionProps {
  *
  * `CONFIRMADO`: `POST /loading-sessions` cria OU devolve a única sessão do
  * plano. Por isso o mesmo botão serve para abrir e para voltar, e a tela não
- * precisa guardar o id em lugar nenhum. Somente `LOGISTICS_MANAGER` cria.
+ * precisa guardar o id em lugar nenhum. `ADMIN` e `LOGISTICS_MANAGER` criam.
  *
  * `RISCO IDENTIFICADO`: sem rota de listagem de sessões, o `CHECKER` não tem
  * como chegar aqui sozinho — ele depende de receber o link. Registrado em

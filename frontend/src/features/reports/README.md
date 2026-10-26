@@ -1,6 +1,6 @@
 # Feature: reports
 
-Tela de indicadores (`OC35`), em `/reports`.
+Relatórios e indicadores de pedidos (`OC35`, manutenção #206), em `/reports`.
 
 ## O que existe hoje
 
@@ -40,17 +40,40 @@ um número truncado como se fosse o total.
 
 ## Perfis
 
+`CONFIRMADO` (OC112): a página de indicadores `/reports` exige
+**`loadx.reports.read` e `loadx.orders.read`**. Os gráficos dependem da
+listagem de pedidos e não existe endpoint agregado próprio; apenas conceder
+uma dessas permissões não deve abrir a tela. Menu e rota seguem a mesma regra.
+`CHECKER` mantém consulta de pedidos, mas não recebe automaticamente a
+permissão de relatórios no catálogo da OC112.
+
 Pedidos são lidos por `ADMIN`, `CHECKER` e `LOGISTICS_MANAGER`. Clientes, não: o conferente recebe
-403 em `/customers`. O erro é isolado — o relatório por cliente simplesmente não aparece para ele,
-e o resto da tela continua de pé. Mesmo tratamento do dashboard.
+403 em `/customers`. A consulta de clientes não é disparada para CHECKER. Falha na resolução de
+nomes dos perfis autorizados é isolada; o resto do relatório continua de pé.
 
-## Identidade visual
+## Volumes físicos e limites — #206
 
-As medidas repetem as do dashboard (`.kpi`) e das tabelas do planejamento (`.plan-table`) de
-propósito, não por coincidência: cartão, rótulo em mono de 9.5px, número em mono de 1.9rem, barra
-de 8px com trilho em `--line` e preenchimento em `--accent`. Conferido lado a lado com os valores
-computados dos dois: idênticos.
+`CONFIRMADO`: `itemCount` conta linhas; `volumeCount` vem de `volume_count` no
+resumo de pedidos e representa a soma das quantidades físicas. KPI de volumes
+em aberto, tabela de atrasados e agregação por cliente usam somente esse campo.
+Payload legado sem o campo não é tratado como zero nem substituído por linhas:
+os totais afetados aparecem como “—”, com alerta explícito.
 
-A cor só carrega significado em dois lugares — verde no entregue, cinza no cancelado na barra de
-situação, e vermelho no número de atrasados. O resto é acento, para o destaque continuar
-destacando.
+`CONFIRMADO`: a apuração continua limitada a até 1.000 pedidos, com ressalva
+permanente e aviso de registros não apurados. Data de referência permanece
+congelada por consulta; a paginação não cria snapshot transacional no servidor.
+Encerrados significa entregues/cancelados; volumes em aberto não afirmam que
+pedidos já em trânsito ainda precisam carregar.
+
+`CONFIRMADO`: a identidade visual usa os tokens LoadX, hierarquia e superfícies
+da área administrativa, tabelas responsivas com controles nativos de rolagem por teclado/toque e nomes
+longos legíveis. Fonte e escopo dos indicadores são independentes da OC69.
+PDFs de viagem/carregamento e suas permissões próprias permanecem intactos.
+
+## PDFs profissionais — manutenção #308
+
+`CONFIRMADO`: os downloads existentes recebem o novo padrão do backend para
+carregamento, viagem e gerencial, incluindo resumo, tabelas, paginação e gráficos
+gerenciais. O frontend continua baixando os mesmos endpoints; CSV e indicadores
+da tela mantêm seus dados, limites e permissões. Evidências e exemplos em
+[relatórios e controles](../../../../docs/evidencias/relatorios-controles/README.md).

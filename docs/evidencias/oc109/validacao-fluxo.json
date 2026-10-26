@@ -1,0 +1,20 @@
+{
+  "eventId": "e85bcd64-5263-45ba-a541-14d5695d0832",
+  "countBefore": 6,
+  "countAfter": 6,
+  "persisted": "PENDING",
+  "pendingRestored": "Pendente",
+  "workerStatus": "SUCCEEDED",
+  "completed": {
+    "status": "Concluído",
+    "retryVisible": false,
+    "attempts": 2
+  },
+  "replay": {
+    "http": 200,
+    "status": "SUCCEEDED"
+  },
+  "source": "/trips/5493b5ab-25f3-4a63-beef-4591a400c91c",
+  "runtimeErrors": [],
+  "csrfRejectedWithMismatchedToken": true
+}

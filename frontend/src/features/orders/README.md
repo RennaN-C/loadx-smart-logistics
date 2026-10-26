@@ -4,9 +4,10 @@ Listagem e cadastro de pedidos (OC29). Consome `GET/POST/PATCH /orders`.
 
 ## O que existe hoje
 
-- `pages/OrderListPage.tsx` (+ `.css`): grid **paginado** de cards, busca por cliente e filtro por
-  situação, ambos client-side **na página carregada**, estados de carregando/vazio/erro e o modal.
-- `components/OrderCard.tsx`: cliente, situação, prioridade, previsão e a **contagem** de itens.
+- `pages/OrderListPage.tsx` (+ `.css`): tabela responsiva **paginada**, busca por cliente e filtro por
+  situação, ambos no servidor antes da paginação (OC95), estados de carregando/vazio/erro e o modal.
+- `components/OrderCard.tsx`: linha com referência navegável, cliente, situação,
+  prioridade, previsão e a **contagem** de itens; ações secundárias sob demanda.
 - `components/OrderForm.tsx`: formulário mestre-detalhe — o primeiro do projeto com lista de itens.
 - `components/orderDateTime.ts`: ponte entre o `<input type="datetime-local">` e o contrato da API.
 - `components/orderLabels.ts`: rótulos em português para situação e prioridade.
@@ -50,8 +51,10 @@ formulário (`hooks/useEditTarget`), senão o PATCH iria sem os itens.
 **Ids crus.** O pedido traz só `customer_id`. A página carrega a listagem de clientes para resolver o
 nome, mas essa listagem também é paginada: um cliente fora da página carregada não resolve, e o card
 mostra "Cliente não encontrado" em vez de um espaço vazio. `RISCO IDENTIFICADO`: com muitos clientes
-isso vai aparecer com frequência, e o caminho certo é o backend devolver o nome no `OrderListRead` ou
-abrir busca por id.
+isso pode aparecer com frequência. OC95 preserva esse fallback e não amplia
+`OrderListRead`: para ADMIN/LOGISTICS_MANAGER, a busca por nome acontece no
+backend, independentemente deste mapa de apresentação. CHECKER busca somente
+referências UUID, sem consultar nomes de clientes.
 
 ## Prioridade: contrato oficial
 
@@ -61,11 +64,42 @@ para maiúsculas antes da validação, e o `<select>` do frontend oferece os mes
 
 ## Permissões
 
-`ADMIN`, `CHECKER` e `LOGISTICS_MANAGER` leem. Só `LOGISTICS_MANAGER` cria e edita.
+`ADMIN`, `CHECKER` e `LOGISTICS_MANAGER` leem. `ADMIN` e `LOGISTICS_MANAGER` criam e editam. `CHECKER` não consulta cadastros de clientes; nessa leitura a referência do cliente permanece visível sem solicitar uma API proibida.
 
 ## Fora de escopo
 
 `CONFIRMADO`: a paginação é suportada pelo backend e consumida pela tela.
-Busca server-side e exclusão permanecem fora do contrato. Alterar
+Exclusão permanece fora do contrato. Alterar
 itens de pedido já usado em plano de carga é recusado pelo backend com
 `ORDER_ITEMS_REFERENCED_BY_LOAD_PLAN`, e a mensagem explica isso.
+
+## Navegação persistente (auditoria #188)
+
+`CONFIRMADO`: os cards abrem leitura do pedido em `/orders?order=<id>`, usando
+`GET /orders/{id}`. A URL permite F5, acesso direto e histórico do navegador;
+fechar o detalhe preserva os demais parâmetros da listagem. O detalhe é somente
+leitura, inclui o endereço persistido e os itens, e respeita os perfis existentes.
+A edição continua sendo uma ação separada. Nenhum dado é salvo em localStorage.
+
+## OC95 — pesquisa na coleção
+
+`CONFIRMADO`: ADMIN e LOGISTICS_MANAGER usam `search` por nome do cliente,
+UUID do pedido e UUID do cliente. CHECKER vê "Buscar por referência", não
+carrega clientes e pesquisa somente UUID do pedido e UUID do cliente. O backend
+também impõe essa fronteira: um termo que só corresponde ao nome retorna 200
+com coleção filtrada vazia para CHECKER, inclusive em chamada direta à API.
+DRIVER continua 403; schemas resumidos e RBAC dos endpoints são preservados.
+`status` aceita apenas o catálogo público ORDER_STATUS_VALUES; combina por AND com search.
+Mudança de busca/filtro volta à página 1; navegação/refetch preservam critérios.
+A API usa SearchListParams e tipos específicos somente onde necessário; o
+loader estável não refiltra items localmente. O total vem do conjunto filtrado.
+Busca limitada a 120 caracteres; vazio/erro/loading permanecem tratados.
+Nenhum campo pessoal proibido pela ADR-017 foi incluído no resumo ou na busca.
+
+## Revisão visual de 24/10/2026
+
+`CONFIRMADO`: o seletor de situação é o ponto único para filtrar todos os
+estados, incluindo Entregue. Foram removidos os botões redundantes Todos os
+pedidos/Pedidos entregues; URLs com `status=DELIVERED` continuam compatíveis.
+Ver pedido, Anexos e Editar preservam os handlers existentes no menu da linha.
+O UUID abreviado abre o detalhe persistido.

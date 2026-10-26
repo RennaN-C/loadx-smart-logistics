@@ -1,9 +1,14 @@
+import type { ReactNode } from "react";
 import { AlertBanner } from "../../../components/AlertBanner";
+import { useAuth } from "../../auth/hooks/useAuth";
+import { hasPermission } from "../../auth/permissions";
+import { ManagementReportsPanel } from "../components/ManagementReportsPanel";
 import { Avatar } from "../../../components/Avatar";
 import { Icon } from "../../../components/Icon";
 import { StatusPill } from "../../../components/StatusPill";
 import { priorityLabel, STATUS_LABELS, statusTone } from "../../orders/components/orderLabels";
 import type { OrderStatus } from "../../orders/types";
+import { ReportTableViewport } from "../components/ReportTableViewport";
 import { DistributionBars } from "../components/DistributionBars";
 import { useOrderReport } from "../hooks/useOrderReport";
 import "./ReportsPage.css";
@@ -17,12 +22,18 @@ function statusToneBar(key: OrderStatus): "accent" | "muted" | "good" {
   return "accent";
 }
 
+function ReportsHeader({ reference, action }: { readonly reference?: Date; readonly action?: ReactNode }) {
+  return <header className="entity-header"><div><h1>Relatórios e indicadores</h1><p className="entity-lede">{reference ? `Indicadores de pedidos. Apuração em ${dateFormatter.format(reference)}.` : "Indicadores de pedidos e quantidades físicas."}</p></div>{action && <div className="entity-toolbar">{action}</div>}</header>;
+}
+
 export function ReportsPage() {
+  const { user } = useAuth();
   const { status, report, customerNames, notCounted, reference, reload } = useOrderReport();
 
   if (status === "loading") {
     return (
-      <div className="entity-page">
+      <div className="entity-page reports-page">
+        <ReportsHeader />
         <p className="entity-state">
           <span className="spinner" aria-hidden="true" />
           <span>Apurando indicadores…</span>
@@ -33,7 +44,8 @@ export function ReportsPage() {
 
   if (status === "error" || report === null) {
     return (
-      <div className="entity-page">
+      <div className="entity-page reports-page">
+        <ReportsHeader />
         <AlertBanner>Não foi possível apurar os indicadores. Tente novamente.</AlertBanner>
         <button type="button" className="btn-secondary" onClick={reload}>
           Recarregar
@@ -43,20 +55,12 @@ export function ReportsPage() {
   }
 
   return (
-    <div className="entity-page">
-      <header className="entity-header">
-        <div>
-          <h1>Indicadores</h1>
-          <p className="entity-lede">
-            Apurado sobre os pedidos em {dateFormatter.format(reference)}.
-          </p>
-        </div>
-        <div className="entity-toolbar">
-          <button type="button" className="btn-secondary" onClick={reload}>
-            Atualizar
-          </button>
-        </div>
-      </header>
+    <div className="entity-page reports-page">
+      <ReportsHeader reference={reference} action={<button type="button" className="btn-secondary" onClick={reload}>Atualizar</button>} />
+      {hasPermission(user, "loadx.reports.read") ? <ManagementReportsPanel /> : null}
+
+      <p className="entity-summary">Apuração limitada a até 1.000 pedidos carregados nesta consulta.</p>
+      {report.unknownVolumeOrders > 0 && <AlertBanner>Volumes físicos não informados em {report.unknownVolumeOrders} pedido(s). Os totais afetados aparecem como “—”; linhas não substituem quantidades físicas.</AlertBanner>}
 
       {notCounted > 0 ? (
         <AlertBanner>
@@ -86,12 +90,13 @@ export function ReportsPage() {
               <span className="report-kpi-value">{report.open}</span>
               <span className="report-kpi-note">Nem entregues, nem cancelados.</span>
             </div>
+            <div className="report-kpi"><span className="report-kpi-label">ENCERRADOS</span><span className="report-kpi-value">{report.closed}</span><span className="report-kpi-note">Entregues ou cancelados.</span></div>
             <div className="report-kpi">
               <span className="report-kpi-label">
                 <Icon name="package" size={12} />
-                VOLUMES A CARREGAR
+                VOLUMES EM ABERTO
               </span>
-              <span className="report-kpi-value">{report.openVolumes}</span>
+              <span className="report-kpi-value">{report.openVolumes ?? "—"}</span>
               <span className="report-kpi-note">Dos pedidos em aberto.</span>
             </div>
             <div className={report.late > 0 ? "report-kpi report-kpi-alert" : "report-kpi"}>
@@ -139,7 +144,7 @@ export function ReportsPage() {
                 </h2>
                 <p>Do mais antigo para o mais recente.</p>
               </div>
-              <div className="report-table-scroll">
+              <ReportTableViewport label="Tabela de pedidos atrasados">
                 <table className="report-table">
                   <thead>
                     <tr>
@@ -165,12 +170,13 @@ export function ReportsPage() {
                             ? dateFormatter.format(new Date(order.expectedDeliveryAt))
                             : "—"}
                         </td>
-                        <td className="report-table-num">{order.itemCount}</td>
+                        <td className="report-table-num">{order.volumeCount ?? "—"}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </ReportTableViewport>
+              <p className="entity-form-help report-scroll-hint">Use os botões ou deslize a tabela para ver todas as colunas.</p>
             </section>
           ) : null}
 
@@ -183,7 +189,7 @@ export function ReportsPage() {
                 </h2>
                 <p>Ordenado pelo maior volume.</p>
               </div>
-              <div className="report-table-scroll">
+              <ReportTableViewport label="Tabela de indicadores por cliente">
                 <table className="report-table">
                   <thead>
                     <tr>
@@ -205,7 +211,7 @@ export function ReportsPage() {
                             </span>
                           </td>
                           <td className="report-table-num">{row.orders}</td>
-                          <td className="report-table-num">{row.volumes}</td>
+                          <td className="report-table-num">{row.volumes ?? "—"}</td>
                           <td
                             className={
                               row.late > 0
@@ -220,12 +226,12 @@ export function ReportsPage() {
                     })}
                   </tbody>
                 </table>
-              </div>
+              </ReportTableViewport>
+              <p className="entity-form-help report-scroll-hint">Use os botões ou deslize a tabela para ver todas as colunas.</p>
             </section>
           ) : (
             <p className="entity-form-help report-block">
-              O relatório por cliente não aparece para este perfil: conferente não lê dados de
-              clientes.
+              Dados por cliente não estão disponíveis para esta consulta.
             </p>
           )}
         </>

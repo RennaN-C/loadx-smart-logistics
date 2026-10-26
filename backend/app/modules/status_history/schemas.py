@@ -3,7 +3,71 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-STATUS_HISTORY_ENTITY_TYPES = frozenset({"ORDER", "LOAD_PLAN", "TRIP", "DELIVERY"})
+STATUS_HISTORY_ENTITY_TYPES = frozenset(
+    {
+        "ORDER",
+        "LOAD_PLAN",
+        "TRIP",
+        "DELIVERY",
+        "LOAD_DISTRIBUTION",
+        "LOAD_DISTRIBUTION_PART",
+    }
+)
+RECORD_ENTITY_TYPES = frozenset(
+    {
+        "CUSTOMER",
+        "PRODUCT",
+        "TRUCK",
+        "DRIVER",
+        "CUSTOMER_ADDRESS",
+        "TRUCK_MAINTENANCE",
+        "TRUCK_DOCUMENT",
+        "TRUCK_DOCUMENT_POLICY",
+        "DRIVER_DOCUMENT",
+        "DRIVER_DOCUMENT_POLICY",
+        "DRIVER_DOCUMENT_TYPE",
+        "ATTACHMENT",
+        "REGISTRATION_IMPORT",
+        "COMPANY_PROFILE",
+        "ACCESS_PROFILE",
+        "OUTBOX_EVENT",
+    }
+)
+ADMINISTRATIVE_EVENT_TYPES = frozenset(
+    {
+        "OUTBOX_REPROCESSED",
+        "PROFILE_CREATED",
+        "PROFILE_UPDATED",
+        "USER_CREATED",
+        "USER_UPDATED",
+        "RECORD_ARCHIVED",
+        "RECORD_REACTIVATED",
+        "CUSTOMER_ADDRESS_CREATED",
+        "CUSTOMER_ADDRESS_UPDATED",
+        "CUSTOMER_ADDRESS_ARCHIVED",
+        "CUSTOMER_ADDRESS_REACTIVATED",
+        "MAINTENANCE_CREATED",
+        "MAINTENANCE_CLOSED",
+        "TRUCK_ODOMETER_UPDATED",
+        "TRUCK_DOCUMENT_CREATED",
+        "TRUCK_DOCUMENT_RENEWED",
+        "TRUCK_DOCUMENT_POLICY_UPDATED",
+        "DRIVER_DOCUMENT_CREATED",
+        "DRIVER_DOCUMENT_RENEWED",
+        "DRIVER_DOCUMENT_POLICY_UPDATED",
+        "DRIVER_DOCUMENT_TYPE_APPROVED",
+        "ATTACHMENT_REGISTERED",
+        "ATTACHMENT_REVOKED",
+        "IMPORT_COMPLETED",
+        "IMPORT_REJECTED",
+        "COMPANY_PROFILE_CREATED",
+        "COMPANY_PROFILE_UPDATED",
+    }
+)
+AUDIT_ENTITY_TYPES = frozenset(
+    {*STATUS_HISTORY_ENTITY_TYPES, "USER", *RECORD_ENTITY_TYPES}
+)
+AUDIT_EVENT_TYPES = frozenset({"STATUS_CHANGED", *ADMINISTRATIVE_EVENT_TYPES})
 
 
 def normalize_upper(value: str | None) -> str | None:
@@ -44,3 +108,58 @@ class StatusHistoryRead(StatusHistoryBase):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True, str_strip_whitespace=True)
+
+
+class AuditEventCreate(BaseModel):
+    event_type: str = Field(min_length=1, max_length=64)
+    entity_type: str = Field(min_length=1, max_length=64)
+    entity_id: uuid.UUID
+    actor_id: uuid.UUID
+    changed_fields: list[str] = Field(default_factory=list, max_length=32)
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    @field_validator("event_type", "entity_type")
+    @classmethod
+    def normalize_catalog_value(cls, value: str) -> str:
+        return value.upper()
+
+    @field_validator("event_type")
+    @classmethod
+    def validate_event_type(cls, value: str) -> str:
+        if value not in ADMINISTRATIVE_EVENT_TYPES:
+            raise ValueError("unsupported administrative audit event")
+        return value
+
+    @field_validator("entity_type")
+    @classmethod
+    def validate_entity_type(cls, value: str) -> str:
+        if value not in {"USER", *RECORD_ENTITY_TYPES}:
+            raise ValueError("unsupported administrative audit entity")
+        return value
+
+    @field_validator("changed_fields")
+    @classmethod
+    def normalize_changed_fields(cls, value: list[str]) -> list[str]:
+        normalized = sorted({field.strip() for field in value if field.strip()})
+        if any("," in field for field in normalized):
+            raise ValueError("changed field names must not contain commas")
+        if any(len(field) > 64 for field in normalized):
+            raise ValueError("changed field names must contain at most 64 characters")
+        return normalized
+
+
+class AuditEntryRead(BaseModel):
+    id: uuid.UUID
+    event_type: str
+    entity_type: str
+    entity_id: uuid.UUID
+    actor_id: uuid.UUID | None
+    actor_name: str | None
+    entity_name: str | None
+    old_status: str | None
+    new_status: str | None
+    changed_fields: list[str]
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)

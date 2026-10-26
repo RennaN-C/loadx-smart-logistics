@@ -14,6 +14,7 @@ const DTO = {
   fragile: false,
   stackable: true,
   rotation_allowed: true,
+  active: true,
   created_at: "2026-08-01T12:00:00Z",
 };
 
@@ -31,6 +32,7 @@ describe("mapProductFromDto", () => {
       fragile: false,
       stackable: true,
       rotationAllowed: true,
+      active: true,
       createdAt: "2026-08-01T12:00:00Z",
     });
   });

@@ -133,3 +133,14 @@ público `/metrics`, fornecedor pago, dashboard de negócio ou armazenamento nov
 `CONFIRMADO`: testes em `backend/tests/unit/test_observability.py`, sondas em
 `backend/tests/test_health.py` e integração em `backend/tests/integration/test_readiness.py`.
 ADR proposta: `docs/decisions/ADR-025-observabilidade-operacional.md`.
+
+## WhatsApp — mock na OC82
+
+`CONFIRMADO`: produção e desenvolvimento usam somente o mock, sem comunicação
+externa. Compose encaminha `WHATSAPP_PROVIDER`, cujo único valor aceito é `mock`;
+outro valor impede a inicialização. Não existem variáveis de credenciais ou
+ativação real nesta etapa. Contrato no
+[README do adapter](../../backend/app/integrations/whatsapp/README.md).
+
+`PENDENTE DE DEFINIÇÃO`: integração real adiada; definir fornecedor/API,
+credenciais no ambiente seguro e garantias de envio antes de retomar esse escopo.

@@ -38,6 +38,7 @@ const CUSTOMER: Customer = {
   document: CNPJ_OUTRO,
   phone: null,
   address: "Rua das Palmeiras, 120",
+  active: true,
   city: "Campinas",
   state: "SP",
   notes: null,

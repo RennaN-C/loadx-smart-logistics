@@ -98,8 +98,8 @@ def test_scan_rbac_before_lookup(client, session_factory, role):
     response = _scan(
         client, scenario, loading, headers=_headers_for_role(scenario, role)
     )
-    assert response.status_code == (200 if role == "CHECKER" else 403)
-    if role != "CHECKER":
+    assert response.status_code == (200 if role in ("ADMIN", "CHECKER") else 403)
+    if role not in ("ADMIN", "CHECKER"):
         response = _scan(
             client,
             scenario,

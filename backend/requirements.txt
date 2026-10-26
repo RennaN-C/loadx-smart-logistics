@@ -9,4 +9,10 @@ argon2-cffi>=23,<26
 passlib>=1.7,<2.0
 httpx2>=2.7,<3.0
 reportlab>=4.2,<5.0
+pillow>=13.0,<14.0
 discord.py>=2.7,<3.0
+# Correções de segurança do transporte usado pelo adapter Discord.
+aiohttp>=3.14.4,<4.0
+
+# OC98: cifragem autenticada do segredo TOTP (ADR-038).
+cryptography>=50,<51

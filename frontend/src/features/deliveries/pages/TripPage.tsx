@@ -1,15 +1,23 @@
-import { useParams } from "react-router-dom";
+import { TripAttachments } from "../../attachments/components/TripAttachments";
+import { Link, useParams } from "react-router-dom";
 
 import { AlertBanner } from "../../../components/AlertBanner";
+import { Icon } from "../../../components/Icon";
 import { StatusPill } from "../../../components/StatusPill";
 import { useAuth } from "../../auth/hooks/useAuth";
+import { canOperateTrip, hasPermission } from "../../auth/permissions";
+import { AuditTrail } from "../../audit/components/AuditTrail";
 import { downloadTripReport } from "../../reports/api/reportsApi";
 import { ReportDownloadButton } from "../../reports/components/ReportDownloadButton";
 import { canReadReports } from "../../reports/permissions";
-import { changeDeliveryStatus, changeTripStatus } from "../api/tripsApi";
+import { changeDeliveryStatus, changeTripStatus, getTrip } from "../api/tripsApi";
 import { TRIP_ACTION_LABELS, TRIP_STATUS_LABELS, tripStatusTone } from "../components/tripLabels";
+import { DeliveryExceptionsPanel } from "../components/DeliveryExceptionsPanel";
+import { TripCancellationPreflightPanel } from "../components/TripCancellationPreflightPanel";
+import { TripInterruptionPanel } from "../components/TripInterruptionPanel";
 import { TripStops } from "../components/TripStops";
 import { TripSummary } from "../components/TripSummary";
+import { TripTimeline } from "../components/TripTimeline";
 import { useTripPage } from "../hooks/useTripPage";
 import { TRIP_TRANSITIONS, type Trip } from "../types";
 import "./TripPage.css";
@@ -49,7 +57,8 @@ function TripAction({ trip, nextStatus, canFinish, isWorking, onRun }: TripActio
 /**
  * Acompanhamento de uma viagem (OC34).
  *
- * Chega-se aqui pela lista de viagens ou pelo plano aprovado que a gerou.
+ * Chega-se aqui pelas viagens do motorista ou pelo plano aprovado que a gerou.
+ * A central geral permanece dependente da OC93.
  *
  * O componente só desenha: carregamento e transições moram em `useTripPage`, e
  * o resumo e as paradas em componentes próprios. Isso é o que mantém esta
@@ -61,14 +70,14 @@ export function TripPage() {
   const { user } = useAuth();
   const { trip, isLoading, isWorking, errorMessage, run } = useTripPage(tripId);
 
-  // Motorista opera a própria viagem; o backend confere o vínculo users.driver_id.
-  const canOperate = user?.role === "LOGISTICS_MANAGER" || user?.role === "DRIVER";
-  const nextTripStatus = trip ? TRIP_TRANSITIONS[trip.status] : undefined;
-  const pendingDeliveries = trip?.deliveries.filter((d) => d.status !== "DELIVERED").length ?? 0;
-  const canFinish = trip?.status !== "IN_ROUTE" || pendingDeliveries === 0;
 
   return (
     <div className="entity-page">
+      <nav className="entity-toolbar entity-page-nav" aria-label="Caminhos da viagem">
+        <Link to="/">{user?.role === "DRIVER" ? "Voltar às minhas viagens" : "Voltar ao início"}</Link>
+        {hasPermission(user, "loadx.trips.read") ? <Link to="/trips">Voltar às viagens</Link> : null}
+        {trip && hasPermission(user, "loadx.planning.read") ? <Link to={`/planning/${trip.loadPlanId}`}>Voltar ao plano de origem</Link> : null}
+      </nav>
       <header className="entity-header">
         <div>
           <h1>Acompanhamento da viagem</h1>
@@ -76,7 +85,7 @@ export function TripPage() {
         </div>
         {trip ? (
           <div className="entity-toolbar">
-            {canReadReports(user?.role) ? (
+            {canReadReports(user) ? (
               <ReportDownloadButton
                 label="Relatório de viagem"
                 filename={`relatorio-viagem-${trip.id}.pdf`}
@@ -99,7 +108,21 @@ export function TripPage() {
         </p>
       ) : null}
 
-      {trip && !isLoading ? (
+      {trip && !isLoading ? <TripOperations trip={trip} user={user} isWorking={isWorking} run={run} /> : null}
+      {trip && !isLoading ? <TripTimeline tripId={trip.id} /> : null}
+    </div>
+  );
+}
+
+function TripOperations({ trip, user, isWorking, run }: { readonly trip: Trip; readonly user: ReturnType<typeof useAuth>["user"]; readonly isWorking: boolean; readonly run: ReturnType<typeof useTripPage>["run"] }) {
+  // Motorista opera a própria viagem; o backend confere o vínculo users.driver_id.
+  const canOperate = canOperateTrip(user);
+  const canDeliver = hasPermission(user, "loadx.deliveries.manage") || hasPermission(user, "loadx.trips.own");
+  const nextTripStatus = TRIP_TRANSITIONS[trip.status];
+  const pendingDeliveries = trip.deliveries.filter((d) => d.status !== "DELIVERED" && d.status !== "CANCELED").length;
+  const canFinish = trip.status !== "IN_ROUTE" || pendingDeliveries === 0;
+
+  return (
         <>
           <section className="trip-head">
             <TripSummary trip={trip} pendingDeliveries={pendingDeliveries} />
@@ -120,16 +143,50 @@ export function TripPage() {
             </p>
           ) : null}
 
+          <TripAttachments trip={trip} canManage={canOperate} access={tripAttachmentAccess(user)} />
+
+          {hasPermission(user, "loadx.orders.read") ? <nav className="trip-order-links" aria-label="Pedidos desta viagem">
+            {[...new Set(trip.deliveries.map((delivery) => delivery.orderId))].map((orderId) => <Link key={orderId} className="btn-secondary" to={`/orders?order=${encodeURIComponent(orderId)}`} aria-label={`Ver pedido ${orderId}`}><Icon name="package" size={16} /><span>Pedido {orderId.slice(0, 8)}</span><Icon name="arrow-right" size={16} /></Link>)}
+          </nav> : null}
+
           <TripStops
+              canReadReceipts={hasPermission(user, "loadx.deliveries.read") || hasPermission(user, "loadx.trips.own")}
+              canReadCommunication={(hasPermission(user, "loadx.deliveries.read") || hasPermission(user, "loadx.trips.own")) && (hasPermission(user, "loadx.occurrences.read") || hasPermission(user, "loadx.trips.own"))}
             trip={trip}
-            canOperate={canOperate}
+            canOperate={canDeliver && trip.status === "IN_ROUTE"}
             isWorking={isWorking}
             onAdvance={(delivery, next) =>
               void run(() => changeDeliveryStatus(delivery.id, next))
             }
           />
-        </>
-      ) : null}
-    </div>
-  );
+
+          {trip.status === "IN_ROUTE" ? (
+            <DeliveryExceptionsPanel deliveries={trip.deliveries} canOperate={canDeliver} />
+          ) : null}
+
+          {hasPermission(user, "loadx.trips.manage") ? (
+            <TripInterruptionPanel
+              trip={trip}
+              onChanged={() => run(() => getTrip(trip.id))}
+            />
+          ) : null}
+
+          {hasPermission(user, "loadx.trips.manage") ? (
+            <TripCancellationPreflightPanel
+              key={trip.id}
+              tripId={trip.id}
+              canCancel={trip.status === "SCHEDULED"}
+              onCanceled={() => run(() => getTrip(trip.id))}
+            />
+          ) : null}
+
+          {hasPermission(user, "loadx.audit.read") ? (
+            <AuditTrail entityType="TRIP" entityId={trip.id} title="Histórico da viagem" />
+          ) : null}
+        </>);
+}
+
+function tripAttachmentAccess(user: ReturnType<typeof useAuth>["user"]) {
+  const own = hasPermission(user, "loadx.trips.own");
+  return { readDeliveries: own || hasPermission(user, "loadx.deliveries.read"), readOccurrences: own || hasPermission(user, "loadx.occurrences.read"), manageDeliveries: own || hasPermission(user, "loadx.deliveries.manage"), manageOccurrences: own || hasPermission(user, "loadx.occurrences.manage") };
 }

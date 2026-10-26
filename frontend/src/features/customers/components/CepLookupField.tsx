@@ -13,22 +13,24 @@ const CEP_LENGTH = 8;
 
 interface CepLookupFieldProps {
   /** Chamado só quando a consulta devolve endereço. Quem preenche é o formulário. */
+  readonly initialCep?: string;
+  readonly onCepChange?: (digits: string) => void;
   readonly onFound: (address: CepAddress) => void;
 }
 
 /**
  * Consulta de endereço por CEP (OC70).
  *
- * O CEP **não é salvo**: `Customer` não tem essa coluna e a OC70 não autoriza
- * criar campo persistido. É auxílio de preenchimento, e só.
+ * O cadastro legado de Customer usa somente o preenchimento. Endereços OC99
+ * também recebem onCepChange para persistir o CEP normalizado.
  *
  * Nada aqui pode impedir o cadastro. Se a consulta falhar — CEP inexistente,
  * serviço fora do ar, tempo esgotado —, a mensagem aparece neste campo, os
  * dados já digitados ficam onde estão e o endereço continua podendo ser
  * preenchido à mão. É o que a OC62 pediu de quem consome.
  */
-export function CepLookupField({ onFound }: CepLookupFieldProps) {
-  const [cep, setCep] = useState("");
+export function CepLookupField({ onFound, initialCep = "", onCepChange }: CepLookupFieldProps) {
+  const [cep, setCep] = useState(maskCep(initialCep));
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [extra, setExtra] = useState<string | null>(null);
@@ -71,6 +73,7 @@ export function CepLookupField({ onFound }: CepLookupFieldProps) {
     setCep(masked);
 
     const digits = onlyDigits(masked);
+    onCepChange?.(digits);
 
     if (digits.length < CEP_LENGTH) {
       consultado.current = "";

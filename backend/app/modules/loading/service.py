@@ -7,6 +7,7 @@ from app.modules.load_planning.reference_service import LoadPlanReferenceService
 from app.modules.loading.models import LoadingSession, LoadingSessionItem
 from app.modules.loading.repository import LoadingRepository
 from app.modules.trucks.service import TruckService
+from app.shared.record_lifecycle import ensure_record_active
 
 
 class LoadingSessionNotFoundError(Exception):
@@ -48,24 +49,33 @@ class LoadingService:
         existing = self.repository.get_by_load_plan_id(load_plan_id)
         if existing is not None:
             return existing
-        plan = self.load_plan_reference_service.get_operational_plan(load_plan_id)
-        items = self.load_plan_reference_service.get_loading_items(load_plan_id)
-        if plan is None or plan.status != "APPROVED" or not items:
-            raise LoadingPlanNotApprovedError
-
-        session = LoadingSession(
-            load_plan_id=load_plan_id,
-            status="PENDING",
-            items=[
-                LoadingSessionItem(load_plan_item_id=item.id, status="PENDING")
-                for item in items
-            ],
-        )
         try:
-            self.truck_service.ensure_no_operation_conflict(
+            plan = self.load_plan_reference_service.get_operational_plan(
+                load_plan_id, for_update=True
+            )
+            items = self.load_plan_reference_service.get_loading_items(load_plan_id)
+            if (
+                plan is None
+                or plan.status != "APPROVED"
+                or not plan.operational_ready
+                or not items
+            ):
+                raise LoadingPlanNotApprovedError
+
+            session = LoadingSession(
+                load_plan_id=load_plan_id,
+                status="PENDING",
+                items=[
+                    LoadingSessionItem(load_plan_item_id=item.id, status="PENDING")
+                    for item in items
+                ],
+            )
+            truck = self.truck_service.ensure_no_operation_conflict(
                 plan.truck_id,
                 exclude_load_plan_id=plan.id,
             )
+
+            ensure_record_active(truck, "TRUCK")
 
             concurrent_existing = self.repository.get_by_load_plan_id(load_plan_id)
             if concurrent_existing is not None:
@@ -89,6 +99,13 @@ class LoadingService:
         if status == session.status:
             return session
         if session.status == "PENDING" and status == "IN_PROGRESS":
+            plan = self.load_plan_reference_service.get_operational_plan(
+                session.load_plan_id
+            )
+            if plan is None or plan.status != "APPROVED" or not plan.operational_ready:
+                raise LoadingPlanNotApprovedError
+            self.truck_service.get_truck_for_update(plan.truck_id)
+            self.truck_service.ensure_operational_eligibility(plan.truck_id)
             session.status = status
             session.started_at = datetime.now(UTC)
         elif session.status == "IN_PROGRESS" and status == "FINISHED":

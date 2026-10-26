@@ -142,7 +142,7 @@ def test_list_customers_returns_created_items(
     assert body["total"] == 1
     assert body["total_pages"] == 1
     customer = body["items"][0]
-    assert set(customer) == {"id", "name", "city", "state", "created_at"}
+    assert set(customer) == {"id", "name", "city", "state", "created_at", "active"}
     assert "document" not in customer
     assert "phone" not in customer
     assert "address" not in customer
@@ -319,7 +319,7 @@ def test_admin_can_read_customers(
 
 
 @pytest.mark.parametrize("method", ["POST", "PATCH"])
-def test_admin_cannot_manage_customers(
+def test_admin_can_manage_customers(
     client: TestClient,
     session_factory: SessionFactory,
     method: str,
@@ -340,8 +340,8 @@ def test_admin_cannot_manage_customers(
         authorization_headers(session_factory, admin),
     )
 
-    assert response.status_code == 403
-    assert response.json()["code"] == "AUTH_FORBIDDEN"
+    assert response.status_code == (201 if method == "POST" else 200)
+    assert response.json()["id"]
 
 
 @pytest.mark.parametrize(("method", "route"), CUSTOMER_ROUTE_CASES)

@@ -6,11 +6,154 @@ from app.core.config import Settings
 from app.main import create_app
 
 EXPECTED_ERROR_STATUSES = {
+    ("/api/v1/load-distributions/optimization-requests/{request_key}", "get"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
+    ("/api/v1/deliveries/{delivery_id}/communications", "get"): {
+        "401",
+        "403",
+        "404",
+        "422",
+        "500",
+    },
+    **{
+        (path, method): {"400", "401", "403", "422", "429", "503", "500"}
+        for path, method in [
+            ("/api/v1/auth/password-recovery", "post"),
+            ("/api/v1/auth/password-recovery/confirm", "post"),
+            ("/api/v1/auth/mfa/setup", "post"),
+            ("/api/v1/auth/mfa/verify", "post"),
+            ("/api/v1/auth/me/mfa", "get"),
+            ("/api/v1/auth/me/trusted-devices", "get"),
+            ("/api/v1/auth/me/trusted-devices/current", "delete"),
+            ("/api/v1/auth/me/trusted-devices/{device_id}", "delete"),
+            ("/api/v1/auth/me/trusted-devices/revoke-all", "post"),
+            ("/api/v1/auth/me/mfa/enroll", "post"),
+            ("/api/v1/auth/me/mfa/recovery-codes", "post"),
+            ("/api/v1/auth/me/mfa/disable", "post"),
+        ]
+    },
+    ("/api/v1/outbox-events", "get"): {"401", "403", "404", "409", "422", "500"},
+    ("/api/v1/outbox-events/summary", "get"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
+    ("/api/v1/outbox-events/{event_id}", "get"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
+    ("/api/v1/outbox-events/{event_id}/attempts", "get"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
+    ("/api/v1/outbox-events/{event_id}/source", "get"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
+    ("/api/v1/outbox-events/{event_id}/retry", "post"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
+    ("/api/v1/notifications", "get"): {"401", "403", "422", "500"},
+    ("/api/v1/notifications/unread-count", "get"): {"401", "403", "422", "500"},
+    ("/api/v1/notifications/preferences", "get"): {"401", "403", "422", "500"},
+    ("/api/v1/notifications/preferences", "put"): {"401", "403", "422", "500"},
+    ("/api/v1/notifications/read-all", "post"): {"401", "403", "422", "500"},
+    ("/api/v1/notifications/{notification_id}/read", "post"): {
+        "401",
+        "403",
+        "404",
+        "422",
+        "500",
+    },
+    ("/api/v1/notifications/{notification_id}/source", "get"): {
+        "401",
+        "403",
+        "404",
+        "422",
+        "500",
+    },
+    ("/api/v1/access-profiles", "get"): {"401", "403", "404", "409", "422", "500"},
+    ("/api/v1/access-profiles", "post"): {"401", "403", "404", "409", "422", "500"},
+    ("/api/v1/access-profiles/permissions", "get"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
+    ("/api/v1/access-profiles/{profile_id}", "get"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
+    ("/api/v1/access-profiles/{profile_id}", "patch"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
+    ("/api/v1/search", "get"): {"401", "403", "422", "500"},
+    ("/api/v1/auth/me", "patch"): {
+        "400",
+        "401",
+        "403",
+        "409",
+        "422",
+        "429",
+        "503",
+        "500",
+    },
+    ("/api/v1/auth/me/password", "post"): {"400", "401", "403", "422", "429", "500"},
+    ("/api/v1/auth/me/sessions", "get"): {"401", "403", "422", "500"},
+    ("/api/v1/auth/me/sessions/{session_id}", "delete"): {
+        "401",
+        "403",
+        "404",
+        "422",
+        "500",
+    },
+    ("/api/v1/auth/me/sessions/revoke-others", "post"): {"401", "403", "422", "500"},
+    ("/api/v1/integration-health", "get"): {"401", "403", "422", "500"},
+    ("/api/v1/company-profile", "get"): {"401", "403", "422", "500"},
+    ("/api/v1/company-profile", "put"): {"401", "403", "422", "500"},
     ("/health", "get"): {"500"},
     ("/ready", "get"): {"500", "503"},
-    ("/api/v1/auth/login", "post"): {"401", "403", "422", "429", "500"},
+    ("/api/v1/auth/login", "post"): {"401", "403", "422", "429", "500", "503"},
     ("/api/v1/auth/me", "get"): {"401", "403", "422", "500"},
     ("/api/v1/auth/logout", "post"): {"401", "403", "422", "500"},
+    ("/api/v1/audit", "get"): {"401", "403", "422", "500"},
     ("/api/v1/users", "get"): {"401", "403", "422", "500"},
     ("/api/v1/users", "post"): {"401", "403", "409", "422", "500"},
     ("/api/v1/users/{user_id}", "get"): {
@@ -133,6 +276,14 @@ EXPECTED_ERROR_STATUSES = {
         "422",
         "500",
     },
+    ("/api/v1/load-plans", "get"): {"401", "403", "422", "500"},
+    ("/api/v1/load-plans/{load_plan_id}/continuity", "get"): {
+        "401",
+        "403",
+        "404",
+        "422",
+        "500",
+    },
     ("/api/v1/load-plans", "post"): {
         "401",
         "403",
@@ -208,6 +359,14 @@ EXPECTED_ERROR_STATUSES = {
         "422",
         "500",
     },
+    ("/api/v1/trips/{trip_id}/timeline", "get"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
     ("/api/v1/trips/{trip_id}/status", "patch"): {
         "401",
         "403",
@@ -240,6 +399,104 @@ EXPECTED_ERROR_STATUSES = {
         "422",
         "500",
     },
+    ("/api/v1/deliveries/{delivery_id}/exceptions", "get"): {
+        "401",
+        "403",
+        "404",
+        "422",
+        "500",
+    },
+    ("/api/v1/deliveries/{delivery_id}/exceptions", "post"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
+    ("/api/v1/trips/{trip_id}/cancellation", "post"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
+    ("/api/v1/trips/{trip_id}/interruptions", "get"): {
+        "401",
+        "403",
+        "404",
+        "422",
+        "500",
+    },
+    ("/api/v1/trips/{trip_id}/interruptions", "post"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
+    ("/api/v1/trips/{trip_id}/resumptions", "post"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    },
+    ("/api/v1/trips/{trip_id}/cancellation-preflight", "get"): {
+        "401",
+        "403",
+        "404",
+        "422",
+        "500",
+    },
+    ("/api/v1/deliveries/{delivery_id}/evidences", "post"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+        "503",
+    },
+    ("/api/v1/deliveries/{delivery_id}/evidences", "get"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+        "503",
+    },
+    ("/api/v1/deliveries/{delivery_id}/evidences/{evidence_id}", "get"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+        "503",
+    },
+    ("/api/v1/deliveries/{delivery_id}/evidences/{evidence_id}/content", "get"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+        "503",
+    },
+    ("/api/v1/deliveries/{delivery_id}/evidences/{evidence_id}/revoke", "post"): {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+        "503",
+    },
     ("/api/v1/loading-sessions", "post"): {
         "401",
         "403",
@@ -247,6 +504,8 @@ EXPECTED_ERROR_STATUSES = {
         "422",
         "500",
     },
+    ("/api/v1/loading-sessions", "get"): {"401", "403", "422", "500"},
+    ("/api/v1/deliveries", "get"): {"401", "403", "422", "500"},
     ("/api/v1/loading-sessions/{session_id}", "get"): {
         "401",
         "403",
@@ -308,16 +567,135 @@ EXPECTED_ERROR_STATUSES = {
         "422",
         "500",
     },
+    ("/api/v1/reports/management-summary", "get"): {"401", "403", "422", "500"},
+    ("/api/v1/reports/management-summary.csv", "get"): {"401", "403", "422", "500"},
+    ("/api/v1/reports/management-summary.pdf", "get"): {"401", "403", "422", "500"},
     ("/api/v1/operational-indicators", "get"): {"401", "403", "500"},
+    ("/api/v1/operations/agenda", "get"): {"401", "403", "409", "422", "500"},
 }
+for distribution_path, methods in {
+    "/api/v1/load-distributions": ("post",),
+    "/api/v1/load-distributions/preflight": ("post",),
+    "/api/v1/load-distributions/optimize": ("post",),
+    "/api/v1/load-distributions/{distribution_id}": ("get",),
+    "/api/v1/load-distributions/{distribution_id}/approve": ("post",),
+    "/api/v1/load-distributions/{distribution_id}/cancel": ("post",),
+    "/api/v1/load-distributions/{distribution_id}/parts/{part_id}/approve": ("post",),
+    "/api/v1/load-distributions/{distribution_id}/parts/{part_id}/cancel": ("post",),
+    "/api/v1/load-distributions/{distribution_id}/parts/{part_id}/reprocess": ("post",),
+}.items():
+    for distribution_method in methods:
+        EXPECTED_ERROR_STATUSES[(distribution_path, distribution_method)] = {
+            "401",
+            "403",
+            "404",
+            "409",
+            "422",
+            "500",
+        }
+
+for address_path, address_method in (
+    ("/api/v1/customers/{customer_id}/addresses", "get"),
+    ("/api/v1/customers/{customer_id}/addresses", "post"),
+    ("/api/v1/customers/{customer_id}/addresses/{address_id}", "patch"),
+):
+    EXPECTED_ERROR_STATUSES[(address_path, address_method)] = {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    }
+
+for maintenance_path, maintenance_method in (
+    ("/api/v1/drivers/{driver_id}/documents", "get"),
+    ("/api/v1/drivers/{driver_id}/documents", "post"),
+    ("/api/v1/drivers/{driver_id}/documents/{document_id}/renew", "post"),
+    ("/api/v1/drivers/{driver_id}/document-policies", "get"),
+    ("/api/v1/drivers/{driver_id}/document-policies/{document_type_id}", "patch"),
+    ("/api/v1/trucks/{truck_id}/documents", "get"),
+    ("/api/v1/trucks/{truck_id}/documents", "post"),
+    ("/api/v1/trucks/{truck_id}/documents/{document_id}/renew", "post"),
+    ("/api/v1/trucks/{truck_id}/document-policies", "get"),
+    ("/api/v1/trucks/{truck_id}/document-policies/{kind}", "patch"),
+    ("/api/v1/trucks/{truck_id}/maintenances", "get"),
+    ("/api/v1/trucks/{truck_id}/maintenances", "post"),
+    ("/api/v1/trucks/{truck_id}/maintenances/{maintenance_id}/close", "post"),
+):
+    EXPECTED_ERROR_STATUSES[(maintenance_path, maintenance_method)] = {
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500",
+    }
+
+for method in ("get", "post"):
+    EXPECTED_ERROR_STATUSES[("/api/v1/driver-document-types", method)] = {
+        "401",
+        "403",
+        "409",
+        "422",
+        "500",
+    }
+
+for attachment_suffix, attachment_method in (
+    ("", "get"),
+    ("", "post"),
+    ("/{attachment_id}", "get"),
+    ("/{attachment_id}/content", "get"),
+    ("/{attachment_id}/revoke", "post"),
+):
+    EXPECTED_ERROR_STATUSES[
+        (
+            f"/api/v1/attachments/{{resource_type}}/{{resource_id}}{attachment_suffix}",
+            attachment_method,
+        )
+    ] = {"401", "403", "404", "409", "422", "500", "503"}
+
+for import_suffix, import_method in (
+    ("", "get"),
+    ("/{import_id}", "get"),
+    ("/{entity_type}/template", "get"),
+    ("/{entity_type}/preview", "post"),
+    ("/{entity_type}/confirm", "post"),
+):
+    EXPECTED_ERROR_STATUSES[
+        (f"/api/v1/registration-imports{import_suffix}", import_method)
+    ] = {"401", "403", "404", "409", "422", "500"}
+
+SIGNED_OPERATIONS = frozenset({("/api/v1/webhooks/controlled-events", "post")})
+EXPECTED_ERROR_STATUSES[("/api/v1/webhooks/controlled-events", "post")] = {
+    "400",
+    "401",
+    "403",
+    "408",
+    "409",
+    "410",
+    "413",
+    "415",
+    "422",
+    "429",
+    "500",
+    "503",
+}
+
 PUBLIC_OPERATIONS = frozenset(
     {
         ("/health", "get"),
         ("/ready", "get"),
         ("/api/v1/auth/login", "post"),
+        ("/api/v1/auth/password-recovery", "post"),
+        ("/api/v1/auth/password-recovery/confirm", "post"),
+        ("/api/v1/auth/mfa/setup", "post"),
+        ("/api/v1/auth/mfa/verify", "post"),
     }
 )
-PROTECTED_OPERATIONS = frozenset(EXPECTED_ERROR_STATUSES).difference(PUBLIC_OPERATIONS)
+PROTECTED_OPERATIONS = frozenset(EXPECTED_ERROR_STATUSES).difference(
+    PUBLIC_OPERATIONS, SIGNED_OPERATIONS
+)
 HTTP_METHODS = frozenset({"get", "post", "patch", "put", "delete"})
 
 
@@ -370,6 +748,7 @@ def test_openapi_declares_all_public_decimal_fields_as_numbers() -> None:
         "PlacedLoadPlanItemRead": ("weight_kg",),
         "UnloadedLoadPlanItemRead": ("weight_kg",),
         "LoadPlanRead": ("occupancy_percent", "total_weight_kg"),
+        "LoadPlanListRead": ("occupancy_percent", "total_weight_kg"),
         "TruckComparisonRead": ("occupancy_percent", "total_weight_kg"),
         "TruckSnapshotRead": ("max_weight_kg",),
     }
@@ -486,6 +865,8 @@ def test_openapi_documents_truck_operational_status_contract() -> None:
         "model",
         "active",
         "has_operation_conflict",
+        "has_maintenance_conflict",
+        "has_document_conflict",
         "available",
     }
 
@@ -563,8 +944,178 @@ def test_openapi_documents_driver_operational_status_contract() -> None:
         "name",
         "license_category",
         "active",
+        "has_document_conflict",
         "has_operation_conflict",
         "available",
     }
     assert set(status_schema["properties"]) == expected_fields
     assert set(status_schema["required"]) == expected_fields
+
+
+def test_driver_documents_preserve_oc101_schema_names():
+    schema = get_openapi_schema()
+    assert "DocumentRead" in schema["components"]["schemas"]
+    assert "DriverDocumentRead" in schema["components"]["schemas"]
+    assert schema["paths"]["/api/v1/trucks/{truck_id}/documents"]["post"]["responses"][
+        "201"
+    ]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/DocumentRead"
+    }
+    assert schema["paths"]["/api/v1/drivers/{driver_id}/documents"]["post"][
+        "responses"
+    ]["201"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/DriverDocumentRead"
+    }
+
+
+def test_oc95_explicit_filter_whitelist_preserves_privacy() -> None:
+    schema = create_app(Settings(app_env="local")).openapi()
+    expected = {
+        "orders": {"search", "status"},
+        "trucks": {"search", "archive_status"},
+        "products": {"search", "restriction", "archive_status"},
+        "customers": {"search", "archive_status"},
+        "drivers": {"search", "archive_status"},
+    }
+    for resource, filters in expected.items():
+        parameters = schema["paths"][f"/api/v1/{resource}"]["get"]["parameters"]
+        query = {p["name"]: p for p in parameters if p["in"] == "query"}
+        assert set(query) == {"page", "page_size", "sort_order"} | filters
+        assert query["search"]["schema"]["anyOf"][0]["maxLength"] == 120
+        if resource == "orders":
+            assert set(query["status"]["schema"]["anyOf"][0]["enum"]) == {
+                "DRAFT",
+                "READY",
+                "PLANNED",
+                "IN_TRANSIT",
+                "DELIVERED",
+                "CANCELED",
+            }
+        if resource == "products":
+            assert set(query["restriction"]["schema"]["anyOf"][0]["enum"]) == {
+                "restricted",
+                "free",
+            }
+    for resource in ("trucks", "drivers"):
+        parameters = schema["paths"][f"/api/v1/{resource}/operational-status"]["get"][
+            "parameters"
+        ]
+        assert {p["name"] for p in parameters} == {"page", "page_size", "sort_order"}
+
+
+def test_oc86_admin_list_documents_identity_fields_and_safe_filters() -> None:
+    schema = get_openapi_schema()
+    operation = schema["paths"]["/api/v1/users"]["get"]
+    query = {
+        item["name"]: item for item in operation["parameters"] if item["in"] == "query"
+    }
+    assert set(query) == {"page", "page_size", "sort_order", "search", "role", "active"}
+    assert query["search"]["schema"]["anyOf"][0]["maxLength"] == 120
+    assert set(query["role"]["schema"]["anyOf"][0]["enum"]) == {
+        "ADMIN",
+        "LOGISTICS_MANAGER",
+        "CHECKER",
+        "DRIVER",
+        "CUSTOM",
+    }
+    assert operation["security"] == [{"SessionCookie": []}]
+    fields = schema["components"]["schemas"]["UserListRead"]["properties"]
+    assert set(fields) == {
+        "id",
+        "name",
+        "email",
+        "role",
+        "active",
+        "driver_id",
+        "driver_name",
+        "custom_profile_id",
+        "custom_profile_name",
+        "created_at",
+    }
+    assert "password_hash" not in fields
+
+
+def test_openapi_documents_inbound_signature_without_session_cookie():
+    schema = get_openapi_schema()
+    operation = schema["paths"]["/api/v1/webhooks/controlled-events"]["post"]
+    assert "security" not in operation
+    signature = next(
+        item for item in operation["parameters"] if item["name"] == "X-LoadX-Signature"
+    )
+    assert signature["required"] is True
+    assert signature["schema"]["pattern"] == "^[0-9a-f]{64}$"
+    body = operation["requestBody"]["content"]["application/json"]["schema"]
+    assert body["additionalProperties"] is False
+    assert set(body["properties"]["command"]["enum"]) == {
+        "START_TRIP",
+        "START_DELIVERY",
+        "FINISH_DELIVERY",
+    }
+
+
+def test_notification_contract_is_personal_and_excludes_channel_secrets() -> None:
+    schema = get_openapi_schema()
+    listing = schema["paths"]["/api/v1/notifications"]["get"]
+    parameters = {item["name"] for item in listing["parameters"]}
+    assert parameters == {
+        "page",
+        "page_size",
+        "sort_order",
+        "read",
+        "event_type",
+        "category",
+    }
+    properties = schema["components"]["schemas"]["NotificationRead"]["properties"]
+    assert set(properties) == {
+        "id",
+        "event_type",
+        "category",
+        "title",
+        "summary",
+        "created_at",
+        "received_at",
+        "read_at",
+    }
+    assert listing["security"] == [{"SessionCookie": []}]
+
+
+def test_oc90_delivery_leg_context_is_additive_and_not_client_assignable():
+    schema = get_openapi_schema()
+    schemas = schema["components"]["schemas"]
+    field = schemas["DeliveryRead"]["properties"]["distribution_part_id"]
+    assert {"type": "string", "format": "uuid"} in field["anyOf"]
+    assert {"type": "null"} in field["anyOf"]
+    assert "distribution_part_id" not in schemas["DeliveryRead"]["required"]
+    assert set(schemas["TripCreate"]["properties"]) == {"load_plan_id", "driver_id"}
+    assert schemas["TripCreate"]["additionalProperties"] is False
+    audit = schema["paths"]["/api/v1/audit"]["get"]["parameters"]
+    entity = next(p for p in audit if p["name"] == "entity_type")
+    assert {"LOAD_DISTRIBUTION", "LOAD_DISTRIBUTION_PART"} <= set(
+        entity["schema"]["anyOf"][0]["enum"]
+    )
+
+
+def test_oc81_communication_is_read_only_bounded_and_sanitized():
+    schema = get_openapi_schema()
+    path = schema["paths"]["/api/v1/deliveries/{delivery_id}/communications"]
+    assert set(path) == {"get"}
+    listing = path["get"]
+    assert listing["security"] == [{"SessionCookie": []}]
+    assert {p["name"] for p in listing["parameters"]} == {
+        "delivery_id",
+        "page",
+        "page_size",
+        "sort_order",
+    }
+    properties = schema["components"]["schemas"]["DeliveryCommunicationRead"][
+        "properties"
+    ]
+    assert set(properties) == {
+        "id",
+        "occurrence_id",
+        "event_type",
+        "created_at",
+        "channel",
+        "simulation_status",
+        "processing_status",
+    }

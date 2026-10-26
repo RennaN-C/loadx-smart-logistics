@@ -107,3 +107,88 @@ provider injetável -> validação da saída -> `AI` ou `FALLBACK`. Em nenhum po
 a IA recalcula, aprova ou altera o plano.
 
 Estado da OC22: concluída.
+
+## OC87 — base multi-caminhão
+
+`CONFIRMADO`: [contrato de distribuição](distributions.md), necessidade completa,
+aprovação por partes, claims de identidade e API para OC88/OC89/OC90.
+O caminho de um caminhão e a engine física permanecem compatíveis.
+
+## OC88 — otimização automática multi-caminhão
+
+`CONFIRMADO`: `optimizer/multi_truck.py` seleciona e particiona a frota
+elegível sem banco ou HTTP. A busca é feita por quantidade crescente de
+caminhões e cada avaliação delega o packing físico para
+`calculate_volume_load_plan`.
+
+`CONFIRMADO`: `POST /api/v1/load-distributions/optimize` executa preflight,
+otimização e, somente quando existe cobertura completa, persiste a proposta
+pelo `LoadDistributionService.create` da OC87.
+
+`CONFIRMADO`: caminhões inativos, ocupados, em manutenção ou documentalmente
+inelegíveis ficam fora da busca. Falta de capacidade retorna
+`DISTRIBUTION_CAPACITY_INSUFFICIENT` sem distribuição parcial.
+
+## Recuperação de planejamentos — #208
+
+`CONFIRMADO`: GET /load-plans utiliza PageResponse, filtros status/truck_id e
+ordenação created_at/id. Repository projeta somente colunas necessárias e
+contagem de pedidos, sem carregar volumes. Service aplica o recorte APPROVED
+para CHECKER antes da paginação; router mantém a autorização de leitura atual.
+GET /{id}/continuity consulta interfaces públicas de carregamento/entrega e
+compatibilidade operacional, sem escrita ou exposição de viagem ao conferente.
+Contratos detalhados em docs/05-contratos-api.md. Sem alteração de schema,
+engine, snapshots, aprovação, histórico ou estados. Head permanece 20261009_0023.
+
+
+## OC90 — fluxo multi-caminhão
+
+`CONFIRMADO`: A OC90 libera planos atuais de partes/distribuições APPROVED sem limite de uma
+parte. Planos históricos permanecem bloqueados. A fronteira imutável pública
+projeta pedidos, identidades e partes necessárias por pedido; consumidores não
+importam tabelas privadas. Ver distributions.md e ADR-044 (proposta).
+
+
+## Recuperação idempotente — #254
+
+`CONFIRMADO`: contrato implementado para revisão na ADR-047. Tabela aditiva
+`optimization_requests`: PK (user_id, request_key), payload_hash SHA-256 de
+versão/seleção ordenada, distribution_id único com FK RESTRICT, created_at UTC.
+Persistência atômica com distribuição/planos/volumes/histórico; sem pending ou TTL.
+`POST /load-distributions/optimize` aceita header UUID `Idempotency-Key` opcional.
+Replay igual retorna 201 com o mesmo recurso atual; payload diferente: 409
+IDEMPOTENCY_PAYLOAD_MISMATCH. Concorrência: 409 OPTIMIZATION_IN_PROGRESS.
+`GET /load-distributions/optimization-requests/{key}` retorna 200/404/409,
+somente para o ator e com a mesma permissão create. Não cria nada.
+Migration 20261023_0035 → 20261021_0034; downgrade recusa registros existentes.
+Sem alteração de regras físicas, RBAC efetivo, MFA ou OC90/OC94.
+
+## Situação logística na recuperação — #255
+
+`CONFIRMADO`: `GET /load-plans` aceita `operation_scope=all|ongoing|completed`
+(padrão `all`, compatível) antes da paginação e com ordenação estável por data/ID.
+O campo adicional `operation` contém IDs/estados de carregamento/viagem e contagens
+agregadas de pedidos e entregas, sem carregar volumes. Projeções SQL passam pelos
+serviços públicos dos módulos donos; a listagem mantém duas consultas.
+
+O resumo e filtros operacionais exigem simultaneamente as permissões efetivas
+`loadx.trips.read`, `loadx.orders.read` e `loadx.loading.read`. Sem elas o resumo
+é nulo e filtros restritos retornam 403. O recorte APPROVED do CHECKER permanece.
+Não há acesso novo a dados pessoais de motoristas ou notificações.
+
+`CONFIRMADO`: aprovação do plano não significa conclusão logística. `COMPLETED`
+é projeção de viagem FINISHED **e** todos os pedidos relacionados DELIVERED
+(globalmente, incluindo as partes obrigatórias). Uma parte entregue com pedido
+IN_TRANSIT é parcial; viagem CANCELED não é concluída nem em andamento. Planos
+sem operação continuam NOT_STARTED, inclusive cálculos históricos. `ongoing`
+inclui preparações não rejeitadas e operações ativas/parciais; `all` inclui também
+rejeitados/cancelados. Nenhum estado, snapshot ou histórico persistido é alterado.
+
+`GET /{id}/continuity` retorna os cinco estados OC94 da viagem e o mesmo resumo
+autorizado. `orders_ready_for_approval` no detalhe é um booleano atual do servidor
+para evitar oferecer aprovação/recálculo de cálculo cujos pedidos já saíram de
+READY. É orientação de UI; locks e validações da aprovação continuam sendo a
+fonte de verdade, inclusive se os dados mudarem após a consulta.
+
+Sem migration: head confirmado `20261021_0034`. O head antigo mencionado na seção
+histórica da #208 não descreve o schema atual.

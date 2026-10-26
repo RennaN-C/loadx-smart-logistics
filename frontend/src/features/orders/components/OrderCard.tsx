@@ -1,5 +1,6 @@
-import { Avatar } from "../../../components/Avatar";
-import { Icon } from "../../../components/Icon";
+import { Link } from "react-router-dom";
+
+import { RowActions } from "../../../components/RowActions";
 import { StatusPill } from "../../../components/StatusPill";
 import type { OrderListItem } from "../types";
 import { priorityIsUrgent, priorityLabel, STATUS_LABELS, statusTone } from "./orderLabels";
@@ -15,6 +16,7 @@ interface OrderCardProps {
   readonly customerName: string;
   readonly canManage: boolean;
   readonly isOpening: boolean;
+  readonly onAttachments?: (id: string) => void;
   readonly onEdit: (id: string) => void;
 }
 
@@ -22,58 +24,33 @@ interface OrderCardProps {
  * Mostra só o que a listagem entrega. Endereço e itens ficam no detalhe
  * (`GET /orders/{id}`), então o card exibe a contagem em vez da lista.
  */
-export function OrderCard({ order, customerName, canManage, isOpening, onEdit }: OrderCardProps) {
+export function OrderCard({ order, customerName, canManage, isOpening, onEdit, onAttachments }: OrderCardProps) {
   return (
-    <article className="order-card">
-      <div className="order-card-head">
-        <div className="order-card-who">
-          <Avatar name={customerName} size={34} />
-          <p className="order-card-customer">{customerName}</p>
-        </div>
-        <StatusPill tone={statusTone(order.status)}>{STATUS_LABELS[order.status]}</StatusPill>
-      </div>
-
-      <dl className="order-card-meta">
-        <div>
-          <dt>
-            <Icon name="priority" size={12} />
-            PRIORIDADE
-          </dt>
-          <dd className={priorityIsUrgent(order.priority) ? "order-card-urgent" : undefined}>
+    <tr>
+      <td data-label="Pedido"><Link className="btn-link" to={`/orders?order=${encodeURIComponent(order.id)}`}>{order.id.slice(0, 8)}</Link></td>
+      <td data-label="Cliente"><strong>{customerName}</strong></td>
+      <td data-label="Prioridade"><span className={priorityIsUrgent(order.priority) ? "order-card-urgent" : undefined}>
             {priorityLabel(order.priority)}
-          </dd>
-        </div>
-        <div>
-          <dt>
-            <Icon name="package" size={12} />
-            ITENS
-          </dt>
-          <dd>{order.itemCount}</dd>
-        </div>
-        <div>
-          <dt>
-            <Icon name="calendar" size={12} />
-            PREVISÃO
-          </dt>
-          <dd>
+      </span></td>
+      <td data-label="Itens">{order.itemCount}</td>
+      <td data-label="Previsão">
             {order.expectedDeliveryAt ? dateFormatter.format(new Date(order.expectedDeliveryAt)) : "—"}
-          </dd>
-        </div>
-      </dl>
-
-      {canManage ? (
-        <div className="order-card-foot">
+      </td>
+      <td data-label="Situação"><StatusPill tone={statusTone(order.status)}>{STATUS_LABELS[order.status]}</StatusPill></td>
+      <td data-label="Ações"><RowActions label={`Ações do pedido ${order.id.slice(0, 8)}`}>
+        <Link className="btn-link" to={`/orders?order=${encodeURIComponent(order.id)}`}>Ver pedido</Link>
+        {onAttachments ? <button type="button" className="btn-link" onClick={() => onAttachments(order.id)}>Anexos</button> : null}
+        {canManage ? (
           <button
             type="button"
             className="btn-link"
             disabled={isOpening}
             onClick={() => onEdit(order.id)}
           >
-            <Icon name="edit" size={15} />
             {isOpening ? "Abrindo…" : "Editar"}
           </button>
-        </div>
-      ) : null}
-    </article>
+        ) : null}
+      </RowActions></td>
+    </tr>
   );
 }

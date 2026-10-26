@@ -7,8 +7,9 @@ from sqlalchemy.orm import Session
 
 from app.core.pagination import PageResponse, Pagination, to_page_response
 from app.core.responses import error_response, openapi_error_responses
+from app.core.search import SearchQuery
 from app.database.session import get_db
-from app.modules.auth.dependencies import require_roles
+from app.modules.auth.dependencies import require_permission
 from app.modules.drivers.models import Driver
 from app.modules.drivers.operational_status_service import (
     DriverOperationalStatusService,
@@ -27,16 +28,11 @@ from app.modules.drivers.service import (
     DriverService,
 )
 from app.modules.users.models import User
+from app.shared.record_lifecycle import ArchiveFilter, active_filter
 
 router = APIRouter(prefix="/drivers", tags=["drivers"])
-DriverReader = Annotated[
-    User,
-    Depends(require_roles("ADMIN", "LOGISTICS_MANAGER")),
-]
-DriverManager = Annotated[
-    User,
-    Depends(require_roles("LOGISTICS_MANAGER")),
-]
+DriverReader = Annotated[User, Depends(require_permission("loadx.drivers.read"))]
+DriverManager = Annotated[User, Depends(require_permission("loadx.drivers.manage"))]
 
 
 def get_driver_service(db: Annotated[Session, Depends(get_db)]) -> DriverService:
@@ -58,8 +54,12 @@ def list_drivers(
     pagination: Pagination,
     _current_user: DriverReader,
     service: Annotated[DriverService, Depends(get_driver_service)],
+    archive_status: ArchiveFilter = "active",
+    search: SearchQuery = None,
 ) -> PageResponse[DriverListRead]:
-    result = service.list_drivers(pagination)
+    result = service.list_drivers(
+        pagination, active=active_filter(archive_status), search=search
+    )
     return to_page_response(
         result,
         (DriverListRead.model_validate(driver) for driver in result.items),
@@ -98,7 +98,7 @@ def create_driver(
     service: Annotated[DriverService, Depends(get_driver_service)],
 ) -> Driver | JSONResponse:
     try:
-        return service.create_driver(data)
+        return service.create_driver(data, changed_by=_current_user.id)
     except DriverDocumentAlreadyExistsError:
         return error_response(
             status.HTTP_409_CONFLICT,
@@ -148,7 +148,7 @@ def update_driver(
     service: Annotated[DriverService, Depends(get_driver_service)],
 ) -> Driver | JSONResponse:
     try:
-        return service.update_driver(driver_id, data)
+        return service.update_driver(driver_id, data, changed_by=_current_user.id)
     except DriverNotFoundError:
         return error_response(
             status.HTTP_404_NOT_FOUND,

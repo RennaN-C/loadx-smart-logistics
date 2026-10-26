@@ -73,6 +73,7 @@ function mockRole(role: Role) {
       createdAt: "2026-08-01T00:00:00Z",
     },
     login: vi.fn(),
+    updateUser: vi.fn(),
     logout: vi.fn(),
   });
 }
@@ -142,11 +143,30 @@ describe("LoadingPage — checklist", () => {
   });
 });
 
+describe("LoadingPage — retorno operacional", () => {
+  it("oferece acesso à central de carregamentos, sem mensagem desatualizada", async () => {
+    mockRole("CHECKER");
+    renderPage();
+    await screen.findByText("Televisor 50");
+    expect(screen.getByRole("link", { name: "Voltar aos carregamentos" })).toHaveAttribute(
+      "href",
+      "/loading-sessions",
+    );
+    expect(screen.queryByText(/listagem de carregamentos ainda não está disponível/)).not.toBeInTheDocument();
+  });
+});
+
 describe("LoadingPage — permissões (OC66)", () => {
   it("o conferente recebe o campo de leitura", async () => {
     mockRole("CHECKER");
     renderPage();
 
+    expect(await screen.findByLabelText("LER CÓDIGO DO VOLUME")).toBeInTheDocument();
+  });
+
+  it("ADMIN também recebe ações de conferência", async () => {
+    mockRole("ADMIN");
+    renderPage();
     expect(await screen.findByLabelText("LER CÓDIGO DO VOLUME")).toBeInTheDocument();
   });
 
@@ -370,4 +390,11 @@ describe("LoadingPage — fluxo manual e etapas", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(/não existe mais/);
     expect(screen.getByRole("button", { name: "Tentar novamente" })).toBeInTheDocument();
   });
+  it("mantém retorno à origem e link estável da sessão persistida", async () => {
+    renderPage();
+    await screen.findByRole("link", { name: "Voltar ao plano de origem" });
+    expect(screen.getByRole("link", { name: "Voltar ao plano de origem" })).toHaveAttribute("href", "/planning/lp1");
+    expect(screen.getByRole("link", { name: "Abrir este carregamento" })).toHaveAttribute("href", "/loading/ls1");
+  });
+
 });

@@ -1,5 +1,33 @@
 # Regras de negócio
 
+## OC84 — notificações operacionais persistentes
+
+`CONFIRMADO`: a revisão de Rennan na PR #226 aprovou a direção estrutural.
+[ADR-041](decisions/ADR-041-notificacoes-operacionais-duraveis.md) define a
+implementação: somente TRIP_STARTED (SCHEDULED → IN_ROUTE efetivo) e
+OCCURRENCE_REGISTERED (UUID real da ocorrência), com motorista da mesma viagem.
+Fato/histórico/notificação são persistidos na mesma transação; falha do registro
+faz rollback de todos. Repetir status não gera evento; duas ocorrências com UUIDs
+distintos são fatos diferentes, não deduplicados por texto ou horário.
+
+`CONFIRMADO`: unicidade PostgreSQL protege tipo/origem/motorista; a origem e o
+destinatário são validados por services públicos e triggers. O registro interno
+não depende de envio. mock_status distingue NOT_ATTEMPTED, ATTEMPT_CLAIMED,
+SIMULATED, FAILED e NO_RECIPIENT. Claim condicional é confirmado antes do mock;
+resultado/falha/ausência de destino não desfazem o domínio já durável.
+
+Session ligada à Connection/savepoint não autoriza saída. A OC79 transfere hints
+ao dono da transação, que despacha após o commit externo; replay não repete o efeito.
+Binding/atividade/telefone são relidos, sem redirecionar a outro motorista. O
+simulador conserva seu aviso explícito, sem notificação automática duplicada.
+Não altera RBAC, contratos HTTP, OC83 ou a fronteira operacional da OC89/OC90.
+
+`RISCO IDENTIFICADO`: crash antes do claim mantém NOT_ATTEMPTED; após claim ou
+resultado incerto mantém ATTEMPT_CLAIMED, nunca sucesso presumido. Sem retry,
+worker, varredura ou exactly-once. OC109 tratará recuperação; OC103, central e
+preferências. WhatsApp continua exclusivamente mock; não há envio/entrega Meta.
+
+
 ## Unidades
 
 - `CONFIRMADO`: dimensões em centímetros.
@@ -32,17 +60,17 @@ Legenda:
 | Recurso | `ADMIN` | `LOGISTICS_MANAGER` | `CHECKER` | `DRIVER` |
 |---|---|---|---|---|
 | Usuários | G | Próprio em `/auth/me` | Próprio em `/auth/me` | Próprio em `/auth/me` |
-| Clientes | R | G | - | - |
-| Consulta auxiliar de CEP (OC62) | - | Consultar | - | - |
-| Motoristas | R | G | - | - |
-| Caminhões | R | G | R | S futuro |
-| Produtos | R | G | R | S futuro |
-| Pedidos | R | G | R | S futuro |
-| Planos de carga | R e explicar | G, calcular, comparar, aprovar e explicar | S e explicar plano aprovado | - |
-| Carregamento | R | Criar e consultar | Consultar, iniciar, conferir itens e finalizar | - |
-| Viagens | R | G e atribuir | - | S em transições permitidas |
-| Entregas | R | G e tratar exceções | - | S em transições permitidas |
-| Ocorrências | R | Criar e consultar | - | Criar e consultar somente nas próprias viagens/entregas |
+| Clientes | G | G | - | - |
+| Consulta auxiliar de CEP (OC62) | Consultar | Consultar | - | - |
+| Motoristas | G | G | - | - |
+| Caminhões | G | G | R | S futuro |
+| Produtos | G | G | R | S futuro |
+| Pedidos | G | G | R | S futuro |
+| Planos de carga | G, calcular, comparar, aprovar e explicar | G, calcular, comparar, aprovar e explicar | S e explicar plano aprovado | - |
+| Carregamento | Criar, consultar, iniciar, conferir e finalizar | Criar e consultar | Consultar, iniciar, conferir itens e finalizar | - |
+| Viagens | G e atribuir | G e atribuir | - | S em transições permitidas |
+| Entregas | G e tratar exceções | G e tratar exceções | - | S em transições permitidas |
+| Ocorrências | Criar e consultar | Criar e consultar | - | Criar e consultar somente nas próprias viagens/entregas |
 | Histórico geral | R | R | - | - |
 | Relatórios | R e gerar | R e gerar | - | - |
 
@@ -54,12 +82,24 @@ classificação/resolução de ocorrências. As evoluções de acesso de ocorrê
 relatórios constam no
 [roadmap canônico](planejamento/roadmap-versoes.md).
 
-`RISCO IDENTIFICADO`: a referência de histórico geral permanece na matriz,
-mas não existe consulta pública de histórico geral, conforme `docs/05`.
+`CONFIRMADO` pela OC97: a referência de histórico geral da matriz é atendida por
+`GET /api/v1/audit`, somente leitura para `ADMIN` e `LOGISTICS_MANAGER`. Os
+filtros são aplicados no backend antes da paginação e a consulta não oferece
+mutação ou exclusão de registros.
+
+**Hierarquia vigente na v1.2.0 (ajuste antecipado à OC112):** ADMIN pode executar
+as mesmas ações gerenciais do LOGISTICS_MANAGER e as ações de conferência do CHECKER.
+O gerente gerencia clientes, produtos, caminhões, motoristas, pedidos, planejamento,
+viagens e demais operações logísticas, mas não usuários, credenciais de terceiros,
+configurações institucionais, gestão de perfis/permissões nem segurança administrativa.
+CHECKER/DRIVER permanecem limitados; o ADMIN não ganha automaticamente vínculo de
+motorista, não pode burlar transições, histórico imutável ou autorização por objeto.
+A OC112 futuramente substituirá a matriz fixa por permissões logísticas efetivas,
+sem criar SUPERADMIN, tenant ou entitlement do CoreFlow.
 
 Regras complementares:
 
-- `ADMIN` administra identidades e consulta a operação; alterações operacionais pertencem ao `LOGISTICS_MANAGER`.
+- `ADMIN` administra identidades e também executa operações gerenciais e de conferência do LoadX, sem contornar regras de negócio ou identidade de motorista.
 - `CHECKER` pode consultar caminhões, produtos e pedidos necessários à conferência, sem acessar cadastros pessoais de clientes ou motoristas.
 - Permissão de consulta não libera automaticamente todos os campos pessoais; seleção, omissão e mascaramento de campos seguem `D12`.
 - Acesso `S` exige vínculo comprovado no banco e validação do objeto solicitado, não apenas do perfil.
@@ -154,7 +194,7 @@ artefatos de carregamento e viagem, sem criar novos estados.
 com os dois verificadores válidos. Sequências repetidas são rejeitadas.
 Telefone é obrigatório e segue o formato nacional descrito abaixo.
 
-`PENDENTE DE DEFINIÇÃO`: validação formal da categoria de CNH.
+`CONFIRMADO` (OC102): novas categorias usam catálogo operacional existente; política explícita valida categorias aceitas sem inferir hierarquia legal.
 
 ### Conflito operacional — OC65
 
@@ -431,7 +471,7 @@ cria `LoadPlan`, não altera pedidos, não escolhe vencedor e não produz rankin
 score ou recomendação automática. A ordem dos resultados acompanha `truck_ids`
 somente para reprodução do contrato e não expressa preferência.
 
-`CONFIRMADO`: somente `LOGISTICS_MANAGER` executa a comparação.
+`CONFIRMADO` (v1.2.0): `ADMIN` e `LOGISTICS_MANAGER` executam a comparação.
 
 ### OC22 - explicação de plano
 
@@ -470,13 +510,13 @@ Desenvolvedor 4.
   `finished_at` em UTC.
 - `CONFIRMADO`: somente a sessão `FINISHED` do mesmo plano libera o início da
   viagem; sessão ausente, incompleta ou pertencente a outro plano não libera.
-- `CONFIRMADO` (OC66): `LOGISTICS_MANAGER` cria a sessão; `CHECKER` inicia a
-  sessão, confere os itens e finaliza o carregamento; `ADMIN`, `CHECKER` e
-  `LOGISTICS_MANAGER` consultam; `DRIVER` não acessa o módulo.
+- `CONFIRMADO` (v1.2.0): `ADMIN` e `LOGISTICS_MANAGER` criam a sessão; `ADMIN` e
+  `CHECKER` iniciam, conferem os itens e finalizam; os três consultam. `DRIVER`
+  não acessa o módulo.
 - `CONFIRMADO` (OC66): a matriz aplica menor privilégio e separa a preparação
   logística da execução da conferência. Alterar um item para `CHECKED`, inclusive
   por mecanismo futuro de QR Code ou código de barras, continua sendo operação
-  de conferência exclusiva de `CHECKER`.
+  de conferência restrita a `ADMIN` e `CHECKER`.
 - `CONFIRMADO` (OC66): não há autorização por objeto no carregamento porque o
   modelo atual não atribui sessão ou item a um conferente. OC75 e OC76 não podem
   inferir propriedade por usuário nem criar vínculo novo sem decisão e contrato
@@ -485,22 +525,25 @@ Desenvolvedor 4.
 ## Viagem e entrega
 
 - `CONFIRMADO`: viagem nasce `SCHEDULED` a partir de plano `APPROVED`, motorista
-  ativo e todos os pedidos do plano em `PLANNED`.
+  elegível e pedidos `PLANNED`; partes operacionais OC90 também aceitam `IN_TRANSIT`.
 - `CONFIRMADO`: cada plano pertence a no máximo uma viagem e cada pedido a no
-  máximo uma entrega no MVP.
+  máximo uma entrega legada, ou uma por parte/pedido na OC90.
 - `CONFIRMADO`: viagem só começa quando a interface pública do carregamento
   confirmar sessão `FINISHED` para o mesmo plano; qualquer ausência ou
   divergência falha fechada e bloqueia `IN_ROUTE`.
 - `CONFIRMADO`: iniciar a viagem executa `SCHEDULED -> IN_ROUTE`, registra
-  `started_at` e move atomicamente todos os pedidos `PLANNED -> IN_TRANSIT`.
+  `started_at` e move atomicamente pedidos `PLANNED -> IN_TRANSIT`. Pedidos já
+  em trânsito por outra parte permanecem assim, sem repetir histórico.
 - `CONFIRMADO`: finalizar executa `IN_ROUTE -> FINISHED` e registra
-  `finished_at` somente quando todas as entregas e pedidos estão `DELIVERED`.
+  `finished_at` quando todas as suas entregas estão `DELIVERED`. No legado,
+  também exige pedidos `DELIVERED`; multi independe de outra viagem.
 - `CONFIRMADO`: entrega executa apenas `PENDING -> IN_DELIVERY -> DELIVERED`
   durante uma viagem `IN_ROUTE`; a conclusão registra `delivered_at` e move o
-  pedido correspondente `IN_TRANSIT -> DELIVERED`.
+  pedido correspondente `IN_TRANSIT -> DELIVERED` no legado; multi aguarda
+  todas as partes que contêm volumes daquele pedido.
 - `CONFIRMADO`: repetir o status atual é idempotente e não cria histórico.
-- `CONFIRMADO`: `LOGISTICS_MANAGER` cria e opera; `ADMIN` somente consulta;
-  `DRIVER` consulta e opera apenas sua própria viagem; `CHECKER` não acessa.
+- `CONFIRMADO` (v1.2.0): `ADMIN` e `LOGISTICS_MANAGER` criam e operam; `DRIVER`
+  consulta e opera somente a própria viagem, com vínculo validado; `CHECKER` não acessa.
 - `CONFIRMADO`: viagem, entrega, pedidos e todos os registros de histórico da
   ação compartilham um único commit ou rollback.
 - Ocorrência não apaga o status anterior, apenas adiciona contexto.
@@ -568,7 +611,7 @@ Regras:
 - Registro de ocorrência não deve excluir nem sobrescrever histórico.
 - `CONFIRMADO`: na v1.0.0, `ADMIN` consulta; `LOGISTICS_MANAGER` cria e consulta;
   `DRIVER` cria e consulta somente nas próprias viagens/entregas. `CHECKER` não
-  tem acesso. Ocorrência vinculada ao carregamento, registro durante conferência
+  tem acesso. Na v1.2.0, `ADMIN` também registra ocorrências. Ocorrência vinculada ao carregamento, registro durante conferência
   e acesso do `CHECKER` nesse contexto são evoluções futuras.
 
 ## WhatsApp e mensagens
@@ -631,7 +674,220 @@ domínio. Operação rejeitada e repetição idempotente não geram notificaçã
 ## Conferência por código — OC76
 
 `CONFIRMADO`: cada código identifica o UUID de um item de checklist, sem
-ambiguidade entre volumes do mesmo produto. Somente `CHECKER` confirma em sessão
+ambiguidade entre volumes do mesmo produto. `ADMIN` e `CHECKER` confirmam em sessão
 `IN_PROGRESS`. Item de outra sessão, inexistente ou já conferido é rejeitado sem
 alteração; uma leitura não finaliza a sessão nem modifica o plano. O contrato
 está em `docs/05-contratos-api.md`; a matriz OC66 permanece vigente.
+
+## OC105 — arquivamento e reativação
+
+`CONFIRMADO`: o gestor arquiva/reativa pelo PATCH existente com `active`. A ação
+é idempotente, mantém UUID, referências e unicidades, e grava auditoria atômica
+com ator e campo `active`. Arquivados podem ser consultados por ID e editados.
+Listas de cadastro ocultam arquivados por padrão; `archive_status` aceita apenas
+`active`, `archived` e `all`, com contagem/paginação aplicada após o filtro.
+Não existe exclusão física. Reativação não libera reservas operacionais.
+
+`CONFIRMADO`: novos pedidos/itens e novos planejamentos não podem usar clientes
+ou produtos arquivados. Aprovação exige fontes ativas. Novos carregamentos e
+viagens não podem usar caminhões arquivados; viagens exigem motorista ativo.
+Operações já criadas continuam seu ciclo com as referências e snapshots
+originais; arquivar não cancela pedidos, planos, carregamentos ou viagens, mantendo
+a matriz RBAC vigente (motorista arquivado perde acesso operacional próprio;
+gestor continua podendo concluir a operação).
+Indisponibilidade temporária continua em `has_operation_conflict`/`available`,
+sem reutilizar o ciclo de arquivamento.
+
+## OC99 — endereços reutilizáveis
+
+`CONFIRMADO`: ADMIN e LOGISTICS_MANAGER gerem endereços; CHECKER/DRIVER não
+acessam endereços do cliente. Consulta paginada usa archive_status da OC105;
+seleções operacionais recebem apenas ativos de cliente ativo. Apenas um ativo
+é principal; o primeiro ativo é principal automaticamente. Marcar outro como
+principal desmarca o anterior atomicamente. Não é possível desmarcar o único
+principal sem substituição; arquivar promove o ativo mais antigo.
+
+`CONFIRMADO`: pedido com customer_address_id exige endereço ativo pertencente ao
+cliente. O servidor copia o snapshot; não aceita texto concorrente na mesma
+seleção. Pedido legado pode continuar informando delivery_address textual.
+PATCH em DRAFT pode selecionar outro endereço; alterar cliente exige nova
+seleção ou texto explícito e desfaz o vínculo anterior. PATCH sem mudança de
+endereço preserva snapshot, mesmo se o cadastro for alterado/arquivado depois.
+Nenhuma alteração cadastral reescreve pedidos, planos, viagens ou entregas.
+Consulta ViaCEP reutiliza o contrato existente; falha não impede cadastro manual.
+
+## OC100 — manutenção e quilometragem
+
+`CONFIRMADO`: manutenção preventiva/corretiva é bloqueio temporal independente
+de arquivamento. Janela aberta [início, fim), ou indefinida sem fim, torna o
+veículo indisponível; futura não bloqueia agora. Encerrar/cancelar janela futura
+preserva histórico e remove apenas esse bloqueio. Operação ativa impede criar
+manutenção, inclusive futura, porque não há liberação prevista confiável.
+Novos planejamentos/aprovação/distribuição, criação/início de carregamento e
+viagem validam manutenção no backend; operações em andamento podem concluir.
+
+`CONFIRMADO`: odômetro informado é inteiro não negativo e não diminui. Revisão
+por data/km é opcional e exibida como alerta; vencimento não cria manutenção
+silenciosa. Encerramento mantém programação omitida e admite null explícito
+para limpar critério. Data deve ser futura e km superar o conhecido.
+Transações e lock do caminhão protegem histórico, odômetro, auditoria e conflitos.
+
+## OC101 — documentos e elegibilidade
+
+`CONFIRMADO`: CRLV, LICENSING e INSURANCE têm versões imutáveis e uma corrente
+por caminhão/tipo. Renovação preserva histórico, inclusive arquivo de referência.
+Datas UTC opcionais; vencimento exclusivo e emissão futura impedem validade.
+Status VALID/EXPIRING (30 dias)/EXPIRED/NOT_YET_VALID/SUPERSEDED é derivado.
+Política required por tipo/caminhão exige presença e validade; default sem
+exigências preserva a frota legada. Alerta não modifica active nem manutenção.
+Novas operações validam documentos junto da manutenção; operações iniciadas
+podem concluir. Gestão ADMIN/LOGISTICS_MANAGER, leitura CHECKER; DRIVER negado.
+Locks no caminhão, constraints e auditoria atômica. ADR-031.
+
+## OC102 — documentos de motoristas
+
+`CONFIRMADO`: CNH é tipo nativo. ADMIN/LOGISTICS_MANAGER aprovam tipos adicionais
+explicitamente; nenhum MOPP/exame/requisito legal é inventado. Documentos têm
+versões imutáveis por motorista/tipo, renovação e auditoria atômica. CNH corrente
+projeta número/categoria/validade no cadastro; create/PATCH também versionam
+esses dados. Políticas desligadas preservam elegibilidade legada.
+CNH exigida precisa de validade e categoria conhecidas. Catálogo existente
+C/D/E/AC/AD/AE, com categorias aceitas explicitamente por política e pertinência
+exata, sem inferir hierarquia ou classe de veículo. Versão vencida/emissão
+futura/ausente impede criação e início de viagem quando exigida; viagem em
+andamento pode concluir. Active/conflito permanecem independentes.
+Validade UTC exclusiva e alerta de 30 dias reutilizam OC101 em shared.
+Histórico de viagens não é apagado; arquivos/notificações externas fora do
+escopo. ADR-032 registra decisão técnica e limites.
+
+## OC110 — anexos e documentos operacionais
+
+`CONFIRMADO`: cada anexo pertence exatamente a um recurso aprovado e autorizado.
+Remoção lógica irreversível conserva metadata, vínculos e auditoria; impede
+download. Upload não muda pedido, viagem, entrega ou ocorrência e não substitui
+comprovante OC78/OC80. Retry por autor/evento não duplica blob ou auditoria;
+reutilização incompatível retorna conflito. Fonte de integridade é PostgreSQL
+(FKs, CHECKs e UNIQUE), com auditoria na transação e compensação conservadora
+do objeto novo em falhas. Regras de acesso mantêm RBAC e vínculo do motorista.
+`PENDENTE DE DEFINIÇÃO`: retenção e storage de produção, conforme ADR-033; binários
+em produção ficam desabilitados, sem prazo legal ou provedor inventado.
+
+## OC104 — importação de cadastros
+
+`CONFIRMADO`: criação separada para clientes, produtos, caminhões e motoristas;
+sem pedidos, upsert ou reativação. Unicidade inclui arquivados. Prévia não grava;
+confirmação revalida e aplica o arquivo inteiro atomicamente. Rejeição gera
+resultado auditável sem cadastros; falha inesperada desfaz também a tentativa.
+Retry idempotente por ator/evento; endereço principal, CNH e auditorias fazem
+parte da transação. [ADR-034](decisions/ADR-034-importacao-cadastros.md).
+
+## OC85 — área administrativa
+
+`CONFIRMADO`: Configurações é uma área de navegação somente ADMIN ativo, sem
+mudança da matriz RBAC dos demais módulos. Acesso direto de outros perfis é
+negado; contexto da conta é leitura da sessão atual. Conta/administração e
+configurações logísticas são seções distintas. OC86, OC91 e OC92 permanecem
+entradas informativas em preparação, sem operações antecipadas. Não cria
+isolamento por empresa, licenciamento ou dependência do CoreFlow.
+
+## OC91 — dados da empresa
+
+`CONFIRMADO`: o LoadX standalone tem um único cadastro institucional opcional
+até sua primeira gravação explícita. ADMIN ativo consulta/edita; outros perfis
+não acessam cadastro nem histórico institucional. Identificador técnico local
+não é CNPJ/e-mail e não é tenant. Alteração e auditoria são atômicas; histórico
+registra nomes dos campos sem valores. Logotipo é referência HTTPS, sem upload
+ou leitura externa automática. OC86, OC92 e integração CoreFlow não integram
+este escopo. Contrato e concorrência: ADR-035 e `docs/05-contratos-api.md`.
+
+## OC88 — otimização automática multi-caminhão
+
+`CONFIRMADO`: a necessidade multi-caminhão é otimizada somente com veículos
+elegíveis retornados pelo preflight da OC87. A função objetivo prioriza uma
+solução completa e, depois, a menor quantidade de caminhões.
+
+`CONFIRMADO`: toda atribuição de volumes é novamente submetida à engine física
+existente. Uma proposta com qualquer rejeição física não é persistida como
+solução parcial.
+
+`CONFIRMADO`: para a mesma necessidade e fotografia da frota, seleção,
+desempates e partição são determinísticos. A ordem de entrada não decide o
+vencedor.
+
+`CONFIRMADO`: ausência de capacidade completa retorna erro explicável e mantém
+pedidos, planos e claims sem alterações.
+
+`RISCO IDENTIFICADO`: a busca é uma heurística síncrona com fronteira limitada;
+não representa prova matemática de ótimo global de bin-packing 3D.
+
+
+## Evolução OC112
+
+`CONFIRMADO`: a OC112 (#159) preserva os papéis fixos e evolui a autorização por
+permissões efetivas, conforme ADR-040 e catálogo de access_profiles. CUSTOM não
+herda acesso do gerente; poderes reservados/identidade não são delegáveis. ADMIN
+é superconjunto gerencial dentro do LoadX, preservando estados, vínculos e ator
+real. Nenhum entitlement, tenant ou SUPERADMIN é criado. Demais invariantes e
+proteção do último administrador continuam aplicáveis.
+
+## Recepção HTTP controlada — OC83
+
+`CONFIRMADO`: somente comandos já aprovados da OC79 alcançam os services de
+viagens/entregas. Assinatura, binding do servidor, capabilities e autorização por
+objeto são obrigatórios. Reenvio válido não repete efeito/histórico; conflito ou
+falha não deixa alteração parcial. Mídia inbound permanece desabilitada, sem
+comando novo, download externo ou IO de storage na transação da OC79.
+
+## OC103 — central pessoal de notificações
+
+`CONFIRMADO`: ADR-042 define destinatários por conta/permissão efetiva e vínculo
+DRIVER. ADMIN não personifica outro destinatário. Revogação de acesso à origem
+oculta a notificação sem apagar histórico. Leitura é individual e idempotente;
+marcar todas afeta somente a caixa visível da sessão naquele snapshot.
+Preferências TRIPS/OCCURRENCES afetam somente novas associações; SECURITY é
+obrigatória, sem criar evento novo. Não há alertas de documento/manutenção até
+contrato do módulo dono; regras e elegibilidade existentes não são duplicadas.
+
+## OC109
+
+`CONFIRMADO`: ADR-043 define lease/fencing, resultado incerto sem retry automático,
+backoff limitado, adoção de tentativas OC84 sem reenvio e reprocessamento ADMIN
+idempotente/auditado. Caixa OC103 é independente do canal exclusivamente mock.
+
+
+## OC90 — continuidade operacional multi-caminhão
+
+`CONFIRMADO`: somente distribuição APPROVED, parte APPROVED e plano atual
+liberam carregamento/viagem, qualquer que seja a quantidade de partes. Versão
+histórica continua bloqueada. Cada parte opera somente seus volumes originais.
+O primeiro início muda o pedido PLANNED → IN_TRANSIT uma vez. Outros inícios
+aceitam IN_TRANSIT e não repetem histórico. A entrega representa uma perna;
+somente todas as partes que contêm volumes daquele pedido permitem DELIVERED.
+Partes ainda sem entrega também impedem conclusão agregada. Locks por pedido e
+consulta persistida após o lock serializam conclusões concorrentes.
+
+`CONFIRMADO`: viagem multi pode FINISHED com suas próprias entregas concluídas,
+mesmo com outra perna pendente e pedido IN_TRANSIT. Falha/rollback em uma parte
+não altera outra. Loading create e repetição de estado/comprovante preservam
+idempotência; criar novamente Trip mantém TRIP_LOAD_PLAN_ALREADY_ASSIGNED.
+Legado sem distribuição conserva unicidade de entrega e semântica anterior.
+Decisão estrutural proposta: ADR-044. OC94 e UI OC89 permanecem fora do escopo.
+
+`CONFIRMADO` (OC90): desde a primeira LoadingSession persistida (ou Trip,
+defensivamente), plano, caminhão/snapshots/métricas e pedidos/volumes/posições do
+plano permanecem imutáveis no PostgreSQL, inclusive no legado. UPDATE sem mudança
+é permitido. Antes desse marco, criação, aprovação e reprocessamento continuam
+sob as regras anteriores. Contenção com criação operacional exige retry da
+mutação direta; não autoriza alterar uma fotografia já operada. Ver ADR-044.
+
+
+## OC81 — leitura contextual de comunicação
+
+`CONFIRMADO`: a comunicação por entrega é somente projeção dos fatos duráveis de
+ocorrências associadas exatamente à própria entrega/viagem, respeitando grants
+de leitura de entregas e ocorrências ou vínculo DRIVER ativo. Não transfere a
+caixa pessoal de outro usuário, não marca avisos como lidos e não dá permissão
+para administrar/reprocessar outbox. Eventos gerais de viagem e outras pernas
+do mesmo pedido não são atribuídos à entrega. Estados são de WhatsApp simulado;
+não afirmam conexão, envio ou entrega Meta. Nenhuma alteração da máquina de
+estados das entregas, comprovantes, volumes ou pedidos é feita nesta OC.

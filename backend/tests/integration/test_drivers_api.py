@@ -332,7 +332,7 @@ def test_admin_can_read_drivers(
 
 
 @pytest.mark.parametrize("method", ["POST", "PATCH"])
-def test_admin_cannot_manage_drivers(
+def test_admin_can_manage_drivers(
     client: TestClient,
     session_factory: SessionFactory,
     method: str,
@@ -353,8 +353,8 @@ def test_admin_cannot_manage_drivers(
         authorization_headers(session_factory, admin),
     )
 
-    assert response.status_code == 403
-    assert response.json()["code"] == "AUTH_FORBIDDEN"
+    assert response.status_code == (201 if method == "POST" else 200)
+    assert response.json()["id"]
 
 
 @pytest.mark.parametrize(("method", "route"), DRIVER_ROUTE_CASES)

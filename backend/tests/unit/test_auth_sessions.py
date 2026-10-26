@@ -4,16 +4,24 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from sqlalchemy.orm import Session
 
+from app.modules.access_profiles.models import AccessProfile
 from app.modules.auth.models import AuthSession
 from app.modules.auth.sessions import (
     AuthSessionInactiveUserError,
     AuthSessionInvalidError,
     AuthSessionService,
 )
-from app.modules.drivers.models import Driver
+from app.modules.drivers.models import (
+    Driver,
+)
 from app.modules.users.models import User
 
-SQLITE_TABLES = (Driver.__table__, User.__table__, AuthSession.__table__)
+SQLITE_TABLES = (
+    Driver.__table__,
+    AccessProfile.__table__,
+    User.__table__,
+    AuthSession.__table__,
+)
 
 
 class Clock:
@@ -192,3 +200,24 @@ def test_csrf_token_is_stable_tied_to_session_and_constant_time_validated(
     assert service.csrf_token_for(first.token) == first.csrf_token
     assert service.validate_csrf_token(first.token, first.csrf_token) is True
     assert service.validate_csrf_token(first.token, second.csrf_token) is False
+
+
+def test_sqlite_unit_fixture_keeps_trusted_device_lifetime_bound(db_session: Session):
+    from sqlalchemy.exc import IntegrityError
+
+    from app.modules.auth.models import AuthTrustedDevice
+
+    user = create_user(db_session)
+    now = datetime(2026, 10, 19, tzinfo=UTC)
+    db_session.add(
+        AuthTrustedDevice(
+            user_id=user.id,
+            token_hash="a" * 64,
+            security_binding="b" * 64,
+            created_at=now,
+            last_used_at=now,
+            expires_at=now + timedelta(days=31),
+        )
+    )
+    with pytest.raises(IntegrityError):
+        db_session.flush()

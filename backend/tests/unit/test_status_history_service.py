@@ -3,7 +3,10 @@ import uuid
 import pytest
 from sqlalchemy.orm import Session
 
-from app.modules.drivers.models import Driver
+from app.modules.access_profiles.models import AccessProfile
+from app.modules.drivers.models import (
+    Driver,
+)
 from app.modules.status_history.models import StatusHistory
 from app.modules.status_history.schemas import StatusHistoryCreate
 from app.modules.status_history.service import (
@@ -13,7 +16,12 @@ from app.modules.status_history.service import (
 )
 from app.modules.users.models import User
 
-SQLITE_TABLES = (Driver.__table__, User.__table__, StatusHistory.__table__)
+SQLITE_TABLES = (
+    Driver.__table__,
+    AccessProfile.__table__,
+    User.__table__,
+    StatusHistory.__table__,
+)
 
 
 def create_user(db: Session) -> User:

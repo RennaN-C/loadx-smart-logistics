@@ -1,3 +1,5 @@
+import type { TripStatus } from "../deliveries/types";
+
 export const LOAD_PLAN_STATUSES = ["CALCULATED", "APPROVED", "REJECTED"] as const;
 export type LoadPlanStatus = (typeof LOAD_PLAN_STATUSES)[number];
 
@@ -53,6 +55,8 @@ export interface LoadPlanItem extends LoadPlanItemSnapshot {
 }
 
 export interface LoadPlan {
+  ordersReadyForApproval?: boolean | null;
+  distributionId?: string | null;
   id: string;
   truckId: string;
   /** Preenchido quando este plano nasceu de um recálculo de outro. */
@@ -107,4 +111,68 @@ export interface LoadPlanVisualization {
   truck: TruckSnapshot;
   items: PlacedItem[];
   unloadedItems: UnloadedItem[];
+}
+
+export type PlanOperationStatus = "NOT_STARTED" | "IN_PROGRESS" | "PARTIALLY_DELIVERED" | "COMPLETED" | "CANCELED";
+export interface PlanOperation {
+  status: PlanOperationStatus;
+  loading_session_id: string | null;
+  loading_status: "PENDING" | "IN_PROGRESS" | "FINISHED" | null;
+  trip_id: string | null;
+  trip_status: TripStatus | null;
+  order_count: number;
+  delivered_order_count: number;
+  partial_order_count: number;
+  ready_order_count: number;
+  delivery_count: number;
+  delivered_leg_count: number;
+}
+
+export interface LoadPlanListItem {
+  operation?: PlanOperation | null;
+  distributionId?: string | null;
+  id: string;
+  truckId: string;
+  truckPlate: string;
+  truckModel: string;
+  status: LoadPlanStatus;
+  createdAt: string;
+  recalculatedFromId: string | null;
+  loadedCount: number;
+  unloadedCount: number;
+  occupancyPercent: number;
+  totalWeightKg: number;
+  orderCount: number;
+}
+
+export interface LoadPlanContinuity {
+  operation?: PlanOperation | null;
+  loading_session: { id: string; status: "PENDING" | "IN_PROGRESS" | "FINISHED" } | null;
+  trip: { id: string; status: TripStatus } | null;
+  operational_ready: boolean;
+}
+
+
+export type DistributionStatus = "PROPOSED" | "PARTIALLY_APPROVED" | "APPROVED" | "INCOMPLETE" | "CANCELED";
+export type DistributionPartStatus = "PENDING" | "APPROVED" | "CANCELED";
+export interface VolumeReference { orderItemId: string; volumeIndex: number }
+export interface DistributionVolume extends VolumeReference {
+  orderId: string; productId: string; quantity: number; partId: string;
+}
+export interface DistributionPart {
+  id: string; status: DistributionPartStatus; truck: TruckSnapshot; loadPlan: LoadPlan;
+}
+export interface LoadDistribution {
+  id: string; status: DistributionStatus; createdBy: string; createdAt: string;
+  orderIds: string[]; truckCount: number; volumeCount: number;
+  parts: DistributionPart[]; volumes: DistributionVolume[];
+}
+export type IneligibleTruckReason = "INACTIVE" | "TRUCK_OPERATION_CONFLICT" | "TRUCK_IN_MAINTENANCE" | "TRUCK_DOCUMENT_INELIGIBLE";
+export interface DistributionNeed {
+  orderIds: string[];
+  volumes: (VolumeReference & { orderId: string; productId: string; widthCm: number;
+    heightCm: number; lengthCm: number; weightKg: number; deliverySequence: number;
+    fragile: boolean; stackable: boolean; rotationAllowed: boolean })[];
+  eligibleTrucks: TruckSnapshot[];
+  ineligibleTrucks: { truckId: string; reason: IneligibleTruckReason }[];
 }

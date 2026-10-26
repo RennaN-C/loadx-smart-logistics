@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { makePage } from "../../../tests/makePage";
@@ -8,8 +8,11 @@ import { listOrders } from "../../orders/api/ordersApi";
 import type { OrderListItem } from "../../orders/types";
 import { ReportsPage } from "./ReportsPage";
 
+let profileRole = "LOGISTICS_MANAGER";
+vi.mock("../../auth/hooks/useAuth", () => ({ useAuth: () => ({ user: { active: true, role: profileRole } }) }));
 vi.mock("../../orders/api/ordersApi");
 vi.mock("../../customers/api/customersApi");
+vi.mock("../components/ManagementReportsPanel", () => ({ ManagementReportsPanel: () => <div data-testid="management-report-panel" /> }));
 
 /** Bem no passado, para "atrasado" não depender de quando o teste roda. */
 const VENCIDO = "2020-01-01T00:00:00Z";
@@ -25,13 +28,14 @@ function order(overrides: Partial<OrderListItem> = {}): OrderListItem {
     expectedDeliveryAt: null,
     createdAt: "2026-08-01T00:00:00Z",
     itemCount: 1,
+    volumeCount: 1,
     ...overrides,
   };
 }
 
 const CUSTOMERS = [
-  { id: "c1", name: "Distribuidora Aurora", city: "Campinas", state: "SP", createdAt: VENCIDO },
-  { id: "c2", name: "Cliente viagem", city: "Sorocaba", state: "SP", createdAt: VENCIDO },
+  { id: "c1", name: "Distribuidora Aurora", active: true, city: "Campinas", state: "SP", createdAt: VENCIDO },
+  { id: "c2", name: "Cliente viagem", active: true, city: "Sorocaba", state: "SP", createdAt: VENCIDO },
 ];
 
 function arrange(orders: OrderListItem[], { customersFail = false } = {}) {
@@ -58,13 +62,14 @@ function kpi(rotulo: string) {
 describe("ReportsPage", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    profileRole = "LOGISTICS_MANAGER";
   });
 
   it("apura os indicadores sobre os pedidos", async () => {
     arrange([
-      order({ id: "a", status: "READY", itemCount: 3 }),
-      order({ id: "b", status: "IN_TRANSIT", itemCount: 2 }),
-      order({ id: "c", status: "DELIVERED", itemCount: 90 }),
+      order({ id: "a", status: "READY", itemCount: 1, volumeCount: 3 }),
+      order({ id: "b", status: "IN_TRANSIT", itemCount: 1, volumeCount: 2 }),
+      order({ id: "c", status: "DELIVERED", itemCount: 1, volumeCount: 90 }),
     ]);
 
     render(<ReportsPage />);
@@ -72,7 +77,7 @@ describe("ReportsPage", () => {
     await waitFor(() => expect(kpi("PEDIDOS")).toBe("3"));
     expect(kpi("EM ABERTO")).toBe("2");
     // o entregue não conta: já saiu do caminhão
-    expect(kpi("VOLUMES A CARREGAR")).toBe("5");
+    expect(kpi("VOLUMES EM ABERTO")).toBe("5");
     expect(kpi("ATRASADOS")).toBe("0");
   });
 
@@ -114,7 +119,7 @@ describe("ReportsPage", () => {
     render(<ReportsPage />);
 
     await waitFor(() => expect(kpi("PEDIDOS")).toBe("1"));
-    expect(screen.getByText(/conferente não lê dados de clientes/)).toBeInTheDocument();
+    expect(screen.getByText(/Dados por cliente não estão disponíveis/)).toBeInTheDocument();
     expect(screen.queryByText("Por cliente")).not.toBeInTheDocument();
   });
 
@@ -136,5 +141,50 @@ describe("ReportsPage", () => {
     render(<ReportsPage />);
 
     expect(await screen.findByRole("alert")).toHaveTextContent(/Não foi possível apurar/);
+    expect(screen.getByRole("heading", { name: "Relatórios e indicadores", level: 1 })).toBeInTheDocument();
   });
+  it("usa volumes físicos tanto no total quanto nas tabelas", async () => {
+    arrange([order({ itemCount: 2, volumeCount: 19, expectedDeliveryAt: VENCIDO })]);
+    render(<ReportsPage />);
+    await waitFor(() => expect(kpi("VOLUMES EM ABERTO")).toBe("19"));
+    for (const table of screen.getAllByRole("table")) expect(within(table).getByText("19")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Tabela de pedidos atrasados" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Tabela de indicadores por cliente" })).toBeInTheDocument();
+    expect(screen.getByText(/até 1.000 pedidos/)).toBeInTheDocument();
+  });
+
+  it("conferente não faz a consulta de clientes protegida", async () => {
+    profileRole = "CHECKER";
+    arrange([order()]);
+    render(<ReportsPage />);
+    await waitFor(() => expect(kpi("PEDIDOS")).toBe("1"));
+    expect(listCustomers).not.toHaveBeenCalled();
+    expect(screen.queryByText("Por cliente")).not.toBeInTheDocument();
+  });
+
+  it("sinaliza quantidades físicas ausentes sem números inventados", async () => {
+    arrange([order({ itemCount: 2, volumeCount: undefined, expectedDeliveryAt: VENCIDO })]);
+    render(<ReportsPage />);
+    expect(await screen.findByRole("alert")).toHaveTextContent(/Volumes físicos não informados/);
+    expect(kpi("VOLUMES EM ABERTO")).toBe("—");
+  });
+
+  it("limita a mil pedidos e informa a parcela não apurada", async () => {
+    vi.mocked(listCustomers).mockResolvedValue(makePage(CUSTOMERS));
+    vi.mocked(listOrders).mockImplementation(async (params) => ({ ...makePage(Array.from({ length: 100 }, (_, index) => order({ id: `${params?.page}-${index}` }))), page: params?.page ?? 1, total: 1001, totalPages: 11 }));
+    render(<ReportsPage />);
+    expect(await screen.findByRole("alert")).toHaveTextContent("1 pedido(s) ficaram fora");
+    expect(kpi("PEDIDOS")).toBe("1000");
+    expect(listOrders).toHaveBeenCalledTimes(10);
+  });
+
+  it("repete a consulta após erro sem afetar os contratos PDF", async () => {
+    vi.mocked(listOrders).mockRejectedValueOnce(new ApiError("NETWORK_ERROR", "sem rede")).mockResolvedValue(makePage([order()]));
+    vi.mocked(listCustomers).mockResolvedValue(makePage(CUSTOMERS));
+    render(<ReportsPage />);
+    await screen.findByRole("alert");
+    fireEvent.click(screen.getByRole("button", { name: "Recarregar" }));
+    await waitFor(() => expect(kpi("PEDIDOS")).toBe("1"));
+  });
+
 });

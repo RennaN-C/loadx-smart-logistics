@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { ApiError } from "../../../types/api";
 import { getTrip } from "../api/tripsApi";
@@ -28,6 +28,9 @@ export function useTripPage(tripId: string | undefined): UseTripPageResult {
   const [isWorking, setIsWorking] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const currentId = useRef(tripId);
+  currentId.current = tripId;
+
   const toMessage = useCallback(
     (error: unknown) =>
       mapTripErrorToMessage(
@@ -39,10 +42,12 @@ export function useTripPage(tripId: string | undefined): UseTripPageResult {
   );
 
   useEffect(() => {
+    setTrip(null);
     if (!tripId) return;
 
     let active = true;
     setIsLoading(true);
+    setIsWorking(false);
     setErrorMessage(null);
 
     getTrip(tripId)
@@ -63,19 +68,21 @@ export function useTripPage(tripId: string | undefined): UseTripPageResult {
 
   const run = useCallback(
     async (action: () => Promise<Trip>) => {
+      const actionId = currentId.current;
       setErrorMessage(null);
       setIsWorking(true);
 
       try {
-        setTrip(await action());
+        const updated = await action();
+        if (currentId.current === updated.id) setTrip(updated);
       } catch (error) {
-        setErrorMessage(toMessage(error));
+        if (currentId.current === actionId) setErrorMessage(toMessage(error));
       } finally {
-        setIsWorking(false);
+        if (currentId.current === actionId) setIsWorking(false);
       }
     },
     [toMessage],
   );
 
-  return { trip, isLoading, isWorking, errorMessage, run };
+  return { trip: trip?.id === tripId ? trip : null, isLoading, isWorking, errorMessage, run };
 }

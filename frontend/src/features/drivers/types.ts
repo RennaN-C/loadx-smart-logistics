@@ -16,6 +16,7 @@ export interface DriverListItem {
 export interface Driver extends DriverListItem {
   document: string;
   phone: string;
+  licenseExpiresAt?: string | null;
   licenseNumber: string;
 }
 
@@ -24,6 +25,7 @@ export interface DriverInput {
   name: string;
   document: string;
   phone: string;
+  licenseExpiresAt?: string | null;
   licenseNumber: string;
   licenseCategory: string | null;
 }
@@ -35,6 +37,7 @@ export interface DriverOperationalStatus {
   name: string;
   licenseCategory: string | null;
   active: boolean;
+  hasDocumentConflict?: boolean;
   hasOperationConflict: boolean;
   available: boolean;
 }

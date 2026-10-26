@@ -1,9 +1,10 @@
 import { api } from "../../../services/api";
-import { mapPageFromDto, toPageQuery, type ListParams, type PageDto } from "../../../services/pagination";
+import { mapPageFromDto, toPageQuery, toSearchQuery, type SearchListParams, type PageDto } from "../../../services/pagination";
 import type { Page } from "../../../types/api";
 import type { Product, ProductInput, ProductUpdateInput } from "../types";
 
 interface ProductDto {
+  active: boolean;
   id: string;
   code: string;
   name: string;
@@ -31,6 +32,7 @@ export function mapProductFromDto(dto: ProductDto): Product {
     fragile: dto.fragile,
     stackable: dto.stackable,
     rotationAllowed: dto.rotation_allowed,
+    active: dto.active,
     createdAt: dto.created_at,
   };
 }
@@ -49,6 +51,7 @@ function mapProductToDto(input: ProductUpdateInput): Partial<ProductDto> {
   if (input.stackable !== undefined) dto.stackable = input.stackable;
   if (input.rotationAllowed !== undefined) dto.rotation_allowed = input.rotationAllowed;
 
+  if (input.active !== undefined) dto.active = input.active;
   return dto;
 }
 
@@ -56,8 +59,12 @@ export function mapProductPageFromDto(dto: PageDto<ProductDto>): Page<Product> {
   return mapPageFromDto(dto, mapProductFromDto);
 }
 
-export async function listProducts(params: ListParams = {}): Promise<Page<Product>> {
-  const { data } = await api.get<PageDto<ProductDto>>("/products", { params: toPageQuery(params) });
+export interface ProductListParams extends SearchListParams {
+  restriction?: "restricted" | "free";
+}
+
+export async function listProducts(params: ProductListParams = {}): Promise<Page<Product>> {
+  const { data } = await api.get<PageDto<ProductDto>>("/products", { params: { ...toPageQuery(params), ...toSearchQuery(params), ...(params.restriction ? { restriction: params.restriction } : {}), ...(params.archiveStatus ? { archive_status: params.archiveStatus } : {}) } });
 
   return mapProductPageFromDto(data);
 }

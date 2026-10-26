@@ -1,12 +1,16 @@
 import uuid
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.core.json_decimal import JsonDecimal
 
+ProductRestriction = Literal["restricted", "free"]
+
 
 class ProductBase(BaseModel):
+    active: bool = True
     code: str = Field(min_length=1, max_length=64)
     name: str = Field(min_length=1, max_length=160)
     description: str | None = None
@@ -31,6 +35,7 @@ class ProductCreate(ProductBase):
 
 
 class ProductUpdate(BaseModel):
+    active: bool | None = None
     code: str | None = Field(default=None, min_length=1, max_length=64)
     name: str | None = Field(default=None, min_length=1, max_length=160)
     description: str | None = None
@@ -47,6 +52,7 @@ class ProductUpdate(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
     @field_validator(
+        "active",
         "code",
         "name",
         "width_cm",

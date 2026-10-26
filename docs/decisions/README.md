@@ -32,6 +32,36 @@ Registros aceitos relevantes:
 - `ADR-023`: conflito e reserva operacional de caminhões entre carregamento e viagens.
 - `ADR-024`: comprovante operacional como projeção auditável da conclusão da entrega.
 
+- `ADR-029`: endereços reutilizáveis e snapshot contratado do pedido (OC99, PR #175).
+- `ADR-030`: manutenção e disponibilidade programada da frota (OC100, PR #176).
+- `ADR-031`: documentos, versões e elegibilidade dos caminhões (OC101, PR #177).
+- `ADR-032`: documentos, renovação e elegibilidade de motoristas (OC102, PR #178).
+- `ADR-033`: anexos operacionais com storage privado local e limites de produção (OC110, PR #179).
+- `ADR-034`: importação atômica de cadastros via CSV (OC104, PR #180).
+- `ADR-035`: cadastro institucional monoempresa, contrato ADMIN e auditoria protegida (OC91).
+- `ADR-036`: manutenção exclusiva do mock de WhatsApp nesta etapa da OC82;
+  integração real adiada por orientação do solicitante em 09/10/2026.
+
+- `ADR-037`: decisões de integração da fase inicial; WhatsApp simulado, IA real e webhook/notificações internos.
+
+As ADR-029 a ADR-034 foram aceitas para o escopo implementado na v1.2.0 standalone
+em 09/10/2026. Aceitação da decisão técnica não implica liberação da v1.2.0
+para produção, aprovação por revisor independente ou aceite de decisões futuras.
+
 Proposta para revisão:
 
 - `ADR-025`: sinais operacionais e diagnóstico seguro, sem fornecedor obrigatório (OC77).
+
+- `ADR-039`: sugestões globais limitadas e RBAC antes da consulta (OC107).
+  ADR-038 reservada pela PR #211/OC98, não incorporada nesta base.
+
+- [ADR-040 — Perfis e permissões standalone](ADR-040-perfis-permissoes-standalone.md) — OC112, proposta implementada para revisão.
+
+- [ADR-041 — notificações operacionais duráveis e claim após commit externo](ADR-041-notificacoes-operacionais-duraveis.md).
+
+- [ADR-042 — central pessoal de notificações](ADR-042-central-notificacoes-pessoais.md).
+
+- [ADR-043 — outbox, leases e reprocessamento](ADR-043-outbox-retentativas.md) — OC109, proposta implementada para revisão.
+
+
+- [ADR-044 — Entregas por parte de distribuição](ADR-044-entregas-por-parte-distribuicao.md) — OC90, proposta implementada para revisão.

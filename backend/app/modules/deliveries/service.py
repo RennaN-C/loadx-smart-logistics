@@ -1,14 +1,14 @@
-import logging
 import uuid
 from collections.abc import Sequence
 from datetime import UTC, datetime
 
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.core.observability import OperationalEvent, emit_operational_event
 from app.core.pagination import PageResult, PaginationParams
 from app.database.integrity import get_integrity_constraint_name
+from app.modules.access_profiles.catalog import Permission, has_permission
 from app.modules.deliveries.models import (
     DELIVERY_STATUS_VALUES,
     TRIP_STATUS_VALUES,
@@ -23,10 +23,12 @@ from app.modules.loading.reference_service import LoadingReferenceService
 from app.modules.notifications.service import OperationalNotificationService
 from app.modules.orders.models import Order
 from app.modules.orders.service import OrderService
+from app.modules.status_history.models import StatusHistory
 from app.modules.status_history.schemas import StatusHistoryCreate
 from app.modules.status_history.service import StatusHistoryService
 from app.modules.trucks.service import TruckService
 from app.modules.users.models import User
+from app.shared.record_lifecycle import ensure_record_active
 
 TRIP_STATUS_TRANSITIONS = {
     "SCHEDULED": frozenset({"IN_ROUTE"}),
@@ -116,6 +118,10 @@ class DeliveryReceiptHistoryInvalidError(Exception):
     pass
 
 
+class DeliveryOperationalExceptionPendingError(Exception):
+    """Unresolved exception blocks confirmation and receipt."""
+
+
 class TripAccessForbiddenError(Exception):
     pass
 
@@ -135,13 +141,21 @@ class TripService:
         self.loading_reference_service = (
             loading_reference_service or LoadingReferenceService(db)
         )
-        self.notification_service = notification_service
+        self.notification_service = (
+            notification_service or OperationalNotificationService()
+        )
         self.order_service = OrderService(db)
         self.status_history_service = StatusHistoryService(db)
         self.truck_service = TruckService(db)
 
-    def get_trip(self, trip_id: uuid.UUID, *, current_user: User) -> Trip:
-        trip = self.repository.get(trip_id)
+    def get_trip(
+        self, trip_id: uuid.UUID, *, current_user: User, for_update: bool = False
+    ) -> Trip:
+        trip = (
+            self.repository.get_for_update(trip_id)
+            if for_update
+            else self.repository.get(trip_id)
+        )
         if trip is None:
             raise TripNotFoundError
         self._ensure_can_read(current_user, trip)
@@ -152,9 +166,11 @@ class TripService:
         pagination: PaginationParams,
         *,
         current_user: User,
+        search: str | None = None,
+        status: str | None = None,
     ) -> PageResult[TripListItem]:
-        if current_user.role in {"ADMIN", "LOGISTICS_MANAGER"}:
-            return self.repository.list(pagination)
+        if has_permission(current_user, Permission.TRIPS_READ):
+            return self.repository.list(pagination, search=search, status=status)
         if current_user.role != "DRIVER" or current_user.driver_id is None:
             raise TripAccessForbiddenError
         try:
@@ -163,7 +179,9 @@ class TripService:
             raise TripAccessForbiddenError from exc
         if not driver.active:
             raise TripAccessForbiddenError
-        return self.repository.list(pagination, driver_id=driver.id)
+        return self.repository.list(
+            pagination, driver_id=driver.id, search=search, status=status
+        )
 
     def create_trip(self, data: TripCreate, *, changed_by: uuid.UUID) -> Trip:
         try:
@@ -173,15 +191,20 @@ class TripService:
             )
             if load_plan is None:
                 raise TripLoadPlanNotFoundError
-            if load_plan.status != "APPROVED":
+            if load_plan.status != "APPROVED" or not load_plan.operational_ready:
                 raise TripLoadPlanNotApprovedError
+            part = self.load_plan_reference_service.get_distribution_part_for_plan(
+                load_plan.id
+            )
             if self.repository.get_by_load_plan_id(load_plan.id) is not None:
                 raise TripLoadPlanAlreadyAssignedError
 
-            self.truck_service.ensure_no_operation_conflict(
+            truck = self.truck_service.ensure_no_operation_conflict(
                 load_plan.truck_id,
                 exclude_load_plan_id=load_plan.id,
             )
+
+            ensure_record_active(truck, "TRUCK")
 
             try:
                 driver = self.driver_service.ensure_no_operation_conflict(
@@ -197,10 +220,16 @@ class TripService:
             )
             if {order.id for order in orders} != set(load_plan.order_ids) or not orders:
                 raise TripOrderNotEligibleError
-            if any(order.status != "PLANNED" for order in orders):
-                raise TripOrderNotEligibleError
+            self._ensure_trip_order_statuses(orders, multi=part is not None)
 
-            assigned_ids = self.repository.assigned_order_ids(load_plan.order_ids)
+            assigned_ids = self.repository.assigned_order_ids(
+                load_plan.order_ids,
+                allowed_other_part_ids=tuple(
+                    p for p in part.distribution_part_ids if p != part.part_id
+                )
+                if part
+                else (),
+            )
             if assigned_ids:
                 raise TripOrderAlreadyAssignedError(
                     sorted(assigned_ids, key=lambda value: value.int)
@@ -210,7 +239,9 @@ class TripService:
                 load_plan_id=load_plan.id,
                 driver_id=driver.id,
                 status="SCHEDULED",
-                deliveries=self._build_deliveries(orders),
+                deliveries=self._build_deliveries(
+                    orders, distribution_part_id=part.part_id if part else None
+                ),
             )
             self.repository.add(trip)
             self._stage_status_change(
@@ -237,6 +268,13 @@ class TripService:
         except Exception:
             self.db.rollback()
             raise
+
+    @staticmethod
+    def _ensure_trip_order_statuses(orders: Sequence[Order], *, multi: bool) -> None:
+        """Check order states without changing transactional lock ordering."""
+        eligible_statuses = {"PLANNED", "IN_TRANSIT"} if multi else {"PLANNED"}
+        if any(order.status not in eligible_statuses for order in orders):
+            raise TripOrderNotEligibleError
 
     def change_trip_status(
         self,
@@ -273,10 +311,8 @@ class TripService:
                 self._stage_trip_finish(trip, deliveries, current_user.id)
 
             self.db.commit()
-            persisted_trip = self._get_persisted_trip(trip.id)
-            if normalized_status == "IN_ROUTE":
-                self._notify_trip_started(persisted_trip)
-            return persisted_trip
+            OperationalNotificationService.dispatch_after_commit(self.db)
+            return self._get_persisted_trip(trip.id)
         except Exception:
             self.db.rollback()
             raise
@@ -322,7 +358,10 @@ class TripService:
         delivery = self.repository.get_delivery(delivery_id)
         if delivery is None:
             raise DeliveryNotFoundError
-        trip = self.get_trip(delivery.trip_id, current_user=current_user)
+        trip = self.repository.get(delivery.trip_id)
+        if trip is None:
+            raise TripNotFoundError
+        self._ensure_can_read_delivery(current_user, trip)
         return self._build_delivery_receipt(delivery, trip)
 
     def _build_delivery_receipt(
@@ -360,17 +399,12 @@ class TripService:
     ) -> Delivery:
         """Stage the existing transition under the trip/deliveries lock order."""
         normalized_status = requested_status.strip().upper()
-        snapshot = self.repository.get_delivery(delivery_id)
-        if snapshot is None:
-            raise DeliveryNotFoundError
-        trip = self.repository.get_for_update(snapshot.trip_id)
+        delivery = self.get_delivery_for_access(
+            delivery_id, current_user=current_user, operate=True
+        )
+        trip = self.repository.get(delivery.trip_id)
         if trip is None:
             raise TripNotFoundError
-        self.repository.list_deliveries_for_update(trip.id)
-        delivery = self.repository.get_delivery_for_update(delivery_id)
-        if delivery is None:
-            raise DeliveryNotFoundError
-        self._ensure_can_operate(current_user, trip)
 
         current_status = delivery.status
         if normalized_status == current_status:
@@ -381,17 +415,42 @@ class TripService:
             not in DELIVERY_STATUS_TRANSITIONS.get(current_status, frozenset())
         ):
             raise DeliveryStatusTransitionNotAllowedError(
-                current_status,
-                normalized_status,
+                current_status, normalized_status
             )
         if trip.status != "IN_ROUTE":
             raise DeliveryTripNotInRouteError
 
-        delivery.status = normalized_status
         if normalized_status == "DELIVERED":
+            # Lock order already matches OC90: trip, then deliveries.
+            from app.modules.deliveries.exception_models import DeliveryException
+
+            latest = self.db.scalar(
+                select(DeliveryException)
+                .where(DeliveryException.delivery_id == delivery.id)
+                .order_by(
+                    DeliveryException.created_at.desc(),
+                    DeliveryException.id.desc(),
+                )
+                .limit(1)
+            )
+            if latest is not None and latest.code != "RESUMED":
+                raise DeliveryOperationalExceptionPendingError
+
+            # Serialize the aggregate BEFORE making this leg visible. The scalar
+            # query below runs after this lock, in READ COMMITTED, and sees the
+            # preceding leg's commit even with stale objects in the identity map.
+            orders = tuple(
+                self.order_service.get_orders((delivery.order_id,), for_update=True)
+            )
+            if len(orders) != 1 or orders[0].status != "IN_TRANSIT":
+                raise TripOrderNotEligibleError
+            delivery.status = normalized_status
             delivery.delivered_at = datetime.now(UTC)
-            self._stage_order_delivered(delivery, current_user.id)
-        self.repository.update_delivery(delivery)
+            self.repository.update_delivery(delivery)
+            self._stage_order_delivered(delivery, current_user.id, order=orders[0])
+        else:
+            delivery.status = normalized_status
+            self.repository.update_delivery(delivery)
         self._stage_status_change(
             entity_type="DELIVERY",
             entity_id=delivery.id,
@@ -401,12 +460,37 @@ class TripService:
         )
         return delivery
 
+    def get_delivery_for_access(
+        self, delivery_id: uuid.UUID, *, current_user: User, operate: bool = False
+    ) -> Delivery:
+        """Public locking/authorization boundary for state and evidence access."""
+        snapshot = self.repository.get_delivery(delivery_id)
+        if snapshot is None:
+            raise DeliveryNotFoundError
+        trip = self.repository.get_for_update(snapshot.trip_id)
+        if trip is None:
+            raise TripNotFoundError
+        self.repository.list_deliveries_for_update(trip.id)
+        delivery = self.repository.get_delivery_for_update(delivery_id)
+        if delivery is None:
+            raise DeliveryNotFoundError
+        if operate:
+            self._ensure_can_operate(current_user, trip, Permission.DELIVERIES_MANAGE)
+        else:
+            self._ensure_can_read_delivery(current_user, trip)
+        return delivery
+
     def _stage_trip_start(
         self,
         trip: Trip,
         deliveries: Sequence[Delivery],
         changed_by: uuid.UUID,
     ) -> None:
+        plan = self.load_plan_reference_service.get_operational_plan(trip.load_plan_id)
+        if plan is None or plan.status != "APPROVED" or not plan.operational_ready:
+            raise TripLoadPlanNotApprovedError
+        self.truck_service.get_truck_for_update(plan.truck_id)
+        self.truck_service.ensure_operational_eligibility(plan.truck_id)
         self.driver_service.ensure_no_operation_conflict(
             trip.driver_id, exclude_trip_id=trip.id
         )
@@ -414,23 +498,33 @@ class TripService:
             raise TripLoadingNotFinishedError
         order_ids = tuple(delivery.order_id for delivery in deliveries)
         orders = tuple(self.order_service.get_orders(order_ids, for_update=True))
-        if {order.id for order in orders} != set(order_ids) or any(
-            order.status != "PLANNED" for order in orders
+        is_distribution = all(
+            delivery.distribution_part_id is not None for delivery in deliveries
+        )
+        eligible_statuses = (
+            {"PLANNED", "IN_TRANSIT"} if is_distribution else {"PLANNED"}
+        )
+        if (
+            not deliveries
+            or {order.id for order in orders} != set(order_ids)
+            or any(order.status not in eligible_statuses for order in orders)
         ):
             raise TripOrderNotEligibleError
 
-        self.order_service.stage_orders_as_in_transit(orders)
+        starting_orders = tuple(order for order in orders if order.status == "PLANNED")
+        if starting_orders:
+            self.order_service.stage_orders_as_in_transit(starting_orders)
         trip.status = "IN_ROUTE"
         trip.started_at = datetime.now(UTC)
         self.repository.update_trip(trip)
-        self._stage_status_change(
+        history = self._stage_status_change(
             entity_type="TRIP",
             entity_id=trip.id,
             old_status="SCHEDULED",
             new_status="IN_ROUTE",
             changed_by=changed_by,
         )
-        for order in orders:
+        for order in starting_orders:
             self._stage_status_change(
                 entity_type="ORDER",
                 entity_id=order.id,
@@ -438,6 +532,14 @@ class TripService:
                 new_status="IN_TRANSIT",
                 changed_by=changed_by,
             )
+
+        self.notification_service.stage(
+            self.db,
+            event_type="TRIP_STARTED",
+            trip_id=trip.id,
+            recipient_driver_id=trip.driver_id,
+            status_history_id=history.id,
+        )
 
     def _stage_trip_finish(
         self,
@@ -449,7 +551,11 @@ class TripService:
             delivery.status != "DELIVERED" for delivery in deliveries
         ):
             raise TripDeliveriesNotFinishedError
-        order_ids = tuple(delivery.order_id for delivery in deliveries)
+        order_ids = tuple(
+            delivery.order_id
+            for delivery in deliveries
+            if delivery.distribution_part_id is None
+        )
         orders = tuple(self.order_service.get_orders(order_ids, for_update=True))
         if {order.id for order in orders} != set(order_ids) or any(
             order.status != "DELIVERED" for order in orders
@@ -471,13 +577,19 @@ class TripService:
         self,
         delivery: Delivery,
         changed_by: uuid.UUID,
+        *,
+        order: Order,
     ) -> None:
-        orders = tuple(
-            self.order_service.get_orders((delivery.order_id,), for_update=True)
-        )
-        if len(orders) != 1 or orders[0].status != "IN_TRANSIT":
-            raise TripOrderNotEligibleError
-        order = orders[0]
+        if delivery.distribution_part_id is not None:
+            required = self.load_plan_reference_service.get_distribution_order_for_part(
+                delivery.distribution_part_id, delivery.order_id
+            )
+            if required is None:
+                raise TripOrderNotEligibleError
+            if not set(required.part_ids) <= self.repository.delivered_part_ids(
+                order.id
+            ):
+                return
         self.order_service.stage_order_as_delivered(order)
         self._stage_status_change(
             entity_type="ORDER",
@@ -487,7 +599,9 @@ class TripService:
             changed_by=changed_by,
         )
 
-    def _build_deliveries(self, orders: Sequence[Order]) -> list[Delivery]:
+    def _build_deliveries(
+        self, orders: Sequence[Order], *, distribution_part_id: uuid.UUID | None = None
+    ) -> list[Delivery]:
         sortable: list[tuple[int, int, Order]] = []
         for order in orders:
             sequences = {item.delivery_sequence for item in order.items}
@@ -496,17 +610,32 @@ class TripService:
             sortable.append((sequences.pop(), order.id.int, order))
         sortable.sort(key=lambda value: (value[0], value[1]))
         return [
-            Delivery(order_id=order.id, status="PENDING", sequence=index)
+            Delivery(
+                order_id=order.id,
+                distribution_part_id=distribution_part_id,
+                status="PENDING",
+                sequence=index,
+            )
             for index, (_, _, order) in enumerate(sortable, start=1)
         ]
 
     def _ensure_can_read(self, current_user: User, trip: Trip) -> None:
-        if current_user.role in {"ADMIN", "LOGISTICS_MANAGER"}:
+        if has_permission(current_user, Permission.TRIPS_READ):
             return
         self._ensure_linked_driver(current_user, trip)
 
-    def _ensure_can_operate(self, current_user: User, trip: Trip) -> None:
-        if current_user.role == "LOGISTICS_MANAGER":
+    def _ensure_can_read_delivery(self, current_user: User, trip: Trip) -> None:
+        if has_permission(current_user, Permission.DELIVERIES_READ):
+            return
+        self._ensure_linked_driver(current_user, trip)
+
+    def _ensure_can_operate(
+        self,
+        current_user: User,
+        trip: Trip,
+        permission: Permission = Permission.TRIPS_MANAGE,
+    ) -> None:
+        if has_permission(current_user, permission):
             return
         self._ensure_linked_driver(current_user, trip)
 
@@ -528,8 +657,8 @@ class TripService:
         old_status: str | None,
         new_status: str,
         changed_by: uuid.UUID,
-    ) -> None:
-        self.status_history_service.stage_status_change(
+    ) -> StatusHistory:
+        return self.status_history_service.stage_status_change(
             StatusHistoryCreate(
                 entity_type=entity_type,
                 entity_id=entity_id,
@@ -539,24 +668,6 @@ class TripService:
             )
         )
 
-    def _notify_trip_started(self, trip: Trip) -> None:
-        if self.notification_service is None:
-            return
-        try:
-            driver = self.driver_service.get_driver(trip.driver_id)
-            self.notification_service.notify_trip_started(
-                recipient_phone=driver.phone,
-                trip_id=trip.id,
-            )
-        except Exception as error:  # noqa: BLE001 - notification failure must not undo operation
-            emit_operational_event(
-                OperationalEvent.NOTIFICATION_FAILED,
-                level=logging.WARNING,
-                alert=True,
-                reason="TRIP_PREPARATION_FAILED",
-                exception_type=type(error).__name__,
-            )
-
     def _raise_integrity_error(self, exc: IntegrityError) -> None:
         constraint_name = get_integrity_constraint_name(exc)
         if constraint_name == "uq_trips__load_plan_id":
@@ -564,6 +675,9 @@ class TripService:
         if constraint_name in {
             "uq_deliveries__order_id",
             "uq_deliveries__trip_order",
+            "uq_deliveries__legacy_order",
+            "uq_deliveries__part_order",
+            "ck_deliveries__assignment",
         }:
             raise TripOrderAlreadyAssignedError(()) from exc
         if constraint_name == "fk_trips__load_plans":
@@ -571,6 +685,8 @@ class TripService:
         if constraint_name == "fk_trips__drivers":
             raise TripDriverNotFoundError from exc
         if constraint_name == "fk_deliveries__orders":
+            raise TripOrderNotEligibleError from exc
+        if constraint_name == "ck_deliveries__part_context":
             raise TripOrderNotEligibleError from exc
 
     def _get_persisted_trip(self, trip_id: uuid.UUID) -> Trip:

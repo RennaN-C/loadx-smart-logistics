@@ -1,4 +1,5 @@
 export interface Product {
+  active: boolean;
   id: string;
   code: string;
   name: string;
@@ -27,4 +28,4 @@ export interface ProductInput {
   rotationAllowed: boolean;
 }
 
-export type ProductUpdateInput = Partial<ProductInput>;
+export type ProductUpdateInput = Partial<ProductInput> & { active?: boolean };

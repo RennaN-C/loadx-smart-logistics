@@ -1,22 +1,60 @@
 import uuid
 from collections.abc import Sequence
 
-from sqlalchemy import asc, desc, func, select
+from sqlalchemy import asc, desc, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.core.pagination import PageResult, PaginationParams
 from app.modules.products.models import Product
+from app.modules.products.schemas import ProductRestriction
+from app.shared.search import search_pattern
 
 
 class ProductRepository:
     def __init__(self, db: Session) -> None:
         self.db = db
 
-    def list(self, pagination: PaginationParams) -> PageResult[Product]:
+    def list(
+        self,
+        pagination: PaginationParams,
+        *,
+        active: bool | None = None,
+        search: str | None = None,
+        restriction: ProductRestriction | None = None,
+    ) -> PageResult[Product]:
         direction = asc if pagination.sort_order == "asc" else desc
-        total = self.db.scalar(select(func.count()).select_from(Product)) or 0
+        filters = [] if active is None else [Product.active.is_(active)]
+        pattern = search_pattern(search)
+        if pattern is not None:
+            filters.append(
+                or_(
+                    Product.code.ilike(pattern, escape="\\"),
+                    Product.name.ilike(pattern, escape="\\"),
+                )
+            )
+        if restriction == "restricted":
+            filters.append(
+                or_(
+                    Product.fragile.is_(True),
+                    Product.stackable.is_(False),
+                    Product.rotation_allowed.is_(False),
+                )
+            )
+        elif restriction == "free":
+            filters.extend(
+                (
+                    Product.fragile.is_(False),
+                    Product.stackable.is_(True),
+                    Product.rotation_allowed.is_(True),
+                )
+            )
+        total = (
+            self.db.scalar(select(func.count()).select_from(Product).where(*filters))
+            or 0
+        )
         statement = (
             select(Product)
+            .where(*filters)
             .order_by(direction(Product.created_at), direction(Product.id))
             .offset(pagination.offset)
             .limit(pagination.page_size)
@@ -43,8 +81,33 @@ class ProductRepository:
             select(Product).where(Product.id.in_(unique_ids)).order_by(Product.id.asc())
         )
         if for_update:
-            statement = statement.with_for_update()
+            statement = statement.with_for_update().execution_options(
+                populate_existing=True
+            )
         return self.db.scalars(statement).all()
+
+    def get_for_update(self, product_id: uuid.UUID) -> Product | None:
+        statement = (
+            select(Product)
+            .where(Product.id == product_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+        return self.db.scalar(statement)
+
+    def existing_registration_keys(
+        self, keys: dict[str, set[str]]
+    ) -> dict[str, set[str]]:
+        return {
+            field: set(
+                self.db.scalars(
+                    select(getattr(Product, field)).where(
+                        getattr(Product, field).in_(keys.get(field, set()))
+                    )
+                )
+            )
+            for field in ("code",)
+        }
 
     def get_by_code(self, code: str) -> Product | None:
         statement = select(Product).where(Product.code == code)

@@ -10,41 +10,50 @@ Branches:
 - `main`: versão estável.
 - `desenvolvimento`: integração.
 - `Branch pessoal`: trabalho do desenvolvedor, integrado por PR em `desenvolvimento`.
-- `release/v1.1.0`: preparação e validação da versão integrada antes de `main`.
-- `feature/OCXX-descricao`: uma ocorrência de funcionalidade.
-- `fix/OCXX-descricao`: correção vinculada a ocorrência ou bug.
-- `docs/OCXX-descricao`: documentação vinculada a ocorrência.
+- `versao/v1.2.0`: preparação e validação da versão integrada antes de `main`.
+- `<desenvolvedor>/ocNN-descricao`: uma ocorrência da versão, sempre em minúsculas e sem acentos.
+- `correcao/descricao`: correção sem OC quando houver Issue própria aprovada.
+- `documentacao/descricao`: documentação sem OC quando houver Issue própria aprovada.
+- `manutencao/descricao`: manutenção técnica sem OC quando houver Issue própria aprovada.
 
-`CONFIRMADO`: na v1.1.0, seguir
-`branch do dev -> desenvolvimento -> release/v1.1.0 -> main`, conforme o
-[planejamento oficial](planejamento/v1.1.0/00-visao-geral.md#fluxo-git).
+`CONFIRMADO`: na v1.2.0, seguir
+`branch da ocorrência -> desenvolvimento -> versao/v1.2.0 -> main`, conforme o
+[planejamento oficial](planejamento/v1.2.0/00-visao-geral.md#fluxo-git).
 Documentação é versionada normalmente pelo mesmo fluxo.
 `RECOMENDAÇÃO`: para as novas OCs, usar `<desenvolvedor>/ocNN-descricao`, em
-minúsculas e sem acentos, como `rennan/oc62-viacep-backend`,
-`joao/oc67-disponibilidade-frota`, `marlon/oc70-viacep-clientes` e
-`marcelo/oc76-conferencia-qrcode`.
-`CONFIRMADO`: OC01–OC61 são histórico; OC62 inicia as novas ocorrências
-pós-v1.0.0, e a v1.1.0 usa OC62–OC78 sem reutilização de números.
+minúsculas e sem acentos, como `rennan/oc79-seguranca-comandos-externos`,
+`joao/oc88-otimizacao-multi-caminhao`, `rennan/oc85-configuracoes-admin` e
+`marcelo/oc84-notificacoes-operacionais-reais`.
+`CONFIRMADO`: OC01–OC78 são histórico; a v1.2.0 usa OC79–OC112 sem reutilização de números. O roadmap da v1.3.0 não reserva numeração antes do planejamento formal.
 
 Commits:
 
-`CONFIRMADO`: todos os commits futuros seguem Conventional Commits, com
-descrições em português, conforme orientação da preparação da v1.0.0.
+`CONFIRMADO`: todos os commits futuros seguem a estrutura de Conventional Commits,
+mas com o tipo e a descrição em português.
 
-- `feat: ...`.
-- `fix: ...`.
-- `test: ...`.
-- `docs: ...`.
-- `refactor: ...`.
-- `chore: ...`.
+- `funcionalidade: ...`.
+- `correcao: ...`.
+- `teste: ...`.
+- `documentacao: ...`.
+- `refatoracao: ...`.
+- `manutencao: ...`.
+
+`RECOMENDAÇÃO`: termos técnicos sem tradução adequada podem permanecer no corpo
+da mensagem, mas o título do commit e o nome da branch devem priorizar português.
 
 `RECOMENDAÇÃO`: incluir a ocorrência no corpo do commit ou no título do PR, por exemplo `OC15`.
 
 ## Pull Request
 
 Alterações de trabalho entram por Pull Request para `desenvolvimento`.
-Na v1.1.0, a promoção da versão segue por `release/v1.1.0` até `main`.
-Exigir pelo menos uma revisão de outro integrante.
+Na v1.2.0, a promoção da versão segue por `versao/v1.2.0` até `main`.
+`RECOMENDAÇÃO`: solicitar revisão de outro integrante quando houver disponibilidade.
+Por decisão do responsável pelo projeto (09/10/2026), a ausência de revisão
+independente não bloqueia, por si só, PRs em `desenvolvimento`, desde que
+revisão técnica, critérios de aceite, testes, CI, segurança e Sonar obrigatórios
+estejam aprovados e não existam conflitos. Registrar no PR a dispensa e o motivo.
+Não neutralizar regras de proteção do GitHub nem dispensar aprovação quando ela
+for efetivamente exigida; em `main` ou releases, valem as proteções específicas.
 
 `CONFIRMADO`: PRs destinados a `desenvolvimento` possuem contrato validado
 automaticamente pela CI. Todo PR deve fechar exatamente uma Issue com
@@ -63,7 +72,7 @@ Checklist mínimo:
 - Testes foram criados ou atualizados.
 - Migrations foram incluídas quando necessárias.
 - Contratos e documentação foram atualizados.
-- Outro integrante revisou a mudança.
+- Revisão independente realizada ou dispensa motivada registrada (apenas onde permitida).
 
 ## Processo para criar uma funcionalidade
 

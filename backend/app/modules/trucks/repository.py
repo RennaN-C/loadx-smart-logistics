@@ -9,17 +9,36 @@ from app.modules.deliveries.models import Trip
 from app.modules.load_planning.models import LoadPlan
 from app.modules.loading.models import LoadingSession
 from app.modules.trucks.models import Truck
+from app.shared.search import search_pattern
 
 
 class TruckRepository:
     def __init__(self, db: Session) -> None:
         self.db = db
 
-    def list(self, pagination: PaginationParams) -> PageResult[Truck]:
+    def list(
+        self,
+        pagination: PaginationParams,
+        *,
+        active: bool | None = None,
+        search: str | None = None,
+    ) -> PageResult[Truck]:
         direction = asc if pagination.sort_order == "asc" else desc
-        total = self.db.scalar(select(func.count()).select_from(Truck)) or 0
+        filters = [] if active is None else [Truck.active.is_(active)]
+        pattern = search_pattern(search)
+        if pattern is not None:
+            filters.append(
+                or_(
+                    Truck.plate.ilike(pattern, escape="\\"),
+                    Truck.model.ilike(pattern, escape="\\"),
+                )
+            )
+        total = (
+            self.db.scalar(select(func.count()).select_from(Truck).where(*filters)) or 0
+        )
         statement = (
             select(Truck)
+            .where(*filters)
             .order_by(direction(Truck.created_at), direction(Truck.id))
             .offset(pagination.offset)
             .limit(pagination.page_size)
@@ -47,32 +66,43 @@ class TruckRepository:
         return self.db.scalars(statement).all()
 
     def get_for_update(self, truck_id: uuid.UUID) -> Truck | None:
-        statement = select(Truck).where(Truck.id == truck_id).with_for_update()
+        statement = (
+            select(Truck)
+            .where(Truck.id == truck_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+            .execution_options(populate_existing=True)
+        )
         return self.db.scalar(statement)
 
     def has_operation_conflict(
+        self, truck_id: uuid.UUID, *, exclude_load_plan_id: uuid.UUID | None = None
+    ) -> bool:
+        return bool(
+            self.conflicted_truck_ids(
+                (truck_id,), exclude_load_plan_id=exclude_load_plan_id
+            )
+        )
+
+    def conflicted_truck_ids(
         self,
-        truck_id: uuid.UUID,
+        truck_ids: Sequence[uuid.UUID] | None = None,
         *,
         exclude_load_plan_id: uuid.UUID | None = None,
-    ) -> bool:
-        filters = [LoadPlan.truck_id == truck_id]
-        if exclude_load_plan_id is not None:
-            filters.append(LoadPlan.id != exclude_load_plan_id)
-
+    ) -> frozenset[uuid.UUID]:
         active_operation = or_(
             and_(
                 LoadingSession.id.is_not(None),
                 or_(
                     Trip.id.is_(None),
-                    Trip.status != "FINISHED",
+                    Trip.status.in_(("SCHEDULED", "IN_ROUTE", "INTERRUPTED")),
                 ),
             ),
-            Trip.status.in_(("SCHEDULED", "IN_ROUTE")),
+            Trip.status.in_(("SCHEDULED", "IN_ROUTE", "INTERRUPTED")),
         )
 
         statement = (
-            select(LoadPlan.id)
+            select(LoadPlan.truck_id)
             .outerjoin(
                 LoadingSession,
                 LoadingSession.load_plan_id == LoadPlan.id,
@@ -81,10 +111,27 @@ class TruckRepository:
                 Trip,
                 Trip.load_plan_id == LoadPlan.id,
             )
-            .where(*filters, active_operation)
-            .limit(1)
+            .where(active_operation)
         )
-        return self.db.scalar(statement) is not None
+        if truck_ids is not None:
+            statement = statement.where(LoadPlan.truck_id.in_(truck_ids))
+        if exclude_load_plan_id is not None:
+            statement = statement.where(LoadPlan.id != exclude_load_plan_id)
+        return frozenset(self.db.scalars(statement.distinct()).all())
+
+    def existing_registration_keys(
+        self, keys: dict[str, set[str]]
+    ) -> dict[str, set[str]]:
+        return {
+            field: set(
+                self.db.scalars(
+                    select(getattr(Truck, field)).where(
+                        getattr(Truck, field).in_(keys.get(field, set()))
+                    )
+                )
+            )
+            for field in ("plate",)
+        }
 
     def get_by_plate(self, plate: str) -> Truck | None:
         statement = select(Truck).where(Truck.plate == plate)

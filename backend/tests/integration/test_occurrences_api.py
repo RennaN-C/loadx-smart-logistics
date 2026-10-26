@@ -181,7 +181,7 @@ def test_occurrence_permissions_follow_trip_ownership(
             json=payload,
             headers=scenario.admin_headers,
         ).status_code
-        == 403
+        == 201
     )
     assert (
         client.post(

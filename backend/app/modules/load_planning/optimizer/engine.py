@@ -45,10 +45,13 @@ from app.modules.load_planning.optimizer.rejections import (
 from app.modules.load_planning.optimizer.rotations import generate_rotations
 from app.modules.load_planning.optimizer.support import (
     analyze_support_configuration,
-    is_candidate_support_valid,
+    candidate_direct_support_rejections,
     is_support_configuration_valid,
 )
-from app.modules.load_planning.optimizer.volumes import expand_order_items
+from app.modules.load_planning.optimizer.volumes import (
+    expand_order_items,
+    validate_individual_volumes,
+)
 from app.modules.load_planning.optimizer.weight import (
     WeightLimitExceededError,
     calculate_next_weight,
@@ -213,8 +216,9 @@ def _support_rejection_reasons(
     candidate: PlacementCandidate,
     placed_candidates: tuple[PlacementCandidate, ...],
 ) -> tuple[RejectionReason, ...]:
-    if is_candidate_support_valid(candidate, placed_candidates):
-        return ()
+    direct_reasons = candidate_direct_support_rejections(candidate, placed_candidates)
+    if direct_reasons:
+        return direct_reasons
 
     configuration = (*placed_candidates, candidate)
     placements_by_identity = {
@@ -238,11 +242,6 @@ def _support_rejection_reasons(
     reasons = tuple(
         reason for reason in REJECTION_REASON_PRECEDENCE if reason in detected
     )
-    if not reasons:
-        raise EngineInvariantError(
-            "support_configuration",
-            "invalid support configuration must have a structural reason",
-        )
     return reasons
 
 
@@ -395,10 +394,26 @@ def calculate_load_plan(
     if not isinstance(truck, TruckCapacityInput):
         raise InvalidEngineInputError("truck", "must be a TruckCapacityInput")
 
-    capacity = calculate_truck_capacity(truck)
     _preflight_volume_count(order_items)
-    expanded_volumes = expand_order_items(order_items)
+    return calculate_volume_load_plan(truck, expand_order_items(order_items))
 
+
+def calculate_volume_load_plan(
+    truck: TruckCapacityInput, volumes: Sequence[IndividualVolume]
+) -> LoadPlanResult:
+    """Calculate a selected subset without renumbering physical identities."""
+    capacity = calculate_truck_capacity(truck)
+    expanded_volumes = tuple(volumes)
+    if not expanded_volumes or any(
+        not isinstance(v, IndividualVolume) for v in expanded_volumes
+    ):
+        raise InvalidEngineInputError("volumes", "must contain IndividualVolume")
+    if len(expanded_volumes) > MAX_VOLUMES:
+        raise LoadPlanVolumeLimitExceededError(len(expanded_volumes))
+    if len({v.identity for v in expanded_volumes}) != len(expanded_volumes):
+        raise InvalidEngineInputError("volumes", "must preserve unique identities")
+
+    validate_individual_volumes(expanded_volumes)
     ordering_weights = tuple(volume.weight_kg for volume in expanded_volumes)
     with localcontext(_weight_context(*(ordering_weights + (capacity.max_weight_kg,)))):
         ordered_volumes = order_volumes(expanded_volumes)

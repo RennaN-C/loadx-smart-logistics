@@ -13,6 +13,9 @@ import type { ReactNode } from "react";
  * acessível, e aí quem usa é que deve fornecer — não este componente.
  */
 export type IconName =
+  | "bell"
+  | "search"
+  | "settings"
   | "home"
   | "truck"
   | "package"
@@ -26,9 +29,19 @@ export type IconName =
   | "priority"
   | "chart"
   | "report"
-  | "gauge";
+  | "gauge"
+  | "arrow-right";
 
 const PATHS: Record<IconName, ReactNode> = {
+  bell: <><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" /><path d="M10 21h4" /></>,
+  search: <><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 4.5 4.5" /></>,
+  "arrow-right": <path d="M5 12h14m-6-6 6 6-6 6" />,
+  settings: (
+    <>
+      <path d="M9 3h6l.7 3 2.7 1 2.5 2.5-1.7 2.5 1.7 2.5-2.5 2.5-2.7 1-.7 3H9l-.7-3-2.7-1-2.5-2.5L4.8 12 3.1 9.5 5.6 7l2.7-1z" />
+      <circle cx="12" cy="12" r="3" />
+    </>
+  ),
   home: (
     <>
       <path d="M3.5 10.8 12 3.5l8.5 7.3" />

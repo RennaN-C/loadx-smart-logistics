@@ -7,8 +7,20 @@ from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.modules.customers.models import Customer
-from app.modules.drivers.models import Driver
+from app.modules.access_profiles.models import AccessProfile
+from app.modules.customers.models import Customer, CustomerAddress
+from app.modules.drivers.models import (
+    Driver,
+    DriverDocument,
+    DriverDocumentPolicy,
+    DriverDocumentType,
+)
+from app.modules.load_planning.distribution_models import (
+    LoadDistribution,
+    LoadDistributionOrder,
+    LoadDistributionPart,
+    LoadDistributionVolume,
+)
 from app.modules.load_planning.models import LoadPlan, LoadPlanItem, LoadPlanOrder
 from app.modules.orders.models import Order, OrderItem
 from app.modules.orders.schemas import (
@@ -29,14 +41,27 @@ from app.modules.orders.service import (
 from app.modules.products.models import Product
 from app.modules.status_history.models import StatusHistory
 from app.modules.status_history.service import StatusHistoryChangedByNotFoundError
-from app.modules.trucks.models import Truck
+from app.modules.trucks.models import (
+    Truck,
+    TruckDocument,
+    TruckDocumentPolicy,
+    TruckMaintenance,
+)
 from app.modules.users.models import User
 
 SQLITE_TABLES = (
     Driver.__table__,
+    DriverDocumentType.__table__,
+    DriverDocument.__table__,
+    DriverDocumentPolicy.__table__,
+    AccessProfile.__table__,
     User.__table__,
     Customer.__table__,
+    CustomerAddress.__table__,
     Truck.__table__,
+    TruckMaintenance.__table__,
+    TruckDocument.__table__,
+    TruckDocumentPolicy.__table__,
     Product.__table__,
     Order.__table__,
     OrderItem.__table__,
@@ -44,6 +69,10 @@ SQLITE_TABLES = (
     LoadPlan.__table__,
     LoadPlanOrder.__table__,
     LoadPlanItem.__table__,
+    LoadDistribution.__table__,
+    LoadDistributionOrder.__table__,
+    LoadDistributionPart.__table__,
+    LoadDistributionVolume.__table__,
 )
 
 

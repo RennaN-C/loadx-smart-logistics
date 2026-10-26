@@ -277,7 +277,30 @@ def test_list_orders_returns_created_items(
     listed_order = body["items"][0]
     assert listed_order["id"] == order["id"]
     assert listed_order["item_count"] == 1
+    assert listed_order["volume_count"] == 3
     assert "delivery_address" not in listed_order
+    assert "items" not in listed_order
+
+
+@pytest.mark.parametrize("quantity", [200, 201])
+def test_order_summary_reports_expanded_volumes_not_item_rows(
+    quantity: int,
+    client: TestClient,
+    session_factory: SessionFactory,
+    manager_headers: dict[str, str],
+) -> None:
+    customer_id = create_customer(session_factory)
+    product_id = create_product(session_factory)
+    payload = make_order_payload(customer_id, product_id)
+    payload["items"][0]["quantity"] = quantity
+    created = client.post("/api/v1/orders", json=payload, headers=manager_headers)
+    assert created.status_code == 201
+
+    response = client.get("/api/v1/orders", headers=manager_headers)
+    assert response.status_code == 200
+    listed_order = response.json()["items"][0]
+    assert listed_order["item_count"] == 1
+    assert listed_order["volume_count"] == quantity
     assert "items" not in listed_order
 
 
@@ -645,7 +668,7 @@ def test_read_only_roles_can_read_orders(
     assert response.status_code == 200
 
 
-@pytest.mark.parametrize("role", ["ADMIN", "CHECKER"])
+@pytest.mark.parametrize("role", ["CHECKER"])
 @pytest.mark.parametrize(
     ("method", "route"),
     [("POST", "collection"), ("PATCH", "detail"), ("PATCH", "status")],

@@ -207,7 +207,7 @@ export function TruckForm({ truck, onSaved, onCancel }: TruckFormProps) {
                 />
                 <span>Caminhão ativo</span>
               </label>
-              <p className="entity-form-help">Caminhões inativos continuam no histórico, mas saem do planejamento.</p>
+              <p className="entity-form-help">Caminhões arquivados continuam no histórico, mas saem do planejamento.</p>
             </div>
           ) : null}
         </div>

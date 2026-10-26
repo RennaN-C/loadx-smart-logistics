@@ -1,5 +1,46 @@
 # Contratos iniciais da API
 
+## OC87 — planejamento multi-caminhão
+
+`CONFIRMADO`: `/api/v1/load-distributions` é aditivo; contrato completo, RBAC,
+necessidade, partição, estados, aprovação e reprocessamento estão em
+[load_planning/distributions](../backend/app/modules/load_planning/distributions.md).
+`RECOMENDAÇÃO`: decisões na [ADR-028](decisions/ADR-028-planejamento-multi-caminhao.md).
+Planos legados e suas visualizações preservam schemas e endpoints. A liberação
+operacional de múltiplas partes depende da OC90; uma só parte usa o fluxo atual.
+
+
+## OC88 — otimização automática multi-caminhão
+
+`CONFIRMADO`: `POST /api/v1/load-distributions/optimize` é operação protegida
+para `ADMIN` e `LOGISTICS_MANAGER`; `CHECKER` e `DRIVER` não podem criar
+propostas automáticas. O endpoint recebe
+`DistributionNeedRequest` (`order_ids`). Em sucesso retorna `201` com
+`DistributionRead`, persistido pelo mesmo agregado multi-caminhão da OC87.
+
+A seleção tenta uma solução completa com menor quantidade de caminhões antes
+de ampliar a frota. Somente caminhões elegíveis do preflight participam da
+busca. O resultado físico de cada subconjunto é calculado pela engine
+`heuristic-v1`; não existe segunda implementação de peso, dimensões, rotação,
+colisão ou apoio.
+
+Frota insuficiente retorna `422 DISTRIBUTION_CAPACITY_INSUFFICIENT` e não
+persiste distribuição ou `LoadPlan` parcial. O detalhe informa volumes
+restantes, motivos observados, frota inelegível e número de avaliações da
+engine. Os contratos manuais da OC87 permanecem compatíveis.
+
+## Evidências de entrega — OC80
+
+`CONFIRMADO`: contrato aditivo `/api/v1/deliveries/{delivery_id}/evidences`:
+POST event_id/kind/content_base64; GET metadata paginada; GET `/{evidence_id}`;
+GET `/{evidence_id}/content` privado; POST `/{evidence_id}/revoke` com `{}`.
+Somente DELIVERED com comprovante válido recebe PHOTO/SIGNATURE PNG/JPEG.
+Schema OC78 e sessão/Origin/CSRF/RBAC são preservados. Contratos para OC81/OC83,
+limites, códigos e idempotência no
+[contrato de evidências](../backend/app/modules/deliveries/evidences.md).
+`PENDENTE DE DEFINIÇÃO`: ativação de produção após política de storage/retenção
+aprovada; ver [ADR-027 proposta](decisions/ADR-027-evidencias-de-entrega.md).
+
 Este documento é o contrato combinado entre backend, frontend, algoritmo e integrações. Alterações devem ser discutidas, versionadas e refletidas em testes.
 
 ## Convenções
@@ -23,6 +64,48 @@ Este documento é o contrato combinado entre backend, frontend, algoritmo e inte
 - `CONFIRMADO`: não há `sort_by`, busca livre ou filtros por dados pessoais na
   OC59. Todo filtro futuro usa query param em snake_case e whitelist documentada.
 - `CONFIRMADO`: em atualizações parciais, campos omitidos permanecem inalterados; `null` só é aceito para campos anuláveis no modelo de dados.
+
+### Evolução OC95 — busca e filtros de coleção
+
+`CONFIRMADO`: OC95 sucede OC59 sem revogar a ADR-017. A whitelist abaixo é
+aplicada no PostgreSQL antes de COUNT/OFFSET/LIMIT; `total` e `total_pages`
+representam a coleção filtrada. Paginação 1-based, limites, envelope,
+`sort_order`, desempate por `created_at, id`, RBAC e schemas são preservados.
+
+| Endpoint GET `/api/v1` | `search` (campos permitidos) | Outros filtros |
+| --- | --- | --- |
+| `/orders` | ADMIN/LOGISTICS_MANAGER: nome do cliente e UUIDs do pedido/cliente; CHECKER: somente UUIDs do pedido/cliente | `status`: DRAFT, READY, PLANNED, IN_TRANSIT, DELIVERED, CANCELED |
+| `/trucks` | plate, model | `archive_status` existente |
+| `/products` | code, name | `restriction`: restricted ou free; `archive_status` existente |
+| `/customers` | name, city | `archive_status` existente |
+| `/drivers` | name | `archive_status` existente |
+
+`search` é opcional, recebe trim no servidor e vazio/whitespace equivale à
+ausência. Limite: 120 caracteres após trim; excesso retorna 422 no envelope
+padrão. Busca substring case-insensitive parametrizada, com `%`, `_` e `\`
+literais. Filtros diferentes combinam por AND; campos da busca combinam por OR.
+Status inválido e restriction inválida retornam 422. Ausência de status ou
+restriction inclui todos os valores. Não existe `priority`, busca por e-mail,
+documento, telefone, CNH, endereço, notes ou qualquer outro campo pessoal.
+
+`restricted` significa fragile=true OR stackable=false OR rotation_allowed=false;
+`free` significa fragile=false AND stackable=true AND rotation_allowed=true.
+A busca de pedidos por nome é exclusiva de ADMIN e LOGISTICS_MANAGER e usa
+consulta de nomes pertencente a customers, sem carregar clientes em memória
+nem duplicar pedidos/total. CHECKER mantém 200 na listagem, mas busca somente
+UUID do pedido e UUID do cliente: termo que só corresponde ao nome retorna
+coleção filtrada vazia. Nenhuma subconsulta de nome é construída para CHECKER;
+DRIVER continua 403. A capacidade vem do papel autenticado, nunca de query param.
+O RBAC dos endpoints é preservado, evitando que pedidos sejam um canal indireto
+de consulta de nomes por quem não pode ler clientes. Não acrescenta nome ou dados
+pessoais ao resumo. UUID é a referência identificadora já existente; nenhum
+novo campo de referência foi criado.
+
+`RISCO IDENTIFICADO`: available/unavailable de `/trucks/operational-status`
+permanece fora desta whitelist. A fronteira FleetAvailabilityService calcula
+disponibilidade individualmente após paginar. Aplicar filtro antes da paginação
+exige evolução arquitetural que reutilize OC64/OC67/OC100/OC101 sem carregar toda
+a frota nem duplicar regras. A UI mantém o aviso de filtro/contadores por página.
 
 ## Autenticação
 
@@ -198,7 +281,7 @@ Erros específicos:
 Regras de autorização:
 
 - `ADMIN`, `CHECKER` e `LOGISTICS_MANAGER` podem usar `GET`.
-- Somente `LOGISTICS_MANAGER` pode usar `POST` e `PATCH`.
+- `ADMIN` e `LOGISTICS_MANAGER` podem usar `POST` e `PATCH`.
 - `DRIVER` não acessa essas rotas na API atual.
 
 Exemplo de criação:
@@ -226,7 +309,7 @@ Exemplo de criação:
 Regras de autorização:
 
 - `ADMIN`, `CHECKER` e `LOGISTICS_MANAGER` podem usar `GET`.
-- Somente `LOGISTICS_MANAGER` pode usar `POST` e `PATCH`.
+- `ADMIN` e `LOGISTICS_MANAGER` podem usar `POST` e `PATCH`.
 - `DRIVER` não acessa essas rotas na API atual.
 
 Exemplo de criação:
@@ -256,7 +339,7 @@ Exemplo de criação:
 Regras de autorização:
 
 - `ADMIN` e `LOGISTICS_MANAGER` podem usar `GET`.
-- Somente `LOGISTICS_MANAGER` pode usar `POST` e `PATCH`.
+- `ADMIN` e `LOGISTICS_MANAGER` podem usar `POST` e `PATCH`.
 - `CHECKER` e `DRIVER` não acessam essas rotas.
 
 Campos de `GET /customers`: `id`, `name`, `city`, `state` e `created_at`.
@@ -271,8 +354,8 @@ Campos novos/alterados são persistidos e retornados sem máscara.
 
 ### Consulta auxiliar de CEP — OC62
 
-`CONFIRMADO`: `GET /api/v1/customers/cep/{cep}` exige sessão e acesso exclusivo
-de `LOGISTICS_MANAGER`. `ADMIN`, `CHECKER` e `DRIVER` não podem consultá-la.
+`CONFIRMADO` (v1.2.0): `GET /api/v1/customers/cep/{cep}` exige sessão e papel
+`ADMIN` ou `LOGISTICS_MANAGER`. `CHECKER` e `DRIVER` não podem consultá-la.
 A rota recebe somente CEP, normaliza oito dígitos com hífen opcional antes da
 consulta e aplica timeout HTTP de 5 segundos por fase. O cadastro manual é
 independente.
@@ -312,7 +395,7 @@ O frontend deve consultar o backend, nunca o ViaCEP diretamente.
 Regras de autorização:
 
 - `ADMIN` e `LOGISTICS_MANAGER` podem usar `GET`.
-- Somente `LOGISTICS_MANAGER` pode usar `POST` e `PATCH`.
+- `ADMIN` e `LOGISTICS_MANAGER` podem usar `POST` e `PATCH`.
 - `CHECKER` e `DRIVER` não acessam essas rotas.
 
 Campos de `GET /drivers`: `id`, `name`, `license_category`, `active` e
@@ -347,7 +430,7 @@ nem corrigidas automaticamente nesta ocorrência.
 Regras de autorização:
 
 - `ADMIN`, `CHECKER` e `LOGISTICS_MANAGER` podem usar `GET`.
-- Somente `LOGISTICS_MANAGER` pode usar `POST` e `PATCH`.
+- `ADMIN` e `LOGISTICS_MANAGER` podem usar `POST` e `PATCH`.
 - `DRIVER` não acessa essas rotas na API atual; sua operação ocorre pelos
   endpoints da viagem atribuída.
 
@@ -411,16 +494,70 @@ Erros específicos:
 uma única transação. A criação registra `null -> DRAFT`; repetir o estado atual
 retorna o pedido sem criar histórico duplicado.
 
+## Hierarquia administrativa na v1.2.0
+
+A hierarquia vigente autoriza ADMIN a executar as ações logísticas atribuídas
+a LOGISTICS_MANAGER e as ações de conferência de CHECKER, além das funções
+administrativas exclusivas de ADMIN. A ampliação exige sessão, Origin/CSRF,
+autorização por recurso e todas as validações de domínio habituais.
+LOGISTICS_MANAGER não administra usuários/identidade/permissões/configurações
+institucionais. DRIVER permanece vinculado ao próprio motorista e não pode
+ser personificado por ADMIN. A OC112 evoluirá a matriz fixa para catálogo de
+permissões logísticas; esta mudança não cria direitos de plataforma CoreFlow.
+
 ## Planos de carga
 
 Regras de autorização:
 
-- Somente `LOGISTICS_MANAGER` usa criação, comparação, aprovação e recálculo.
+- `ADMIN` e `LOGISTICS_MANAGER` usam criação, comparação, aprovação e recálculo.
 - `ADMIN` e `LOGISTICS_MANAGER` consultam e solicitam explicação de qualquer plano
   persistido tecnicamente válido.
 - `CHECKER` consulta e solicita explicação somente de plano `APPROVED`.
 - `DRIVER` não acessa os endpoints de plano de carga; a viagem usa internamente o
   plano atribuído.
+
+### GET `/load-plans` — recuperação de planejamentos (#208)
+
+`CONFIRMADO`: consulta somente leitura, paginada no PostgreSQL. Usa `page=1`,
+`page_size=20` (1–100) e `sort_order=desc` (`asc`/`desc`). Ordena por
+`created_at, id` na mesma direção. Filtros opcionais aprovados nesta manutenção:
+`status` (`CALCULATED`, `APPROVED`, `REJECTED`) e `truck_id` UUID, aplicados antes
+do COUNT/LIMIT/OFFSET. Não há busca livre, `sort_by` ou filtro por dados pessoais.
+
+Envelope: `items`, `page`, `page_size`, `total`, `total_pages`. Cada item contém
+`id`, `truck_id`, `truck_plate`, `truck_model`, `status`, `created_at`,
+`recalculated_from_id`, `loaded_count`, `unloaded_count`, `occupancy_percent`,
+`total_weight_kg`, `order_count`. Placa/modelo vêm do snapshot histórico, não do
+cadastro atual. Não carrega entidades/coleções de volumes, coordenadas, pedidos
+completos nem dados pessoais; contagem de pedidos é uma subconsulta agregada.
+
+ADMIN e LOGISTICS_MANAGER consultam todos os planos. CHECKER recebe somente
+APPROVED, inclusive no total e nas páginas; solicitar outro status retorna
+coleção vazia. DRIVER recebe 403, sessão ausente 401, parâmetros inválidos 422.
+Página além do fim retorna items vazio; nenhum GET calcula ou cria operação.
+
+### GET `/load-plans/{id}/continuity`
+
+`CONFIRMADO`: consulta contextual dos vínculos persistidos, sem central global
+ou varredura de `GET /trips`. Retorna `loading_session: {id, status} | null`,
+`trip: {id, status} | null` e `operational_ready: boolean`. Reutiliza interfaces
+públicas dos módulos de carregamento/entrega e a fronteira operacional dos planos.
+Inclui viagens finalizadas para preservar a recuperação histórica.
+
+Mesma autorização do detalhe: ADMIN/LOGISTICS_MANAGER leem; CHECKER somente
+APPROVED e recebe `trip=null`, pois não pode consultar viagens; DRIVER 403,
+sessão ausente 401, plano inexistente 404, UUID inválido 422. `operational_ready`
+exige plano aprovado e compatibilidade da distribuição com a operação atual;
+não representa reserva ou garantia de disponibilidade. Escritas continuam
+validando conflitos, identidade, aprovação, pedidos, motorista e documentação.
+Uma viagem pode ser programada antes de concluir o carregamento, conforme
+ADR-022; somente seu início exige carregamento FINISHED.
+
+`CONFIRMADO`: vínculo único `uq_trips__load_plan_id` e lock do plano na criação
+já protegem contra viagens duplicadas. A consulta não elimina a necessidade da
+validação transacional. Falha ao consultar continuidade não significa ausência.
+A UI não oferece criar enquanto os vínculos não forem confirmados; conflito
+TRIP_LOAD_PLAN_ALREADY_ASSIGNED reconsulta a continuidade.
 
 ### POST `/load-plans`
 
@@ -584,7 +721,7 @@ Erros específicos:
 ### POST `/load-plans/compare-trucks`
 
 Compara de forma transitória os mesmos pedidos em diferentes caminhões. Exige
-`LOGISTICS_MANAGER` e não persiste nem cria `LoadPlan`.
+`ADMIN` ou `LOGISTICS_MANAGER` e não persiste nem cria `LoadPlan`.
 
 ```json
 {
@@ -713,10 +850,10 @@ item, e a finalização falha enquanto algum item estiver pendente.
 | Operação | Endpoint | `ADMIN` | `LOGISTICS_MANAGER` | `CHECKER` | `DRIVER` |
 |---|---|---:|---:|---:|---:|
 | Leitura | `GET /loading-sessions/{id}` | Sim | Sim | Sim | Não |
-| Criação | `POST /loading-sessions` | Não | Sim | Não | Não |
-| Início da conferência | `PATCH /loading-sessions/{id}/status` com `IN_PROGRESS` | Não | Não | Sim | Não |
-| Conferência de item | `PATCH /loading-sessions/{id}/items/{item_id}` com `CHECKED` | Não | Não | Sim | Não |
-| Finalização | `PATCH /loading-sessions/{id}/status` com `FINISHED` | Não | Não | Sim | Não |
+| Criação | `POST /loading-sessions` | Sim | Sim | Não | Não |
+| Início da conferência | `PATCH /loading-sessions/{id}/status` com `IN_PROGRESS` | Sim | Não | Sim | Não |
+| Conferência de item | `PATCH /loading-sessions/{id}/items/{item_id}` com `CHECKED` | Sim | Não | Sim | Não |
+| Finalização | `PATCH /loading-sessions/{id}/status` com `FINISHED` | Sim | Não | Sim | Não |
 
 `CONFIRMADO` (OC66): perfis negados recebem `403 AUTH_FORBIDDEN` antes de
 qualquer consulta à sessão ou ao item; autenticação ausente ou inválida continua
@@ -749,7 +886,7 @@ nas respostas de criação, leitura e atualização fornece o mesmo identificado
 para OC75, sem consulta direta ao banco. A identidade é `loading_session_items.id`,
 não código do produto nem índice de volume. Não há etiqueta física ou imagem.
 
-`CONFIRMADO`: somente `CHECKER` pode conferir por código, com sessão autenticada,
+`CONFIRMADO` (v1.2.0): `ADMIN` ou `CHECKER` pode conferir por código, com sessão autenticada,
 origem permitida e token CSRF, como na OC66. Código não é credencial. O endpoint
 retorna `200 LoadingSessionRead`, com apenas o item identificado em `CHECKED`.
 Sessão deve estar `IN_PROGRESS`; o bloqueio transacional de sessão/item é o mesmo
@@ -850,26 +987,28 @@ explicita o contrato implementado, sem alterar a API.
 
 Regras de autorização:
 
-- somente `LOGISTICS_MANAGER` cria viagem;
+- `ADMIN` e `LOGISTICS_MANAGER` criam viagem;
 - `ADMIN` e `LOGISTICS_MANAGER` consultam qualquer viagem;
-- `LOGISTICS_MANAGER` altera qualquer viagem ou entrega;
+- `ADMIN` e `LOGISTICS_MANAGER` alteram viagem ou entrega conforme estados válidos;
 - `DRIVER` consulta e altera somente viagem atribuída ao seu `driver_id`, desde
   que usuário e motorista continuem ativos;
-- `ADMIN` não executa transições operacionais; `CHECKER` não acessa essas rotas.
+- `ADMIN` não personifica motorista nem ignora o vínculo exigido para `DRIVER`; `CHECKER` não acessa essas rotas.
 
 Regras do contrato:
 
-- criação exige plano `APPROVED`, motorista ativo, pedidos do plano em
-  `PLANNED` e ainda sem entrega;
-- uma entrega é criada por pedido, com `sequence` contígua 1-based;
+- criação exige plano operacional `APPROVED`, motorista elegível e pedidos
+  `PLANNED`; partes de distribuição OC90 também aceitam `IN_TRANSIT`. Legado
+  exige pedido sem entrega; multi permite outra parte válida da mesma distribuição;
+- uma entrega é criada por pedido do plano/parte, com `sequence` contígua 1-based;
 - viagem aceita `SCHEDULED -> IN_ROUTE -> FINISHED`;
 - entrega aceita `PENDING -> IN_DELIVERY -> DELIVERED` somente durante
   `IN_ROUTE`;
 - repetir o status atual é idempotente e não cria novo histórico;
-- início exige carregamento finalizado e move todos os pedidos para
-  `IN_TRANSIT`;
-- conclusão de entrega move o pedido para `DELIVERED`; conclusão da viagem
-  exige todas as entregas e pedidos em `DELIVERED`;
+- início exige carregamento finalizado do mesmo plano e move somente pedidos
+  `PLANNED` para `IN_TRANSIT`, sem repetir transição de outra parte;
+- conclusão de entrega move o pedido para `DELIVERED` quando todas as suas
+  pernas necessárias concluíram (legado tem uma). Viagem multi exige somente
+  suas próprias entregas `DELIVERED`; legado exige também seus pedidos;
 - timestamps de início, entrega e fim são retornados em UTC.
 
 Erros específicos:
@@ -924,12 +1063,12 @@ foto, assinatura ou localização. `id` identifica o histórico, não um arquivo
 `recorded_at` e `delivered_at` são horários distintos, normalizados para UTC.
 Não há referência de evidências, sequer URL mock ou alegação de upload.
 
-`POST` exige `LOGISTICS_MANAGER` ou `DRIVER` vinculado/ativo na própria viagem;
-`GET` admite também `ADMIN`. `CHECKER` é negado. Sessão em cookie é obrigatória;
+`POST` exige `ADMIN`, `LOGISTICS_MANAGER` ou `DRIVER` vinculado/ativo na própria viagem;
+`GET` admite os três perfis. `CHECKER` é negado. Sessão em cookie é obrigatória;
 `POST` exige Origin aprovada e CSRF. Autorização por objeto ocorre antes de
 verificar estado/histórico. A primeira conclusão exige `IN_DELIVERY` e viagem
-`IN_ROUTE`, move somente seu pedido para `DELIVERED` e compartilha commit com
-os históricos. Repetição autorizada retorna o mesmo `id`, horários e responsável,
+`IN_ROUTE`, conclui a própria perna e move o pedido para `DELIVERED` somente
+quando todas as partes necessárias concluíram; compartilha commit com os históricos. Repetição autorizada retorna o mesmo `id`, horários e responsável,
 sem novo histórico, inclusive após `FINISHED`.
 
 | Status | Código | Condição |
@@ -985,6 +1124,14 @@ de upload, armazenamento binário, bucket ou consulta externa de mídia no MVP.
 
 ## Mensagens e WhatsApp
 
+`CONFIRMADO` (decisão de manutenção vinculada à OC82): envio e simulador permanecem exclusivamente mock, conforme
+[ADR-036](decisions/ADR-036-whatsapp-mock.md) e
+[contrato interno](../backend/app/integrations/whatsapp/README.md). O contrato
+público permanece o existente. `PENDENTE DE DEFINIÇÃO`: integração real adiada;
+fornecedor, credenciais, retries e idempotência durável de saída serão tratados
+quando esse escopo for retomado. Recepção/webhook pertence à OC83.
+
+
 - `POST /messages/interpret`: simulador interno disponível somente para usuários
   autenticados com papel `ADMIN` ou `LOGISTICS_MANAGER`.
 - `POST /webhooks/whatsapp` permanece fora da v1.0.0; o provider controlado usa
@@ -1020,19 +1167,54 @@ Resposta recomendada:
 e o `TripService` validar permissão e estado. Nenhuma regra de viagem ou entrega
 é duplicada no módulo de mensagens.
 
-### Notificações automáticas
+### Notificações automáticas — OC84
 
-`CONFIRMADO`: não existe endpoint público específico para notificações. Uma
-transição efetiva `SCHEDULED -> IN_ROUTE` realizada por
-`PATCH /trips/{id}/status` e um `POST /occurrences` concluído disparam mensagem
-determinística para o telefone do motorista da viagem por
-`MockWhatsAppProvider`.
+`CONFIRMADO`: não há endpoint público novo. Permissões, autorização por viagem,
+401/403, Origin e CSRF continuam nos endpoints existentes. GET não cria notificações.
+Os eventos reais de início de viagem e ocorrência geram registros duráveis,
+idempotentes por tipo/origem/motorista; saída WhatsApp é exclusivamente mock.
 
-`CONFIRMADO`: mensagens automáticas são best-effort e posteriores ao commit.
-Falha do mock não muda a resposta nem reverte a operação confirmada. Transição
-rejeitada e repetição idempotente não disparam mensagem. Comandos recebidos pelo
-simulador mantêm sua confirmação explícita e não recebem um segundo aviso
-automático para o mesmo fato.
+`CONFIRMADO`: o registro é atômico com o fato. Claim persistente posterior ao commit
+externo autoriza no máximo uma tentativa local; falha do mock não desfaz domínio.
+OC79/OC83 respeitam savepoints e replay. SIMULATED não equivale a envio ou entrega
+externa. O simulador preserva sua confirmação sem segundo aviso automático.
+Consulta interna do service não altera estado nem inicia tentativas.
+
+`CONFIRMADO`: schema/estados em docs/03 e ADR-041. OC103 definirá central/leitura,
+preferências e acesso por destinatário; OC109 definirá recuperação de pendências,
+worker/retries. Nenhuma dessas APIs foi antecipada nesta OC84.
+
+
+## Auditoria — OC97
+
+### GET `/audit`
+
+Consulta somente leitura permitida a `ADMIN` e `LOGISTICS_MANAGER`.
+`CHECKER` e `DRIVER` recebem `403 AUTH_FORBIDDEN`.
+
+A resposta usa o envelope paginado padrão e agrega:
+
+- mudanças de `status_history` como `event_type = STATUS_CHANGED`;
+- ações administrativas selecionadas de `audit_events`, inicialmente
+  `USER_CREATED` e `USER_UPDATED`.
+
+Filtros opcionais, sempre aplicados no servidor antes da paginação:
+
+- `entity_type`: `ORDER`, `LOAD_PLAN`, `TRIP`, `DELIVERY` ou `USER`;
+- `entity_id`: UUID do registro;
+- `actor_id`: UUID do usuário responsável;
+- `event_type`: `STATUS_CHANGED`, `USER_CREATED` ou `USER_UPDATED`;
+- `start_at` e `end_at`: período com timezone;
+- `page`, `page_size` e `sort_order`: paginação padrão.
+
+Cada item retorna `actor_id` e `actor_name` quando houver usuário responsável,
+`old_status/new_status` para mudança operacional e `changed_fields` para ação
+administrativa.
+
+`CONFIRMADO`: `changed_fields` contém somente nomes de campos. Valores de nome,
+e-mail, senha, token, sessão ou payload sensível não são persistidos nem retornados.
+
+`CONFIRMADO`: não existem endpoints POST, PUT, PATCH ou DELETE de auditoria.
 
 ## Relatórios
 
@@ -1080,10 +1262,12 @@ Mapeamento recomendado:
 ## Segurança de API
 
 - Somente `GET /health`, `GET /ready` e `POST /api/v1/auth/login` são públicos.
-- Todos os demais endpoints de negócio exigem o cookie de sessão e aplicam a
-  matriz de `docs/04-regras-negocio.md`.
-- `POST`, `PUT`, `PATCH` e `DELETE` exigem `Origin` presente na lista exata de
-  CORS. Operações autenticadas nesses métodos também exigem `X-CSRF-Token`.
+- Endpoints de negócio da interface exigem cookie de sessão e a matriz de
+  `docs/04-regras-negocio.md`. O POST exato `/api/v1/webhooks/controlled-events`
+  exige assinatura HMAC e autorização OC79, sem cookie; não é público/anônimo.
+- Nas rotas de sessão, `POST`, `PUT`, `PATCH` e `DELETE` exigem `Origin` na lista
+  exata de CORS e operações autenticadas exigem `X-CSRF-Token`. Apenas o POST
+  assinado da OC83 usa autenticação de emissor em lugar dessas proteções de navegador.
 - `CONFIRMADO`: com `APP_ENV=local`, `/docs`, `/docs/oauth2-redirect`, `/redoc` e `/openapi.json` ficam disponíveis. Com `APP_ENV=production` ou sem a variável, essas rotas não são registradas e retornam `404`.
 - Senhas nunca retornam na API.
 - Tokens e segredos nunca aparecem em logs.
@@ -1106,4 +1290,389 @@ após autenticação válida.
 
 `CONFIRMADO`: a autorização por perfil segue `ADR-004`; acesso não listado é negado.
 
-`PENDENTE DE DEFINIÇÃO`: autenticação própria e validação de assinatura do webhook de WhatsApp devem ser aprovadas antes de uma integração externa real.
+`CONFIRMADO`: a OC79 implementa uma fronteira interna de autenticidade,
+autorização e idempotência, sem adicionar endpoint HTTP ou mudar o simulador.
+Contrato, catálogo fechado, erros e consumo pelas OCs seguintes estão em
+[external_commands/README](../backend/app/modules/external_commands/README.md)
+e na proposta [ADR-026](decisions/ADR-026-seguranca-comandos-externos.md).
+
+`CONFIRMADO`: OC83 compõe HMAC, bindings confiáveis e recebimento HTTP controlado
+em [messages/inbound](../backend/app/modules/messages/inbound.md). OC82 mantém
+WhatsApp mock. `PENDENTE DE DEFINIÇÃO`: autenticação/formato Meta específico
+permanece na pré-produção (#193); sessão/Origin/CSRF e RBAC da interface são preservados.
+
+## OC105 — cadastros ativos e arquivados
+
+`CONFIRMADO`: GET de `/customers`, `/products`, `/trucks` e `/drivers` aceita
+`archive_status=active|archived|all` (default `active`). O filtro é whitelist,
+não recebe dados pessoais, e precede COUNT/LIMIT/OFFSET. Detalhe por UUID mantém
+arquivados acessíveis aos mesmos leitores. Clientes/produtos passam a retornar
+`active` booleano; os demais campos e o envelope paginado são preservados.
+
+`CONFIRMADO`: PATCH `/{id}` com `{"active": false}` arquiva e com `true` reativa,
+retornando 200 no schema existente. `ADMIN` ou `LOGISTICS_MANAGER` escreve; sessão,
+origem e CSRF permanecem obrigatórios. `null` é inválido (422), ID ausente 404,
+unicidade global 409. Repetir o mesmo estado não duplica auditoria. Operação nova
+com fonte arquivada retorna 409 `RECORD_ARCHIVED`, com entidade e UUID em
+`details`, sem dados pessoais. Conflitos operacionais anteriores mantêm seus
+códigos. Consulta de situação da frota mantém a visão completa da OC67/68/72;
+as seleções operacionais usam somente registros ativos/disponíveis.
+
+## OC99 — endereços de cliente e destino contratado
+
+`CONFIRMADO`: ADMIN e LOGISTICS_MANAGER acessam GET/POST
+`/api/v1/customers/{customer_id}/addresses` e PATCH
+`/api/v1/customers/{customer_id}/addresses/{address_id}`. Coleção usa paginação
+padrão e archive_status=active|archived|all; default active. CREATE exige
+address/city/state, aceita label (default Principal), postal_code opcional
+(8 dígitos ou máscara), active e is_primary. PATCH aceita campos parciais;
+postal_code pode ser null, outros campos enviados não podem ser null.
+Arquivamento/reativação usa active, sem DELETE. UUID é estável. Principal
+arquivado promove o ativo mais antigo; se nenhum permanecer, projeção legada
+mantém último endereço. Erros: 401/403 sessão/RBAC, 404 origem não encontrada,
+409 principal inválido, 422 entrada inválida e 500 envelope comum.
+
+`CONFIRMADO`: POST /orders admite exatamente um de customer_address_id ou
+delivery_address. Endereço selecionado pertence ao cliente e deve estar ativo;
+backend copia snapshot e texto. GET detalhado e respostas de escrita acrescentam
+customer_address_id e delivery_address_snapshot. PATCH DRAFT sem destino mantém
+a cópia; novo destino explicitamente selecionado/textual substitui a cópia.
+Troca de cliente exige destino explícito. Seleção inexistente/de outro cliente
+recebe 422, arquivada recebe 409. Consulta pública resumida continua minimizada.
+
+## OC100 — manutenção da frota
+
+`CONFIRMADO`: GET/POST `/api/v1/trucks/{truck_id}/maintenances` lista histórico
+paginado/cria manutenção; POST `/{maintenance_id}/close` encerra/cancela período.
+ADMIN e LOGISTICS_MANAGER escrevem; CHECKER lê, DRIVER recebe 403. CREATE:
+kind PREVENTIVE|CORRECTIVE, starts_at com fuso, ends_at opcional exclusivo,
+description, workshop/notes/cost opcionais e odometer_km opcional inteiro.
+CLOSE: odometer_km e next_service_at/km opcionais; campos omitidos preservam
+revisão, null limpa critério. Repetir encerramento retorna 409. Não há DELETE.
+Erros 401/403 sessão/RBAC, 404 origem inexistente, 409 conflito/arquivado/km
+reduzido, 422 período/revisão/entrada inválida, 500 envelope comum.
+
+`CONFIRMADO`: TruckRead acrescenta odometer_km e next_service_at/km opcionais;
+CREATE/PATCH truck admitem odometer_km (PATCH não admite null). Status da frota
+acrescenta has_maintenance_conflict e available considera esse bloqueio.
+Novas operações com manutenção atual recebem TRUCK_IN_MAINTENANCE (409);
+preflight de distribuição apresenta esse motivo entre os ineligíveis.
+
+## OC101 — documentos dos caminhões
+
+`CONFIRMADO`: GET/POST `/api/v1/trucks/{truck_id}/documents`; POST
+`/documents/{document_id}/renew`; GET `/document-policies`; PATCH
+`/document-policies/{kind}` (todos sob o mesmo caminhão). GET documents usa o
+envelope paginado ADR-017, inclui versões históricas e `status` derivado.
+Create/renew recebem kind CRLV|LICENSING|INSURANCE, reference (1–120),
+issued_at/expires_at UTC opcionais e file_reference UUID opcional. Read adiciona
+id/truck_id/created_at/superseded_at/status. Renovação retorna novo UUID (201).
+Policy PATCH exige boolean estrito required; GET retorna políticas configuradas
+(não configurada equivale a false). Sem DELETE nem atualização destrutiva.
+RBAC do cadastro: ADMIN/LOGISTICS_MANAGER escreve, CHECKER lê, DRIVER negado.
+Erros 401/403/404/409/422 padrão. Duplicidade TRUCK_DOCUMENT_DUPLICATE;
+renovação obsoleta TRUCK_DOCUMENT_NOT_CURRENT; ausência TRUCK_DOCUMENT_NOT_FOUND.
+Política documental violada: TRUCK_DOCUMENT_INELIGIBLE (409).
+Operational-status acrescenta has_document_conflict e available incorpora
+políticas; preflight usa motivo TRUCK_DOCUMENT_INELIGIBLE. Endpoints anteriores
+permanecem compatíveis. Referência de arquivo nunca é URL/caminho ou download.
+
+## OC102 — documentos de motoristas
+
+`CONFIRMADO`: GET/POST `/api/v1/driver-document-types` lista/aprova tipos com
+id UUID, code único uppercase (32) e name (120); CNH é nativo.
+GET/POST `/api/v1/drivers/{driver_id}/documents`; POST
+`/documents/{document_id}/renew` (201, nova identidade); GET `/document-policies`;
+PATCH `/document-policies/{document_type_id}`. Todos sob prefixo do motorista.
+Documents usa paginação ADR-017, inclui versões históricas e status derivado.
+Create recebe document_type_id, reference, category opcional somente CNH,
+issued_at/expires_at UTC opcionais; versão CNH explicitamente criada/renovada
+exige expires_at. Read acrescenta id/driver_id/created_at/superseded_at/status.
+Policy PATCH recebe required boolean estrito e allowed_categories lista única
+C/D/E/AC/AD/AE somente para CNH (default [], sem restrição extra).
+CRUD de drivers acrescenta license_expires_at opcional; omissão preserva, null
+limpa validade e torna inelegível se CNH exigida. Novas categorias usam catálogo
+atual; leituras legadas preservam strings antigas. Resumos não expõem CNH/CPF.
+Operational-status acrescenta has_document_conflict; available incorpora a
+política. DriverService valida designação/início de viagem com erro 409
+DRIVER_DOCUMENT_INELIGIBLE. RBAC atual ADMIN/LOGISTICS_MANAGER leitura/escrita;
+CHECKER/DRIVER negados. Erros padrão 401/403/404/409/422; sem DELETE, arquivo,
+storage ou envio de notificações. Eventos documentais na auditoria para OC103.
+
+## OC110 — anexos operacionais
+
+`CONFIRMADO`: API aditiva `/api/v1/attachments/{resource_type}/{resource_id}`
+para orders/trips/deliveries/occurrences; POST registro, GET página, GET /{id}
+metadata, GET /{id}/content protegido, POST /{id}/revoke lógico. DTOs
+AttachmentCreate/AttachmentRead preservam todos os schemas anteriores. Contrato,
+erros e RBAC completos em [README do módulo](../backend/app/modules/attachments/README.md)
+e [ADR-033](decisions/ADR-033-anexos-operacionais.md). Sem URL de storage,
+client-supplied MIME/autor, novos formatos ou ativação de fornecedor em produção.
+
+## OC104 — importação de cadastros
+
+`CONFIRMADO`: `/api/v1/registration-imports`, ADMIN/LOGISTICS_MANAGER ativos.
+Tipos customers/products/trucks/drivers; GET /{entity_type}/template, POST
+/{entity_type}/preview, POST /{entity_type}/confirm, GET histórico paginado com
+entity_type e GET /{import_id}. Prévia: file_name/content_base64; confirmação
+acrescenta preview_sha256/event_id UUID. Prévia expõe linhas normalizadas e
+can_confirm; resultado COMPLETED/REJECTED contém totais, autor, data, checksum,
+erros por linha/campo e UUIDs criados. Arquivo inválido não cria cadastros.
+[Contrato completo](../backend/app/modules/registration_imports/README.md).
+
+## OC91 — cadastro institucional da empresa
+
+`CONFIRMADO`: `GET /api/v1/company-profile` e `PUT /api/v1/company-profile`
+são exclusivos de ADMIN ativo, com sessão/CSRF/origem existentes. GET retorna
+`null` antes do primeiro cadastro e não escreve dados. PUT substitui o cadastro
+único e retorna 200 com `id`, os seis campos e timestamps `created_at/updated_at`.
+
+| Campo | Contrato |
+| --- | --- |
+| `legal_name`, `display_name` | Obrigatórios, texto não vazio após trim, até 160 caracteres |
+| `cnpj` | Opcional, CNPJ numérico válido; retorna 14 dígitos |
+| `phone` | Opcional, regra existente de telefone com DDD; retorna dígitos |
+| `email` | Opcional, formato existente, até 255 caracteres; retorna minúsculas |
+| `logo_reference` | Opcional, URL HTTPS sem credenciais, até 2048 caracteres; apenas metadado |
+
+Vazio opcional equivale a null; campos desconhecidos são recusados. Sem sessão:
+401; outros perfis: 403; entrada inválida: 422 no envelope padrão com erros por
+campo. Não há DELETE, upload, fetch remoto, tenant, cadastro paralelo de usuários
+ou credenciais de integração. Atualizações concorrentes são serializadas no
+PostgreSQL: última gravação válida prevalece, sem auditoria de no-op.
+
+Auditoria institucional usa `COMPANY_PROFILE` e eventos
+`COMPANY_PROFILE_CREATED/COMPANY_PROFILE_UPDATED`. ADMIN pode filtrá-los na API;
+consultas gerais de LOGISTICS_MANAGER os excluem e filtros explícitos recebem
+403. Histórico contém somente ator, data e nomes dos campos, sem valores.
+Fora desse histórico institucional, as permissões existentes são preservadas.
+Detalhes: [ADR-035](decisions/ADR-035-configuracoes-institucionais-standalone.md).
+
+## OC108 — Integrações e Saúde
+
+`CONFIRMADO`: `GET /api/v1/integration-health`, exclusivo ADMIN ativo. Retorna
+200 com falhas parciais em indicadores; 401/403/422/500 no envelope existente.
+Campos: `checked_at` UTC, `correlation_id` UUID da consulta, `overall_status`
+PARTIAL/DEGRADED, `components` com nome do componente, modo INTERNAL/MOCK/REAL,
+status fechado, configured boolean/null e reason_code fechado. Sem segredos,
+URLs, traces, dados pessoais ou configuração bruta. Consulta passiva sem envios,
+prompts ou alterações. Reusa liveness/readiness e timeouts existentes.
+
+WhatsApp SIMULATED (UI SIMULADO), IA mock SIMULATED, IA externa não implementada
+NOT_CONFIGURED. Webhook interno: NOT_CONFIGURED quando o runtime está desativado;
+AVAILABLE/RUNTIME_CONFIGURED quando inicializado, sem certificar conexão externa.
+Notificações internas: LIMITED/WORKER_NOT_OBSERVED, reconhecendo OC84/OC103/OC109
+implementadas, sem afirmar que o worker está ativo. Códigos OC83_PENDING e
+OC84_PENDING são mantidos no catálogo por compatibilidade, sem emissão padrão.
+Sinais futuros aprovados podem informar AVAILABLE,
+UNAVAILABLE e TIMEOUT; não são criados providers nesta OC. Consultas paralelas
+com falha isolada e configuração desconhecida null. Histórico durável indisponível;
+falhas atuais são correlacionadas por UUID/data e logs sanitizados.
+Contrato detalhado: [integration_health](../backend/app/modules/integration_health/README.md).
+
+
+## OC92 — Minha conta standalone
+
+`CONFIRMADO`: `GET /api/v1/auth/me` continua restaurando usuário e CSRF. Novos contratos próprios: `PATCH /auth/me` (nome/e-mail), `POST /auth/me/password` (confirmação atual e senha nova), `GET /auth/me/sessions`, `DELETE /auth/me/sessions/{session_id}` e `POST /auth/me/sessions/revoke-others`, todos sob prefixo `/api/v1`.
+
+`CONFIRMADO`: todos os perfis autenticados acessam apenas a própria conta. Sem role/active/driver_id editáveis, hashes/tokens nas respostas ou ID de usuário arbitrário. UUID de sessão é referência pública de revogação, não credencial. Sessões listadas são próprias, não revogadas, dentro dos dois prazos existentes; `current` vem da sessão autenticada. Falhas retornam envelope sanitizado; 401/403 e Origin/CSRF mantidos. Senha inválida 400, duplicidade de e-mail 409, schema/política 422, throttling 429. Sessão alheia/inexistente 404 indistinguível.
+
+`CONFIRMADO`: senha válida revoga todas as sessões e exige novo login (204 + remoção do cookie), na mesma transação de hash/auditoria. Revogar as outras preserva a atual; revogar a atual encerra autenticação. Contrato completo e concorrência em [auth/README](../backend/app/modules/auth/README.md). Política: ADR-020; sem migration ou novo modo de identidade/CoreFlow.
+
+
+### Contagem física em listagem de pedidos — manutenção #204
+
+`GET /api/v1/orders` retorna agora `volume_count` (inteiro não negativo) para
+cada resumo, além de `item_count`. O primeiro é
+`sum(order_item.quantity)`, correspondente aos volumes expandidos avaliados
+pelo planejamento; `item_count` continua representando a quantidade de linhas
+de produto. Trata-se de campo aditivo, sem expor `items` completos ou endereço
+no resumo. O contrato do cálculo `POST /load-plans` permanece inalterado:
+máximo de 200 volumes e erro 422 com `volume_count` e `max_volumes` nos
+detalhes quando o limite é superado.
+
+### OC98 — recuperação e segundo fator standalone
+
+`CONFIRMADO`: contrato aprovado na ADR-038 e detalhado em [auth/README](../backend/app/modules/auth/README.md#oc98--recuperação-de-senha-e-mfa).
+Login mantém UserRead para perfis sem MFA; para ADMIN/LOGISTICS_MANAGER retorna
+MfaChallengeRead sem sessão. `POST /auth/mfa/verify` é a única conclusão desse
+desafio. Recuperação tem solicitação neutra e confirmação 204 sem autenticação.
+Rotas próprias de MFA exigem cookie/CSRF/ownership e reautenticação reforçada.
+Nenhuma mudança nos contratos logísticos, planos, snapshots, OC88 ou OC93.
+
+## OC107 — Busca global
+
+`CONFIRMADO`: `GET /api/v1/search` exige sessão e `search` obrigatório (2–120
+caracteres após trim). `limit_per_category`: 1–10, default 5. Resposta 200:
+`{"results":[{"category":"order","id":"UUID","title":"Pedido UUID","href":"/orders?order=UUID"}]}`.
+Categorias `order/customer/truck/driver/trip`; sem totais de sugestões omitidas.
+Reuso da semântica literal/case-insensitive da OC95, acentos preservados. Cadastros
+ativos; ordenação created_at/id descendente por categoria. Limite, não paginação
+global; ver [ADR-039](decisions/ADR-039-busca-global-limitada.md).
+
+ADMIN/LOGISTICS_MANAGER: todos os cinco tipos; CHECKER: somente pedidos (sem
+nomes de clientes na pesquisa/título) e caminhões; DRIVER: somente UUID das
+próprias viagens, com vínculo ativo validado pelo TripService. Nenhum dado,
+contagem ou categoria restrita é retornado. 401 sem sessão, 403 vínculo de DRIVER
+inválido/inativo, 422 parâmetros inválidos. URLs de cadastros abrem listagens com
+`search` e `tab` apropriados; pedidos/viagens usam detalhes existentes.
+Campos e limites completos em [global_search](../backend/app/modules/global_search/README.md).
+
+## OC86 — Gestão administrativa de usuários
+
+`CONFIRMADO`: reutiliza GET/POST /api/v1/users e GET/PATCH /api/v1/users/{id},
+sempre ADMIN-only. GET da coleção mantém o envelope paginado e os campos
+existentes; acrescenta `email`, `driver_id` e `driver_name` (vínculo/nome nullable), conforme extensão da
+ADR-017. Aceita `search` opcional por nome (trim, até 120 caracteres, substring
+literal case-insensitive, acentos preservados), `role` do catálogo existente e
+`active` booleano. Combinam por AND antes da paginação determinística; parâmetros
+inválidos recebem 422. Nenhuma nova rota, migration ou mecanismo de autenticação.
+
+`CONFIRMADO`: escritas mantêm contratos, códigos de erro, último ADMIN ativo,
+e-mail/vínculo únicos, política de senha, auditoria e revogação transacional de
+sessões. DRIVER pode existir sem vínculo conforme API atual; sem vínculo ativo
+não acessa viagens próprias. UI informa esse limite e não cria exigência adicional.
+
+
+## OC112 — Perfis e permissões efetivas
+
+`CONFIRMADO`: /access-profiles adiciona GET/POST da coleção, GET /permissions e
+GET/PATCH /{id}, exclusivamente ADMIN. Contrato completo, limites, matriz de
+permissões, erros e estratégia transacional em
+[access_profiles](../backend/app/modules/access_profiles/README.md).
+
+UserCreate/UserUpdate aceitam role=CUSTOM + custom_profile_id; papéis fixos
+preservados e perfil nulo obrigatório. UserRead/login/me acrescentam permissions
+e rótulo/UUID do perfil; coleção de usuários acrescenta somente rótulo/UUID do
+perfil. Não há endpoints de exclusão ou permissões declaradas pelo cliente usadas
+para autorizar. Cookies/CSRF e regras de vínculo permanecem vigentes.
+
+Auditoria ADMIN admite filtros ACCESS_PROFILE e PROFILE_CREATED/PROFILE_UPDATED.
+Esses eventos permanecem ocultos ao gerente antes de paginação; escopo legado de
+usuários do gerente não é ampliado. ADR-040 substitui o RBAC exclusivamente fixo
+onde a ação foi migrada. OC98/tenant/CoreFlow não são incorporados.
+
+## Webhook controlado — OC83
+
+`CONFIRMADO`: `POST /api/v1/webhooks/controlled-events`, assinatura HMAC dos bytes
+originais no header `X-LoadX-Signature`, sem sessão/cookie. Reutiliza envelope v1,
+capabilities, bindings e idempotência PostgreSQL da OC79. Contrato HTTP, erros,
+limites, configuração opt-in e mídia desabilitada em
+[messages/inbound](../backend/app/modules/messages/inbound.md).
+Somente este POST exato usa assinatura em lugar de Origin/CSRF; demais rotas
+preservam as proteções da interface. WhatsApp continua exclusivamente mock.
+
+### OC89 — vínculos de recuperação e caminhão histórico
+
+`CONFIRMADO`: respostas de `GET /load-plans` e `GET /load-plans/{id}` incluem
+`distribution_id: UUID | null`, inclusive para versões reprocessadas. Resumos
+continuam paginados, sem itens; filtro/ordenação/RBAC não mudam.
+`DistributionPartRead` inclui `truck: TruckSnapshotRead` do plano persistido
+(placa, modelo, dimensões em cm e capacidade em kg). Não consulta cadastro atual
+para reconstruir o histórico. Estes campos aditivos não exigem migration.
+
+## OC103 — notificações pessoais (sessão obrigatória)
+
+`CONFIRMADO`: prefixo `/api/v1/notifications`, sem parâmetro de destinatário.
+Todos os perfis autenticados acessam a própria caixa; eventos exigem permissão
+real e vínculo atual. ADMIN não consulta caixa alheia. CSRF/Origin nas mutações.
+
+| Método | Caminho | Contrato |
+|---|---|---|
+| GET | /notifications | PageResponse + unread_count global no mesmo snapshot; page/page_size/sort_order, event_type, category e read opcionais |
+| GET | /notifications/unread-count | unread_count visível da sessão |
+| POST | /notifications/read-all | updated; leitura idempotente das notificações visíveis |
+| POST | /notifications/{id}/read | read_at da primeira leitura; 404 fora da caixa/escopo |
+| GET | /notifications/{id}/source | href relativo da viagem, após autorização atual da origem; 404 fora do escopo |
+| GET | /notifications/preferences | items: category, enabled, mandatory |
+| PUT | /notifications/preferences | items (1–3 categorias únicas); SECURITY false é 422; extras recusados |
+
+Projeção: id, event_type, category, title, summary, created_at (fato), received_at,
+read_at. Sem dados do canal/telefone/conteúdo original. Preferência não remove
+notificações anteriores nem cria associações retroativas. Erros: 401 sessão,
+403 CSRF/Origin, 404 NOTIFICATION_NOT_FOUND, 422 contrato. GETs não gravam nem
+simulam envio. Categorias aprovadas: TRIPS/OCCURRENCES; SECURITY é política
+obrigatória, sem eventos artificiais. Eventos/alertas futuros exigem contrato próprio.
+
+## OC109 — administração da fila
+
+`CONFIRMADO`: ADMIN autenticado; CSRF/Origin nos comandos. GET /api/v1/outbox-events
+com paginação padrão, sort_order, status/event_type; GET /outbox-events/summary;
+GET /outbox-events/{id} inclui tentativas; GET /outbox-events/{id}/source revalida
+viagem e retorna href; POST /outbox-events/{id}/retry recebe {command_id: UUID},
+retorna estado atual. Replay não reinicia fila; reutilização em outra origem 409.
+401/403, 404 fora da origem, 409 evento inelegível, 422 contrato. Sem payloads
+privados, sem publicação HTTP arbitrária.
+
+`CONFIRMADO` (OC109): /audit admite filtros OUTBOX_EVENT/OUTBOX_REPROCESSED;
+somente ADMIN pode consultá-los. Consultas gerais de outros perfis também
+excluem essas intervenções administrativas.
+
+
+## OC90 — operação por parte física
+
+`CONFIRMADO`: endpoints existentes de loading-sessions, trips, deliveries,
+receipts e reports operam partes APPROVED de distribuições APPROVED usando
+somente seu load_plan atual. Nenhum endpoint novo ou parâmetro de escrita para
+atribuir parte. TripCreate mantém load_plan_id/driver_id; o servidor resolve a
+parte. Versões históricas e partes não aprovadas continuam recusadas.
+
+`CONFIRMADO`: DeliveryRead acrescenta `distribution_part_id: UUID | null` (null
+para legado). O campo é somente de saída. Uma entrega por parte/pedido, com
+comprovante independente e contrato DeliveryReceiptRead inalterado. Início da
+primeira perna muda Order para IN_TRANSIT; somente conclusão de todas as partes
+que transportam esse pedido permite DELIVERED. Trip multi finaliza pelas suas
+próprias entregas. Repetições preservam o histórico; POST Trip duplicado continua
+409 TRIP_LOAD_PLAN_ALREADY_ASSIGNED. Demais erros/permissões OC112 e regras de
+vínculo de motorista permanecem vigentes.
+
+`CONFIRMADO`: GET /reports/load-plans/{id} e GET /reports/trips/{id} continuam PDF
+somente leitura. Para distribuição, incluem distribution_id/part_id, plano,
+caminhão e quantidade/identidades `(order_item_id, volume_index)` da parte.
+Relatório de viagem inclui também trip_id. Não mistura volumes nem recalcula.
+GET /audit admite também filtros entity_type=LOAD_DISTRIBUTION e
+LOAD_DISTRIBUTION_PART com a mesma permissão reservada de leitura da auditoria.
+Nenhum dado pessoal adicional foi incorporado aos schemas ou logs.
+
+
+## OC81 — comunicação operacional vinculada à entrega
+
+`CONFIRMADO`: `GET /api/v1/deliveries/{delivery_id}/communications`, somente leitura,
+aceita `page` >=1, `page_size` 1–100 (padrão20), `sort_order` asc/desc (padrãodesc).
+Retorna PageResponse com items, page, page_size, total e total_pages. Cada item:
+`id`, `occurrence_id`, `event_type=OCCURRENCE_REGISTERED`, `created_at` UTC,
+`channel=WHATSAPP_MOCK`, `simulation_status` e `processing_status` opcional.
+
+Simulation_status conserva o fato OC84: NOT_ATTEMPTED, ATTEMPT_CLAIMED,
+SIMULATED, FAILED ou NO_RECIPIENT. Processing_status conserva a projeção OC109:
+PENDING, PROCESSING, SUCCEEDED, RETRYABLE, TERMINAL, UNCERTAIN; null significa
+que não há fila persistida vinculada. São estados de canal **simulado**, nunca
+comprovantes de envio, entrega ou leitura Meta. Não inclui erro interno,
+mensagem, telefone, payload, caminho, credencial, ator ou destinatário pessoal.
+
+A origem é a ocorrência cujo delivery_id/trip_id corresponde exatamente à
+entrega autorizada; TRIP_STARTED e ocorrências gerais não são atribuídos à
+entrega. Ordenação por created_at e UUID na mesma direção. Uma mesma Order em
+outra parte/caminhão não amplia o recorte.
+
+Exige sessão ativa e permissões efetivas deliveries.read + occurrences.read,
+ou trips.own com DRIVER ativo e vinculado. ADMIN conserva acesso administrativo;
+CHECKER e motorista de outra viagem são negados. Erros 401/403/404/422 usam o
+envelope padrão (404 DELIVERY_NOT_FOUND). Não há mudança de estados, escrita,
+leitura da caixa pessoal, envio, retry, acesso a storage ou migration nessa API.
+A UI da OC81 usa exclusivamente este contrato para a seção de comunicação.
+
+
+## Recuperação idempotente — #254
+
+`CONFIRMADO`: contrato implementado para revisão na ADR-047. Tabela aditiva
+`optimization_requests`: PK (user_id, request_key), payload_hash SHA-256 de
+versão/seleção ordenada, distribution_id único com FK RESTRICT, created_at UTC.
+Persistência atômica com distribuição/planos/volumes/histórico; sem pending ou TTL.
+`POST /load-distributions/optimize` aceita header UUID `Idempotency-Key` opcional.
+Replay igual retorna 201 com o mesmo recurso atual; payload diferente: 409
+IDEMPOTENCY_PAYLOAD_MISMATCH. Concorrência: 409 OPTIMIZATION_IN_PROGRESS.
+`GET /load-distributions/optimization-requests/{key}` retorna 200/404/409,
+somente para o ator e com a mesma permissão create. Não cria nada.
+Migration 20261023_0035 → 20261021_0034; downgrade recusa registros existentes.
+Sem alteração de regras físicas, RBAC efetivo, MFA ou OC90/OC94.

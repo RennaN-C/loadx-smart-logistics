@@ -7,8 +7,9 @@ from sqlalchemy.orm import Session
 
 from app.core.pagination import PageResponse, Pagination, to_page_response
 from app.core.responses import error_response, openapi_error_responses
+from app.core.search import SearchQuery
 from app.database.session import get_db
-from app.modules.auth.dependencies import require_roles
+from app.modules.auth.dependencies import require_permission
 from app.modules.trucks.models import Truck
 from app.modules.trucks.operational_status_service import TruckOperationalStatusService
 from app.modules.trucks.schemas import (
@@ -23,16 +24,11 @@ from app.modules.trucks.service import (
     TruckService,
 )
 from app.modules.users.models import User
+from app.shared.record_lifecycle import ArchiveFilter, active_filter
 
 router = APIRouter(prefix="/trucks", tags=["trucks"])
-TruckReader = Annotated[
-    User,
-    Depends(require_roles("ADMIN", "CHECKER", "LOGISTICS_MANAGER")),
-]
-TruckManager = Annotated[
-    User,
-    Depends(require_roles("LOGISTICS_MANAGER")),
-]
+TruckReader = Annotated[User, Depends(require_permission("loadx.trucks.read"))]
+TruckManager = Annotated[User, Depends(require_permission("loadx.trucks.manage"))]
 
 
 def get_truck_service(db: Annotated[Session, Depends(get_db)]) -> TruckService:
@@ -54,8 +50,12 @@ def list_trucks(
     pagination: Pagination,
     _current_user: TruckReader,
     service: Annotated[TruckService, Depends(get_truck_service)],
+    archive_status: ArchiveFilter = "active",
+    search: SearchQuery = None,
 ) -> PageResponse[TruckRead]:
-    result = service.list_trucks(pagination)
+    result = service.list_trucks(
+        pagination, active=active_filter(archive_status), search=search
+    )
     return to_page_response(
         result,
         (TruckRead.model_validate(truck) for truck in result.items),
@@ -137,7 +137,7 @@ def update_truck(
     service: Annotated[TruckService, Depends(get_truck_service)],
 ) -> Truck | JSONResponse:
     try:
-        return service.update_truck(truck_id, data)
+        return service.update_truck(truck_id, data, changed_by=_current_user.id)
     except TruckNotFoundError:
         return error_response(
             status.HTTP_404_NOT_FOUND,

@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import Engine, create_engine
+from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.engine import URL, make_url
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import NullPool
@@ -93,14 +93,250 @@ def _reset_public_schema(engine: Engine) -> None:
 
 def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
     _reset_public_schema(engine)
+    _run_alembic(test_url, "upgrade", "20261009_0019")
+    with engine.begin() as connection:
+        connection.exec_driver_sql(
+            "INSERT INTO drivers(id,name,document,phone,license_number,license_category,active) VALUES ('00000000-0000-4000-8000-000000000202','Legado fictício','12345678909','11900000000','12345678900','D',false)"
+        )
     _run_alembic(test_url, "upgrade", "head")
+    with engine.connect() as connection:
+        assert tuple(
+            connection.exec_driver_sql(
+                "SELECT reference,category,expires_at,legacy_backfill FROM driver_documents WHERE driver_id='00000000-0000-4000-8000-000000000202'"
+            ).one()
+        ) == ("12345678900", "D", None, True)
 
     with engine.connect() as connection:
         head_revision = connection.exec_driver_sql(
             "SELECT version_num FROM alembic_version"
         ).scalar_one()
-        assert head_revision == "20260830_0011"
+        assert head_revision == "20261023_0035"
 
+    # Descend through OC94 and trusted-device revisions explicitly; -1 would
+    # only reach 0030 now and would not exercise the trusted-device rollback.
+    _run_alembic(test_url, "downgrade", "20261021_0029")
+    with engine.connect() as connection:
+        assert (
+            connection.exec_driver_sql(
+                "SELECT version_num FROM alembic_version"
+            ).scalar_one()
+            == "20261021_0029"
+        )
+        assert (
+            connection.exec_driver_sql(
+                "SELECT to_regclass('public.auth_trusted_devices')"
+            ).scalar_one()
+            is None
+        )
+        assert (
+            connection.exec_driver_sql(
+                "SELECT to_regclass('public.auth_factors')"
+            ).scalar_one()
+            is not None
+        )
+    _run_alembic(test_url, "upgrade", "head")
+    _run_alembic(test_url, "downgrade", "20261021_0029")
+
+    # OC98 rollback preserves all integrated operational and authorization tables.
+    _run_alembic(test_url, "downgrade", "-1")
+    with engine.connect() as connection:
+        assert (
+            connection.exec_driver_sql(
+                "SELECT version_num FROM alembic_version"
+            ).scalar_one()
+            == "20261020_0028"
+        )
+        assert (
+            connection.exec_driver_sql(
+                "SELECT to_regclass('public.auth_factors')"
+            ).scalar_one()
+            is None
+        )
+        assert (
+            connection.exec_driver_sql(
+                "SELECT to_regclass('public.access_profiles')"
+            ).scalar_one()
+            is not None
+        )
+        for table in (
+            "operational_notifications",
+            "notification_recipients",
+            "outbox_events",
+        ):
+            assert (
+                connection.exec_driver_sql(
+                    f"SELECT to_regclass('public.{table}')"
+                ).scalar_one()
+                == table
+            )
+        assert connection.exec_driver_sql(
+            "SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='deliveries' AND column_name='distribution_part_id')"
+        ).scalar_one()
+    _run_alembic(test_url, "upgrade", "head")
+    _run_alembic(test_url, "downgrade", "20261020_0028")
+
+    _run_alembic(test_url, "downgrade", "-1")
+    with engine.connect() as connection:
+        assert not connection.exec_driver_sql(
+            "SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='deliveries' AND column_name='distribution_part_id')"
+        ).scalar_one()
+    _run_alembic(test_url, "upgrade", "head")
+    _run_alembic(test_url, "downgrade", "20261020_0027")
+
+    _run_alembic(test_url, "downgrade", "-1")
+    with engine.connect() as connection:
+        assert (
+            connection.exec_driver_sql(
+                "SELECT to_regclass('public.outbox_events')"
+            ).scalar_one()
+            is None
+        )
+        assert (
+            connection.exec_driver_sql(
+                "SELECT version_num FROM alembic_version"
+            ).scalar_one()
+            == "20261020_0026"
+        )
+
+    _run_alembic(test_url, "downgrade", "-1")
+    with engine.connect() as connection:
+        assert (
+            connection.exec_driver_sql(
+                "SELECT version_num FROM alembic_version"
+            ).scalar_one()
+            == "20261020_0025"
+        )
+        assert (
+            connection.exec_driver_sql(
+                "SELECT to_regclass('public.notification_recipients')"
+            ).scalar_one()
+            is None
+        )
+        assert (
+            connection.exec_driver_sql(
+                "SELECT to_regclass('public.operational_notifications')"
+            ).scalar_one()
+            == "operational_notifications"
+        )
+
+    _run_alembic(test_url, "downgrade", "-1")
+    with engine.connect() as connection:
+        assert (
+            connection.exec_driver_sql(
+                "SELECT version_num FROM alembic_version"
+            ).scalar_one()
+            == "20261016_0024"
+        )
+        assert (
+            connection.exec_driver_sql(
+                "SELECT to_regclass('public.operational_notifications')"
+            ).scalar_one()
+            is None
+        )
+    _run_alembic(test_url, "upgrade", "head")
+    _run_alembic(test_url, "downgrade", "20261020_0026")
+    _run_alembic(test_url, "downgrade", "-1")
+    _run_alembic(test_url, "downgrade", "-1")
+    _run_alembic(test_url, "downgrade", "-1")
+    with engine.connect() as connection:
+        assert (
+            connection.exec_driver_sql(
+                "SELECT to_regclass('public.access_profiles')"
+            ).scalar_one()
+            is None
+        )
+    _run_alembic(test_url, "upgrade", "head")
+    _run_alembic(test_url, "downgrade", "20261009_0023")
+
+    _run_alembic(test_url, "downgrade", "-1")
+    with engine.connect() as connection:
+        assert (
+            connection.exec_driver_sql(
+                "SELECT version_num FROM alembic_version"
+            ).scalar_one()
+            == "20261009_0022"
+        )
+        assert (
+            connection.exec_driver_sql(
+                "SELECT to_regclass('public.company_profiles')"
+            ).scalar_one()
+            is None
+        )
+
+    _run_alembic(test_url, "downgrade", "-1")
+    with engine.connect() as connection:
+        assert (
+            connection.exec_driver_sql(
+                "SELECT version_num FROM alembic_version"
+            ).scalar_one()
+            == "20261009_0021"
+        )
+        assert (
+            connection.exec_driver_sql(
+                "SELECT to_regclass('public.registration_imports')"
+            ).scalar_one()
+            is None
+        )
+
+    _run_alembic(test_url, "downgrade", "-1")
+    with engine.connect() as connection:
+        assert (
+            connection.exec_driver_sql(
+                "SELECT version_num FROM alembic_version"
+            ).scalar_one()
+            == "20261009_0020"
+        )
+        assert (
+            connection.exec_driver_sql(
+                "SELECT to_regclass('public.operational_attachments')"
+            ).scalar_one()
+            is None
+        )
+
+    _run_alembic(test_url, "downgrade", "-1")
+    with engine.connect() as connection:
+        assert (
+            connection.exec_driver_sql(
+                "SELECT version_num FROM alembic_version"
+            ).scalar_one()
+            == "20261009_0019"
+        )
+        assert (
+            connection.exec_driver_sql(
+                "SELECT to_regclass('public.driver_documents')"
+            ).scalar_one()
+            is None
+        )
+    with engine.begin() as connection:
+        assert (
+            connection.exec_driver_sql(
+                "SELECT license_number FROM drivers WHERE id='00000000-0000-4000-8000-000000000202'"
+            ).scalar_one()
+            == "12345678900"
+        )
+        connection.exec_driver_sql(
+            "DELETE FROM drivers WHERE id='00000000-0000-4000-8000-000000000202'"
+        )
+    _run_alembic(test_url, "downgrade", "-1")
+    with engine.connect() as connection:
+        assert (
+            connection.exec_driver_sql(
+                "SELECT version_num FROM alembic_version"
+            ).scalar_one()
+            == "20261009_0018"
+        )
+        assert (
+            connection.exec_driver_sql(
+                "SELECT to_regclass('public.truck_documents')"
+            ).scalar_one()
+            is None
+        )
+        assert (
+            connection.exec_driver_sql(
+                "SELECT to_regclass('public.truck_document_policies')"
+            ).scalar_one()
+            is None
+        )
     _run_alembic(test_url, "downgrade", "-1")
     with engine.connect() as connection:
         downgraded_revision = connection.exec_driver_sql(
@@ -123,12 +359,81 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
             )
             """
         ).scalar_one()
-        assert downgraded_revision == "20260825_0010"
+        assert (
+            connection.exec_driver_sql(
+                "SELECT count(*) FROM information_schema.columns WHERE table_schema='public' "
+                "AND table_name='trucks' AND column_name='odometer_km'"
+            ).scalar_one()
+            == 0
+        )
+        assert downgraded_revision == "20261008_0017"
         assert loading_sessions_exists == "loading_sessions"
         assert loading_items_exists == "loading_session_items"
-        assert trip_created_at_exists is False
+        assert trip_created_at_exists is True
+        assert (
+            connection.exec_driver_sql(
+                "SELECT to_regclass('public.external_commands')"
+            ).scalar_one()
+            == "external_commands"
+        )
+        assert (
+            connection.exec_driver_sql(
+                "SELECT to_regclass('public.audit_events')"
+            ).scalar_one()
+            == "audit_events"
+        )
+        assert (
+            connection.exec_driver_sql(
+                "SELECT to_regclass('public.load_distributions')"
+            ).scalar_one()
+            == "load_distributions"
+        )
 
+        assert (
+            connection.exec_driver_sql(
+                "SELECT to_regclass('public.delivery_evidences')"
+            ).scalar_one()
+            == "delivery_evidences"
+        )
+
+    _run_alembic(test_url, "downgrade", "20261008_0016")
+    # Exercise real OC99 backfill against legacy data, including an archived
+    # customer and a contracted destination different from the registry.
+    with engine.begin() as connection:
+        connection.exec_driver_sql("""
+            INSERT INTO customers (id, name, document, address, city, state, active)
+            VALUES ('00000000-0000-4000-8000-000000000099', 'Legado fictício', '00000000000191', 'Cadastro antigo', 'Campinas', 'SP', false);
+            INSERT INTO orders (id, customer_id, priority, delivery_address)
+            VALUES ('00000000-0000-4000-8000-000000000098', '00000000-0000-4000-8000-000000000099', 'NORMAL', 'Destino contratado antigo')
+        """)
     _run_alembic(test_url, "upgrade", "head")
+    with engine.connect() as connection:
+        legacy = connection.exec_driver_sql(
+            "SELECT a.address, a.city, a.state, a.is_primary, a.active, c.active FROM customer_addresses a JOIN customers c ON c.id=a.customer_id"
+        ).one()
+        assert tuple(legacy) == ("Cadastro antigo", "Campinas", "SP", True, True, False)
+        order = connection.exec_driver_sql(
+            "SELECT customer_address_id, delivery_address, delivery_address_snapshot FROM orders"
+        ).one()
+        assert tuple(order) == (
+            None,
+            "Destino contratado antigo",
+            {"address": "Destino contratado antigo"},
+        )
+    _run_alembic(test_url, "downgrade", "20261008_0016")
+    with engine.connect() as connection:
+        assert (
+            connection.exec_driver_sql(
+                "SELECT delivery_address FROM orders"
+            ).scalar_one()
+            == "Destino contratado antigo"
+        )
+    _run_alembic(test_url, "upgrade", "head")
+    _run_alembic(test_url, "check")
+    with engine.begin() as connection:
+        connection.exec_driver_sql("DELETE FROM orders")
+        connection.exec_driver_sql("DELETE FROM customer_addresses")
+        connection.exec_driver_sql("DELETE FROM customers")
 
 
 @pytest.fixture(scope="session")
@@ -163,6 +468,21 @@ def session_factory(
         if transaction.is_active:
             transaction.rollback()
         connection.close()
+
+
+@pytest.fixture
+def committed_session_factory(
+    postgres_engine: Engine,
+) -> Generator[SessionFactory, None, None]:
+    """Exercise real commit boundaries; exclusively on the validated test database."""
+    factory = sessionmaker(bind=postgres_engine, autoflush=False)
+    try:
+        yield factory
+    finally:
+        with postgres_engine.begin() as connection:
+            connection.execute(
+                text("TRUNCATE customers, products, trucks, drivers, users CASCADE")
+            )
 
 
 @pytest.fixture

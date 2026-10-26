@@ -3,7 +3,7 @@ import uuid
 import pytest
 from sqlalchemy.orm import Session
 
-from app.modules.customers.models import Customer
+from app.modules.customers.models import Customer, CustomerAddress
 from app.modules.customers.schemas import CustomerCreate, CustomerUpdate
 from app.modules.customers.service import (
     CustomerDocumentAlreadyExistsError,
@@ -11,7 +11,7 @@ from app.modules.customers.service import (
     CustomerService,
 )
 
-SQLITE_TABLES = (Customer.__table__,)
+SQLITE_TABLES = (Customer.__table__, CustomerAddress.__table__)
 
 
 def make_customer_create(document: str = "00000000000191") -> CustomerCreate:

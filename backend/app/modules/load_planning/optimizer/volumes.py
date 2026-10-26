@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from dataclasses import replace
 from decimal import Decimal
 from typing import NoReturn
 from uuid import UUID
@@ -131,3 +132,38 @@ def expand_order_items(
             )
 
     return tuple(expanded_volumes)
+
+
+def validate_individual_volumes(volumes: Sequence[IndividualVolume]) -> None:
+    """Reuse source validation while preserving selected physical identities."""
+    for volume in volumes:
+        if not isinstance(volume, IndividualVolume) or not isinstance(
+            volume.identity, VolumeIdentity
+        ):
+            _raise_invalid("volumes", "must contain individual volume identities")
+        _validate_positive_int(
+            volume.volume_index, "volume_index", volume.order_item_id
+        )
+        canonical = expand_order_items(
+            (
+                OrderItemInput(
+                    order_id=volume.order_id,
+                    order_item_id=volume.order_item_id,
+                    product_id=volume.product_id,
+                    quantity=1,
+                    delivery_sequence=volume.delivery_sequence,
+                    width_cm=volume.original_width_cm,
+                    height_cm=volume.original_height_cm,
+                    length_cm=volume.original_length_cm,
+                    weight_kg=volume.weight_kg,
+                    fragile=volume.fragile,
+                    stackable=volume.stackable,
+                    rotation_allowed=volume.rotation_allowed,
+                    product_name=volume.product_name,
+                ),
+            )
+        )[0]
+        if replace(canonical, identity=volume.identity) != volume:
+            _raise_invalid(
+                "volume_cm3", "must match source dimensions", volume.order_item_id
+            )

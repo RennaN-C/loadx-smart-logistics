@@ -2,26 +2,31 @@
 
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 14px;
-  margin-top: 28px;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+  margin-top: 24px;
 }
 
 .kpi {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 18px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 108px;
+  padding: 18px 16px;
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 4px;
+  border-radius: 12px;
   text-decoration: none;
   color: inherit;
-  transition: border-color 0.15s ease;
+  box-shadow: 0 8px 24px rgba(20, 24, 29, 0.035);
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .kpi:hover {
   border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(20, 24, 29, 0.08);
 }
 
 .kpi:focus-visible {
@@ -30,21 +35,33 @@
 }
 
 .kpi-label {
-  font-family: var(--font-mono);
-  font-size: 9.5px;
-  letter-spacing: 0.12em;
+  font-size: 0.76rem;
+  font-weight: 600;
   color: var(--muted);
 }
 
 .kpi-value {
-  font-family: var(--font-mono);
-  font-size: 1.9rem;
-  font-weight: 700;
+  font-size: 1.8rem;
+  font-weight: 650;
   line-height: 1;
 }
 
+.kpi-icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  color: var(--accent-strong);
+  background: var(--accent-bg);
+}
+.kpi-content { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.kpi-description { color: var(--muted); font-size: .72rem; line-height: 1.35; }
+.kpi > .icon { color: var(--muted); transition: transform .15s ease, color .15s ease; }
+.kpi:hover > .icon { color: var(--accent-strong); transform: translateX(2px); }
+
 .dash-block {
-  margin-top: 32px;
+  margin-top: 26px;
 }
 
 .dash-block-head {
@@ -53,6 +70,7 @@
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 12px;
+  flex-wrap: wrap;
 }
 
 .dash-block-head h2 {
@@ -67,7 +85,9 @@
   margin: 0;
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 4px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(20, 24, 29, 0.035);
 }
 
 .dash-orders li {
@@ -75,9 +95,11 @@
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  padding: 14px 18px;
+  padding: 15px 18px;
   border-bottom: 1px solid var(--line);
+  flex-wrap: wrap;
 }
+.dash-orders li:hover { background: color-mix(in srgb, var(--accent-bg) 45%, transparent); }
 
 .dash-orders li:last-child {
   border-bottom: none;
@@ -94,3 +116,32 @@
   color: var(--muted);
   margin: 3px 0 0;
 }
+
+.dashboard-partial { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 18px; }
+.dashboard-partial p { flex: 1 1 260px; }
+.dash-orders li > div { flex: 1 1 200px; min-width: 0; overflow-wrap: anywhere; }
+
+.overview-page.entity-page { max-width: 1440px; padding-top: 34px; }
+.overview-page .entity-header h1 { font-size: clamp(1.85rem, 2.5vw, 2.35rem); font-weight: 650; letter-spacing: -.045em; }
+.overview-page .btn-primary, .overview-page .btn-secondary { border-radius: 8px; }
+.overview-page .btn-primary { min-height: 44px; gap: 8px; box-shadow: 0 8px 20px color-mix(in srgb, var(--accent) 22%, transparent); }
+.overview-hero { align-items: center; padding-bottom: 22px; border-bottom: 1px solid var(--line); }
+.overview-eyebrow { margin: 0 0 5px; color: var(--accent-strong); font-size: .68rem; font-weight: 750; letter-spacing: .13em; text-transform: uppercase; }
+.dash-block-head .overview-eyebrow { margin-bottom: 3px; }
+.dash-activity { display: grid; }
+
+@media (max-width: 620px) {
+  .overview-page.entity-page { padding-top: 24px; }
+  .overview-hero .btn-primary { width: 100%; }
+  .kpi-grid { grid-template-columns: minmax(0, 1fr); }
+  .dash-orders li { align-items: flex-start; }
+}
+
+.overview-page .kpi-grid { margin-top: 20px; }
+.overview-hero { border-bottom: 0; padding-bottom: 0; }
+.overview-page .dash-block { padding: 20px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
+.overview-page .dash-orders { border: 0; box-shadow: none; }
+.overview-page .dash-orders li { padding-inline: 0; }
+.overview-page .dash-block-head h2 { font-size: 1rem; }
+.overview-page .kpi { box-shadow: none; min-height: 116px; }
+@media (min-width: 1100px) { .overview-page .kpi-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }

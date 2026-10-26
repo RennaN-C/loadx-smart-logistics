@@ -1,0 +1,79 @@
+{
+  "batch": "gravacao-01",
+  "customer": {
+    "id": "570c5acd-ae6a-4a39-9e7f-12a5919c0e3a",
+    "name": "VIDEO gravacao-01 Distribuidora Aurora"
+  },
+  "trucks": [
+    {
+      "id": "651e54b2-a769-42ae-b39c-2d0cf1d26d1d",
+      "plate": "VDI4U31",
+      "model": "VIDEO gravacao-01 Bau 1",
+      "available_now": true
+    },
+    {
+      "id": "a7ba49f8-0288-4a38-b567-b8e9845a645c",
+      "plate": "VDI5U31",
+      "model": "VIDEO gravacao-01 Bau 2",
+      "available_now": true
+    },
+    {
+      "id": "c71d5ddb-4918-4c8a-95ec-ae1703a6054b",
+      "plate": "VDI6U31",
+      "model": "VIDEO gravacao-01 Bau 3",
+      "available_now": true
+    }
+  ],
+  "drivers": [
+    {
+      "id": "28887e90-fbcb-4b7b-a2ae-a5ec2f142ffc",
+      "name": "VIDEO gravacao-01 Motorista 1",
+      "available_now": true
+    },
+    {
+      "id": "baa1b07d-4de6-47a1-b663-3d9ce141d792",
+      "name": "VIDEO gravacao-01 Motorista 2",
+      "available_now": true
+    },
+    {
+      "id": "b00fae1f-7a96-44e5-93c4-ce178918bf26",
+      "name": "VIDEO gravacao-01 Motorista 3",
+      "available_now": true
+    }
+  ],
+  "products": [
+    {
+      "id": "c1a87cb8-ab97-44f5-88e8-c3760756b0eb",
+      "code": "VID-GRAVACAO-01-LEVE",
+      "name": "VIDEO gravacao-01 Caixa LEVE"
+    },
+    {
+      "id": "55950850-dbf6-427d-8ac5-527f92fe1a92",
+      "code": "VID-GRAVACAO-01-MULTI",
+      "name": "VIDEO gravacao-01 Caixa MULTI"
+    }
+  ],
+  "orders": [
+    {
+      "task": "SIMPLES",
+      "id": "cab284c8-2dae-4618-87cd-30c4cdb56753",
+      "status": "READY",
+      "available_for_planning": true,
+      "volumes": 6
+    },
+    {
+      "task": "MULTI",
+      "id": "0a87796a-8569-4c44-a333-b00aa9dc2f3f",
+      "status": "READY",
+      "available_for_planning": true,
+      "volumes": 24
+    },
+    {
+      "task": "RASCUNHO",
+      "id": "0bed154a-f129-4b66-8f63-b122da942b6b",
+      "status": "DRAFT",
+      "available_for_planning": false,
+      "volumes": 4
+    }
+  ]
+}

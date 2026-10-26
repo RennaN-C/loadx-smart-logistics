@@ -4,8 +4,10 @@ from collections.abc import Callable, Sequence
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core.exceptions import ApiError
 from app.core.pagination import PageResult, PaginationParams
 from app.database.integrity import get_integrity_constraint_name
+from app.modules.customers.address_service import CustomerAddressService
 from app.modules.customers.service import CustomerNotFoundError, CustomerService
 from app.modules.load_planning.reference_service import LoadPlanReferenceService
 from app.modules.orders.models import Order, OrderItem
@@ -14,11 +16,14 @@ from app.modules.orders.schemas import (
     ORDER_STATUS_VALUES,
     OrderCreate,
     OrderItemCreate,
+    OrderStatus,
     OrderUpdate,
 )
 from app.modules.products.service import ProductNotFoundError, ProductService
 from app.modules.status_history.schemas import StatusHistoryCreate
 from app.modules.status_history.service import StatusHistoryService
+from app.shared.record_lifecycle import ensure_record_active
+from app.shared.search import normalize_search
 
 MANUAL_ORDER_STATUS_TRANSITIONS = {
     "DRAFT": frozenset({"READY", "CANCELED"}),
@@ -68,8 +73,23 @@ class OrderService:
         self.product_service = ProductService(db)
         self.status_history_service = StatusHistoryService(db)
 
-    def list_orders(self, pagination: PaginationParams) -> PageResult[Order]:
-        return self.repository.list(pagination)
+    def list_orders(
+        self,
+        pagination: PaginationParams,
+        *,
+        search: str | None = None,
+        status: OrderStatus | None = None,
+        allow_customer_name_search: bool = False,
+    ) -> PageResult[Order]:
+        term = normalize_search(search)
+        customer_name_ids = (
+            self.customer_service.matching_name_ids(term)
+            if term and allow_customer_name_search
+            else None
+        )
+        return self.repository.list(
+            pagination, search=term, status=status, customer_name_ids=customer_name_ids
+        )
 
     def get_order(self, order_id: uuid.UUID) -> Order:
         order = self.repository.get(order_id)
@@ -85,15 +105,36 @@ class OrderService:
     ) -> Sequence[Order]:
         return self.repository.get_many(order_ids, for_update=for_update)
 
+    def ensure_operational_sources(
+        self, orders: Sequence[Order], *, for_update: bool = True
+    ) -> None:
+        for customer_id in sorted({o.customer_id for o in orders}, key=lambda x: x.int):
+            ensure_record_active(
+                self.customer_service.get_customer(customer_id, for_update=for_update),
+                "CUSTOMER",
+            )
+        product_ids = sorted(
+            {i.product_id for o in orders for i in o.items}, key=lambda x: x.int
+        )
+        for product in self.product_service.get_products(
+            product_ids, for_update=for_update
+        ):
+            ensure_record_active(product, "PRODUCT")
+
     def create_order(self, data: OrderCreate, *, changed_by: uuid.UUID) -> Order:
         self._ensure_customer_exists(data.customer_id)
         self._ensure_products_exist(data.items)
+        text, snapshot = self._delivery_address(
+            data.customer_id, data.customer_address_id, data.delivery_address
+        )
 
         order = Order(
             customer_id=data.customer_id,
             status="DRAFT",
             priority=data.priority,
-            delivery_address=data.delivery_address,
+            delivery_address=text,
+            customer_address_id=data.customer_address_id,
+            delivery_address_snapshot=snapshot,
             expected_delivery_at=data.expected_delivery_at,
             items=[self._build_order_item(item) for item in data.items],
         )
@@ -112,6 +153,21 @@ class OrderService:
             stage_order_with_history,
             product_ids=[item.product_id for item in data.items],
         )
+
+    def _delivery_address(
+        self, customer_id: uuid.UUID, address_id: uuid.UUID | None, text: str | None
+    ) -> tuple[str, dict]:
+        if address_id is not None:
+            return CustomerAddressService(self.db).select_for_order(
+                customer_id, address_id
+            )
+        if text is None:
+            raise ApiError(
+                422,
+                "CUSTOMER_ADDRESS_REQUIRED",
+                "Selecione um endereço ou informe o destino.",
+            )
+        return text, {"address": text}
 
     def update_order(self, order_id: uuid.UUID, data: OrderUpdate) -> Order:
         try:
@@ -135,6 +191,28 @@ class OrderService:
         new_customer_id = update_data.get("customer_id")
         if new_customer_id is not None:
             self._ensure_customer_exists(new_customer_id)
+
+        address_id = update_data.pop("customer_address_id", None)
+        customer_changed = (
+            new_customer_id is not None and new_customer_id != order.customer_id
+        )
+        selection_changed = (
+            "customer_address_id" in data.model_fields_set
+            or "delivery_address" in data.model_fields_set
+        )
+        if customer_changed and not selection_changed:
+            raise ApiError(
+                422,
+                "CUSTOMER_ADDRESS_REQUIRED",
+                "Alterar o cliente exige selecionar ou informar o endereço de entrega.",
+            )
+        if selection_changed:
+            text, snapshot = self._delivery_address(
+                new_customer_id or order.customer_id, address_id, data.delivery_address
+            )
+            update_data["delivery_address"] = text
+            order.customer_address_id = address_id
+            order.delivery_address_snapshot = snapshot
 
         update_data.pop("items", None)
         if "items" in data.model_fields_set and data.items is not None:
@@ -172,6 +250,8 @@ class OrderService:
                 raise OrderNotFoundError
 
             current_status = order.status
+            if normalized_status == "READY" and current_status != "READY":
+                self.ensure_operational_sources([order])
             if normalized_status == current_status:
                 self.db.commit()
                 return self.get_order(order_id)
@@ -189,6 +269,12 @@ class OrderService:
                     normalized_status,
                 )
 
+            if self.load_plan_reference_service.has_active_distribution_orders(
+                (order.id,)
+            ):
+                raise OrderStatusTransitionNotAllowedError(
+                    current_status, normalized_status
+                )
             order.status = normalized_status
             self.repository.update(order)
             self._stage_status_change(
@@ -252,19 +338,25 @@ class OrderService:
 
     def _ensure_customer_exists(self, customer_id: uuid.UUID) -> None:
         try:
-            self.customer_service.get_customer(customer_id)
+            ensure_record_active(
+                self.customer_service.get_customer(customer_id, for_update=True),
+                "CUSTOMER",
+            )
         except CustomerNotFoundError as exc:
             raise OrderCustomerNotFoundError from exc
 
     def _ensure_products_exist(self, items: Sequence[OrderItemCreate]) -> None:
         missing_product_ids: list[uuid.UUID] = []
         seen_product_ids: set[uuid.UUID] = set()
-        for item in items:
+        for item in sorted(items, key=lambda item: item.product_id.int):
             if item.product_id in seen_product_ids:
                 continue
             seen_product_ids.add(item.product_id)
             try:
-                self.product_service.get_product(item.product_id)
+                ensure_record_active(
+                    self.product_service.get_product(item.product_id, for_update=True),
+                    "PRODUCT",
+                )
             except ProductNotFoundError:
                 missing_product_ids.append(item.product_id)
 

@@ -1,0 +1,16 @@
+/** Seções reais de Configurações. Uma fonte para a navegação horizontal e o conteúdo. */
+export const SETTINGS_SECTIONS = [
+  { id: "settings-account", label: "Conta e administração" },
+  { id: "settings-users", label: "Gestão de usuários" },
+  { id: "settings-company", label: "Dados da empresa" },
+  { id: "settings-integrations", label: "Integrações e Saúde" },
+  { id: "settings-outbox", label: "Fila de eventos" },
+  { id: "settings-logistics", label: "Configurações do LoadX" },
+] as const;
+
+export type SettingsSectionId = (typeof SETTINGS_SECTIONS)[number]["id"];
+
+export function activeSettingsSection(hash: string): SettingsSectionId {
+  if (["#settings-profiles", "#settings-users-profiles"].includes(hash)) return "settings-users";
+  return SETTINGS_SECTIONS.find((section) => `#${section.id}` === hash)?.id ?? "settings-account";
+}

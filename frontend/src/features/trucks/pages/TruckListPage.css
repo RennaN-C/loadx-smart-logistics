@@ -62,7 +62,10 @@
   margin: 0;
 }
 
+.truck-card-head > div { min-width: 0; }
+
 .truck-card-model {
+  overflow-wrap: anywhere;
   font-size: 0.95rem;
   font-weight: 600;
   margin: 8px 0 0;
@@ -95,19 +98,66 @@
 
 .truck-card-foot {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: stretch;
   gap: 12px;
   margin-top: auto;
+  min-width: 0;
 }
 
 .truck-card-weight {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
   font-size: 0.85rem;
   color: var(--muted);
 }
 
 .truck-card-weight strong {
   color: var(--ink);
+  white-space: nowrap;
+}
+
+.truck-card-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+
+/* Quatro ações com área de toque uniforme, sem botão solto na linha seguinte. */
+.truck-card-actions > *,
+.truck-card-actions .btn-link {
+  min-width: 0;
+  width: 100%;
+}
+.truck-card-actions .btn-link {
+  min-height: 40px;
+  padding: 9px 10px;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 0.82rem;
+  line-height: 1.3;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.truck-card-actions .btn-link:hover {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+  color: var(--accent-strong);
+}
+.truck-card-actions .btn-link:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
+}
+.truck-card-actions .btn-link:disabled {
+  opacity: 0.6;
+  cursor: wait;
 }
 
 /* ---- ilustração + cotas ---- */
@@ -279,4 +329,19 @@
 .dim-v .dim-text {
   display: flex;
   flex-direction: column;
+}
+
+/* Listagem densa da referência: os detalhes completos continuam no formulário. */
+.registry-table .truck-card { display: table-row; background: transparent; border: 0; border-radius: 0; }
+.truck-table .truck-card-plate { padding: 0; border: 0; border-radius: 0; font-size: .82rem; }
+.truck-table .truck-card-model { display: block; margin: 0; font-size: .82rem; }
+.truck-table .truck-card-weight { display: inline; color: var(--ink); font-size: .82rem; }
+.truck-table .truck-card-actions { display: flex; flex-wrap: wrap; gap: 5px 10px; min-width: 150px; }
+.truck-table .truck-card-actions > *,
+.truck-table .truck-card-actions .btn-link { width: auto; min-height: 30px; padding: 4px 0; border: 0; background: transparent; color: var(--accent-strong); font-size: .7rem; white-space: nowrap; }
+.truck-table .truck-card-actions .btn-link:hover { background: transparent; color: var(--ink); }
+
+@media (max-width: 820px) {
+  .registry-table .truck-card { display: grid; }
+  .truck-table .truck-card-actions { min-width: 0; }
 }

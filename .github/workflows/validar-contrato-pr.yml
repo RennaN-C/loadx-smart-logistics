@@ -33,7 +33,7 @@ jobs:
       PR_TITLE: ${{ github.event.pull_request.title }}
       PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
       PROJECT_TITLE: LoadX — Desenvolvimento
-      TARGET_MILESTONE: v1.1.0
+      TARGET_MILESTONE: v1.2.0
 
     steps:
       - name: Baixar código

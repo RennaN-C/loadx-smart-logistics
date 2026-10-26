@@ -32,14 +32,16 @@ export function ScanField({ disabled, disabledReason, onScan }: ScanFieldProps) 
   const [outcome, setOutcome] = useState<ScanOutcome | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const inFlight = useRef(false);
 
   useEffect(() => {
-    if (!disabled) inputRef.current?.focus();
-  }, [disabled]);
+    if (!disabled && !isScanning) inputRef.current?.focus();
+  }, [disabled, isScanning]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    if (disabled || inFlight.current) return;
     const lido = code.trim();
     if (lido === "") return;
 
@@ -57,13 +59,18 @@ export function ScanField({ disabled, disabledReason, onScan }: ScanFieldProps) 
       return;
     }
 
+    inFlight.current = true;
     setIsScanning(true);
-    const resultado = await onScan(lido);
-    setIsScanning(false);
-
-    setOutcome(resultado);
-    setCode("");
-    inputRef.current?.focus();
+    try {
+      setOutcome(await onScan(lido));
+    } catch {
+      setOutcome({ ok: false, message: "Não foi possível conferir o código. Tente novamente." });
+    } finally {
+      inFlight.current = false;
+      setIsScanning(false);
+      setCode("");
+      inputRef.current?.focus();
+    }
   }
 
   return (

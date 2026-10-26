@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.pagination import PageResponse, Pagination, to_page_response
 from app.core.responses import error_response, openapi_error_responses
+from app.core.search import SearchQuery
 from app.database.session import get_db
 from app.integrations.viacep import (
     HTTPViaCEPProvider,
@@ -19,7 +20,7 @@ from app.integrations.viacep import (
     ViaCEPUnavailableError,
     normalize_cep,
 )
-from app.modules.auth.dependencies import require_roles
+from app.modules.auth.dependencies import require_permission
 from app.modules.customers.models import Customer
 from app.modules.customers.schemas import (
     CustomerCreate,
@@ -33,16 +34,11 @@ from app.modules.customers.service import (
     CustomerService,
 )
 from app.modules.users.models import User
+from app.shared.record_lifecycle import ArchiveFilter, active_filter
 
 router = APIRouter(prefix="/customers", tags=["customers"])
-CustomerReader = Annotated[
-    User,
-    Depends(require_roles("ADMIN", "LOGISTICS_MANAGER")),
-]
-CustomerManager = Annotated[
-    User,
-    Depends(require_roles("LOGISTICS_MANAGER")),
-]
+CustomerReader = Annotated[User, Depends(require_permission("loadx.customers.read"))]
+CustomerManager = Annotated[User, Depends(require_permission("loadx.customers.manage"))]
 
 
 def get_customer_service(db: Annotated[Session, Depends(get_db)]) -> CustomerService:
@@ -95,8 +91,12 @@ def list_customers(
     pagination: Pagination,
     _current_user: CustomerReader,
     service: Annotated[CustomerService, Depends(get_customer_service)],
+    archive_status: ArchiveFilter = "active",
+    search: SearchQuery = None,
 ) -> PageResponse[CustomerListRead]:
-    result = service.list_customers(pagination)
+    result = service.list_customers(
+        pagination, active=active_filter(archive_status), search=search
+    )
     return to_page_response(
         result,
         (CustomerListRead.model_validate(customer) for customer in result.items),
@@ -115,7 +115,7 @@ def create_customer(
     service: Annotated[CustomerService, Depends(get_customer_service)],
 ) -> Customer | JSONResponse:
     try:
-        return service.create_customer(data)
+        return service.create_customer(data, changed_by=_current_user.id)
     except CustomerDocumentAlreadyExistsError:
         return error_response(
             status.HTTP_409_CONFLICT,
@@ -158,7 +158,7 @@ def update_customer(
     service: Annotated[CustomerService, Depends(get_customer_service)],
 ) -> Customer | JSONResponse:
     try:
-        return service.update_customer(customer_id, data)
+        return service.update_customer(customer_id, data, changed_by=_current_user.id)
     except CustomerNotFoundError:
         return error_response(
             status.HTTP_404_NOT_FOUND,

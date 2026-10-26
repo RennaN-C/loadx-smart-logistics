@@ -1,4 +1,5 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { makePage } from "../../../tests/makePage";
@@ -16,6 +17,7 @@ vi.mock("../../auth/hooks/useAuth");
 const CUSTOMER_ITEM = {
   id: "c1",
   name: "Distribuidora Aurora",
+  active: true,
   city: "Campinas",
   state: "SP",
   createdAt: "2026-08-01T12:00:00Z",
@@ -44,7 +46,7 @@ const DRIVER_FULL = {
   licenseNumber: "01234567890",
 };
 
-function mockRole(role: "LOGISTICS_MANAGER" | "ADMIN") {
+function mockRole(role: "LOGISTICS_MANAGER" | "ADMIN" | "CUSTOM", permissions?: string[]) {
   vi.mocked(useAuth).mockReturnValue({
     status: "authenticated",
     user: {
@@ -52,10 +54,12 @@ function mockRole(role: "LOGISTICS_MANAGER" | "ADMIN") {
       name: "Ana Souza",
       email: "ana@example.test",
       role,
+      ...(permissions ? { permissions } : {}),
       active: true,
       createdAt: "2026-08-01T00:00:00Z",
     },
     login: vi.fn(),
+    updateUser: vi.fn(),
     logout: vi.fn(),
   });
 }
@@ -70,14 +74,24 @@ describe("ContactsPage", () => {
   });
 
   it("abre em Clientes e não busca motoristas antes de precisar", async () => {
-    render(<ContactsPage />);
+    render(<MemoryRouter><ContactsPage /></MemoryRouter>);
 
     expect(await screen.findByText("Distribuidora Aurora")).toBeInTheDocument();
     expect(listDrivers).not.toHaveBeenCalled();
   });
 
+  it("agrupa as ações de clientes na linha da tabela", async () => {
+    render(<MemoryRouter><ContactsPage /></MemoryRouter>);
+    const name = await screen.findByText("Distribuidora Aurora");
+    const card = name.closest("tr");
+    const footer = card?.querySelector<HTMLElement>("details");
+    expect(footer).toBeTruthy();
+    const actionNames = within(footer!).getAllByRole("button").map((button) => button.textContent);
+    expect(actionNames).toEqual(["Endereços", "Arquivar", "Editar"]);
+  });
+
   it("troca para a aba de motoristas", async () => {
-    render(<ContactsPage />);
+    render(<MemoryRouter><ContactsPage /></MemoryRouter>);
     await screen.findByText("Distribuidora Aurora");
 
     fireEvent.click(screen.getByRole("tab", { name: "Motoristas" }));
@@ -86,8 +100,20 @@ describe("ContactsPage", () => {
     expect(screen.queryByText("Distribuidora Aurora")).not.toBeInTheDocument();
   });
 
+  it("mantém Documentos nas ações da linha do motorista", async () => {
+    render(<MemoryRouter><ContactsPage /></MemoryRouter>);
+    await screen.findByText("Distribuidora Aurora");
+    fireEvent.click(screen.getByRole("tab", { name: "Motoristas" }));
+    const name = await screen.findByText("Carlos Pereira");
+    const footer = name.closest("tr")?.querySelector<HTMLElement>("details");
+    expect(footer).toBeTruthy();
+    expect(within(footer!).getAllByRole("button").map((button) => button.textContent)).toEqual([
+      "Documentos", "Arquivar", "Editar",
+    ]);
+  });
+
   it("marca a aba ativa para leitores de tela", async () => {
-    render(<ContactsPage />);
+    render(<MemoryRouter><ContactsPage /></MemoryRouter>);
     await screen.findByText("Distribuidora Aurora");
 
     expect(screen.getByRole("tab", { name: "Clientes" })).toHaveAttribute("aria-selected", "true");
@@ -95,7 +121,7 @@ describe("ContactsPage", () => {
   });
 
   it("não expõe dado pessoal no card, porque a listagem não traz", async () => {
-    render(<ContactsPage />);
+    render(<MemoryRouter><ContactsPage /></MemoryRouter>);
     await screen.findByText("Distribuidora Aurora");
 
     expect(screen.queryByText("12.345.678/0001-90")).not.toBeInTheDocument();
@@ -104,7 +130,7 @@ describe("ContactsPage", () => {
   });
 
   it("busca o cliente completo antes de abrir a edição", async () => {
-    render(<ContactsPage />);
+    render(<MemoryRouter><ContactsPage /></MemoryRouter>);
     await screen.findByText("Distribuidora Aurora");
 
     fireEvent.click(screen.getByRole("button", { name: "Editar" }));
@@ -118,7 +144,7 @@ describe("ContactsPage", () => {
   it("avisa quando não consegue carregar o detalhe para edição", async () => {
     vi.mocked(getCustomer).mockRejectedValue(new ApiError("CUSTOMER_NOT_FOUND", "x"));
 
-    render(<ContactsPage />);
+    render(<MemoryRouter><ContactsPage /></MemoryRouter>);
     await screen.findByText("Distribuidora Aurora");
 
     fireEvent.click(screen.getByRole("button", { name: "Editar" }));
@@ -127,21 +153,25 @@ describe("ContactsPage", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("busca cliente por cidade sem chamar o backend de novo", async () => {
+  it("busca cliente por cidade consultando o servidor", async () => {
     vi.mocked(listCustomers).mockResolvedValue(
       makePage([CUSTOMER_ITEM, { ...CUSTOMER_ITEM, id: "c2", name: "Mercado Central", city: "Sorocaba" }]),
     );
 
-    render(<ContactsPage />);
+    render(<MemoryRouter><ContactsPage /></MemoryRouter>);
     await screen.findByText("Distribuidora Aurora");
 
+    vi.mocked(listCustomers).mockResolvedValue(makePage([{ ...CUSTOMER_ITEM, id: "c2", name: "Mercado Central", city: "Sorocaba" }]));
     fireEvent.change(screen.getByLabelText("Buscar cliente por nome ou cidade"), {
       target: { value: "sorocaba" },
     });
 
+    await waitFor(() => expect(listCustomers).toHaveBeenLastCalledWith(expect.objectContaining({ search: "sorocaba" })));
+    await screen.findByText("Mercado Central");
+
     expect(screen.queryByText("Distribuidora Aurora")).not.toBeInTheDocument();
     expect(screen.getByText("Mercado Central")).toBeInTheDocument();
-    expect(listCustomers).toHaveBeenCalledOnce();
+    expect(listCustomers).toHaveBeenLastCalledWith(expect.objectContaining({ search: "sorocaba", page: 1 }));
   });
 
   it("filtra motoristas por status", async () => {
@@ -149,32 +179,57 @@ describe("ContactsPage", () => {
       makePage([DRIVER_ITEM, { ...DRIVER_ITEM, id: "d2", name: "Rita Alves", active: false }]),
     );
 
-    render(<ContactsPage />);
+    render(<MemoryRouter><ContactsPage /></MemoryRouter>);
     fireEvent.click(screen.getByRole("tab", { name: "Motoristas" }));
     await screen.findByText("Carlos Pereira");
 
-    fireEvent.change(screen.getByLabelText("Filtrar motoristas por status"), {
-      target: { value: "inactive" },
+    vi.mocked(listDrivers).mockResolvedValue(makePage([{ ...DRIVER_ITEM, id: "d2", name: "Rita Alves", active: false }]));
+    fireEvent.change(screen.getByLabelText("Filtrar cadastros por arquivamento"), {
+      target: { value: "archived" },
     });
 
+    await waitFor(() => expect(listDrivers).toHaveBeenLastCalledWith({ page: 1, pageSize: 20, archiveStatus: "archived", search: "" }));
+    await screen.findByText("Rita Alves");
     expect(screen.queryByText("Carlos Pereira")).not.toBeInTheDocument();
     expect(screen.getByText("Rita Alves")).toBeInTheDocument();
   });
 
-  it("esconde as ações de gestão para o ADMIN, que só lê", async () => {
-    mockRole("ADMIN");
-
-    render(<ContactsPage />);
-    await screen.findByText("Distribuidora Aurora");
-
+  it("CUSTOM somente clientes mostra título específico sem aba e ações de motoristas", async () => {
+    mockRole("CUSTOM", ["loadx.customers.read"]);
+    render(<MemoryRouter><ContactsPage /></MemoryRouter>);
+    expect(screen.getByRole("heading", { name: "Clientes" })).toBeInTheDocument();
+    expect(screen.getByText("Gerencie os destinatários e endereços da operação.")).toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "Motoristas" })).not.toBeInTheDocument();
+    expect(await screen.findByText("Distribuidora Aurora")).toBeInTheDocument();
+    expect(listDrivers).not.toHaveBeenCalled();
     expect(screen.queryByRole("button", { name: "Novo cliente" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Editar" })).not.toBeInTheDocument();
+  });
+
+  it("CUSTOM somente motoristas mostra título específico e aba autorizada", async () => {
+    mockRole("CUSTOM", ["loadx.drivers.read"]);
+    render(<MemoryRouter initialEntries={["/contacts?tab=drivers"]}><ContactsPage /></MemoryRouter>);
+    expect(screen.getByRole("heading", { name: "Motoristas" })).toBeInTheDocument();
+    expect(screen.getByText("Gerencie os motoristas e seus documentos operacionais.")).toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "Clientes" })).not.toBeInTheDocument();
+    expect(await screen.findByText("Carlos Pereira")).toBeInTheDocument();
+    expect(listCustomers).not.toHaveBeenCalled();
+  });
+
+  it("permite ao ADMIN gerenciar clientes e motoristas", async () => {
+    mockRole("ADMIN");
+
+    render(<MemoryRouter><ContactsPage /></MemoryRouter>);
+    await screen.findByText("Distribuidora Aurora");
+
+    expect(screen.getByRole("button", { name: "Novo cliente" })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Editar" }).length).toBeGreaterThan(0);
   });
 
   it("mostra a mensagem mapeada quando a busca de clientes falha", async () => {
     vi.mocked(listCustomers).mockRejectedValue(new ApiError("AUTH_FORBIDDEN", "Acesso negado."));
 
-    render(<ContactsPage />);
+    render(<MemoryRouter><ContactsPage /></MemoryRouter>);
 
     await waitFor(() =>
       expect(screen.getByRole("alert")).toHaveTextContent(
@@ -182,4 +237,12 @@ describe("ContactsPage", () => {
       ),
     );
   });
+});
+
+it("URL da aba Motoristas reabre o cadastro correto após acesso direto", async () => {
+  mockRole("ADMIN");
+  vi.mocked(listDrivers).mockResolvedValue(makePage([DRIVER_ITEM]));
+  render(<MemoryRouter initialEntries={["/contacts?tab=drivers"]}><ContactsPage /></MemoryRouter>);
+  await waitFor(() => expect(screen.getByRole("tab", { name: "Motoristas" })).toHaveAttribute("aria-selected", "true"));
+  expect(screen.getByRole("tabpanel")).toHaveAttribute("id", "panel-drivers");
 });

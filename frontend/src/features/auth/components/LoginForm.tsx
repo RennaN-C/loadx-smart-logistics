@@ -1,12 +1,16 @@
+import { Link } from "react-router-dom";
+import { MfaRequired } from "../mfaTypes";
+import { MfaChallengePanel } from "./MfaChallengePanel";
 import { useState, type FormEvent } from "react";
 
 import { ApiError } from "../../../types/api";
 import { useAuth } from "../hooks/useAuth";
 import { mapLoginErrorToMessage } from "./loginErrorMessages";
 import { AlertBanner } from "../../../components/AlertBanner";
+import { BrandMark, Icon } from "../../../components/Icon";
 
 export function LoginForm() {
-  const { login } = useAuth();
+  const { login, pendingMfa, beginMfa } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -21,6 +25,7 @@ export function LoginForm() {
     try {
       await login(email, password);
     } catch (error) {
+      if (error instanceof MfaRequired) { beginMfa?.(error.challenge); setPassword(""); setIsSubmitting(false); return; }
       const apiError =
         error instanceof ApiError ? error : new ApiError("UNKNOWN_ERROR", "Ocorreu um erro inesperado.");
       setErrorMessage(mapLoginErrorToMessage(apiError));
@@ -28,13 +33,17 @@ export function LoginForm() {
     }
   }
 
+  if (pendingMfa) return <MfaChallengePanel key={pendingMfa.challenge_token} challenge={pendingMfa} />;
+
   return (
     <form className="login-card" onSubmit={handleSubmit}>
       {errorMessage ? <AlertBanner>{errorMessage}</AlertBanner> : null}
 
-      <div>
+      <div className="login-card-intro">
+        <span className="login-access-mark" aria-hidden="true"><BrandMark size={25} /></span>
+        <p className="login-access-eyebrow">ACESSO À PLATAFORMA</p>
         <h2>Entrar</h2>
-        <p className="login-lede">Use suas credenciais internas para continuar.</p>
+        <p className="login-lede">Sua operação começa com uma visão clara.<br />Use suas credenciais internas para continuar.</p>
       </div>
 
       <fieldset disabled={isSubmitting} className="login-fieldset">
@@ -66,7 +75,7 @@ export function LoginForm() {
               aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
               onClick={() => setShowPassword((value) => !value)}
             >
-              {showPassword ? "ocultar" : "mostrar"}
+              {showPassword ? "Ocultar" : "Mostrar"}
             </button>
           </div>
           <input
@@ -89,10 +98,11 @@ export function LoginForm() {
             <span>Entrando…</span>
           </>
         ) : (
-          "Entrar"
+          <><span>Entrar</span><Icon name="arrow-right" size={18} /></>
         )}
       </button>
 
+      <Link className="login-recovery-link" to="/password-recovery">Esqueci minha senha</Link>
       <p className="login-hint">Não tem acesso? Fale com o administrador do sistema.</p>
     </form>
   );

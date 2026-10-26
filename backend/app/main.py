@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from app.api.router import api_router
 from app.core.config import Settings, settings
 from app.core.exceptions import ApiError, register_exception_handlers
+from app.core.health import liveness_status
 from app.core.http_security import OriginValidationMiddleware, SecurityHeadersMiddleware
 from app.core.observability import (
     OperationalContextMiddleware,
@@ -18,6 +19,7 @@ from app.core.observability import (
 )
 from app.core.responses import openapi_error_responses
 from app.database.readiness import DatabaseReadinessChecker, ReadinessCheckError
+from app.integrations.inbound_webhook import build_inbound_webhook
 
 
 class ReadinessResponse(BaseModel):
@@ -41,17 +43,25 @@ def create_app(app_settings: Settings | None = None) -> FastAPI:
             yield
         finally:
             emit_operational_event(OperationalEvent.APP_STOPPED)
+            if (
+                application.state.inbound_webhook is not None
+                and application.state.inbound_webhook.engine is not None
+            ):
+                application.state.inbound_webhook.engine.dispose()
 
     expose_api_docs = current_settings.app_env == "local"
     application = FastAPI(
         title="LoadX API",
-        version="1.0.0",
+        version="1.2.0",
         docs_url="/docs" if expose_api_docs else None,
         redoc_url="/redoc" if expose_api_docs else None,
         openapi_url="/openapi.json" if expose_api_docs else None,
         lifespan=lifespan,
     )
     register_exception_handlers(application)
+    application.state.inbound_webhook = build_inbound_webhook(current_settings)
+    application.state.integration_health_sources = {}
+    application.state.integration_health_settings = current_settings
     application.state.readiness_checker = DatabaseReadinessChecker(
         current_settings.database_url
     )
@@ -85,7 +95,7 @@ def create_app(app_settings: Settings | None = None) -> FastAPI:
         responses=openapi_error_responses(500),
     )
     def health() -> dict[str, str]:
-        return {"status": "ok", "service": "loadx-api"}
+        return liveness_status()
 
     @application.get(
         "/ready",

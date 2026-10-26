@@ -4,6 +4,9 @@ from datetime import UTC, datetime
 
 from sqlalchemy.orm import Session
 
+from app.core.pagination import PageResult, PaginationParams
+from app.modules.deliveries.reference_service import DeliveryReferenceService
+from app.modules.load_planning.distribution_repository import LoadDistributionRepository
 from app.modules.load_planning.models import (
     LoadPlan,
     LoadPlanItem,
@@ -29,11 +32,21 @@ from app.modules.load_planning.optimizer.engine import (
     LoadPlanVolumeLimitExceededError,
     RejectedVolume,
     calculate_load_plan,
+    calculate_volume_load_plan,
 )
 from app.modules.load_planning.optimizer.loading_sequence import SequencedPlacement
-from app.modules.load_planning.repository import LoadPlanRepository
-from app.modules.load_planning.schemas import LoadPlanCreate, TruckComparisonCreate
+from app.modules.load_planning.reference_service import LoadPlanReferenceService
+from app.modules.load_planning.repository import LoadPlanRepository, LoadPlanSummary
+from app.modules.load_planning.schemas import (
+    LoadingContinuityRead,
+    LoadPlanContinuityRead,
+    LoadPlanCreate,
+    TripContinuityRead,
+    TruckComparisonCreate,
+)
+from app.modules.loading.reference_service import LoadingReferenceService
 from app.modules.orders.models import Order, OrderItem
+from app.modules.orders.reference_service import OrderReferenceService
 from app.modules.orders.service import OrderService
 from app.modules.products.models import Product
 from app.modules.products.service import ProductService
@@ -41,6 +54,7 @@ from app.modules.status_history.schemas import StatusHistoryCreate
 from app.modules.status_history.service import StatusHistoryService
 from app.modules.trucks.models import Truck
 from app.modules.trucks.service import TruckNotFoundError, TruckService
+from app.shared.record_lifecycle import ensure_record_active
 
 MAX_PERSISTED_VOLUME_CM3 = 9_223_372_036_854_775_807
 
@@ -110,6 +124,70 @@ class LoadPlanningService:
         self.product_service = ProductService(db)
         self.status_history_service = StatusHistoryService(db)
 
+    def orders_ready_for_approval(self, plan: LoadPlan) -> bool:
+        ids = [association.order_id for association in plan.orders]
+        return bool(ids) and self.db.scalar(
+            OrderReferenceService.ready_count_query(ids)
+        ) == len(ids)
+
+    def get_continuity(
+        self,
+        plan: LoadPlan,
+        *,
+        requester_role: str,
+        can_read_trips: bool | None = None,
+        can_read_operations: bool | None = None,
+    ) -> LoadPlanContinuityRead:
+        if can_read_operations is None:
+            can_read_operations = requester_role in {"ADMIN", "LOGISTICS_MANAGER"}
+        loading = LoadingReferenceService(self.db).get_by_load_plan_id(plan.id)
+        if can_read_trips is None:
+            can_read_trips = requester_role in {"ADMIN", "LOGISTICS_MANAGER"}
+        trip = (
+            DeliveryReferenceService(self.db).get_trip_for_load_plan(plan.id)
+            if can_read_trips
+            else None
+        )
+        operational = LoadPlanReferenceService(self.db).get_operational_plan(plan.id)
+        return LoadPlanContinuityRead(
+            operation=self.repository.get_operation_summary(plan.id)
+            if can_read_operations
+            else None,
+            loading_session=LoadingContinuityRead(id=loading.id, status=loading.status)
+            if loading
+            else None,
+            trip=TripContinuityRead(id=trip.id, status=trip.status) if trip else None,
+            operational_ready=plan.status == "APPROVED"
+            and operational.operational_ready,
+        )
+
+    def list_load_plans(
+        self,
+        pagination: PaginationParams,
+        *,
+        requester_role: str,
+        status: str | None = None,
+        truck_id: uuid.UUID | None = None,
+        include_operations: bool = False,
+        operation_scope: str = "all",
+    ) -> PageResult[LoadPlanSummary]:
+        # Apply the same object-level restriction as the detail BEFORE pagination.
+        if requester_role == "CHECKER":
+            if status is not None and status != "APPROVED":
+                return PageResult.create([], pagination, 0)
+            status = "APPROVED"
+        return self.repository.list(
+            pagination,
+            status=status,
+            truck_id=truck_id,
+            include_operations=include_operations,
+            operation_scope=operation_scope,
+        )
+
+    def get_distribution_id_for_plan(self, load_plan_id: uuid.UUID) -> uuid.UUID | None:
+        part = LoadDistributionRepository(self.db).plan_part(load_plan_id)
+        return part.distribution_id if part else None
+
     def get_load_plan(self, load_plan_id: uuid.UUID) -> LoadPlan:
         load_plan = self.repository.get(load_plan_id)
         if load_plan is None:
@@ -151,6 +229,9 @@ class LoadPlanningService:
         )
         if inactive_truck_ids:
             raise LoadPlanTruckInactiveError(inactive_truck_ids)
+
+        for identifier in truck_ids:
+            self.truck_service.ensure_operational_eligibility(identifier)
 
         orders = tuple(
             self.order_service.get_orders(normalized_order_ids, for_update=False)
@@ -197,6 +278,7 @@ class LoadPlanningService:
         if missing_product_ids:
             raise LoadPlanProductsNotFoundError(missing_product_ids)
 
+        self.order_service.ensure_operational_sources(orders, for_update=False)
         optimizer_items = tuple(
             self._map_optimizer_item(item, products_by_id[item.product_id])
             for item in order_items
@@ -222,6 +304,8 @@ class LoadPlanningService:
         changed_by: uuid.UUID,
     ) -> LoadPlan:
         try:
+            if LoadDistributionRepository(self.db).plan_part(load_plan_id) is not None:
+                raise LoadPlanSourceChangedError
             source = self.repository.get_for_update(load_plan_id)
             if source is None:
                 raise LoadPlanNotFoundError
@@ -244,6 +328,8 @@ class LoadPlanningService:
         changed_by: uuid.UUID,
     ) -> LoadPlan:
         try:
+            if LoadDistributionRepository(self.db).plan_part(load_plan_id) is not None:
+                raise LoadPlanSourceChangedError
             load_plan = self.repository.get_for_update(load_plan_id)
             if load_plan is None:
                 raise LoadPlanNotFoundError
@@ -252,6 +338,10 @@ class LoadPlanningService:
             if load_plan.unloaded_count != 0:
                 raise LoadPlanHasRejectionsError
 
+            ensure_record_active(
+                self.truck_service.get_truck_for_update(load_plan.truck_id), "TRUCK"
+            )
+            self.truck_service.ensure_operational_eligibility(load_plan.truck_id)
             order_ids = tuple(link.order_id for link in load_plan.orders)
             orders = tuple(self.order_service.get_orders(order_ids, for_update=True))
             if {order.id for order in orders} != set(order_ids):
@@ -268,6 +358,9 @@ class LoadPlanningService:
             if ineligible:
                 raise LoadPlanOrdersNotEligibleError(ineligible)
 
+            if LoadDistributionRepository(self.db).has_active_orders(order_ids):
+                raise LoadPlanSourceChangedError
+            self.order_service.ensure_operational_sources(orders)
             previous_statuses = {order.id: order.status for order in orders}
             self.order_service.stage_orders_as_planned(orders)
             load_plan.status = "APPROVED"
@@ -316,6 +409,7 @@ class LoadPlanningService:
                 raise LoadPlanTruckNotFoundError from exc
             if not truck.active:
                 raise LoadPlanTruckInactiveError
+            self.truck_service.ensure_operational_eligibility(truck_id)
             internal_volume_cm3 = (
                 truck.internal_width_cm
                 * truck.internal_height_cm
@@ -371,6 +465,7 @@ class LoadPlanningService:
                     key=lambda value: value.int,
                 )
             )
+            self.order_service.ensure_operational_sources(orders)
             products = tuple(
                 self.product_service.get_products(
                     product_ids,
@@ -476,6 +571,57 @@ class LoadPlanningService:
             rotation_allowed=product.rotation_allowed,
             product_name=product.name,
         )
+
+    def stage_plan_for_volumes(
+        self,
+        *,
+        truck: Truck,
+        orders: Sequence[Order],
+        products_by_id: dict[uuid.UUID, Product],
+        source_items: dict[uuid.UUID, OrderItem],
+        volumes: Sequence[IndividualVolume],
+        changed_by: uuid.UUID,
+        recalculated_from_id: uuid.UUID | None = None,
+    ) -> tuple[LoadPlan, LoadPlanResult]:
+        """Stage an explicitly selected subset for the owning distribution commit."""
+        if (
+            truck.internal_width_cm
+            * truck.internal_height_cm
+            * truck.internal_length_cm
+            > MAX_PERSISTED_VOLUME_CM3
+        ):
+            raise InvalidLoadPlanInputError(
+                "truck_id", "internal volume exceeds persisted BIGINT range"
+            )
+        result = calculate_volume_load_plan(
+            TruckCapacityInput(
+                internal_width_cm=truck.internal_width_cm,
+                internal_height_cm=truck.internal_height_cm,
+                internal_length_cm=truck.internal_length_cm,
+                max_weight_kg=truck.max_weight_kg,
+            ),
+            volumes,
+        )
+        plan = self._build_load_plan(
+            truck=truck,
+            orders=orders,
+            products_by_id=products_by_id,
+            source_items=source_items,
+            result=result,
+            recalculated_from_id=recalculated_from_id,
+        )
+        # A caller must reject a non-fitting proposal before any partial plan is staged.
+        if result.rejected_volumes:
+            return plan, result
+        self.repository.add(plan)
+        self._stage_status_change(
+            entity_type="LOAD_PLAN",
+            entity_id=plan.id,
+            old_status=None,
+            new_status=plan.status,
+            changed_by=changed_by,
+        )
+        return plan, result
 
     def _build_load_plan(
         self,

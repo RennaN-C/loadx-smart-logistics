@@ -1,0 +1,48 @@
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, expect, it, vi } from "vitest";
+import { listTripAttachmentOccurrences } from "../api/attachmentsApi";
+import { TripAttachments } from "./TripAttachments";
+import type { Trip } from "../../deliveries/types";
+vi.mock("../api/attachmentsApi", () => ({ listTripAttachmentOccurrences: vi.fn() }));
+vi.mock("./AttachmentPanel", () => ({ AttachmentPanel: ({ resource, resourceId, canManage }: { resource: string; resourceId: string; canManage: boolean }) => <><p>{resource}:{resourceId}</p><output>{canManage ? "Gravação permitida" : "Somente leitura"}</output></> }));
+const trip: Trip = { id: "t1", loadPlanId: "p1", driverId: "m1", status: "SCHEDULED", startedAt: null, finishedAt: null, deliveries: [{ id: "d1", tripId: "t1", orderId: "o1", status: "PENDING", sequence: 1, deliveredAt: null }] };
+beforeEach(() => { vi.clearAllMocks(); vi.mocked(listTripAttachmentOccurrences).mockResolvedValue([{ id: "oc1", type: "OTHER", description: "Fixture" }]); });
+it("abre sob demanda e seleciona viagem, entrega e ocorrência", async () => {
+  render(<TripAttachments trip={trip} canManage />);
+  expect(listTripAttachmentOccurrences).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Anexos da viagem e entregas" }));
+  expect(screen.getByText("trips:t1")).toBeInTheDocument();
+  await screen.findByRole("option", { name: "Ocorrência OTHER: Fixture" });
+  fireEvent.change(screen.getByLabelText("Recurso do anexo"), { target: { value: "deliveries:d1" } });
+  expect(screen.getByText("deliveries:d1")).toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText("Recurso do anexo"), { target: { value: "occurrences:oc1" } });
+  expect(screen.getByText("occurrences:oc1")).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Fechar" }));
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+});
+it("falha de ocorrências preserva contexto viagem e entrega", async () => {
+  vi.mocked(listTripAttachmentOccurrences).mockRejectedValue(new Error("Falha"));
+  render(<TripAttachments trip={trip} canManage />);
+  fireEvent.click(screen.getByRole("button", { name: "Anexos da viagem e entregas" }));
+  await waitFor(() => expect(screen.getByText(/Não foi possível consultar ocorrências/)).toBeInTheDocument());
+  expect(screen.getByRole("option", { name: "Entrega 1" })).toBeInTheDocument();
+});
+
+it("OC112 não consulta nem oferece recursos sem permissão de leitura", async () => {
+  render(<TripAttachments trip={trip} canManage={false} access={{ readDeliveries: false, readOccurrences: false, manageDeliveries: false, manageOccurrences: false }} />);
+  fireEvent.click(screen.getByRole("button", { name: "Anexos da viagem e entregas" }));
+  expect(screen.getByRole("option", { name: "Viagem" })).toBeInTheDocument();
+  expect(screen.queryByRole("option", { name: "Entrega 1" })).not.toBeInTheDocument();
+  expect(listTripAttachmentOccurrences).not.toHaveBeenCalled();
+  expect(screen.getByText("Somente leitura")).toBeInTheDocument();
+});
+it("OC112 distingue gravação da viagem, entrega e ocorrência", async () => {
+  render(<TripAttachments trip={trip} canManage access={{ readDeliveries: true, readOccurrences: true, manageDeliveries: false, manageOccurrences: true }} />);
+  fireEvent.click(screen.getByRole("button", { name: "Anexos da viagem e entregas" }));
+  await screen.findByRole("option", { name: "Ocorrência OTHER: Fixture" });
+  expect(screen.getByText("Gravação permitida")).toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText("Recurso do anexo"), { target: { value: "deliveries:d1" } });
+  expect(screen.getByText("Somente leitura")).toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText("Recurso do anexo"), { target: { value: "occurrences:oc1" } });
+  expect(screen.getByText("Gravação permitida")).toBeInTheDocument();
+});

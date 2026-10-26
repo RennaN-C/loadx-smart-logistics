@@ -9,7 +9,12 @@ O Alembic versiona toda alteração estrutural do PostgreSQL.
 - `migrations/script.py.mako`: template das revisions.
 - `migrations/versions`: migrations versionadas.
 
-`CONFIRMADO`: o head atual é `20260830_0011`. A revisão adiciona
+`CONFIRMADO`: o head atual é `20261021_0030` (#222), sobre `20261021_0029` (OC98),
+`20261020_0028` (OC90), `20261020_0027`
+(OC109), `20261020_0026` (OC103) e `20261020_0025` (OC84). Historicamente OC105 sucede OC87
+`20261007_0015` e evidências OC80 `20261007_0014`. A OC87 cria necessidade/partes/claims e triggers de integridade
+diferidas; downgrade remove esses registros/triggers e tipos de histórico próprios.
+A revisão `20260830_0011` adiciona
 `trips.created_at` para ordenação determinística e sucede as migrations de
 ocorrências e carregamento. `20260809_0007` vincula usuários a motoristas;
 `20260809_0008` fecha o catálogo auditável e cria `trips` e `deliveries`. As
@@ -45,3 +50,133 @@ com sucesso; `/ready` apenas confere o resultado e não altera o banco.
 - A migration deve subir junto com models, testes e atualização do modelo de dados.
 - Revise `upgrade()` e `downgrade()` antes de abrir PR.
 - Use dados fictícios em seeds e testes.
+
+`CONFIRMADO` (OC105): head `20261008_0016` → down_revision `20261007_0015`.
+Adiciona `active` com default true a clientes/produtos e expande o catálogo
+restrito de auditoria. Upgrade preserva UUIDs, documentos, códigos e todas as
+FKs. Downgrade **não** apaga eventos de auditoria nem reativa cadastros
+silenciosamente: é bloqueado se houver clientes/produtos arquivados ou qualquer
+evento específico de ciclo de vida da OC105. Somente é permitido quando não
+existe estado ou auditoria OC105 a preservar. Para reverter após uso real,
+planeje migração compensatória com preservação de dados; não remova registros
+de auditoria para forçar o downgrade.
+
+## OC99 — revision 20261008_0017
+
+`CONFIRMADO`: encadeada a `20261008_0016`, cria customer_addresses, constraints
+e índices e adiciona proveniência/snapshot aos pedidos. Backfill cria um
+principal por cliente, inclusive arquivados, sem alterar o estado do cliente.
+Pedidos antigos preservam seu próprio texto; vínculo com endereço não é
+inferido. A suíte PostgreSQL 16 verifica dados legados, upgrade, downgrade,
+novo upgrade, alembic check e único head.
+
+`CONFIRMADO`: downgrade é permitido para backfill intocado e bloqueia qualquer
+endereço novo/editado/arquivado, proveniência/snapshot estruturado ou auditoria
+de endereços que seria perdido. Falha transacional preserva o schema e dados.
+Não remova dados de produção para contornar essa proteção.
+
+## OC100 — revision 20261009_0018
+
+`CONFIRMADO`: head único encadeado a 20261008_0017. Acrescenta campos opcionais
+de odômetro/revisão em trucks, histórico truck_maintenances com FK RESTRICT,
+CHECKs de tipo/período/valores não negativos e índice de histórico/período;
+expande o catálogo de auditoria. Dados antigos mantêm quilometragem desconhecida,
+sem histórico artificial. Upgrade/downgrade seguro preserva OC99/OC105;
+uso da OC100 bloqueia downgrade que perderia histórico, km/revisão ou auditoria.
+
+## OC101 — revision 20261009_0019
+
+`CONFIRMADO`: segue 20261009_0018; adiciona documentos com índice único parcial
+de versão corrente, políticas com unique por caminhão/tipo e catálogos de
+auditoria. Sem backfill de obrigatoriedade/validade e sem mudança em dados
+existentes. Downgrade sem dados é reversível; com documentos/políticas/auditoria
+OC101 é bloqueado para preservar histórico. Testes usam PostgreSQL 16 real e
+validam upgrade/downgrade/head e constraints.
+
+## OC102 — revision 20261009_0020
+
+`CONFIRMADO`: down_revision 20261009_0019, único head. Adiciona validade opcional
+a drivers, tipos aprovados (CNH nativo), versões documentais e políticas com
+índice único parcial, FK RESTRICT e CHECKs. Backfill de número/categoria dos
+legados sem inventar validade; flags de backfill permitem downgrade intocado.
+Histórico novo, políticas, validade e auditoria OC102 bloqueiam downgrade para
+não descartar dados. Testes PostgreSQL 16 cobrem backfill legado, upgrade,
+downgrade, constraints, concorrência e rollback.
+
+
+## OC103 — revision 20261020_0026
+
+`CONFIRMADO`: revisão sobre 20261020_0025. Acrescenta destinatários internos,
+primeira leitura e preferências, sem alterar operational_notifications. Backfill
+associa fatos reais às contas elegíveis no corte, sem destinatários históricos
+inferidos. FK/PK/índices/CHECK e trigger protegem isolamento estrutural, segurança
+obrigatória e identidade/primeira leitura imutáveis. Com qualquer associação ou
+preferência, downgrade é recusado: preservar dados e planejar migração compensatória.
+A suíte percorre upgrade/downgrade/upgrade e testa backfill e recusa após uso.
+
+`CONFIRMADO`: OC109 associa tentativas legadas sem envio. Downgrade com eventos
+ou auditoria de reprocessamento é recusado. Procedimento de corte/worker em
+[notifications/README](../app/modules/notifications/README.md#oc109--fila-de-eventos-e-reprocessamento).
+
+
+## OC90 — revision 20261020_0028
+
+`CONFIRMADO`: head único após 20261020_0027 (OC109). Acrescenta FK opcional de
+Delivery para parte, UNIQUE parte/pedido e índice único parcial por pedido legado.
+Triggers protegem contexto operacional e imutabilidade dos vínculos/partição.
+Backfill associa entregas existentes de distribuição com uma parte; entregas
+legadas continuam NULL. Não há exclusão nem reescrita de históricos.
+
+Upgrade/downgrade/novo upgrade e alembic check são exercitados no PostgreSQL 16.
+Downgrade falha antes de DDL se houver entrega com parte, inclusive uma única:
+o runtime anterior não suporta a semântica operacional multi. Preservar contexto
+e auditoria; usar migration compensatória. Não apagar dados para contornar.
+
+`CONFIRMADO` (OC90): upgrade revalida entregas antigas com a mesma trigger de
+contexto usada por escritas futuras. Vínculo antigo inconsistente aborta o upgrade
+transacional, preservando schema/dados anteriores; não há correção silenciosa.
+
+`CONFIRMADO`: esta mesma migration OC90, ainda não integrada, foi renumerada para
+0028 ao integrar OC109: 0025/0026/0027 pertencem a OC84/OC103/OC109.
+Não é criada uma segunda revisão OC90. A guarda `protect_operated_load_plan()`
+congela linhas inteiras de planos e seus pedidos/itens desde LoadingSession ou
+Trip, inclusive legado; no-op permanece permitido. Pais em UUID crescente com
+NOWAIT evitam espera invertida filho/pai durante criação de checklist. Contenção
+rejeita com `ck_load_plans__operational_snapshot` e exige retry da transação.
+Downgrade permitido remove os três triggers `protect_operated_load_*` e a função;
+o bloqueio fail-safe por entregas de parte ocorre antes de qualquer remoção.
+
+
+## OC98 / #222 — reconciliação para revisão da PR #211
+
+`CONFIRMADO`: a base integrada termina em `20261020_0028`. As revisões ainda
+não integradas da OC98 e de dispositivos confiáveis passam a
+`20261021_0029` → `20261021_0030`, sem modificar as revisões publicadas da
+OC84, OC103, OC109 ou OC90. Não existem branches Alembic concorrentes.
+
+A revisão 0029 cria recuperação/MFA, preserva usuários e histórico operacional
+e invalida sessões anteriores ao novo requisito de autenticação. A 0030 adiciona
+dispositivos confiáveis por 30 dias. Downgrade é bloqueado após uso dos dados de
+identidade/dispositivos; a suíte exercita ida/volta em banco exclusivo sem esses
+dados. Não apague dados para liberar rollback.
+
+`RISCO IDENTIFICADO`: bancos experimentais que já executaram os antigos IDs
+não integrados da PR #211 precisam de análise específica antes da atualização.
+Não executar `stamp`, reset ou reaplicar migrations automaticamente nesses bancos.
+Esta reconciliação valida o caminho oficial a partir de 0028 em PostgreSQL 16
+novo e isolado; não altera bancos existentes nem chaves de criptografia.
+
+
+## Recuperação idempotente — #254
+
+`CONFIRMADO`: contrato implementado para revisão na ADR-047. Tabela aditiva
+`optimization_requests`: PK (user_id, request_key), payload_hash SHA-256 de
+versão/seleção ordenada, distribution_id único com FK RESTRICT, created_at UTC.
+Persistência atômica com distribuição/planos/volumes/histórico; sem pending ou TTL.
+`POST /load-distributions/optimize` aceita header UUID `Idempotency-Key` opcional.
+Replay igual retorna 201 com o mesmo recurso atual; payload diferente: 409
+IDEMPOTENCY_PAYLOAD_MISMATCH. Concorrência: 409 OPTIMIZATION_IN_PROGRESS.
+`GET /load-distributions/optimization-requests/{key}` retorna 200/404/409,
+somente para o ator e com a mesma permissão create. Não cria nada.
+Migration 20261023_0035 → 20261021_0034; downgrade recusa registros existentes.
+Sem alteração de regras físicas, RBAC efetivo, MFA ou OC90/OC94.

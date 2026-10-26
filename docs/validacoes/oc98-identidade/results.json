@@ -1,0 +1,312 @@
+{
+  "checks": [
+    {
+      "screen": "recovery-request",
+      "theme": "dark",
+      "width": 375,
+      "overflow": false
+    },
+    {
+      "screen": "recovery-request",
+      "theme": "dark",
+      "width": 768,
+      "overflow": false
+    },
+    {
+      "screen": "recovery-request",
+      "theme": "dark",
+      "width": 1280,
+      "overflow": false
+    },
+    {
+      "screen": "recovery-request",
+      "theme": "dark",
+      "width": 1920,
+      "overflow": false
+    },
+    {
+      "screen": "recovery-request",
+      "theme": "light",
+      "width": 375,
+      "overflow": false
+    },
+    {
+      "screen": "recovery-request",
+      "theme": "light",
+      "width": 768,
+      "overflow": false
+    },
+    {
+      "screen": "recovery-request",
+      "theme": "light",
+      "width": 1280,
+      "overflow": false
+    },
+    {
+      "screen": "recovery-request",
+      "theme": "light",
+      "width": 1920,
+      "overflow": false
+    },
+    {
+      "screen": "password-reset",
+      "theme": "dark",
+      "width": 375,
+      "overflow": false
+    },
+    {
+      "screen": "password-reset",
+      "theme": "dark",
+      "width": 768,
+      "overflow": false
+    },
+    {
+      "screen": "password-reset",
+      "theme": "dark",
+      "width": 1280,
+      "overflow": false
+    },
+    {
+      "screen": "password-reset",
+      "theme": "dark",
+      "width": 1920,
+      "overflow": false
+    },
+    {
+      "screen": "password-reset",
+      "theme": "light",
+      "width": 375,
+      "overflow": false
+    },
+    {
+      "screen": "password-reset",
+      "theme": "light",
+      "width": 768,
+      "overflow": false
+    },
+    {
+      "screen": "password-reset",
+      "theme": "light",
+      "width": 1280,
+      "overflow": false
+    },
+    {
+      "screen": "password-reset",
+      "theme": "light",
+      "width": 1920,
+      "overflow": false
+    },
+    {
+      "screen": "mfa-enrollment",
+      "theme": "dark",
+      "width": 375,
+      "overflow": false
+    },
+    {
+      "screen": "mfa-enrollment",
+      "theme": "dark",
+      "width": 768,
+      "overflow": false
+    },
+    {
+      "screen": "mfa-enrollment",
+      "theme": "dark",
+      "width": 1280,
+      "overflow": false
+    },
+    {
+      "screen": "mfa-enrollment",
+      "theme": "dark",
+      "width": 1920,
+      "overflow": false
+    },
+    {
+      "screen": "mfa-enrollment",
+      "theme": "light",
+      "width": 375,
+      "overflow": false
+    },
+    {
+      "screen": "mfa-enrollment",
+      "theme": "light",
+      "width": 768,
+      "overflow": false
+    },
+    {
+      "screen": "mfa-enrollment",
+      "theme": "light",
+      "width": 1280,
+      "overflow": false
+    },
+    {
+      "screen": "mfa-enrollment",
+      "theme": "light",
+      "width": 1920,
+      "overflow": false
+    },
+    {
+      "screen": "mfa-recovery-codes",
+      "theme": "dark",
+      "width": 375,
+      "overflow": false
+    },
+    {
+      "screen": "mfa-recovery-codes",
+      "theme": "dark",
+      "width": 768,
+      "overflow": false
+    },
+    {
+      "screen": "mfa-recovery-codes",
+      "theme": "dark",
+      "width": 1280,
+      "overflow": false
+    },
+    {
+      "screen": "mfa-recovery-codes",
+      "theme": "dark",
+      "width": 1920,
+      "overflow": false
+    },
+    {
+      "screen": "mfa-recovery-codes",
+      "theme": "light",
+      "width": 375,
+      "overflow": false
+    },
+    {
+      "screen": "mfa-recovery-codes",
+      "theme": "light",
+      "width": 768,
+      "overflow": false
+    },
+    {
+      "screen": "mfa-recovery-codes",
+      "theme": "light",
+      "width": 1280,
+      "overflow": false
+    },
+    {
+      "screen": "mfa-recovery-codes",
+      "theme": "light",
+      "width": 1920,
+      "overflow": false
+    },
+    {
+      "screen": "account-mfa",
+      "theme": "dark",
+      "width": 375,
+      "overflow": false
+    },
+    {
+      "screen": "account-mfa",
+      "theme": "dark",
+      "width": 768,
+      "overflow": false
+    },
+    {
+      "screen": "account-mfa",
+      "theme": "dark",
+      "width": 1280,
+      "overflow": false
+    },
+    {
+      "screen": "account-mfa",
+      "theme": "dark",
+      "width": 1920,
+      "overflow": false
+    },
+    {
+      "screen": "account-mfa",
+      "theme": "light",
+      "width": 375,
+      "overflow": false
+    },
+    {
+      "screen": "account-mfa",
+      "theme": "light",
+      "width": 768,
+      "overflow": false
+    },
+    {
+      "screen": "account-mfa",
+      "theme": "light",
+      "width": 1280,
+      "overflow": false
+    },
+    {
+      "screen": "account-mfa",
+      "theme": "light",
+      "width": 1920,
+      "overflow": false
+    },
+    {
+      "screen": "mfa-login",
+      "theme": "dark",
+      "width": 375,
+      "overflow": false
+    },
+    {
+      "screen": "mfa-login",
+      "theme": "dark",
+      "width": 768,
+      "overflow": false
+    },
+    {
+      "screen": "mfa-login",
+      "theme": "dark",
+      "width": 1280,
+      "overflow": false
+    },
+    {
+      "screen": "mfa-login",
+      "theme": "dark",
+      "width": 1920,
+      "overflow": false
+    },
+    {
+      "screen": "mfa-login",
+      "theme": "light",
+      "width": 375,
+      "overflow": false
+    },
+    {
+      "screen": "mfa-login",
+      "theme": "light",
+      "width": 768,
+      "overflow": false
+    },
+    {
+      "screen": "mfa-login",
+      "theme": "light",
+      "width": 1280,
+      "overflow": false
+    },
+    {
+      "screen": "mfa-login",
+      "theme": "light",
+      "width": 1920,
+      "overflow": false
+    },
+    {
+      "screen": "mfa-invalid",
+      "theme": "dark",
+      "width": 375,
+      "overflow": false
+    }
+  ],
+  "flows": [
+    "password recovery via test delivery adapter",
+    "fragment cleared",
+    "reset success without auto-login",
+    "ADMIN enrollment required before /auth/me",
+    "TOTP possession confirmed",
+    "one-time recovery codes shown",
+    "authenticated session restored after F5",
+    "MFA invalid code rejected",
+    "recovery code completed second login",
+    "SPA return to login clears cached authentication after reset"
+  ],
+  "delivery": "fake local adapter, no real email sent",
+  "data": "fictitious isolated PostgreSQL database"
+}

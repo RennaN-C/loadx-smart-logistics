@@ -24,6 +24,62 @@ RejectionReasonValue = Literal[
 ]
 
 
+OperationStatus = Literal[
+    "NOT_STARTED", "IN_PROGRESS", "PARTIALLY_DELIVERED", "COMPLETED", "CANCELED"
+]
+OperationScope = Literal["ongoing", "completed", "all"]
+
+
+class PlanOperationRead(BaseModel):
+    status: OperationStatus
+    loading_session_id: uuid.UUID | None
+    loading_status: Literal["PENDING", "IN_PROGRESS", "FINISHED"] | None
+    trip_id: uuid.UUID | None
+    trip_status: (
+        Literal["SCHEDULED", "IN_ROUTE", "INTERRUPTED", "FINISHED", "CANCELED"] | None
+    )
+    order_count: int = Field(ge=0)
+    delivered_order_count: int = Field(ge=0)
+    partial_order_count: int = Field(ge=0)
+    ready_order_count: int = Field(ge=0)
+    delivery_count: int = Field(ge=0)
+    delivered_leg_count: int = Field(ge=0)
+
+
+class LoadPlanListRead(BaseModel):
+    operation: PlanOperationRead | None = None
+    distribution_id: uuid.UUID | None = None
+    id: uuid.UUID
+    truck_id: uuid.UUID
+    truck_plate: str
+    truck_model: str
+    status: LoadPlanStatus
+    created_at: datetime
+    recalculated_from_id: uuid.UUID | None
+    loaded_count: int = Field(ge=0)
+    unloaded_count: int = Field(ge=0)
+    occupancy_percent: JsonDecimal
+    total_weight_kg: JsonDecimal
+    order_count: int = Field(ge=0)
+
+
+class LoadingContinuityRead(BaseModel):
+    id: uuid.UUID
+    status: Literal["PENDING", "IN_PROGRESS", "FINISHED"]
+
+
+class TripContinuityRead(BaseModel):
+    id: uuid.UUID
+    status: Literal["SCHEDULED", "IN_ROUTE", "INTERRUPTED", "FINISHED", "CANCELED"]
+
+
+class LoadPlanContinuityRead(BaseModel):
+    operation: PlanOperationRead | None = None
+    loading_session: LoadingContinuityRead | None
+    trip: TripContinuityRead | None
+    operational_ready: bool
+
+
 class LoadPlanCreate(BaseModel):
     truck_id: uuid.UUID
     order_ids: list[uuid.UUID] = Field(min_length=1)
@@ -172,6 +228,8 @@ class UnloadedLoadPlanItemRead(_LoadPlanItemSnapshotRead):
 
 
 class LoadPlanRead(BaseModel):
+    orders_ready_for_approval: bool | None = None
+    distribution_id: uuid.UUID | None = None
     id: uuid.UUID
     truck_id: uuid.UUID
     recalculated_from_id: uuid.UUID | None
@@ -291,7 +349,12 @@ def _identity_key(item: LoadPlanItemRead) -> tuple[int, int]:
     return (item.order_item_id.int, item.volume_index)
 
 
-def map_load_plan_read(load_plan: LoadPlan) -> LoadPlanRead:
+def map_load_plan_read(
+    load_plan: LoadPlan,
+    *,
+    distribution_id: uuid.UUID | None = None,
+    orders_ready_for_approval: bool | None = None,
+) -> LoadPlanRead:
     items = sorted(
         (map_load_plan_item(item) for item in load_plan.items),
         key=_identity_key,
@@ -301,6 +364,8 @@ def map_load_plan_read(load_plan: LoadPlan) -> LoadPlanRead:
         key=lambda order_id: order_id.int,
     )
     return LoadPlanRead(
+        orders_ready_for_approval=orders_ready_for_approval,
+        distribution_id=distribution_id,
         id=load_plan.id,
         truck_id=load_plan.truck_id,
         recalculated_from_id=load_plan.recalculated_from_id,

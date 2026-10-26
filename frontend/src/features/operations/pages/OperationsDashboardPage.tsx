@@ -1,7 +1,9 @@
+import { Link } from "react-router-dom";
 import { useCallback, useEffect, useState } from "react";
 
 import { AlertBanner } from "../../../components/AlertBanner";
 import { Icon, type IconName } from "../../../components/Icon";
+import { DistributionChart } from "../../../components/DistributionChart";
 import { ApiError } from "../../../types/api";
 import { getOperationalIndicators } from "../api/operationalIndicatorsApi";
 import type { OperationalIndicators } from "../types";
@@ -34,9 +36,20 @@ interface Grupo {
   readonly icon: IconName;
   readonly period: string;
   readonly numbers: readonly Numero[];
+  readonly distribution?: readonly Numero[];
 }
 
 function montarGrupos(dados: OperationalIndicators): readonly Grupo[] {
+  const tripStatuses: readonly Numero[] = [
+    { label: "Programadas", value: dados.trips.scheduled },
+    { label: "Em rota", value: dados.trips.inRoute },
+    { label: "Finalizadas", value: dados.trips.finished },
+  ];
+  const deliveryStatuses: readonly Numero[] = [
+    { label: "Pendentes", value: dados.deliveries.pending },
+    { label: "Em entrega", value: dados.deliveries.inDelivery },
+    { label: "Entregues", value: dados.deliveries.delivered },
+  ];
   return [
     {
       id: "fleet",
@@ -67,6 +80,7 @@ function montarGrupos(dados: OperationalIndicators): readonly Grupo[] {
         { label: "EM ROTA", value: dados.trips.inRoute },
         { label: "FINALIZADAS", value: dados.trips.finished },
       ],
+      distribution: tripStatuses,
     },
     {
       id: "deliveries",
@@ -79,6 +93,7 @@ function montarGrupos(dados: OperationalIndicators): readonly Grupo[] {
         { label: "EM ENTREGA", value: dados.deliveries.inDelivery },
         { label: "ENTREGUES", value: dados.deliveries.delivered },
       ],
+      distribution: deliveryStatuses,
     },
     {
       id: "occurrences",
@@ -110,7 +125,7 @@ function montarGrupos(dados: OperationalIndicators): readonly Grupo[] {
  * dois contratos de confiança diferentes, e juntá-los numa aba só borraria
  * justamente a distinção que a OC74 cobra.
  */
-export function OperationsDashboardPage() {
+export function OperationsDashboardPage({ embedded = false }: { readonly embedded?: boolean }) {
   const [dados, setDados] = useState<OperationalIndicators | null>(null);
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -137,12 +152,12 @@ export function OperationsDashboardPage() {
   }, [carregar]);
 
   return (
-    <div className="entity-page">
+    <div className={embedded ? "overview-operations" : "entity-page"}>
       <header className="entity-header">
         <div>
-          <h1>Painel operacional</h1>
+          {embedded ? <h2>Situação operacional</h2> : <h1>Painel operacional</h1>}
           <p className="entity-lede">
-            Números apurados pelo servidor. Nenhum é calculado nesta tela.
+            Indicadores apurados pelo servidor, com o período de cada leitura.
           </p>
         </div>
         <button
@@ -179,13 +194,20 @@ export function OperationsDashboardPage() {
       ) : null}
 
       {dados !== null && status !== "error"
-        ? montarGrupos(dados).map((grupo) => <GrupoDeIndicadores key={grupo.id} grupo={grupo} />)
+        ?  <div className={embedded ? "overview-indicator-groups" : undefined}>{montarGrupos(dados).map((grupo) => <GrupoDeIndicadores key={grupo.id} grupo={grupo} compact={embedded} />)}</div>
         : null}
+      {dados !== null && status !== "error" ? <div className="operational-charts">
+        <DistributionChart title="Situação das viagens" total={dados.trips.total} period={PERIOD_LABELS[dados.trips.period] ?? dados.trips.period} entries={[{ label: "Programadas", value: dados.trips.scheduled }, { label: "Em rota", value: dados.trips.inRoute }, { label: "Finalizadas", value: dados.trips.finished }]} />
+        <DistributionChart title="Situação das entregas" total={dados.deliveries.total} period={PERIOD_LABELS[dados.deliveries.period] ?? dados.deliveries.period} variant="columns" entries={[{ label: "Pendentes", value: dados.deliveries.pending }, { label: "Em entrega", value: dados.deliveries.inDelivery }, { label: "Entregues", value: dados.deliveries.delivered }]} />
+      </div> : null}
     </div>
   );
 }
 
-function GrupoDeIndicadores({ grupo }: { readonly grupo: Grupo }) {
+function GrupoDeIndicadores({ grupo, compact = false }: { readonly grupo: Grupo; readonly compact?: boolean }) {
+  const primary = compact ? grupo.numbers.filter((number) => ["DISPONÍVEIS", "INDISPONÍVEIS", "PROGRAMADAS", "EM ROTA", "PENDENTES", "ENTREGUES", "REGISTRADAS"].includes(number.label)) : grupo.numbers;
+  const secondary = compact ? grupo.numbers.filter((number) => !primary.includes(number)) : [];
+
   return (
     <section className="ops-block" aria-labelledby={`ops-${grupo.id}`}>
       <div className="ops-block-head">
@@ -198,20 +220,32 @@ function GrupoDeIndicadores({ grupo }: { readonly grupo: Grupo }) {
         <p>{PERIOD_LABELS[grupo.period] ?? grupo.period}</p>
       </div>
 
-      <div className="ops-grid">
-        {grupo.numbers.map((numero) => (
-          <div
-            key={numero.label}
-            className={numero.alert ? "ops-kpi ops-kpi-alert" : "ops-kpi"}
-          >
-            <span className="ops-kpi-label">{numero.label}</span>
-            <span className="ops-kpi-value">{numero.value}</span>
-            {numero.note === undefined ? null : (
-              <span className="ops-kpi-note">{numero.note}</span>
-            )}
-          </div>
-        ))}
-      </div>
+      <IndicatorNumbers numbers={primary} />
+      {compact && grupo.distribution ? <StatusDistribution title={grupo.title} numbers={grupo.distribution} /> : null}
+      {secondary.length > 0 && <details className="overview-indicator-details"><summary>Mais indicadores de {grupo.title.toLowerCase()}</summary><IndicatorNumbers numbers={secondary} /></details>}
+      {compact && grupo.id === "fleet" && <Link className="btn-link" to="/trucks?tab=availability">Consultar disponibilidade</Link>}
+
     </section>
   );
+}
+
+function StatusDistribution({ title, numbers }: { readonly title: string; readonly numbers: readonly Numero[] }) {
+  const hasData = numbers.some((number) => number.value > 0);
+  return <div className="ops-distribution" aria-label={`Distribuição de ${title.toLowerCase()}`}>
+    <div className="ops-distribution-track" aria-hidden="true">
+      {hasData ? numbers.map((number, index) => (
+        <span key={number.label} data-segment={index + 1} style={{ flexGrow: number.value }} />
+      )) : <span className="ops-distribution-empty" />}
+    </div>
+    <ul>{numbers.map((number, index) => <li key={number.label}>
+      <span className="ops-distribution-dot" data-segment={index + 1} aria-hidden="true" />
+      <span>{number.label}</span><strong>{number.value}</strong>
+    </li>)}</ul>
+  </div>;
+}
+
+function IndicatorNumbers({ numbers }: { readonly numbers: readonly Numero[] }) {
+  return <div className="ops-grid">{numbers.map((number) => <div key={number.label} className={number.alert ? "ops-kpi ops-kpi-alert" : "ops-kpi"}>
+    <span className="ops-kpi-label">{number.label}</span><span className="ops-kpi-value">{number.value}</span>{number.note && <span className="ops-kpi-note">{number.note}</span>}
+  </div>)}</div>;
 }

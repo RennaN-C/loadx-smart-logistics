@@ -6,13 +6,15 @@ O **LoadX** é um projeto acadêmico desenvolvido por uma equipe de quatro integ
 
 ## Versão atual
 
-`CONFIRMADO`: **LoadX v1.0.0 — MVP** é a versão estável publicada oficialmente.
+`CONFIRMADO`: **LoadX v1.1.0 — Maturidade operacional** é a versão estável publicada em 2026-10-06.
 
-`CONFIRMADO`: **LoadX v1.1.0 — Maturidade operacional** está em desenvolvimento na branch `desenvolvimento`. O planejamento da versão está em [docs/planejamento/v1.1.0](docs/planejamento/v1.1.0/00-visao-geral.md) e as próximas releases estão no [roadmap canônico](docs/planejamento/roadmap-versoes.md).
+`CONFIRMADO`: **LoadX v1.2.0 — Administração, comunicação real e operação multi-caminhão** é o ciclo atual de desenvolvimento na branch `desenvolvimento`. O planejamento oficial está em [docs/planejamento/v1.2.0](docs/planejamento/v1.2.0/00-visao-geral.md) e as próximas releases estão no [roadmap canônico](docs/planejamento/roadmap-versoes.md).
 
 As entregas publicadas e em desenvolvimento são registradas no [Changelog](CHANGELOG.md).
 
-`CONFIRMADO`: WhatsApp usa provider mock e simulador controlado; a explicação de
+`CONFIRMADO`: WhatsApp permanece exclusivamente com provider mock e simulador
+controlado nesta etapa da OC82; a integração real foi adiada. Contrato e limites
+em [whatsapp/README](backend/app/integrations/whatsapp/README.md). A explicação de
 planos usa `AIProvider` com provider fake e fallback determinístico. Integrações
 reais e outras evoluções futuras estão no [roadmap canônico de versões](docs/planejamento/roadmap-versoes.md).
 
@@ -678,3 +680,10 @@ O objetivo é aplicar conceitos de:
 Este projeto possui finalidade acadêmica.
 
 A definição de uma licença de código aberto poderá ser realizada posteriormente.
+
+## Teste de usabilidade local
+
+`CONFIRMADO`: o [guia de gravação e avaliação](docs/usabilidade/README.md)
+contém preparação de dados fictícios, roteiro de tarefas, ficha de observação e
+evidências do ensaio técnico com autenticação real. Resultados humanos devem
+ser registrados durante as sessões com participantes.

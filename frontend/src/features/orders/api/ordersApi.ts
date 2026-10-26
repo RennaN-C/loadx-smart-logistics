@@ -1,5 +1,5 @@
 import { api } from "../../../services/api";
-import { mapPageFromDto, toPageQuery, type ListParams, type PageDto } from "../../../services/pagination";
+import { mapPageFromDto, toPageQuery, toSearchQuery, type SearchListParams, type PageDto } from "../../../services/pagination";
 import type { Page } from "../../../types/api";
 import type {
   Order,
@@ -28,6 +28,7 @@ interface OrderListDto {
   expected_delivery_at: string | null;
   created_at: string;
   item_count: number;
+  volume_count: number;
 }
 
 interface OrderDto {
@@ -36,6 +37,8 @@ interface OrderDto {
   status: OrderStatus;
   priority: OrderPriority;
   delivery_address: string;
+  customer_address_id?: string | null;
+  delivery_address_snapshot?: Record<string, unknown> | null;
   expected_delivery_at: string | null;
   created_at: string;
   items: OrderItemDto[];
@@ -50,6 +53,7 @@ export function mapOrderListItemFromDto(dto: OrderListDto): OrderListItem {
     expectedDeliveryAt: dto.expected_delivery_at,
     createdAt: dto.created_at,
     itemCount: dto.item_count,
+    ...(dto.volume_count !== undefined ? { volumeCount: dto.volume_count } : {}),
   };
 }
 
@@ -70,6 +74,8 @@ export function mapOrderFromDto(dto: OrderDto): Order {
     status: dto.status,
     priority: dto.priority,
     deliveryAddress: dto.delivery_address,
+    ...(dto.customer_address_id !== undefined ? { customerAddressId: dto.customer_address_id } : {}),
+    ...(dto.delivery_address_snapshot !== undefined ? { deliveryAddressSnapshot: dto.delivery_address_snapshot } : {}),
     expectedDeliveryAt: dto.expected_delivery_at,
     createdAt: dto.created_at,
     items: dto.items.map(mapItemFromDto),
@@ -79,6 +85,7 @@ export function mapOrderFromDto(dto: OrderDto): Order {
 function mapOrderToDto(input: OrderUpdateInput): Record<string, unknown> {
   const dto: Record<string, unknown> = {};
 
+  if (input.customerAddressId !== undefined) dto.customer_address_id = input.customerAddressId;
   if (input.customerId !== undefined) dto.customer_id = input.customerId;
   if (input.priority !== undefined) dto.priority = input.priority;
   if (input.deliveryAddress !== undefined) dto.delivery_address = input.deliveryAddress;
@@ -94,8 +101,12 @@ function mapOrderToDto(input: OrderUpdateInput): Record<string, unknown> {
   return dto;
 }
 
-export async function listOrders(params: ListParams = {}): Promise<Page<OrderListItem>> {
-  const { data } = await api.get<PageDto<OrderListDto>>("/orders", { params: toPageQuery(params) });
+export interface OrderListParams extends SearchListParams {
+  status?: OrderStatus;
+}
+
+export async function listOrders(params: OrderListParams = {}): Promise<Page<OrderListItem>> {
+  const { data } = await api.get<PageDto<OrderListDto>>("/orders", { params: { ...toPageQuery(params), ...toSearchQuery(params), ...(params.status ? { status: params.status } : {}) } });
 
   return mapPageFromDto(data, mapOrderListItemFromDto);
 }

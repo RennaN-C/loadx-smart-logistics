@@ -1,28 +1,31 @@
-import { useMemo, useState } from "react";
+import { useUrlSearch } from "../../../hooks/useUrlSearch";
+import { ImportAction } from "../../registration-imports/components/ImportAction";
+import { useCallback, useState } from "react";
 
 import { AlertBanner } from "../../../components/AlertBanner";
-import { Modal } from "../../../components/Modal";
 import { useAuth } from "../../auth/hooks/useAuth";
+import { canManageLogistics, hasPermission } from "../../auth/permissions";
+import { TruckDialogs } from "../components/TruckDialogs";
 import { TruckCard } from "../components/TruckCard";
-import { TruckForm } from "../components/TruckForm";
 import { mapTruckErrorToMessage } from "../components/trucksErrorMessages";
+import { MAX_SEARCH_LENGTH, type ListParams } from "../../../services/pagination";
 import { Pagination } from "../../../components/Pagination";
-import { useResourceList } from "../../../hooks/useResourceList";
+import { useRegistryList } from "../../../hooks/useRegistryList";
+import { ArchiveFilter } from "../../../components/ArchiveFilter";
+
 import { listTrucks } from "../api/trucksApi";
 import type { Truck } from "../types";
 import "./TruckListPage.css";
 import { Icon } from "../../../components/Icon";
+import "../../../components/RegistryTable.css";
 
-type StatusFilter = "all" | "active" | "inactive";
-
-function matchesStatus(truck: Truck, filter: StatusFilter): boolean {
-  if (filter === "active") return truck.active;
-  if (filter === "inactive") return !truck.active;
-  return true;
-}
-
-export function TruckListPage() {
+export function TruckListPage({ embedded = false, active = true }: { readonly embedded?: boolean; readonly active?: boolean }) {
   const { user } = useAuth();
+  const [search, setSearch] = useUrlSearch();
+  const filteredLoad = useCallback((params: ListParams) => listTrucks({
+    ...params,
+    search,
+  }), [search]);
   const {
     status,
     items: trucks,
@@ -32,28 +35,15 @@ export function TruckListPage() {
     total,
     totalPages,
     goToPage,
-  } = useResourceList(listTrucks);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+    archiveStatus,
+    setArchiveStatus,
+  } = useRegistryList(filteredLoad);
+  const [documentsTruck, setDocumentsTruck] = useState<Truck | null>(null);
+  const [maintenanceTruck, setMaintenanceTruck] = useState<Truck | null>(null);
   const [editingTruck, setEditingTruck] = useState<Truck | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
-  const canManage = user?.role === "LOGISTICS_MANAGER";
-  const isFormOpen = isCreating || editingTruck !== null;
-
-  // D12 não permite busca ou filtros server-side: ambos operam somente na página atual.
-  const visibleTrucks = useMemo(() => {
-    const term = search.trim().toLowerCase();
-
-    return trucks.filter((truck) => {
-      const matchesTerm =
-        term === "" ||
-        truck.plate.toLowerCase().includes(term) ||
-        truck.model.toLowerCase().includes(term);
-
-      return matchesTerm && matchesStatus(truck, statusFilter);
-    });
-  }, [trucks, search, statusFilter]);
+  const canManage = canManageLogistics(user, "trucks");
 
   function closeForm() {
     setIsCreating(false);
@@ -66,10 +56,10 @@ export function TruckListPage() {
   }
 
   return (
-    <div className="entity-page">
+    <div className={embedded ? "truck-section" : "entity-page"}>
       <header className="entity-header">
         <div>
-          <h1>Caminhões</h1>
+          {embedded ? <h2>Veículos</h2> : <h1>Caminhões</h1>}
           <p className="entity-lede">Baús cadastrados para planejamento de carga.</p>
         </div>
         {canManage ? (
@@ -80,28 +70,22 @@ export function TruckListPage() {
         ) : null}
       </header>
 
-      <div className="entity-toolbar">
-        <input
+      <div className="entity-toolbar registry-filterbar truck-filterbar">
+        <label className="registry-filter-field registry-filter-search"><span>Busca</span><input
           type="search"
           aria-label="Buscar por placa ou modelo"
-          placeholder="Buscar por placa ou modelo"
+          placeholder="Buscar placa ou modelo…"
           value={search}
-          onChange={(event) => setSearch(event.target.value)}
-        />
-        <select
-          aria-label="Filtrar por status"
-          value={statusFilter}
-          onChange={(event) => setStatusFilter(event.target.value as StatusFilter)}
-        >
-          <option value="all">Todos os status</option>
-          <option value="active">Somente ativos</option>
-          <option value="inactive">Somente inativos</option>
-        </select>
+          onChange={(event) => { goToPage(1); setSearch(event.target.value); }}
+          maxLength={MAX_SEARCH_LENGTH}
+        /></label>
+        <label className="registry-filter-field"><span>Situação</span><ArchiveFilter value={archiveStatus} onChange={setArchiveStatus} /></label>
+        <div className="registry-import-action"><ImportAction enabled={hasPermission(user, "loadx.imports.manage")} entity="trucks" onImported={refetch} /></div>
       </div>
 
       {status === "success" && total > 0 ? (
         <p className="entity-summary">
-          Exibindo {trucks.length} de {total} caminhões. Busca e filtro atuam nesta página.
+          Exibindo {trucks.length} de {total} caminhões. Busca e filtros consideram toda a lista.
         </p>
       ) : null}
 
@@ -113,22 +97,24 @@ export function TruckListPage() {
       ) : null}
 
       {status === "error" && error ? (
-        <AlertBanner>{mapTruckErrorToMessage(error)}</AlertBanner>
+        <><AlertBanner>{mapTruckErrorToMessage(error)}</AlertBanner><button type="button" className="btn-secondary" onClick={() => void refetch()}>Tentar novamente</button></>
       ) : null}
 
-      {status === "success" && visibleTrucks.length === 0 ? (
+      {status === "success" && trucks.length === 0 ? (
         <p className="entity-state">
-          {trucks.length === 0
+          {search.trim() === "" && archiveStatus === "active" && total === 0
             ? "Nenhum caminhão cadastrado ainda."
             : "Nenhum caminhão encontrado com esses filtros."}
         </p>
       ) : null}
 
-      {visibleTrucks.length > 0 ? (
-        <div className="entity-grid">
-          {visibleTrucks.map((truck) => (
-            <TruckCard key={truck.id} truck={truck} canManage={canManage} onEdit={setEditingTruck} />
-          ))}
+      {trucks.length > 0 ? (
+        <div className="registry-table-wrap">
+          <table className="registry-table truck-table">
+            <caption className="sr-only">Caminhões cadastrados</caption>
+            <thead><tr><th scope="col">Placa</th><th scope="col">Veículo</th><th scope="col">Capacidade</th><th scope="col">Volume interno</th><th scope="col">Situação</th><th scope="col">Ações</th></tr></thead>
+            <tbody>{trucks.map((truck) => <TruckCard key={truck.id} truck={truck} canManage={canManage} onEdit={setEditingTruck} onChanged={refetch} onMaintenance={setMaintenanceTruck} onDocuments={setDocumentsTruck} />)}</tbody>
+          </table>
         </div>
       ) : null}
 
@@ -136,15 +122,8 @@ export function TruckListPage() {
         <Pagination page={page} totalPages={totalPages} onChange={goToPage} label="caminhões" />
       ) : null}
 
-      {isFormOpen ? (
-        <Modal
-          title={editingTruck ? "Editar caminhão" : "Novo caminhão"}
-          subtitle="Compartimento de carga"
-          onClose={closeForm}
-        >
-          <TruckForm truck={editingTruck ?? undefined} onSaved={handleSaved} onCancel={closeForm} />
-        </Modal>
-      ) : null}
+      <TruckDialogs active={active} documentsTruck={documentsTruck} maintenanceTruck={maintenanceTruck} editingTruck={editingTruck} isCreating={isCreating} onCloseDocuments={() => setDocumentsTruck(null)} onCloseMaintenance={() => setMaintenanceTruck(null)} onCloseForm={closeForm} onChanged={refetch} onSaved={handleSaved} />
+
     </div>
   );
 }

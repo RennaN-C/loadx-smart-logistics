@@ -1,22 +1,41 @@
 import uuid
 from collections.abc import Sequence
 
-from sqlalchemy import asc, desc, func, select
+from sqlalchemy import Select, and_, asc, desc, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.core.pagination import PageResult, PaginationParams
 from app.modules.users.models import User
+from app.shared.search import search_pattern
 
 
 class UserRepository:
     def __init__(self, db: Session) -> None:
         self.db = db
 
-    def list(self, pagination: PaginationParams) -> PageResult[User]:
+    def list(
+        self,
+        pagination: PaginationParams,
+        *,
+        search: str | None = None,
+        role: str | None = None,
+        active: bool | None = None,
+    ) -> PageResult[User]:
         direction = asc if pagination.sort_order == "asc" else desc
-        total = self.db.scalar(select(func.count()).select_from(User)) or 0
+        filters = []
+        pattern = search_pattern(search)
+        if pattern is not None:
+            filters.append(User.name.ilike(pattern, escape="\\"))
+        if role is not None:
+            filters.append(User.role == role)
+        if active is not None:
+            filters.append(User.active.is_(active))
+        total = (
+            self.db.scalar(select(func.count()).select_from(User).where(*filters)) or 0
+        )
         statement = (
             select(User)
+            .where(*filters)
             .order_by(direction(User.created_at), direction(User.id))
             .offset(pagination.offset)
             .limit(pagination.page_size)
@@ -33,6 +52,25 @@ class UserRepository:
 
     def get(self, user_id: uuid.UUID) -> User | None:
         return self.db.get(User, user_id)
+
+    def get_for_update(self, user_id: uuid.UUID) -> User | None:
+        return self.db.scalar(
+            select(User)
+            .where(User.id == user_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+
+    def get_for_authorization(self, user_id: uuid.UUID) -> User | None:
+        # SHARE prevents security-state updates until the owning transaction ends,
+        # while remaining compatible with foreign-key checks and other readers.
+        statement = (
+            select(User)
+            .where(User.id == user_id)
+            .with_for_update(read=True)
+            .execution_options(populate_existing=True)
+        )
+        return self.db.scalar(statement)
 
     def get_by_email(self, email: str) -> User | None:
         statement = select(User).where(User.email == email)
@@ -62,3 +100,35 @@ class UserRepository:
         self.db.flush()
         self.db.refresh(user)
         return user
+
+    def profile_counts(self):
+        return {
+            identity or role: count
+            for identity, role, count in self.db.execute(
+                select(User.custom_profile_id, User.role, func.count()).group_by(
+                    User.custom_profile_id, User.role
+                )
+            )
+        }
+
+    def lock_profile_members(self, identity):
+        return self.db.scalars(
+            select(User)
+            .where(User.custom_profile_id == identity)
+            .order_by(User.id)
+            .with_for_update()
+        ).all()
+
+    def notification_recipient_ids(
+        self,
+        fixed_roles: Sequence[str],
+        profile_ids: Select[tuple[uuid.UUID]],
+        driver_id: uuid.UUID | None,
+    ) -> Select[tuple[uuid.UUID]]:
+        eligible = [
+            User.role.in_(fixed_roles),
+            and_(User.role == "CUSTOM", User.custom_profile_id.in_(profile_ids)),
+        ]
+        if driver_id is not None:
+            eligible.append(and_(User.role == "DRIVER", User.driver_id == driver_id))
+        return select(User.id).where(User.active.is_(True), or_(*eligible))

@@ -1,19 +1,35 @@
-import { useMemo, useState } from "react";
+import { useUrlSearch } from "../../../hooks/useUrlSearch";
+import { ImportAction } from "../../registration-imports/components/ImportAction";
+import { useCallback, useState } from "react";
 
 import { AlertBanner } from "../../../components/AlertBanner";
+import { StatusPill } from "../../../components/StatusPill";
 import { Modal } from "../../../components/Modal";
+import { MAX_SEARCH_LENGTH, type ListParams } from "../../../services/pagination";
 import { Pagination } from "../../../components/Pagination";
 import { useEditTarget } from "../../../hooks/useEditTarget";
-import { useResourceList } from "../../../hooks/useResourceList";
+import { useRegistryList } from "../../../hooks/useRegistryList";
+import { ArchiveFilter } from "../../../components/ArchiveFilter";
+import { RecordLifecycleAction } from "../../../components/RecordLifecycleAction";
 import { useAuth } from "../../auth/hooks/useAuth";
+import { canManageLogistics, hasPermission } from "../../auth/permissions";
 import { getCustomer, listCustomers } from "../api/customersApi";
+import { CustomerAddressPanel } from "./CustomerAddressPanel";
+import type { CustomerListItem } from "../types";
 import type { Customer } from "../types";
 import { CustomerForm } from "./CustomerForm";
 import { mapCustomerErrorToMessage } from "./customersErrorMessages";
 import { Icon } from "../../../components/Icon";
+import { RowActions } from "../../../components/RowActions";
+import "../../../components/RegistryTable.css";
 
 export function CustomerPanel() {
   const { user } = useAuth();
+  const [search, setSearch] = useUrlSearch();
+  const filteredLoad = useCallback((params: ListParams) => listCustomers({
+    ...params,
+    search,
+  }), [search]);
   const {
     status,
     items: customers,
@@ -23,24 +39,15 @@ export function CustomerPanel() {
     total,
     totalPages,
     goToPage,
-  } = useResourceList(listCustomers);
+    archiveStatus,
+    setArchiveStatus,
+  } = useRegistryList(filteredLoad);
   const edit = useEditTarget<Customer>(getCustomer);
-  const [search, setSearch] = useState("");
+  const [addressCustomer, setAddressCustomer] = useState<CustomerListItem | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
-  const canManage = user?.role === "LOGISTICS_MANAGER";
+  const canManage = canManageLogistics(user, "customers");
   const isFormOpen = isCreating || edit.target !== null;
-
-  // Só nome e cidade: a listagem não traz documento nem endereço.
-  const visibleCustomers = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    if (term === "") return customers;
-
-    return customers.filter(
-      (customer) =>
-        customer.name.toLowerCase().includes(term) || customer.city.toLowerCase().includes(term),
-    );
-  }, [customers, search]);
 
   function closeForm() {
     setIsCreating(false);
@@ -54,13 +61,16 @@ export function CustomerPanel() {
 
   return (
     <>
-      <div className="entity-toolbar">
+      <div className="entity-toolbar contact-filterbar">
+        <ImportAction enabled={hasPermission(user, "loadx.imports.manage")} entity="customers" onImported={refetch} />
+        <ArchiveFilter value={archiveStatus} onChange={setArchiveStatus} />
         <input
           type="search"
           aria-label="Buscar cliente por nome ou cidade"
           placeholder="Buscar por nome ou cidade"
           value={search}
-          onChange={(event) => setSearch(event.target.value)}
+          onChange={(event) => { goToPage(1); setSearch(event.target.value); }}
+          maxLength={MAX_SEARCH_LENGTH}
         />
         {canManage ? (
           <button type="button" className="btn-primary" onClick={() => setIsCreating(true)}>
@@ -72,7 +82,7 @@ export function CustomerPanel() {
 
       {status === "success" && total > 0 ? (
         <p className="entity-summary">
-          Exibindo {customers.length} de {total} clientes. A busca atua nesta página.
+          Exibindo {customers.length} de {total} clientes. Busca e filtros consideram toda a lista.
         </p>
       ) : null}
 
@@ -83,29 +93,34 @@ export function CustomerPanel() {
         </p>
       ) : null}
 
-      {status === "error" && error ? <AlertBanner>{mapCustomerErrorToMessage(error)}</AlertBanner> : null}
+      {status === "error" && error ? <><AlertBanner>{mapCustomerErrorToMessage(error)}</AlertBanner><button type="button" className="btn-secondary" onClick={() => void refetch()}>Tentar novamente</button></> : null}
       {edit.error ? <AlertBanner>{mapCustomerErrorToMessage(edit.error)}</AlertBanner> : null}
 
-      {status === "success" && visibleCustomers.length === 0 ? (
+      {status === "success" && customers.length === 0 ? (
         <p className="entity-state">
-          {customers.length === 0
+          {search.trim() === "" && archiveStatus === "active" && total === 0
             ? "Nenhum cliente cadastrado ainda."
             : "Nenhum cliente encontrado com essa busca."}
         </p>
       ) : null}
 
-      {visibleCustomers.length > 0 ? (
-        <div className="entity-grid">
-          {visibleCustomers.map((customer) => (
-            <article key={customer.id} className="contact-card">
-              <div className="contact-card-head">
-                <p className="contact-card-name">{customer.name}</p>
-              </div>
-              <p className="contact-card-line">
+      {customers.length > 0 ? (
+        <div className="registry-table-wrap"><table className="registry-table contact-table">
+          <caption className="sr-only">Clientes cadastrados</caption>
+          <thead><tr><th scope="col">Cliente</th><th scope="col">Cidade</th><th scope="col">Situação</th><th scope="col">Ações</th></tr></thead>
+          <tbody>
+          {customers.map((customer) => (
+            <tr key={customer.id}>
+              <td data-label="Cliente"><strong>{customer.name}</strong></td>
+              <td data-label="Cidade">
                 {customer.city} · {customer.state}
-              </p>
+              </td>
+              <td data-label="Situação"><StatusPill tone={customer.active ? "good" : "neutral"}>{customer.active ? "Ativo" : "Arquivado"}</StatusPill></td>
+              <td data-label="Ações">
               {canManage ? (
-                <div className="contact-card-foot">
+                <RowActions label={`Ações de ${customer.name}`}>
+                  <button type="button" className="btn-link" onClick={() => setAddressCustomer(customer)}>Endereços</button>
+                  <RecordLifecycleAction resource="customers" id={customer.id} active={customer.active} onChanged={refetch} />
                   <button
                     type="button"
                     className="btn-link"
@@ -114,15 +129,22 @@ export function CustomerPanel() {
                   >
                     {edit.loadingId === customer.id ? "Abrindo…" : "Editar"}
                   </button>
-                </div>
-              ) : null}
-            </article>
+                </RowActions>
+              ) : <span className="registry-no-action">Somente consulta</span>}
+              </td>
+            </tr>
           ))}
-        </div>
+          </tbody></table></div>
       ) : null}
 
       {status === "success" ? (
         <Pagination page={page} totalPages={totalPages} onChange={goToPage} label="clientes" />
+      ) : null}
+
+      {addressCustomer ? (
+        <Modal title={`Endereços — ${addressCustomer.name}`} onClose={() => setAddressCustomer(null)}>
+          <CustomerAddressPanel customerId={addressCustomer.id} onChanged={refetch} />
+        </Modal>
       ) : null}
 
       {isFormOpen ? (

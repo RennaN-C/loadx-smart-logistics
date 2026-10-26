@@ -15,15 +15,41 @@ target_metadata = Base.metadata
 
 
 def import_models() -> None:
+    from app.modules.access_profiles import models as profiles_models  # noqa: F401
+    from app.modules.attachments import models as attachments_models  # noqa: F401
     from app.modules.auth import models as auth_models  # noqa: F401
+    from app.modules.company_profile import (
+        models as company_profile_models,  # noqa: F401
+    )
     from app.modules.customers import models as customers_models  # noqa: F401
+    from app.modules.deliveries import (
+        cancellation_service as cancellation_models,  # noqa: F401
+    )
+    from app.modules.deliveries import (
+        evidence_models,  # noqa: F401
+        exception_models,  # noqa: F401
+    )
+    from app.modules.deliveries import (
+        interruption_service as interruption_models,  # noqa: F401
+    )
     from app.modules.deliveries import models as deliveries_models  # noqa: F401
     from app.modules.drivers import models as drivers_models  # noqa: F401
+    from app.modules.external_commands import (
+        models as external_commands_models,  # noqa: F401
+    )
+    from app.modules.load_planning import (
+        distribution_models as load_distribution_models,  # noqa: F401
+    )
     from app.modules.load_planning import models as load_planning_models  # noqa: F401
     from app.modules.loading import models as loading_models  # noqa: F401
+    from app.modules.notifications import models as notifications_models  # noqa: F401
+    from app.modules.notifications import outbox_models  # noqa: F401
     from app.modules.occurrences import models as occurrences_models  # noqa: F401
     from app.modules.orders import models as orders_models  # noqa: F401
     from app.modules.products import models as products_models  # noqa: F401
+    from app.modules.registration_imports import (
+        models as registration_imports_models,  # noqa: F401
+    )
     from app.modules.status_history import models as status_history_models  # noqa: F401
     from app.modules.trucks import models as trucks_models  # noqa: F401
     from app.modules.users import models as users_models  # noqa: F401

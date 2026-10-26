@@ -12,14 +12,11 @@ import { mapTripErrorToMessage } from "./tripsErrorMessages";
 
 interface CreateTripActionProps {
   readonly loadPlanId: string;
+  readonly onExistingTrip?: () => void;
 }
 
-/**
- * Único caminho para CRIAR viagem: o plano aprovado. A viagem criada aparece
- * nem planos, então a navegação precisa partir daqui — depois de criada, a
- * viagem vive em `/trips/:tripId`.
- */
-export function CreateTripAction({ loadPlanId }: CreateTripActionProps) {
+/** Criação explícita pelo plano aprovado; conflito reconsulta os vínculos reais. */
+export function CreateTripAction({ loadPlanId, onExistingTrip }: CreateTripActionProps) {
   const navigate = useNavigate();
   const { items: drivers } = useResourceList(listDrivers);
   const { items: driverStatuses, status: driverStatusesStatus } = useResourceList(
@@ -46,6 +43,10 @@ export function CreateTripAction({ loadPlanId }: CreateTripActionProps) {
       const trip = await createTrip({ loadPlanId, driverId });
       navigate(`/trips/${trip.id}`);
     } catch (error) {
+      if (error instanceof ApiError && error.code === "TRIP_LOAD_PLAN_ALREADY_ASSIGNED" && onExistingTrip) {
+        onExistingTrip();
+        return;
+      }
       setErrorMessage(
         mapTripErrorToMessage(
           error instanceof ApiError
@@ -84,7 +85,7 @@ export function CreateTripAction({ loadPlanId }: CreateTripActionProps) {
                 {activeDrivers.map((driver) => {
                   const operationalStatus = statusByDriver.get(driver.id);
                   const unavailable = operationalStatus?.available === false;
-                  const suffix = operationalStatus?.hasOperationConflict
+                  const suffix = operationalStatus?.hasDocumentConflict ? " — documentação pendente" : operationalStatus?.hasOperationConflict
                     ? " — em operação"
                     : unavailable
                       ? " — indisponível"

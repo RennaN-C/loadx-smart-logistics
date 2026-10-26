@@ -1,10 +1,12 @@
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 
 import { AlertBanner } from "../../../components/AlertBanner";
 import { StatusPill } from "../../../components/StatusPill";
 import { ApiError } from "../../../types/api";
 import { useAuth } from "../../auth/hooks/useAuth";
+import { canCheckLoading, hasPermission } from "../../auth/permissions";
 import { changeLoadingStatus, checkLoadingItem, scanLoadingItem } from "../api/loadingApi";
+import { LOADING_STATUS_LABELS, loadingStatusTone } from "../components/loadingLabels";
 import { LoadingChecklist } from "../components/LoadingChecklist";
 import { mapLoadingErrorToMessage } from "../components/loadingErrorMessages";
 import { ScanField, type ScanOutcome } from "../components/ScanField";
@@ -12,37 +14,22 @@ import { useLoadingSession } from "../hooks/useLoadingSession";
 import { LOADING_TRANSITIONS, type LoadingSession, type LoadingSessionStatus } from "../types";
 import "./LoadingPage.css";
 
-const STATUS_LABELS: Record<LoadingSessionStatus, string> = {
-  PENDING: "Não iniciado",
-  IN_PROGRESS: "Em conferência",
-  FINISHED: "Concluído",
-};
-
 const ACTION_LABELS: Record<LoadingSessionStatus, string> = {
   PENDING: "Iniciar conferência",
   IN_PROGRESS: "Finalizar carregamento",
   FINISHED: "",
 };
 
-function statusTone(status: LoadingSessionStatus) {
-  if (status === "FINISHED") return "good" as const;
-  return status === "IN_PROGRESS" ? "warn" as const : "neutral" as const;
-}
-
 /**
  * Conferência do carregamento (OC32) com leitura de código (OC75).
  *
- * `CONFIRMADO` (OC66): somente `CHECKER` inicia, confere e finaliza. `ADMIN` e
- * `LOGISTICS_MANAGER` leem o checklist e não recebem ação nenhuma — esconder o
+ * `CONFIRMADO` (v1.2): `ADMIN` ou `CHECKER` inicia, confere e finaliza.
+ * `LOGISTICS_MANAGER` apenas consulta o checklist; esconder o
  * botão não substitui o backend, que continua respondendo 403, só evita
  * oferecer um caminho que terminaria em recusa.
  *
- * `RISCO IDENTIFICADO`: não existe rota de LISTAGEM de sessões, e o plano não
- * expõe o id da sessão. O gestor chega aqui pelo plano aprovado, que cria ou
- * devolve a sessão; o conferente depende de receber o link. Enquanto o backend
- * não oferecer uma porta de entrada por perfil, o `CHECKER` não acha o próprio
- * carregamento sozinho — a mesma lacuna que o motorista teve antes do
- * `GET /trips`.
+ * A central de carregamentos (`/loading-sessions`) permite localizar uma
+ * sessão; detalhes e ações continuam sujeitos às permissões do servidor.
  */
 export function LoadingPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -50,7 +37,7 @@ export function LoadingPage() {
   const { session, rows, pendingCount, isLoading, isWorking, errorMessage, run, reload } =
     useLoadingSession(sessionId);
 
-  const isChecker = user?.role === "CHECKER";
+  const isChecker = canCheckLoading(user);
   const inProgress = session?.status === "IN_PROGRESS";
   const nextStatus = session ? LOADING_TRANSITIONS[session.status] : undefined;
   const canFinish = session?.status !== "IN_PROGRESS" || pendingCount === 0;
@@ -101,6 +88,11 @@ export function LoadingPage() {
 
   return (
     <div className="entity-page">
+      <nav className="entity-toolbar entity-page-nav" aria-label="Caminhos do carregamento">
+        <Link to="/">Voltar ao início</Link>
+        {hasPermission(user, "loadx.loading.read") ? <Link to="/loading-sessions">Voltar aos carregamentos</Link> : null}
+        {session ? <Link to={`/planning/${session.loadPlanId}`}>Voltar ao plano de origem</Link> : null}
+      </nav>
       <header className="entity-header">
         <div>
           <h1>Conferência do carregamento</h1>
@@ -110,8 +102,8 @@ export function LoadingPage() {
         </div>
         {session ? (
           <div className="entity-toolbar">
-            <StatusPill tone={statusTone(session.status)}>
-              {STATUS_LABELS[session.status]}
+            <StatusPill tone={loadingStatusTone(session.status)}>
+              {LOADING_STATUS_LABELS[session.status]}
             </StatusPill>
           </div>
         ) : null}
@@ -135,6 +127,8 @@ export function LoadingPage() {
 
       {session && !isLoading ? (
         <>
+          <p className="entity-form-help">Link permanente: <Link to={`/loading/${session.id}`}>Abrir este carregamento</Link>. Você também pode acessar pela central de carregamentos.</p>
+          {session.status === "FINISHED" && hasPermission(user, "loadx.planning.read") ? <p><Link to={`/planning/${session.loadPlanId}`}>Carregamento concluído: voltar ao plano para criar a viagem</Link></p> : null}
           <section className="loading-head">
             <dl className="loading-metrics">
               <div>

@@ -7,14 +7,14 @@ from sqlalchemy.orm import Session
 
 from app.core.responses import error_response, openapi_error_responses
 from app.database.session import get_db
-from app.modules.auth.dependencies import require_roles
+from app.modules.auth.dependencies import require_permission
 from app.modules.deliveries.service import TripAccessForbiddenError, TripNotFoundError
 from app.modules.load_planning.service import LoadPlanNotFoundError
 from app.modules.reports.service import ReportLoadingNotFoundError, ReportService
 from app.modules.users.models import User
 
 router = APIRouter(prefix="/reports", tags=["reports"])
-ReportUser = Annotated[User, Depends(require_roles("ADMIN", "LOGISTICS_MANAGER"))]
+ReportUser = Annotated[User, Depends(require_permission("loadx.reports.read"))]
 
 
 def get_report_service(db: Annotated[Session, Depends(get_db)]) -> ReportService:

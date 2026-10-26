@@ -11,6 +11,9 @@ import { TripPage } from "./TripPage";
 
 vi.mock("../api/tripsApi");
 vi.mock("../../auth/hooks/useAuth");
+vi.mock("../../audit/components/AuditTrail", () => ({
+  AuditTrail: () => <div data-testid="audit-trail">histórico contextual</div>,
+}));
 
 function makeTrip(overrides: Partial<Trip> = {}): Trip {
   return {
@@ -40,6 +43,7 @@ function mockRole(role: Role) {
       createdAt: "2026-08-01T00:00:00Z",
     },
     login: vi.fn(),
+    updateUser: vi.fn(),
     logout: vi.fn(),
   });
 }
@@ -66,6 +70,7 @@ describe("TripPage", () => {
 
     await waitFor(() => expect(getTrip).toHaveBeenCalledWith("tp1"));
     expect(await screen.findByText("Agendada")).toBeInTheDocument();
+    expect(screen.getByTestId("audit-trail")).toBeInTheDocument();
   });
 
   it("ordena as paradas pela sequência da rota, não pela ordem da API", async () => {
@@ -151,17 +156,18 @@ describe("TripPage", () => {
     await screen.findByText("Em rota");
 
     expect(screen.getAllByRole("button", { name: "Iniciar entrega" })[0]).toBeEnabled();
+    expect(screen.queryByTestId("audit-trail")).not.toBeInTheDocument();
   });
 
-  it("ADMIN acompanha mas não opera", async () => {
+  it("ADMIN também opera viagens respeitando as transições", async () => {
     mockRole("ADMIN");
     vi.mocked(getTrip).mockResolvedValue(makeTrip({ status: "IN_ROUTE" }));
 
     renderPage();
     await screen.findByText("Em rota");
 
-    expect(screen.queryByRole("button", { name: "Finalizar viagem" })).not.toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: "Iniciar entrega" })[0]).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Finalizar viagem" })).toBeDisabled();
+    expect(screen.getAllByRole("button", { name: "Iniciar entrega" })[0]).toBeEnabled();
   });
 
   it("não oferece ação na viagem já finalizada", async () => {
@@ -217,4 +223,21 @@ describe("TripPage", () => {
       "A viagem precisa estar em rota para movimentar as entregas.",
     );
   });
+  it("vincula origem e pedidos para gestão sem oferecer acesso proibido ao motorista", async () => {
+    renderPage();
+    await screen.findByText("Agendada");
+    expect(screen.getByRole("link", { name: "Voltar ao plano de origem" })).toHaveAttribute("href", "/planning/lp1");
+    expect(screen.getByRole("link", { name: "Ver pedido o1" })).toHaveAttribute("href", "/orders?order=o1");
+    expect(screen.getByRole("link", { name: "Voltar às viagens" })).toHaveAttribute("href", "/trips");
+  });
+
+  it("retorna motorista às próprias viagens sem links de pedidos ou planejamento", async () => {
+    mockRole("DRIVER");
+    renderPage();
+    await screen.findByText("Agendada");
+    expect(screen.getByRole("link", { name: "Voltar às minhas viagens" })).toHaveAttribute("href", "/");
+    expect(screen.queryByRole("link", { name: "Voltar ao plano de origem" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("navigation", { name: "Pedidos desta viagem" })).not.toBeInTheDocument();
+  });
+
 });

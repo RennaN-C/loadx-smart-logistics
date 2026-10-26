@@ -31,7 +31,7 @@ const EM_OPERACAO = truck({
 const INATIVO = truck({ id: "t3", plate: "GHI3F45", active: false, available: false });
 
 function cartao(placa: string) {
-  const elemento = screen.getByText(placa).closest("li");
+  const elemento = screen.getByText(placa).closest("tr");
   if (elemento === null) throw new Error(`cartão de ${placa} não encontrado`);
   return elemento;
 }
@@ -61,7 +61,7 @@ describe("FleetStatusPage", () => {
     await screen.findByText("DEF2E34");
 
     expect(within(cartao("DEF2E34")).getByText("Já está em operação")).toBeInTheDocument();
-    expect(within(cartao("GHI3F45")).getByText("Cadastro inativo")).toBeInTheDocument();
+    expect(within(cartao("GHI3F45")).getByText("Cadastro arquivado")).toBeInTheDocument();
   });
 
   it("não ocupa linha com motivo quando o caminhão está disponível", async () => {
@@ -70,7 +70,7 @@ describe("FleetStatusPage", () => {
     render(<FleetStatusPage />);
     await screen.findByText("ABC1D23");
 
-    expect(within(cartao("ABC1D23")).queryByText(/operação|inativo/i)).not.toBeInTheDocument();
+    expect(within(cartao("ABC1D23")).queryByText(/operação|arquivado/i)).not.toBeInTheDocument();
   });
 
   it("deixa claro que a contagem vale para a página, não para a frota", async () => {

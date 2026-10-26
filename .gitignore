@@ -17,5 +17,6 @@ htmlcov/
 .vscode/
 .idea/
 .DS_Store
+.tmp/
 *.log
 postgres_data/

@@ -1,0 +1,60 @@
+{
+  "api": "real",
+  "database": "PostgreSQL 16 isolado",
+  "interception": false,
+  "viewports": [
+    {
+      "width": 375,
+      "theme": "light",
+      "overflow": false
+    },
+    {
+      "width": 375,
+      "theme": "dark",
+      "overflow": false
+    },
+    {
+      "width": 768,
+      "theme": "light",
+      "overflow": false
+    },
+    {
+      "width": 768,
+      "theme": "dark",
+      "overflow": false
+    },
+    {
+      "width": 1280,
+      "theme": "light",
+      "overflow": false
+    },
+    {
+      "width": 1280,
+      "theme": "dark",
+      "overflow": false
+    },
+    {
+      "width": 1920,
+      "theme": "light",
+      "overflow": false
+    },
+    {
+      "width": 1920,
+      "theme": "dark",
+      "overflow": false
+    }
+  ],
+  "checks": [
+    "Atalho interno preserva rascunho e limpa senha",
+    "Criação de perfil/usuário e persistência após F5",
+    "Teclado alterna abas com foco e seleção",
+    "CUSTOM sem acesso administrativo na interface e API",
+    "Mudança de permissões revoga sessão CUSTOM real",
+    "Gestor, Conferente e Motorista continuam sem acesso à administração",
+    "Enter no atalho foca aba de perfis; voltar por seta restaura formulário e foco no nome, com senha limpa"
+  ],
+  "profileId": "3ac723dd-5d8b-4e10-bcf2-7b65fd6fb47d",
+  "runtimeExceptions": [],
+  "radioMaxWidthPx": 20,
+  "finalVisualReview": true
+}

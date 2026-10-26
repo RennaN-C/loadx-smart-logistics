@@ -3,7 +3,12 @@ import uuid
 import pytest
 from sqlalchemy.orm import Session
 
-from app.modules.drivers.models import Driver
+from app.modules.drivers.models import (
+    Driver,
+    DriverDocument,
+    DriverDocumentPolicy,
+    DriverDocumentType,
+)
 from app.modules.drivers.schemas import DriverCreate, DriverUpdate
 from app.modules.drivers.service import (
     DriverDocumentAlreadyExistsError,
@@ -12,7 +17,12 @@ from app.modules.drivers.service import (
     DriverService,
 )
 
-SQLITE_TABLES = (Driver.__table__,)
+SQLITE_TABLES = (
+    Driver.__table__,
+    DriverDocumentType.__table__,
+    DriverDocument.__table__,
+    DriverDocumentPolicy.__table__,
+)
 
 
 def make_driver_create(

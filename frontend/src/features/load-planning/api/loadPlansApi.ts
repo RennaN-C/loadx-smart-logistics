@@ -1,9 +1,14 @@
+import { mapPageFromDto, toPageQuery, type ListParams, type PageDto } from "../../../services/pagination";
+import type { Page } from "../../../types/api";
 import { api } from "../../../services/api";
 import type {
   LoadPlan,
+  LoadPlanListItem,
+  LoadPlanContinuity,
   LoadPlanInput,
   LoadPlanItem,
   LoadPlanStatus,
+  PlanOperation,
   LoadPlanVisualization,
   PlacedItem,
   RejectionReason,
@@ -44,7 +49,9 @@ interface LoadPlanItemDto extends ItemSnapshotDto {
   rejection_reason: RejectionReason | null;
 }
 
-interface LoadPlanDto {
+export interface LoadPlanDto {
+  orders_ready_for_approval?: boolean | null;
+  distribution_id?: string | null;
   id: string;
   truck_id: string;
   recalculated_from_id: string | null;
@@ -126,10 +133,12 @@ function mapItem(dto: LoadPlanItemDto): LoadPlanItem {
 
 export function mapLoadPlanFromDto(dto: LoadPlanDto): LoadPlan {
   return {
+    distributionId: dto.distribution_id ?? null,
     id: dto.id,
     truckId: dto.truck_id,
     recalculatedFromId: dto.recalculated_from_id,
     status: dto.status,
+    ordersReadyForApproval: dto.orders_ready_for_approval ?? null,
     internalVolumeCm3: dto.internal_volume_cm3,
     usedVolumeCm3: dto.used_volume_cm3,
     occupancyPercent: dto.occupancy_percent,
@@ -208,4 +217,43 @@ export async function recalculateLoadPlan(id: string): Promise<LoadPlan> {
   const { data } = await api.post<LoadPlanDto>(`/load-plans/${id}/recalculate`);
 
   return mapLoadPlanFromDto(data);
+}
+
+interface LoadPlanListDto {
+  operation?: PlanOperation | null;
+  distribution_id?: string | null;
+  id: string;
+  truck_id: string;
+  truck_plate: string;
+  truck_model: string;
+  status: LoadPlanStatus;
+  created_at: string;
+  recalculated_from_id: string | null;
+  loaded_count: number;
+  unloaded_count: number;
+  occupancy_percent: number;
+  total_weight_kg: number;
+  order_count: number;
+}
+
+export async function listLoadPlans(
+  params: ListParams & { status?: LoadPlanStatus; truckId?: string; operationScope?: "ongoing" | "completed" | "all" } = {},
+): Promise<Page<LoadPlanListItem>> {
+  const { data } = await api.get<PageDto<LoadPlanListDto>>("/load-plans", {
+    params: { ...toPageQuery(params), status: params.status, truck_id: params.truckId, operation_scope: params.operationScope },
+  });
+  return mapPageFromDto(data, (dto) => ({
+    operation: dto.operation ?? null,
+    distributionId: dto.distribution_id ?? null,
+    id: dto.id, truckId: dto.truck_id, truckPlate: dto.truck_plate,
+    truckModel: dto.truck_model, status: dto.status, createdAt: dto.created_at,
+    recalculatedFromId: dto.recalculated_from_id, loadedCount: dto.loaded_count,
+    unloadedCount: dto.unloaded_count, occupancyPercent: dto.occupancy_percent,
+    totalWeightKg: dto.total_weight_kg, orderCount: dto.order_count,
+  }));
+}
+
+export async function getLoadPlanContinuity(id: string): Promise<LoadPlanContinuity> {
+  const { data } = await api.get<LoadPlanContinuity>(`/load-plans/${id}/continuity`);
+  return data;
 }

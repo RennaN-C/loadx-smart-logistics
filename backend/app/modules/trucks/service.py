@@ -1,14 +1,29 @@
 import uuid
 from collections.abc import Callable, Sequence
+from dataclasses import dataclass
+from datetime import UTC, datetime
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core.exceptions import ApiError
 from app.core.pagination import PageResult, PaginationParams
 from app.database.integrity import get_integrity_constraint_name
+from app.modules.status_history.schemas import AuditEventCreate
+from app.modules.status_history.service import AuditService
+from app.modules.trucks.document_repository import DocumentRepository
+from app.modules.trucks.maintenance_repository import MaintenanceRepository
 from app.modules.trucks.models import Truck
 from app.modules.trucks.repository import TruckRepository
 from app.modules.trucks.schemas import TruckCreate, TruckUpdate
+from app.shared.record_lifecycle import stage_lifecycle_event, validate_reactivation
+
+
+@dataclass(frozen=True, slots=True)
+class TruckConflictSnapshot:
+    documents: frozenset[uuid.UUID]
+    maintenance: frozenset[uuid.UUID]
+    operations: frozenset[uuid.UUID]
 
 
 class TruckNotFoundError(Exception):
@@ -30,8 +45,14 @@ class TruckService:
         self.db = db
         self.repository = TruckRepository(db)
 
-    def list_trucks(self, pagination: PaginationParams) -> PageResult[Truck]:
-        return self.repository.list(pagination)
+    def list_trucks(
+        self,
+        pagination: PaginationParams,
+        *,
+        active: bool | None = None,
+        search: str | None = None,
+    ) -> PageResult[Truck]:
+        return self.repository.list(pagination, active=active, search=search)
 
     def list_all_trucks(self) -> Sequence[Truck]:
         return self.repository.list_all()
@@ -70,6 +91,7 @@ class TruckService:
         exclude_load_plan_id: uuid.UUID | None = None,
     ) -> Truck:
         truck = self.get_truck_for_update(truck_id)
+        self.ensure_operational_eligibility(truck_id)
         if self.repository.has_operation_conflict(
             truck_id,
             exclude_load_plan_id=exclude_load_plan_id,
@@ -77,15 +99,108 @@ class TruckService:
             raise TruckOperationConflictError(truck_id)
         return truck
 
+    def get_operational_conflicts(
+        self,
+        truck_ids: Sequence[uuid.UUID] | None = None,
+        *,
+        at: datetime | None = None,
+    ) -> TruckConflictSnapshot:
+        now = at or datetime.now(UTC)
+        return TruckConflictSnapshot(
+            documents=DocumentRepository(self.db).blocked_truck_ids(truck_ids, now),
+            maintenance=MaintenanceRepository(self.db).blocked_truck_ids(
+                truck_ids, now
+            ),
+            operations=self.repository.conflicted_truck_ids(truck_ids),
+        )
+
+    def has_maintenance_conflict(
+        self, truck_id: uuid.UUID, *, at: datetime | None = None
+    ) -> bool:
+        return MaintenanceRepository(self.db).has_block(
+            truck_id, at or datetime.now(UTC)
+        )
+
+    def ensure_not_in_maintenance(self, truck_id: uuid.UUID) -> None:
+        if self.has_maintenance_conflict(truck_id):
+            raise ApiError(
+                409, "TRUCK_IN_MAINTENANCE", "Caminhão indisponível por manutenção."
+            )
+
+    def has_document_conflict(
+        self, truck_id: uuid.UUID, *, at: datetime | None = None
+    ) -> bool:
+        return DocumentRepository(self.db).has_block(truck_id, at or datetime.now(UTC))
+
+    def ensure_operational_eligibility(self, truck_id: uuid.UUID) -> None:
+        self.ensure_not_in_maintenance(truck_id)
+        if self.has_document_conflict(truck_id):
+            raise ApiError(
+                409,
+                "TRUCK_DOCUMENT_INELIGIBLE",
+                "Caminhão indisponível pela política documental.",
+            )
+
+    def stage_maintenance_audit(
+        self, identifier: uuid.UUID, event: str, fields: Sequence[str], actor: uuid.UUID
+    ) -> None:
+        AuditService(self.db).stage_administrative_event(
+            AuditEventCreate(
+                event_type=event,
+                entity_type="TRUCK_MAINTENANCE",
+                entity_id=identifier,
+                actor_id=actor,
+                changed_fields=list(fields),
+            )
+        )
+
+    def stage_odometer(
+        self, truck: Truck, value: int | None, *, actor: uuid.UUID | None
+    ) -> None:
+        if value is None or value == truck.odometer_km:
+            return
+        if truck.odometer_km is not None and value < truck.odometer_km:
+            raise ApiError(
+                409, "ODOMETER_DECREASE", "A quilometragem não pode diminuir."
+            )
+        truck.odometer_km = value
+        if actor is not None:
+            AuditService(self.db).stage_administrative_event(
+                AuditEventCreate(
+                    event_type="TRUCK_ODOMETER_UPDATED",
+                    entity_type="TRUCK",
+                    entity_id=truck.id,
+                    actor_id=actor,
+                    changed_fields=["odometer_km"],
+                )
+            )
+
     def create_truck(self, data: TruckCreate) -> Truck:
+        return self._persist(lambda: self.stage_create_truck(data))
+
+    def stage_create_truck(self, data: TruckCreate) -> Truck:
+        """Stage manual creation rules without committing an outer import."""
         if self.repository.get_by_plate(data.plate) is not None:
             raise TruckPlateAlreadyExistsError
+        return self.repository.add(Truck(**data.model_dump()))
 
-        truck = Truck(**data.model_dump())
-        return self._persist(lambda: self.repository.add(truck))
+    def existing_registration_keys(
+        self, keys: dict[str, set[str]]
+    ) -> dict[str, set[str]]:
+        """Public batched uniqueness boundary, including archived registrations."""
+        return self.repository.existing_registration_keys(keys)
 
-    def update_truck(self, truck_id: uuid.UUID, data: TruckUpdate) -> Truck:
-        truck = self.get_truck(truck_id)
+    def update_truck(
+        self,
+        truck_id: uuid.UUID,
+        data: TruckUpdate,
+        *,
+        changed_by: uuid.UUID | None = None,
+    ) -> Truck:
+        truck = self.repository.get_for_update(truck_id)
+        if truck is None:
+            raise TruckNotFoundError
+        old_active = truck.active
         update_data = data.model_dump(exclude_unset=True)
 
         new_plate = update_data.get("plate")
@@ -94,10 +209,27 @@ class TruckService:
             if existing_truck is not None and existing_truck.id != truck.id:
                 raise TruckPlateAlreadyExistsError
 
+        odometer = update_data.pop("odometer_km", None)
+
         for field_name, value in update_data.items():
             setattr(truck, field_name, value)
 
-        return self._persist(lambda: self.repository.update(truck))
+        def stage_update() -> Truck:
+            self.stage_odometer(truck, odometer, actor=changed_by)
+            if not old_active and truck.active:
+                validate_reactivation(TruckCreate, truck)
+            self.repository.update(truck)
+            stage_lifecycle_event(
+                self.db,
+                entity_type="TRUCK",
+                entity_id=truck.id,
+                old_active=old_active,
+                new_active=truck.active,
+                changed_by=changed_by,
+            )
+            return truck
+
+        return self._persist(stage_update)
 
     def _persist(self, operation: Callable[[], Truck]) -> Truck:
         try:
@@ -108,5 +240,8 @@ class TruckService:
             self.db.rollback()
             if get_integrity_constraint_name(exc) == "uq_trucks__plate":
                 raise TruckPlateAlreadyExistsError from exc
+            raise
+        except Exception:
+            self.db.rollback()
             raise
         return truck

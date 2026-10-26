@@ -1,6 +1,5 @@
 import { StatusPill } from "../../../components/StatusPill";
-import { CreateTripAction } from "../../deliveries/components/CreateTripAction";
-import { StartLoadingAction } from "../../loading-operation/components/StartLoadingAction";
+import { PlanContinuity } from "./PlanContinuity";
 import type { LoadPlan } from "../types";
 import { PLAN_STATUS_LABELS, planStatusTone } from "./loadPlanLabels";
 
@@ -11,14 +10,15 @@ const volume = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 });
 interface PlanSummaryProps {
   readonly plan: LoadPlan;
   readonly canManage: boolean;
+  readonly approvalAllowed?: boolean;
   readonly isWorking: boolean;
   readonly onApprove: () => void;
   readonly onRecalculate: () => void;
 }
 
-export function PlanSummary({ plan, canManage, isWorking, onApprove, onRecalculate }: PlanSummaryProps) {
+export function PlanSummary({ plan, canManage, approvalAllowed = canManage, isWorking, onApprove, onRecalculate }: PlanSummaryProps) {
   const hasRejections = plan.unloadedCount > 0;
-  const canApprove = canManage && plan.status === "CALCULATED" && !hasRejections;
+  const canApprove = approvalAllowed && plan.status === "CALCULATED" && !hasRejections && plan.ordersReadyForApproval !== false;
 
   return (
     <section className="plan-summary">
@@ -63,22 +63,14 @@ export function PlanSummary({ plan, canManage, isWorking, onApprove, onRecalcula
         <div className="plan-occupancy-fill" style={{ width: `${Math.min(plan.occupancyPercent, 100)}%` }} />
       </div>
 
-      {canManage && plan.status === "APPROVED" ? (
-        <div className="entity-form-actions">
-          {/* O plano aprovado e a unica porta de entrada para as duas etapas
-              seguintes: conferir o carregamento (OC32/OC75) e criar a viagem
-              (OC34). A viagem so sai depois do carregamento concluido, e o
-              backend confere esse vinculo. */}
-          <StartLoadingAction loadPlanId={plan.id} />
-          <CreateTripAction loadPlanId={plan.id} />
-        </div>
-      ) : null}
+      {plan.status === "APPROVED" ? <PlanContinuity key={plan.id} planId={plan.id} canManage={canManage} /> : null}
 
-      {canManage && plan.status !== "APPROVED" ? (
+      {plan.status === "CALCULATED" && plan.ordersReadyForApproval === false ? <output className="entity-form-help">Os pedidos deste cálculo já saíram da fila de planejamento. Consulte o estado atual em Pedidos; este plano permanece disponível como histórico e não pode ser aprovado novamente.</output> : null}
+      {(canManage || approvalAllowed) && plan.status !== "APPROVED" ? (
         <div className="entity-form-actions">
-          <button type="button" className="btn-secondary" disabled={isWorking} onClick={onRecalculate}>
+          {canManage && <button type="button" className="btn-secondary" disabled={isWorking || plan.ordersReadyForApproval === false} onClick={onRecalculate}>
             Recalcular
-          </button>
+          </button>}
           <button
             type="button"
             className="btn-primary"

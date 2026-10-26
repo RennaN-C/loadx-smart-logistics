@@ -1,11 +1,9 @@
+import { RecordLifecycleAction } from "../../../components/RecordLifecycleAction";
 import { StatusPill } from "../../../components/StatusPill";
+import { RowActions } from "../../../components/RowActions";
 import type { Product } from "../types";
 
 const weightFormatter = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 3 });
-const volumeFormatter = new Intl.NumberFormat("pt-BR", {
-  minimumFractionDigits: 3,
-  maximumFractionDigits: 3,
-});
 
 /**
  * Só as restrições aparecem como chip. Um produto sem restrição nenhuma é o caso
@@ -23,46 +21,20 @@ function restrictionsOf(product: Product): string[] {
 interface ProductCardProps {
   readonly product: Product;
   readonly canManage: boolean;
+  readonly onChanged: () => Promise<void>;
   readonly onEdit: (product: Product) => void;
 }
 
-export function ProductCard({ product, canManage, onEdit }: ProductCardProps) {
-  const volumeM3 = (product.widthCm / 100) * (product.heightCm / 100) * (product.lengthCm / 100);
+export function ProductCard({ product, canManage, onEdit, onChanged }: ProductCardProps) {
   const restrictions = restrictionsOf(product);
 
   return (
-    <article className="product-card">
-      <div className="product-card-head">
-        <div>
-          <p className="product-card-code">{product.code}</p>
-          <p className="product-card-name">{product.name}</p>
-        </div>
-        <span className="product-card-weight">{weightFormatter.format(product.weightKg)} kg</span>
-      </div>
-
-      {product.description ? <p className="product-card-description">{product.description}</p> : null}
-
-      <dl className="product-card-specs">
-        <div>
-          <dt>LARGURA</dt>
-          <dd>{product.widthCm} cm</dd>
-        </div>
-        <div>
-          <dt>ALTURA</dt>
-          <dd>{product.heightCm} cm</dd>
-        </div>
-        <div>
-          <dt>COMPR.</dt>
-          <dd>{product.lengthCm} cm</dd>
-        </div>
-        <div>
-          <dt>VOLUME</dt>
-          <dd>{volumeFormatter.format(volumeM3)} m³</dd>
-        </div>
-      </dl>
-
-      <div className="product-card-foot">
-        <div className="product-card-flags">
+    <tr className="product-card">
+      <td data-label="Código"><strong className="product-card-code">{product.code}</strong></td>
+      <td data-label="Produto"><strong className="product-card-name">{product.name}</strong>{product.description ? <small>{product.description}</small> : null}</td>
+      <td data-label="Dimensões">{product.widthCm} × {product.heightCm} × {product.lengthCm} cm</td>
+      <td data-label="Peso"><strong className="product-card-weight">{weightFormatter.format(product.weightKg)} kg</strong></td>
+      <td data-label="Restrições"><div className="product-card-flags">
           {restrictions.length > 0 ? (
             restrictions.map((restriction) => (
               <StatusPill key={restriction} tone="warn">
@@ -72,13 +44,9 @@ export function ProductCard({ product, canManage, onEdit }: ProductCardProps) {
           ) : (
             <StatusPill tone="good">Sem restrições</StatusPill>
           )}
-        </div>
-        {canManage ? (
-          <button type="button" className="btn-link" onClick={() => onEdit(product)}>
-            Editar
-          </button>
-        ) : null}
-      </div>
-    </article>
+        </div></td>
+      <td data-label="Situação"><StatusPill tone={product.active ? "good" : "neutral"}>{product.active ? "Ativo" : "Arquivado"}</StatusPill></td>
+      <td data-label="Ações">{canManage ? <RowActions label={`Ações do produto ${product.code}`}><button type="button" className="btn-link" onClick={() => onEdit(product)}>Editar</button><RecordLifecycleAction resource="products" id={product.id} active={product.active} onChanged={onChanged} /></RowActions> : <span className="registry-no-action">Somente consulta</span>}</td>
+    </tr>
   );
 }

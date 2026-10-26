@@ -1,15 +1,17 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.core.pagination import PageResponse, Pagination, to_page_response
 from app.core.responses import error_response, openapi_error_responses
 from app.database.session import get_db
 from app.integrations.ai import AIProvider, get_ai_provider
-from app.modules.auth.dependencies import require_roles
+from app.modules.access_profiles.catalog import Permission, has_permission
+from app.modules.auth.dependencies import require_permission
 from app.modules.load_planning.explanation_service import (
     LoadPlanExplanationForbiddenError,
     LoadPlanExplanationInvalidPlanError,
@@ -18,10 +20,14 @@ from app.modules.load_planning.explanation_service import (
 )
 from app.modules.load_planning.models import LoadPlan
 from app.modules.load_planning.schemas import (
+    LoadPlanContinuityRead,
     LoadPlanCreate,
     LoadPlanExplanationRead,
+    LoadPlanListRead,
     LoadPlanRead,
+    LoadPlanStatus,
     LoadPlanVisualizationRead,
+    OperationScope,
     TruckComparisonCreate,
     TruckComparisonRead,
     map_load_plan_read,
@@ -45,17 +51,13 @@ from app.modules.load_planning.service import (
 from app.modules.users.models import User
 
 router = APIRouter(prefix="/load-plans", tags=["load-plans"])
-LoadPlanReader = Annotated[
-    User,
-    Depends(require_roles("ADMIN", "CHECKER", "LOGISTICS_MANAGER")),
-]
-LoadPlanManager = Annotated[
-    User,
-    Depends(require_roles("LOGISTICS_MANAGER")),
-]
-LoadPlanExplainer = Annotated[
-    User,
-    Depends(require_roles("ADMIN", "CHECKER", "LOGISTICS_MANAGER")),
+LoadPlanReader = Annotated[User, Depends(require_permission("loadx.planning.read"))]
+LoadPlanManager = Annotated[User, Depends(require_permission("loadx.planning.create"))]
+LoadPlanExplainer = Annotated[User, Depends(require_permission("loadx.planning.read"))]
+
+
+LoadPlanApprover = Annotated[
+    User, Depends(require_permission("loadx.planning.approve"))
 ]
 
 
@@ -195,6 +197,50 @@ def _calculation_error_response(error: Exception) -> JSONResponse | None:
     return None
 
 
+@router.get(
+    "",
+    response_model=PageResponse[LoadPlanListRead],
+    responses=openapi_error_responses(401, 403, 422),
+)
+def list_load_plans(
+    pagination: Pagination,
+    current_user: LoadPlanReader,
+    service: Annotated[LoadPlanningService, Depends(get_load_planning_service)],
+    plan_status: Annotated[LoadPlanStatus | None, Query(alias="status")] = None,
+    truck_id: uuid.UUID | None = None,
+    operation_scope: OperationScope = "all",
+) -> PageResponse[LoadPlanListRead] | JSONResponse:
+    include_operations = all(
+        has_permission(current_user, permission)
+        for permission in (
+            Permission.TRIPS_READ,
+            Permission.ORDERS_READ,
+            Permission.LOADING_READ,
+        )
+    )
+    if operation_scope != "all" and not include_operations:
+        return error_response(
+            403,
+            "AUTH_FORBIDDEN",
+            "Usuário sem permissão para esta consulta operacional.",
+        )
+    result = service.list_load_plans(
+        pagination,
+        requester_role=current_user.role,
+        status=plan_status,
+        truck_id=truck_id,
+        include_operations=include_operations,
+        operation_scope=operation_scope,
+    )
+    return to_page_response(
+        result,
+        (
+            LoadPlanListRead.model_validate(item, from_attributes=True)
+            for item in result.items
+        ),
+    )
+
+
 @router.post(
     "",
     response_model=LoadPlanRead,
@@ -208,7 +254,10 @@ def create_load_plan(
 ) -> LoadPlanRead | JSONResponse:
     try:
         load_plan = service.create_load_plan(data, changed_by=current_user.id)
-        return map_load_plan_read(load_plan)
+        return map_load_plan_read(
+            load_plan,
+            orders_ready_for_approval=service.orders_ready_for_approval(load_plan),
+        )
     except (
         InvalidLoadPlanInputError,
         LoadPlanOrdersNotEligibleError,
@@ -270,7 +319,43 @@ def get_load_plan(
     forbidden = _ensure_read_access(load_plan, current_user)
     if forbidden is not None:
         return forbidden
-    return map_load_plan_read(load_plan)
+    return map_load_plan_read(
+        load_plan,
+        distribution_id=service.get_distribution_id_for_plan(load_plan_id),
+        orders_ready_for_approval=service.orders_ready_for_approval(load_plan),
+    )
+
+
+@router.get(
+    "/{load_plan_id}/continuity",
+    response_model=LoadPlanContinuityRead,
+    responses=openapi_error_responses(401, 403, 404, 422),
+)
+def get_load_plan_continuity(
+    load_plan_id: uuid.UUID,
+    current_user: LoadPlanReader,
+    service: Annotated[LoadPlanningService, Depends(get_load_planning_service)],
+) -> LoadPlanContinuityRead | JSONResponse:
+    try:
+        plan = service.get_load_plan(load_plan_id)
+    except LoadPlanNotFoundError:
+        return _not_found_response()
+    forbidden = _ensure_read_access(plan, current_user)
+    if forbidden is not None:
+        return forbidden
+    return service.get_continuity(
+        plan,
+        requester_role=current_user.role,
+        can_read_trips=has_permission(current_user, Permission.TRIPS_READ),
+        can_read_operations=all(
+            has_permission(current_user, p)
+            for p in (
+                Permission.TRIPS_READ,
+                Permission.ORDERS_READ,
+                Permission.LOADING_READ,
+            )
+        ),
+    )
 
 
 @router.get(
@@ -341,7 +426,7 @@ def explain_load_plan(
 )
 def approve_load_plan(
     load_plan_id: uuid.UUID,
-    current_user: LoadPlanManager,
+    current_user: LoadPlanApprover,
     service: Annotated[LoadPlanningService, Depends(get_load_planning_service)],
 ) -> LoadPlanRead | JSONResponse:
     try:
@@ -349,7 +434,10 @@ def approve_load_plan(
             load_plan_id,
             changed_by=current_user.id,
         )
-        return map_load_plan_read(load_plan)
+        return map_load_plan_read(
+            load_plan,
+            orders_ready_for_approval=service.orders_ready_for_approval(load_plan),
+        )
     except LoadPlanNotFoundError:
         return _not_found_response()
     except LoadPlanInvalidStatusError as exc:
@@ -395,9 +483,18 @@ def recalculate_load_plan(
             load_plan_id,
             changed_by=current_user.id,
         )
-        return map_load_plan_read(load_plan)
+        return map_load_plan_read(
+            load_plan,
+            orders_ready_for_approval=service.orders_ready_for_approval(load_plan),
+        )
     except LoadPlanNotFoundError:
         return _not_found_response()
+    except LoadPlanSourceChangedError:
+        return error_response(
+            409,
+            "LOAD_PLAN_SOURCE_CHANGED",
+            "Use o contrato da distribuição para reprocessar esta parte.",
+        )
     except (
         InvalidLoadPlanInputError,
         LoadPlanOrdersNotEligibleError,

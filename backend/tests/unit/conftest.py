@@ -1,7 +1,7 @@
 from collections.abc import Generator, Sequence
 
 import pytest
-from sqlalchemy import Table, create_engine, event
+from sqlalchemy import CheckConstraint, MetaData, Table, create_engine, event, text
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
@@ -11,6 +11,44 @@ def db_session(request: pytest.FixtureRequest) -> Generator[Session, None, None]
     """Provide an isolated SQLite session for service-level unit tests."""
 
     tables: Sequence[Table] = request.module.SQLITE_TABLES
+    if any(table.name == "auth_sessions" for table in tables):
+        from app.modules.auth.models import (
+            AuthChallenge,
+            AuthFactor,
+            AuthPasswordReset,
+            AuthRecoveryCode,
+            AuthTrustedDevice,
+        )
+
+        tables = (
+            *tables,
+            AuthFactor.__table__,
+            AuthChallenge.__table__,
+            AuthPasswordReset.__table__,
+            AuthRecoveryCode.__table__,
+            AuthTrustedDevice.__table__,
+        )
+    if any(table.name == "auth_trusted_devices" for table in tables):
+        # Unit SQLite cannot compile PostgreSQL interval syntax. Clone metadata
+        # locally and keep an equivalent upper bound; official DDL/constraints
+        # are exercised against PostgreSQL 16 in integration tests.
+        metadata = MetaData()
+        for table in tables:
+            table.to_metadata(metadata)
+        trusted_table = metadata.tables["auth_trusted_devices"]
+        # Preserve conditional PostgreSQL-only DDL on all existing tables;
+        # to_metadata does not retain their ddl_if predicates.
+        tables = tuple(
+            trusted_table if table.name == "auth_trusted_devices" else table
+            for table in tables
+        )
+        for constraint in trusted_table.constraints:
+            if isinstance(constraint, CheckConstraint) and "interval" in str(
+                constraint.sqltext
+            ):
+                constraint.sqltext = text(
+                    "expires_at > created_at AND julianday(expires_at) <= julianday(created_at) + 30"
+                )
     engine = create_engine(
         "sqlite+pysqlite:///:memory:",
         connect_args={"check_same_thread": False},
@@ -25,6 +63,37 @@ def db_session(request: pytest.FixtureRequest) -> Generator[Session, None, None]
 
     for table in tables:
         table.create(engine, checkfirst=True)
+    if any(table.name == "trips" for table in tables):
+        from app.modules.access_profiles.models import (
+            PermissionReference,
+            ProfilePermission,
+        )
+        from app.modules.notifications.models import (
+            NotificationPreference,
+            NotificationRecipient,
+            OperationalNotification,
+        )
+        from app.modules.occurrences.models import Occurrence
+
+        Occurrence.__table__.create(engine, checkfirst=True)
+        OperationalNotification.__table__.create(engine, checkfirst=True)
+        from app.modules.notifications.outbox_models import OutboxEvent
+
+        OutboxEvent.__table__.create(engine, checkfirst=True)
+        NotificationRecipient.__table__.create(engine, checkfirst=True)
+        NotificationPreference.__table__.create(engine, checkfirst=True)
+        PermissionReference.__table__.create(engine, checkfirst=True)
+        ProfilePermission.__table__.create(engine, checkfirst=True)
+
+    if any(table.name == "driver_document_types" for table in tables):
+        from app.modules.drivers.models import CNH_TYPE_ID, DriverDocumentType
+
+        with engine.begin() as connection:
+            connection.execute(
+                DriverDocumentType.__table__.insert().values(
+                    id=CNH_TYPE_ID, code="CNH", name="CNH"
+                )
+            )
 
     testing_session_local = sessionmaker(
         bind=engine,

@@ -5,6 +5,7 @@
  * buscado por `GET /customers/{id}` na hora de editar.
  */
 export interface CustomerListItem {
+  active: boolean;
   id: string;
   name: string;
   city: string;
@@ -30,7 +31,7 @@ export interface CustomerInput {
   notes: string | null;
 }
 
-export type CustomerUpdateInput = Partial<CustomerInput>;
+export type CustomerUpdateInput = Partial<CustomerInput> & { active?: boolean };
 
 /**
  * Endereço devolvido pela consulta de CEP (OC62).
@@ -51,3 +52,19 @@ export interface CepAddress {
   city: string;
   state: string;
 }
+
+export interface CustomerAddress {
+  id: string;
+  customerId: string;
+  label: string;
+  address: string;
+  city: string;
+  state: string;
+  postalCode: string | null;
+  active: boolean;
+  isPrimary: boolean;
+  createdAt: string;
+}
+
+export type CustomerAddressInput = Omit<CustomerAddress, "id" | "customerId" | "createdAt">;
+export type CustomerAddressUpdateInput = Partial<CustomerAddressInput>;

@@ -3,24 +3,49 @@
 Tela de planejamento de carga (OC30). Consome `POST /load-plans`,
 `GET /load-plans/{id}`, `POST /load-plans/{id}/approve` e `POST /load-plans/{id}/recalculate`.
 
+`CONFIRMADO` (#308): confirmação de plano salvo usa aviso contextual com
+referência e links com aparência de botão para Abrir este plano e Planos
+existentes. Navegação e IDs permanecem os mesmos, sem gerar novo cálculo.
+
 ## O que existe hoje
 
 - `pages/PlanningPage.tsx` (+ `.css`): monta o plano, mostra o resultado e executa aprovar/recalcular.
-- `components/PlanBuilder.tsx`: seleção de caminhão e pedidos.
+- `components/PlanBuilder.tsx`: fluxo de Pedidos → Modalidade → Veículos → Revisão.
+  Alternar etapas mantém a seleção em memória; somente calcular envia a operação
+  de escrita. A revisão continua bloqueando cálculo sem pedidos/veículo e acima
+  do limite de volumes. A modalidade automática preserva o contrato multi-caminhão.
 - `components/PlanSummary.tsx`: métricas do cálculo e as ações.
 - `components/PlanItemsTable.tsx`: sequência de carregamento e volumes recusados.
 - `components/loadPlanLabels.ts`: rótulos de situação, rotação e motivo de recusa.
 - `components/loadPlansErrorMessages.ts`: tradução dos 10 códigos de erro do módulo.
 - `api/loadPlansApi.ts`: mapeamento snake_case ↔ camelCase, incluindo a visualização.
 
-## O plano vive na URL
+## Recuperação de planos (#208)
 
-**O backend não tem listagem de planos** — só `POST` para criar e `GET /{id}`. Se o resultado ficasse
-só no estado do React, recarregar a página perderia o plano sem nenhuma forma de recuperá-lo. Por isso
-a rota é `/planning/:planId`, e a página carrega pelo id.
+`CONFIRMADO`: `/planning` abre **Planos existentes**, com resumos paginados do
+servidor, situação e ordenação. Clicar na placa filtra o caminhão no servidor, com ação para limpar o filtro.
+Query params `page`, `status`, `sort`, `truck` preservam
+consulta na navegação anterior/próxima e após F5. O detalhe permanece em
+`/planning/:planId`. O plano salvo é reencontrável após sair para Produtos ou
+entrar novamente; clicar no menu nunca calcula nem cria viagem.
 
-Recalcular gera um plano **novo**, com id diferente. Nesse caso a página apenas navega para o id novo
-e deixa o efeito carregar — não existem duas fontes de verdade para o mesmo plano na tela.
+`/planning?tab=new` abre o builder existente somente para gestores/ADMIN.
+Seleções não calculadas continuam na memória desta tela e se perdem ao sair;
+salvar rascunhos exige um contrato separado. O teto de 200 volumes físicos e
+validações atuais não mudam. Recálculo cria outro ID e mantém a origem histórica.
+
+`CONFIRMADO`: `PlanHistory` consulta `GET /load-plans` com resumos sem itens.
+`PlanContinuity` consulta `GET /load-plans/{id}/continuity` antes de oferecer
+criação: vínculos existentes viram links para carregamento/viagem, inclusive
+finalizados. Falha de consulta bloqueia criação e oferece retry. Concorrência
+continua protegida por lock/constraints no backend; conflito de viagem já
+atribuída atualiza os vínculos na tela.
+
+CHECKER vê somente aprovados e pode abrir sessão existente, sem criar ou acessar
+viagem. DRIVER não monta a lista nem consulta planos por URL; suas viagens
+permanecem no início próprio. Cada parte de uma distribuição totalmente aprovada
+consulta agora a continuidade real da OC90; partes históricas ou distribuição
+incompleta continuam bloqueadas pelo backend. Não há central global nova.
 
 ## Regras que a tela reflete
 
@@ -48,11 +73,157 @@ caminhão, outra a quem resolve pendência. Uma tabela só, com coluna de situa�
 
 ## Permissões
 
-`ADMIN`, `CHECKER` e `LOGISTICS_MANAGER` leem. Só `LOGISTICS_MANAGER` calcula, aprova e recalcula.
+`ADMIN`, `CHECKER` e `LOGISTICS_MANAGER` leem. `ADMIN` e `LOGISTICS_MANAGER` calculam, aprovam e recalculam.
 
 ## Fora de escopo
 
-`CONFIRMADO`: não há listagem/histórico público de planos. A API já implementa
+`CONFIRMADO`: a listagem de planos usa o contrato da #208. A API já implementa
 comparação entre caminhões (`OC21`) e explicação por `AIProvider` com fallback
 (`OC22`); `loadPlansApi.ts` e a tela atual ainda não consomem essas operações.
 A visualização 3D está integrada em `features/load-visualization` (`OC31`).
+
+## Retorno e recuperação (#188)
+
+`CONFIRMADO`: planos persistidos exibem seu link permanente e retorno aos
+pedidos, planejamento e início. Volumes aceitos e recusados vinculam à leitura
+do pedido em `/orders?order=<id>`. Troca de ID e recálculo assíncrono não
+reaproveitam o plano anterior. A recuperação paginada está disponível pela #208;
+ver limites no [fluxo operacional](../../../../docs/06-fluxo-operacional.md).
+
+
+## Pré-validação de volumes físicos — manutenção #204
+
+`CONFIRMADO`: `GET /orders` inclui `volume_count` (soma das quantidades das linhas
+visíveis no pedido, sem expor os itens completos). A listagem mostra número de
+linhas E de volumes, incluindo a referência curta do pedido para diferenciar
+pedidos do mesmo cliente. A seleção resume volumes expandidos e bloqueia o botão
+quando o total conhecido excede os 200 volumes permitidos por cálculo síncrono.
+
+O backend permanece fonte de verdade e sempre valida novamente: quando os
+resumos estiverem desatualizados, a resposta
+`LOAD_PLAN_VOLUME_LIMIT_EXCEEDED` apresenta quantidade real e teto devolvidos
+pela API. Cliente não fraciona pedidos automaticamente, não aumenta limites e
+não oculta dados faltantes; versões antigas da API exibem contagem desconhecida
+e permitem o backend realizar a validação.
+
+Para um único pedido acima de 200 volumes, é necessário revisar as quantidades
+no módulo de Pedidos, respeitando a regra de edição em `DRAFT`, ou seguir o
+fluxo de planejamento de capacidade maior quando for implementado.
+
+## OC89 — seleção automática e distribuição persistida
+
+`CONFIRMADO`: Novo planejamento oferece **Um caminhão** (fluxo legado preservado)
+e **Seleção automática da frota**. A ação `Otimizar e salvar distribuição` envia
+somente `order_ids` a `POST /load-distributions/optimize`; HTTP 201 já representa
+uma proposta persistida, completa, de 1–10 caminhões e até 200 volumes físicos.
+Não há packing, disponibilidade, seleção de frota ou divisão de volumes no cliente.
+
+`CONFIRMADO`: `distributionsApi.ts` centraliza DTOs e conversões dos contratos
+OC87/88. A consulta estável é `/planning/distributions/:distributionId?part=:partId`.
+Os resumos de Planos existentes usam `distribution_id` (inclusive em versões
+históricas) para abrir o agregado. Consultar, F5, alternar veículos ou voltar de
+Produtos nunca chama optimize. O detalhe legado oferece retorno à distribuição e
+oculta aprovação/recálculo individuais quando existe esse vínculo. A listagem
+continua mostrando planos/versões, portanto várias linhas podem abrir a mesma
+necessidade; não se trata de distribuições duplicadas.
+
+`CONFIRMADO`: cartões apresentam placa/modelo do snapshot histórico, métricas e
+estado de cada parte; a seleção atualiza tabela e cena exclusivamente pelo
+`load_plan.id`. O viewer é lazy e recebe `key` do plano, descartando a cena anterior
+antes da nova consulta. A tabela mostra índice original/quantidade e item de origem.
+Erros da cena permitem repetir somente a leitura. Coordenadas não são alteradas.
+
+`CONFIRMADO`: aprovação/cancelamento usam o agregado; cancelar uma parte exige
+confirmação e deixa a necessidade incompleta. Reprocessamento consulta preflight,
+escolhe um caminhão elegível e envia `expected_load_plan_id`; não redistribui volumes
+entre partes. Erro mantém a proposta e exige atualizar o agregado antes de outra
+ação. Cliques concorrentes são bloqueados por estado e ref síncrona. Falha ambígua
+de rede na otimização orienta consultar Planos existentes antes de repetir; a API
+não fornece chave de idempotência para criação, e o frontend não inventa uma.
+
+`CONFIRMADO`: UI segue `loadx.planning.read/create/approve`, sem ampliar permissões.
+ADMIN/gestor de sistema gerenciam; CHECKER lê aprovados; DRIVER não consulta.
+Perfis flexíveis seguem o catálogo atual. Aprovação parcial não libera operação;
+com vários caminhões, carregamento/viagens permanecem na fronteira da OC90. Uma
+parte completa e aprovada reutiliza a continuidade real já existente.
+
+`CONFIRMADO`: aparência utiliza tokens existentes, controles nativos, foco visível,
+feedback real e grade responsiva. Evidências Chromium em
+[docs/evidencias/oc89](../../../../docs/evidencias/oc89/README.md).
+`RISCO IDENTIFICADO`: o backend não publica prova de otimalidade nem justificativa
+individual por alternativa descartada; a interface descreve a estratégia heurística
+documentada e a solução salva, sem inventar por que um caminhão específico falhou.
+Rascunhos não calculados continuam locais à tela, sem localStorage.
+
+## UI06 — retomada operacional
+
+`CONFIRMADO`: a entrada do módulo apresenta Planos, Execução e Atividade como
+destinos reais, mantendo novo planejamento como ação explícita. A listagem usa
+somente os resumos paginados existentes e separa situação do plano, continuidade
+operacional, ocupação e recusas. Evidências responsivas claro/escuro em
+`docs/evidencias/qa-v12-pentest/ui-lote6.md`.
+
+
+## Recuperação idempotente (#254)
+
+`CONFIRMADO`: seleção automática usa Idempotency-Key UUID e permite consultar
+resultado no servidor ou repetir a mesma solicitação após falha/F5.
+SessionStorage contém apenas ator/chave/seleção da aba, não plano, token nem
+prova de persistência. Nenhum POST ocorre na montagem. Falha de storage mantém
+chave em memória; fechar aba/perder storage exige consultar Planos existentes.
+Contrato e limites: ADR-047. A performance da PR #262 permanece independente.
+
+## Plano e operação separados — #255
+
+`CONFIRMADO`: a listagem separa “Plano: aprovado” da situação logística real.
+Usuários com leitura de viagens, pedidos e carregamento recebem filtros
+Em andamento / Concluídos / Todos (`scope` na URL, restaurado após F5) e resumo
+SQL paginado. Em andamento inclui preparações ainda sem operação; conclusão
+requer viagem finalizada e todos os pedidos entregues em todas as partes.
+Viagem interrompida/cancelada é retomável por link, sem oferecer outra criação.
+Pedidos fora de READY desabilitam aprovação/recálculo do cálculo histórico com
+explicação; a decisão permanece validada transacionalmente pelo servidor.
+
+## Execução dos planos — 25/10/2026
+
+`CONFIRMADO`: Execução aponta para `/planning?tab=execution`, sem redirecionar
+para a central de carregamentos. PlanExecution consulta `GET /load-plans` com
+`status=APPROVED`, paginação e `operation_scope` do contrato existente. Exibe
+ocupação e situação logística publicadas pelo servidor; filtros de acompanhamento,
+concluídas e todas as operações são enviados à API. Abrir planejamento, Conferir
+carregamento e Abrir viagem são ações explícitas, com destinos distintos.
+Erro, nova tentativa, vazio e ausência de projeção operacional são tratados.
+Somente quem possui os grants operacionais existentes recebe essa visão.
+
+## Atividade e frota automática — 25/10/2026
+
+`CONFIRMADO`: PlanningActivity exibe os oito eventos mais recentes da união das
+consultas paginadas existentes LOAD_PLAN, LOAD_DISTRIBUTION e
+LOAD_DISTRIBUTION_PART. Cada consulta pede os oito mais recentes; a união
+ordenada por data/ID contém os oito globais destes tipos. Erro em um fluxo
+exibe retry, sem apresentar histórico parcial como completo. Montado apenas
+com grant de auditoria; em desktop fica ao lado dos planos/execução e em telas
+menores aparece abaixo. Não sintetiza eventos de criação não registrados.
+
+`CONFIRMADO`: FleetPreflight consulta o endpoint de preflight existente na
+etapa Veículos da modalidade automática. Mostra veículos elegíveis e excluídos
+pelo backend, medidas e peso máximo. É uma consulta sem reserva; a otimização
+revalida tudo. A carga pode usar um caminhão se couber; não força divisão
+artificial. O limite permanece 200 volumes físicos, até 10 caminhões.
+
+Evidências: docs/evidencias/qa-v12-pentest/planejamento-multi-atividade/.
+
+## Prontidão e mensagens das ações — Issue #302
+
+`CONFIRMADO`: o cálculo automático exige preflight da seleção atual com frota
+elegível; consulta pendente, falha ou sem veículos bloqueia Continuar na etapa
+Veículos e o cálculo, inclusive ao saltar diretamente para Revisão. A seleção e
+a modalidade invalidam resultados anteriores. Respostas tardias são ignoradas;
+a nova consulta invalida o resultado imediatamente. O guard também existe no
+handler, preservando a validação final obrigatória do backend.
+
+`CONFIRMADO`: mensagens próximas às ações usam aria-describedby e explicam
+pedido ausente, seleção desatualizada, limite, veículo ausente, consulta pendente,
+falha e indisponibilidade. Pré-validação permanece montada ao alternar etapas,
+sem transformar uma consulta em reserva. A explicação do limite de 200 volumes
+agora deixa explícita sua aplicação à seleção inteira, inclusive multi-caminhões.

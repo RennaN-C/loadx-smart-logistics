@@ -5,9 +5,20 @@ from decimal import Decimal
 import pytest
 from sqlalchemy.orm import Session
 
-from app.modules.customers.models import Customer
+from app.modules.customers.models import Customer, CustomerAddress
 from app.modules.deliveries.models import Trip
-from app.modules.drivers.models import Driver
+from app.modules.drivers.models import (
+    Driver,
+    DriverDocument,
+    DriverDocumentPolicy,
+    DriverDocumentType,
+)
+from app.modules.load_planning.distribution_models import (
+    LoadDistribution,
+    LoadDistributionOrder,
+    LoadDistributionPart,
+    LoadDistributionVolume,
+)
 from app.modules.load_planning.models import LoadPlan, LoadPlanItem, LoadPlanOrder
 from app.modules.loading.models import LoadingSession, LoadingSessionItem
 from app.modules.loading.reference_service import LoadingReferenceService
@@ -19,19 +30,35 @@ from app.modules.loading.service import (
 )
 from app.modules.orders.models import Order, OrderItem
 from app.modules.products.models import Product
-from app.modules.trucks.models import Truck
+from app.modules.trucks.models import (
+    Truck,
+    TruckDocument,
+    TruckDocumentPolicy,
+    TruckMaintenance,
+)
 from app.modules.trucks.service import TruckOperationConflictError
 
 SQLITE_TABLES = (
     Customer.__table__,
+    CustomerAddress.__table__,
     Truck.__table__,
+    TruckMaintenance.__table__,
+    TruckDocument.__table__,
+    TruckDocumentPolicy.__table__,
     Driver.__table__,
+    DriverDocumentType.__table__,
+    DriverDocument.__table__,
+    DriverDocumentPolicy.__table__,
     Product.__table__,
     Order.__table__,
     OrderItem.__table__,
     LoadPlan.__table__,
     LoadPlanOrder.__table__,
     LoadPlanItem.__table__,
+    LoadDistribution.__table__,
+    LoadDistributionOrder.__table__,
+    LoadDistributionPart.__table__,
+    LoadDistributionVolume.__table__,
     LoadingSession.__table__,
     LoadingSessionItem.__table__,
     Trip.__table__,

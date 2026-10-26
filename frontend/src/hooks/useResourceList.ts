@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { DEFAULT_PAGE_SIZE, type ListParams } from "../services/pagination";
 import { ApiError, type Page } from "../types/api";
@@ -31,16 +31,17 @@ const EMPTY = {
  * Carga paginada de uma coleção, com os três estados que toda tela de cadastro
  * precisa. Segue o envelope da ADR-017 (`items`/`page`/`total`/`total_pages`).
  *
- * Busca e filtro continuam no cliente e valem só para a página carregada: D12
- * mantém filtro server-side fora do contrato. Quem usa este hook deve deixar
- * isso explícito na tela, senão o usuário acha que buscou na base inteira.
+ * A função estável pode combinar filtros server-side da OC95. Ao alterar
+ * critérios, a tela reinicia a página antes da nova consulta.
  *
  * `load` precisa ser uma referência estável — passar a função exportada do
  * módulo de API (`listTrucks`, `listProducts`, …) já satisfaz isso.
  */
 export function useResourceList<T>(
   load: (params: ListParams) => Promise<Page<T>>,
+  enabled = true,
 ): UseResourceListResult<T> {
+  const requestSequence = useRef(0);
   const [requestedPage, setRequestedPage] = useState(1);
   const [state, setState] = useState<ResourceState<T>>({
     status: "loading",
@@ -50,10 +51,16 @@ export function useResourceList<T>(
   });
 
   const fetchPage = useCallback(async () => {
+    const sequence = ++requestSequence.current;
+    if (!enabled) {
+      setState({ status: "success", error: null, page: 1, ...EMPTY });
+      return;
+    }
     setState((current) => ({ ...current, status: "loading", error: null }));
 
     try {
       const result = await load({ page: requestedPage, pageSize: DEFAULT_PAGE_SIZE });
+      if (sequence !== requestSequence.current) return;
       setState({
         status: "success",
         items: result.items,
@@ -64,15 +71,17 @@ export function useResourceList<T>(
         totalPages: result.totalPages,
       });
     } catch (error) {
+      if (sequence !== requestSequence.current) return;
       const apiError =
         error instanceof ApiError ? error : new ApiError("UNKNOWN_ERROR", "Ocorreu um erro inesperado.");
       setState({ status: "error", error: apiError, page: requestedPage, ...EMPTY });
     }
-  }, [load, requestedPage]);
+  }, [enabled, load, requestedPage]);
 
   useEffect(() => {
     void fetchPage();
+    return () => { requestSequence.current += 1; };
   }, [fetchPage]);
 
-  return { ...state, refetch: fetchPage, goToPage: setRequestedPage };
+  return { ...(enabled ? state : { ...state, ...EMPTY, status: "success" as const, error: null }), refetch: fetchPage, goToPage: setRequestedPage };
 }

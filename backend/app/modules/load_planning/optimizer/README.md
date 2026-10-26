@@ -199,3 +199,36 @@ ficam fora do otimizador. A OC22 usa `LoadPlanExplanationService`, a port
 `AIProvider`, provider fake e fallback determinístico sem participar de nenhuma
 decisão física. O adapter externo concreto pertence ao Desenvolvedor 4. Estado da
 OC22: concluída.
+
+## OC88 — otimização multi-caminhão
+
+`multi_truck.py` é a camada pura de seleção de frota da OC88. Ela recebe
+`MultiTruckCandidate` e `IndividualVolume`, sem banco, models SQLAlchemy,
+FastAPI ou persistência.
+
+A busca trabalha em níveis: primeiro um caminhão, depois dois, três e assim por
+diante até dez. Cada expansão passa todos os volumes ainda não atribuídos para
+`calculate_volume_load_plan`; somente os volumes efetivamente colocados pela
+engine entram naquela parte. Os rejeitados seguem para o próximo nível.
+
+Soluções completas encerram o crescimento da quantidade de veículos. Quando
+há mais de uma no mesmo nível, o desempate usa capacidade volumétrica total,
+capacidade de peso, UUID dos caminhões e identidades dos volumes.
+
+Estados com o mesmo conjunto de caminhões usados e os mesmos volumes restantes
+são deduplicados. A fronteira parcial mantém no máximo
+`MAX_SEARCH_STATES = 64` estados segundo uma chave determinística de progresso.
+Esse limite evita explosão combinatória para até 200 volumes, mas caracteriza
+a estratégia como heurística, não como solver exato global.
+
+A engine física existente continua sendo a autoridade para dimensões, peso,
+rotação, posicionamento, colisão, apoio, fragilidade, profundidade e sequência.
+
+## Regressão de limite multi-caminhão — 25/10/2026
+
+`CONFIRMADO`: teste adicional distribui 200 identidades físicas em dez caminhões
+com capacidades idênticas de 20 volumes; verifica cobertura exata, ausência de
+duplicação e resultado idêntico com entradas invertidas. Não modifica a engine,
+a busca, suas regras ou o limite. Benchmark sintético por chamada documentado
+em docs/evidencias/qa-v12-pentest/planejamento-multi-atividade/validation.json;
+não equivale a p95 ou garantia para cargas heterogêneas de produção.

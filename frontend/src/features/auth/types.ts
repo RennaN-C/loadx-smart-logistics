@@ -1,4 +1,5 @@
-export type Role = "ADMIN" | "LOGISTICS_MANAGER" | "CHECKER" | "DRIVER";
+import type { MfaChallenge } from "./mfaTypes";
+export type Role = "ADMIN" | "LOGISTICS_MANAGER" | "CHECKER" | "DRIVER" | "CUSTOM";
 
 export interface AuthenticatedUser {
   id: string;
@@ -7,6 +8,9 @@ export interface AuthenticatedUser {
   role: Role;
   active: boolean;
   createdAt: string;
+  permissions?: readonly string[];
+  customProfileId?: string | null;
+  customProfileName?: string | null;
 }
 
 export type AuthStatus = "loading" | "authenticated" | "unauthenticated";
@@ -16,4 +20,8 @@ export interface AuthContextValue {
   user: AuthenticatedUser | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  updateUser: (user: AuthenticatedUser | null, accountNotice?: "password-changed" | "session-revoked") => void;
+  pendingMfa?: MfaChallenge;
+  beginMfa?: (challenge: MfaChallenge | undefined) => void;
+  accountNotice?: "password-changed" | "session-revoked";
 }

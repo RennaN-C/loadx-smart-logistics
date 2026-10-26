@@ -73,13 +73,15 @@ Uma coincidência entre os dois números não significa que a Issue e a OC sejam
 `CONFIRMADO`: OC01–OC78 fazem parte do histórico e da v1.1.0 e seus números não
 podem ser reutilizados.
 
-`RECOMENDAÇÃO`: a próxima versão, v1.2.0, reserva a faixa OC79–OC84 para seu
-planejamento inicial.
+`CONFIRMADO`: a v1.2.0 usa a faixa **OC79–OC112**, formalizada nas Issues
+#122–#133, #136–#141 e #144–#159. O escopo reúne comunicação real, administração,
+operação multi-caminhão, gestão operacional, segurança, frota, cadastros,
+auditoria, confiabilidade de integrações e experiência de uso.
 
-Esses números somente se tornam ocorrências executáveis quando as respectivas
-Issues forem criadas e aprovadas.
+Esses números somente representam trabalho executável enquanto as respectivas
+Issues permanecerem aprovadas, atribuídas e vinculadas ao planejamento da versão.
 
-`CONFIRMADO`: números posteriores à OC84 não ficam reservados antecipadamente.
+`CONFIRMADO`: números posteriores à OC112 não ficam reservados antecipadamente.
 A numeração da v1.3.0 em diante será definida no momento do planejamento de cada
 release, usando a próxima OC realmente disponível.
 
@@ -134,7 +136,7 @@ As entregas oficiais permanecem registradas no `CHANGELOG.md`.
 
 # v1.1.0 — Maturidade operacional
 
-`CONFIRMADO`: versão atualmente em desenvolvimento.
+`CONFIRMADO`: versão publicada em 2026-10-06.
 
 Objetivo:
 
@@ -162,41 +164,246 @@ Planejamento detalhado:
 
 ---
 
-# v1.2.0 — Comunicação real e comprovante de entrega
+# v1.2.0 — Consolidação do produto e operação avançada
 
 ## Objetivo
 
-Transformar fluxos simulados de comunicação e evidência em operações externas
-reais, auditáveis, idempotentes e protegidas.
+`CONFIRMADO`: a v1.2.0 concentra a maior etapa de consolidação funcional do LoadX
+antes da futura camada de multi-tenancy logístico e integração com CoreFlow. O objetivo
+é fechar lacunas de administração, segurança, operação, frota, cadastros, auditoria,
+integrações e experiência de uso, sem retirar a autoridade das regras de domínio do backend.
 
-## Planejamento inicial
+`CONFIRMADO`: a v1.2.0 continua **monoempresa e standalone**. Ela não implementa
+CoreFlow, SSO, entitlement externo ou tenant_id no domínio.
 
-| OC | Responsável | Entrega planejada |
-|---|---|---|
-| **OC79** | **Rennan** | Segurança, autenticação, autorização e idempotência de comandos externos |
-| **OC80** | **Rennan** | Contrato de evidências e comprovante de entrega |
-| **OC81** | Marlon | Interface de comprovante e comunicação operacional |
-| **OC82** | Marcelo | Adapter real para WhatsApp Business |
-| **OC83** | Marcelo | Webhook, recebimento de mensagens e mídia |
-| **OC84** | Marcelo | Notificações operacionais reais |
+`DECISÃO ARQUITETURAL`: as OCs administrativas da v1.2.0 devem continuar úteis no
+modo standalone, mas não podem tornar o LoadX proprietário permanente de identidade
+global, organização, licenciamento ou SUPERADMIN de plataforma. As Issues #128, #129,
+#136, #137, #145 e #159 registram essa fronteira de compatibilidade.
 
-`PENDENTE DE DEFINIÇÃO`: dependências exatas entre OC79–OC84 serão definidas nas
-Issues da versão.
+### Hierarquia de perfis do LoadX na v1.2.0
 
-`DECISÃO NECESSÁRIA`: definir política de retenção, armazenamento, acesso,
-proteção e remoção das evidências de entrega antes de implementar storage real.
+`CONFIRMADO` (08/10/2026): `ADMIN` é superconjunto de funções gerenciais e de
+conferência **internas ao LoadX**; `LOGISTICS_MANAGER` fica restrito à gestão
+operacional e não pode administrar usuários, credenciais de terceiros,
+configuração institucional, segurança de conta ou perfis/permissões. `CHECKER`
+opera conferência e `DRIVER` operações próprias validadas por vínculo.
 
-`CONFIRMADO`: mensagens externas não escrevem diretamente no banco. Qualquer
-ação operacional passa pelos services e regras de domínio existentes.
+O ajuste da matriz fixa do backend/frontend e dos contratos ocorre antes da
+OC85/OC86 para evitar divergências de autorização nos novos componentes.
+OC112 continua encarregada dos perfis personalizados, catálogo de permissões
+logísticas e migração de RBAC. Nem `ADMIN` nem perfil customizado obtém direito
+de plataforma, SSO, tenant ou entitlement CoreFlow; todas as regras de domínio,
+auditoria e autoria das ações continuam obrigatórias.
+
+## Planejamento aprovado
+
+| OC | Issue | Responsável | Entrega planejada |
+|---|---:|---|---|
+| OC79 | #122 | Rennan | Segurança, autorização e idempotência de comandos externos |
+| OC80 | #123 | Rennan | Contrato de evidências e comprovante de entrega |
+| OC81 | #124 | Marlon | Interface de comprovante e comunicação operacional |
+| OC82 | #125 | Marcelo | Adapter mock de WhatsApp; integração real adiada para #193 |
+| OC83 | #126 | Marcelo | Webhook, recebimento de mensagens e mídia |
+| OC84 | #127 | Marcelo | Notificações internas reais; canal WhatsApp mock |
+| OC85 | #128 | Marlon | Área de configurações administrativas |
+| OC86 | #129 | Marlon | Gestão de usuários pelo administrador |
+| OC87 | #130 | Rennan | Modelo e regras para planejamento multi-caminhão |
+| OC88 | #131 | João | Otimização automática com múltiplos caminhões |
+| OC89 | #132 | Marlon | Planejamento multi-caminhão no frontend |
+| OC90 | #133 | Marcelo | Fluxo operacional e auditoria do multi-caminhão |
+| OC91 | #136 | Rennan | Configurações gerais da empresa atual |
+| OC92 | #137 | Rennan | Meu perfil, alteração de senha e sessões |
+| OC93 | #138 | Marlon | Central de carregamentos, viagens e entregas |
+| OC94 | #139 | Marcelo | Exceções operacionais, reentrega e cancelamento |
+| OC95 | #140 | João | Busca e filtros avançados no servidor |
+| OC96 | #141 | Marcelo | Relatórios gerenciais e exportações |
+| OC97 | #144 | Rennan | Histórico e auditoria do sistema |
+| OC98 | #145 | Rennan | Recuperação de senha e autenticação multifator |
+| OC99 | #146 | Rennan | Múltiplos endereços por cliente |
+| OC100 | #147 | Rennan | Manutenção e disponibilidade programada da frota |
+| OC101 | #148 | Rennan | Documentos e vencimentos dos caminhões |
+| OC102 | #149 | Rennan | Documentos e vencimentos dos motoristas |
+| OC103 | #150 | Rennan | Central de notificações no sistema |
+| OC104 | #151 | Rennan | Importação em massa de cadastros |
+| OC105 | #152 | Rennan | Arquivamento e reativação de cadastros |
+| OC106 | #153 | Rennan | Agenda operacional de carregamentos, viagens e entregas |
+| OC107 | #154 | Rennan | Busca global do sistema |
+| OC108 | #155 | Rennan | Painel de integrações e saúde operacional |
+| OC109 | #156 | Rennan | Fila de eventos, retentativas e reprocessamento |
+| OC110 | #157 | Rennan | Anexos e documentos operacionais |
+| OC111 | #158 | Rennan | Linha do tempo unificada da operação |
+| OC112 | #159 | Rennan | Perfis e permissões administrativas flexíveis |
+
+Planejamento detalhado:
+
+`docs/planejamento/v1.2.0/00-visao-geral.md`
+
+WhatsApp real foi adiado para a pré-produção (#193). A OC83 pode entregar webhook interno funcional e autenticado; a OC84 produzirá notificações reais do domínio, mantendo o envio externo simulado. A IA poderá usar integração real aprovada com credenciais protegidas. Ver ADR-037.
+
+## Dependências principais
+
+`CONFIRMADO`:
+
+- OC79 fornece a base de segurança e idempotência para OC82, OC83 e OC84;
+- OC80 define o contrato de evidências consumido por OC81, OC83 e OC110;
+- OC85 fornece a área de navegação para OC86, OC91 e OC92;
+- OC87 define o modelo e as regras transacionais que bloqueiam OC88, OC89 e OC90;
+- OC94 depende de OC87 e OC84; OC93 e OC96 dependem da consolidação de OC90/OC94;
+- OC98 depende da base de conta e sessões da OC92;
+- OC103 depende das notificações operacionais reais da OC84;
+- OC106 depende da central operacional da OC93;
+- OC107 reutiliza a busca server-side definida na OC95;
+- OC108 depende da base de integração da OC82 e incorpora os demais estados quando disponíveis;
+- OC109 depende da notificação real da OC84 e permanece compatível com OC82/OC83;
+- OC111 agrega auditoria e central operacional, dependendo de OC97 e OC93; as exceções chegam por OC93/OC94;
+- OC112 depende da gestão de usuários da OC86;
+- OC97, OC99, OC100, OC101, OC102, OC104 e OC105 podem evoluir sem bloqueador funcional novo.
 
 ## Resultado esperado
 
-O sistema poderá enviar e receber comunicações reais e registrar evidências de
-entrega sem contornar autenticação, autorização ou regras de negócio.
+Ao encerrar a v1.2.0, o LoadX deverá:
+
+- possuir administração interna, configurações, gestão de usuários, perfil e segurança de conta;
+- suportar comunicação real, evidências, anexos e integrações resilientes;
+- operar carga em um ou vários caminhões preservando rastreabilidade;
+- oferecer central operacional, agenda, exceções, reentrega e cancelamento;
+- possuir manutenção, documentos e vencimentos de frota e motoristas;
+- permitir múltiplos endereços por cliente e importação/arquivamento de cadastros;
+- oferecer busca por módulo e busca global no servidor;
+- apresentar auditoria, linha do tempo, notificações internas e relatórios gerenciais;
+- expor saúde das integrações ao ADMIN sem revelar segredos;
+- permitir perfis administrativos flexíveis sem retirar a autorização do backend.
 
 ---
+# v1.3.0 — Multi-tenancy logístico e integração com CoreFlow
 
-# v1.3.0 — Rastreamento e acompanhamento em tempo real
+`RECOMENDAÇÃO`: evoluir o LoadX de produto monoempresa para **módulo logístico
+multi-tenant**, capaz de operar integrado ao CoreFlow sem duplicar o control plane
+da plataforma.
+
+`CONFIRMADO`: esta seção é **roadmap, não planejamento executável**. Nenhuma OC ou
+Issue funcional da v1.3.0 foi criada ou reservada.
+
+## Ownership no alvo integrado
+
+### CoreFlow — control plane
+
+O CoreFlow deverá ser a fonte de verdade para:
+
+- organização/tenant e estado da empresa;
+- identidade global do usuário;
+- acesso do usuário à organização;
+- licenciamento e entitlement de acesso ao módulo LoadX;
+- administração de plataforma;
+- futuro Membership quando necessário.
+
+### LoadX — domínio logístico
+
+O LoadX continuará sendo a fonte de verdade para:
+
+- clientes e dados logísticos necessários ao módulo;
+- pedidos e volumes;
+- caminhões, motoristas e frota;
+- planejamento, packing e otimização;
+- carregamentos, viagens e entregas;
+- ocorrências, evidências e anexos;
+- permissões logísticas internas;
+- integrações e configurações específicas da operação logística.
+
+`CONFIRMADO`: CoreFlow e LoadX permanecem aplicações e bancos independentes.
+Integração ocorre por API/contrato seguro e, quando aplicável, eventos. Nenhum
+serviço acessa diretamente as tabelas do outro.
+
+## Direção arquitetural
+
+- adicionar um identificador estável de tenant/organização às entidades de domínio do LoadX;
+- fazer backfill dos dados monoempresa atuais para um tenant inicial;
+- aplicar escopo de tenant em clientes, motoristas, caminhões, produtos, pedidos,
+  planos, carregamentos, viagens, entregas, ocorrências, relatórios, evidências,
+  anexos, notificações, auditoria e configurações logísticas;
+- revisar unicidades atuais para que valores como documento, placa e identificadores
+  de negócio tenham escopo correto por tenant quando a regra permitir;
+- resolver tenant sempre a partir de contexto autenticado/confiável, nunca de
+  parâmetro livre enviado pelo cliente;
+- criar testes negativos obrigatórios provando que Tenant A não lê, altera ou
+  relaciona dados do Tenant B;
+- definir um vínculo estável entre o tenant do CoreFlow e o tenant local do LoadX,
+  preferencialmente preservando o mesmo UUID quando o contrato aprovado permitir;
+- definir contrato de lançamento/SSO em que o CoreFlow autoriza o acesso ao módulo e
+  o LoadX cria/valida sua própria sessão; secrets de sessão não são compartilhados;
+- separar entitlement de plataforma de permissões logísticas do LoadX;
+- manter compatibilidade standalone somente enquanto for necessária e explicitamente
+  suportada, sem espalhar condicionais pelos domínios;
+- manter integrações externas atrás de ports/adapters e preparar outbox/idempotência
+  para comunicação confiável com a plataforma.
+
+## O que não pertence ao LoadX v1.3
+
+Não criar no LoadX um segundo control plane para:
+
+- SUPERADMIN de plataforma;
+- catálogo global de organizações;
+- planos comerciais;
+- billing SaaS;
+- Module Registry;
+- licenciamento global;
+- entitlement de módulos;
+- credencial global duplicada quando o CoreFlow for a fonte de identidade.
+
+Essas capacidades pertencem ao CoreFlow no modo integrado.
+
+## Compatibilidade de usuários e permissões
+
+Os perfis atuais do LoadX continuam representando responsabilidades logísticas.
+No alvo integrado:
+
+```text
+CoreFlow
+  entitlement: loadx.access
+        ↓
+LoadX
+  permissões logísticas efetivas
+```
+
+Não assumir conversão direta entre `admin/manager/staff` do CoreFlow e
+`ADMIN/LOGISTICS_MANAGER/CHECKER/DRIVER` do LoadX. O contrato de integração deverá
+definir vínculo explícito de usuário e permissões do módulo.
+
+## Distribuição candidata
+
+| OC | Responsável principal | Capacidade planejada |
+|---|---|---|
+| A definir | **Rennan** | ADR conjunta CoreFlow↔LoadX, tenant_id, migrations, autorização e isolamento |
+| A definir | João | Revisão de queries, índices, unicidades e desempenho tenant-scoped |
+| A definir | Marlon | Contexto visual da organização e experiência de entrada no módulo |
+| A definir | Marcelo | SSO/module launch, eventos, integrações e observabilidade entre sistemas |
+
+## Pré-requisitos antes de abrir Issues da v1.3
+
+- definir no CoreFlow o contrato mínimo de módulo externo e entitlement do LoadX;
+- definir ownership de identidade, organização e permissões;
+- definir contrato de tenant e identificadores compartilhados;
+- definir estratégia de SSO/module launch sem compartilhar segredo de sessão;
+- definir modo de compatibilidade standalone durante a transição;
+- aprovar ADR conjunta nos dois repositórios;
+- inventariar todas as tabelas/queries do LoadX que precisarão de escopo tenant;
+- definir migration/backfill e rollback antes de tocar o schema.
+
+`DECISÃO NECESSÁRIA`: Membership multi-organização do CoreFlow não precisa bloquear
+o primeiro piloto se o contrato atual User→Tenant for suficiente. Porém, nenhum
+contrato do LoadX deve impedir a adoção posterior de Membership.
+
+`RECOMENDAÇÃO`: manter bancos PostgreSQL separados. O LoadX pode usar banco
+compartilhado entre seus próprios tenants com coluna tenant_id, enquanto CoreFlow
+mantém seu banco independente.
+
+`PENDENTE DE DEFINIÇÃO`: contrato exato de SSO/module launch, service-to-service
+authentication, sincronização/vínculo de usuários, estratégia de eventos, lifecycle
+de tenant desativado e eventual mapeamento entre Person do CoreFlow e Customer do LoadX.
+---
+
+# v1.4.0 — Rastreamento e acompanhamento em tempo real
 
 `RECOMENDAÇÃO`: evolução destinada à localização de viagens, ETA e
 acompanhamento operacional.
@@ -206,11 +413,11 @@ acompanhamento operacional.
 | A definir | **Rennan** | Modelo de localização, histórico e API de posição |
 | A definir | João | ETA, risco de atraso e previsão operacional |
 | A definir | Marlon | Mapa operacional e acompanhamento para cliente |
-| A definir | Marcelo | Ingestão de localização, adapter externo e notificações |
+| A definir | Marcelo | Ingestão de localização, adaptador externo e notificações |
 
 `DECISÃO NECESSÁRIA`: antes da implementação, definir a fonte da localização.
 As opções podem incluir dispositivo móvel, plataforma de telemetria, equipamento
-GPS ou provider externo.
+GPS ou provedor externo.
 
 O domínio de localização não deve depender diretamente de um fornecedor
 específico.
@@ -220,7 +427,7 @@ precisão necessária, geofencing, privacidade e tratamento de perda de sinal.
 
 ---
 
-# v1.4.0 — Roteirização e custos logísticos
+# v1.5.0 — Roteirização e custos logísticos
 
 `RECOMENDAÇÃO`: evolução destinada ao planejamento geográfico e econômico das
 viagens.
@@ -230,7 +437,7 @@ viagens.
 | A definir | **Rennan** | Contratos de rota, trechos, custos e persistência |
 | A definir | João | Algoritmo de roteirização e modelo de custos |
 | A definir | Marlon | Planejador visual e dashboard de eficiência |
-| A definir | Marcelo | Adapter geográfico externo, alertas e relatórios |
+| A definir | Marcelo | Adaptador geográfico externo, alertas e relatórios |
 
 Objetivos possíveis:
 
@@ -243,49 +450,13 @@ Objetivos possíveis:
 - quantidade de veículos;
 - custo estimado da operação.
 
-`DECISÃO NECESSÁRIA`: definir se o núcleo utilizará cálculo próprio, provider
+`DECISÃO NECESSÁRIA`: definir se o núcleo utilizará cálculo próprio, provedor
 geográfico externo ou composição dos dois.
 
 `CONFIRMADO`: sequência de carregamento e sequência geográfica de entregas são
 problemas diferentes e não devem ser misturados.
 
 ---
-
-# v1.5.0 — Otimização global da frota e múltiplos caminhões
-
-`RECOMENDAÇÃO`: permitir que uma mesma necessidade logística seja distribuída
-entre mais de um veículo.
-
-| OC | Responsável principal | Capacidade planejada |
-|---|---|---|
-| A definir | **Rennan** | Modelo de dados, cardinalidades e regras transacionais multi-veículo |
-| A definir | João | Distribuição de volumes e otimização global da frota |
-| A definir | Marlon | Planejamento multi-veículo no frontend |
-| A definir | Marcelo | Auditoria, relatórios e testes E2E do fluxo |
-
-Objetivos de otimização candidatos, nesta ordem:
-
-1. completar integralmente a carga;
-2. minimizar a quantidade de veículos;
-3. respeitar conflitos e disponibilidade;
-4. considerar eficiência de ocupação e capacidade.
-
-`DECISÃO NECESSÁRIA`: nenhuma implementação multi-veículo deve começar antes de
-uma ADR específica definir:
-
-- cardinalidade entre pedido, plano, viagem e entrega;
-- rastreabilidade por volume;
-- aprovação de planos parciais;
-- divisão e recomposição de entregas;
-- histórico;
-- estratégia de migration;
-- compatibilidade dos contratos existentes.
-
-`RISCO IDENTIFICADO`: esta versão altera premissas centrais do modelo atual e
-tem potencial de quebrar contratos se for implementada sem essa definição.
-
----
-
 # v1.6.0 — Inteligência artificial avançada
 
 `RECOMENDAÇÃO`: ampliar o uso de IA para interpretação, explicação, previsão e
@@ -448,24 +619,22 @@ Uma versão somente deve ser considerada pronta para promoção quando:
 10. Planejamento futuro não é autorização automática de implementação.
 11. Numeração de OC não é reutilizada.
 12. O SemVer da release é decidido pelo tipo real da mudança.
+13. No modo integrado futuro, identidade, organização e licenciamento de plataforma pertencem ao CoreFlow; o LoadX preserva ownership do domínio logístico.
+14. CoreFlow e LoadX não compartilham tabelas nem secrets de sessão; integração ocorre por contratos explícitos.
 
 ---
 
-# Próximo ciclo
+# Ciclo atual — v1.2.0
 
-Enquanto a v1.1.0 estiver aberta:
+`CONFIRMADO`: a v1.1.0 foi publicada. O próximo ciclo funcional é a v1.2.0,
+com OC79–OC112 e Issues #122–#133, #136–#141 e #144–#159.
 
-- finalizar as OCs restantes;
-- validar integração da versão;
-- evitar incluir funcionalidades da v1.2.0 em PRs da v1.1.0;
-- registrar novas descobertas neste roadmap ou em documentação específica.
+Antes da implementação:
 
-Após a conclusão da v1.1.0:
-
-1. confirmar o fechamento da release;
-2. abrir o milestone v1.2.0;
-3. criar as Issues OC79–OC84;
-4. detalhar critérios de aceite;
-5. definir dependências;
-6. adicionar as OCs ao Project;
-7. liberar as primeiras OCs sem bloqueadores.
+1. criar/confirmar o milestone `v1.2.0`;
+2. vincular #122–#133, #136–#141 e #144–#159 ao milestone;
+3. adicionar #122–#133, #136–#141 e #144–#159 ao Project `LoadX — Desenvolvimento`;
+4. configurar os status iniciais conforme as dependências;
+5. liberar somente as OCs sem bloqueadores;
+6. iniciar cada ocorrência em branch própria a partir de `desenvolvimento`;
+7. integrar por PR e validar CI, segurança, contratos e documentação.

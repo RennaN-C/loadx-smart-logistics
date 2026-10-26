@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getLoadPlanVisualization } from "../../load-planning/api/loadPlansApi";
@@ -164,4 +164,29 @@ describe("LoadViewer — passo a passo", () => {
 
     await waitFor(() => expect(ultimaCena().visibleIds).toBeNull());
   });
+});
+
+
+it("oferece nova consulta da cena após falha, sem calcular", async () => {
+  vi.mocked(getLoadPlanVisualization).mockReset().mockRejectedValueOnce(new Error("Falha temporária")).mockResolvedValue(VIEW);
+  render(<LoadViewer planId="lp1" plan={PLAN} />);
+  expect(await screen.findByRole("alert")).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Tentar carregar visualização novamente" }));
+  expect(await screen.findByTestId("cena")).toBeInTheDocument();
+  expect(getLoadPlanVisualization).toHaveBeenCalledTimes(2);
+});
+
+
+it("remonta a cena ao mudar de plano e não apresenta volumes anteriores", async () => {
+  vi.mocked(getLoadPlanVisualization).mockReset();
+  let finish!: (value: LoadPlanVisualization) => void;
+  vi.mocked(getLoadPlanVisualization).mockReturnValueOnce(new Promise((resolve) => { finish = resolve; })).mockResolvedValueOnce(VIEW);
+  const view = render(<LoadViewer key="first" planId="lp1" plan={PLAN} />);
+  // The first deferred response belongs to the old vehicle and must be ignored.
+  view.rerender(<LoadViewer key="second" planId="lp2" plan={{ ...PLAN, id: "lp2" }} />);
+  await screen.findByTestId("cena");
+  await act(async () => finish({ ...VIEW, truck: { ...TRUCK, plate: "OLD0X00" } }));
+  expect(ultimaCena().truck.plate).toBe(TRUCK.plate);
+  expect(ultimaCena().items.map((volume) => volume.id)).toEqual(VIEW.items.map((volume) => volume.id));
+  expect(getLoadPlanVisualization).toHaveBeenNthCalledWith(2, "lp2");
 });

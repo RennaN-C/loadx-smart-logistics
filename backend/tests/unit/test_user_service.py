@@ -4,9 +4,12 @@ import pytest
 from sqlalchemy.orm import Session
 
 from app.core.security import verify_password
+from app.modules.access_profiles.models import AccessProfile
 from app.modules.auth.models import AuthSession
 from app.modules.auth.sessions import AuthSessionService
-from app.modules.drivers.models import Driver
+from app.modules.drivers.models import (
+    Driver,
+)
 from app.modules.users.models import User
 from app.modules.users.schemas import UserCreate, UserUpdate
 from app.modules.users.service import (
@@ -19,7 +22,12 @@ from app.modules.users.service import (
     UserService,
 )
 
-SQLITE_TABLES = (Driver.__table__, User.__table__, AuthSession.__table__)
+SQLITE_TABLES = (
+    Driver.__table__,
+    AccessProfile.__table__,
+    User.__table__,
+    AuthSession.__table__,
+)
 
 
 def make_user_create(

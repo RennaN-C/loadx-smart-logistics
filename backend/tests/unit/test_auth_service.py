@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.pagination import PaginationParams
 from app.core.security import verify_password
+from app.modules.access_profiles.models import AccessProfile
 from app.modules.auth.models import AuthLoginThrottle, AuthSession
 from app.modules.auth.schemas import AuthLogin
 from app.modules.auth.service import (
@@ -14,13 +15,22 @@ from app.modules.auth.service import (
     AuthInvalidCredentialsError,
     AuthService,
 )
-from app.modules.drivers.models import Driver
+from app.modules.drivers.models import (
+    Driver,
+    DriverDocument,
+    DriverDocumentPolicy,
+    DriverDocumentType,
+)
 from app.modules.users.models import User
 from app.modules.users.schemas import UserCreate
 from app.modules.users.service import UserService
 
 SQLITE_TABLES = (
     Driver.__table__,
+    DriverDocumentType.__table__,
+    DriverDocument.__table__,
+    DriverDocumentPolicy.__table__,
+    AccessProfile.__table__,
     User.__table__,
     AuthLoginThrottle.__table__,
     AuthSession.__table__,
@@ -42,6 +52,9 @@ def make_user_create(
 
 def test_login_returns_opaque_session_for_active_user(db_session: Session) -> None:
     UserService(db_session).create_user(make_user_create())
+    user = db_session.query(User).one()
+    user.role = "CHECKER"
+    db_session.commit()
     service = AuthService(db_session)
 
     result = service.login(
@@ -133,3 +146,17 @@ def test_login_rejects_inactive_user(db_session: Session) -> None:
         service.login(
             AuthLogin(email="admin@example.test", password="senha-local-segura")
         )
+
+
+def test_own_profile_preserves_password_spaces_during_reauthentication():
+    from app.modules.auth.schemas import OwnProfileUpdate
+
+    value = OwnProfileUpdate(
+        name=" Nome ",
+        email=" A@example.test ",
+        current_password=" senha-com-espacos ",
+        second_factor="123456",
+    )
+    assert value.name == "Nome"
+    assert value.email == "a@example.test"
+    assert value.current_password == " senha-com-espacos "

@@ -2,7 +2,7 @@ import uuid
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from sqlalchemy import select
+from sqlalchemy import Select, func, select
 from sqlalchemy.orm import Session
 
 from app.modules.deliveries.models import Delivery, Trip
@@ -30,6 +30,51 @@ class DeliveryReferenceService:
 
     def __init__(self, db: Session) -> None:
         self.db = db
+
+    @staticmethod
+    def plan_operation_projection():
+        """Composable public projection; no recipient or driver personal data."""
+        legs = (
+            select(
+                Delivery.trip_id,
+                func.count().label("delivery_count"),
+                func.count()
+                .filter(Delivery.status == "DELIVERED")
+                .label("delivered_leg_count"),
+            )
+            .group_by(Delivery.trip_id)
+            .subquery()
+        )
+        return (
+            select(
+                Trip.load_plan_id,
+                Trip.id.label("trip_id"),
+                Trip.status.label("trip_status"),
+                func.coalesce(legs.c.delivery_count, 0).label("delivery_count"),
+                func.coalesce(legs.c.delivered_leg_count, 0).label(
+                    "delivered_leg_count"
+                ),
+            )
+            .outerjoin(legs, legs.c.trip_id == Trip.id)
+            .subquery()
+        )
+
+    @staticmethod
+    def delivered_order_ids():
+        """Orders with any delivered leg; this does not mean fully delivered."""
+        return select(Delivery.order_id).where(Delivery.status == "DELIVERED")
+
+    def trip_ids_for_driver(self, driver_id: uuid.UUID) -> Select[tuple[uuid.UUID]]:
+        """Composable ownership scope; callers must also validate the active identity."""
+        return TripRepository(self.db).ids_for_driver(driver_id)
+
+    def get_trip_for_notification(self, trip_id: uuid.UUID) -> Trip | None:
+        """Lock the current operational recipient during notification processing."""
+        return TripRepository(self.db).get_for_update(trip_id)
+
+    def get_trip_for_load_plan(self, load_plan_id: uuid.UUID) -> Trip | None:
+        """Exact lookup, including finished trips; never scans the global list."""
+        return TripRepository(self.db).get_by_load_plan_id(load_plan_id)
 
     def get_delivery(self, delivery_id: uuid.UUID) -> Delivery | None:
         return self.db.get(Delivery, delivery_id)
@@ -65,7 +110,7 @@ class DeliveryReferenceService:
         """Return at most two trips; two also signal ambiguous legacy allocation."""
         return TripRepository(self.db).list_driver_trips(
             driver_id,
-            statuses=("SCHEDULED", "IN_ROUTE"),
+            statuses=("SCHEDULED", "IN_ROUTE", "INTERRUPTED"),
             exclude_trip_id=exclude_trip_id,
         )
 

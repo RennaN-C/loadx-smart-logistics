@@ -1,5 +1,5 @@
 import { api } from "../../../services/api";
-import { mapPageFromDto, toPageQuery, type ListParams, type PageDto } from "../../../services/pagination";
+import { mapPageFromDto, toPageQuery, toSearchQuery, type SearchListParams, type ListParams, type PageDto } from "../../../services/pagination";
 import type { Page } from "../../../types/api";
 import type {
   Truck,
@@ -18,6 +18,9 @@ interface TruckDto {
   max_weight_kg: number;
   active: boolean;
   created_at: string;
+  odometer_km?: number | null;
+  next_service_at?: string | null;
+  next_service_km?: number | null;
 }
 
 export function mapTruckFromDto(dto: TruckDto): Truck {
@@ -31,6 +34,9 @@ export function mapTruckFromDto(dto: TruckDto): Truck {
     maxWeightKg: dto.max_weight_kg,
     active: dto.active,
     createdAt: dto.created_at,
+    ...(dto.odometer_km !== undefined ? { odometerKm: dto.odometer_km } : {}),
+    ...(dto.next_service_at !== undefined ? { nextServiceAt: dto.next_service_at } : {}),
+    ...(dto.next_service_km !== undefined ? { nextServiceKm: dto.next_service_km } : {}),
   };
 }
 
@@ -43,6 +49,7 @@ function mapTruckToDto(input: TruckUpdateInput): Partial<TruckDto> {
   if (input.internalHeightCm !== undefined) dto.internal_height_cm = input.internalHeightCm;
   if (input.internalLengthCm !== undefined) dto.internal_length_cm = input.internalLengthCm;
   if (input.maxWeightKg !== undefined) dto.max_weight_kg = input.maxWeightKg;
+  if (input.odometerKm !== undefined) dto.odometer_km = input.odometerKm;
   if (input.active !== undefined) dto.active = input.active;
 
   return dto;
@@ -52,8 +59,8 @@ export function mapTruckPageFromDto(dto: PageDto<TruckDto>): Page<Truck> {
   return mapPageFromDto(dto, mapTruckFromDto);
 }
 
-export async function listTrucks(params: ListParams = {}): Promise<Page<Truck>> {
-  const { data } = await api.get<PageDto<TruckDto>>("/trucks", { params: toPageQuery(params) });
+export async function listTrucks(params: SearchListParams = {}): Promise<Page<Truck>> {
+  const { data } = await api.get<PageDto<TruckDto>>("/trucks", { params: { ...toPageQuery(params), ...toSearchQuery(params), ...(params.archiveStatus ? { archive_status: params.archiveStatus } : {}) } });
 
   return mapTruckPageFromDto(data);
 }
@@ -76,6 +83,8 @@ interface TruckOperationalStatusDto {
   model: string;
   active: boolean;
   has_operation_conflict: boolean;
+  has_document_conflict?: boolean;
+  has_maintenance_conflict?: boolean;
   available: boolean;
 }
 
@@ -87,6 +96,8 @@ function mapOperationalStatusFromDto(dto: TruckOperationalStatusDto): TruckOpera
     active: dto.active,
     hasOperationConflict: dto.has_operation_conflict,
     available: dto.available,
+    ...(dto.has_document_conflict !== undefined ? { hasDocumentConflict: dto.has_document_conflict } : {}),
+    ...(dto.has_maintenance_conflict !== undefined ? { hasMaintenanceConflict: dto.has_maintenance_conflict } : {}),
   };
 }
 
@@ -105,4 +116,9 @@ export async function listTruckOperationalStatus(
   });
 
   return mapPageFromDto(data, mapOperationalStatusFromDto);
+}
+
+export async function getTruck(id: string): Promise<Truck> {
+  const { data } = await api.get<TruckDto>(`/trucks/${id}`);
+  return mapTruckFromDto(data);
 }

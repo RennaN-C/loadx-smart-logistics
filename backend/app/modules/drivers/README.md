@@ -25,7 +25,7 @@ Crie somente os arquivos necessários para a ocorrência atual.
 - `GET /api/v1/drivers/{id}`: consulta motorista por ID.
 - `PATCH /api/v1/drivers/{id}`: atualiza campos enviados.
 
-`CONFIRMADO`: `ADMIN` e `LOGISTICS_MANAGER` podem consultar. Somente `LOGISTICS_MANAGER` pode criar ou atualizar. `CHECKER` e `DRIVER` não acessam o módulo.
+`CONFIRMADO`: `ADMIN` e `LOGISTICS_MANAGER` podem consultar. `ADMIN` e `LOGISTICS_MANAGER` podem criar ou atualizar. `CHECKER` e `DRIVER` não acessam o módulo.
 
 ## Regras implementadas
 
@@ -41,7 +41,7 @@ Crie somente os arquivos necessários para a ocorrência atual.
 - `CONFIRMADO`: PATCH preserva campos omitidos, mas rejeita `null` em
   documento, CNH e telefone. Falhas usam o erro Pydantic padrão, HTTP `422`.
 - `license_category` é opcional e normalizada para maiúsculas quando informada.
-- `active = false` representa motorista indisponível para viagens futuras.
+- `active = false` representa motorista arquivado para viagens futuras.
 - O módulo de viagens bloqueia o motorista durante a criação e rejeita motorista
   inativo.
 - O vínculo de identidade fica em `users.driver_id`, não em `drivers`.
@@ -75,3 +75,47 @@ contrato HTTP em `GET /api/v1/trucks/operational-status`.
 fronteira já usada pelos caminhões. O endpoint lista os motoristas e consulta
 `FleetAvailabilityService.get_driver_availability`; não reproduz a regra de
 conflito da OC65 e não persiste disponibilidade.
+
+## OC105 — arquivamento lógico
+
+`CONFIRMADO`: `active=false` significa arquivado, sem DELETE e sem remoção de
+referências históricas. PATCH com `active=true` reativa, validando o cadastro
+completo e mantendo as unicidades globais. ADMIN e LOGISTICS_MANAGER escrevem.
+Alterações de estado registram ator, entidade e campo `active` na auditoria,
+na mesma transação; repetições não criam eventos duplicados.
+
+`CONFIRMADO`: a coleção usa `archive_status=active|archived|all`, default
+`active`, filtrado no PostgreSQL antes da paginação. Consulta por ID não esconde
+arquivados. Os contratos de disponibilidade mantêm a visão de cadastro e
+conflito separados; operações existentes preservam histórico e RBAC.
+
+## OC102 — histórico documental e validade CNH
+
+`CONFIRMADO`: models inclui tipos aprovados, versões e políticas. document_*
+mantêm regras no módulo; document_history compartilha staging com CRUD atual,
+versionando número/categoria/validade e projetando CNH corrente no cadastro.
+Migração faz backfill sem inventar validade. Shared/document_validity concentra
+a regra temporal da OC101; sem importar tabelas internas de trucks.
+DriverService.has_document_conflict(at=...) e ensure_operational_eligibility
+compõem reserva/início de viagem e disponibilidade. Categoria aceita é
+configuração explícita, sem classificação inferida do veículo; CNH exigida sem
+validade/categoria conhecida é inelegível. Tipo adicional aprovado por gestor,
+política inicialmente desligada. Constraints/locks/auditoria/rollback preservam
+identidade, unicidade CNH e histórico. Sem DELETE/storage/DETRAN/notificação.
+ADMIN/LOGISTICS_MANAGER consultam e gerenciam; CHECKER/DRIVER continuam negados.
+ADR-032, head 20261009_0020.
+
+## OC95 — busca e filtros antes da paginação
+
+`CONFIRMADO`: GET da coleção aceita `search` opcional por name.
+Trim no servidor; vazio equivale à ausência. Substring case-insensitive de até
+120 caracteres após trim; `%`, `_` e `\` literais via SQLAlchemy parametrizado.
+Combina com archive_status; documento, telefone e license_number/CNH são proibidos.
+COUNT e SELECT usam os mesmos predicados antes de OFFSET/LIMIT; ordenação
+created_at/id na mesma direção. Envelope, RBAC e schemas detalhados/resumidos
+permanecem preservados, sem novos dados pessoais.
+Contrato completo: [docs/05](../../../../docs/05-contratos-api.md).
+
+`CONFIRMADO` (OC86): `names_for_ids` é projeção pública de IDs/nomes de uma
+página de vínculos, usada pelo UserService na gestão ADMIN-only. Não retorna
+telefone/documentos/CNH, não materializa a tabela e não adiciona endpoint.

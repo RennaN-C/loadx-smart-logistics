@@ -1,28 +1,34 @@
-import { useMemo, useState } from "react";
+import { useUrlSearch } from "../../../hooks/useUrlSearch";
+import { ImportAction } from "../../registration-imports/components/ImportAction";
+import { useCallback, useState } from "react";
 
 import { AlertBanner } from "../../../components/AlertBanner";
 import { Modal } from "../../../components/Modal";
+import { MAX_SEARCH_LENGTH, type ListParams } from "../../../services/pagination";
 import { Pagination } from "../../../components/Pagination";
 import { StatusPill } from "../../../components/StatusPill";
 import { useEditTarget } from "../../../hooks/useEditTarget";
-import { useResourceList } from "../../../hooks/useResourceList";
+import { useRegistryList } from "../../../hooks/useRegistryList";
+import { ArchiveFilter } from "../../../components/ArchiveFilter";
+import { RecordLifecycleAction } from "../../../components/RecordLifecycleAction";
 import { useAuth } from "../../auth/hooks/useAuth";
+import { canManageLogistics, hasPermission } from "../../auth/permissions";
 import { getDriver, listDrivers } from "../api/driversApi";
-import type { Driver, DriverListItem } from "../types";
+import type { DriverListItem, Driver } from "../types";
+import { DocumentsPanel } from "./DocumentsPanel";
 import { DriverForm } from "./DriverForm";
 import { mapDriverErrorToMessage } from "./driversErrorMessages";
 import { Icon } from "../../../components/Icon";
-
-type StatusFilter = "all" | "active" | "inactive";
-
-function matchesStatus(driver: DriverListItem, filter: StatusFilter): boolean {
-  if (filter === "active") return driver.active;
-  if (filter === "inactive") return !driver.active;
-  return true;
-}
+import { RowActions } from "../../../components/RowActions";
+import "../../../components/RegistryTable.css";
 
 export function DriverPanel() {
   const { user } = useAuth();
+  const [search, setSearch] = useUrlSearch();
+  const filteredLoad = useCallback((params: ListParams) => listDrivers({
+    ...params,
+    search,
+  }), [search]);
   const {
     status,
     items: drivers,
@@ -32,24 +38,15 @@ export function DriverPanel() {
     total,
     totalPages,
     goToPage,
-  } = useResourceList(listDrivers);
+    archiveStatus,
+    setArchiveStatus,
+  } = useRegistryList(filteredLoad);
   const edit = useEditTarget<Driver>(getDriver);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [documentsDriver, setDocumentsDriver] = useState<DriverListItem | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
-  const canManage = user?.role === "LOGISTICS_MANAGER";
+  const canManage = canManageLogistics(user, "drivers");
   const isFormOpen = isCreating || edit.target !== null;
-
-  // Só nome: a listagem não traz documento nem CNH.
-  const visibleDrivers = useMemo(() => {
-    const term = search.trim().toLowerCase();
-
-    return drivers.filter(
-      (driver) =>
-        (term === "" || driver.name.toLowerCase().includes(term)) && matchesStatus(driver, statusFilter),
-    );
-  }, [drivers, search, statusFilter]);
 
   function closeForm() {
     setIsCreating(false);
@@ -63,23 +60,18 @@ export function DriverPanel() {
 
   return (
     <>
-      <div className="entity-toolbar">
+      <div className="entity-toolbar contact-filterbar">
+        <ImportAction enabled={hasPermission(user, "loadx.imports.manage")} entity="drivers" onImported={refetch} />
+        <ArchiveFilter value={archiveStatus} onChange={setArchiveStatus} />
         <input
           type="search"
           aria-label="Buscar motorista por nome"
           placeholder="Buscar por nome"
           value={search}
-          onChange={(event) => setSearch(event.target.value)}
+          onChange={(event) => { goToPage(1); setSearch(event.target.value); }}
+          maxLength={MAX_SEARCH_LENGTH}
         />
-        <select
-          aria-label="Filtrar motoristas por status"
-          value={statusFilter}
-          onChange={(event) => setStatusFilter(event.target.value as StatusFilter)}
-        >
-          <option value="all">Todos os status</option>
-          <option value="active">Somente ativos</option>
-          <option value="inactive">Somente inativos</option>
-        </select>
+
         {canManage ? (
           <button type="button" className="btn-primary" onClick={() => setIsCreating(true)}>
             <Icon name="plus" size={16} />
@@ -90,7 +82,7 @@ export function DriverPanel() {
 
       {status === "success" && total > 0 ? (
         <p className="entity-summary">
-          Exibindo {drivers.length} de {total} motoristas. Busca e filtro atuam nesta página.
+          Exibindo {drivers.length} de {total} motoristas. Busca e filtros consideram toda a lista.
         </p>
       ) : null}
 
@@ -101,54 +93,59 @@ export function DriverPanel() {
         </p>
       ) : null}
 
-      {status === "error" && error ? <AlertBanner>{mapDriverErrorToMessage(error)}</AlertBanner> : null}
+      {status === "error" && error ? <><AlertBanner>{mapDriverErrorToMessage(error)}</AlertBanner><button type="button" className="btn-secondary" onClick={() => void refetch()}>Tentar novamente</button></> : null}
       {edit.error ? <AlertBanner>{mapDriverErrorToMessage(edit.error)}</AlertBanner> : null}
 
-      {status === "success" && visibleDrivers.length === 0 ? (
+      {status === "success" && drivers.length === 0 ? (
         <p className="entity-state">
-          {drivers.length === 0
+          {search.trim() === "" && archiveStatus === "active" && total === 0
             ? "Nenhum motorista cadastrado ainda."
             : "Nenhum motorista encontrado com esses filtros."}
         </p>
       ) : null}
 
-      {visibleDrivers.length > 0 ? (
-        <div className="entity-grid">
-          {visibleDrivers.map((driver) => (
-            <article key={driver.id} className="contact-card">
-              <div className="contact-card-head">
-                <p className="contact-card-name">{driver.name}</p>
+      {drivers.length > 0 ? (
+        <div className="registry-table-wrap"><table className="registry-table contact-table">
+          <caption className="sr-only">Motoristas cadastrados</caption>
+          <thead><tr><th scope="col">Motorista</th><th scope="col">Categoria CNH</th><th scope="col">Situação</th><th scope="col">Ações</th></tr></thead>
+          <tbody>
+          {drivers.map((driver) => (
+            <tr key={driver.id}>
+              <td data-label="Motorista"><strong>{driver.name}</strong></td>
+              <td data-label="Categoria CNH">{driver.licenseCategory ?? "—"}</td>
+              <td data-label="Situação">
                 <StatusPill tone={driver.active ? "good" : "neutral"}>
-                  {driver.active ? "Ativo" : "Inativo"}
+                  {driver.active ? "Ativo" : "Arquivado"}
                 </StatusPill>
-              </div>
-              <dl className="contact-card-license">
-                <div>
-                  <dt>CATEGORIA</dt>
-                  <dd>{driver.licenseCategory ?? "—"}</dd>
-                </div>
-              </dl>
-              {canManage ? (
-                <div className="contact-card-foot">
-                  <button
-                    type="button"
-                    className="btn-link"
-                    disabled={edit.loadingId === driver.id}
-                    onClick={() => void edit.open(driver.id)}
-                  >
-                    {edit.loadingId === driver.id ? "Abrindo…" : "Editar"}
-                  </button>
-                </div>
-              ) : null}
-            </article>
+              </td>
+              <td data-label="Ações"><RowActions label={`Ações de ${driver.name}`}>
+                <button type="button" className="btn-link" onClick={() => setDocumentsDriver(driver)}>
+                  Documentos
+                </button>
+                {canManage ? (
+                  <>
+                    <RecordLifecycleAction resource="drivers" id={driver.id} active={driver.active} onChanged={refetch} />
+                    <button
+                      type="button"
+                      className="btn-link"
+                      disabled={edit.loadingId === driver.id}
+                      onClick={() => void edit.open(driver.id)}
+                    >
+                      {edit.loadingId === driver.id ? "Abrindo…" : "Editar"}
+                    </button>
+                  </>
+                ) : null}
+              </RowActions></td>
+            </tr>
           ))}
-        </div>
+          </tbody></table></div>
       ) : null}
 
       {status === "success" ? (
         <Pagination page={page} totalPages={totalPages} onChange={goToPage} label="motoristas" />
       ) : null}
 
+      {documentsDriver ? <Modal title={`Documentos — ${documentsDriver.name}`} onClose={() => setDocumentsDriver(null)}><DocumentsPanel driver={documentsDriver} onChanged={refetch}/></Modal> : null}
       {isFormOpen ? (
         <Modal
           title={edit.target ? "Editar motorista" : "Novo motorista"}

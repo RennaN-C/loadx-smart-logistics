@@ -123,10 +123,12 @@ def test_receipt_preserves_existing_status_contract_and_finished_trip_flow(
         "id",
         "trip_id",
         "order_id",
+        "distribution_part_id",
         "status",
         "sequence",
         "delivered_at",
     }
+    assert response.json()["distribution_part_id"] is None
     receipt = client.get(path, headers=scenario.admin_headers).json()
     assert receipt["delivered_at"] == response.json()["delivered_at"]
     for other in trip["deliveries"][1:]:
@@ -198,7 +200,7 @@ def test_receipt_enforces_roles_ownership_authentication_and_csrf(
             denied = client.request(method, path, headers=headers, **options)
             assert denied.status_code == 403
             assert denied.json()["code"] == "AUTH_FORBIDDEN"
-    assert client.post(path, json={}, headers=scenario.admin_headers).status_code == 403
+    assert client.post(path, json={}, headers=scenario.admin_headers).status_code == 200
     assert client.get(path).status_code == 401
     assert client.post(path, json={}).status_code == 401
     csrf_headers = {

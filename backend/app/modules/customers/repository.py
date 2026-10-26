@@ -1,21 +1,41 @@
 import uuid
 
-from sqlalchemy import asc, desc, func, select
+from sqlalchemy import Select, asc, desc, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.core.pagination import PageResult, PaginationParams
 from app.modules.customers.models import Customer
+from app.shared.search import search_pattern
 
 
 class CustomerRepository:
     def __init__(self, db: Session) -> None:
         self.db = db
 
-    def list(self, pagination: PaginationParams) -> PageResult[Customer]:
+    def list(
+        self,
+        pagination: PaginationParams,
+        *,
+        active: bool | None = None,
+        search: str | None = None,
+    ) -> PageResult[Customer]:
         direction = asc if pagination.sort_order == "asc" else desc
-        total = self.db.scalar(select(func.count()).select_from(Customer)) or 0
+        filters = [] if active is None else [Customer.active.is_(active)]
+        pattern = search_pattern(search)
+        if pattern is not None:
+            filters.append(
+                or_(
+                    Customer.name.ilike(pattern, escape="\\"),
+                    Customer.city.ilike(pattern, escape="\\"),
+                )
+            )
+        total = (
+            self.db.scalar(select(func.count()).select_from(Customer).where(*filters))
+            or 0
+        )
         statement = (
             select(Customer)
+            .where(*filters)
             .order_by(direction(Customer.created_at), direction(Customer.id))
             .offset(pagination.offset)
             .limit(pagination.page_size)
@@ -26,8 +46,37 @@ class CustomerRepository:
             total,
         )
 
+    def matching_name_ids(self, search: str) -> Select[tuple[uuid.UUID]]:
+        """Composable SQL projection; never materialize the customer collection."""
+        return select(Customer.id).where(
+            Customer.name.ilike(search_pattern(search), escape="\\")
+        )
+
     def get(self, customer_id: uuid.UUID) -> Customer | None:
         return self.db.get(Customer, customer_id)
+
+    def get_for_update(self, customer_id: uuid.UUID) -> Customer | None:
+        statement = (
+            select(Customer)
+            .where(Customer.id == customer_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+        return self.db.scalar(statement)
+
+    def existing_registration_keys(
+        self, keys: dict[str, set[str]]
+    ) -> dict[str, set[str]]:
+        return {
+            field: set(
+                self.db.scalars(
+                    select(getattr(Customer, field)).where(
+                        getattr(Customer, field).in_(keys.get(field, set()))
+                    )
+                )
+            )
+            for field in ("document",)
+        }
 
     def get_by_document(self, document: str) -> Customer | None:
         statement = select(Customer).where(Customer.document == document)
