@@ -193,6 +193,25 @@ export async function createLoadPlan(input: LoadPlanInput): Promise<LoadPlan> {
   return mapLoadPlanFromDto(data);
 }
 
+export interface PlanAIExplanationResult {
+  loadPlanId: string;
+  source: "AI" | "FALLBACK";
+  explanation: string;
+  algorithmVersion: string;
+}
+
+/** Advisory-only explanation. Never changes physical placement or approval. */
+export async function explainLoadPlan(id: string): Promise<PlanAIExplanationResult> {
+  const { data } = await api.post<{
+    load_plan_id: string; source: "AI" | "FALLBACK";
+    explanation: string; algorithm_version: string;
+  }>(`/load-plans/${id}/explain`, {});
+  return {
+    loadPlanId: data.load_plan_id, source: data.source,
+    explanation: data.explanation, algorithmVersion: data.algorithm_version,
+  };
+}
+
 export async function getLoadPlan(id: string): Promise<LoadPlan> {
   const { data } = await api.get<LoadPlanDto>(`/load-plans/${id}`);
 

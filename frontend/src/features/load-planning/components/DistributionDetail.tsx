@@ -6,6 +6,7 @@ import { DistributionPartActions } from "./DistributionPartActions";
 import { PART_LABELS } from "./distributionLabels";
 import { PlanContinuity } from "./PlanContinuity";
 import { PlanItemsTable } from "./PlanItemsTable";
+import { PlanAIExplanation } from "./PlanAIExplanation";
 
 const LoadViewer = lazy(() => import("../../load-visualization/components/LoadViewer").then((m) => ({ default: m.LoadViewer })));
 const RESULT_TABS = [{ id: "summary", label: "Volumes e sequência" }, { id: "scene", label: "Visualização 3D" }] as const;
@@ -24,6 +25,7 @@ export function DistributionDetail({ distribution, part, canApprove, canCreate, 
         <DistributionPartActions key={`${part.id}-${part.loadPlan.id}-${part.status}`} distribution={distribution} part={part} canApprove={canApprove} canCreate={canCreate} disabled={disabled}
           onAction={(action, partId) => onAction(action, partId)}
           onReprocess={(truckId) => onReprocess(truckId)} />
+        <PlanAIExplanation key={part.loadPlan.id} planId={part.loadPlan.id} />
         <Tabs items={RESULT_TABS} active={tab} onChange={setTab} label="Detalhes da carga selecionada" />
         <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
           {tab === "summary" ? <PlanItemsTable items={part.loadPlan.items} /> : <Suspense fallback={<p className="entity-state">Carregando visualização 3D…</p>}><LoadViewer key={part.loadPlan.id} planId={part.loadPlan.id} plan={part.loadPlan} /></Suspense>}

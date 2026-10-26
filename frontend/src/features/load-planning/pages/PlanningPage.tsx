@@ -13,6 +13,7 @@ import { ReportDownloadButton } from "../../reports/components/ReportDownloadBut
 import { canReadReports } from "../../reports/permissions";
 import { approveLoadPlan, getLoadPlan, recalculateLoadPlan } from "../api/loadPlansApi";
 import { PlanHistory } from "../components/PlanHistory";
+import { PlanAIExplanation } from "../components/PlanAIExplanation";
 import { PlanExecution } from "../components/PlanExecution";
 import { PlanningActivity } from "../components/PlanningActivity";
 import { PlanBuilder } from "../components/PlanBuilder";
@@ -109,6 +110,7 @@ function PlanningResult({ plan, canManage, approvalAllowed, isWorking, onApprove
       <div className="plan-saved-actions"><Link className="btn-secondary" to="/planning">Planos existentes</Link><Link className="btn-primary" to={`/planning/${plan.id}`}>Abrir este plano<Icon name="arrow-right" size={16} /></Link></div>
     </div>
     <PlanSummary plan={plan} canManage={canManage && !distributionId} approvalAllowed={approvalAllowed && !distributionId} isWorking={isWorking} onApprove={onApprove} onRecalculate={onRecalculate} />
+    <PlanAIExplanation key={plan.id} planId={plan.id} />
     <Tabs items={PLAN_TABS} active={tab} onChange={onTabChange} label="Formato do resultado" />
     <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
       {tab === "summary" ? <PlanItemsTable items={plan.items} /> :
