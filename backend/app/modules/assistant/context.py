@@ -1,11 +1,13 @@
 """Resolve only authorized, persisted context; no client-supplied plan facts."""
 
 from collections import Counter
+from datetime import UTC, datetime
 
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import ApiError
 from app.modules.access_profiles.catalog import has_permission
+from app.modules.load_planning.assistant_diagnostics import read_capacity_diagnostic
 from app.modules.load_planning.distribution_service import (
     DistributionError,
     LoadDistributionService,
@@ -21,6 +23,8 @@ def planning_context(
 ) -> tuple[list[Source], list[dict]]:
     facts: list[Source] = []
     links: list[dict] = []
+    if data.diagnostic_token:
+        facts.append(diagnostic_context(user, data.diagnostic_token))
     if not data.plan_id and not data.distribution_id:
         return facts, links
     if not has_permission(user, "loadx.planning.read"):
@@ -102,3 +106,28 @@ def require_checker_approval(user: User, status: str) -> None:
             "AUTH_FORBIDDEN",
             "Este planejamento não está disponível para seu perfil.",
         )
+
+
+def diagnostic_context(user: User, token: str) -> Source:
+    diagnostic = read_capacity_diagnostic(token, user)
+    return Source(
+        name="Tentativa automática sem capacidade suficiente",
+        criteria=(
+            "Diagnóstico assinado pelo servidor da tentativa que falhou em "
+            + datetime.fromtimestamp(diagnostic.issued_at, UTC).isoformat()
+            + ". Não é disponibilidade atual. Nenhum plano parcial foi salvo. "
+            "Motivos contam volumes por impedimento e podem se sobrepor. "
+            + (
+                "Colisão: não foi encontrada posição livre sem sobrepor volumes; "
+                "isso não significa que uma sobreposição foi salva."
+                if "COLLISION" in diagnostic.reasons
+                else ""
+            )
+        ),
+        values={
+            "result": diagnostic.code,
+            "remaining_volumes": diagnostic.remaining_volumes,
+            "unavailable_trucks": diagnostic.unavailable_trucks,
+            **diagnostic.reasons,
+        },
+    )

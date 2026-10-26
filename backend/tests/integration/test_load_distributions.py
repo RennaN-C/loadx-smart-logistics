@@ -1013,6 +1013,27 @@ def test_oc88_insufficient_fleet_is_explainable_and_does_not_persist_partial_pla
     assert payload["details"][0]["remaining_volumes"]
     assert payload["details"][0]["attempt_count"] > 0
     assert len(payload["details"][0]["ineligible_trucks"]) == 2
+    token = payload["details"][1]["assistant_diagnostic"]
+    chat = s.client.post(
+        "/api/v1/assistant/messages",
+        headers=s.user.headers,
+        json={"message": "Explique esta tentativa", "diagnostic_token": token},
+    )
+    assert chat.status_code == 200, chat.text
+    diagnostic = chat.json()["facts"][0]
+    assert diagnostic["values"]["remaining_volumes"] == len(
+        payload["details"][0]["remaining_volumes"]
+    )
+    assert diagnostic["values"]["unavailable_trucks"] == 2
+    expected_collision = sum(
+        "COLLISION" in item["reasons"]
+        for item in payload["details"][0]["remaining_volumes"]
+    )
+    assert expected_collision > 0
+    assert diagnostic["values"]["COLLISION"] == expected_collision
+    assert "sem sobrepor volumes" in diagnostic["criteria"]
+    assert str(s.source.order_item_id) not in str(diagnostic)
+    assert token not in str(chat.json())
 
     with s.factory() as db:
         persisted_plans = db.scalar(
