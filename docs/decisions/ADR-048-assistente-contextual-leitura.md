@@ -65,3 +65,7 @@ tabela de throttle de login. A quota Groq e seus 429 continuam barreiras externa
 Auditoria operacional registra apenas ator, nome da ferramenta e evento, sem
 mensagens, parâmetros, valores, PII ou segredos. Retenção depende do coletor atual.
 Não há tenant_id nem mudança no modelo monoempresa; escopo futuro não é presumido.
+
+As ferramentas ficam limitadas ao conjunto anunciado no início da requisição.
+Antes de consultar, o usuário é atualizado no banco e a permissão é revalidada;
+revogações bloqueiam a ferramenta e promoções não ampliam o conjunto já anunciado.

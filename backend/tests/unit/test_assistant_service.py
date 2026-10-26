@@ -189,3 +189,43 @@ def test_real_occupancy_is_not_confused_with_unavailable_financial_metrics(
     )
     assert result.source == "GROQ"
     assert result.facts[0].values["occupancy_percent"] == 40
+
+
+def test_tool_access_is_rechecked_after_role_revocation(no_database):
+    user = actor()
+    db = Mock()
+    db.refresh.side_effect = lambda _: setattr(user, "role", "CHECKER")
+    provider = Mock()
+    provider.complete.return_value = {
+        "tool_calls": [
+            {
+                "id": "query",
+                "type": "function",
+                "function": {"name": "get_delivery_metrics", "arguments": "{}"},
+            }
+        ]
+    }
+    with pytest.raises(ApiError) as caught:
+        AssistantService(db, config(), provider).chat(
+            user, ChatRequest(message="Consulte entregas")
+        )
+    assert caught.value.status_code == 403
+    assert provider.complete.call_count == 1
+
+
+def test_model_cannot_call_a_tool_not_advertised_for_the_request(no_database):
+    provider = Mock()
+    provider.complete.return_value = {
+        "tool_calls": [
+            {
+                "id": "query",
+                "type": "function",
+                "function": {"name": "get_company_summary", "arguments": "{}"},
+            }
+        ]
+    }
+    with pytest.raises(ApiError) as caught:
+        AssistantService(Mock(), config(), provider).chat(
+            actor("CHECKER"), ChatRequest(message="Consulte empresa")
+        )
+    assert caught.value.status_code == 403

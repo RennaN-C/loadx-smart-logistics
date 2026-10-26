@@ -118,10 +118,12 @@ class AssistantService:
         now = datetime.now(UTC)
         messages = _messages(data, facts, now)
         deadline = time.monotonic() + self.config.ai_chat_timeout_seconds
+        definitions = tool_definitions(user)
+        allowed_names = frozenset(tool["function"]["name"] for tool in definitions)
         try:
             reply = self.provider.complete(
                 messages,
-                tools=tool_definitions(user),
+                tools=definitions,
                 timeout_seconds=self._remaining(deadline),
             )
             calls = reply.get("tool_calls", [])
@@ -130,7 +132,9 @@ class AssistantService:
             if calls:
                 messages.append(reply)
                 results = [
-                    self._run_tool(user, raw, now, deadline, data.customer_id)
+                    self._run_tool(
+                        user, raw, now, deadline, data.customer_id, allowed_names
+                    )
                     for raw in calls
                 ]
                 _append_results(results, messages, facts, links)
@@ -184,9 +188,16 @@ class AssistantService:
         now: datetime,
         deadline: float,
         selected_customer_id: uuid.UUID | None,
+        allowed_names: frozenset[str],
     ) -> "_ToolResult":
         self._remaining(deadline)
         tool_id, call = self._parse_call(raw)
+        if call.name not in allowed_names:
+            raise ApiError(
+                403, "AUTH_FORBIDDEN", "Ferramenta não autorizada para esta conversa."
+            )
+        # Recheck current privileges without expanding the request's original tool set.
+        self.db.refresh(user)
         arguments = call.arguments.model_copy(
             update={
                 "start": call.arguments.start or now - timedelta(days=30),
