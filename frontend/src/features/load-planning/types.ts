@@ -57,6 +57,9 @@ export interface LoadPlanItem extends LoadPlanItemSnapshot {
 export interface LoadPlan {
   ordersReadyForApproval?: boolean | null;
   distributionId?: string | null;
+  distributionStatus?: DistributionStatus | null;
+  partStatus?: DistributionPartStatus | null;
+  isCurrentPart?: boolean;
   id: string;
   truckId: string;
   /** Preenchido quando este plano nasceu de um recálculo de outro. */

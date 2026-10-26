@@ -27,7 +27,7 @@ function PlanHistoryRow({ plan, canReadOrigin }: { readonly plan: LoadPlanListIt
           : plan.distributionStatus ? DISTRIBUTION_LABELS[plan.distributionStatus] : null;
   return <li className="plan-history-row">
     <div className="plan-history-identification">
-      <div className="plan-history-title"><h3><Link to={destination}>Plano {plan.id.slice(0, 8).toLocaleUpperCase("pt-BR")}</Link></h3>{lifecycleStatus ? <StatusPill tone={isCanceled || historicalVersion ? "neutral" : plan.distributionStatus === "APPROVED" ? "good" : "warn"}>{plan.distributionId ? "Distribuição" : "Operação"}: {lifecycleStatus}</StatusPill> : <StatusPill tone={planStatusTone(plan.status)}>Plano: {PLAN_STATUS_LABELS[plan.status]}</StatusPill>}</div>
+      <div className="plan-history-title"><h3><Link to={destination}>Plano {plan.id.slice(0, 8).toLocaleUpperCase("pt-BR")}</Link></h3>{lifecycleStatus ? <StatusPill tone={isCanceled || historicalVersion ? "neutral" : plan.distributionStatus === "APPROVED" ? "good" : "warn"}>{isCanceled && !isDistributionCanceled && !isIncomplete ? "Operação" : plan.distributionId ? "Distribuição" : "Operação"}: {lifecycleStatus}</StatusPill> : <StatusPill tone={planStatusTone(plan.status)}>Plano: {PLAN_STATUS_LABELS[plan.status]}</StatusPill>}</div>
       <Link className="plan-history-plate" to={`/planning?truck=${plan.truckId}`} aria-label={`Filtrar planos do caminhão ${plan.truckPlate}`}>{plan.truckPlate}</Link>
       <p>{plan.truckModel}</p>
       {plan.distributionId ? <p>Parte da distribuição {plan.distributionId.slice(0, 8)}</p> : null}

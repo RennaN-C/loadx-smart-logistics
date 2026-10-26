@@ -189,9 +189,24 @@ class LoadPlanningService:
             hide_inactive=requester_role == "CHECKER",
         )
 
-    def get_distribution_id_for_plan(self, load_plan_id: uuid.UUID) -> uuid.UUID | None:
+    def get_distribution_state_for_plan(
+        self, load_plan_id: uuid.UUID
+    ) -> tuple[uuid.UUID | None, str | None, str | None, bool]:
         part = LoadDistributionRepository(self.db).plan_part(load_plan_id)
-        return part.distribution_id if part else None
+        if part is None:
+            return None, None, None, True
+        from app.modules.load_planning.distribution_models import LoadDistribution
+
+        distribution = self.db.get(LoadDistribution, part.distribution_id)
+        return (
+            part.distribution_id,
+            distribution.status if distribution else None,
+            part.status,
+            part.load_plan_id == load_plan_id,
+        )
+
+    def get_distribution_id_for_plan(self, load_plan_id: uuid.UUID) -> uuid.UUID | None:
+        return self.get_distribution_state_for_plan(load_plan_id)[0]
 
     def get_load_plan(self, load_plan_id: uuid.UUID) -> LoadPlan:
         load_plan = self.repository.get(load_plan_id)

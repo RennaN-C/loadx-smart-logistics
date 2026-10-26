@@ -18,7 +18,10 @@ interface PlanSummaryProps {
 
 export function PlanSummary({ plan, canManage, approvalAllowed = canManage, isWorking, onApprove, onRecalculate }: PlanSummaryProps) {
   const hasRejections = plan.unloadedCount > 0;
-  const canApprove = approvalAllowed && plan.status === "CALCULATED" && !hasRejections && plan.ordersReadyForApproval !== false;
+  const inactiveDistribution = plan.distributionStatus === "CANCELED" ||
+    plan.distributionStatus === "INCOMPLETE" || plan.partStatus === "CANCELED" ||
+    plan.isCurrentPart === false;
+  const canApprove = !inactiveDistribution && approvalAllowed && plan.status === "CALCULATED" && !hasRejections && plan.ordersReadyForApproval !== false;
 
   return (
     <section className="plan-summary">
@@ -30,8 +33,19 @@ export function PlanSummary({ plan, canManage, approvalAllowed = canManage, isWo
             {plan.recalculatedFromId ? " · recalculado de um plano anterior" : ""}
           </p>
         </div>
-        <StatusPill tone={planStatusTone(plan.status)}>{PLAN_STATUS_LABELS[plan.status]}</StatusPill>
+        <StatusPill tone={inactiveDistribution ? "neutral" : planStatusTone(plan.status)}>
+          {plan.distributionStatus === "CANCELED" ? "Distribuição cancelada"
+            : plan.distributionStatus === "INCOMPLETE" ? "Distribuição incompleta"
+              : plan.isCurrentPart === false ? "Versão anterior do plano"
+                : PLAN_STATUS_LABELS[plan.status]}
+        </StatusPill>
       </header>
+
+      {inactiveDistribution ? <p className="entity-form-help" role="status">
+        Este plano não integra uma distribuição ativa. O resultado físico
+        ({PLAN_STATUS_LABELS[plan.status].toLowerCase()}) permanece disponível para consulta histórica,
+        mas a operação deve ser retomada pela distribuição ou por um novo planejamento.
+      </p> : null}
 
       <dl className="plan-metrics">
         <div>
@@ -63,7 +77,7 @@ export function PlanSummary({ plan, canManage, approvalAllowed = canManage, isWo
         <div className="plan-occupancy-fill" style={{ width: `${Math.min(plan.occupancyPercent, 100)}%` }} />
       </div>
 
-      {plan.status === "APPROVED" ? <PlanContinuity key={plan.id} planId={plan.id} canManage={canManage} /> : null}
+      {plan.status === "APPROVED" && !inactiveDistribution ? <PlanContinuity key={plan.id} planId={plan.id} canManage={canManage} /> : null}
 
       {plan.status === "CALCULATED" && plan.ordersReadyForApproval === false ? <output className="entity-form-help">Os pedidos deste cálculo já saíram da fila de planejamento. Consulte o estado atual em Pedidos; este plano permanece disponível como histórico e não pode ser aprovado novamente.</output> : null}
       {(canManage || approvalAllowed) && plan.status !== "APPROVED" ? (

@@ -403,6 +403,12 @@ def test_cancelled_distribution_is_hidden_from_active_plans_and_kept_in_history(
         assert plan["part_status"] == "CANCELED"
         assert plan["is_current_part"] is True
         assert plan["operation"]["status"] == "CANCELED"
+        detail = s.client.get(
+            f"/api/v1/load-plans/{plan['id']}", headers=s.user.headers
+        )
+        assert detail.status_code == 200
+        assert detail.json()["distribution_status"] == "CANCELED"
+        assert detail.json()["part_status"] == "CANCELED"
 
 
 def test_part_cancellation_moves_distribution_out_of_active_scope(

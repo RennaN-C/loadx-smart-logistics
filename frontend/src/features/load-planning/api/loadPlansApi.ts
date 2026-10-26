@@ -52,6 +52,9 @@ interface LoadPlanItemDto extends ItemSnapshotDto {
 export interface LoadPlanDto {
   orders_ready_for_approval?: boolean | null;
   distribution_id?: string | null;
+  distribution_status?: LoadPlan["distributionStatus"];
+  part_status?: LoadPlan["partStatus"];
+  is_current_part?: boolean;
   id: string;
   truck_id: string;
   recalculated_from_id: string | null;
@@ -134,6 +137,9 @@ function mapItem(dto: LoadPlanItemDto): LoadPlanItem {
 export function mapLoadPlanFromDto(dto: LoadPlanDto): LoadPlan {
   return {
     distributionId: dto.distribution_id ?? null,
+    distributionStatus: dto.distribution_status ?? null,
+    partStatus: dto.part_status ?? null,
+    isCurrentPart: dto.is_current_part ?? true,
     id: dto.id,
     truckId: dto.truck_id,
     recalculatedFromId: dto.recalculated_from_id,
