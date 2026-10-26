@@ -1,5 +1,7 @@
 # Roadmap inicial
 
+> **Documento histórico:** registra sprints do MVP e a seleção original da v1.1.0. As versões v1.0.0, v1.1.0 e v1.2.0 já foram publicadas. Consulte o [roadmap canônico](planejamento/roadmap-versoes.md) para planejamento futuro; um status *pendente* neste arquivo não significa pendência atual.
+
 `CONFIRMADO`: as sprints abaixo preservam a sequência original de construção do
 MVP. As entregas presentes na preparação da v1.0.0 estão no
 [Changelog](../CHANGELOG.md); a lista de sprints não é uma lista de pendências.

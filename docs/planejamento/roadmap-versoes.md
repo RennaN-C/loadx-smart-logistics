@@ -2,8 +2,7 @@
 
 ## Status e governança deste documento
 
-`CONFIRMADO`: este documento é a referência canônica para o planejamento de
-releases posteriores à v1.1.0.
+`CONFIRMADO`: esta é a referência canônica para o **histórico das versões publicadas** e o planejamento futuro. As releases v1.0.0, v1.1.0 e **v1.2.0** já foram publicadas; a v1.3.0 é uma direção de produto e exige planejamento/Issues próprios antes de implementação.
 
 `CONFIRMADO`: o histórico de construção do MVP e da seleção da v1.1.0 permanece
 em `docs/10-roadmap-inicial.md`. O detalhamento oficial da v1.1.0 permanece em
@@ -112,7 +111,7 @@ Integrações externas concretas permanecem atrás de ports/adapters.
 
 # v1.0.0 — Fundação operacional
 
-`CONFIRMADO`: versão-base do produto.
+`CONFIRMADO`: versão-base do produto, publicada em 09/09/2026.
 
 Principais capacidades:
 
@@ -164,7 +163,9 @@ Planejamento detalhado:
 
 ---
 
-# v1.2.0 — Consolidação do produto e operação avançada
+# v1.2.0 — Consolidação do produto e operação avançada (publicada)
+
+**Estado:** publicada em **26/10/2026**: [release oficial](https://github.com/RennaN-C/loadx-smart-logistics/releases/tag/v1.2.0), PR #314. O planejamento abaixo é histórico; a implementação efetivamente lançada e as limitações estão no [Changelog](../../CHANGELOG.md) e nas [notas técnicas](../releases/v1.2.0.md). WhatsApp Business real não integra esta entrega e a cobertura SonarCloud segue na Issue #268.
 
 ## Objetivo
 
@@ -189,14 +190,13 @@ operacional e não pode administrar usuários, credenciais de terceiros,
 configuração institucional, segurança de conta ou perfis/permissões. `CHECKER`
 opera conferência e `DRIVER` operações próprias validadas por vínculo.
 
-O ajuste da matriz fixa do backend/frontend e dos contratos ocorre antes da
-OC85/OC86 para evitar divergências de autorização nos novos componentes.
-OC112 continua encarregada dos perfis personalizados, catálogo de permissões
-logísticas e migração de RBAC. Nem `ADMIN` nem perfil customizado obtém direito
+O planejamento previu ajustar a matriz de permissões antes da expansão das telas OC85/OC86. A OC112 compreendeu perfis personalizados e permissões logísticas, mantendo a autorização no backend. Nem `ADMIN` nem perfil customizado obtém direito
 de plataforma, SSO, tenant ou entitlement CoreFlow; todas as regras de domínio,
 auditoria e autoria das ações continuam obrigatórias.
 
-## Planejamento aprovado
+## Planejamento histórico do ciclo v1.2.0
+
+A tabela mantém os responsáveis inicialmente previstos, com mudanças posteriores de atribuição durante a execução. Para autoria efetiva, consultar as Issues/PRs integradas.
 
 | OC | Issue | Responsável | Entrega planejada |
 |---|---:|---|---|
@@ -262,10 +262,10 @@ WhatsApp real foi adiado para a pré-produção (#193). A OC83 pode entregar web
 
 ## Resultado esperado
 
-Ao encerrar a v1.2.0, o LoadX deverá:
+O planejamento da v1.2.0 estabeleceu os seguintes objetivos; seu aceite de código e as limitações constam da release:
 
 - possuir administração interna, configurações, gestão de usuários, perfil e segurança de conta;
-- suportar comunicação real, evidências, anexos e integrações resilientes;
+- suportar notificações internas, evidências, anexos e integrações resilientes, mantendo o envio externo por WhatsApp simulado;
 - operar carga em um ou vários caminhões preservando rastreabilidade;
 - oferecer central operacional, agenda, exceções, reentrega e cancelamento;
 - possuir manutenção, documentos e vencimentos de frota e motoristas;
@@ -624,17 +624,12 @@ Uma versão somente deve ser considerada pronta para promoção quando:
 
 ---
 
-# Ciclo atual — v1.2.0
+# Estado das versões e próximo ciclo
 
-`CONFIRMADO`: a v1.1.0 foi publicada. O próximo ciclo funcional é a v1.2.0,
-com OC79–OC112 e Issues #122–#133, #136–#141 e #144–#159.
+**Já publicadas:** [v1.0.0](https://github.com/RennaN-C/loadx-smart-logistics/releases/tag/v1.0.0), [v1.1.0](https://github.com/RennaN-C/loadx-smart-logistics/releases/tag/v1.1.0) e [v1.2.0](https://github.com/RennaN-C/loadx-smart-logistics/releases/tag/v1.2.0) em 26/10/2026.
 
-Antes da implementação:
+**Próximo ciclo candidato:** v1.3.0 — multi-tenancy logístico e integração com CoreFlow. Ainda é direção arquitetural, não autorização de desenvolvimento: requer confirmação de escopo, próximo conjunto de OCs/Issues, decisões, testes, responsáveis e milestone.
 
-1. criar/confirmar o milestone `v1.2.0`;
-2. vincular #122–#133, #136–#141 e #144–#159 ao milestone;
-3. adicionar #122–#133, #136–#141 e #144–#159 ao Project `LoadX — Desenvolvimento`;
-4. configurar os status iniciais conforme as dependências;
-5. liberar somente as OCs sem bloqueadores;
-6. iniciar cada ocorrência em branch própria a partir de `desenvolvimento`;
-7. integrar por PR e validar CI, segurança, contratos e documentação.
+**Manutenção pós-v1.2.0:** acompanhar [#268](https://github.com/RennaN-C/loadx-smart-logistics/issues/268) (importação de cobertura SonarCloud) e [#256](https://github.com/RennaN-C/loadx-smart-logistics/issues/256) (auditoria incremental). Correções compatíveis podem requerer versão PATCH sem reescrever a tag `v1.2.0`.
+
+**Implantação externa:** publicação do código não equivale a homologação de provedores, storage ou workers remotos. A ativação de WhatsApp Business real e a infraestrutura de produção devem ser aprovadas separadamente.

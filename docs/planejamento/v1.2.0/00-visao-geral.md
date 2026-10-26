@@ -1,5 +1,7 @@
 # Planejamento da v1.2.0
 
+> **Registro histórico:** a [v1.2.0](https://github.com/RennaN-C/loadx-smart-logistics/releases/tag/v1.2.0) foi publicada em 26/10/2026. Atribuições, tarefas e dependências descritas abaixo refletem o planejamento original, não uma nova lista de pendências atuais. Consulte o [Changelog](../../../CHANGELOG.md), as [notas técnicas](../../releases/v1.2.0.md) e o [roadmap canônico](../roadmap-versoes.md) para o estado pós-publicação.
+
 ## Objetivo
 
 `CONFIRMADO`: a v1.2.0 consolida o LoadX como produto operacional monoempresa

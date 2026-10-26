@@ -1,5 +1,9 @@
 # Frontend
 
+> **Versão oficial:** [v1.2.0](https://github.com/RennaN-C/loadx-smart-logistics/releases/tag/v1.2.0), publicada em 26/10/2026. A interface contém navegação reformulada, planejamento por etapas, Frota/Documentação, configurações administrativas, relatórios e visualização 3D. Leia o [README principal](../README.md), o [roadmap](../docs/planejamento/roadmap-versoes.md) e o [guia de execução](../docs/13-guia-execucao-ambientes.md). A tag da release é imutável; a branch de desenvolvimento pode evoluir.
+
+**Validação local:** utilizar Node.js da `.nvmrc`, instalar com `npm ci` e verificar `npm run lint`, `npm test -- --run` e `npm run build`. Testes de interface com dados fictícios não provam operação remota.
+
 Interface React + TypeScript do LoadX.
 
 `CONFIRMADO`: desenvolvimento e build usam Node `>=22.22 <23`; `.nvmrc` e os

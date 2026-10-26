@@ -1,5 +1,7 @@
 # Changelog
 
+Histórico das versões **publicadas** do LoadX. Para planejamento futuro, consulte o [roadmap canônico](docs/planejamento/roadmap-versoes.md). Versões anteriores e seus commits são mantidos para rastreabilidade.
+
 - OC92: Meu perfil para todos os usuários autenticados, edição de nome/e-mail, alteração segura de senha com revogação integral e gerenciamento de sessões próprias; sem migration.
 
 ## OC108 — Painel de integrações e saúde operacional
@@ -18,16 +20,15 @@
 - Migration `20261009_0023`, encadeada em `20261009_0022`; downgrade bloqueia
   remoção de cadastro/histórico existentes. ADR-035 documenta limites standalone.
 
-## [Unreleased] — v1.2.0
+## [1.2.0] - 2026-10-26
 
-`CONFIRMADO`: a v1.2.0 — Administração, comunicação real e operação
-multi-caminhão é o ciclo atual.
+`CONFIRMADO`: a v1.2.0 foi publicada em 26/10/2026 com administração, segurança, evolução visual e operação multi-caminhão. A comunicação interna foi ampliada; **WhatsApp Business real continua simulado nesta versão**.
 
-### Entregas integradas em `desenvolvimento` (não publicadas em `main`)
+### Entregas consolidadas na `main` pela v1.2.0
 
 - Preparação de fechamento: CI passa a acompanhar `versao/v1.2.0`; gates e
   limites de cobertura, worker, anexos e reconciliação visual registrados em
-  `docs/releases/v1.2.0-readiness.md`. A versão permanece não publicada.
+  `docs/releases/v1.2.0-readiness.md`. A versão foi publicada após revisão do candidato e CI aprovada.
 
 - **OC105 / PR #170 e correções de permissões:** arquivamento e reativação controlados de cadastros.
 - **OC99 / PR #175:** múltiplos endereços por cliente e snapshot imutável do destino do pedido.
@@ -43,11 +44,10 @@ Isso valida o estado de desenvolvimento, não a publicação da versão.
 
 `PENDENTE`: anexos binários exigem definição de fornecedor, retenção e backup antes
 de storage de produção; por padrão, o adapter atual opera somente em ambiente
-local. O SonarCloud em Automatic Analysis não importa a cobertura Pytest do código
-novo: a cobertura executada na CI não deve ser confundida com os 0% da interface.
+local. A integração da cobertura no SonarCloud permanece **não comprovada**, conforme a Issue #268: a medição local dos testes não deve ser confundida com o indicador de 0% na análise remota.
 Uma futura mudança para análise por CI requer configuração de projeto e credenciais.
 
-### Planejamento aprovado
+### Planejamento do ciclo (registro histórico)
 
 - comunicação externa segura e idempotente;
 - evidências e comprovante de entrega;
@@ -73,6 +73,14 @@ Uma futura mudança para análise por CI requer configuração de projeto e cred
 
 O escopo oficial está em
 [docs/planejamento/v1.2.0/00-visao-geral.md](docs/planejamento/v1.2.0/00-visao-geral.md).
+
+### Validação e limitações publicadas
+
+- CI do candidato da PR #314 aprovada nos checks de Backend, Frontend, Segurança e SonarCloud Quality Gate.
+- Ensaio local: 3.001 testes backend, 1.130 frontend e 95% de cobertura **local** do backend, sem comprovação de importação no SonarCloud.
+- Otimização síncrona limitada a 200 volumes físicos **totais** por planejamento, com até 10 veículos candidatos.
+- Canal WhatsApp Business real, CoreFlow, multiempresa e infraestrutura externa não estão incluídos no aceite desta release de código.
+- A Issue #268 (cobertura Sonar) e a #256 (auditoria incremental) continuam abertas. Quality Gate aprovado não encerra automaticamente todos os apontamentos.
 
 ## [1.1.0] - 2026-10-06
 
