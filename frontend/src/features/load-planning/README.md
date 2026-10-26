@@ -227,3 +227,7 @@ pedido ausente, seleção desatualizada, limite, veículo ausente, consulta pend
 falha e indisponibilidade. Pré-validação permanece montada ao alternar etapas,
 sem transformar uma consulta em reserva. A explicação do limite de 200 volumes
 agora deixa explícita sua aplicação à seleção inteira, inclusive multi-caminhões.
+
+## Recuperação após erro do cálculo multi-caminhão
+
+`CONFIRMADO`: a UI mantém uma chave idempotente por usuário em `sessionStorage` para recuperar um resultado após timeout, 500 ou falha de rede, sem repetir a operação automaticamente. A tela de recuperação não cria plano ao abrir. Se o GET de recuperação retornar `OPTIMIZATION_NOT_FOUND` (404) após a consulta explícita, o usuário pode **encerrar apenas a referência local**, mediante confirmação, e iniciar outro planejamento. Erros 409 (`OPTIMIZATION_IN_PROGRESS`) ou 500 na consulta não habilitam descarte. O botão de encerramento não apaga pedidos, planos ou dados do backend; antes de iniciar outra solicitação o usuário deve consultar os planos existentes. Nenhum timeout/limite do otimizador foi modificado por esta correção.

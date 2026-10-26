@@ -163,6 +163,7 @@ export function PlanBuilder({ onCalculated, onDistributed }: PlanBuilderProps) {
   if (recovery.request) return <div className="plan-builder">
     <DistributionFeedback error={recovery.error} />
     <OptimizationRecovery count={recovery.request.orderIds.length} working={recovery.working}
+      canDiscard={recovery.canDiscard} onDiscard={recovery.discard}
       onConsult={() => void recovery.consult()} onRetry={() => void recovery.retry()} />
   </div>;
 
