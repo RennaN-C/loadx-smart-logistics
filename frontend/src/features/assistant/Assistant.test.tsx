@@ -1,0 +1,63 @@
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
+import { beforeEach, expect, it, vi } from "vitest";
+import { useAuth } from "../auth/hooks/useAuth";
+import { Assistant } from "./Assistant";
+import { askAssistant, type AssistantReply } from "./assistantApi";
+
+vi.mock("../auth/hooks/useAuth");
+vi.mock("./assistantApi", () => ({ askAssistant: vi.fn() }));
+const user = { id: "synthetic-user", name: "Pessoa de teste", role: "ADMIN", active: true };
+const REPLY: AssistantReply = { source: "GROQ", answer: "O pedido foi entregue integralmente.", facts: [], links: [], suggestions: [] };
+beforeEach(() => {
+  vi.clearAllMocks();
+  vi.mocked(useAuth).mockReturnValue({ user } as ReturnType<typeof useAuth>);
+  vi.mocked(askAssistant).mockResolvedValue(REPLY);
+});
+function show(path = "/planning/11111111-1111-4111-8111-111111111111") {
+  return render(<MemoryRouter initialEntries={[path]}><Assistant /></MemoryRouter>);
+}
+function open() { const button = screen.getByRole("button", { name: "Perguntar ao LoadX" }); button.focus(); fireEvent.click(button); }
+function send() { fireEvent.change(screen.getByLabelText("Sua pergunta"), { target: { value: "Quantos pedidos entregues?" } }); fireEvent.click(screen.getByRole("button", { name: "Enviar pergunta" })); }
+
+it.each(["DRIVER", "CUSTOM"])("oculta assistente de %s", (role) => {
+  vi.mocked(useAuth).mockReturnValue({ user: { ...user, role } } as ReturnType<typeof useAuth>);
+  show(); expect(screen.queryByRole("button", { name: "Perguntar ao LoadX" })).not.toBeInTheDocument();
+});
+it.each(["ADMIN", "LOGISTICS_MANAGER", "CHECKER"])("permite abrir assistente de %s sem consulta automática", (role) => {
+  vi.mocked(useAuth).mockReturnValue({ user: { ...user, role } } as ReturnType<typeof useAuth>);
+  show(); open(); expect(screen.getByRole("dialog")).toBeInTheDocument(); expect(askAssistant).not.toHaveBeenCalled();
+});
+it("envia contexto de rota, identifica Groq real e fecha com Escape", async () => {
+  show(); open(); send();
+  expect(await screen.findByText(REPLY.answer)).toBeInTheDocument();
+  expect(screen.getByText("Assistente LoadX · IA real (Groq)")).toBeInTheDocument();
+  expect(askAssistant).toHaveBeenCalledWith("Quantos pedidos entregues?", [], { planId: "11111111-1111-4111-8111-111111111111" }, expect.any(AbortSignal));
+  fireEvent.keyDown(document, { key: "Escape" });
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Perguntar ao LoadX" })).toHaveFocus();
+});
+it("exibe fallback honestamente e mantém fatos legíveis sem JSON ou links externos", async () => {
+  vi.mocked(askAssistant).mockResolvedValue({ ...REPLY, source: "FALLBACK", facts: [{ name: "Pedido autorizado", criteria: "Situação atual", timezone: "UTC", period_start: null, period_end: null, values: { situacao: "DELIVERED" } }], links: [{ label: "Não autorizado", href: "https://example.com" }] });
+  show(); open(); send();
+  expect(await screen.findByText("Resumo automático · IA indisponível")).toBeInTheDocument();
+  expect(screen.getByText("Entregue")).toBeInTheDocument();
+  expect(screen.queryByRole("link", { name: "Não autorizado" })).not.toBeInTheDocument();
+});
+it("falha permite tentar novamente e não expõe mensagem técnica", async () => {
+  vi.mocked(askAssistant).mockRejectedValueOnce(new Error("private-provider-message"));
+  show(); open(); send();
+  expect(await screen.findByRole("alert")).not.toHaveTextContent("private-provider-message");
+  fireEvent.click(screen.getByRole("button", { name: "Tentar novamente" }));
+  expect(await screen.findByText(REPLY.answer)).toBeInTheDocument();
+});
+it("bloqueia cliques duplicados e ignora resposta após fechar", async () => {
+  let resolve!: (reply: AssistantReply) => void;
+  vi.mocked(askAssistant).mockReturnValue(new Promise((done) => { resolve = done; }));
+  show(); open(); send();
+  expect(screen.getByRole("button", { name: "Consultando…" })).toBeDisabled();
+  fireEvent.click(screen.getByRole("button", { name: "Fechar assistente" }));
+  resolve(REPLY);
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  open(); expect(screen.queryByText(REPLY.answer)).not.toBeInTheDocument(); expect(askAssistant).toHaveBeenCalledTimes(1);
+});
