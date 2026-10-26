@@ -25,6 +25,10 @@ multi-caminhão é o ciclo atual.
 
 ### Entregas integradas em `desenvolvimento` (não publicadas em `main`)
 
+- Preparação de fechamento: CI passa a acompanhar `versao/v1.2.0`; gates e
+  limites de cobertura, worker, anexos e reconciliação visual registrados em
+  `docs/releases/v1.2.0-readiness.md`. A versão permanece não publicada.
+
 - **OC105 / PR #170 e correções de permissões:** arquivamento e reativação controlados de cadastros.
 - **OC99 / PR #175:** múltiplos endereços por cliente e snapshot imutável do destino do pedido.
 - **OC100 / PR #176:** manutenção programada, histórico, quilometragem e bloqueio de frota.

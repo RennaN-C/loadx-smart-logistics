@@ -5,10 +5,12 @@ on:
     branches:
       - desenvolvimento
       - main
+      - versao/v1.2.0
   push:
     branches:
       - desenvolvimento
       - main
+      - versao/v1.2.0
 
 permissions:
   contents: read
