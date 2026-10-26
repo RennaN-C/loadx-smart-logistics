@@ -63,7 +63,6 @@ from app.modules.status_history.schemas import StatusHistoryCreate
 from app.modules.status_history.service import StatusHistoryService
 from app.modules.trucks.service import TruckNotFoundError, TruckService
 
-
 logger = logging.getLogger(__name__)
 
 
