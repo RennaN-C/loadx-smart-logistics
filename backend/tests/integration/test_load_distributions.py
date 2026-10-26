@@ -424,22 +424,22 @@ def test_part_cancellation_moves_distribution_out_of_active_scope(
 
     active = s.client.get(
         "/api/v1/load-plans",
-        params={"operation_scope": "ongoing"}, headers=s.user.headers,
+        params={"operation_scope": "ongoing"},
+        headers=s.user.headers,
     )
     assert active.status_code == 200, active.text
     assert not plan_ids.intersection(p["id"] for p in active.json()["items"])
     all_plans = s.client.get(
         "/api/v1/load-plans",
-        params={"operation_scope": "all"}, headers=s.user.headers,
+        params={"operation_scope": "all"},
+        headers=s.user.headers,
     )
     assert all_plans.status_code == 200, all_plans.text
     records = [p for p in all_plans.json()["items"] if p["id"] in plan_ids]
     assert len(records) == 2
     assert {p["distribution_status"] for p in records} == {"INCOMPLETE"}
     assert {p["part_status"] for p in records} == {"CANCELED", "PENDING"}
-    assert {p["operation"]["status"] for p in records} == {
-        "INCOMPLETE", "CANCELED"
-    }
+    assert {p["operation"]["status"] for p in records} == {"INCOMPLETE", "CANCELED"}
 
 
 def test_history_failure_rolls_back_distribution_and_approval(

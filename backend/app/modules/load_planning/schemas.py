@@ -25,7 +25,12 @@ RejectionReasonValue = Literal[
 
 
 OperationStatus = Literal[
-    "NOT_STARTED", "IN_PROGRESS", "PARTIALLY_DELIVERED", "COMPLETED", "INCOMPLETE", "CANCELED"
+    "NOT_STARTED",
+    "IN_PROGRESS",
+    "PARTIALLY_DELIVERED",
+    "COMPLETED",
+    "INCOMPLETE",
+    "CANCELED",
 ]
 OperationScope = Literal["ongoing", "completed", "all"]
 
@@ -50,7 +55,8 @@ class LoadPlanListRead(BaseModel):
     operation: PlanOperationRead | None = None
     distribution_id: uuid.UUID | None = None
     distribution_status: (
-        Literal["PROPOSED", "PARTIALLY_APPROVED", "APPROVED", "INCOMPLETE", "CANCELED"] | None
+        Literal["PROPOSED", "PARTIALLY_APPROVED", "APPROVED", "INCOMPLETE", "CANCELED"]
+        | None
     ) = None
     part_status: Literal["PENDING", "APPROVED", "CANCELED"] | None = None
     is_current_part: bool = True
@@ -236,7 +242,8 @@ class LoadPlanRead(BaseModel):
     orders_ready_for_approval: bool | None = None
     distribution_id: uuid.UUID | None = None
     distribution_status: (
-        Literal["PROPOSED", "PARTIALLY_APPROVED", "APPROVED", "INCOMPLETE", "CANCELED"] | None
+        Literal["PROPOSED", "PARTIALLY_APPROVED", "APPROVED", "INCOMPLETE", "CANCELED"]
+        | None
     ) = None
     part_status: Literal["PENDING", "APPROVED", "CANCELED"] | None = None
     is_current_part: bool = True

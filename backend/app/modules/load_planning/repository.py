@@ -76,14 +76,17 @@ class LoadPlanRepository:
                 versions.c.distribution_id,
                 versions.c.part_status,
                 versions.c.current_plan_id,
-            ).join(versions, LoadPlan.id == versions.c.plan_id)
+            )
+            .join(versions, LoadPlan.id == versions.c.plan_id)
             .where(LoadPlan.recalculated_from_id.is_not(None))
         )
         base = (
             select(LoadPlan.id)
             .select_from(LoadPlan)
             .outerjoin(versions, versions.c.plan_id == LoadPlan.id)
-            .outerjoin(LoadDistribution, LoadDistribution.id == versions.c.distribution_id)
+            .outerjoin(
+                LoadDistribution, LoadDistribution.id == versions.c.distribution_id
+            )
         )
         inactive = or_(
             LoadPlan.status == "CANCELED",
