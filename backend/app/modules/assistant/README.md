@@ -84,3 +84,20 @@ em secret `/run/secrets/GROQ_API_KEY` exclusivamente no backend. Com a configura
 segura do ambiente já preparada pelo operador, combinar
 `compose.production.yaml` + `compose.groq.yaml`; não usar o override em frontend
 nem copiar a chave para VITE_. Nenhum compose up/deploy de produção foi executado.
+
+## Proveniência obrigatória das respostas
+
+A Groq seleciona ferramentas e orientações, mas não escreve indicadores públicos.
+A resposta final interna é `{"guidance":["facts","planning_status"]}`, com chaves
+validadas em catálogo fechado. Não aceita texto livre, valores ou campos extras.
+O backend redige a orientação e a UI apresenta os valores nas fontes reais.
+Sem consulta/contexto verificado não há indicador confirmado. A limitação de
+redação é intencional e evita depender de regex para detectar números inventados.
+
+`diagnostic_token` opcional em `POST /assistant/messages` referencia a tentativa
+que retornou `details[].assistant_diagnostic` em uma otimização sem capacidade.
+É um comprovante assinado por 15 minutos, restrito ao próprio usuário com
+`loadx.planning.create`; não autoriza operações, não vai ao provider e não deve
+ser guardado em logs/histórico/storage. CHECKER não pode consultar esse contexto.
+Adulteração, expiração ou troca de usuário retorna 422 `ASSISTANT_DIAGNOSTIC_INVALID`;
+falta de permissão retorna 403. Não enviar detalhes brutos do erro como contexto.

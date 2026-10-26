@@ -62,3 +62,25 @@ payload do provider; frontend testa seleção sem consulta automática e filtro 
   teste confirma que não seguem no resultado estruturado enviado à Groq.
 - Período com fim explícito e início omitido usa os 30 dias anteriores ao fim
   solicitado, validado em regressão; não usa a data atual como base incoerente.
+
+## Ajustes após revisão — indicadores e tentativa malsucedida
+
+- Texto livre da Groq não cruza mais a fronteira da resposta pública. Catálogo
+  fechado de orientações e fontes reais substituem reconhecimento heurístico de
+  números. Regressões: 500/quinhentos pedidos, porcentagem inventada, campos extras,
+  histórico forjado, consulta real com valor distinto e seleção sem consulta.
+- Otimização que falha por capacidade entrega comprovante assinado por 15 minutos,
+  do próprio usuário, sem IDs de volumes/caminhões, e o chat verifica a permissão
+  atual. Testes rejeitam adulteração, expiração, outro usuário, Unicode malformado
+  e acesso CHECKER. O comprovante não é enviado ao provider nem persistido.
+- Bateria focada: 60 testes backend aprovados com PostgreSQL 16, incluindo a falha
+  real de empacotamento sem persistência parcial, e 29 testes frontend aprovados.
+  Ruff check/format (579 arquivos), ESLint, TypeScript e build aprovados.
+- Chromium adicional (`review-browser-results.json`): sessão gerencial sintética
+  criada por fixture, não teste de login/MFA; navegador → otimização HTTP 422 real
+  → ação contextual → chat HTTP 200 real com FALLBACK sem chave Groq. Sem interceptar
+  requisições. Dois volumes com COLLISION conferidos no diagnóstico; 8 combinações
+  de largura/tema, Escape e rolagem até os indicadores. Capturas desktop/mobile
+  `review-diagnostic-*` revisadas. Não é validação externa do provider.
+- Contratos de recuperação/idempotência, rollback e limite físico permanecem;
+  não houve migration, merge ou deploy. A CI completa do novo HEAD consta na PR.

@@ -249,3 +249,8 @@ compartilhado fica em `features/assistant`, usa Modal por portal para evitar
 recorte do cabeçalho, temas existentes e foco/Escape. Dados vêm de contrato real,
 com marcador GROQ/FALLBACK, fatos inspecionáveis e navegação autorizada. Histórico
 curto em memória, limpo ao trocar contexto, identidade, perfil ou rota.
+
+Falhas de capacidade na otimização automática podem conter um comprovante assinado
+`assistant_diagnostic` aditivo. `DistributionFeedback` usa-o somente para abrir o
+Assistente LoadX sobre aquela tentativa. Sem comprovante, não fabrica contexto.
+As mensagens de falha/retomada e as ações de recuperação permanecem inalteradas.

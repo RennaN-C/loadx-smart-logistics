@@ -69,3 +69,35 @@ Não há tenant_id nem mudança no modelo monoempresa; escopo futuro não é pre
 As ferramentas ficam limitadas ao conjunto anunciado no início da requisição.
 Antes de consultar, o usuário é atualizado no banco e a permissão é revalidada;
 revogações bloqueiam a ferramenta e promoções não ampliam o conjunto já anunciado.
+
+### Revisão: proveniência de indicadores e diagnóstico de tentativa
+
+`CONFIRMADO`: o texto livre do modelo não é mais publicado pelo chat. A saída
+final interna seleciona até três chaves de orientação de um catálogo fechado.
+O backend valida o JSON, rejeita campos extras e redige a resposta pública.
+Valores operacionais aparecem exclusivamente nas fontes calculadas pelo servidor.
+Mesmo após uma consulta, o modelo não pode substituir ou reproduzir livremente
+seus números; texto como “500 pedidos” ou “quinhentos pedidos” resulta em fallback,
+conservando somente as fontes reais já consultadas. Sem fontes, `facts` é convertido
+em aviso de consulta necessária. Isso limita a redação criativa da IA de propósito;
+a interpretação da pergunta e a seleção de ferramentas continuam no provider real.
+Não é uma heurística baseada em reconhecer algarismos ou palavras quantitativas.
+
+`CONFIRMADO`: falha `DISTRIBUTION_CAPACITY_INSUFFICIENT` em otimização automática
+retorna metadado aditivo `details[].assistant_diagnostic`. É um comprovante HMAC
+com chave derivada para finalidade exclusiva, usuário, referência única e validade
+de 15 minutos. Contém somente contagens e motivos permitidos, nunca IDs dos volumes,
+placas, nomes, pedidos ou texto bruto do erro. Não é credencial de autenticação,
+registro de distribuição nem confirmação de persistência. Nenhuma migration nova.
+
+O frontend guarda o comprovante apenas no contexto volátil da conversa e não o
+interpreta como fato. O backend verifica assinatura, validade, usuário e permissão
+atual de criação de planejamento. Comprovante adulterado/expirado/de outro usuário
+falha antes do provider. CHECKER não acessa diagnósticos de tentativas gerenciais.
+O comprovante nunca é enviado à Groq. O contexto inclui data UTC e explicita que
+se trata da tentativa passada, não da disponibilidade atual. Uma razão pode ocorrer
+em conjunto com outras; suas contagens não devem ser somadas como volumes distintos.
+
+`CONFIRMADO`: não reexecutamos o cálculo para explicar uma falha. O receipt não
+muda locks, rollback, recuperação idempotente, limite de 200 volumes ou a física.
+Falha de rede sem resposta confirmada não recebe um diagnóstico inventado.

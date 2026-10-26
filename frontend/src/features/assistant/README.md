@@ -15,3 +15,9 @@ Respostas são texto simples, não HTML/Markdown. Links só apontam a rotas inte
 permitidas no contrato; fatos mostram critérios e UTC. Não colocar GROQ_API_KEY
 ou configuração de provedor no frontend. Erro, retry, loading, vazio e fallback
 são reais; mocks existem somente em Vitest, não na aplicação.
+
+Falhas de capacidade oferecem ação junto ao diagnóstico. Ela abre o painel com o
+comprovante opaco do servidor e uma pergunta preparada, sem envio automático ou
+repetição do cálculo. O contexto da tentativa substitui o plano da rota. O token
+não aparece na conversa, no histórico nem em local/sessionStorage. O backend
+valida e transforma esse comprovante em fatos; nenhum detalhe bruto é enviado.
