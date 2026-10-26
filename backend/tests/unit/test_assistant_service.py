@@ -229,3 +229,26 @@ def test_model_cannot_call_a_tool_not_advertised_for_the_request(no_database):
             actor("CHECKER"), ChatRequest(message="Consulte empresa")
         )
     assert caught.value.status_code == 403
+
+
+def test_deeply_nested_provider_arguments_fail_closed_without_query(no_database):
+    provider = Mock()
+    provider.complete.return_value = {
+        "tool_calls": [
+            {
+                "id": "query",
+                "type": "function",
+                "function": {
+                    "name": "get_delivery_metrics",
+                    "arguments": "[" * 999 + "0" + "]" * 999,
+                },
+            }
+        ]
+    }
+    db = Mock()
+    result = AssistantService(db, config(), provider).chat(
+        actor(), ChatRequest(message="Consulte entregas")
+    )
+    assert result.source == "FALLBACK"
+    db.refresh.assert_not_called()
+    assert provider.complete.call_count == 1

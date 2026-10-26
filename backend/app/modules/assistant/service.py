@@ -169,6 +169,7 @@ class AssistantService:
             ValueError,
             KeyError,
             TypeError,
+            RecursionError,
         ):
             return ChatResponse(
                 source="FALLBACK",

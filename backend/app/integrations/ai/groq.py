@@ -80,6 +80,7 @@ class GroqProvider:
             KeyError,
             IndexError,
             TypeError,
+            RecursionError,
         ):
             raise AIProviderUnavailableError from None
 
