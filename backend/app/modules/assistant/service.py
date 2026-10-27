@@ -128,7 +128,7 @@ def _safe_recovery_tool(question: str, allowed_names: frozenset[str]) -> str | N
 
     # A rota direta só é adequada a contagens claras; listas e diagnósticos
     # continuam dependendo do fluxo normal e do contexto explícito.
-    if not re.search(r"\\b(?:quanto|quantos|quanta|quantas|quantidade|numero|total)\\b", text):
+    if not re.search(r"\b(?:quanto|quantos|quanta|quantas|quantidade|numero|total)\b", text):
         return None
 
     name = None
