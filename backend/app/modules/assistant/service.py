@@ -1,6 +1,7 @@
 """Small read-only tool loop. The provider cannot grant permissions or write."""
 
 import json
+import logging
 import re
 import time
 import uuid
@@ -34,6 +35,8 @@ from app.modules.reports.assistant_service import (
     allowed_tool,
 )
 from app.modules.users.models import User
+
+logger = logging.getLogger(__name__)
 
 SYSTEM = """Você é o Assistente LoadX, guia operacional de logística em português brasileiro.
 Somente consultas e explicações; nunca execute nem afirme ter feito alterações.
@@ -169,7 +172,9 @@ class AssistantService:
             KeyError,
             TypeError,
             RecursionError,
-        ):
+        ) as error:
+            # Fixed category only: no question, provider payload, tokens or results in logs.
+            logger.warning("ASSISTANT_FALLBACK category=%s", type(error).__name__)
             return ChatResponse(
                 source="FALLBACK",
                 answer="A IA está indisponível. Este é um resumo automático, sem resposta válida do provedor. Os fatos abaixo vêm do LoadX; nenhum registro foi alterado. Use as ações da operação para continuar.",

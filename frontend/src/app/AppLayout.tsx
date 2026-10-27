@@ -347,7 +347,6 @@ export function AppLayout() {
         <header className="app-search-header">
           <GlobalSearch key={`${user?.id}:${user?.role}:${user?.permissions?.join(",")}`} />
           {user ? <div className="app-header-actions">
-            <Assistant key={`${user.id}:${user.role}:${user.permissions?.join(",")}`} />
             <NotificationBell />
             <Link className="app-header-account" to="/account" aria-label={`Abrir perfil de ${user.name}`}>
               <Avatar name={user.name} size={34} />
@@ -369,6 +368,7 @@ export function AppLayout() {
         </header>
         <Outlet />
       </main>
+      {user ? <Assistant key={`${user.id}:${user.role}:${user.permissions?.join(",")}`} /> : null}
     </div>
     </NotificationProvider>
   );

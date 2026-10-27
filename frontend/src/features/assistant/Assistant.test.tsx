@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useNavigate } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
 import { useAuth } from "../auth/hooks/useAuth";
 import { Assistant } from "./Assistant";
@@ -14,8 +14,12 @@ beforeEach(() => {
   vi.mocked(useAuth).mockReturnValue({ user } as ReturnType<typeof useAuth>);
   vi.mocked(askAssistant).mockResolvedValue(REPLY);
 });
+function RouteJump() {
+  const navigate = useNavigate();
+  return <button onClick={() => navigate("/orders")}>Ir para Pedidos</button>;
+}
 function show(path = "/planning/11111111-1111-4111-8111-111111111111") {
-  return render(<MemoryRouter initialEntries={[path]}><Assistant /></MemoryRouter>);
+  return render(<MemoryRouter initialEntries={[path]}><RouteJump /><Assistant /></MemoryRouter>);
 }
 function open() { const button = screen.getByRole("button", { name: "Perguntar ao LoadX" }); button.focus(); fireEvent.click(button); }
 function send() { fireEvent.change(screen.getByLabelText("Sua pergunta"), { target: { value: "Quantos pedidos entregues?" } }); fireEvent.click(screen.getByRole("button", { name: "Enviar pergunta" })); }
@@ -56,7 +60,7 @@ it("bloqueia cliques duplicados e ignora resposta após fechar", async () => {
   vi.mocked(askAssistant).mockReturnValue(new Promise((done) => { resolve = done; }));
   show(); open(); send();
   expect(screen.getByRole("button", { name: "Consultando…" })).toBeDisabled();
-  fireEvent.click(screen.getByRole("button", { name: "Fechar assistente" }));
+  fireEvent.click(screen.getByRole("button", { name: "Minimizar assistente" }));
   resolve(REPLY);
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   open(); expect(screen.queryByText(REPLY.answer)).not.toBeInTheDocument(); expect(askAssistant).toHaveBeenCalledTimes(1);
@@ -104,4 +108,22 @@ it("envia diagnóstico separado do plano da rota e sem consulta automática", as
   fireEvent.click(screen.getByRole("button", { name: "Enviar pergunta" }));
   await waitFor(() => expect(askAssistant).toHaveBeenCalledOnce());
   expect(vi.mocked(askAssistant).mock.calls[0][2]).toEqual({ diagnosticToken: receipt });
+});
+
+it("mantém histórico ao navegar e ao minimizar sem bloquear a tela", async () => {
+  show();
+  open(); send();
+  expect(await screen.findByText(REPLY.answer)).toBeInTheDocument();
+  expect(screen.getByRole("dialog")).toHaveAttribute("aria-modal", "false");
+  fireEvent.click(screen.getByRole("button", { name: "Ir para Pedidos" }));
+  expect(screen.getByRole("dialog")).toBeInTheDocument();
+  expect(screen.getByText(REPLY.answer)).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Minimizar assistente" }));
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  open();
+  expect(screen.getByText(REPLY.answer)).toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText("Sua pergunta"), { target: { value: "Quais pedidos estão prontos?" } });
+  fireEvent.click(screen.getByRole("button", { name: "Enviar pergunta" }));
+  await waitFor(() => expect(vi.mocked(askAssistant).mock.calls.length).toBe(2));
+  expect(vi.mocked(askAssistant).mock.calls[1][2]).toEqual({});
 });
