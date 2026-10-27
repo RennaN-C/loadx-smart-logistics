@@ -93,11 +93,11 @@ _UNSAFE_REQUESTS = (
         r"\b(?:mfa|rbac|permissões|permissoes|autorização|autorizacao|"
         r"controle de acesso|auditoria)\b"
     ),
-    re.compile(r"(?i)\b(?:drop\s+table|truncate\s+table|rm\s+-rf|"
-               r"powershell\s+-enc|curl\b[^
-]{0,100}\|\s*(?:sh|bash))\b"),
+    re.compile(
+        r"(?i)\b(?:drop\s+table|truncate\s+table|rm\s+-rf|"
+        r"powershell\s+-enc|curl\b[^\r\n]{0,100}\|\s*(?:sh|bash))\b"
+    ),
 )
-
 
 def unsafe_request(text: str) -> bool:
     return any(pattern.search(text) for pattern in _UNSAFE_REQUESTS)
