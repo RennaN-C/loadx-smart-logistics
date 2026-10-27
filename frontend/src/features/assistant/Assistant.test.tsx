@@ -35,7 +35,7 @@ it.each(["ADMIN", "LOGISTICS_MANAGER", "CHECKER"])("permite abrir assistente de 
 it("envia contexto de rota, identifica Groq real e fecha com Escape", async () => {
   show(); open(); send();
   expect(await screen.findByText(REPLY.answer)).toBeInTheDocument();
-  expect(screen.getByText("Assistente LoadX · IA real (Groq)")).toBeInTheDocument();
+  expect(screen.getByText("Assistente LoadX · Groq")).toBeInTheDocument();
   expect(askAssistant).toHaveBeenCalledWith("Quantos pedidos entregues?", [], { planId: "11111111-1111-4111-8111-111111111111" }, expect.any(AbortSignal));
   fireEvent.keyDown(document, { key: "Escape" });
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
