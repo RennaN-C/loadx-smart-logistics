@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { PLAN_STATUS_LABELS, REJECTION_LABELS } from "../load-planning/components/loadPlanLabels";
 import type { AssistantFact, AssistantReply, CustomerChoice } from "./assistantApi";
@@ -73,13 +74,17 @@ function TurnRow({ turn, onLink, onSelectCustomer, working }: { readonly turn: T
   const reply = turn.reply;
   if (!reply) return <section className="assistant-turn">{question}</section>;
   return <section className="assistant-turn">{question}
-    <strong className="assistant-source">{reply.source === "GROQ" ? "Assistente LoadX · IA real (Groq)" : "Resumo automático · IA indisponível"}</strong><p className="assistant-answer">{reply.answer}</p>
+    <strong className="assistant-source">{reply.source === "GROQ" ? "Assistente LoadX · Groq" : reply.source === "GUARDRAIL" ? "Proteção do LoadX · somente leitura" : "Resumo automático · IA indisponível"}</strong><p className="assistant-answer">{reply.answer}</p>
     {reply.facts.map((fact) => <Fact key={fact.clientKey} fact={fact} onLink={onLink} onSelectCustomer={onSelectCustomer} working={working} />)}
     <nav aria-label="Recursos relacionados">{reply.links.filter((link) => allowedLink(link.href)).map((link) => <Link key={link.href} to={link.href} onClick={onLink}>{link.label}</Link>)}</nav>
   </section>;
 }
 export function AssistantConversation({ turns, onLink, onSelectCustomer, working }: { readonly turns: readonly Turn[]; readonly onLink: () => void; readonly onSelectCustomer: (choice: CustomerChoice) => void; readonly working: boolean }) {
-  return <div className="assistant-conversation" role="log" aria-label="Conversa com o LoadX" aria-live="polite">
+  const chat = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (chat.current) chat.current.scrollTop = chat.current.scrollHeight;
+  }, [turns.length, working]);
+  return <div ref={chat} className="assistant-conversation" role="log" aria-label="Conversa com o LoadX" aria-live="polite">
     {turns.length === 0 ? <div className="assistant-welcome"><h3>Como posso ajudar na operação?</h3><p>Entenda uma carga, consulte indicadores ou encontre o próximo passo permitido.</p></div> : null}
     {turns.map((turn) => <TurnRow key={turn.id} turn={turn} onLink={onLink} onSelectCustomer={onSelectCustomer} working={working} />)}
   </div>;
