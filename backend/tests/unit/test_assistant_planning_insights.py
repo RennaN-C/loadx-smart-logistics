@@ -116,7 +116,7 @@ def test_checker_cannot_read_unapproved_plan_by_guessed_id(monkeypatch):
     with pytest.raises(ApiError) as error:
         planning_insight(
             Mock(),
-        person("CHECKER"),
+            person("CHECKER"),
             ChatRequest(message="Explique o planejamento " + str(uuid.uuid4())),
         )
     assert error.value.status_code == 403
