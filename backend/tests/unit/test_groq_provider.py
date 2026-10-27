@@ -11,7 +11,7 @@ from pydantic import SecretStr
 
 from app.core.config import Settings
 from app.integrations.ai import AIProviderTimeoutError, AIProviderUnavailableError
-from app.integrations.ai.groq import GroqProvider
+from app.integrations.ai.groq import AIProviderToolGenerationError, GroqProvider
 
 
 def config(**overrides):
@@ -165,3 +165,43 @@ def test_groq_cloudflare_client_signature_403_logs_safe_reason(monkeypatch, capl
         "GROQ_REQUEST_FAILURE category=http_403 reason=edge_client_signature_1010"
         in caplog.text
     )
+
+
+def test_groq_invalid_tool_generation_has_safe_retryable_category(
+    monkeypatch, caplog
+):
+    body = json.dumps(
+        {
+            "error": {
+                "type": "invalid_request_error",
+                "failed_generation": {
+                    "reason": "tool malformed",
+                    "attempted_arguments": "private-customer-token",
+                },
+            }
+        }
+    ).encode()
+    opener = Mock()
+    opener.open.side_effect = HTTPError(
+        "https://example.invalid", 400, "Bad Request", {}, io.BytesIO(body)
+    )
+    monkeypatch.setattr("app.integrations.ai.groq.build_opener", lambda *_: opener)
+    with pytest.raises(AIProviderToolGenerationError):
+        GroqProvider(config()).complete([], timeout_seconds=1)
+    assert "reason=invalid_tool_generation" in caplog.text
+    assert "private-customer-token" not in caplog.text
+
+
+def test_groq_other_http_400_fails_closed_without_tool_retry(monkeypatch):
+    opener = Mock()
+    opener.open.side_effect = HTTPError(
+        "https://example.invalid",
+        400,
+        "Bad Request",
+        {},
+        io.BytesIO(b'{"error":{"type":"invalid_request_error"}}'),
+    )
+    monkeypatch.setattr("app.integrations.ai.groq.build_opener", lambda *_: opener)
+    with pytest.raises(AIProviderUnavailableError) as caught:
+        GroqProvider(config()).complete([], timeout_seconds=1)
+    assert not isinstance(caught.value, AIProviderToolGenerationError)
