@@ -122,7 +122,7 @@ def _safe_recovery_tool(
         or re.search(r"\b20\d{2}\b", text)
         or re.search(r"\b\d{1,2}/\d{1,2}\b", text)
         or any(int(days) != 30 for days in re.findall(r"\b(\d{1,3})\s+dias\b", text))
-        or ("cliente" in text and selected_customer_id is None)
+        or "cliente" in text
     ):
         return None
 
@@ -343,6 +343,8 @@ class AssistantService:
             )
         # Recheck current privileges without expanding the request's original tool set.
         self.db.refresh(user)
+        if not allowed_tool(user, call.name):
+            raise ApiError(403, "AUTH_FORBIDDEN", "Ferramenta não autorizada.")
         end = call.arguments.end or now
         arguments = call.arguments.model_copy(
             update={
