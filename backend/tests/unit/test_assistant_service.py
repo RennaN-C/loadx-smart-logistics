@@ -405,3 +405,121 @@ def test_grounded_facts_are_passed_as_user_data_not_system_instructions(
     messages = provider.complete.call_args.args[0]
     assert messages[1]["role"] == "user"
     assert "DADOS ESTRUTURADOS" in messages[1]["content"]
+
+
+
+def test_groq_400_recovers_with_authorized_delivery_metrics_without_model_tools(
+    no_database, monkeypatch
+):
+    provider = Mock()
+    provider.complete.side_effect = [
+        AIProviderToolGenerationError(),
+        {"content": '{"guidance":["facts"]}'},
+    ]
+    query = Mock(
+        return_value=Source(
+            name="Entregas",
+            criteria="Dados efetivos",
+            values={"fully_delivered_orders": 3},
+        )
+    )
+    monkeypatch.setattr(AssistantMetricsService, "query", query)
+    result = AssistantService(Mock(), config(), provider).chat(
+        actor(), ChatRequest(message="Quantos pedidos foram entregues nos últimos 30 dias?")
+    )
+    assert result.source == "GROQ"
+    assert "3 pedidos totalmente entregues" in result.answer
+    assert result.facts[0].values["fully_delivered_orders"] == 3
+    assert query.call_count == 1
+    assert query.call_args.args[1] == "get_delivery_metrics"
+    assert provider.complete.call_count == 2
+    assert provider.complete.call_args_list[0].kwargs["tools"]
+    assert "tools" not in provider.complete.call_args_list[1].kwargs
+    assert "RESULTADO AUTORIZADO DO SERVIDOR" in str(
+        provider.complete.call_args_list[1].args[0]
+    )
+
+
+def test_groq_400_recovers_with_guidance_only_when_no_unambiguous_metric(
+    no_database, monkeypatch
+):
+    provider = Mock()
+    provider.complete.side_effect = [
+        AIProviderToolGenerationError(),
+        {"content": '{"guidance":["capacity"]}'},
+    ]
+    query = Mock()
+    monkeypatch.setattr(AssistantMetricsService, "query", query)
+    result = AssistantService(Mock(), config(), provider).chat(
+        actor(), ChatRequest(message="Por que a carga não coube?")
+    )
+    assert result.source == "GROQ"
+    assert "peso" in result.answer
+    assert result.facts == []
+    assert "tools" not in provider.complete.call_args_list[1].kwargs
+    query.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        "Quantos pedidos foram entregues ontem?",
+        "Quantos pedidos foram entregues em 2025?",
+        "Quantos pedidos foram entregues nos últimos 14 dias?",
+        "Quantos pedidos do cliente Aurora foram entregues?",
+    ],
+)
+def test_groq_400_does_not_guess_custom_period_or_unselected_customer(
+    no_database, monkeypatch, question
+):
+    provider = Mock()
+    provider.complete.side_effect = [
+        AIProviderToolGenerationError(),
+        {"content": '{"guidance":["facts"]}'},
+    ]
+    query = Mock()
+    monkeypatch.setattr(AssistantMetricsService, "query", query)
+    result = AssistantService(Mock(), config(), provider).chat(
+        actor(), ChatRequest(message=question)
+    )
+    assert result.source == "GROQ"
+    assert "não há valor operacional confirmado" in result.answer
+    assert result.facts == []
+    query.assert_not_called()
+
+
+def test_groq_400_cannot_escalate_checker_metrics(no_database, monkeypatch):
+    provider = Mock()
+    provider.complete.side_effect = [
+        AIProviderToolGenerationError(),
+        {"content": '{"guidance":["facts"]}'},
+    ]
+    query = Mock()
+    monkeypatch.setattr(AssistantMetricsService, "query", query)
+    result = AssistantService(Mock(), config(), provider).chat(
+        actor("CHECKER"),
+        ChatRequest(message="Quantos pedidos foram entregues nos últimos 30 dias?"),
+    )
+    assert result.source == "GROQ"
+    assert result.facts == []
+    query.assert_not_called()
+
+
+def test_groq_400_recovery_rechecks_permissions_before_read(
+    no_database, monkeypatch
+):
+    user = actor()
+    db = Mock()
+    db.refresh.side_effect = lambda _: setattr(user, "role", "CHECKER")
+    provider = Mock()
+    provider.complete.side_effect = AIProviderToolGenerationError()
+    query = Mock()
+    monkeypatch.setattr(AssistantMetricsService, "query", query)
+    with pytest.raises(ApiError) as caught:
+        AssistantService(db, config(), provider).chat(
+            user,
+            ChatRequest(message="Quantos pedidos foram entregues nos últimos 30 dias?"),
+        )
+    assert caught.value.status_code == 403
+    query.assert_not_called()
+    assert provider.complete.call_count == 1
