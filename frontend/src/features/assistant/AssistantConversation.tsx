@@ -34,7 +34,6 @@ const FACT_LABELS: Record<string, string> = {
   is_current_part: "Parte vigente",
   distribution_status: "Situação da distribuição",
   part_status: "Situação da parte",
-  total_records: "Registros encontrados",
   page: "Página",
   total_pages: "Total de páginas",
   page_records: "Registros nesta página",
