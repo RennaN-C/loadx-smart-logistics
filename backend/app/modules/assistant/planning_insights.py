@@ -23,7 +23,8 @@ from .schemas import ChatRequest, ChatResponse, Source
 
 _PLAN_WORD = re.compile(
     r"\b(?:plano|planos|planejament\w*|calcul\w*|c[aá]lcul\w*|"
-    r"otimiz\w*|algoritmo|distribui\w*)\b", re.IGNORECASE
+    r"otimiz\w*|algoritmo|distribui\w*)\b",
+    re.IGNORECASE,
 )
 _EXPLAIN_WORD = re.compile(
     r"\b(?:explic\w*|analis\w*|por que|porque|como|resultado|"
@@ -36,7 +37,8 @@ _LATEST_WORD = re.compile(
 )
 _LIST_WORD = re.compile(
     r"\b(?:list\w*|mostr\w*|tod\w*|hist[oó]rico|quais|"
-    r"cadastrad\w*|salv\w*)\b", re.IGNORECASE
+    r"cadastrad\w*|salv\w*)\b",
+    re.IGNORECASE,
 )
 _UUID = re.compile(
     r"\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-"
@@ -118,32 +120,44 @@ def planning_insight(db: Session, user: User, data: ChatRequest) -> ChatResponse
                 f"{plan.loaded_count} carregados, {plan.unloaded_count} rejeitados"
             )
             links.append(
-                {"label": f"Abrir plano {idx} · {plan.truck_plate[:16]}",
-                 "href": f"/planning/{plan.id}"}
+                {
+                    "label": f"Abrir plano {idx} · {plan.truck_plate[:16]}",
+                    "href": f"/planning/{plan.id}",
+                }
             )
         answer = (
             f"Encontrei {page.total} planejamentos autorizados. "
             f"Página {page.page} de {page.total_pages} (mais recentes primeiro). "
             "Abra um plano para analisar seu cálculo em detalhes."
-            if page.total else "Nenhum planejamento disponível para seu perfil."
+            if page.total
+            else "Nenhum planejamento disponível para seu perfil."
         )
         return ChatResponse(
             source="BACKEND",
             answer=answer,
-            facts=[Source(
-                name="Histórico de planejamentos",
-                criteria="Registros persistidos mais recentes primeiro; até oito por página. "
-                "O Conferente visualiza apenas planos aprovados e ativos. "
-                "Planos cancelados permanecem no histórico de perfis autorizados.",
-                values=values, links=links,
-            )],
+            facts=[
+                Source(
+                    name="Histórico de planejamentos",
+                    criteria="Registros persistidos mais recentes primeiro; até oito por página. "
+                    "O Conferente visualiza apenas planos aprovados e ativos. "
+                    "Planos cancelados permanecem no histórico de perfis autorizados.",
+                    values=values,
+                    links=links,
+                )
+            ],
         )
 
     match = _UUID.search(data.message)
     plan_id = uuid.UUID(match.group()) if match else data.plan_id
     if plan_id is None:
         # Never guess an arbitrary plan from conversation history or model text.
-        offset = 2 if re.search(r"\b(?:pen[uú]ltim\w*|anterior)\b", data.message, re.IGNORECASE) else 1
+        offset = (
+            2
+            if re.search(
+                r"\b(?:pen[uú]ltim\w*|anterior)\b", data.message, re.IGNORECASE
+            )
+            else 1
+        )
         page = svc.list_load_plans(
             PaginationParams(page=1, page_size=offset, sort_order="desc"),
             requester_role=user.role,
@@ -157,10 +171,14 @@ def planning_insight(db: Session, user: User, data: ChatRequest) -> ChatResponse
     try:
         plan = svc.get_load_plan(plan_id)
     except LoadPlanNotFoundError:
-        raise ApiError(404, "LOAD_PLAN_NOT_FOUND", "Planejamento não encontrado.") from None
+        raise ApiError(
+            404, "LOAD_PLAN_NOT_FOUND", "Planejamento não encontrado."
+        ) from None
     if user.role == "CHECKER" and plan.status != "APPROVED":
         raise ApiError(403, "AUTH_FORBIDDEN", "Planejamento não autorizado.")
-    _dist_id, dist_status, part_status, is_current = svc.get_distribution_state_for_plan(plan.id)
+    _dist_id, dist_status, part_status, is_current = (
+        svc.get_distribution_state_for_plan(plan.id)
+    )
     reasons = Counter(
         item.rejection_reason for item in plan.items if item.rejection_reason
     )
@@ -168,13 +186,18 @@ def planning_insight(db: Session, user: User, data: ChatRequest) -> ChatResponse
     limit = float(plan.truck_snapshot_max_weight_kg)
     occupied = float(plan.occupancy_percent)
     status = _PLAN_STATES.get(plan.status, plan.status)
-    details = ", ".join(
-        f"{quantity} × {_REASONS.get(reason, reason)}"
-        for reason, quantity in reasons.items()
-    ) if reasons else "nenhuma rejeição registrada"
+    details = (
+        ", ".join(
+            f"{quantity} × {_REASONS.get(reason, reason)}"
+            for reason, quantity in reasons.items()
+        )
+        if reasons
+        else "nenhuma rejeição registrada"
+    )
     note = (
         "Essa versão não é mais a parte vigente da distribuição. "
-        if not is_current else ""
+        if not is_current
+        else ""
     )
     if dist_status in _DIST_STATES:
         note += f"A distribuição está {_DIST_STATES[dist_status]}; não está disponível como plano operacional ativo. "
@@ -206,16 +229,21 @@ def planning_insight(db: Session, user: User, data: ChatRequest) -> ChatResponse
     }
     for reason, quantity in reasons.items():
         values[f"reason_{reason}"] = quantity
-    link = {"label": "Abrir planejamento e ações permitidas",
-            "href": f"/planning/{plan.id}"}
+    link = {
+        "label": "Abrir planejamento e ações permitidas",
+        "href": f"/planning/{plan.id}",
+    }
     return ChatResponse(
         source="BACKEND",
         answer=explain,
-        facts=[Source(
-            name="Análise do planejamento",
-            criteria="Snapshot persistido do algoritmo. Versão, volumes, posições, "
-            "ocupação, peso e motivos de rejeição vêm do banco. "
-            "A ferramenta não recalcula nem aprova um plano.",
-            values=values, links=[link],
-        )],
+        facts=[
+            Source(
+                name="Análise do planejamento",
+                criteria="Snapshot persistido do algoritmo. Versão, volumes, posições, "
+                "ocupação, peso e motivos de rejeição vêm do banco. "
+                "A ferramenta não recalcula nem aprova um plano.",
+                values=values,
+                links=[link],
+            )
+        ],
     )
