@@ -93,6 +93,11 @@ export function Assistant() {
       if (request.current === controller) { request.current = null; setWorking(false); }
     }
   }
+  function handleComposerKeyDown(event: import("react").KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) return;
+    event.preventDefault();
+    void send();
+  }
   if (!enabled) return null;
   const sendLabel = working ? "Consultando…" : "Enviar pergunta";
   const submitLabel = failed && !working ? "Tentar novamente" : sendLabel;
