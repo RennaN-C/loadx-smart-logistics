@@ -28,6 +28,15 @@ GET_FLEET_UTILIZATION = "get_fleet_utilization"
 GET_FLEET_AVAILABILITY = "get_fleet_availability"
 GET_CANCELED_DISTRIBUTIONS = "get_canceled_distributions"
 GET_FINANCIAL_IMPACT = "get_financial_impact"
+_ORDER_LABELS = {
+    "DRAFT": "Rascunho",
+    "READY": "Pronto",
+    "PLANNED": "Planejado",
+    "IN_TRANSIT": "Em trânsito",
+    "DELIVERED": "Entregue",
+    "CANCELED": "Cancelado",
+}
+
 GET_REGISTERED_PRODUCTS = "get_registered_products"
 GET_REGISTERED_TRUCKS = "get_registered_trucks"
 
@@ -204,14 +213,14 @@ class AssistantMetricsService:
                 pagination, status=arguments.status
             )
             labels = [
-                "Pedido " + str(item.id)[:8] + " · " + item.status
+                "Pedido " + str(item.id)[:8] + " · " + _ORDER_LABELS[item.status]
                 for item in page.items
             ]
             title, route, criterion = (
                 "Pedidos cadastrados",
                 "/orders",
                 "Filtro de situação: "
-                + (arguments.status or "todas")
+                + (_ORDER_LABELS[arguments.status] if arguments.status else "todas")
                 + ". Sem dados pessoais do destino.",
             )
         values = {
