@@ -64,7 +64,7 @@ jobs:
         run: python -m ruff check .
 
       - name: Validar formatação com Ruff
-        run: python -m ruff format --diff .
+        run: python -m ruff format --diff . && exit 1
 
       - name: Aplicar migrations
         run: python -m alembic upgrade head
