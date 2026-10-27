@@ -1,3 +1,5 @@
+import { useDialogLifecycle } from "../../../components/useDialogLifecycle";
+import { SceneBoundary } from "./SceneBoundary";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { AlertBanner } from "../../../components/AlertBanner";
@@ -24,7 +26,14 @@ interface LoadViewerProps {
   readonly plan: LoadPlan;
 }
 
-export function LoadViewer({ planId, plan }: LoadViewerProps) {
+export function LoadViewer(props: LoadViewerProps) {
+  return <LoadViewerWorkspace key={props.planId} {...props} />;
+}
+
+function LoadViewerWorkspace({ planId, plan }: LoadViewerProps) {
+  const [expanded, setExpanded] = useState(false);
+  const workspace = useRef<HTMLDivElement>(null);
+  useDialogLifecycle(workspace, expanded, () => setExpanded(false));
   const [attempt, setAttempt] = useState(0);
   const [view, setView] = useState<LoadPlanVisualization | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -157,49 +166,11 @@ export function LoadViewer({ planId, plan }: LoadViewerProps) {
   }
 
   return (
-    <div className="viewer">
+    <div ref={workspace} className={`viewer${expanded ? " is-expanded" : ""}`} data-plan-id={planId} role={expanded ? "dialog" : undefined} aria-modal={expanded || undefined} aria-label={expanded ? "Visualização 3D da carga" : undefined} tabIndex={expanded ? -1 : undefined}>
+      <div className="viewer-toolbar"><div><h3>Carga em 3D</h3></div><button type="button" className="btn-secondary" onClick={() => setExpanded((value) => !value)}>{expanded ? "Sair do modo expandido" : "Expandir visualização 3D"}</button></div>
       {/* Números do backend, não recalculados aqui. */}
-      <div className="viewer-kpis">
-        <div className="viewer-kpi">
-          <span className="viewer-kpi-label">OCUPAÇÃO</span>
-          <span className="viewer-kpi-value">
-            {plan.occupancyPercent.toFixed(1)}
-            <small>%</small>
-          </span>
-        </div>
-        <div className="viewer-kpi">
-          <span className="viewer-kpi-label">PESO EMBARCADO</span>
-          <span className="viewer-kpi-value">
-            {(plan.totalWeightKg / 1000).toFixed(2)}
-            <small>t</small>
-          </span>
-        </div>
-        <div className="viewer-kpi">
-          <span className="viewer-kpi-label">VOLUMES</span>
-          <span className="viewer-kpi-value">{plan.loadedCount}</span>
-        </div>
-        <div className={plan.unloadedCount > 0 ? "viewer-kpi viewer-kpi-alert" : "viewer-kpi"}>
-          <span className="viewer-kpi-label">FORA DA CARGA</span>
-          <span className="viewer-kpi-value">{plan.unloadedCount}</span>
-        </div>
-      </div>
-
-      <div className="viewer-views" role="group" aria-label="Ângulo da câmera">
-        {VIEW_PRESETS.map((preset) => (
-          <button
-            key={preset}
-            type="button"
-            className={preset === angle ? "viewer-view is-active" : "viewer-view"}
-            aria-pressed={preset === angle}
-            title={VIEW_HINTS[preset]}
-            onClick={() => setAngle(preset)}
-          >
-            {VIEW_LABELS[preset]}
-          </button>
-        ))}
-      </div>
-
       <div className="viewer-canvas">
+        <SceneBoundary>
         <LoadScene
           truck={view.truck}
           items={ordered}
@@ -212,6 +183,7 @@ export function LoadViewer({ planId, plan }: LoadViewerProps) {
           highlightFragile={highlightFragile}
           enteringId={current?.id ?? null}
         />
+        </SceneBoundary>
       </div>
 
       <div className="viewer-controls">
@@ -322,6 +294,48 @@ export function LoadViewer({ planId, plan }: LoadViewerProps) {
       ) : null}
 
       <div className="viewer-side">
+      <div className="viewer-views" role="group" aria-label="Ângulo da câmera">
+        {VIEW_PRESETS.map((preset) => (
+          <button
+            key={preset}
+            type="button"
+            className={preset === angle ? "viewer-view is-active" : "viewer-view"}
+            aria-pressed={preset === angle}
+            title={VIEW_HINTS[preset]}
+            onClick={() => setAngle(preset)}
+          >
+            {VIEW_LABELS[preset]}
+          </button>
+        ))}
+      </div>
+
+
+      <div className="viewer-kpis">
+        <div className="viewer-kpi">
+          <span className="viewer-kpi-label">OCUPAÇÃO</span>
+          <span className="viewer-kpi-value">
+            {plan.occupancyPercent.toFixed(1)}
+            <small>%</small>
+          </span>
+        </div>
+        <div className="viewer-kpi">
+          <span className="viewer-kpi-label">PESO EMBARCADO</span>
+          <span className="viewer-kpi-value">
+            {(plan.totalWeightKg / 1000).toFixed(2)}
+            <small>t</small>
+          </span>
+        </div>
+        <div className="viewer-kpi">
+          <span className="viewer-kpi-label">VOLUMES</span>
+          <span className="viewer-kpi-value">{plan.loadedCount}</span>
+        </div>
+        <div className={plan.unloadedCount > 0 ? "viewer-kpi viewer-kpi-alert" : "viewer-kpi"}>
+          <span className="viewer-kpi-label">FORA DA CARGA</span>
+          <span className="viewer-kpi-value">{plan.unloadedCount}</span>
+        </div>
+      </div>
+
+
         <section>
           <h4>Entregas</h4>
           <ul className="viewer-legend">
