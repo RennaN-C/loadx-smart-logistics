@@ -431,9 +431,7 @@ def test_direct_delivery_metrics_do_not_depend_on_model_tool_generation(
     assert query.call_args.args[1] == "get_delivery_metrics"
     assert provider.complete.call_count == 1
     assert "tools" not in provider.complete.call_args.kwargs
-    assert "DADOS AUTORIZADOS DO SERVIDOR" in str(
-        provider.complete.call_args.args[0]
-    )
+    assert "DADOS AUTORIZADOS DO SERVIDOR" in str(provider.complete.call_args.args[0])
 
 
 def test_groq_400_recovers_with_guidance_only_when_no_unambiguous_metric(
@@ -541,7 +539,8 @@ def test_invalid_groq_json_keeps_backend_verified_delivery_count(
     )
     monkeypatch.setattr(AssistantMetricsService, "query", query)
     result = AssistantService(Mock(), config(), provider).chat(
-        actor(), ChatRequest(message="Quantos pedidos foram entregues nos últimos 30 dias?")
+        actor(),
+        ChatRequest(message="Quantos pedidos foram entregues nos últimos 30 dias?"),
     )
     assert result.source == "BACKEND"
     assert "1 pedido totalmente entregue" in result.answer
@@ -552,9 +551,7 @@ def test_invalid_groq_json_keeps_backend_verified_delivery_count(
     assert "tools" not in provider.complete.call_args.kwargs
 
 
-def test_groq_transport_failure_preserves_authorized_fact(
-    no_database, monkeypatch
-):
+def test_groq_transport_failure_preserves_authorized_fact(no_database, monkeypatch):
     provider = Mock()
     provider.complete.side_effect = AIProviderUnavailableError()
     monkeypatch.setattr(
@@ -569,7 +566,8 @@ def test_groq_transport_failure_preserves_authorized_fact(
         ),
     )
     result = AssistantService(Mock(), config(), provider).chat(
-        actor(), ChatRequest(message="Quantos pedidos foram entregues nos últimos 30 dias?")
+        actor(),
+        ChatRequest(message="Quantos pedidos foram entregues nos últimos 30 dias?"),
     )
     assert result.source == "BACKEND"
     assert "1 pedido totalmente entregue" in result.answer
