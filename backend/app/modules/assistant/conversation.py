@@ -22,8 +22,17 @@ def _normalize(question: str) -> str:
 def conversation_reply(user: User, message: str) -> ChatResponse | None:
     text = _normalize(message).strip(" ?!.")
     greeting = {
-        "oi", "ola", "ola loxi", "oi loxi", "bom dia", "boa tarde",
-        "boa noite", "tudo bem", "e ai", "hey", "olá",
+        "oi",
+        "ola",
+        "ola loxi",
+        "oi loxi",
+        "bom dia",
+        "boa tarde",
+        "boa noite",
+        "tudo bem",
+        "e ai",
+        "hey",
+        "olá",
     }
     if text in greeting:
         return ChatResponse(
@@ -34,7 +43,9 @@ def conversation_reply(user: User, message: str) -> ChatResponse | None:
                 "planejamentos salvos. Se quiser, peça sugestões de perguntas."
             ),
         )
-    if re.fullmatch(r"(?:obrigad[oa]|valeu|muito obrigado|muito obrigada|show|beleza)", text):
+    if re.fullmatch(
+        r"(?:obrigad[oa]|valeu|muito obrigado|muito obrigada|show|beleza)", text
+    ):
         return ChatResponse(
             source="BACKEND",
             answer="Por nada! Quer analisar outro planejamento ou tirar alguma dúvida sobre a operação?",
@@ -46,11 +57,13 @@ def conversation_reply(user: User, message: str) -> ChatResponse | None:
     ):
         options: list[str] = []
         if has_permission(user, "loadx.planning.read"):
-            options.extend([
-                "Qual foi o último planejamento calculado?",
-                "Liste os planejamentos anteriores.",
-                "Por que houve volumes rejeitados no último cálculo?",
-            ])
+            options.extend(
+                [
+                    "Qual foi o último planejamento calculado?",
+                    "Liste os planejamentos anteriores.",
+                    "Por que houve volumes rejeitados no último cálculo?",
+                ]
+            )
         if has_permission(user, "loadx.products.read"):
             options.append("Quais produtos estão cadastrados?")
         if has_permission(user, "loadx.trucks.read"):
@@ -61,16 +74,29 @@ def conversation_reply(user: User, message: str) -> ChatResponse | None:
             source="BACKEND",
             answer=(
                 "Você pode perguntar, por exemplo:\n"
-                + ("\n".join(f"• {item}" for item in options[:6])
-                   if options else "• Como funciona o fluxo de carregamento?")
+                + (
+                    "\n".join(f"• {item}" for item in options[:6])
+                    if options
+                    else "• Como funciona o fluxo de carregamento?"
+                )
                 + "\n\nPara ações que alteram dados, posso orientar a tela correta; "
                 "a confirmação deve ser feita no sistema."
             ),
         )
     actions = (
         ("aprovar", "loadx.planning.approve", "/planning", "aprovação de planejamento"),
-        ("recalcular", "loadx.planning.create", "/planning", "recálculo de planejamento"),
-        ("cancelar", "loadx.planning.create", "/planning", "cancelamento de planejamento"),
+        (
+            "recalcular",
+            "loadx.planning.create",
+            "/planning",
+            "recálculo de planejamento",
+        ),
+        (
+            "cancelar",
+            "loadx.planning.create",
+            "/planning",
+            "cancelamento de planejamento",
+        ),
         ("excluir", "loadx.products.manage", "/products", "exclusão de cadastro"),
     )
     # No implicit execution: a text command is an invitation to a reviewed UI flow.
