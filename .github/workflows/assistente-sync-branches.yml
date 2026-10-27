@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   propor-backport:
-    if: github.event.pull_request.merged == true && !startsWith(github.event.pull_request.head.ref, 'sync/')
+    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -26,8 +26,24 @@ jobs:
           ORIGEM: ${{ github.event.pull_request.base.ref }}
           MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
           NUMERO_PR: ${{ github.event.pull_request.number }}
+          BRANCH_ORIGEM: ${{ github.event.pull_request.head.ref }}
         run: |
           set -euo pipefail
+          # Sincronizacoes geradas pelo bot nao geram um novo backport.
+          # Encerrar apenas a Issue temporaria criada por este workflow.
+          if [[ "$BRANCH_ORIGEM" == sync/* ]]; then
+            if [[ "$BRANCH_ORIGEM" == sync/pr-* ]]; then
+              BODY_PR="$(gh api "repos/$GITHUB_REPOSITORY/pulls/$NUMERO_PR" --jq .body)"
+              ISSUE_NUM="$(printf '%s\n' "$BODY_PR" | sed -nE 's/^[Cc]loses #([0-9]+).*$/\1/p' | head -n 1)"
+              if [[ "$ISSUE_NUM" =~ ^[0-9]+$ ]]; then
+                TITULO_ISSUE="$(gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUM" --jq .title)"
+                if [[ "$TITULO_ISSUE" == "chore(sync): revisar backport da PR"* ]]; then
+                  gh issue close "$ISSUE_NUM" --reason completed || true
+                fi
+              fi
+            fi
+            exit 0
+          fi
           if [[ "$ORIGEM" == "desenvolvimento" ]]; then
             DESTINO="pentest-lab"
           else
