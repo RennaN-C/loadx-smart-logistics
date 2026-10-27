@@ -172,7 +172,7 @@ def _catalog_intent(question: str) -> str | None:
     if any(
         word in text
         for word in (
-            "disponib",
+            "dispon",
             "manutenc",
             "problema",
             "por que",
