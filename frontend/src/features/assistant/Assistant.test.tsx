@@ -127,3 +127,40 @@ it("mantém histórico ao navegar e ao minimizar sem bloquear a tela", async () 
   await waitFor(() => expect(vi.mocked(askAssistant).mock.calls.length).toBe(2));
   expect(vi.mocked(askAssistant).mock.calls[1][2]).toEqual({});
 });
+
+
+it("prioriza a conversa e recolhe sugestões depois da primeira resposta", async () => {
+  show(); open();
+  expect(screen.getByLabelText("Perguntas sugeridas")).toBeInTheDocument();
+  send();
+  expect(await screen.findByText(REPLY.answer)).toBeInTheDocument();
+  expect(screen.queryByLabelText("Perguntas sugeridas")).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Sugestões" }));
+  expect(screen.getByLabelText("Perguntas sugeridas")).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Ocultar sugestões" }));
+  expect(screen.queryByLabelText("Perguntas sugeridas")).not.toBeInTheDocument();
+});
+
+it("mantém mais de três respostas no histórico visível", async () => {
+  show(); open();
+  for (let i = 0; i < 5; i++) {
+    const prompt = "Pergunta " + i;
+    fireEvent.change(screen.getByLabelText("Sua pergunta"), { target: { value: prompt } });
+    fireEvent.click(screen.getByRole("button", { name: "Enviar pergunta" }));
+    await waitFor(() => expect(vi.mocked(askAssistant).mock.calls.length).toBe(i + 1));
+    await waitFor(() => expect(screen.getByLabelText("Sua pergunta")).toHaveValue(""));
+  }
+  expect(screen.getByText("Pergunta 0")).toBeInTheDocument();
+  expect(screen.getByText("Pergunta 4")).toBeInTheDocument();
+  expect(screen.getByRole("dialog")).toHaveAttribute("aria-modal", "false");
+});
+
+it("identifica resposta de proteção sem atribuir falsamente falha à Groq", async () => {
+  vi.mocked(askAssistant).mockResolvedValue({
+    ...REPLY, source: "GUARDRAIL", answer: "Comando não autorizado."
+  });
+  show(); open(); send();
+  expect(await screen.findByText("Comando não autorizado.")).toBeInTheDocument();
+  expect(screen.getByText("Proteção do LoadX · somente leitura")).toBeInTheDocument();
+  expect(screen.queryByText("Resumo automático · IA indisponível")).not.toBeInTheDocument();
+});
