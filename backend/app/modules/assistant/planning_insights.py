@@ -74,10 +74,16 @@ def _kind(question: str, data: ChatRequest) -> str | None:
         return "explain"
     if not _PLAN_WORD.search(text):
         return None
-    if _LATEST_WORD.search(text) or _EXPLAIN_WORD.search(text):
-        return "explain"
-    if _LIST_WORD.search(text):
+    if _LIST_WORD.search(text) and (
+        not _LATEST_WORD.search(text)
+        or re.search(r"\\b(?:planos|planejamentos)\\s+anteriores\\b", text)
+    ):
         return "list"
+    if _LATEST_WORD.search(text):
+        return "explain"
+    # An explanation without a known plan must not invent which one was meant.
+    if _EXPLAIN_WORD.search(text):
+        return "list" if "como funciona" not in text else None
     return None
 
 
