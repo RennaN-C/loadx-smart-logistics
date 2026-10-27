@@ -96,7 +96,7 @@ export function Assistant() {
   if (!enabled) return null;
   const sendLabel = working ? "Consultando…" : "Enviar pergunta";
   const submitLabel = failed && !working ? "Tentar novamente" : sendLabel;
-  const suggestions = turns.at(-1)?.reply?.suggestions ?? ["Por que a carga não coube?", "Quantos pedidos foram entregues nos últimos 30 dias?", "O que faço agora?"];
+  const suggestions = turns.at(-1)?.reply?.suggestions?.length ? turns.at(-1)!.reply!.suggestions : ["Por que a carga não coube?", "Quantos pedidos foram entregues nos últimos 30 dias?", "O que faço agora?"];
   return <>
     <button ref={launcher} type="button" className="assistant-launch" aria-label="Perguntar ao LoadX" aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? titleId : undefined} onClick={() => open ? close() : setOpen(true)}>
       <Icon name="message-circle" size={23} /><span>Assistente LoadX</span>
