@@ -58,7 +58,12 @@
   overflow: hidden;
   gap: 10px;
 }
-.assistant-panel-body > .entity-form-help { flex-shrink: 0; margin: 0; font-size: .74rem; }
+.assistant-privacy { flex-shrink: 0; font-size: .74rem; color: var(--muted); }
+.assistant-privacy summary { cursor: pointer; width: max-content; max-width: 100%; }
+.assistant-privacy p { line-height: 1.5; margin: 6px 0 0; }
+.assistant-compose-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.assistant-ideas-button { background: transparent; color: var(--accent-strong); font: inherit; font-size: .78rem; border: 0; padding: 4px; cursor: pointer; text-decoration: underline; }
+.assistant-ideas-button:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
 .assistant-close {
   position: absolute;
   top: 12px;
@@ -108,8 +113,10 @@
   flex-shrink: 0;
   gap: 7px;
   /* Sugestões nunca criam um segundo scroll vertical dentro do chat. */
-  max-height: none;
-  overflow: visible;
+  max-height: min(122px, 22dvh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
 }
 .assistant-suggestions button { white-space: normal; text-align: left; font-size: .78rem; }
 .assistant-panel-body form { display: grid; flex-shrink: 0; gap: 9px; border-top: 1px solid var(--line); padding-top: 10px; }
@@ -134,8 +141,21 @@
 @media (max-width: 767px) {
   .assistant-launch { inset: auto 15px 15px auto; min-width: 54px; min-height: 54px; justify-content: center; padding: 14px; }
   .assistant-launch > span { display: none; }
-  .assistant-panel { inset: auto 8px 81px 8px; width: auto; height: min(620px, calc(100dvh - 96px)); max-height: calc(100dvh - 96px); }
-  .assistant-panel-body { padding: 12px; }
+  .assistant-launch[aria-expanded="true"] { display: none; }
+  .assistant-panel {
+    inset: max(6px, env(safe-area-inset-top, 0px)) 6px max(6px, env(safe-area-inset-bottom, 0px));
+    width: auto;
+    height: auto;
+    max-height: none;
+    border-radius: 14px;
+  }
+  .assistant-panel-body { padding: 10px 12px max(12px, env(safe-area-inset-bottom, 0px)); gap: 8px; }
+  .assistant-panel-header { padding: 11px 52px 10px 13px; }
+  .assistant-panel-body form { padding-top: 8px; gap: 7px; }
+  .assistant-panel-body textarea { min-height: 52px; max-height: 96px; padding: 9px; }
+  .assistant-suggestions { max-height: 100px; }
+  .assistant-conversation { gap: 12px; }
+  .assistant-launch { z-index: 48; }
   .assistant-panel-body .entity-form-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   .assistant-panel-body .entity-form-actions button { min-width: 0; padding-inline: 8px; white-space: normal; }
 }
