@@ -11,9 +11,11 @@ from app.modules.access_profiles.catalog import has_permission
 from app.modules.assistant.schemas import CustomerChoice, Source, ToolArguments
 from app.modules.company_profile.service import CompanyProfileService
 from app.modules.customers.service import CustomerNotFoundError, CustomerService
+from app.modules.products.service import ProductService
 from app.modules.reports.assistant_repository import AssistantMetricsRepository
 from app.modules.reports.management_service import ManagementFilters, validate_window
 from app.modules.trucks.operational_status_service import TruckOperationalStatusService
+from app.modules.trucks.service import TruckService
 from app.modules.users.models import User
 
 GET_COMPANY_SUMMARY = "get_company_summary"
@@ -23,10 +25,14 @@ GET_FLEET_UTILIZATION = "get_fleet_utilization"
 GET_FLEET_AVAILABILITY = "get_fleet_availability"
 GET_CANCELED_DISTRIBUTIONS = "get_canceled_distributions"
 GET_FINANCIAL_IMPACT = "get_financial_impact"
+GET_REGISTERED_PRODUCTS = "get_registered_products"
+GET_REGISTERED_TRUCKS = "get_registered_trucks"
 
 REPORTS_READ_PERMISSION = "loadx.reports.read"
 
 TOOL_PERMISSIONS = {
+    GET_REGISTERED_PRODUCTS: ("loadx.products.read",),
+    GET_REGISTERED_TRUCKS: ("loadx.trucks.read",),
     GET_FLEET_AVAILABILITY: ("loadx.trucks.read",),
     GET_COMPANY_SUMMARY: (),
     GET_CUSTOMER_ORDER_METRICS: (
@@ -59,7 +65,11 @@ def allowed_tool(user: User, name: str) -> bool:
         or user.role not in {"ADMIN", "LOGISTICS_MANAGER", "CHECKER"}
     ):
         return False
-    if user.role == "CHECKER" and name != GET_FLEET_AVAILABILITY:
+    if user.role == "CHECKER" and name not in {
+        GET_FLEET_AVAILABILITY,
+        GET_REGISTERED_PRODUCTS,
+        GET_REGISTERED_TRUCKS,
+    }:
         return False
     if name in {GET_COMPANY_SUMMARY, GET_FINANCIAL_IMPACT}:
         return user.role == "ADMIN"
@@ -87,6 +97,10 @@ class AssistantMetricsService:
                 "AUTH_FORBIDDEN",
                 "Esta consulta não está disponível para seu perfil.",
             )
+        if name == GET_REGISTERED_PRODUCTS:
+            return self._registered_products(arguments.page)
+        if name == GET_REGISTERED_TRUCKS:
+            return self._registered_trucks(arguments.page)
         if name == GET_FLEET_AVAILABILITY:
             return self._availability(arguments.page)
         end = arguments.end or datetime.now(UTC)
@@ -127,6 +141,56 @@ class AssistantMetricsService:
             filter_label="Cliente filtrado: " + customer_label
             if customer_label
             else None,
+        )
+
+    def _registered_products(self, page: int) -> Source:
+        """Only catalog data; do not send names or identifiers to the LLM."""
+        result = ProductService(self.db).list_products(
+            PaginationParams(page=page, page_size=10, sort_order="asc")
+        )
+        values: dict[str, int | float | str | None] = {
+            "total_records": result.total,
+            "page": result.page,
+            "total_pages": result.total_pages,
+            "page_records": len(result.items),
+        }
+        for index, product in enumerate(result.items, start=1):
+            status = "Ativo" if product.active else "Arquivado"
+            values[f"item_{index}"] = (
+                f"{product.name[:100]} · código {product.code[:40]} · {status}"
+            )
+        return Source(
+            name="Produtos cadastrados",
+            criteria=(
+                "Listagem paginada dos produtos cadastrados, incluindo arquivados. "
+                "Até 10 por página, em ordem de criação; não informa estoque."
+            ),
+            values=values,
+        )
+
+    def _registered_trucks(self, page: int) -> Source:
+        """Registration and operational availability are different concepts."""
+        result = TruckService(self.db).list_trucks(
+            PaginationParams(page=page, page_size=10, sort_order="asc")
+        )
+        values: dict[str, int | float | str | None] = {
+            "total_records": result.total,
+            "page": result.page,
+            "total_pages": result.total_pages,
+            "page_records": len(result.items),
+        }
+        for index, truck in enumerate(result.items, start=1):
+            status = "Ativo" if truck.active else "Arquivado"
+            values[f"item_{index}"] = (
+                f"{truck.model[:100]} · placa {truck.plate[:16]} · {status}"
+            )
+        return Source(
+            name="Caminhões cadastrados",
+            criteria=(
+                "Listagem paginada dos caminhões cadastrados, incluindo arquivados. "
+                "Até 10 por página; disponibilidade operacional deve ser consultada separadamente."
+            ),
+            values=values,
         )
 
     def _availability(self, page: int) -> Source:
