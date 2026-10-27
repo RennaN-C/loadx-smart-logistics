@@ -386,7 +386,13 @@ def test_grounded_facts_are_passed_as_user_data_not_system_instructions(
     monkeypatch.setattr(
         "app.modules.assistant.service.planning_context",
         lambda *_: (
-            [Source(name="Plano autorizado", criteria="Dados registrados", values={"loaded_volumes": 2})],
+            [
+                Source(
+                    name="Plano autorizado",
+                    criteria="Dados registrados",
+                    values={"loaded_volumes": 2},
+                )
+            ],
             [],
         ),
     )
