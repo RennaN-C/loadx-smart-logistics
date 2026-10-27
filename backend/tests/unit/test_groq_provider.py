@@ -119,3 +119,29 @@ def test_groq_logs_only_safe_status_on_http_error(monkeypatch, caplog):
     assert "GROQ_REQUEST_FAILURE category=http_401" in caplog.text
     assert "secret-key" not in caplog.text
     assert "private prompt" not in caplog.text
+
+
+@pytest.mark.parametrize(
+    "code,expected",
+    [
+        ("model_permission_blocked_org", "model_permission_blocked_org"),
+        ("model_permission_blocked_project", "model_permission_blocked_project"),
+        ("arbitrary-private-message", "unclassified"),
+    ],
+)
+def test_groq_403_reports_only_allowlisted_error_code(
+    monkeypatch, caplog, code, expected
+):
+    body = json.dumps(
+        {"error": {"code": code, "message": "private-customer-prompt"}}
+    ).encode()
+    opener = Mock()
+    opener.open.side_effect = HTTPError(
+        "https://example.invalid", 403, "Forbidden", {}, io.BytesIO(body)
+    )
+    monkeypatch.setattr("app.integrations.ai.groq.build_opener", lambda *_: opener)
+    with pytest.raises(AIProviderUnavailableError):
+        GroqProvider(config()).complete([], timeout_seconds=1)
+    assert f"GROQ_REQUEST_FAILURE category=http_403 reason={expected}" in caplog.text
+    assert "private-customer-prompt" not in caplog.text
+    assert "arbitrary-private-message" not in caplog.text
