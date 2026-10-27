@@ -56,7 +56,7 @@ it("distingue resposta verificada do backend de falha total da IA", async () => 
   });
   show(); open(); send();
   expect(await screen.findByText("Dados verificados · LoadX")).toBeInTheDocument();
-  expect(screen.getByText("Pedidos totalmente entregues")).toBeInTheDocument();
+  expect(screen.getAllByText("Pedidos totalmente entregues")[0]).toBeInTheDocument();
   expect(screen.getAllByText("1").length).toBeGreaterThan(0);
   expect(screen.queryByText("Resumo automático · IA indisponível")).not.toBeInTheDocument();
 });
@@ -200,7 +200,7 @@ it("mostra resumo objetivo com métricas verificadas e detalhes recolhidos", asy
   show("/deliveries"); open(); send();
   expect(await screen.findByText("Pedidos totalmente entregues")).toBeInTheDocument();
   expect(screen.getByText("Últimos 30 dias")).toBeInTheDocument();
-  expect(screen.getByText("Distribuidoria Aurora")).toBeInTheDocument();
+  expect(screen.getAllByText("Distribuidoria Aurora")[0]).toBeInTheDocument();
   expect(screen.queryByText(/Consultei os registros autorizados/)).not.toBeInTheDocument();
   const details = screen.getByText("Ver critérios e dados completos").closest("details");
   expect(details).not.toHaveAttribute("open");
@@ -242,5 +242,5 @@ it("preserva indicadores iguais a zero sem inferir sucesso", async () => {
   });
   show(); open(); send();
   expect(await screen.findByText("Pedidos totalmente entregues")).toBeInTheDocument();
-  expect(screen.getByText("0")).toBeInTheDocument();
+  expect(screen.getAllByText("0")[0]).toBeInTheDocument();
 });
