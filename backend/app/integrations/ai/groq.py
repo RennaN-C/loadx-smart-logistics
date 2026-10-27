@@ -21,6 +21,11 @@ USER_AGENT = "LoadX-Smart-Logistics/1.2"
 logger = logging.getLogger(__name__)
 
 
+class AIProviderToolGenerationError(AIProviderUnavailableError):
+    """Groq rejected malformed model-generated tool calls; no tool was executed."""
+
+
+
 class _NoRedirect(HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         raise AIProviderUnavailableError
@@ -83,6 +88,24 @@ class GroqProvider:
                 if error.code in {400, 401, 403, 404, 413, 422, 429, 498, 500, 502, 503}
                 else "other"
             )
+            if status == 400:
+                # Groq may return 400 when the model creates an invalid tool
+                # call. Parse only a bounded response and log a fixed category.
+                try:
+                    details = json.loads(error.read(4096))
+                    issue = details.get("error") if isinstance(details, dict) else None
+                    if (
+                        isinstance(issue, dict)
+                        and "failed_generation" in issue
+                        and isinstance(issue["failed_generation"], (dict, str))
+                    ):
+                        logger.warning(
+                            "GROQ_REQUEST_FAILURE category=http_400 "
+                            "reason=invalid_tool_generation"
+                        )
+                        raise AIProviderToolGenerationError from None
+                except (OSError, ValueError, TypeError):
+                    pass
             if status == 403:
                 # Only accept documented, fixed codes. Never log the HTTP body, its
                 # arbitrary message, project names, prompts, authorization or headers.
