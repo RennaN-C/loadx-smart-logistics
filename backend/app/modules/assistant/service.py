@@ -160,8 +160,54 @@ def _safe_recovery_tool(question: str, allowed_names: frozenset[str]) -> str | N
     return name if name in allowed_names else None
 
 
+def _catalog_intent(question: str) -> str | None:
+    """Bounded and explicit registration questions; never use availability as inventory."""
+    normalized = unicodedata.normalize("NFKD", question.casefold())
+    text = "".join(char for char in normalized if not unicodedata.combining(char))
+    if len(text) > 165 or not re.search(
+        r"\b(?:qual|quais|list\w*|mostr\w*|temos|cadastrad\w*|registrad\w*)\b",
+        text,
+    ):
+        return None
+    if any(
+        word in text
+        for word in (
+            "disponib", "manutenc", "problema", "por que", "entreg",
+            "pedido", "cliente", "document", "viagem", "rota",
+            "plano", "carga", "quantos", "quanto", "pode", "alter",
+        )
+    ):
+        return None
+    products = bool(re.search(r"\b(?:produto\w*|mercadoria\w*)\b", text))
+    trucks = bool(re.search(r"\b(?:caminh\w*|veicul\w*|frota)\b", text))
+    if products == trucks:
+        return None
+    return "get_registered_products" if products else "get_registered_trucks"
+
+
+def _catalog_answer(fact: Source) -> str:
+    """Answer only with authorized DB content; the provider never authors registration names."""
+    rows = [
+        sanitize(" ".join(value.split()))[:190]
+        for key, value in fact.values.items()
+        if key.startswith("item_") and isinstance(value, str)
+    ]
+    total = fact.values.get("total_records", 0)
+    page = fact.values.get("page", 1)
+    pages = fact.values.get("total_pages", 0)
+    if not rows:
+        return f"{fact.name}: nenhum registro nesta página."
+    return (
+        f"{fact.name} ({total} no total; página {page} de {pages}):\n"
+        + "\n".join(f"• {row}" for row in rows)
+        + ("\nHá mais registros nas páginas seguintes." if isinstance(pages, int) and pages > page else "")
+    )
+
+
 def tool_definitions(user: User) -> list[dict]:
     descriptions = {
+        "get_registered_products": "Listar até dez produtos cadastrados por página, com código, nome e situação (ativo/arquivado); não informa estoque.",
+        "get_registered_trucks": "Listar até dez caminhões cadastrados por página, com modelo, placa e situação; não é a disponibilidade operacional.",
         "get_fleet_availability": "Disponibilidade atual por página de caminhões; bloqueios operacionais, manutenção e documentos conforme backend. Não é histórico de utilização.",
         "get_company_summary": "Cadastro institucional não sensível da empresa operadora, não do cliente.",
         "get_customer_order_metrics": "Pedidos criados no período agrupados pela situação atual, com cliente opcional.",
@@ -226,6 +272,35 @@ class AssistantService:
         deadline = time.monotonic() + self.config.ai_chat_timeout_seconds
         definitions = tool_definitions(user)
         allowed_names = frozenset(tool["function"]["name"] for tool in definitions)
+        # Consultas de cadastro não dependem do modelo nem de tool calls frágeis.
+        # Permissão é conferida antes e depois do refresh na execução da ferramenta.
+        catalog_route = (
+            _catalog_intent(data.message)
+            if not data.diagnostic_token else None
+        )
+        if catalog_route is not None:
+            if catalog_route not in allowed_names:
+                return ChatResponse(
+                    source="GUARDRAIL",
+                    answer="Você não tem permissão para consultar esse cadastro.",
+                    facts=[], links=[], suggestions=[],
+                )
+            result = self._run_tool(
+                user,
+                {
+                    "id": "loadx_catalog_read",
+                    "type": "function",
+                    "function": {"name": catalog_route, "arguments": "{}"},
+                },
+                now, deadline, data.customer_id, allowed_names,
+            )
+            return ChatResponse(
+                source="BACKEND",
+                answer=_catalog_answer(result.fact),
+                facts=[result.fact],
+                links=[result.link] if result.link else [],
+                suggestions=["Quais outros cadastros posso consultar?"],
+            )
         try:
             # Para indicadores quantitativos inequívocos, o servidor consulta
             # primeiro os dados autorizados. Assim a Groq não precisa gerar
@@ -422,6 +497,14 @@ class AssistantService:
             user, call.name, arguments, selected_customer_id=selected_customer_id
         )
         resource_links = {
+            "get_registered_products": {
+                "label": "Abrir produtos",
+                "href": "/products",
+            },
+            "get_registered_trucks": {
+                "label": "Abrir caminhões",
+                "href": "/trucks",
+            },
             "get_fleet_availability": {
                 "label": "Consultar disponibilidade",
                 "href": "/trucks?tab=availability",
@@ -457,7 +540,7 @@ class AssistantService:
         provider_fact["values"] = {
             key: (
                 "cadastro autorizado"
-                if key in {"company", "top_customer_name", "unavailable_vehicles"}
+                if key in {"company", "top_customer_name", "unavailable_vehicles"} or key.startswith("item_")
                 and value
                 else value
             )
