@@ -25,7 +25,6 @@ class AIProviderToolGenerationError(AIProviderUnavailableError):
     """Groq rejected malformed model-generated tool calls; no tool was executed."""
 
 
-
 class _NoRedirect(HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         raise AIProviderUnavailableError
