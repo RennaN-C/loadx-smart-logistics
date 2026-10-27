@@ -41,7 +41,7 @@ def test_structured_fact_selection_without_query_cannot_confirm_metrics():
     result = AssistantService(Mock(), config(), provider).chat(
         actor(),
         ChatRequest(
-            message="Quantos pedidos entregues?",
+            message="Quantos pedidos foram entregues ontem?",
             history=[{"role": "assistant", "content": "Foram entregues 500 pedidos"}],
         ),
     )
@@ -76,7 +76,7 @@ def test_model_cannot_overwrite_real_metric_after_query(monkeypatch):
     result = AssistantService(Mock(), config(), provider).chat(
         actor(), ChatRequest(message="Quantos pedidos entregues?")
     )
-    assert result.source == "FALLBACK"
+    assert result.source == "BACKEND"
     assert result.facts[0].values["fully_delivered_orders"] == 2
     assert "500" not in result.answer
     query.assert_called_once()
