@@ -10,8 +10,8 @@
   padding: 12px 17px;
   border: 1px solid var(--line);
   border-radius: 999px;
-  background: var(--accent-strong);
-  color: var(--paper);
+  background: var(--accent);
+  color: var(--accent-contrast);
   box-shadow: 0 10px 30px rgb(0 0 0 / .19);
   font: inherit;
   font-size: .86rem;
