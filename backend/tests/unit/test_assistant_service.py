@@ -94,7 +94,9 @@ def test_forbidden_roles_never_call_provider(no_database, role):
 def test_checker_cannot_escalate_to_global_metrics_even_by_tool_call():
     user = actor("CHECKER")
     assert [tool["function"]["name"] for tool in tool_definitions(user)] == [
-        "get_fleet_availability"
+        "get_registered_products",
+        "get_registered_trucks",
+        "get_fleet_availability",
     ]
     assert not allowed_tool(user, "get_delivery_metrics")
     service = AssistantMetricsService(Mock())
@@ -629,6 +631,10 @@ def test_catalog_missing_permission_does_not_fall_through_to_groq(
     provider = Mock()
     query = Mock()
     monkeypatch.setattr(AssistantMetricsService, "query", query)
+    monkeypatch.setattr(
+        "app.modules.reports.assistant_service.has_permission",
+        lambda user, permission: permission != "loadx.products.read",
+    )
     result = AssistantService(Mock(), config(), provider).chat(
         actor("CHECKER"),
         ChatRequest(message="Qual produto temos cadastrado no sistema?"),
