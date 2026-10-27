@@ -91,7 +91,9 @@ def planning_insight(db: Session, user: User, data: ChatRequest) -> ChatResponse
     kind = _kind(data.message, data)
     if kind is None:
         return None
-    if not has_permission(user, "loadx.planning.read"):
+    # Permission changes between turns must take effect before any plan lookup.
+    db.refresh(user)
+    if not user.active or not has_permission(user, "loadx.planning.read"):
         return ChatResponse(
             source="GUARDRAIL",
             answer="Seu perfil não permite consultar planejamentos.",
