@@ -148,7 +148,7 @@ def _safe_recovery_tool(question: str, allowed_names: frozenset[str]) -> str | N
     ):
         name = "get_fleet_utilization"
     elif ("caminh" in text or "veicul" in text or "frota" in text) and any(
-        word in text for word in ("disponib", "manutenc", "document", "inativ")
+        word in text for word in ("dispon", "manutenc", "document", "inativ")
     ):
         name = "get_fleet_availability"
     elif ("pedido" in text or "pedidos" in text) and any(
