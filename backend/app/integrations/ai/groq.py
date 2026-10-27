@@ -16,6 +16,8 @@ from app.integrations.ai.provider import (
 
 ENDPOINT = "https://api.groq.com/openai/v1/chat/completions"
 MAX_BODY_BYTES = 65_536
+# A identificacao padrao Python-urllib e bloqueada por alguns filtros da borda da Groq.
+USER_AGENT = "LoadX-Smart-Logistics/1.2"
 logger = logging.getLogger(__name__)
 
 
@@ -60,6 +62,7 @@ class GroqProvider:
                 "Authorization": "Bearer " + key.get_secret_value(),
                 "Content-Type": "application/json",
                 "Accept": "application/json",
+                "User-Agent": USER_AGENT,
             },
             method="POST",
         )
@@ -85,16 +88,21 @@ class GroqProvider:
                 # arbitrary message, project names, prompts, authorization or headers.
                 reason = "unclassified"
                 try:
-                    details = json.loads(error.read(4096))
-                    if isinstance(details, dict):
-                        metadata = details.get("error")
-                        if isinstance(metadata, dict):
-                            code = metadata.get("code")
-                            if code in {
-                                "model_permission_blocked_org",
-                                "model_permission_blocked_project",
-                            }:
-                                reason = code
+                    body = error.read(4096)
+                    if b"error code: 1010" in body.lower():
+                        # Cloudflare rejected the HTTP client's signature.
+                        reason = "edge_client_signature_1010"
+                    else:
+                        details = json.loads(body)
+                        if isinstance(details, dict):
+                            metadata = details.get("error")
+                            if isinstance(metadata, dict):
+                                code = metadata.get("code")
+                                if code in {
+                                    "model_permission_blocked_org",
+                                    "model_permission_blocked_project",
+                                }:
+                                    reason = code
                 except (OSError, ValueError, TypeError):
                     pass
                 logger.warning(
