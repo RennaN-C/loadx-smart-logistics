@@ -407,14 +407,11 @@ def test_grounded_facts_are_passed_as_user_data_not_system_instructions(
     assert "DADOS ESTRUTURADOS" in messages[1]["content"]
 
 
-def test_groq_400_recovers_with_authorized_delivery_metrics_without_model_tools(
+def test_direct_delivery_metrics_do_not_depend_on_model_tool_generation(
     no_database, monkeypatch
 ):
     provider = Mock()
-    provider.complete.side_effect = [
-        AIProviderToolGenerationError(),
-        {"content": '{"guidance":["facts"]}'},
-    ]
+    provider.complete.return_value = {"content": '{"guidance":["facts"]}'}
     query = Mock(
         return_value=Source(
             name="Entregas",
@@ -432,11 +429,10 @@ def test_groq_400_recovers_with_authorized_delivery_metrics_without_model_tools(
     assert result.facts[0].values["fully_delivered_orders"] == 3
     assert query.call_count == 1
     assert query.call_args.args[1] == "get_delivery_metrics"
-    assert provider.complete.call_count == 2
-    assert provider.complete.call_args_list[0].kwargs["tools"]
-    assert "tools" not in provider.complete.call_args_list[1].kwargs
-    assert "RESULTADO AUTORIZADO DO SERVIDOR" in str(
-        provider.complete.call_args_list[1].args[0]
+    assert provider.complete.call_count == 1
+    assert "tools" not in provider.complete.call_args.kwargs
+    assert "DADOS AUTORIZADOS DO SERVIDOR" in str(
+        provider.complete.call_args.args[0]
     )
 
 
@@ -520,4 +516,70 @@ def test_groq_400_recovery_rechecks_permissions_before_read(no_database, monkeyp
         )
     assert caught.value.status_code == 403
     query.assert_not_called()
+    provider.complete.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "invalid_output",
+    [
+        "A entrega foi realizada com sucesso.",
+        '{"guidance":["codigo_inexistente"]}',
+        '{"guidance":["facts"],"total":999}',
+    ],
+)
+def test_invalid_groq_json_keeps_backend_verified_delivery_count(
+    no_database, monkeypatch, invalid_output
+):
+    provider = Mock()
+    provider.complete.return_value = {"content": invalid_output}
+    query = Mock(
+        return_value=Source(
+            name="Expedição e entregas",
+            criteria="Dados confirmados no banco",
+            values={"fully_delivered_orders": 1, "dispatched_orders": 1},
+        )
+    )
+    monkeypatch.setattr(AssistantMetricsService, "query", query)
+    result = AssistantService(Mock(), config(), provider).chat(
+        actor(), ChatRequest(message="Quantos pedidos foram entregues nos últimos 30 dias?")
+    )
+    assert result.source == "BACKEND"
+    assert "1 pedido totalmente entregue" in result.answer
+    assert "999" not in result.answer
+    assert result.facts[0].values["fully_delivered_orders"] == 1
+    assert query.call_count == 1
     assert provider.complete.call_count == 1
+    assert "tools" not in provider.complete.call_args.kwargs
+
+
+def test_groq_transport_failure_preserves_authorized_fact(
+    no_database, monkeypatch
+):
+    provider = Mock()
+    provider.complete.side_effect = AIProviderUnavailableError()
+    monkeypatch.setattr(
+        AssistantMetricsService,
+        "query",
+        Mock(
+            return_value=Source(
+                name="Expedição e entregas",
+                criteria="Dados confirmados",
+                values={"fully_delivered_orders": 1},
+            )
+        ),
+    )
+    result = AssistantService(Mock(), config(), provider).chat(
+        actor(), ChatRequest(message="Quantos pedidos foram entregues nos últimos 30 dias?")
+    )
+    assert result.source == "BACKEND"
+    assert "1 pedido totalmente entregue" in result.answer
+    assert result.facts[0].values["fully_delivered_orders"] == 1
+
+
+def test_vague_delivery_request_still_uses_authorized_model_tools(no_database):
+    provider = Mock()
+    provider.complete.return_value = {"content": '{"guidance":["read_only"]}'}
+    AssistantService(Mock(), config(), provider).chat(
+        actor(), ChatRequest(message="Consulte entregas")
+    )
+    assert provider.complete.call_args.kwargs["tools"]
