@@ -75,7 +75,11 @@ class GroqProvider:
             return self._parse_response(body)
         except HTTPError as error:
             # Log only an HTTP status; provider bodies can contain private prompts.
-            status = error.code if error.code in {400, 401, 403, 404, 413, 422, 429, 498, 500, 502, 503} else "other"
+            status = (
+                error.code
+                if error.code in {400, 401, 403, 404, 413, 422, 429, 498, 500, 502, 503}
+                else "other"
+            )
             logger.warning("GROQ_REQUEST_FAILURE category=http_%s", status)
             raise AIProviderUnavailableError from None
         except TimeoutError:
