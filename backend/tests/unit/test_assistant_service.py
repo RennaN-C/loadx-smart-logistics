@@ -407,7 +407,6 @@ def test_grounded_facts_are_passed_as_user_data_not_system_instructions(
     assert "DADOS ESTRUTURADOS" in messages[1]["content"]
 
 
-
 def test_groq_400_recovers_with_authorized_delivery_metrics_without_model_tools(
     no_database, monkeypatch
 ):
