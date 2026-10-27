@@ -27,8 +27,8 @@ from app.modules.assistant.answers import (
 )
 from app.modules.assistant.context import planning_context
 from app.modules.assistant.conversation import conversation_reply
-from app.modules.assistant.planning_insights import planning_insight
 from app.modules.assistant.limits import ensure_budget
+from app.modules.assistant.planning_insights import planning_insight
 from app.modules.assistant.schemas import (
     ChatRequest,
     ChatResponse,
