@@ -14,8 +14,8 @@ from app.core.exceptions import ApiError
 from app.core.pagination import PaginationParams
 from app.modules.access_profiles.catalog import has_permission
 from app.modules.load_planning.service import (
-    LoadPlanNotFoundError,
     LoadPlanningService,
+    LoadPlanNotFoundError,
 )
 from app.modules.users.models import User
 
@@ -160,7 +160,7 @@ def planning_insight(db: Session, user: User, data: ChatRequest) -> ChatResponse
         raise ApiError(404, "LOAD_PLAN_NOT_FOUND", "Planejamento não encontrado.") from None
     if user.role == "CHECKER" and plan.status != "APPROVED":
         raise ApiError(403, "AUTH_FORBIDDEN", "Planejamento não autorizado.")
-    dist_id, dist_status, part_status, is_current = svc.get_distribution_state_for_plan(plan.id)
+    _dist_id, dist_status, part_status, is_current = svc.get_distribution_state_for_plan(plan.id)
     reasons = Counter(
         item.rejection_reason for item in plan.items if item.rejection_reason
     )
