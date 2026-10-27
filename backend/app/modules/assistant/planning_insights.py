@@ -185,6 +185,12 @@ def planning_insight(db: Session, user: User, data: ChatRequest) -> ChatResponse
     _dist_id, dist_status, part_status, is_current = (
         svc.get_distribution_state_for_plan(plan.id)
     )
+    if user.role == "CHECKER" and (
+        dist_status in {"CANCELED", "INCOMPLETE"}
+        or part_status == "CANCELED"
+        or not is_current
+    ):
+        raise ApiError(403, "AUTH_FORBIDDEN", "Planejamento não autorizado.")
     reasons = Counter(
         item.rejection_reason for item in plan.items if item.rejection_reason
     )
