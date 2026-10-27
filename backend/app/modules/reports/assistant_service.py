@@ -11,11 +11,11 @@ from app.modules.access_profiles.catalog import has_permission
 from app.modules.assistant.schemas import CustomerChoice, Source, ToolArguments
 from app.modules.company_profile.service import CompanyProfileService
 from app.modules.customers.service import CustomerNotFoundError, CustomerService
+from app.modules.products.service import ProductService
 from app.modules.reports.assistant_repository import AssistantMetricsRepository
 from app.modules.reports.management_service import ManagementFilters, validate_window
-from app.modules.products.service import ProductService
-from app.modules.trucks.service import TruckService
 from app.modules.trucks.operational_status_service import TruckOperationalStatusService
+from app.modules.trucks.service import TruckService
 from app.modules.users.models import User
 
 GET_COMPANY_SUMMARY = "get_company_summary"
