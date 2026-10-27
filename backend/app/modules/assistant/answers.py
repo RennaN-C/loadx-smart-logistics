@@ -60,6 +60,16 @@ def factual_highlights(facts: list[Source]) -> str:
     )
 
 
+def verified_answer(facts: list[Source]) -> str:
+    """Only backend facts can appear; no unvalidated model prose is reused."""
+    summary = factual_highlights(facts)
+    guidance = (
+        "Consultei os registros autorizados do LoadX. "
+        "Confira os indicadores abaixo para ver os critérios, o período e a origem."
+    )
+    return "\\n\\n".join(part for part in (summary, guidance) if part).replace("\\n", "\n")
+
+
 class AnswerSelection(BaseModel):
     model_config = ConfigDict(extra="forbid")
     guidance: list[
