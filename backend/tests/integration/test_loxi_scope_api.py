@@ -66,6 +66,7 @@ def test_registration_is_paginated_active_and_role_scoped(client, session_factor
     )
     assert response.status_code == 200, response.text
     values = response.json()["facts"][0]["values"]
+    assert response.json()["links"][0]["href"] == "/contacts?tab=customers"
     assert values["page"] == 2
     assert 0 < values["page_records"] <= 10
     assert "Endereço privado" not in str(response.json())

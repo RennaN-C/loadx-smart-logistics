@@ -34,3 +34,5 @@ Exemplos: “Fale sobre as configurações” (ADMIN, documentação); “Fale s
 Limites: a conversa social gerada é identificada como GENERAL, não consulta registros nem pode publicar indicadores operacionais. Como usar o LoadX usa documentação autorizada. Indicadores e nomes cadastrados continuam vindos do backend; não há SQL livre. Integrações, auditoria, usuários, perfis, eventos, agenda e notificações não ganharam uma API genérica de leitura por IA. Suas consultas diretas pelo chat ficam registradas como lacunas, em vez de simular dados.
 
 Conversa é restrita aos perfis ADMIN/LOGISTICS_MANAGER/CHECKER existentes. DRIVER/CUSTOM continuam sem acesso ao endpoint/painel; não houve mudança de RBAC. Consultas de planos mantêm a restrição CHECKER a aprovados, vigentes e não cancelados.
+
+Navegação documental usa os hashes reais de Configurações e as abas `customers`/`drivers` de Contatos; o frontend mantém allowlist fechada desses destinos.

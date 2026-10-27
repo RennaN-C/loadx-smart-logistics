@@ -14,7 +14,10 @@ from app.core.exceptions import ApiError
 from app.core.pagination import PaginationParams
 from app.modules.access_profiles.catalog import has_permission
 from app.modules.assistant.context import require_checker_approval
-from app.modules.load_planning.distribution_service import LoadDistributionService
+from app.modules.load_planning.distribution_service import (
+    DistributionError,
+    LoadDistributionService,
+)
 from app.modules.load_planning.service import (
     LoadPlanningService,
     LoadPlanNotFoundError,
@@ -353,7 +356,12 @@ def _distribution(db: Session, user: User, data: ChatRequest) -> ChatResponse:
     db.refresh(user)
     if not user.active or not has_permission(user, "loadx.planning.read"):
         raise ApiError(403, "AUTH_FORBIDDEN", "Distribuição não autorizada.")
-    distribution = LoadDistributionService(db).get(data.distribution_id)
+    try:
+        distribution = LoadDistributionService(db).get(data.distribution_id)
+    except DistributionError:
+        raise ApiError(
+            404, "DISTRIBUTION_NOT_FOUND", "Distribuição não encontrada."
+        ) from None
     require_checker_approval(user, distribution.status)
     if data.plan_id and not any(
         part.load_plan.id == data.plan_id for part in distribution.parts

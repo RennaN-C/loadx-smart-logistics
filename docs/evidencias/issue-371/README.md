@@ -11,7 +11,7 @@ Base `73fd043`, PR separada de planejamento/3D. Sem merge, deploy ou segredos re
 - Chromium/API/PostgreSQL 16 reais, sem interceptar HTTP: nove perguntas/consultas,
   oito combinações 1920/1280/768/375 e claro/escuro, cinco perfis permitidos/negados.
   Sessões são fixtures sintéticas; não valida login/MFA. `browser-results.json`.
-- Testes backend: 108 unitários direcionados; 27 integrações/OpenAPI existentes
+- Testes backend: 113 unitários direcionados; 27 integrações/OpenAPI existentes
   revalidadas e cinco integrações novas de documentação, paginação, consultas
   sem PII, comparação com negação parcial e distribuição real. Não executada suíte
   backend completa localmente; CI completa disparada na PR, sem aguardar Pytest.
@@ -32,3 +32,7 @@ Base `73fd043`, PR separada de planejamento/3D. Sem merge, deploy ou segredos re
 - Não recebidas as três novas capturas mencionadas no texto; antes/depois são do
   sistema real. As referências visuais anteriores foram preservadas.
 - CI/Sonar/Segurança completos ficam para acompanhamento no GitHub conforme pedido.
+
+Verificação de dependências compartilhadas pelas duas PRs: npm audit no nível high
+aprovado (zero high/critical; dois moderados preexistentes em dependências de testes).
+Os deep links usam hashes reais de Configurações e abas existentes de Contatos.

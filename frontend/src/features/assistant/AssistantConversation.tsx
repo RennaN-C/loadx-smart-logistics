@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { SETTINGS_SECTIONS } from "../settings/settingsSections";
 import { Link } from "react-router-dom";
 import { Icon } from "../../components/Icon";
 import { PLAN_STATUS_LABELS, REJECTION_LABELS } from "../load-planning/components/loadPlanLabels";
@@ -80,7 +81,8 @@ function formatValue(value: string | number | null): string {
   return typeof value === "number" ? value.toLocaleString("pt-BR") : readable(value);
 }
 function allowedLink(href: string): boolean {
-  return ["/settings", "/contacts", "/loading-sessions", "/trips", "/agenda", "/audit", "/notifications", "/products", "/trucks", "/trucks?tab=availability", "/orders", "/deliveries", "/reports", "/planning"].includes(href)
+  return ["/account", "/contacts?tab=customers", "/contacts?tab=drivers", "/settings", "/contacts", "/loading-sessions", "/trips", "/agenda", "/audit", "/notifications", "/products", "/trucks", "/trucks?tab=availability", "/orders", "/deliveries", "/reports", "/planning"].includes(href)
+    || SETTINGS_SECTIONS.some((section) => href === `/settings#${section.id}`)
     || /^\/planning\/(?:distributions\/)?[0-9a-f-]{36}$/i.test(href);
 }
 function periodLabel(fact: AssistantFact): string | null {

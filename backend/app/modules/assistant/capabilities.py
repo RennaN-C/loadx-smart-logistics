@@ -37,7 +37,7 @@ CAPABILITIES = (
         "loadx.settings.manage",
         "/settings",
         "/company-profile",
-        "Configurações reúne conta e segurança, empresa, integrações e fila de eventos. Dados institucionais e administração são exclusivos do ADMIN. Abra a seção desejada; alterações são feitas nos formulários, nunca pelo chat.",
+        "Configurações reúne conta e administração, gestão de usuários, dados da empresa, integrações, fila de eventos e configurações do LoadX. Dados institucionais e administração são exclusivos do ADMIN. Abra a seção desejada; alterações são feitas nos formulários, nunca pelo chat.",
         r"configura\w*|empresa",
         True,
     ),
@@ -45,7 +45,7 @@ CAPABILITIES = (
         "profiles",
         "Perfis e permissões",
         "loadx.profiles.manage",
-        "/settings",
+        "/settings#settings-users",
         "/access-profiles",
         "Perfis controlam permissões efetivas. O ADMIN gerencia usuários e perfis nas configurações. Um nome de perfil não concede acesso: cada operação revalida suas permissões no servidor.",
         r"perfis|perfil de acesso|permiss\w*",
@@ -55,7 +55,7 @@ CAPABILITIES = (
         "users",
         "Usuários",
         "loadx.users.manage",
-        "/settings",
+        "/settings#settings-users",
         "/users",
         "O ADMIN consulta e gerencia contas nas configurações. Alterações de acesso exigem os formulários e validações existentes; o chat não cria usuários nem muda permissões.",
         r"usu[aá]ri\w*",
@@ -74,7 +74,7 @@ CAPABILITIES = (
         "customers",
         "Clientes e endereços",
         "loadx.customers.read",
-        "/contacts",
+        "/contacts?tab=customers",
         "/customers",
         "Clientes podem ter vários endereços. No pedido, selecione o endereço de entrega; seu snapshot preserva o destino histórico. Arquivar um cadastro não apaga pedidos antigos.",
         r"client\w*|endere[cç]\w*",
@@ -83,7 +83,7 @@ CAPABILITIES = (
         "drivers",
         "Motoristas",
         "loadx.drivers.read",
-        "/contacts",
+        "/contacts?tab=drivers",
         "/drivers",
         "Motoristas têm cadastro, documentos e disponibilidade. Ativo não significa disponível: pendências documentais e conflitos operacionais podem impedir novas viagens. Revise o cadastro e os bloqueios na tela correspondente.",
         r"motorist\w*|cnh",
@@ -182,7 +182,7 @@ CAPABILITIES = (
         "integrations",
         "Integrações e saúde",
         "loadx.integrations.read",
-        "/settings",
+        "/settings#settings-integrations",
         "/integration-health",
         "O painel distingue configuração e saúde observada. WhatsApp é simulado; IA real depende do provider configurado. Um componente configurado não garante conexão saudável. Tokens e credenciais não são exibidos no chat.",
         r"integra\w*|webhook|whatsapp|sa[uú]de",
@@ -192,7 +192,7 @@ CAPABILITIES = (
         "events",
         "Fila de eventos",
         "loadx.settings.manage",
-        "/settings",
+        "/settings#settings-outbox",
         "/outbox-events",
         "A fila permite acompanhar eventos, falhas e retentativas. Reprocessamento é administrativo e exige a ação autorizada na interface; o chat não dispara workers nem mensagens.",
         r"fila|outbox|event\w*|worker",
@@ -282,7 +282,6 @@ def documentation_reply(user: User, message: str) -> ChatResponse | None:
         {
             cap.route: {"label": "Abrir " + cap.title, "href": cap.route}
             for cap in visible
-            if cap.route != "/contacts"
         }.values()
     )[:10]
     if general:

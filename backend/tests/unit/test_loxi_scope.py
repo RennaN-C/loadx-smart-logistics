@@ -197,3 +197,60 @@ def test_failure_explicitly_refers_to_latest_plan_instead_of_clarifying(monkeypa
     )
     assert result.facts[0].name == "Análise do planejamento"
     service.get_load_plan.assert_called_once_with(identifier)
+
+
+def test_unknown_distribution_is_a_domain_404_not_an_internal_error(monkeypatch):
+    from app.core.exceptions import ApiError
+    from app.modules.load_planning.distribution_service import DistributionError
+
+    service = Mock()
+    service.get.side_effect = DistributionError("DISTRIBUTION_NOT_FOUND", status=404)
+    monkeypatch.setattr(
+        "app.modules.assistant.planning_insights.LoadDistributionService",
+        lambda _: service,
+    )
+    data = ChatRequest(
+        message="Explique esta distribuição", distribution_id=uuid.uuid4()
+    )
+    db, user = Mock(), actor()
+    with pytest.raises(ApiError) as caught:
+        planning_insight(db, user, data)
+    assert caught.value.status_code == 404
+
+
+def test_provider_missing_documentation_module_falls_back_without_query(monkeypatch):
+    monkeypatch.setattr("app.modules.assistant.service.ensure_budget", Mock())
+    provider = Mock()
+    provider.complete.return_value = {
+        "tool_calls": [
+            {
+                "id": "help",
+                "type": "function",
+                "function": {"name": "get_usage_guidance", "arguments": "{}"},
+            }
+        ]
+    }
+    db = Mock()
+    result = AssistantService(db, config(), provider).chat(
+        actor(), ChatRequest(message="Me ensine a organizar meu catálogo")
+    )
+    assert result.source == "FALLBACK"
+    assert result.facts == []
+    db.query.assert_not_called()
+    provider.complete.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        "Quais produtos podem ser empilhados?",
+        "Liste os pedidos desse plano",
+        "Quais clientes compraram mais?",
+    ],
+)
+def test_registration_shortcut_never_silently_ignores_relational_or_attribute_filters(
+    question,
+):
+    from app.modules.assistant.service import _catalog_intent
+
+    assert _catalog_intent(question) is None

@@ -172,7 +172,7 @@ def _catalog_intent(question: str) -> str | None:
     ):
         return None
     if re.search(
-        r"\b(?:(?:in)?dispon\w*|manutenc\w*|entreg\w*|viagem|status|situacao|arquivad\w*|ontem|hoje)\b",
+        r"\b(?:(?:in)?dispon\w*|manutenc\w*|entreg\w*|viagem|status|situacao|arquivad\w*|ontem|hoje|pode\w*|oper\w*|peso|dimens\w*|fragil\w*|empilh\w*|rotac\w*|plano\w*|planej\w*|distribui\w*|carga\w*|mais|menos|compr\w*)\b",
         text,
     ):
         return None
@@ -585,7 +585,7 @@ class AssistantService:
                 "href": "/planning",
             },
         }
-        link = resource_links.get(call.name)
+        link = resource_links.get(call.name) or (fact.links[0] if fact.links else None)
         # Minimal audit metadata only, no message, arguments, result values or PII.
         emit_security_event(
             SecurityEvent.ASSISTANT_READ_QUERY,

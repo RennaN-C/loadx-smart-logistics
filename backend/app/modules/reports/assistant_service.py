@@ -119,11 +119,7 @@ class AssistantMetricsService:
                 (cap for cap in CAPABILITIES if cap.key == arguments.module), None
             )
             if cap is None:
-                raise ApiError(
-                    422,
-                    "ASSISTANT_MODULE_REQUIRED",
-                    "Informe o módulo que deseja conhecer.",
-                )
+                raise ValueError("usage guidance requires a known module")
             if not permitted(user, cap):
                 raise ApiError(
                     403, "AUTH_FORBIDDEN", "Módulo não autorizado para seu perfil."
@@ -197,7 +193,7 @@ class AssistantMetricsService:
             labels = [item.name[:100] for item in page.items]
             title, route, criterion = (
                 "Clientes cadastrados",
-                "/contacts",
+                "/contacts?tab=customers",
                 "Somente clientes ativos, sem documentos, contatos ou endereços.",
             )
         elif name == "get_registered_drivers":
@@ -205,7 +201,7 @@ class AssistantMetricsService:
             labels = [item.name[:100] for item in page.items]
             title, route, criterion = (
                 "Motoristas cadastrados",
-                "/contacts",
+                "/contacts?tab=drivers",
                 "Somente motoristas ativos, sem CNH, documentos ou contatos; não indica disponibilidade.",
             )
         else:
