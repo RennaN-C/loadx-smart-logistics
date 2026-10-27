@@ -188,8 +188,14 @@ export function AssistantConversation({ turns, onLink, onSelectCustomer, working
 }) {
   const chat = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (chat.current) chat.current.scrollTop = chat.current.scrollHeight;
-  }, [turns.length, working]);
+    const container = chat.current;
+    const lastTurn = container?.lastElementChild;
+    if (!container || !(lastTurn instanceof HTMLElement)) return;
+    // Exibir a pergunta e o início do resultado novo, não só o fim de uma
+    // resposta longa. Nunca forçar scroll enquanto o usuário lê detalhes.
+    container.scrollTop +=
+      lastTurn.getBoundingClientRect().top - container.getBoundingClientRect().top;
+  }, [turns.length]);
   return <div ref={chat} className="assistant-conversation" role="log" aria-label="Conversa com o LoadX" aria-live="polite">
     {turns.length === 0 ? <div className="assistant-welcome"><div className="assistant-welcome-icon"><Icon name="message-circle" size={24} /></div><h3>Como posso ajudar?</h3><p>Consulte entregas, pedidos, frota e informações da operação com dados do LoadX.</p></div> : null}
     {turns.map((turn) => <TurnRow key={turn.id} turn={turn} onLink={onLink} onSelectCustomer={onSelectCustomer} working={working} />)}
