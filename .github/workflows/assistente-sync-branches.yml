@@ -1,8 +1,7 @@
 name: Propor sincronizacao entre desenvolvimento e pentest-lab
 
 on:
-  pull_request:
-    types: [closed]
+  push:
     branches: [desenvolvimento, pentest-lab]
 
 permissions:
@@ -12,7 +11,6 @@ permissions:
 
 jobs:
   propor-backport:
-    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -23,12 +21,19 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ORIGEM: ${{ github.event.pull_request.base.ref }}
-          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
-          NUMERO_PR: ${{ github.event.pull_request.number }}
-          BRANCH_ORIGEM: ${{ github.event.pull_request.head.ref }}
+          ORIGEM: ${{ github.ref_name }}
+          MERGE_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
+          # O evento push funciona nas duas branches, sem exigir workflow na main.
+          # A API relaciona o commit ao PR integrado; pushes simples sao ignorados.
+          PR_JSON="$(gh api "repos/$GITHUB_REPOSITORY/commits/$MERGE_SHA/pulls")"
+          NUMERO_PR="$(jq -r --arg base "$ORIGEM" --arg sha "$MERGE_SHA"             '[.[] | select(.merged_at != null and .base.ref == $base and .merge_commit_sha == $sha) | .number] | first // empty' <<<"$PR_JSON")"
+          if [[ -z "$NUMERO_PR" ]]; then
+            echo "Push sem PR integrado; nada a sincronizar."
+            exit 0
+          fi
+          BRANCH_ORIGEM="$(jq -r --argjson num "$NUMERO_PR" '.[] | select(.number == $num) | .head.ref' <<<"$PR_JSON")"
           # Sincronizacoes geradas pelo bot nao geram um novo backport.
           # Encerrar apenas a Issue temporaria criada por este workflow.
           if [[ "$BRANCH_ORIGEM" == sync/* ]]; then
