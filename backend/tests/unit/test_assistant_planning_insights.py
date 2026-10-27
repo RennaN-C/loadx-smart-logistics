@@ -185,3 +185,17 @@ def test_action_is_handoff_not_write():
     assert result.source == "BACKEND"
     assert result.links == [{"label": "Abrir tela da operação", "href": "/planning"}]
     assert "Nenhum registro foi alterado" in result.answer
+
+
+def test_explicit_latest_plan_overrides_previous_context(monkeypatch):
+    latest = summary()
+    service = stub_service(monkeypatch, [latest])
+    previous = uuid.uuid4()
+    result = planning_insight(
+        Mock(),
+        person(),
+        ChatRequest(message="Explique o último planejamento", plan_id=previous),
+    )
+    assert result.source == "BACKEND"
+    service.list_load_plans.assert_called_once()
+    service.get_load_plan.assert_called_once_with(latest.id)
