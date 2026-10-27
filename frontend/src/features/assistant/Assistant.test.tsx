@@ -244,3 +244,22 @@ it("preserva indicadores iguais a zero sem inferir sucesso", async () => {
   expect((await screen.findAllByText("Pedidos totalmente entregues"))[0]).toBeInTheDocument();
   expect(screen.getAllByText("0")[0]).toBeInTheDocument();
 });
+
+it("mantém plano autorizado na conversa para perguntas seguintes", async () => {
+  const planId = "33333333-3333-4333-8333-333333333333";
+  vi.mocked(askAssistant).mockResolvedValueOnce({
+    ...REPLY, source: "BACKEND", answer: "Analisei o planejamento salvo.",
+    facts: [{
+      name: "Análise do planejamento", criteria: "Snapshot autorizado",
+      timezone: "UTC", period_start: null, period_end: null,
+      values: { loaded_volumes: 2 },
+      links: [{ label: "Abrir planejamento e ações permitidas", href: "/planning/" + planId }],
+    }],
+  });
+  show("/orders"); open(); send();
+  expect(await screen.findByText("Analisei o planejamento salvo.")).toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText("Sua pergunta"), { target: { value: "E por que houve rejeições?" } });
+  fireEvent.click(screen.getByRole("button", { name: "Enviar pergunta" }));
+  await waitFor(() => expect(askAssistant).toHaveBeenCalledTimes(2));
+  expect(vi.mocked(askAssistant).mock.calls[1][2]).toEqual({ planId });
+});
