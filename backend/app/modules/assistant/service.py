@@ -106,9 +106,7 @@ def unsafe_request(text: str) -> bool:
 
 
 
-def _safe_recovery_tool(
-    question: str, allowed_names: frozenset[str], selected_customer_id: uuid.UUID | None
-) -> str | None:
+def _safe_recovery_tool(question: str, allowed_names: frozenset[str]) -> str | None:
     """Route only unmistakable current/default-period read queries after invalid LLM tools.
 
     This is intentionally conservative: custom dates and unspecified customer names
@@ -118,7 +116,10 @@ def _safe_recovery_tool(
     normalized = unicodedata.normalize("NFKD", question.casefold())
     text = "".join(char for char in normalized if not unicodedata.combining(char))
     if (
-        re.search(r"\b(?:hoje|ontem|amanha|semana|mes|ano|janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\b", text)
+        re.search(
+            r"\b(?:hoje|ontem|amanha|semana|mes|ano|janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\b",
+            text,
+        )
         or re.search(r"\b20\d{2}\b", text)
         or re.search(r"\b\d{1,2}/\d{1,2}\b", text)
         or any(int(days) != 30 for days in re.findall(r"\b(\d{1,3})\s+dias\b", text))
@@ -127,12 +128,13 @@ def _safe_recovery_tool(
         return None
 
     name = None
-    if ("entreg" in text and ("pedido" in text or "entregas" in text)):
+    if "entreg" in text and ("pedido" in text or "entregas" in text):
         name = "get_delivery_metrics"
     elif "cancelad" in text and ("distribui" in text or "planejamento" in text):
         name = "get_canceled_distributions"
     elif ("viagem" in text or "frota" in text) and any(
-        word in text for word in ("utiliz", "ocupac", "viagens iniciad", "viagens concluid")
+        word in text
+        for word in ("utiliz", "ocupac", "viagens iniciad", "viagens concluid")
     ):
         name = "get_fleet_utilization"
     elif ("caminh" in text or "veicul" in text or "frota" in text) and any(
@@ -140,7 +142,8 @@ def _safe_recovery_tool(
     ):
         name = "get_fleet_availability"
     elif ("pedido" in text or "pedidos" in text) and any(
-        word in text for word in ("quant", "total", "status", "situac", "criad", "cadastrad")
+        word in text
+        for word in ("quant", "total", "status", "situac", "criad", "cadastrad")
     ):
         name = "get_customer_order_metrics"
 
@@ -226,7 +229,7 @@ class AssistantService:
                 # somente uma consulta óbvia da lista já autorizada no servidor.
                 # Não executar qualquer JSON/argumento rejeitado pela Groq.
                 route = _safe_recovery_tool(
-                    data.message, allowed_names, data.customer_id
+                    data.message, allowed_names
                 )
                 logger.warning(
                     "ASSISTANT_TOOL_GENERATION_RECOVERY route=%s",
