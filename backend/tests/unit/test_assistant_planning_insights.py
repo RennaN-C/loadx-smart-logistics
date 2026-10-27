@@ -52,12 +52,10 @@ def persisted(plan_id):
 def stub_service(monkeypatch, items):
     service = Mock()
     service.list_load_plans.side_effect = lambda page, **kwargs: PageResult.create(
-        items[page.offset:page.offset + page.page_size], page, len(items)
+        items[page.offset : page.offset + page.page_size], page, len(items)
     )
     service.get_load_plan.side_effect = lambda key: persisted(key)
-    service.get_distribution_state_for_plan.return_value = (
-        None, None, None, True
-    )
+    service.get_distribution_state_for_plan.return_value = (None, None, None, True)
     monkeypatch.setattr(
         "app.modules.assistant.planning_insights.LoadPlanningService",
         lambda _: service,
@@ -69,7 +67,8 @@ def test_latest_plan_explains_persisted_algorithm_without_groq(monkeypatch):
     latest = summary()
     service = stub_service(monkeypatch, [latest])
     result = planning_insight(
-        Mock(), person(),
+        Mock(),
+        person(),
         ChatRequest(message="Explique o último planejamento calculado"),
     )
     assert result.source == "BACKEND"
@@ -88,7 +87,8 @@ def test_list_history_is_bounded_paginated_and_linked(monkeypatch):
     entries = [summary(index) for index in range(12)]
     service = stub_service(monkeypatch, entries)
     result = planning_insight(
-        Mock(), person(),
+        Mock(),
+        person(),
         ChatRequest(message="Liste todos os planejamentos página 2"),
     )
     assert result.source == "BACKEND"
@@ -103,7 +103,8 @@ def test_list_history_is_bounded_paginated_and_linked(monkeypatch):
 def test_checker_uses_original_role_filtered_service(monkeypatch):
     service = stub_service(monkeypatch, [summary(status="APPROVED")])
     result = planning_insight(
-        Mock(), person("CHECKER"),
+        Mock(),
+        person("CHECKER"),
         ChatRequest(message="Quais os planejamentos salvos?"),
     )
     assert result.source == "BACKEND"
@@ -114,7 +115,8 @@ def test_checker_cannot_read_unapproved_plan_by_guessed_id(monkeypatch):
     service = stub_service(monkeypatch, [])
     with pytest.raises(ApiError) as error:
         planning_insight(
-            Mock(), person("CHECKER"),
+            Mock(),
+        person("CHECKER"),
             ChatRequest(message="Explique o planejamento " + str(uuid.uuid4())),
         )
     assert error.value.status_code == 403
@@ -124,7 +126,8 @@ def test_checker_cannot_read_unapproved_plan_by_guessed_id(monkeypatch):
 def test_plan_missing_returns_truthful_answer(monkeypatch):
     stub_service(monkeypatch, [])
     result = planning_insight(
-        Mock(), person(),
+        Mock(),
+        person(),
         ChatRequest(message="Explique o último planejamento"),
     )
     assert result.source == "BACKEND"
@@ -135,7 +138,8 @@ def test_latest_plan_takes_current_page_context_when_requested(monkeypatch):
     service = stub_service(monkeypatch, [])
     target = uuid.uuid4()
     result = planning_insight(
-        Mock(), person(),
+        Mock(),
+        person(),
         ChatRequest(message="Explique por que o algoritmo fez isso", plan_id=target),
     )
     assert result.source == "BACKEND"
@@ -143,20 +147,28 @@ def test_latest_plan_takes_current_page_context_when_requested(monkeypatch):
     service.list_load_plans.assert_not_called()
 
 
-@pytest.mark.parametrize("question", [
-    "Qual o último planejamento?",
-    "Por que o último cálculo rejeitou volumes?",
-    "Quais os planejamentos anteriores?",
-    "Explique o plano " + str(uuid.uuid4()),
-])
+@pytest.mark.parametrize(
+    "question",
+    [
+        "Qual o último planejamento?",
+        "Por que o último cálculo rejeitou volumes?",
+        "Quais os planejamentos anteriores?",
+        "Explique o plano " + str(uuid.uuid4()),
+    ],
+)
 def test_detects_explicit_planning_queries(question):
     assert _kind(question, ChatRequest(message=question)) is not None
 
 
-@pytest.mark.parametrize("question", [
-    "Oi", "Qual produto temos cadastrado?", "Quantas entregas tivemos?",
-    "Como funcionam as permissões?",
-])
+@pytest.mark.parametrize(
+    "question",
+    [
+        "Oi",
+        "Qual produto temos cadastrado?",
+        "Quantas entregas tivemos?",
+        "Como funcionam as permissões?",
+    ],
+)
 def test_other_chats_never_consult_plans(question):
     assert _kind(question, ChatRequest(message=question)) is None
 
