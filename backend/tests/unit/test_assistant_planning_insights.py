@@ -199,3 +199,21 @@ def test_explicit_latest_plan_overrides_previous_context(monkeypatch):
     assert result.source == "BACKEND"
     service.list_load_plans.assert_called_once()
     service.get_load_plan.assert_called_once_with(latest.id)
+
+
+def test_checker_cannot_read_approved_plan_from_canceled_distribution(monkeypatch):
+    latest = summary(status="APPROVED")
+    service = stub_service(monkeypatch, [latest])
+    service.get_load_plan.return_value = SimpleNamespace(
+        **{**vars(persisted(latest.id)), "status": "APPROVED"}
+    )
+    service.get_distribution_state_for_plan.return_value = (
+        uuid.uuid4(), "CANCELED", "APPROVED", True
+    )
+    with pytest.raises(ApiError) as error:
+        planning_insight(
+            Mock(),
+            person("CHECKER"),
+            ChatRequest(message="Explique o plano " + str(latest.id)),
+        )
+    assert error.value.status_code == 403
