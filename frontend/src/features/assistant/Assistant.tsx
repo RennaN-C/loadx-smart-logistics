@@ -24,6 +24,7 @@ export function Assistant() {
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerChoice | null>(null);
   const [working, setWorking] = useState(false);
   const [failed, setFailed] = useState<string | null>(null);
+  const [showIdeas, setShowIdeas] = useState(false);
   const request = useRef<AbortController | null>(null);
   const launcher = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);
@@ -32,7 +33,7 @@ export function Assistant() {
   const enabled = user && ["ADMIN", "LOGISTICS_MANAGER", "CHECKER"].includes(user.role);
   useEffect(() => {
     request.current?.abort(); request.current = null;
-    setOpen(false); setSelectedCustomer(null); setTurns([]); setDraft(""); setFailed(null); setWorking(false); setContext(routeContext(pathname));
+    setOpen(false); setSelectedCustomer(null); setTurns([]); setDraft(""); setFailed(null); setWorking(false); setShowIdeas(false); setContext(routeContext(pathname));
     // Trocar de tela NÃO remove a conversa; somente trocar de usuário/perfil.
   }, [identity]);
   useEffect(() => {
@@ -80,10 +81,10 @@ export function Assistant() {
     if (request.current || !question.trim() || working || question.length > 2000) return;
     const controller = new AbortController(); request.current = controller;
     setWorking(true); setFailed(null);
-    const history: ChatMessage[] = turns.flatMap((turn) => turn.reply ? [{ role: "user" as const, content: turn.question }, { role: "assistant" as const, content: turn.reply.answer.slice(0, 2000) }] : []);
+    const history: ChatMessage[] = turns.slice(-4).flatMap((turn) => turn.reply ? [{ role: "user" as const, content: turn.question }, { role: "assistant" as const, content: turn.reply.answer.slice(0, 2000) }] : []);
     try {
       const reply = await askAssistant(question.trim(), history, context, controller.signal);
-      if (!controller.signal.aborted && request.current === controller) { setTurns((previous) => [...previous.slice(-3), { id: crypto.randomUUID(), question, reply: { ...reply, facts: reply.facts.map((fact) => ({ ...fact, clientKey: crypto.randomUUID() })) } }]); setDraft(""); }
+      if (!controller.signal.aborted && request.current === controller) { setTurns((previous) => [...previous.slice(-19), { id: crypto.randomUUID(), question, reply: { ...reply, facts: reply.facts.map((fact) => ({ ...fact, clientKey: crypto.randomUUID() })) } }]); setDraft(""); setShowIdeas(false); }
     } catch (error) {
       if (!controller.signal.aborted && request.current === controller) {
         setFailed(assistantErrorMessage(error));
@@ -95,6 +96,7 @@ export function Assistant() {
   if (!enabled) return null;
   const sendLabel = working ? "Consultando…" : "Enviar pergunta";
   const submitLabel = failed && !working ? "Tentar novamente" : sendLabel;
+  const suggestions = turns.at(-1)?.reply?.suggestions ?? ["Por que a carga não coube?", "Quantos pedidos foram entregues nos últimos 30 dias?", "O que faço agora?"];
   return <>
     <button ref={launcher} type="button" className="assistant-launch" aria-label="Perguntar ao LoadX" aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? titleId : undefined} onClick={() => open ? close() : setOpen(true)}>
       <Icon name="message-circle" size={23} /><span>Assistente LoadX</span>
@@ -106,15 +108,15 @@ export function Assistant() {
           <button type="button" className="assistant-close" aria-label="Minimizar assistente" title="Minimizar assistente" onClick={close}>×</button>
         </header>
         <div className="assistant-panel-body">
-      <p className="entity-form-help">Não informe senhas, documentos, endereços ou dados pessoais. A IA pode errar; confira os fatos do sistema.</p>
+      <details className="assistant-privacy"><summary>Privacidade e limites</summary><p>Não compartilhe senhas ou documentos. A IA apenas consulta informações autorizadas; confirme os dados antes de decidir.</p></details>
       <AssistantConversation turns={turns} onLink={close} onSelectCustomer={selectCustomer} working={working} />
       {working ? <output><span className="spinner" aria-hidden="true" /> Consultando informações autorizadas…</output> : null}
       {failed ? <AlertBanner>{failed}</AlertBanner> : null}
-      <div className="assistant-suggestions" aria-label="Perguntas sugeridas">{(turns.at(-1)?.reply?.suggestions ?? ["Por que a carga não coube?", "Quantos pedidos foram entregues nos últimos 30 dias?", "O que faço agora?"]).map((suggestion) => <button type="button" className="btn-secondary" key={suggestion} disabled={working} onClick={() => setDraft(suggestion === "Tentar novamente" ? turns.at(-1)?.question ?? suggestion : suggestion)}>{suggestion}</button>)}</div>
+      {turns.length === 0 || showIdeas ? <div className="assistant-suggestions" aria-label="Perguntas sugeridas">{suggestions.slice(0, 3).map((suggestion) => <button type="button" className="btn-secondary" key={suggestion} disabled={working} onClick={() => { setDraft(suggestion === "Tentar novamente" ? turns.at(-1)?.question ?? suggestion : suggestion); setShowIdeas(false); }}>{suggestion}</button>)}</div> : null}
       {selectedCustomer ? <div className="assistant-filter"><span>Cliente: {selectedCustomer.label}</span><button type="button" className="btn-secondary" disabled={working} onClick={clearCustomer}>Limpar filtro de cliente</button></div> : null}
       <form onSubmit={(event: FormEvent) => { event.preventDefault(); void send(); }}>
-        <label htmlFor="assistant-message">Sua pergunta</label><textarea id="assistant-message" value={draft} onChange={(event) => setDraft(event.target.value)} maxLength={2000} rows={2} disabled={working} placeholder="Pergunte sobre a operação ou os indicadores disponíveis" />
-        <div className="entity-form-actions"><button className="btn-secondary" type="button" disabled={working || turns.length === 0} onClick={() => { setTurns([]); setFailed(null); }}>Limpar conversa</button><button className="btn-primary" type="submit" disabled={working || !draft.trim()}>{submitLabel}</button></div>
+        <div className="assistant-compose-header"><label htmlFor="assistant-message">Sua pergunta</label>{turns.length > 0 ? <button className="assistant-ideas-button" type="button" aria-expanded={showIdeas} onClick={() => setShowIdeas((current) => !current)}>{showIdeas ? "Ocultar sugestões" : "Sugestões"}</button> : null}</div><textarea id="assistant-message" value={draft} onChange={(event) => setDraft(event.target.value)} maxLength={2000} rows={2} disabled={working} placeholder="Pergunte sobre a operação ou os indicadores disponíveis" />
+        <div className="entity-form-actions"><button className="btn-secondary" type="button" disabled={working || turns.length === 0} onClick={() => { setTurns([]); setFailed(null); setShowIdeas(false); }}>Limpar conversa</button><button className="btn-primary" type="submit" disabled={working || !draft.trim()}>{submitLabel}</button></div>
       </form>
         </div>
       </section>
