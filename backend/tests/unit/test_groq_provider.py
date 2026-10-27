@@ -167,9 +167,7 @@ def test_groq_cloudflare_client_signature_403_logs_safe_reason(monkeypatch, capl
     )
 
 
-def test_groq_invalid_tool_generation_has_safe_retryable_category(
-    monkeypatch, caplog
-):
+def test_groq_invalid_tool_generation_has_safe_retryable_category(monkeypatch, caplog):
     body = json.dumps(
         {
             "error": {
