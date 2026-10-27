@@ -8,7 +8,7 @@ from unittest.mock import Mock
 import pytest
 
 from app.core.exceptions import ApiError
-from app.core.pagination import PageResult, PaginationParams
+from app.core.pagination import PageResult
 from app.modules.assistant.conversation import conversation_reply
 from app.modules.assistant.planning_insights import _kind, planning_insight
 from app.modules.assistant.schemas import ChatRequest
@@ -34,13 +34,13 @@ def persisted(plan_id):
         status="CALCULATED",
         algorithm_version="loadx-engine-v1",
         truck_snapshot_plate="ABC1234",
-        truck_snapshot_max_weight_kg=Decimal("4000"),
+        truck_snapshot_max_weight_kg=Decimal(4000),
         truck_snapshot_internal_width_cm=240,
         truck_snapshot_internal_height_cm=270,
         truck_snapshot_internal_length_cm=680,
         loaded_count=50,
         unloaded_count=2,
-        total_weight_kg=Decimal("2500"),
+        total_weight_kg=Decimal(2500),
         occupancy_percent=Decimal("62.5"),
         items=[
             SimpleNamespace(rejection_reason="TRUCK_WEIGHT_EXCEEDED"),
