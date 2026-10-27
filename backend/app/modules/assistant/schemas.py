@@ -38,6 +38,8 @@ class ToolArguments(BaseModel):
 class ToolCall(BaseModel):
     model_config = ConfigDict(extra="forbid")
     name: Literal[
+        "get_registered_products",
+        "get_registered_trucks",
         "get_fleet_availability",
         "get_company_summary",
         "get_customer_order_metrics",
@@ -67,7 +69,7 @@ class Source(BaseModel):
 
 
 class ChatResponse(BaseModel):
-    source: Literal["GROQ", "FALLBACK", "GUARDRAIL"]
+    source: Literal["GROQ", "BACKEND", "FALLBACK", "GUARDRAIL"]
     answer: str
     facts: list[Source] = Field(default_factory=list)
     suggestions: list[str] = Field(default_factory=list)
