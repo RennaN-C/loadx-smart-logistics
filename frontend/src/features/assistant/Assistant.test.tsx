@@ -263,3 +263,14 @@ it("mantém plano autorizado na conversa para perguntas seguintes", async () => 
   await waitFor(() => expect(askAssistant).toHaveBeenCalledTimes(2));
   expect(vi.mocked(askAssistant).mock.calls[1][2]).toEqual({ planId });
 });
+
+
+it("separa orientação documentada e não repete o artigo em tabela técnica", async () => {
+  const guide = "Use as configurações para editar os dados institucionais.";
+  vi.mocked(askAssistant).mockResolvedValue({ source: "DOCUMENTATION", answer: guide, links: [{ label: "Abrir Configurações", href: "/settings" }], suggestions: [], facts: [{ name: "Como usar: Configurações", criteria: "Fonte: docs/05-contratos-api.md", values: { orientation: guide }, period_start: null, period_end: null, timezone: "UTC" }] });
+  show(); open(); send();
+  expect(await screen.findByText("Orientação documentada · LoadX")).toBeInTheDocument();
+  expect(screen.getAllByText(guide)).toHaveLength(1);
+  expect(screen.queryByRole("term", { name: "orientation" })).not.toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Abrir Configurações" })).toHaveAttribute("href", "/settings");
+});

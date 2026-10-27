@@ -80,7 +80,7 @@ function formatValue(value: string | number | null): string {
   return typeof value === "number" ? value.toLocaleString("pt-BR") : readable(value);
 }
 function allowedLink(href: string): boolean {
-  return ["/products", "/trucks", "/trucks?tab=availability", "/orders", "/deliveries", "/reports", "/planning"].includes(href)
+  return ["/settings", "/contacts", "/loading-sessions", "/trips", "/agenda", "/audit", "/notifications", "/products", "/trucks", "/trucks?tab=availability", "/orders", "/deliveries", "/reports", "/planning"].includes(href)
     || /^\/planning\/(?:distributions\/)?[0-9a-f-]{36}$/i.test(href);
 }
 function periodLabel(fact: AssistantFact): string | null {
@@ -113,6 +113,10 @@ interface FactProps {
   readonly onLink: () => void;
   readonly onSelectCustomer: (choice: CustomerChoice) => void;
   readonly working: boolean;
+}
+
+function DocumentationSource({ fact }: { readonly fact: AssistantFact }) {
+  return <details className="assistant-fact assistant-documentation"><summary>Fonte: {fact.name}</summary><p>{fact.criteria}</p></details>;
 }
 
 function Fact({ fact, onLink, onSelectCustomer, working }: FactProps) {
@@ -159,6 +163,15 @@ function Fact({ fact, onLink, onSelectCustomer, working }: FactProps) {
   </section>;
 }
 
+const SOURCE_LABELS: Record<AssistantReply["source"], string> = {
+  GROQ: "Assistente LoadX · Groq",
+  BACKEND: "Dados verificados · LoadX",
+  DOCUMENTATION: "Orientação documentada · LoadX",
+  GENERAL: "Conversa geral · IA (sem consulta a registros)",
+  GUARDRAIL: "Proteção do LoadX · somente leitura",
+  FALLBACK: "Resumo automático · IA indisponível",
+};
+
 function TurnRow({ turn, onLink, onSelectCustomer, working }: {
   readonly turn: Turn;
   readonly onLink: () => void;
@@ -170,15 +183,12 @@ function TurnRow({ turn, onLink, onSelectCustomer, working }: {
   if (!reply) return <section className="assistant-turn">{question}</section>;
   const hasMetric = reply.facts.some((fact) => PRIMARY_METRICS.some((key) => typeof fact.values[key] === "number"));
   const answer = visibleAnswer(reply, hasMetric);
-  const label = reply.source === "GROQ" ? "Assistente LoadX · Groq"
-    : reply.source === "BACKEND" ? "Dados verificados · LoadX"
-      : reply.source === "GUARDRAIL" ? "Proteção do LoadX · somente leitura"
-        : "Resumo automático · IA indisponível";
+  const label = SOURCE_LABELS[reply.source];
   return <section className="assistant-turn">{question}
     <div className="assistant-response">
       <strong className="assistant-source">{label}</strong>
       {answer ? <p className="assistant-answer">{answer}</p> : null}
-      {reply.facts.map((fact) => <Fact key={fact.clientKey} fact={fact} onLink={onLink} onSelectCustomer={onSelectCustomer} working={working} />)}
+      {reply.facts.map((fact) => reply.source === "DOCUMENTATION" ? <DocumentationSource key={fact.clientKey} fact={fact} /> : <Fact key={fact.clientKey} fact={fact} onLink={onLink} onSelectCustomer={onSelectCustomer} working={working} />)}
       <nav className="assistant-action-links" aria-label="Ações relacionadas">{reply.links.filter((link) => allowedLink(link.href)).map((link) =>
         <Link key={link.href} to={link.href} onClick={onLink}>{link.label}<Icon name="arrow-right" size={16} /></Link>
       )}</nav>
@@ -193,17 +203,18 @@ export function AssistantConversation({ turns, onLink, onSelectCustomer, working
   readonly working: boolean;
 }) {
   const chat = useRef<HTMLDivElement>(null);
+  const lastTurnId = turns.at(-1)?.id;
   useEffect(() => {
     const container = chat.current;
     const lastTurn = container?.lastElementChild;
     if (!container || !(lastTurn instanceof HTMLElement)) return;
     // Exibir a pergunta e o início do resultado novo, não só o fim de uma
     // resposta longa. Nunca forçar scroll enquanto o usuário lê detalhes.
-    container.scrollTop +=
-      lastTurn.getBoundingClientRect().top - container.getBoundingClientRect().top;
-  }, [turns.length]);
+    const beginning = lastTurn.querySelector(".assistant-response") ?? lastTurn;
+    container.scrollTop += beginning.getBoundingClientRect().top - container.getBoundingClientRect().top;
+  }, [lastTurnId]);
   return <div ref={chat} className="assistant-conversation" role="log" aria-label="Conversa com o LoadX" aria-live="polite">
-    {turns.length === 0 ? <div className="assistant-welcome assistant-welcome-greeting"><div className="assistant-welcome-icon"><Icon name="message-circle" size={24} /></div><div className="assistant-welcome-copy"><span className="assistant-source">Loxi · Assistente LoadX</span><h3>Olá! Eu sou o Loxi 👋</h3><p>Posso conversar sobre sua operação, consultar registros autorizados e explicar os resultados do algoritmo nos planejamentos anteriores ou no mais recente.</p><p>Também posso orientar ações permitidas. Para ver ideias do que perguntar, é só escrever <strong>“Me dê sugestões”</strong>.</p></div></div> : null}
+    {turns.length === 0 ? <div className="assistant-welcome assistant-welcome-greeting"><div className="assistant-welcome-icon"><Icon name="message-circle" size={24} /></div><div className="assistant-welcome-copy"><span className="assistant-source">Loxi - Assistente</span><h3>Olá! Eu sou o Loxi 👋</h3><p>Posso conversar sobre sua operação, consultar registros autorizados e explicar os resultados do algoritmo nos planejamentos anteriores ou no mais recente.</p><p>Também posso orientar ações permitidas. Para ver ideias do que perguntar, é só escrever <strong>“Me dê sugestões”</strong>.</p></div></div> : null}
     {turns.map((turn) => <TurnRow key={turn.id} turn={turn} onLink={onLink} onSelectCustomer={onSelectCustomer} working={working} />)}
   </div>;
 }
