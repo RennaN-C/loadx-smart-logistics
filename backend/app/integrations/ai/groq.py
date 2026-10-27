@@ -80,7 +80,28 @@ class GroqProvider:
                 if error.code in {400, 401, 403, 404, 413, 422, 429, 498, 500, 502, 503}
                 else "other"
             )
-            logger.warning("GROQ_REQUEST_FAILURE category=http_%s", status)
+            if status == 403:
+                # Only accept documented, fixed codes. Never log the HTTP body, its
+                # arbitrary message, project names, prompts, authorization or headers.
+                reason = "unclassified"
+                try:
+                    details = json.loads(error.read(4096))
+                    if isinstance(details, dict):
+                        metadata = details.get("error")
+                        if isinstance(metadata, dict):
+                            code = metadata.get("code")
+                            if code in {
+                                "model_permission_blocked_org",
+                                "model_permission_blocked_project",
+                            }:
+                                reason = code
+                except (OSError, ValueError, TypeError):
+                    pass
+                logger.warning(
+                    "GROQ_REQUEST_FAILURE category=http_403 reason=%s", reason
+                )
+            else:
+                logger.warning("GROQ_REQUEST_FAILURE category=http_%s", status)
             raise AIProviderUnavailableError from None
         except TimeoutError:
             logger.warning("GROQ_REQUEST_FAILURE category=timeout")
