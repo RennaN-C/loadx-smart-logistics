@@ -22,10 +22,10 @@ jobs:
       - name: Criar PR para a outra branch sem merge automatico
         shell: bash
         env:
-          GH_TOKEN: ${ secrets.GITHUB_TOKEN }}
-          ORIGEM: ${ github.event.pull_request.base.ref }}
-          MERGE_SHA: ${ github.event.pull_request.merge_commit_sha }}
-          NUMERO_PR: ${ github.event.pull_request.number }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ORIGEM: ${{ github.event.pull_request.base.ref }}
+          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+          NUMERO_PR: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
           if [[ "$ORIGEM" == "desenvolvimento" ]]; then
@@ -78,7 +78,7 @@ jobs:
 
           ISSUE_URL="$(gh issue create --title "chore(sync): revisar backport da PR #$NUMERO_PR para $DESTINO" --body "Backport automatizado e nao integrado da PR #$NUMERO_PR ($ORIGEM). Revisar codigo, autorizacao, CI e ambiente. Nenhum merge automatico permitido. Rastreio: #364.")"
           ISSUE_NUM="${ISSUE_URL##*/}"
-          BODY="$(printf 'Backport por cherry-pick da PR #%s. Nao mesclar sem verificar CI e RBAC.\\n\\nCloses #%s\\nIdentificador: N/A\\n' "$NUMERO_PR" "$ISSUE_NUM")"
+          BODY="$(printf 'Backport por cherry-pick da PR #%s. Nao mesclar sem verificar CI e RBAC.\n\nCloses #%s\nIdentificador: N/A\n' "$NUMERO_PR" "$ISSUE_NUM")"
           if ! gh pr create \
             --base "$DESTINO" \
             --head "$BRANCH" \
