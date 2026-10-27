@@ -74,7 +74,7 @@ function TurnRow({ turn, onLink, onSelectCustomer, working }: { readonly turn: T
   const reply = turn.reply;
   if (!reply) return <section className="assistant-turn">{question}</section>;
   return <section className="assistant-turn">{question}
-    <strong className="assistant-source">{reply.source === "GROQ" ? "Assistente LoadX · Groq" : reply.source === "GUARDRAIL" ? "Proteção do LoadX · somente leitura" : "Resumo automático · IA indisponível"}</strong><p className="assistant-answer">{reply.answer}</p>
+    <strong className="assistant-source">{reply.source === "GROQ" ? "Assistente LoadX · Groq" : reply.source === "BACKEND" ? "Dados verificados · LoadX" : reply.source === "GUARDRAIL" ? "Proteção do LoadX · somente leitura" : "Resumo automático · IA indisponível"}</strong><p className="assistant-answer">{reply.answer}</p>
     {reply.facts.map((fact) => <Fact key={fact.clientKey} fact={fact} onLink={onLink} onSelectCustomer={onSelectCustomer} working={working} />)}
     <nav aria-label="Recursos relacionados">{reply.links.filter((link) => allowedLink(link.href)).map((link) => <Link key={link.href} to={link.href} onClick={onLink}>{link.label}</Link>)}</nav>
   </section>;

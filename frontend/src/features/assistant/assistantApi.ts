@@ -11,7 +11,7 @@ export interface AssistantFact {
   timezone: string; values: Record<string, number | string | null>;
 }
 export interface AssistantReply {
-  source: "GROQ" | "FALLBACK" | "GUARDRAIL"; answer: string; facts: AssistantFact[];
+  source: "GROQ" | "BACKEND" | "FALLBACK" | "GUARDRAIL"; answer: string; facts: AssistantFact[];
   suggestions: string[]; links: { label: string; href: string }[];
 }
 export async function askAssistant(message: string, history: ChatMessage[], context: AssistantContext, signal?: AbortSignal): Promise<AssistantReply> {
