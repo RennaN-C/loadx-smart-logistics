@@ -99,6 +99,7 @@ _UNSAFE_REQUESTS = (
     ),
 )
 
+
 def unsafe_request(text: str) -> bool:
     return any(pattern.search(text) for pattern in _UNSAFE_REQUESTS)
 
