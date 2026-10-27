@@ -1,0 +1,88 @@
+name: Propor sincronizacao entre desenvolvimento e pentest-lab
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [desenvolvimento, pentest-lab]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  propor-backport:
+    if: github.event.pull_request.merged == true && !startsWith(github.event.pull_request.head.ref, 'sync/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Criar PR para a outra branch sem merge automatico
+        shell: bash
+        env:
+          GH_TOKEN: ${ secrets.GITHUB_TOKEN }}
+          ORIGEM: ${ github.event.pull_request.base.ref }}
+          MERGE_SHA: ${ github.event.pull_request.merge_commit_sha }}
+          NUMERO_PR: ${ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          if [[ "$ORIGEM" == "desenvolvimento" ]]; then
+            DESTINO="pentest-lab"
+          else
+            DESTINO="desenvolvimento"
+          fi
+          BRANCH="sync/pr-${NUMERO_PR}-to-${DESTINO}"
+
+          # Skip explicito para hotfix ou configuracao exclusiva de ambiente.
+          if gh api "repos/$GITHUB_REPOSITORY/issues/$NUMERO_PR/labels" --jq '.[].name' | grep -Fxq "skip-sync"; then
+            echo "PR marcado como skip-sync; ignorando sincronizacao automatica."
+            exit 0
+          fi
+
+          FILES="$(gh api "repos/$GITHUB_REPOSITORY/pulls/$NUMERO_PR/files" --paginate --jq '.[].filename')"
+          if printf '%s\n' "$FILES" | grep -Eq '^(\.github/|\.env|compose\.|.*Dockerfile|.*vercel\.|.*render\.|backend/migrations/|docs/evidencias/)'; then
+            gh issue comment 364 --body "PR #$NUMERO_PR ($ORIGEM) requer avaliacao manual antes de ir para $DESTINO: arquivos de ambiente/migracao ou workflow presentes. Nenhum merge foi executado." || true
+            echo "Alteracao sensivel: backport automatico nao sera tentado."
+            exit 0
+          fi
+
+          git fetch origin "$DESTINO"
+          if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1; then
+            echo "Branch $BRANCH existente. Revisar a PR correspondente."
+            exit 0
+          fi
+          git switch --create "$BRANCH" "origin/$DESTINO"
+          PARENTS="$(git rev-list --parents -n 1 "$MERGE_SHA" | awk '{print NF-1}')"
+          if [[ "$PARENTS" -gt 1 ]]; then
+            if ! git cherry-pick -m 1 --no-commit "$MERGE_SHA"; then
+              git cherry-pick --abort || true
+              gh issue comment 364 --body "PR #$NUMERO_PR ($ORIGEM) apresenta conflito ao transportar para $DESTINO. Sincronizacao manual obrigatoria; nada foi enviado." || true
+              exit 0
+            fi
+          elif ! git cherry-pick --no-commit "$MERGE_SHA"; then
+            git cherry-pick --abort || true
+            gh issue comment 364 --body "PR #$NUMERO_PR ($ORIGEM) apresenta conflito ao transportar para $DESTINO. Sincronizacao manual obrigatoria; nada foi enviado." || true
+            exit 0
+          fi
+
+          if git diff --cached --quiet; then
+            echo "Alteracoes ja presentes em $DESTINO."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "sync: proposta de backport da PR #$NUMERO_PR para $DESTINO"
+          git push origin "HEAD:refs/heads/$BRANCH"
+
+          ISSUE_URL="$(gh issue create --title "chore(sync): revisar backport da PR #$NUMERO_PR para $DESTINO" --body "Backport automatizado e nao integrado da PR #$NUMERO_PR ($ORIGEM). Revisar codigo, autorizacao, CI e ambiente. Nenhum merge automatico permitido. Rastreio: #364.")"
+          ISSUE_NUM="${ISSUE_URL##*/}"
+          if ! gh pr create \
+            --base "$DESTINO" \
+            --head "$BRANCH" \
+            --title "sync: revisar PR #$NUMERO_PR em $DESTINO" \
+            --body "Backport por cherry-pick da PR #$NUMERO_PR. Nao mesclar sem verificacao de CI, RBAC e efeitos de ambiente.\n\nCloses #$ISSUE_NUM\nIdentificador: N/A"; then
+            gh issue comment 364 --body "Backport da PR #$NUMERO_PR preparado em $BRANCH, mas a criacao de PR automatica falhou. Conferir permissoes de Actions para criar pull requests." || true
+            exit 1
+          fi
