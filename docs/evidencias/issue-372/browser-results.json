@@ -1,0 +1,184 @@
+{
+  "database": "PostgreSQL 16 isolado loadx_loxi_3d_qa",
+  "session": "Fixtures de cinco perfis; não valida login/MFA",
+  "webgl": "Chromium SwiftShader, geometria real e API real, sem interceptação HTTP",
+  "results": [
+    {
+      "mode": "before",
+      "kind": "plan",
+      "width": 1280,
+      "canvas_top": null,
+      "canvas_count": 0
+    },
+    {
+      "mode": "before",
+      "kind": "distribution",
+      "width": 1280,
+      "canvas_top": null,
+      "canvas_count": 0
+    },
+    {
+      "mode": "after",
+      "kind": "plan",
+      "width": 1280,
+      "canvas_top": 590.046875,
+      "canvas_count": 1
+    },
+    {
+      "mode": "after",
+      "kind": "distribution",
+      "width": 1280,
+      "canvas_top": 588.15625,
+      "canvas_count": 1
+    }
+  ],
+  "responsive": [
+    {
+      "width": 1920,
+      "height": 1080,
+      "theme": "dark",
+      "overflow": false,
+      "canvas_count": 1
+    },
+    {
+      "width": 1280,
+      "height": 900,
+      "theme": "dark",
+      "overflow": false,
+      "canvas_count": 1
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "overflow": false,
+      "canvas_count": 1
+    },
+    {
+      "width": 375,
+      "height": 812,
+      "theme": "dark",
+      "overflow": false,
+      "canvas_count": 1
+    },
+    {
+      "width": 1920,
+      "height": 1080,
+      "theme": "light",
+      "overflow": false,
+      "canvas_count": 1
+    },
+    {
+      "width": 1280,
+      "height": 900,
+      "theme": "light",
+      "overflow": false,
+      "canvas_count": 1
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "overflow": false,
+      "canvas_count": 1
+    },
+    {
+      "width": 375,
+      "height": 812,
+      "theme": "light",
+      "overflow": false,
+      "canvas_count": 1
+    }
+  ],
+  "roles": [
+    {
+      "role": "ADMIN",
+      "allowed": true
+    },
+    {
+      "role": "LOGISTICS_MANAGER",
+      "allowed": true
+    },
+    {
+      "role": "CHECKER",
+      "allowed": true
+    },
+    {
+      "role": "DRIVER",
+      "allowed": false
+    },
+    {
+      "role": "CUSTOM",
+      "allowed": false
+    }
+  ],
+  "expanded_same_scene": true,
+  "escape": true,
+  "sequence_and_selection": true,
+  "truck_switch_no_stale_scene": true,
+  "reload_keeps_selection": true,
+  "page_errors": [],
+  "webgl_unavailable": {
+    "real_chromium_feature_disabled": true,
+    "friendly_error": true,
+    "table_remains_available": true
+  },
+  "custom_delegated_read": {
+    "granted_using_existing_admin_api": true,
+    "planning_read_only": true,
+    "canvas_available": true,
+    "no_approval": true,
+    "loxi_still_forbidden": true
+  },
+  "single_plan_responsive": [
+    {
+      "theme": "dark",
+      "width": 1920,
+      "height": 1080,
+      "overflow": false
+    },
+    {
+      "theme": "dark",
+      "width": 1280,
+      "height": 900,
+      "overflow": false
+    },
+    {
+      "theme": "dark",
+      "width": 768,
+      "height": 1024,
+      "overflow": false
+    },
+    {
+      "theme": "dark",
+      "width": 375,
+      "height": 812,
+      "overflow": false
+    },
+    {
+      "theme": "light",
+      "width": 1920,
+      "height": 1080,
+      "overflow": false
+    },
+    {
+      "theme": "light",
+      "width": 1280,
+      "height": 900,
+      "overflow": false
+    },
+    {
+      "theme": "light",
+      "width": 768,
+      "height": 1024,
+      "overflow": false
+    },
+    {
+      "theme": "light",
+      "width": 375,
+      "height": 812,
+      "overflow": false
+    }
+  ],
+  "mobile_expanded_close": true
+}
