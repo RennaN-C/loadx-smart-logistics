@@ -48,6 +48,8 @@ def test_groq_fixed_endpoint_and_bounded_payload(monkeypatch):
     assert tls.check_hostname is True
     request = opener.open.call_args.args[0]
     assert request.full_url == "https://api.groq.com/openai/v1/chat/completions"
+    assert request.get_header("User-agent") == "LoadX-Smart-Logistics/1.2"
+    assert "Python-urllib" not in request.get_header("User-agent")
     assert opener.open.call_args.kwargs["timeout"] == 2
     payload = json.loads(request.data)
     assert payload["max_completion_tokens"] == 2048
@@ -145,3 +147,18 @@ def test_groq_403_reports_only_allowlisted_error_code(
     assert f"GROQ_REQUEST_FAILURE category=http_403 reason={expected}" in caplog.text
     assert "private-customer-prompt" not in caplog.text
     assert "arbitrary-private-message" not in caplog.text
+
+
+def test_groq_cloudflare_client_signature_403_logs_safe_reason(monkeypatch, caplog):
+    opener = Mock()
+    opener.open.side_effect = HTTPError(
+        "https://example.invalid",
+        403,
+        "Forbidden",
+        {},
+        io.BytesIO(b"error code: 1010"),
+    )
+    monkeypatch.setattr("app.integrations.ai.groq.build_opener", lambda *_: opener)
+    with pytest.raises(AIProviderUnavailableError):
+        GroqProvider(config()).complete([], timeout_seconds=1)
+    assert "GROQ_REQUEST_FAILURE category=http_403 reason=edge_client_signature_1010" in caplog.text
