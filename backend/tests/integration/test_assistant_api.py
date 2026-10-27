@@ -33,7 +33,7 @@ def test_chat_auth_csrf_context_and_honest_fallback(client, session_factory):
     response = client.post(path, json=payload, headers=scenario.checker_headers)
     assert response.status_code == 200, response.text
     result = response.json()
-    assert result["source"] == "FALLBACK"
+    assert result["source"] == "BACKEND"
     assert result["facts"][0]["name"] == "Plano autorizado"
     assert result["links"][0]["href"] == f"/planning/{scenario.load_plan_id}"
     assert str(scenario.driver_id) not in str(result["facts"])
