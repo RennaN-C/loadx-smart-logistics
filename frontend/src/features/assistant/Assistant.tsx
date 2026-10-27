@@ -24,7 +24,6 @@ export function Assistant() {
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerChoice | null>(null);
   const [working, setWorking] = useState(false);
   const [failed, setFailed] = useState<string | null>(null);
-  const [showIdeas, setShowIdeas] = useState(false);
   const request = useRef<AbortController | null>(null);
   const launcher = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);
@@ -33,7 +32,7 @@ export function Assistant() {
   const enabled = user && ["ADMIN", "LOGISTICS_MANAGER", "CHECKER"].includes(user.role);
   useEffect(() => {
     request.current?.abort(); request.current = null;
-    setOpen(false); setSelectedCustomer(null); setTurns([]); setDraft(""); setFailed(null); setWorking(false); setShowIdeas(false); setContext(routeContext(pathname));
+    setOpen(false); setSelectedCustomer(null); setTurns([]); setDraft(""); setFailed(null); setWorking(false); setContext(routeContext(pathname));
     // Trocar de tela NÃO remove a conversa; somente trocar de usuário/perfil.
   }, [identity]);
   useEffect(() => {
@@ -84,7 +83,7 @@ export function Assistant() {
     const history: ChatMessage[] = turns.slice(-4).flatMap((turn) => turn.reply ? [{ role: "user" as const, content: turn.question }, { role: "assistant" as const, content: turn.reply.answer.slice(0, 2000) }] : []);
     try {
       const reply = await askAssistant(question.trim(), history, context, controller.signal);
-      if (!controller.signal.aborted && request.current === controller) { setTurns((previous) => [...previous.slice(-19), { id: crypto.randomUUID(), question, reply: { ...reply, facts: reply.facts.map((fact) => ({ ...fact, clientKey: crypto.randomUUID() })) } }]); setDraft(""); setShowIdeas(false); }
+      if (!controller.signal.aborted && request.current === controller) { setTurns((previous) => [...previous.slice(-19), { id: crypto.randomUUID(), question, reply: { ...reply, facts: reply.facts.map((fact) => ({ ...fact, clientKey: crypto.randomUUID() })) } }]); setDraft(""); }
     } catch (error) {
       if (!controller.signal.aborted && request.current === controller) {
         setFailed(assistantErrorMessage(error));
@@ -101,27 +100,25 @@ export function Assistant() {
   if (!enabled) return null;
   const sendLabel = working ? "Consultando…" : "Enviar pergunta";
   const submitLabel = failed && !working ? "Tentar novamente" : sendLabel;
-  const suggestions = turns.at(-1)?.reply?.suggestions?.length ? turns.at(-1)!.reply!.suggestions : ["Por que a carga não coube?", "Quantos pedidos foram entregues nos últimos 30 dias?", "O que faço agora?"];
   return <>
-    <button ref={launcher} type="button" className="assistant-launch" aria-label="Perguntar ao LoadX" aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? titleId : undefined} onClick={() => open ? close() : setOpen(true)}>
-      <Icon name="message-circle" size={23} /><span>Assistente LoadX</span>
+    <button ref={launcher} type="button" className="assistant-launch" aria-label="Conversar com Loxi" aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? titleId : undefined} onClick={() => open ? close() : setOpen(true)}>
+      <Icon name="message-circle" size={23} /><span>Loxi</span>
     </button>
     {open ? createPortal(<div className="assistant-shell">
       <section ref={panel} className="assistant-panel" id={titleId} role="dialog" aria-modal="false" aria-labelledby={titleId + "-title"}>
         <header className="assistant-panel-header">
-          <div><h2 id={titleId + "-title"}>Assistente LoadX</h2><p>Consultas e ajuda contextual · somente leitura</p></div>
+          <div><h2 id={titleId + "-title"}>Loxi <span className="assistant-title-caption">· Assistente LoadX</span></h2><p>Consultas, planejamentos e orientação operacional</p></div>
           <button type="button" className="assistant-close" aria-label="Minimizar assistente" title="Minimizar assistente" onClick={close}>×</button>
         </header>
         <div className="assistant-panel-body">
-      <details className="assistant-privacy"><summary>Privacidade e limites</summary><p>Não compartilhe senhas ou documentos. A IA apenas consulta informações autorizadas; confirme os dados antes de decidir.</p></details>
+      <details className="assistant-privacy"><summary>Privacidade e limites</summary><p>Não compartilhe senhas ou documentos. O Loxi consulta somente informações autorizadas. Alterações exigem confirmação nas telas do LoadX.</p></details>
       <AssistantConversation turns={turns} onLink={close} onSelectCustomer={selectCustomer} working={working} />
       {working ? <output><span className="spinner" aria-hidden="true" /> Consultando informações autorizadas…</output> : null}
       {failed ? <AlertBanner>{failed}</AlertBanner> : null}
-      {turns.length === 0 || showIdeas ? <div className="assistant-suggestions" aria-label="Perguntas sugeridas">{suggestions.slice(0, 3).map((suggestion) => <button type="button" className="btn-secondary" key={suggestion} disabled={working} onClick={() => { setShowIdeas(false); void send(suggestion === "Tentar novamente" ? turns.at(-1)?.question ?? suggestion : suggestion); }}>{suggestion}</button>)}</div> : null}
       {selectedCustomer ? <div className="assistant-filter"><span>Cliente: {selectedCustomer.label}</span><button type="button" className="btn-secondary" disabled={working} onClick={clearCustomer}>Limpar filtro de cliente</button></div> : null}
       <form onSubmit={(event: FormEvent) => { event.preventDefault(); void send(); }}>
-        <div className="assistant-compose-header"><label htmlFor="assistant-message">Sua pergunta</label>{turns.length > 0 ? <button className="assistant-ideas-button" type="button" aria-expanded={showIdeas} onClick={() => setShowIdeas((current) => !current)}>{showIdeas ? "Ocultar sugestões" : "Sugestões"}</button> : null}</div><textarea id="assistant-message" value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={handleComposerKeyDown} maxLength={2000} rows={1} disabled={working} title="Enter para enviar, Shift+Enter para nova linha" placeholder="Ex.: Quantos pedidos foram entregues?" />
-        <div className="entity-form-actions"><button className="assistant-clear" type="button" disabled={working || turns.length === 0} onClick={() => { setTurns([]); setFailed(null); setShowIdeas(false); }}>Limpar conversa</button><button className="btn-primary assistant-submit" type="submit" aria-label={submitLabel} disabled={working || !draft.trim()}>{working ? "Consultando…" : "Enviar"}<Icon name="arrow-right" size={16} /></button></div>
+        <div className="assistant-compose-header"><label htmlFor="assistant-message">Sua pergunta</label></div><textarea id="assistant-message" value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={handleComposerKeyDown} maxLength={2000} rows={1} disabled={working} title="Enter para enviar, Shift+Enter para nova linha" placeholder="Ex.: Quantos pedidos foram entregues?" />
+        <div className="entity-form-actions"><button className="assistant-clear" type="button" disabled={working || turns.length === 0} onClick={() => { setTurns([]); setFailed(null); }}>Limpar conversa</button><button className="btn-primary assistant-submit" type="submit" aria-label={submitLabel} disabled={working || !draft.trim()}>{working ? "Consultando…" : "Enviar"}<Icon name="arrow-right" size={16} /></button></div>
       </form>
         </div>
       </section>
