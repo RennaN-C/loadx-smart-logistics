@@ -262,15 +262,10 @@ class AssistantService:
                             ),
                         }
                     )
-                messages.append(
-                    {
-                        "role": "system",
-                        "content": (
-                            "Sem acesso a ferramentas nesta resposta. "
-                            "Selecione facts apenas se houver fatos reais do "
-                            "servidor nesta conversa; nunca invente contagens."
-                        ),
-                    }
+                messages[0]["content"] += (
+                    "\nSem acesso a ferramentas nesta resposta. "
+                    "Selecione facts apenas se houver fatos reais do "
+                    "servidor nesta conversa; nunca invente contagens."
                 )
                 reply = self.provider.complete(
                     messages, timeout_seconds=self._remaining(deadline)
