@@ -228,9 +228,7 @@ class AssistantService:
                 # com modelos pequenos ocasiona outro 400. Em vez disso, escolher
                 # somente uma consulta óbvia da lista já autorizada no servidor.
                 # Não executar qualquer JSON/argumento rejeitado pela Groq.
-                route = _safe_recovery_tool(
-                    data.message, allowed_names
-                )
+                route = _safe_recovery_tool(data.message, allowed_names)
                 logger.warning(
                     "ASSISTANT_TOOL_GENERATION_RECOVERY route=%s",
                     route if route is not None else "guidance_only",
