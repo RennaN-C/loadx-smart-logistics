@@ -96,7 +96,7 @@ export function Assistant() {
   const sendLabel = working ? "Consultando…" : "Enviar pergunta";
   const submitLabel = failed && !working ? "Tentar novamente" : sendLabel;
   return <>
-    <button ref={launcher} type="button" className="assistant-launch" aria-label="Perguntar ao LoadX" aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? titleId : undefined} onClick={() => setOpen((current) => !current)}>
+    <button ref={launcher} type="button" className="assistant-launch" aria-label="Perguntar ao LoadX" aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? titleId : undefined} onClick={() => open ? close() : setOpen(true)}>
       <Icon name="message-circle" size={23} /><span>Assistente LoadX</span>
     </button>
     {open ? createPortal(<div className="assistant-shell">
