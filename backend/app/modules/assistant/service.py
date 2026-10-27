@@ -22,9 +22,11 @@ from app.integrations.ai.provider import (
 )
 from app.modules.assistant.answers import (
     ANSWER_CONTRACT,
+    general_answer,
     grounded_answer,
     verified_answer,
 )
+from app.modules.assistant.capabilities import documentation_reply, scoped_request
 from app.modules.assistant.context import planning_context
 from app.modules.assistant.conversation import conversation_reply
 from app.modules.assistant.limits import ensure_budget
@@ -163,41 +165,38 @@ def _safe_recovery_tool(question: str, allowed_names: frozenset[str]) -> str | N
 
 
 def _catalog_intent(question: str) -> str | None:
-    """Bounded and explicit registration questions; never use availability as inventory."""
-    normalized = unicodedata.normalize("NFKD", question.casefold())
-    text = "".join(char for char in normalized if not unicodedata.combining(char))
+    text = unicodedata.normalize("NFKD", question.casefold())
+    text = "".join(char for char in text if not unicodedata.combining(char))
     if len(text) > 165 or not re.search(
-        r"\b(?:qual|quais|list\w*|mostr\w*|temos|cadastrad\w*|registrad\w*)\b",
+        r"\b(?:quais|list\w*|mostr\w*|temos|cadastrad\w*|registrad\w*)\b", text
+    ):
+        return None
+    if re.search(
+        r"\b(?:(?:in)?dispon\w*|manutenc\w*|entreg\w*|viagem|status|situacao|arquivad\w*|ontem|hoje)\b",
         text,
     ):
         return None
-    if any(
-        word in text
-        for word in (
-            "dispon",
-            "manutenc",
-            "problema",
-            "por que",
-            "entreg",
-            "pedido",
-            "cliente",
-            "document",
-            "viagem",
-            "rota",
-            "plano",
-            "carga",
-            "quantos",
-            "quanto",
-            "pode",
-            "alter",
-        )
-    ):
-        return None
-    products = bool(re.search(r"\b(?:produto\w*|mercadoria\w*)\b", text))
-    trucks = bool(re.search(r"\b(?:caminh\w*|veicul\w*|frota)\b", text))
-    if products == trucks:
-        return None
-    return "get_registered_products" if products else "get_registered_trucks"
+    routes = {
+        "produto": "get_registered_products",
+        "mercadoria": "get_registered_products",
+        "caminh": "get_registered_trucks",
+        "veicul": "get_registered_trucks",
+        "frota": "get_registered_trucks",
+        "cliente": "get_registered_customers",
+        "motorista": "get_registered_drivers",
+        "pedido": "get_registered_orders",
+    }
+    selected = {
+        name
+        for term, name in routes.items()
+        if re.search(r"\b" + term + r"\w*\b", text)
+    }
+    return next(iter(selected)) if len(selected) == 1 else None
+
+
+def _catalog_page(question: str) -> int:
+    match = re.search(r"\bp[aá]gina\s+(\d{1,3})\b", question, re.IGNORECASE)
+    return max(1, min(100, int(match.group(1)))) if match else 1
 
 
 def _catalog_answer(fact: Source) -> str:
@@ -225,6 +224,10 @@ def _catalog_answer(fact: Source) -> str:
 
 def tool_definitions(user: User) -> list[dict]:
     descriptions = {
+        "get_usage_guidance": "Consultar documentação real de COMO USAR um módulo, sem dados cadastrados. Informe module pela lista fechada. Respeita permissões; não inventa funcionalidades.",
+        "get_registered_customers": "Listar clientes ativos autorizados, dez por página. Não envia nomes/documentos ao modelo.",
+        "get_registered_drivers": "Listar motoristas ativos autorizados, dez por página. Não informa CNH nem disponibilidade.",
+        "get_registered_orders": "Listar pedidos autorizados por situação e página. Não equivale a métricas de expedição/entrega.",
         "get_registered_products": "Listar até dez produtos cadastrados por página, com código, nome e situação (ativo/arquivado); não informa estoque.",
         "get_registered_trucks": "Listar até dez caminhões cadastrados por página, com modelo, placa e situação; não é a disponibilidade operacional.",
         "get_fleet_availability": "Disponibilidade atual por página de caminhões; bloqueios operacionais, manutenção e documentos conforme backend. Não é histórico de utilização.",
@@ -282,6 +285,10 @@ class AssistantService:
         casual = conversation_reply(user, data.message)
         if casual is not None:
             return casual
+        data = scoped_request(data)
+        documented = documentation_reply(user, data.message)
+        if documented is not None:
+            return documented
         planned = planning_insight(self.db, user, data)
         if planned is not None:
             emit_security_event(
@@ -321,7 +328,10 @@ class AssistantService:
                 {
                     "id": "loadx_catalog_read",
                     "type": "function",
-                    "function": {"name": catalog_route, "arguments": "{}"},
+                    "function": {
+                        "name": catalog_route,
+                        "arguments": json.dumps({"page": _catalog_page(data.message)}),
+                    },
                 },
                 now,
                 deadline,
@@ -452,6 +462,21 @@ class AssistantService:
             answer = reply.get("content")
             if not isinstance(answer, str) or not answer.strip() or len(answer) > 8000:
                 raise AIProviderUnavailableError
+            documented_facts = [
+                fact for fact in facts if fact.name.startswith("Como usar: ")
+            ]
+            if documented_facts:
+                return ChatResponse(
+                    source="DOCUMENTATION",
+                    answer="\n\n".join(
+                        str(fact.values["orientation"]) for fact in documented_facts
+                    ),
+                    facts=documented_facts,
+                    links=[link for fact in documented_facts for link in fact.links],
+                )
+            general = general_answer(answer, data.message, facts)
+            if general is not None:
+                return ChatResponse(source="GENERAL", answer=sanitize(general))
             answer = grounded_answer(answer, facts)
             return ChatResponse(
                 source="GROQ",
