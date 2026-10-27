@@ -48,6 +48,17 @@ it("exibe fallback honestamente e mantém fatos legíveis sem JSON ou links exte
   expect(screen.getByText("Entregue")).toBeInTheDocument();
   expect(screen.queryByRole("link", { name: "Não autorizado" })).not.toBeInTheDocument();
 });
+it("distingue resposta verificada do backend de falha total da IA", async () => {
+  vi.mocked(askAssistant).mockResolvedValue({
+    ...REPLY, source: "BACKEND",
+    answer: "Resultado confirmado pelo LoadX: 1 pedido totalmente entregue.",
+    facts: [{ name: "Expedição e entregas", criteria: "Dados autorizados", timezone: "UTC", period_start: null, period_end: null, values: { fully_delivered_orders: 1 } }]
+  });
+  show(); open(); send();
+  expect(await screen.findByText("Dados verificados · LoadX")).toBeInTheDocument();
+  expect(screen.getByText(/1 pedido totalmente entregue/)).toBeInTheDocument();
+  expect(screen.queryByText("Resumo automático · IA indisponível")).not.toBeInTheDocument();
+});
 it("falha permite tentar novamente e não expõe mensagem técnica", async () => {
   vi.mocked(askAssistant).mockRejectedValueOnce(new Error("private-provider-message"));
   show(); open(); send();
