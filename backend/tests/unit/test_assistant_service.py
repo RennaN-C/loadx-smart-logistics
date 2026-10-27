@@ -71,7 +71,7 @@ def test_real_tool_results_are_server_calculated_and_bounded(
     )
     monkeypatch.setattr(AssistantMetricsService, "query", query)
     result = AssistantService(Mock(), config(), provider).chat(
-        actor(), ChatRequest(message="Quantos pedidos entregues?")
+        actor(), ChatRequest(message="Consulte dados de entregas")
     )
     assert result.source == "GROQ"
     assert result.facts[0].values["fully_delivered_orders"] == 1
