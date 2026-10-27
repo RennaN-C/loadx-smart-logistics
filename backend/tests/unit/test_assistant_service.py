@@ -425,7 +425,8 @@ def test_groq_400_recovers_with_authorized_delivery_metrics_without_model_tools(
     )
     monkeypatch.setattr(AssistantMetricsService, "query", query)
     result = AssistantService(Mock(), config(), provider).chat(
-        actor(), ChatRequest(message="Quantos pedidos foram entregues nos últimos 30 dias?")
+        actor(),
+        ChatRequest(message="Quantos pedidos foram entregues nos últimos 30 dias?"),
     )
     assert result.source == "GROQ"
     assert "3 pedidos totalmente entregues" in result.answer
@@ -505,9 +506,7 @@ def test_groq_400_cannot_escalate_checker_metrics(no_database, monkeypatch):
     query.assert_not_called()
 
 
-def test_groq_400_recovery_rechecks_permissions_before_read(
-    no_database, monkeypatch
-):
+def test_groq_400_recovery_rechecks_permissions_before_read(no_database, monkeypatch):
     user = actor()
     db = Mock()
     db.refresh.side_effect = lambda _: setattr(user, "role", "CHECKER")
