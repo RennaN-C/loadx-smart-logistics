@@ -26,7 +26,10 @@ GUIDANCE = {
 # Somente estes dados numéricos, vindos de ferramentas autorizadas do backend,
 # podem aparecer no texto. Nunca interpretar strings livres do modelo como números.
 _HIGHLIGHTS = {
-    "fully_delivered_orders": ("pedido totalmente entregue", "pedidos totalmente entregues"),
+    "fully_delivered_orders": (
+        "pedido totalmente entregue",
+        "pedidos totalmente entregues",
+    ),
     "dispatched_orders": ("pedido expedido", "pedidos expedidos"),
     "trips_started": ("viagem iniciada", "viagens iniciadas"),
     "trips_finished": ("viagem concluída", "viagens concluídas"),
@@ -45,8 +48,16 @@ def factual_highlights(facts: list[Source]) -> str:
                 label = labels[0] if value == 1 else labels[1]
                 statements.append(f"{value:,} {label}".replace(",", "."))
                 if len(statements) == 2:
-                    return "Resultado confirmado pelo LoadX: " + "; ".join(statements) + "."
-    return "Resultado confirmado pelo LoadX: " + "; ".join(statements) + "." if statements else ""
+                    return (
+                        "Resultado confirmado pelo LoadX: "
+                        + "; ".join(statements)
+                        + "."
+                    )
+    return (
+        "Resultado confirmado pelo LoadX: " + "; ".join(statements) + "."
+        if statements
+        else ""
+    )
 
 
 
