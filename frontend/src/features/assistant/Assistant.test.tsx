@@ -56,7 +56,8 @@ it("distingue resposta verificada do backend de falha total da IA", async () => 
   });
   show(); open(); send();
   expect(await screen.findByText("Dados verificados · LoadX")).toBeInTheDocument();
-  expect(screen.getByText(/1 pedido totalmente entregue/)).toBeInTheDocument();
+  expect(screen.getByText("Pedidos totalmente entregues")).toBeInTheDocument();
+  expect(screen.getAllByText("1").length).toBeGreaterThan(0);
   expect(screen.queryByText("Resumo automático · IA indisponível")).not.toBeInTheDocument();
 });
 it("falha permite tentar novamente e não expõe mensagem técnica", async () => {
@@ -174,4 +175,72 @@ it("identifica resposta de proteção sem atribuir falsamente falha à Groq", as
   expect(await screen.findByText("Comando não autorizado.")).toBeInTheDocument();
   expect(screen.getByText("Proteção do LoadX · somente leitura")).toBeInTheDocument();
   expect(screen.queryByText("Resumo automático · IA indisponível")).not.toBeInTheDocument();
+});
+
+
+it("mostra resumo objetivo com métricas verificadas e detalhes recolhidos", async () => {
+  vi.mocked(askAssistant).mockResolvedValue({
+    ...REPLY,
+    answer: "Resultado confirmado pelo LoadX: 1 pedido totalmente entregue; 1 pedido expedido.\n\nConsultei os registros autorizados. Os detalhes abaixo mostram a origem, os critérios e o período da consulta.",
+    facts: [{
+      name: "Expedição e entregas",
+      criteria: "Origem: pedidos, viagens e entregas. Última perna concluída.",
+      timezone: "UTC",
+      period_start: "2026-09-27T14:21:45Z",
+      period_end: "2026-10-27T14:21:45Z",
+      values: {
+        fully_delivered_orders: 1,
+        dispatched_orders: 1,
+        completed_delivery_legs: 1,
+        top_customer_name: "Distribuidoria Aurora",
+      },
+    }],
+    links: [{ label: "Consultar entregas", href: "/deliveries" }],
+  });
+  show("/deliveries"); open(); send();
+  expect(await screen.findByText("Pedidos totalmente entregues")).toBeInTheDocument();
+  expect(screen.getByText("Últimos 30 dias")).toBeInTheDocument();
+  expect(screen.getByText("Distribuidoria Aurora")).toBeInTheDocument();
+  expect(screen.queryByText(/Consultei os registros autorizados/)).not.toBeInTheDocument();
+  const details = screen.getByText("Ver critérios e dados completos").closest("details");
+  expect(details).not.toHaveAttribute("open");
+  const link = screen.getByRole("link", { name: "Consultar entregas" });
+  expect(link).toHaveAttribute("href", "/deliveries");
+  fireEvent.click(screen.getByText("Ver critérios e dados completos"));
+  expect(details).toHaveAttribute("open");
+  expect(screen.getByText(/Última perna concluída/)).toBeInTheDocument();
+});
+
+it("envia com Enter, mas mantém Shift+Enter para texto multilinha", async () => {
+  show(); open();
+  const composer = screen.getByLabelText("Sua pergunta");
+  fireEvent.change(composer, { target: { value: "Quantos pedidos foram entregues?" } });
+  fireEvent.keyDown(composer, { key: "Enter", shiftKey: true });
+  expect(askAssistant).not.toHaveBeenCalled();
+  fireEvent.keyDown(composer, { key: "Enter" });
+  await waitFor(() => expect(askAssistant).toHaveBeenCalledOnce());
+  expect(vi.mocked(askAssistant).mock.calls[0][0]).toBe("Quantos pedidos foram entregues?");
+});
+
+it("executa pergunta sugerida com um clique sem enviar registros automaticamente", async () => {
+  show(); open();
+  const suggestion = "Quantos pedidos foram entregues nos últimos 30 dias?";
+  expect(askAssistant).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: suggestion }));
+  await waitFor(() => expect(askAssistant).toHaveBeenCalledOnce());
+  expect(vi.mocked(askAssistant).mock.calls[0][0]).toBe(suggestion);
+});
+
+it("preserva indicadores iguais a zero sem inferir sucesso", async () => {
+  vi.mocked(askAssistant).mockResolvedValue({
+    ...REPLY, source: "BACKEND", answer: "Resultado confirmado pelo LoadX: 0 pedidos totalmente entregues.",
+    facts: [{
+      name: "Expedição e entregas", criteria: "Dados autorizados", timezone: "UTC",
+      period_start: null, period_end: null,
+      values: { fully_delivered_orders: 0 },
+    }],
+  });
+  show(); open(); send();
+  expect(await screen.findByText("Pedidos totalmente entregues")).toBeInTheDocument();
+  expect(screen.getByText("0")).toBeInTheDocument();
 });
