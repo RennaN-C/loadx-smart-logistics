@@ -662,6 +662,21 @@ def test_catalog_prompt_injection_is_blocked_before_query(no_database, monkeypat
     provider.complete.assert_not_called()
 
 
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        "Quais caminhões estão disponíveis?",
+        "Quais veículos estão indisponíveis?",
+        "Quais caminhões estão em manutenção?",
+    ],
+)
+def test_catalog_intent_never_confuses_eligibility_with_registration(question):
+    from app.modules.assistant.service import _catalog_intent
+
+    assert _catalog_intent(question) is None
+
+
 def test_catalog_not_confused_with_fleet_availability(no_database):
     provider = Mock()
     provider.complete.return_value = {"content": '{"guidance":["availability"]}'}
