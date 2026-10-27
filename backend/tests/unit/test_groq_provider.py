@@ -161,4 +161,7 @@ def test_groq_cloudflare_client_signature_403_logs_safe_reason(monkeypatch, capl
     monkeypatch.setattr("app.integrations.ai.groq.build_opener", lambda *_: opener)
     with pytest.raises(AIProviderUnavailableError):
         GroqProvider(config()).complete([], timeout_seconds=1)
-    assert "GROQ_REQUEST_FAILURE category=http_403 reason=edge_client_signature_1010" in caplog.text
+    assert (
+        "GROQ_REQUEST_FAILURE category=http_403 reason=edge_client_signature_1010"
+        in caplog.text
+    )
