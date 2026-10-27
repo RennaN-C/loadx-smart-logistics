@@ -26,7 +26,9 @@ from app.modules.assistant.answers import (
     verified_answer,
 )
 from app.modules.assistant.context import planning_context
+from app.modules.assistant.conversation import conversation_reply
 from app.modules.assistant.limits import ensure_budget
+from app.modules.assistant.planning_insights import planning_insight
 from app.modules.assistant.schemas import (
     ChatRequest,
     ChatResponse,
@@ -43,7 +45,7 @@ from app.modules.users.models import User
 
 logger = logging.getLogger(__name__)
 
-SYSTEM = """Você é o Assistente LoadX, guia operacional de logística em português brasileiro.
+SYSTEM = """Você é o Loxi, assistente operacional do LoadX, em português brasileiro.
 Somente consultas e explicações; nunca execute nem afirme ter feito alterações.
 Use apenas resultados das ferramentas autorizadas e fatos do servidor como números.
 Cálculos físicos, limite de 200 volumes totais, aprovação, cancelamento e permissões
@@ -277,6 +279,17 @@ class AssistantService:
                 links=[],
                 suggestions=["Quais consultas posso fazer?"],
             )
+        casual = conversation_reply(user, data.message)
+        if casual is not None:
+            return casual
+        planned = planning_insight(self.db, user, data)
+        if planned is not None:
+            emit_security_event(
+                SecurityEvent.ASSISTANT_READ_QUERY,
+                actor_id=str(user.id),
+                tool="planning_insight",
+            )
+            return planned
         facts, links = planning_context(self.db, user, data)
         if facts:
             emit_security_event(

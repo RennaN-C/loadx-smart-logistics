@@ -21,12 +21,12 @@ function RouteJump() {
 function show(path = "/planning/11111111-1111-4111-8111-111111111111") {
   return render(<MemoryRouter initialEntries={[path]}><RouteJump /><Assistant /></MemoryRouter>);
 }
-function open() { const button = screen.getByRole("button", { name: "Perguntar ao LoadX" }); button.focus(); fireEvent.click(button); }
+function open() { const button = screen.getByRole("button", { name: "Conversar com Loxi" }); button.focus(); fireEvent.click(button); }
 function send() { fireEvent.change(screen.getByLabelText("Sua pergunta"), { target: { value: "Quantos pedidos entregues?" } }); fireEvent.click(screen.getByRole("button", { name: "Enviar pergunta" })); }
 
 it.each(["DRIVER", "CUSTOM"])("oculta assistente de %s", (role) => {
   vi.mocked(useAuth).mockReturnValue({ user: { ...user, role } } as ReturnType<typeof useAuth>);
-  show(); expect(screen.queryByRole("button", { name: "Perguntar ao LoadX" })).not.toBeInTheDocument();
+  show(); expect(screen.queryByRole("button", { name: "Conversar com Loxi" })).not.toBeInTheDocument();
 });
 it.each(["ADMIN", "LOGISTICS_MANAGER", "CHECKER"])("permite abrir assistente de %s sem consulta automática", (role) => {
   vi.mocked(useAuth).mockReturnValue({ user: { ...user, role } } as ReturnType<typeof useAuth>);
@@ -39,7 +39,7 @@ it("envia contexto de rota, identifica Groq real e fecha com Escape", async () =
   expect(askAssistant).toHaveBeenCalledWith("Quantos pedidos entregues?", [], { planId: "11111111-1111-4111-8111-111111111111" }, expect.any(AbortSignal));
   fireEvent.keyDown(document, { key: "Escape" });
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Perguntar ao LoadX" })).toHaveFocus();
+  expect(screen.getByRole("button", { name: "Conversar com Loxi" })).toHaveFocus();
 });
 it("exibe fallback honestamente e mantém fatos legíveis sem JSON ou links externos", async () => {
   vi.mocked(askAssistant).mockResolvedValue({ ...REPLY, source: "FALLBACK", facts: [{ name: "Pedido autorizado", criteria: "Situação atual", timezone: "UTC", period_start: null, period_end: null, values: { situacao: "DELIVERED" } }], links: [{ label: "Não autorizado", href: "https://example.com" }] });
@@ -141,16 +141,15 @@ it("mantém histórico ao navegar e ao minimizar sem bloquear a tela", async () 
 });
 
 
-it("prioriza a conversa e recolhe sugestões depois da primeira resposta", async () => {
+it("abre com a apresentação do Loxi sem consultar IA nem cobrir o chat com sugestões", async () => {
   show(); open();
-  expect(screen.getByLabelText("Perguntas sugeridas")).toBeInTheDocument();
+  expect(screen.getByText("Olá! Eu sou o Loxi 👋")).toBeInTheDocument();
+  expect(screen.getByText(/é só escrever/)).toBeInTheDocument();
+  expect(screen.queryByLabelText("Perguntas sugeridas")).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Sugestões" })).not.toBeInTheDocument();
+  expect(askAssistant).not.toHaveBeenCalled();
   send();
   expect(await screen.findByText(REPLY.answer)).toBeInTheDocument();
-  expect(screen.queryByLabelText("Perguntas sugeridas")).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "Sugestões" }));
-  expect(screen.getByLabelText("Perguntas sugeridas")).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "Ocultar sugestões" }));
-  expect(screen.queryByLabelText("Perguntas sugeridas")).not.toBeInTheDocument();
 });
 
 it("mantém mais de três respostas no histórico visível", async () => {
@@ -222,13 +221,14 @@ it("envia com Enter, mas mantém Shift+Enter para texto multilinha", async () =>
   expect(vi.mocked(askAssistant).mock.calls[0][0]).toBe("Quantos pedidos foram entregues?");
 });
 
-it("executa pergunta sugerida com um clique sem enviar registros automaticamente", async () => {
+it("permite pedir sugestões como mensagem, sem botões extras na tela", async () => {
   show(); open();
-  const suggestion = "Quantos pedidos foram entregues nos últimos 30 dias?";
-  expect(askAssistant).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole("button", { name: suggestion }));
+  const composer = screen.getByLabelText("Sua pergunta");
+  fireEvent.change(composer, { target: { value: "Me dê sugestões" } });
+  fireEvent.click(screen.getByRole("button", { name: "Enviar pergunta" }));
   await waitFor(() => expect(askAssistant).toHaveBeenCalledOnce());
-  expect(vi.mocked(askAssistant).mock.calls[0][0]).toBe(suggestion);
+  expect(vi.mocked(askAssistant).mock.calls[0][0]).toBe("Me dê sugestões");
+  expect(screen.queryByLabelText("Perguntas sugeridas")).not.toBeInTheDocument();
 });
 
 it("preserva indicadores iguais a zero sem inferir sucesso", async () => {
