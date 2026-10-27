@@ -105,7 +105,6 @@ def unsafe_request(text: str) -> bool:
     return any(pattern.search(text) for pattern in _UNSAFE_REQUESTS)
 
 
-
 def _safe_recovery_tool(question: str, allowed_names: frozenset[str]) -> str | None:
     """Route only unmistakable current/default-period read queries after invalid LLM tools.
 
