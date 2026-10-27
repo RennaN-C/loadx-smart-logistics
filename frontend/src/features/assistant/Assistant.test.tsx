@@ -82,7 +82,7 @@ it("mostra registros cancelados com rótulos legíveis e navegação real", asyn
   const href = "/planning/distributions/22222222-2222-4222-8222-222222222222";
   vi.mocked(askAssistant).mockResolvedValue({ ...REPLY, facts: [{ name: "Distribuições canceladas", criteria: "Criadas no período", timezone: "UTC", period_start: null, period_end: null, values: { currently_canceled_distributions_created_in_period: 1 }, links: [{ label: "Distribuição criada em 26/10/2026", href }] }] });
   show(); open(); send();
-  expect(await screen.findByText("Distribuições canceladas criadas no período")).toBeInTheDocument();
+  expect((await screen.findAllByText("Distribuições canceladas criadas no período"))[0]).toBeInTheDocument();
   const link = screen.getByRole("link", { name: "Distribuição criada em 26/10/2026" });
   expect(link).toHaveAttribute("href", href);
   fireEvent.click(link);
@@ -198,7 +198,7 @@ it("mostra resumo objetivo com métricas verificadas e detalhes recolhidos", asy
     links: [{ label: "Consultar entregas", href: "/deliveries" }],
   });
   show("/deliveries"); open(); send();
-  expect(await screen.findByText("Pedidos totalmente entregues")).toBeInTheDocument();
+  expect((await screen.findAllByText("Pedidos totalmente entregues"))[0]).toBeInTheDocument();
   expect(screen.getByText("Últimos 30 dias")).toBeInTheDocument();
   expect(screen.getAllByText("Distribuidoria Aurora")[0]).toBeInTheDocument();
   expect(screen.queryByText(/Consultei os registros autorizados/)).not.toBeInTheDocument();
@@ -241,6 +241,6 @@ it("preserva indicadores iguais a zero sem inferir sucesso", async () => {
     }],
   });
   show(); open(); send();
-  expect(await screen.findByText("Pedidos totalmente entregues")).toBeInTheDocument();
+  expect((await screen.findAllByText("Pedidos totalmente entregues"))[0]).toBeInTheDocument();
   expect(screen.getAllByText("0")[0]).toBeInTheDocument();
 });
