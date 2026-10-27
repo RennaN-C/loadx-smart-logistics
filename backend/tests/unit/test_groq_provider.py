@@ -50,7 +50,7 @@ def test_groq_fixed_endpoint_and_bounded_payload(monkeypatch):
     assert request.full_url == "https://api.groq.com/openai/v1/chat/completions"
     assert opener.open.call_args.kwargs["timeout"] == 2
     payload = json.loads(request.data)
-    assert payload["max_completion_tokens"] == 700
+    assert payload["max_completion_tokens"] == 2048
     assert "tools" not in payload
     assert result == {"role": "assistant", "content": "Resposta em português."}
 
@@ -106,3 +106,16 @@ def test_missing_secret_never_opens_network(monkeypatch):
     with pytest.raises(AIProviderUnavailableError):
         provider.complete([], timeout_seconds=1)
     open_network.assert_not_called()
+
+
+def test_groq_logs_only_safe_status_on_http_error(monkeypatch, caplog):
+    opener = Mock()
+    opener.open.side_effect = HTTPError(
+        "https://example.invalid", 401, "secret-key and private prompt", {}, None
+    )
+    monkeypatch.setattr("app.integrations.ai.groq.build_opener", lambda *_: opener)
+    with pytest.raises(AIProviderUnavailableError):
+        GroqProvider(config()).complete([], timeout_seconds=1)
+    assert "GROQ_REQUEST_FAILURE category=http_401" in caplog.text
+    assert "secret-key" not in caplog.text
+    assert "private prompt" not in caplog.text
