@@ -76,7 +76,7 @@ def _kind(question: str, data: ChatRequest) -> str | None:
         return None
     if _LIST_WORD.search(text) and (
         not _LATEST_WORD.search(text)
-        or re.search(r"\\b(?:planos|planejamentos)\\s+anteriores\\b", text)
+        or re.search(r"\b(?:planos|planejamentos)\s+anteriores\b", text)
     ):
         return "list"
     if _LATEST_WORD.search(text):
