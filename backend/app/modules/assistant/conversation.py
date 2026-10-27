@@ -93,7 +93,7 @@ def conversation_reply(user: User, message: str) -> ChatResponse | None:
         ),
         (
             "cancelar",
-            "loadx.planning.create",
+            "loadx.planning.approve",
             "/planning",
             "cancelamento de planejamento",
         ),
