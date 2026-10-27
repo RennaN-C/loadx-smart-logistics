@@ -67,7 +67,7 @@ def verified_answer(facts: list[Source]) -> str:
         "Consultei os registros autorizados do LoadX. "
         "Confira os indicadores abaixo para ver os critérios, o período e a origem."
     )
-    return "\\n\\n".join(part for part in (summary, guidance) if part).replace("\\n", "\n")
+    return "\n\n".join(part for part in (summary, guidance) if part)
 
 
 class AnswerSelection(BaseModel):
