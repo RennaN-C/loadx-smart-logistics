@@ -75,7 +75,20 @@
 }
 .assistant-welcome { padding: 18px 0; color: var(--muted); }
 .assistant-welcome h3 { color: var(--ink); }
-.assistant-conversation { display: grid; gap: 18px; flex: 1; min-height: 0; min-width: 0; overflow-y: auto; overscroll-behavior: contain; align-content: start; }
+.assistant-conversation {
+  display: grid;
+  gap: 18px;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  align-content: start;
+  /* A conversa continua rolando com mouse, toque e teclado, sem barra interna visível. */
+  scrollbar-width: none;
+}
+.assistant-conversation::-webkit-scrollbar { display: none; }
 .assistant-turn { display: grid; gap: 10px; min-width: 0; overflow-wrap: anywhere; }
 .assistant-turn p { margin: 0; }
 .assistant-question { padding: 12px; background: var(--accent-bg); border-radius: 10px; white-space: pre-wrap; }
@@ -89,10 +102,32 @@
 .assistant-fact dl > div { display: flex; justify-content: space-between; gap: 14px; padding: 6px 0; border-bottom: 1px solid var(--line); }
 .assistant-fact dt { text-transform: capitalize; }
 .assistant-fact dd { margin: 0; text-align: right; font-weight: 600; }
-.assistant-suggestions { display: flex; flex-wrap: wrap; flex-shrink: 0; gap: 7px; max-height: 100px; overflow-y: auto; }
+.assistant-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+  gap: 7px;
+  /* Sugestões nunca criam um segundo scroll vertical dentro do chat. */
+  max-height: none;
+  overflow: visible;
+}
 .assistant-suggestions button { white-space: normal; text-align: left; font-size: .78rem; }
 .assistant-panel-body form { display: grid; flex-shrink: 0; gap: 9px; border-top: 1px solid var(--line); padding-top: 10px; }
-.assistant-panel-body textarea { width: 100%; resize: vertical; min-height: 72px; max-height: 144px; background: var(--card); color: var(--ink); border: 1px solid var(--line); border-radius: 9px; padding: 11px; font: inherit; }
+.assistant-panel-body textarea {
+  width: 100%;
+  resize: none;
+  min-height: 72px;
+  max-height: 110px;
+  overflow-y: auto;
+  scrollbar-width: none;
+  background: var(--card);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 11px;
+  font: inherit;
+}
+.assistant-panel-body textarea::-webkit-scrollbar { display: none; }
 .assistant-panel-body textarea:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
 .assistant-turn nav { display: flex; flex-wrap: wrap; gap: 10px; }
 .assistant-filter { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size: .75rem; color: var(--muted); }
