@@ -10,7 +10,7 @@ from app.modules.assistant.schemas import Source
 
 GUIDANCE = {
     "facts": "Consultei os registros autorizados. Os detalhes abaixo mostram a origem, os critérios e o período da consulta.",
-    "query_required": "Ainda não tenho dados suficientes para confirmar essa informação. Informe qual indicador ou operação deseja consultar.",
+    "query_required": "Ainda não tenho dados suficientes para confirmar essa informação; não há valor operacional confirmado nesta resposta. Informe qual indicador ou operação deseja consultar.",
     "planning_flow": "Para planejar: selecione pedidos prontos, escolha veículos e calcule. Confira o resultado, aprove quando estiver correto e siga para conferência, viagem e entrega.",
     "planning_status": "Um cálculo salvo não é uma aprovação. Aprovar permite avançar no processo, mas a entrega só termina quando a operação é concluída.",
     "capacity": "Se a carga não coube, confira os motivos apontados na tentativa. Verifique peso, dimensões, colisões e veículos disponíveis antes de ajustar o planejamento.",
