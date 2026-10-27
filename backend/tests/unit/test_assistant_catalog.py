@@ -4,8 +4,8 @@ from types import SimpleNamespace
 from unittest.mock import Mock
 
 from app.modules.assistant.schemas import ToolArguments
-from app.modules.reports.assistant_service import AssistantMetricsService
 from app.modules.products.service import ProductService
+from app.modules.reports.assistant_service import AssistantMetricsService
 from app.modules.trucks.service import TruckService
 from tests.unit.test_assistant_service import actor
 
