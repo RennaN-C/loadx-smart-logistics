@@ -107,6 +107,7 @@ def test_missing_secret_never_opens_network(monkeypatch):
         provider.complete([], timeout_seconds=1)
     open_network.assert_not_called()
 
+
 def test_groq_logs_only_safe_status_on_http_error(monkeypatch, caplog):
     opener = Mock()
     opener.open.side_effect = HTTPError(
