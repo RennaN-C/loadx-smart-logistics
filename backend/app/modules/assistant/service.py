@@ -320,6 +320,9 @@ class AssistantService:
             calls = reply.get("tool_calls", [])
             if not isinstance(calls, list) or len(calls) > 3:
                 raise AIProviderUnavailableError
+            # Uma resposta solicitada sem tools não pode introduzir novas chamadas.
+            if route is not None and calls:
+                raise AIProviderUnavailableError
             if calls:
                 messages.append(reply)
                 results = [
