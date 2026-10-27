@@ -65,7 +65,10 @@ def allowed_tool(user: User, name: str) -> bool:
         or user.role not in {"ADMIN", "LOGISTICS_MANAGER", "CHECKER"}
     ):
         return False
-    if user.role == "CHECKER" and name not in {GET_FLEET_AVAILABILITY, GET_REGISTERED_TRUCKS}:
+    if user.role == "CHECKER" and name not in {
+        GET_FLEET_AVAILABILITY,
+        GET_REGISTERED_TRUCKS,
+    }:
         return False
     if name in {GET_COMPANY_SUMMARY, GET_FINANCIAL_IMPACT}:
         return user.role == "ADMIN"

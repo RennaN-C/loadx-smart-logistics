@@ -172,9 +172,22 @@ def _catalog_intent(question: str) -> str | None:
     if any(
         word in text
         for word in (
-            "disponib", "manutenc", "problema", "por que", "entreg",
-            "pedido", "cliente", "document", "viagem", "rota",
-            "plano", "carga", "quantos", "quanto", "pode", "alter",
+            "disponib",
+            "manutenc",
+            "problema",
+            "por que",
+            "entreg",
+            "pedido",
+            "cliente",
+            "document",
+            "viagem",
+            "rota",
+            "plano",
+            "carga",
+            "quantos",
+            "quanto",
+            "pode",
+            "alter",
         )
     ):
         return None
@@ -200,7 +213,11 @@ def _catalog_answer(fact: Source) -> str:
     return (
         f"{fact.name} ({total} no total; página {page} de {pages}):\n"
         + "\n".join(f"• {row}" for row in rows)
-        + ("\nHá mais registros nas páginas seguintes." if isinstance(pages, int) and pages > page else "")
+        + (
+            "\nHá mais registros nas páginas seguintes."
+            if isinstance(pages, int) and pages > page
+            else ""
+        )
     )
 
 
@@ -275,15 +292,16 @@ class AssistantService:
         # Consultas de cadastro não dependem do modelo nem de tool calls frágeis.
         # Permissão é conferida antes e depois do refresh na execução da ferramenta.
         catalog_route = (
-            _catalog_intent(data.message)
-            if not data.diagnostic_token else None
+            _catalog_intent(data.message) if not data.diagnostic_token else None
         )
         if catalog_route is not None:
             if catalog_route not in allowed_names:
                 return ChatResponse(
                     source="GUARDRAIL",
                     answer="Você não tem permissão para consultar esse cadastro.",
-                    facts=[], links=[], suggestions=[],
+                    facts=[],
+                    links=[],
+                    suggestions=[],
                 )
             result = self._run_tool(
                 user,
@@ -292,7 +310,10 @@ class AssistantService:
                     "type": "function",
                     "function": {"name": catalog_route, "arguments": "{}"},
                 },
-                now, deadline, data.customer_id, allowed_names,
+                now,
+                deadline,
+                data.customer_id,
+                allowed_names,
             )
             return ChatResponse(
                 source="BACKEND",
@@ -540,7 +561,10 @@ class AssistantService:
         provider_fact["values"] = {
             key: (
                 "cadastro autorizado"
-                if key in {"company", "top_customer_name", "unavailable_vehicles"} or key.startswith("item_")
+                if (
+                    key in {"company", "top_customer_name", "unavailable_vehicles"}
+                    or key.startswith("item_")
+                )
                 and value
                 else value
             )
