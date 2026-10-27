@@ -28,6 +28,7 @@ const FACT_LABELS: Record<string, string> = {
   planned_rejected_volumes: "Volumes rejeitados",
   planned_loaded_weight_kg: "Peso planejado (kg)",
   currently_canceled_distributions_created_in_period: "Distribuições canceladas criadas no período",
+  total_records: "Total de cadastros",
   page: "Página",
   total_pages: "Total de páginas",
   page_records: "Registros nesta página",
@@ -74,7 +75,7 @@ function formatValue(value: string | number | null): string {
   return typeof value === "number" ? value.toLocaleString("pt-BR") : readable(value);
 }
 function allowedLink(href: string): boolean {
-  return ["/trucks?tab=availability", "/orders", "/deliveries", "/reports", "/planning"].includes(href)
+  return ["/products", "/trucks", "/trucks?tab=availability", "/orders", "/deliveries", "/reports", "/planning"].includes(href)
     || /^\/planning\/(?:distributions\/)?[0-9a-f-]{36}$/i.test(href);
 }
 function periodLabel(fact: AssistantFact): string | null {
@@ -139,7 +140,7 @@ function Fact({ fact, onLink, onSelectCustomer, working }: FactProps) {
     {fact.links?.length ? <nav className="assistant-result-links" aria-label="Registros da consulta">{fact.links.filter((link) => allowedLink(link.href)).map((link) =>
       <Link key={link.href} to={link.href} onClick={onLink}>{link.label}<Icon name="arrow-right" size={15} /></Link>
     )}</nav> : null}
-    <details className="assistant-fact" open={compact ? undefined : true}>
+    <details className="assistant-fact" open={compact || Object.keys(fact.values).some((key) => key.startsWith("item_")) ? undefined : true}>
       <summary>{compact ? "Ver critérios e dados completos" : "Informações da consulta"}</summary>
       <div className="assistant-fact-content">
         <p>{fact.criteria}</p>
