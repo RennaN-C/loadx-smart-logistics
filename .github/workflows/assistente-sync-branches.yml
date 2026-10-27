@@ -78,11 +78,12 @@ jobs:
 
           ISSUE_URL="$(gh issue create --title "chore(sync): revisar backport da PR #$NUMERO_PR para $DESTINO" --body "Backport automatizado e nao integrado da PR #$NUMERO_PR ($ORIGEM). Revisar codigo, autorizacao, CI e ambiente. Nenhum merge automatico permitido. Rastreio: #364.")"
           ISSUE_NUM="${ISSUE_URL##*/}"
+          BODY="$(printf 'Backport por cherry-pick da PR #%s. Nao mesclar sem verificar CI e RBAC.\\n\\nCloses #%s\\nIdentificador: N/A\\n' "$NUMERO_PR" "$ISSUE_NUM")"
           if ! gh pr create \
             --base "$DESTINO" \
             --head "$BRANCH" \
             --title "sync: revisar PR #$NUMERO_PR em $DESTINO" \
-            --body "Backport por cherry-pick da PR #$NUMERO_PR. Nao mesclar sem verificacao de CI, RBAC e efeitos de ambiente.\n\nCloses #$ISSUE_NUM\nIdentificador: N/A"; then
+            --body "$BODY"; then
             gh issue comment 364 --body "Backport da PR #$NUMERO_PR preparado em $BRANCH, mas a criacao de PR automatica falhou. Conferir permissoes de Actions para criar pull requests." || true
             exit 1
           fi
