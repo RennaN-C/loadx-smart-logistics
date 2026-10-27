@@ -83,7 +83,26 @@ export function Assistant() {
     const history: ChatMessage[] = turns.slice(-4).flatMap((turn) => turn.reply ? [{ role: "user" as const, content: turn.question }, { role: "assistant" as const, content: turn.reply.answer.slice(0, 2000) }] : []);
     try {
       const reply = await askAssistant(question.trim(), history, context, controller.signal);
-      if (!controller.signal.aborted && request.current === controller) { setTurns((previous) => [...previous.slice(-19), { id: crypto.randomUUID(), question, reply: { ...reply, facts: reply.facts.map((fact) => ({ ...fact, clientKey: crypto.randomUUID() })) } }]); setDraft(""); }
+      if (!controller.signal.aborted && request.current === controller) {
+        const planLink = reply.facts
+          .filter((fact) => fact.name === "Análise do planejamento")
+          .flatMap((fact) => fact.links ?? [])
+          .map((link) => /^\/planning\/([0-9a-f-]{36})$/i.exec(link.href))
+          .find((match) => match !== null);
+        if (planLink) {
+          // A referência veio de fato autorizado pelo backend; será revalidada
+          // no servidor em cada pergunta, não inferida do histórico da IA.
+          setContext((current) => ({ ...current, planId: planLink[1], distributionId: undefined }));
+        } else if (reply.facts.some((fact) => fact.name === "Histórico de planejamentos")) {
+          // Uma lista não seleciona plano; evita associar o próximo "esse" ao antigo.
+          setContext((current) => ({ ...current, planId: routeContext(pathname).planId }));
+        }
+        setTurns((previous) => [...previous.slice(-19), {
+          id: crypto.randomUUID(), question,
+          reply: { ...reply, facts: reply.facts.map((fact) => ({ ...fact, clientKey: crypto.randomUUID() })) },
+        }]);
+        setDraft("");
+      }
     } catch (error) {
       if (!controller.signal.aborted && request.current === controller) {
         setFailed(assistantErrorMessage(error));
