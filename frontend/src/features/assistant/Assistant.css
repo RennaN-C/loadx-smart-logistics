@@ -2,7 +2,7 @@
 .assistant-launch {
   position: fixed;
   inset: auto 24px 22px auto;
-  z-index: 1091;
+  z-index: 48;
   display: inline-flex;
   align-items: center;
   gap: 9px;
@@ -23,7 +23,7 @@
   outline: 3px solid var(--accent-strong);
   outline-offset: 3px;
 }
-.assistant-shell { position: fixed; inset: 0; pointer-events: none; z-index: 1090; }
+.assistant-shell { position: fixed; inset: 0; pointer-events: none; z-index: 47; }
 .assistant-panel {
   position: fixed;
   inset: auto 24px 86px auto;
