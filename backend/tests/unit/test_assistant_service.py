@@ -662,7 +662,6 @@ def test_catalog_prompt_injection_is_blocked_before_query(no_database, monkeypat
     provider.complete.assert_not_called()
 
 
-
 @pytest.mark.parametrize(
     "question",
     [
