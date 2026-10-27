@@ -208,7 +208,10 @@ def test_checker_cannot_read_approved_plan_from_canceled_distribution(monkeypatc
         **{**vars(persisted(latest.id)), "status": "APPROVED"}
     )
     service.get_distribution_state_for_plan.return_value = (
-        uuid.uuid4(), "CANCELED", "APPROVED", True
+        uuid.uuid4(),
+        "CANCELED",
+        "APPROVED",
+        True,
     )
     with pytest.raises(ApiError) as error:
         planning_insight(
