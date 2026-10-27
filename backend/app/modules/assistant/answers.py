@@ -60,7 +60,6 @@ def factual_highlights(facts: list[Source]) -> str:
     )
 
 
-
 class AnswerSelection(BaseModel):
     model_config = ConfigDict(extra="forbid")
     guidance: list[
