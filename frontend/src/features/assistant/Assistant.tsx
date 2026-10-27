@@ -93,6 +93,11 @@ export function Assistant() {
       if (request.current === controller) { request.current = null; setWorking(false); }
     }
   }
+  function handleComposerKeyDown(event: import("react").KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) return;
+    event.preventDefault();
+    void send();
+  }
   if (!enabled) return null;
   const sendLabel = working ? "Consultando…" : "Enviar pergunta";
   const submitLabel = failed && !working ? "Tentar novamente" : sendLabel;
@@ -112,11 +117,11 @@ export function Assistant() {
       <AssistantConversation turns={turns} onLink={close} onSelectCustomer={selectCustomer} working={working} />
       {working ? <output><span className="spinner" aria-hidden="true" /> Consultando informações autorizadas…</output> : null}
       {failed ? <AlertBanner>{failed}</AlertBanner> : null}
-      {turns.length === 0 || showIdeas ? <div className="assistant-suggestions" aria-label="Perguntas sugeridas">{suggestions.slice(0, 3).map((suggestion) => <button type="button" className="btn-secondary" key={suggestion} disabled={working} onClick={() => { setDraft(suggestion === "Tentar novamente" ? turns.at(-1)?.question ?? suggestion : suggestion); setShowIdeas(false); }}>{suggestion}</button>)}</div> : null}
+      {turns.length === 0 || showIdeas ? <div className="assistant-suggestions" aria-label="Perguntas sugeridas">{suggestions.slice(0, 3).map((suggestion) => <button type="button" className="btn-secondary" key={suggestion} disabled={working} onClick={() => { setShowIdeas(false); void send(suggestion === "Tentar novamente" ? turns.at(-1)?.question ?? suggestion : suggestion); }}>{suggestion}</button>)}</div> : null}
       {selectedCustomer ? <div className="assistant-filter"><span>Cliente: {selectedCustomer.label}</span><button type="button" className="btn-secondary" disabled={working} onClick={clearCustomer}>Limpar filtro de cliente</button></div> : null}
       <form onSubmit={(event: FormEvent) => { event.preventDefault(); void send(); }}>
-        <div className="assistant-compose-header"><label htmlFor="assistant-message">Sua pergunta</label>{turns.length > 0 ? <button className="assistant-ideas-button" type="button" aria-expanded={showIdeas} onClick={() => setShowIdeas((current) => !current)}>{showIdeas ? "Ocultar sugestões" : "Sugestões"}</button> : null}</div><textarea id="assistant-message" value={draft} onChange={(event) => setDraft(event.target.value)} maxLength={2000} rows={2} disabled={working} placeholder="Pergunte sobre a operação ou os indicadores disponíveis" />
-        <div className="entity-form-actions"><button className="btn-secondary" type="button" disabled={working || turns.length === 0} onClick={() => { setTurns([]); setFailed(null); setShowIdeas(false); }}>Limpar conversa</button><button className="btn-primary" type="submit" disabled={working || !draft.trim()}>{submitLabel}</button></div>
+        <div className="assistant-compose-header"><label htmlFor="assistant-message">Sua pergunta</label>{turns.length > 0 ? <button className="assistant-ideas-button" type="button" aria-expanded={showIdeas} onClick={() => setShowIdeas((current) => !current)}>{showIdeas ? "Ocultar sugestões" : "Sugestões"}</button> : null}</div><textarea id="assistant-message" value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={handleComposerKeyDown} maxLength={2000} rows={1} disabled={working} title="Enter para enviar, Shift+Enter para nova linha" placeholder="Ex.: Quantos pedidos foram entregues?" />
+        <div className="entity-form-actions"><button className="assistant-clear" type="button" disabled={working || turns.length === 0} onClick={() => { setTurns([]); setFailed(null); setShowIdeas(false); }}>Limpar conversa</button><button className="btn-primary assistant-submit" type="submit" aria-label={submitLabel} disabled={working || !draft.trim()}>{working ? "Consultando…" : "Enviar"}<Icon name="arrow-right" size={16} /></button></div>
       </form>
         </div>
       </section>
