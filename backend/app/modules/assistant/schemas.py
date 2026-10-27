@@ -38,6 +38,8 @@ class ToolArguments(BaseModel):
 class ToolCall(BaseModel):
     model_config = ConfigDict(extra="forbid")
     name: Literal[
+        "get_registered_products",
+        "get_registered_trucks",
         "get_fleet_availability",
         "get_company_summary",
         "get_customer_order_metrics",
