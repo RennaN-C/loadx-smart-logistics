@@ -363,7 +363,7 @@ def test_invalid_tool_generation_retries_once_without_executing_bad_call(
     ]
     db = Mock()
     result = AssistantService(db, config(), provider).chat(
-        actor(), ChatRequest(message="Olá")
+        actor(), ChatRequest(message="Preciso de orientações gerais para a operação")
     )
     assert result.source == "GROQ"
     assert provider.complete.call_count == 2
@@ -376,7 +376,7 @@ def test_repeated_invalid_tool_generation_falls_back_with_bounded_attempts(
     provider = Mock()
     provider.complete.side_effect = AIProviderToolGenerationError
     result = AssistantService(Mock(), config(), provider).chat(
-        actor(), ChatRequest(message="Olá")
+        actor(), ChatRequest(message="Preciso de orientações gerais para a operação")
     )
     assert result.source == "FALLBACK"
     assert provider.complete.call_count == 2

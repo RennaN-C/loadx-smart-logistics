@@ -29,6 +29,11 @@ const FACT_LABELS: Record<string, string> = {
   planned_loaded_weight_kg: "Peso planejado (kg)",
   currently_canceled_distributions_created_in_period: "Distribuições canceladas criadas no período",
   total_records: "Total de cadastros",
+  algorithm_version: "Versão do algoritmo",
+  truck_plate: "Placa do caminhão",
+  is_current_part: "Parte vigente",
+  distribution_status: "Situação da distribuição",
+  part_status: "Situação da parte",
   page: "Página",
   total_pages: "Total de páginas",
   page_records: "Registros nesta página",
@@ -68,7 +73,7 @@ const PRIMARY_METRICS = [
 ] as const;
 
 function readable(value: string): string {
-  return LABELS[value] ?? FACT_LABELS[value] ?? value.replaceAll("_", " ");
+  return LABELS[value] ?? FACT_LABELS[value] ?? (value.startsWith("reason_") ? "Motivo: " + value.slice(7).replaceAll("_", " ").toLowerCase() : value.replaceAll("_", " "));
 }
 function formatValue(value: string | number | null): string {
   if (value === null) return "Sem dados";
@@ -198,7 +203,7 @@ export function AssistantConversation({ turns, onLink, onSelectCustomer, working
       lastTurn.getBoundingClientRect().top - container.getBoundingClientRect().top;
   }, [turns.length]);
   return <div ref={chat} className="assistant-conversation" role="log" aria-label="Conversa com o LoadX" aria-live="polite">
-    {turns.length === 0 ? <div className="assistant-welcome"><div className="assistant-welcome-icon"><Icon name="message-circle" size={24} /></div><h3>Como posso ajudar?</h3><p>Consulte entregas, pedidos, frota e informações da operação com dados do LoadX.</p></div> : null}
+    {turns.length === 0 ? <div className="assistant-welcome assistant-welcome-greeting"><div className="assistant-welcome-icon"><Icon name="message-circle" size={24} /></div><div className="assistant-welcome-copy"><span className="assistant-source">Loxi · Assistente LoadX</span><h3>Olá! Eu sou o Loxi 👋</h3><p>Posso conversar sobre sua operação, consultar registros autorizados e explicar os resultados do algoritmo nos planejamentos anteriores ou no mais recente.</p><p>Também posso orientar ações permitidas. Para ver ideias do que perguntar, é só escrever <strong>“Me dê sugestões”</strong>.</p></div></div> : null}
     {turns.map((turn) => <TurnRow key={turn.id} turn={turn} onLink={onLink} onSelectCustomer={onSelectCustomer} working={working} />)}
   </div>;
 }

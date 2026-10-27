@@ -295,3 +295,50 @@
 @media (prefers-reduced-motion: reduce) {
   .assistant-panel, .assistant-launch { scroll-behavior: auto; }
 }
+
+
+/* Loxi: a saudação é uma mensagem real, não uma bandeja de botões. */
+.assistant-title-caption {
+  font-size: .76rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+.assistant-welcome-greeting {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin: 2px 0 auto;
+  padding: 11px 2px 14px;
+  text-align: left;
+}
+.assistant-welcome-greeting .assistant-welcome-icon {
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  margin: 0;
+  border-radius: 12px;
+}
+.assistant-welcome-greeting .assistant-welcome-copy {
+  flex: 1;
+  min-width: 0;
+}
+.assistant-welcome-greeting h3 {
+  margin: 7px 0 8px;
+  font-size: .94rem;
+}
+.assistant-welcome-greeting p {
+  max-width: none;
+  margin: 0 0 10px;
+  line-height: 1.55;
+  font-size: .84rem;
+  text-align: left;
+}
+.assistant-welcome-greeting p:last-child { margin-bottom: 0; }
+@media (max-width: 420px) {
+  .assistant-welcome-greeting { gap: 9px; }
+  .assistant-welcome-greeting .assistant-welcome-icon {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+  }
+}
