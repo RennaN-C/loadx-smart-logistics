@@ -20,7 +20,11 @@ from app.integrations.ai.provider import (
     AIProviderUnavailableError,
     ChatProvider,
 )
-from app.modules.assistant.answers import ANSWER_CONTRACT, grounded_answer, verified_answer
+from app.modules.assistant.answers import (
+    ANSWER_CONTRACT,
+    grounded_answer,
+    verified_answer,
+)
 from app.modules.assistant.context import planning_context
 from app.modules.assistant.limits import ensure_budget
 from app.modules.assistant.schemas import (
