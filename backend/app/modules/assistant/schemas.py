@@ -67,7 +67,7 @@ class Source(BaseModel):
 
 
 class ChatResponse(BaseModel):
-    source: Literal["GROQ", "FALLBACK"]
+    source: Literal["GROQ", "FALLBACK", "GUARDRAIL"]
     answer: str
     facts: list[Source] = Field(default_factory=list)
     suggestions: list[str] = Field(default_factory=list)
