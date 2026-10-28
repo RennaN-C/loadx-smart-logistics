@@ -38,7 +38,6 @@ def resolve_followup(data: ChatRequest) -> tuple[ChatRequest, bool]:
     ]
     if not previous_questions:
         return data, False
-    last = previous_questions[-1]
     # The most recent explicit user topic controls context; never inherit an older
     # planning topic after a customer, order or settings discussion.
     previous_explicit = next(
