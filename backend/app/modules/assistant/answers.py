@@ -135,7 +135,10 @@ def general_answer(content: str, question: str, facts: list[Source]) -> str | No
         )
     ):
         return None
-    raw = json.loads(content)
+    try:
+        raw = json.loads(content)
+    except json.JSONDecodeError:
+        return None
     if not isinstance(raw, dict) or "conversation" not in raw:
         return None
     answer = GeneralSelection.model_validate(raw).conversation.strip()
@@ -157,13 +160,20 @@ class NaturalSelection(BaseModel):
     source_names: list[str] = Field(default_factory=list, max_length=6)
 
 
-def natural_answer(content: str, facts: list[Source]) -> str | None:
+def natural_answer(
+    content: str, facts: list[Source], *, allow_plain_text: bool = False
+) -> str | None:
     """Permit conversational prose, but reject ungrounded numbers and operations.
 
     A source reference is not evidence by itself: only server-fetched Source objects
     provide facts. The server remains responsible for authorization and all writes.
     """
-    payload = json.loads(content)
+    try:
+        payload = json.loads(content)
+    except json.JSONDecodeError:
+        if not allow_plain_text or facts:
+            raise AIProviderUnavailableError from None
+        payload = {"answer": content, "source_names": []}
     if not isinstance(payload, dict) or "answer" not in payload:
         return None
     selection = NaturalSelection.model_validate(payload)
