@@ -128,6 +128,7 @@ def test_followup_facts_are_revalidated_and_wording_is_natural(isolated, monkeyp
             values={"loaded_volumes": 2, "rejected_volumes": 0},
         )
     ]
+
     def lookup(db, actor, data):
         assert data.message.startswith("Explique o último planejamento")
         return ChatResponse(
@@ -135,6 +136,7 @@ def test_followup_facts_are_revalidated_and_wording_is_natural(isolated, monkeyp
             answer="Analisei o plano persistido: 2 volumes carregados.",
             facts=facts,
         )
+
     monkeypatch.setattr("app.modules.assistant.service.planning_insight", lookup)
     provider = Mock()
     provider.complete.return_value = {
@@ -218,6 +220,7 @@ def test_history_roles_remain_conversational_not_authoritative(isolated):
     assert all(
         message["role"] in {"user", "assistant", "system"} for message in messages
     )
+
 
 def test_social_plain_text_is_accepted_only_without_operational_claims(isolated):
     provider = Mock()
