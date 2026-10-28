@@ -94,6 +94,7 @@ def test_forbidden_roles_never_call_provider(no_database, role):
 def test_checker_cannot_escalate_to_global_metrics_even_by_tool_call():
     user = actor("CHECKER")
     assert [tool["function"]["name"] for tool in tool_definitions(user)] == [
+        "get_usage_guidance",
         "get_registered_products",
         "get_registered_trucks",
         "get_fleet_availability",
@@ -447,7 +448,8 @@ def test_groq_400_recovers_with_guidance_only_when_no_unambiguous_metric(
     query = Mock()
     monkeypatch.setattr(AssistantMetricsService, "query", query)
     result = AssistantService(Mock(), config(), provider).chat(
-        actor(), ChatRequest(message="Por que a carga não coube?")
+        actor(),
+        ChatRequest(message="Quais cuidados devo ter antes de tentar novamente?"),
     )
     assert result.source == "GROQ"
     assert "peso" in result.answer
