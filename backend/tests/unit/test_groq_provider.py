@@ -203,3 +203,60 @@ def test_groq_other_http_400_fails_closed_without_tool_retry(monkeypatch):
     with pytest.raises(AIProviderUnavailableError) as caught:
         GroqProvider(config()).complete([], timeout_seconds=1)
     assert not isinstance(caught.value, AIProviderToolGenerationError)
+
+
+def test_groq_enforces_json_only_for_loxi_conversation(monkeypatch):
+    response = {
+        "choices": [
+            {"message": {"role": "assistant", "content": '{"answer":"Oi!","source_names":[]}'}}
+        ]
+    }
+    opener = Mock()
+    opener.open.return_value = io.BytesIO(json.dumps(response).encode())
+    monkeypatch.setattr("app.integrations.ai.groq.build_opener", lambda *_: opener)
+    messages = [
+        {
+            "role": "system",
+            "content": "Você é o Loxi, assistente operacional do LoadX. Retorne JSON.",
+        },
+        {"role": "user", "content": "Oi Loxi"},
+    ]
+    GroqProvider(config(groq_model="openai/gpt-oss-120b")).complete(
+        messages, timeout_seconds=2
+    )
+    payload = json.loads(opener.open.call_args.args[0].data)
+    assert payload["response_format"] == {"type": "json_object"}
+    assert payload["reasoning_format"] == "hidden"
+    assert "tools" not in payload
+
+
+def test_groq_preserves_plain_explanation_and_tool_flow(monkeypatch):
+    response = {
+        "choices": [
+            {"message": {"role": "assistant", "content": "Explicação autorizada."}}
+        ]
+    }
+    opener = Mock()
+    opener.open.side_effect = [
+        io.BytesIO(json.dumps(response).encode()),
+        io.BytesIO(json.dumps(response).encode()),
+    ]
+    monkeypatch.setattr("app.integrations.ai.groq.build_opener", lambda *_: opener)
+    provider = GroqProvider(config(groq_model="openai/gpt-oss-120b"))
+    provider.complete(
+        [{"role": "system", "content": "Explique os dados técnicos."}],
+        timeout_seconds=2,
+    )
+    provider.complete(
+        [{"role": "system", "content": "Você é o Loxi, assistente operacional do LoadX. JSON."}],
+        tools=[{"type": "function", "function": {"name": "get_usage_guidance"}}],
+        timeout_seconds=2,
+    )
+    payloads = [
+        json.loads(call.args[0].data) for call in opener.open.call_args_list
+    ]
+    assert "response_format" not in payloads[0]
+    assert "reasoning_format" not in payloads[0]
+    assert "response_format" not in payloads[1]
+    assert payloads[1]["reasoning_format"] == "hidden"
+    assert payloads[1]["tool_choice"] == "auto"
