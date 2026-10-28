@@ -101,3 +101,28 @@ em conjunto com outras; suas contagens não devem ser somadas como volumes disti
 `CONFIRMADO`: não reexecutamos o cálculo para explicar uma falha. O receipt não
 muda locks, rollback, recuperação idempotente, limite de 200 volumes ou a física.
 Falha de rede sem resposta confirmada não recebe um diagnóstico inventado.
+
+### Revisão solicitada — Loxi contextual e capacidades (#371)
+
+`CONFIRMADO`: a pergunta prevalece sobre plan_id/distribution_id da página. O
+roteador não trata “sobre”/“como” genéricos como explicação de um plano. O histórico
+é cortado nas mudanças explícitas de assunto; referências de páginas são apenas
+candidatas, revalidadas quando pertinentes. Ambiguidade pede esclarecimento.
+
+`CONFIRMADO`: orientação documentada tem origem DOCUMENTATION e catálogo auditável
+com endpoints verificados no OpenAPI e permissões reais. Consultar COMO USAR não
+faz listagens de cadastros. Os novos leitores são fechados, paginados e reutilizam
+Services; não há SQL, shell, endpoint ou privilégio escolhido arbitrariamente pelo
+modelo. Itens nominativos ficam na UI autorizada e são mascarados para o provider.
+
+`CONFIRMADO`: a solicitação atual permite conversa social natural em GENERAL,
+separada de dados verificados. O contrato interno aceita texto breve nesse canal
+sem fontes operacionais; rejeita indicadores, conteúdos de módulos, URLs e padrões
+de instruções/credenciais. Essa validação não é um classificador semântico universal.
+Dados e números operacionais mantêm a renderização baseada nas fontes do servidor;
+o modelo não escreve valores livres como fatos. Respostas funcionais usam fontes
+aprovadas; decisões do algoritmo usam snapshots, sem alegar ótimo global.
+
+`CONFIRMADO`: leitura apenas. Autenticação, CSRF, permissões efetivas, limites de
+requisições/tempo/ferramentas e isolamento por usuário continuam. Não há ações da
+Issue #368, nova arquitetura multiempresa, migration ou integração externa simulada.
