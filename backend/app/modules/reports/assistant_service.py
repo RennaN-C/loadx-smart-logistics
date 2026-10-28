@@ -8,9 +8,12 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import ApiError
 from app.core.pagination import PaginationParams
 from app.modules.access_profiles.catalog import has_permission
+from app.modules.assistant.capabilities import CAPABILITIES, permitted
 from app.modules.assistant.schemas import CustomerChoice, Source, ToolArguments
 from app.modules.company_profile.service import CompanyProfileService
 from app.modules.customers.service import CustomerNotFoundError, CustomerService
+from app.modules.drivers.service import DriverService
+from app.modules.orders.service import OrderService
 from app.modules.products.service import ProductService
 from app.modules.reports.assistant_repository import AssistantMetricsRepository
 from app.modules.reports.management_service import ManagementFilters, validate_window
@@ -25,12 +28,25 @@ GET_FLEET_UTILIZATION = "get_fleet_utilization"
 GET_FLEET_AVAILABILITY = "get_fleet_availability"
 GET_CANCELED_DISTRIBUTIONS = "get_canceled_distributions"
 GET_FINANCIAL_IMPACT = "get_financial_impact"
+_ORDER_LABELS = {
+    "DRAFT": "Rascunho",
+    "READY": "Pronto",
+    "PLANNED": "Planejado",
+    "IN_TRANSIT": "Em trânsito",
+    "DELIVERED": "Entregue",
+    "CANCELED": "Cancelado",
+}
+
 GET_REGISTERED_PRODUCTS = "get_registered_products"
 GET_REGISTERED_TRUCKS = "get_registered_trucks"
 
 REPORTS_READ_PERMISSION = "loadx.reports.read"
 
 TOOL_PERMISSIONS = {
+    "get_usage_guidance": (),
+    "get_registered_customers": ("loadx.customers.read",),
+    "get_registered_drivers": ("loadx.drivers.read",),
+    "get_registered_orders": ("loadx.orders.read",),
     GET_REGISTERED_PRODUCTS: ("loadx.products.read",),
     GET_REGISTERED_TRUCKS: ("loadx.trucks.read",),
     GET_FLEET_AVAILABILITY: ("loadx.trucks.read",),
@@ -66,6 +82,7 @@ def allowed_tool(user: User, name: str) -> bool:
     ):
         return False
     if user.role == "CHECKER" and name not in {
+        "get_usage_guidance",
         GET_FLEET_AVAILABILITY,
         GET_REGISTERED_PRODUCTS,
         GET_REGISTERED_TRUCKS,
@@ -97,6 +114,30 @@ class AssistantMetricsService:
                 "AUTH_FORBIDDEN",
                 "Esta consulta não está disponível para seu perfil.",
             )
+        if name == "get_usage_guidance":
+            cap = next(
+                (cap for cap in CAPABILITIES if cap.key == arguments.module), None
+            )
+            if cap is None:
+                raise ValueError("usage guidance requires a known module")
+            if not permitted(user, cap):
+                raise ApiError(
+                    403, "AUTH_FORBIDDEN", "Módulo não autorizado para seu perfil."
+                )
+            return Source(
+                name="Como usar: " + cap.title,
+                criteria="Documentação funcional; contrato GET "
+                + cap.endpoint
+                + "; nenhum cadastro consultado.",
+                values={"orientation": cap.guide},
+                links=[{"label": "Abrir " + cap.title, "href": cap.route}],
+            )
+        if name in {
+            "get_registered_customers",
+            "get_registered_drivers",
+            "get_registered_orders",
+        }:
+            return self._registered_records(name, arguments)
         if name == GET_REGISTERED_PRODUCTS:
             return self._registered_products(arguments.page)
         if name == GET_REGISTERED_TRUCKS:
@@ -141,6 +182,56 @@ class AssistantMetricsService:
             filter_label="Cliente filtrado: " + customer_label
             if customer_label
             else None,
+        )
+
+    def _registered_records(self, name: str, arguments: ToolArguments) -> Source:
+        pagination = PaginationParams(
+            page=arguments.page, page_size=10, sort_order="desc"
+        )
+        if name == "get_registered_customers":
+            page = CustomerService(self.db).list_customers(pagination, active=True)
+            labels = [item.name[:100] for item in page.items]
+            title, route, criterion = (
+                "Clientes cadastrados",
+                "/contacts?tab=customers",
+                "Somente clientes ativos, sem documentos, contatos ou endereços.",
+            )
+        elif name == "get_registered_drivers":
+            page = DriverService(self.db).list_drivers(pagination, active=True)
+            labels = [item.name[:100] for item in page.items]
+            title, route, criterion = (
+                "Motoristas cadastrados",
+                "/contacts?tab=drivers",
+                "Somente motoristas ativos, sem CNH, documentos ou contatos; não indica disponibilidade.",
+            )
+        else:
+            page = OrderService(self.db).list_orders(
+                pagination, status=arguments.status
+            )
+            labels = [
+                "Pedido " + str(item.id)[:8] + " · " + _ORDER_LABELS[item.status]
+                for item in page.items
+            ]
+            title, route, criterion = (
+                "Pedidos cadastrados",
+                "/orders",
+                "Filtro de situação: "
+                + (_ORDER_LABELS[arguments.status] if arguments.status else "todas")
+                + ". Sem dados pessoais do destino.",
+            )
+        values = {
+            "total_records": page.total,
+            "page": page.page,
+            "total_pages": page.total_pages,
+            "page_records": len(page.items),
+        }
+        values.update({f"item_{index}": label for index, label in enumerate(labels, 1)})
+        return Source(
+            name=title,
+            criteria=criterion
+            + " Até dez registros por página, mais recentes primeiro. Origem: service público do módulo.",
+            values=values,
+            links=[{"label": "Abrir " + title, "href": route}],
         )
 
     def _registered_products(self, page: int) -> Source:
