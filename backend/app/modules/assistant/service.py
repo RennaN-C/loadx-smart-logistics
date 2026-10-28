@@ -556,8 +556,8 @@ class AssistantService:
             return ChatResponse(
                 source="FALLBACK",
                 answer=(
-                    f"{reason} Tente novamente ou consulte um registro específico. "
-                    "Nenhum registro foi alterado."
+                    f"{reason} Tente novamente ou consulte um registro específico; "
+                    "nenhum registro foi alterado."
                 ),
                 facts=facts,
                 links=links,
