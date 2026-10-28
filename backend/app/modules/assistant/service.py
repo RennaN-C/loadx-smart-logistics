@@ -399,7 +399,7 @@ class AssistantService:
                 try:
                     reply = self.provider.complete(
                         messages,
-                        tools=definitions,
+                        tools=None if casual is not None else definitions,
                         timeout_seconds=self._remaining(deadline),
                     )
                 except AIProviderToolGenerationError:
@@ -456,6 +456,8 @@ class AssistantService:
                 raise AIProviderUnavailableError
             # Uma resposta solicitada sem tools não pode introduzir novas chamadas.
             if route is not None and calls:
+                raise AIProviderUnavailableError
+            if calls and casual is not None:
                 raise AIProviderUnavailableError
             if calls:
                 messages.append(reply)
@@ -531,6 +533,8 @@ class AssistantService:
                     suggestions=["Como interpretar esses indicadores?"],
                 )
             logger.warning("ASSISTANT_FALLBACK category=%s", type(error).__name__)
+            if casual is not None and casual.source == "BACKEND":
+                return casual
             if isinstance(error, AIProviderTimeoutError):
                 reason = "A IA demorou mais que o limite de resposta."
             elif isinstance(error, AIProviderUnavailableError):
@@ -705,6 +709,22 @@ class _ToolResult:
     link: dict | None
 
 
+def _safe_provider_fact(fact: Source) -> dict:
+    """Send numerical/operational evidence, not business or personal identifiers."""
+    payload = fact.model_dump(
+        mode="json", exclude={"links", "choices", "filter_label"}
+    )
+    values = payload.get("values", {})
+    for key in list(values):
+        if re.search(
+            r"(?:plate|customer|client|company|name|email|phone|document|address|contact)",
+            key,
+            re.IGNORECASE,
+        ):
+            values[key] = "[dado exibido apenas na interface autorizada]"
+    return payload
+
+
 def _messages(data: ChatRequest, facts: list[Source], now: datetime) -> list[dict]:
     messages = [
         {
@@ -723,11 +743,7 @@ def _messages(data: ChatRequest, facts: list[Source], now: datetime) -> list[dic
                     + sanitize(
                         json.dumps(
                             [
-                                f.model_dump(
-                                    mode="json",
-                                    exclude={"links", "choices", "filter_label"},
-                                )
-                                for f in facts
+                                _safe_provider_fact(f) for f in facts
                             ],
                             ensure_ascii=False,
                         )
