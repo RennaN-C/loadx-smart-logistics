@@ -28,11 +28,13 @@ export function Assistant() {
   const launcher = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);
   const titleId = useId();
+  const currentPath = useRef(pathname);
+  currentPath.current = pathname;
   const identity = `${user?.id}:${user?.role}:${user?.permissions?.join(",")}`;
   const enabled = user && ["ADMIN", "LOGISTICS_MANAGER", "CHECKER"].includes(user.role);
   useEffect(() => {
     request.current?.abort(); request.current = null;
-    setOpen(false); setSelectedCustomer(null); setTurns([]); setDraft(""); setFailed(null); setWorking(false); setContext(routeContext(pathname));
+    setOpen(false); setSelectedCustomer(null); setTurns([]); setDraft(""); setFailed(null); setWorking(false); setContext(routeContext(currentPath.current));
     // Trocar de tela NÃO remove a conversa; somente trocar de usuário/perfil.
   }, [identity]);
   useEffect(() => {
@@ -43,6 +45,7 @@ export function Assistant() {
   useEffect(() => {
     if (!open) return;
     const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const launchButton = launcher.current;
     panel.current?.querySelector<HTMLTextAreaElement>("textarea")?.focus();
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key !== "Escape" || event.defaultPrevented) return;
@@ -55,7 +58,7 @@ export function Assistant() {
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
       if (previousFocus?.isConnected) previousFocus.focus();
-      else launcher.current?.focus();
+      else launchButton?.focus();
     };
   }, [open]);
   useEffect(() => {
@@ -126,7 +129,7 @@ export function Assistant() {
     {open ? createPortal(<div className="assistant-shell">
       <section ref={panel} className="assistant-panel" id={titleId} role="dialog" aria-modal="false" aria-labelledby={titleId + "-title"}>
         <header className="assistant-panel-header">
-          <div><h2 id={titleId + "-title"}>Loxi <span className="assistant-title-caption">· Assistente LoadX</span></h2><p>Consultas, planejamentos e orientação operacional</p></div>
+          <div><h2 id={titleId + "-title"}>Loxi - Assistente</h2><p>Consultas, planejamentos e orientação operacional</p></div>
           <button type="button" className="assistant-close" aria-label="Minimizar assistente" title="Minimizar assistente" onClick={close}>×</button>
         </header>
         <div className="assistant-panel-body">

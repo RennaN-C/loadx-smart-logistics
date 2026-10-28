@@ -25,6 +25,30 @@ class ChatRequest(BaseModel):
 
 class ToolArguments(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    module: (
+        Literal[
+            "account",
+            "settings",
+            "profiles",
+            "users",
+            "products",
+            "customers",
+            "drivers",
+            "fleet",
+            "orders",
+            "planning",
+            "loading",
+            "trips",
+            "deliveries",
+            "agenda",
+            "reports",
+            "notifications",
+            "audit",
+            "integrations",
+            "events",
+        ]
+        | None
+    ) = None
     page: int = Field(default=1, ge=1, le=1000)
     start: datetime | None = None
     end: datetime | None = None
@@ -38,6 +62,10 @@ class ToolArguments(BaseModel):
 class ToolCall(BaseModel):
     model_config = ConfigDict(extra="forbid")
     name: Literal[
+        "get_usage_guidance",
+        "get_registered_customers",
+        "get_registered_drivers",
+        "get_registered_orders",
         "get_registered_products",
         "get_registered_trucks",
         "get_fleet_availability",
@@ -69,7 +97,9 @@ class Source(BaseModel):
 
 
 class ChatResponse(BaseModel):
-    source: Literal["GROQ", "BACKEND", "FALLBACK", "GUARDRAIL"]
+    source: Literal[
+        "GROQ", "BACKEND", "FALLBACK", "GUARDRAIL", "DOCUMENTATION", "GENERAL"
+    ]
     answer: str
     facts: list[Source] = Field(default_factory=list)
     suggestions: list[str] = Field(default_factory=list)

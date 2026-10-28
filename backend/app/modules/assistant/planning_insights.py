@@ -13,6 +13,11 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import ApiError
 from app.core.pagination import PaginationParams
 from app.modules.access_profiles.catalog import has_permission
+from app.modules.assistant.context import require_checker_approval
+from app.modules.load_planning.distribution_service import (
+    DistributionError,
+    LoadDistributionService,
+)
 from app.modules.load_planning.service import (
     LoadPlanningService,
     LoadPlanNotFoundError,
@@ -27,8 +32,8 @@ _PLAN_WORD = re.compile(
     re.IGNORECASE,
 )
 _EXPLAIN_WORD = re.compile(
-    r"\b(?:explic\w*|analis\w*|por que|porque|como|resultado|"
-    r"rejeit\w*|n[aã]o coube|sobr\w*|ocupa\w*|coub\w*)\b",
+    r"\b(?:expli[cq]\w*|analis\w*|por qu[eê]|porque|resultado|peso|dimens\w*|sequ[eê]ncia|ordem de carregamento|"
+    r"rejeit\w*|n[aã]o coube|ocupa\w*|coub\w*)\b",
     re.IGNORECASE,
 )
 _LATEST_WORD = re.compile(
@@ -70,7 +75,7 @@ def _page(question: str) -> int:
 def _kind(question: str, data: ChatRequest) -> str | None:
     text = question.casefold()
     # A route context by itself is not a request to fetch every plan.
-    if _UUID.search(text):
+    if _UUID.search(text) and _PLAN_WORD.search(text):
         return "explain"
     if data.plan_id and _EXPLAIN_WORD.search(text):
         return "explain"
@@ -90,6 +95,29 @@ def _kind(question: str, data: ChatRequest) -> str | None:
 
 
 def planning_insight(db: Session, user: User, data: ChatRequest) -> ChatResponse | None:
+    if re.search(r"\bcaminh\w*\s+anterior\b", data.message, re.IGNORECASE):
+        return ChatResponse(
+            source="BACKEND",
+            answer="Você quer comparar o caminhão de um plano anterior ou consultar o cadastro de outro veículo? Informe qual plano ou caminhão.",
+        )
+    compared = _comparison(db, user, data)
+    if compared is not None:
+        return compared
+    if data.distribution_id and (
+        _PLAN_WORD.search(data.message) or _EXPLAIN_WORD.search(data.message)
+    ):
+        return _distribution(db, user, data)
+    if (
+        not (data.plan_id or data.distribution_id or data.diagnostic_token)
+        and not (_LATEST_WORD.search(data.message) or _UUID.search(data.message))
+        and re.search(
+            r"n[aã]o coube|colis[aã]o|volumes rejeitados", data.message, re.IGNORECASE
+        )
+    ):
+        return ChatResponse(
+            source="BACKEND",
+            answer="Qual planejamento ou tentativa você quer analisar? Abra o registro ou informe sua referência para eu consultar os motivos reais, sem presumir a causa.",
+        )
     kind = _kind(data.message, data)
     if kind is None:
         return None
@@ -241,6 +269,27 @@ def planning_insight(db: Session, user: User, data: ChatRequest) -> ChatResponse
     }
     for reason, quantity in reasons.items():
         values[f"reason_{reason}"] = quantity
+    if re.search(r"sequ[eê]ncia|ordem de carregamento", data.message, re.IGNORECASE):
+        sequence = sorted(
+            (
+                item
+                for item in plan.items
+                if getattr(item, "loading_sequence", None) is not None
+            ),
+            key=lambda item: item.loading_sequence,
+        )
+        entries = [
+            f"{item.loading_sequence}º: {item.product_snapshot_code[:40]} · volume {item.volume_index}"
+            for item in sequence[:10]
+        ]
+        values.update(
+            {f"item_sequence_{index}": entry for index, entry in enumerate(entries, 1)}
+        )
+        explain += "\nSequência persistida (até dez volumes): " + (
+            "; ".join(entries)
+            if entries
+            else "não há sequência registrada neste snapshot."
+        )
     link = {
         "label": "Abrir planejamento e ações permitidas",
         "href": f"/planning/{plan.id}",
@@ -258,4 +307,97 @@ def planning_insight(db: Session, user: User, data: ChatRequest) -> ChatResponse
                 links=[link],
             )
         ],
+    )
+
+
+def _comparison(db: Session, user: User, data: ChatRequest) -> ChatResponse | None:
+    if not re.search(
+        r"\b(?:compar\w*|diferen[cç]a entre)\b", data.message, re.IGNORECASE
+    ) or not _PLAN_WORD.search(data.message):
+        return None
+    identifiers = list(dict.fromkeys(_UUID.findall(data.message)))
+    if len(identifiers) == 2:
+        questions = ["Explique o plano " + identifier for identifier in identifiers]
+    elif re.search(r"dois [uú]ltimos|[uú]ltimo.*anterior", data.message, re.IGNORECASE):
+        questions = [
+            "Explique o último planejamento",
+            "Explique o planejamento anterior",
+        ]
+    else:
+        return ChatResponse(
+            source="BACKEND",
+            answer="Quais dois planejamentos você quer comparar? Abra os registros ou informe suas referências; também posso comparar os dois últimos autorizados.",
+        )
+    results = [
+        planning_insight(db, user, ChatRequest(message=question))
+        for question in questions
+    ]
+    if any(result is None or not result.facts for result in results):
+        return ChatResponse(
+            source="BACKEND",
+            answer="Não encontrei dois planejamentos que seu perfil possa consultar. Escolha outros registros autorizados.",
+        )
+    facts = [fact for result in results for fact in result.facts]
+    rows = [
+        f"• {fact.values['truck_plate']}: {fact.values['loaded_volumes']} carregados, {fact.values['rejected_volumes']} rejeitados, ocupação {fact.values['occupancy_percent']:g}%, peso {fact.values['weight_kg']:g} kg."
+        for fact in facts
+    ]
+    return ChatResponse(
+        source="BACKEND",
+        answer="Comparação dos snapshots persistidos:\n"
+        + "\n".join(rows)
+        + "\nAs capacidades e necessidades podem ser diferentes. Isso não prova ótimo global nem ganho financeiro; nenhum cálculo foi reexecutado.",
+        facts=facts,
+        links=[link for fact in facts for link in fact.links],
+    )
+
+
+def _distribution(db: Session, user: User, data: ChatRequest) -> ChatResponse:
+    db.refresh(user)
+    if not user.active or not has_permission(user, "loadx.planning.read"):
+        raise ApiError(403, "AUTH_FORBIDDEN", "Distribuição não autorizada.")
+    try:
+        distribution = LoadDistributionService(db).get(data.distribution_id)
+    except DistributionError:
+        raise ApiError(
+            404, "DISTRIBUTION_NOT_FOUND", "Distribuição não encontrada."
+        ) from None
+    require_checker_approval(user, distribution.status)
+    if data.plan_id and not any(
+        part.load_plan.id == data.plan_id for part in distribution.parts
+    ):
+        raise ApiError(
+            422, "ASSISTANT_CONTEXT_MISMATCH", "O plano não pertence à distribuição."
+        )
+    links = [
+        {
+            "label": "Abrir distribuição",
+            "href": f"/planning/distributions/{distribution.id}",
+        }
+    ]
+    facts = [
+        Source(
+            name="Distribuição autorizada",
+            criteria="Snapshot persistido da distribuição; até dez partes autorizadas nesta resposta. A tela mantém o histórico completo. Nenhum recálculo ou mudança foi executado.",
+            values={
+                "status": distribution.status,
+                "truck_count": distribution.truck_count,
+                "volume_count": distribution.volume_count,
+            },
+            links=links,
+        )
+    ]
+    states = {"PENDING": "pendente", "APPROVED": "aprovada", "CANCELED": "cancelada"}
+    rows = [
+        f"• {part.truck.plate[:16]}: parte {states.get(part.status, 'em acompanhamento')}, {part.load_plan.loaded_count} volumes, {part.load_plan.total_weight_kg:g} kg, ocupação {part.load_plan.occupancy_percent:g}%."
+        for part in distribution.parts
+        if user.role != "CHECKER" or part.status == "APPROVED"
+    ]
+    return ChatResponse(
+        source="BACKEND",
+        answer=f"A distribuição reúne {distribution.truck_count} caminhões e {distribution.volume_count} volumes.\n"
+        + "\n".join(rows[:10])
+        + "\nConsulte cada parte para conferir o 3D e a sequência. Aprovação de uma parte não é aprovação total, e aprovação não significa entrega.",
+        facts=facts,
+        links=links,
     )
