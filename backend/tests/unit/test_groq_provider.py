@@ -208,7 +208,12 @@ def test_groq_other_http_400_fails_closed_without_tool_retry(monkeypatch):
 def test_groq_enforces_json_only_for_loxi_conversation(monkeypatch):
     response = {
         "choices": [
-            {"message": {"role": "assistant", "content": '{"answer":"Oi!","source_names":[]}'}}
+            {
+                "message": {
+                    "role": "assistant",
+                    "content": '{"answer":"Oi!","source_names":[]}',
+                }
+            }
         ]
     }
     opener = Mock()
@@ -248,13 +253,16 @@ def test_groq_preserves_plain_explanation_and_tool_flow(monkeypatch):
         timeout_seconds=2,
     )
     provider.complete(
-        [{"role": "system", "content": "Você é o Loxi, assistente operacional do LoadX. JSON."}],
+        [
+            {
+                "role": "system",
+                "content": "Você é o Loxi, assistente operacional do LoadX. JSON.",
+            }
+        ],
         tools=[{"type": "function", "function": {"name": "get_usage_guidance"}}],
         timeout_seconds=2,
     )
-    payloads = [
-        json.loads(call.args[0].data) for call in opener.open.call_args_list
-    ]
+    payloads = [json.loads(call.args[0].data) for call in opener.open.call_args_list]
     assert "response_format" not in payloads[0]
     assert "reasoning_format" not in payloads[0]
     assert "response_format" not in payloads[1]
