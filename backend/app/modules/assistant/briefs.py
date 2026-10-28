@@ -37,10 +37,9 @@ def _summary(question: str, fact: Source) -> str | None:
     elif values.get("distribution_status") == "INCOMPLETE":
         extras += " A distribuição está incompleta."
 
-    changing = (
-        re.search(r"\b(?:trocar|substituir|mudar|outro|outra|melhora|compensa)\b", q)
-        and re.search(r"\b(?:caminh\w*|veicul\w*|frota|capacidade)\b", q)
-    )
+    changing = re.search(
+        r"\b(?:trocar|substituir|mudar|outro|outra|melhora|compensa)\b", q
+    ) and re.search(r"\b(?:caminh\w*|veicul\w*|frota|capacidade)\b", q)
     if changing:
         if rejected == "0":
             answer = (
@@ -59,8 +58,7 @@ def _summary(question: str, fact: Source) -> str | None:
         if weight is not None and capacity is not None:
             answer += f" O peso registrado foi {weight} de {capacity} kg."
         return (
-            answer
-            + " Uma comparação dos veículos disponíveis e um novo cálculo "
+            answer + " Uma comparação dos veículos disponíveis e um novo cálculo "
             "são necessários para confirmar qualquer melhoria; não simulei a troca."
             + extras
         )
@@ -70,8 +68,7 @@ def _summary(question: str, fact: Source) -> str | None:
             return (
                 f"No cálculo salvo{vehicle}, os {loaded} volumes couberam e "
                 "nenhuma rejeição foi registrada. Isso não comprova que não houve "
-                "outros problemas operacionais."
-                + extras
+                "outros problemas operacionais." + extras
             )
         labels = {
             "reason_TRUCK_WEIGHT_EXCEEDED": "limite de peso",
@@ -80,18 +77,18 @@ def _summary(question: str, fact: Source) -> str | None:
             "reason_COLLISION": "posição sem colisão não encontrada",
         }
         reasons = [
-            label for key, label in labels.items()
+            label
+            for key, label in labels.items()
             if isinstance(values.get(key), (int, float)) and values[key] > 0
         ]
         reason_text = (
             " Motivos registrados: " + ", ".join(reasons) + "."
-            if reasons else " Consulte os motivos no registro detalhado."
+            if reasons
+            else " Consulte os motivos no registro detalhado."
         )
         return (
             f"Neste planejamento{vehicle}, {rejected} volumes foram rejeitados "
-            f"e {loaded} foram posicionados."
-            + reason_text
-            + extras
+            f"e {loaded} foram posicionados." + reason_text + extras
         )
 
     occupancy = _number(values.get("occupancy_percent"))
