@@ -566,6 +566,7 @@ describe("PlanningPage", () => {
 
     renderAt("/planning/lp1");
 
+    fireEvent.click(await screen.findByRole("tab", { name: "Resumo e sequência" }));
     expect(await screen.findByText("Sequência de carregamento")).toBeInTheDocument();
     expect(screen.getByText("Sem rotação")).toBeInTheDocument();
     expect(screen.getByText("0, 0, 0 cm")).toBeInTheDocument();
@@ -578,6 +579,7 @@ describe("PlanningPage", () => {
 
     renderAt("/planning/lp1");
 
+    fireEvent.click(await screen.findByRole("tab", { name: "Resumo e sequência" }));
     expect(await screen.findByText("Volumes que ficaram de fora")).toBeInTheDocument();
     expect(screen.getByText("Não cabe nas medidas do baú")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Aprovar plano" })).toBeDisabled();
@@ -636,14 +638,16 @@ describe("PlanningPage", () => {
     );
   });
 
-  it("mostra a cena 3D na aba de visualização", async () => {
+  it("mostra o 3D primeiro e mantém tabela/retorno à cena", async () => {
     vi.mocked(getLoadPlan).mockResolvedValue(makePlan());
 
     renderAt("/planning/lp1");
     await screen.findByText("Calculado");
 
+    expect(await screen.findByTestId("viewer")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: "Resumo e sequência" }));
     expect(screen.queryByTestId("viewer")).not.toBeInTheDocument();
-
+    expect(screen.getByText("Sequência de carregamento")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("tab", { name: "Visualização 3D" }));
 
     expect(await screen.findByTestId("viewer")).toHaveTextContent("cena de lp1");
@@ -654,6 +658,7 @@ describe("PlanningPage", () => {
     await screen.findByText("Aprovado");
     expect(screen.getByRole("link", { name: "Voltar aos pedidos" })).toHaveAttribute("href", "/orders");
     expect(screen.getByRole("link", { name: "Abrir este plano" })).toHaveAttribute("href", "/planning/lp1");
+    fireEvent.click(screen.getByRole("tab", { name: "Resumo e sequência" }));
     expect(screen.getAllByRole("link", { name: "Ver pedido" })[0]).toHaveAttribute("href", "/orders?order=o1");
   });
 
