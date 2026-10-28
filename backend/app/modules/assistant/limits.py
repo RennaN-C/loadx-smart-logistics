@@ -14,20 +14,7 @@ _lock = Lock()
 
 
 def ensure_budget(db: Session, actor: str, limit: int) -> None:
-    minute = int(time.monotonic() // 60)
-    with _lock:
-        previous_minute, count = _buckets.pop(actor, (minute, 0))
-        count = count if previous_minute == minute else 0
-        _buckets[actor] = (minute, count + 1)
-        while len(_buckets) > 4096:
-            _buckets.popitem(last=False)
-        if count >= limit:
-            raise ApiError(
-                429,
-                "ASSISTANT_RATE_LIMITED",
-                "Aguarde um minuto antes de perguntar novamente.",
-                headers={"Retry-After": "60"},
-            )
+    # A rejected concurrent request must not consume the user's conversational quota.
     if not AssistantConcurrencyRepository(db).try_acquire(actor):
         raise ApiError(
             429,
@@ -35,3 +22,19 @@ def ensure_budget(db: Session, actor: str, limit: int) -> None:
             "Sua pergunta anterior ainda está sendo processada.",
             headers={"Retry-After": "2"},
         )
+    minute = int(time.monotonic() // 60)
+    with _lock:
+        previous_minute, count = _buckets.pop(actor, (minute, 0))
+        count = count if previous_minute == minute else 0
+        if count >= limit:
+            # Failed requests do not consume additional quota either.
+            _buckets[actor] = (minute, count)
+            raise ApiError(
+                429,
+                "ASSISTANT_RATE_LIMITED",
+                "O limite temporário de perguntas foi atingido.",
+                headers={"Retry-After": str(max(1, 60 - int(time.monotonic() % 60)))},
+            )
+        _buckets[actor] = (minute, count + 1)
+        while len(_buckets) > 4096:
+            _buckets.popitem(last=False)

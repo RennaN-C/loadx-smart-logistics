@@ -43,8 +43,8 @@ class Settings(BaseSettings):
         max_length=100,
         pattern=r"^[a-zA-Z0-9._/-]+$",
     )
-    ai_chat_timeout_seconds: float = Field(default=10, ge=1, le=20)
-    ai_chat_requests_per_minute: int = Field(default=6, ge=1, le=30)
+    ai_chat_timeout_seconds: float = Field(default=16, ge=1, le=20)
+    ai_chat_requests_per_minute: int = Field(default=12, ge=1, le=30)
     ai_explanation_timeout_seconds: float = Field(default=5.0, gt=0)
     whatsapp_provider: Literal["mock"] = "mock"
     outbox_lease_seconds: int = Field(default=60, ge=10, le=600)
