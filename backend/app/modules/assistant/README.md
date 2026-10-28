@@ -6,7 +6,7 @@ Nenhum comando de escrita, SQL livre, hospedagem de modelo ou tenant é criado.
 
 ## API
 
-`POST /api/v1/assistant/messages`: `message` (1–2.000 caracteres), até 8 mensagens
+`POST /api/v1/assistant/messages`: `message` (1–2.000 caracteres), até 16 mensagens
 `history` (`user`/`assistant`, 2.000 caracteres cada), `plan_id`/`distribution_id`
 opcionais; customer_id é uma seleção explícita, revalidada apenas por ferramentas
 autorizadas de cliente. Contexto e vínculos são verificados contra serviços existentes.
@@ -87,12 +87,29 @@ nem copiar a chave para VITE_. Nenhum compose up/deploy de produção foi execut
 
 ## Proveniência obrigatória das respostas
 
-A Groq seleciona ferramentas e orientações, mas não escreve indicadores públicos.
-A resposta final interna é `{"guidance":["facts","planning_status"]}`, com chaves
-validadas em catálogo fechado. Não aceita texto livre, valores ou campos extras.
-O backend redige a orientação e a UI apresenta os valores nas fontes reais.
-Sem consulta/contexto verificado não há indicador confirmado. A limitação de
-redação é intencional e evita depender de regex para detectar números inventados.
+A Groq pode conversar em português natural com resposta JSON
+`{"answer":"...","source_names":["fonte autorizada"]}`. O backend rejeita nomes
+de fontes não consultadas, números fora das evidências, alegações de ações
+executadas, URLs ou credenciais. O formato legado
+`{"guidance":["facts","planning_status"]}` permanece aceito como fallback,
+sem perda de compatibilidade com testes anteriores. Os indicadores e links
+continuam sendo emitidos somente pelo servidor e ficam visíveis na UI.
+A validação textual é uma barreira adicional, não uma prova matemática de
+ausência de toda alucinação: afirmações qualitativas requerem teste e auditoria.
+
+O frontend envia até oito pares de mensagens anteriores (16 mensagens),
+preservando os papéis `user`/`assistant`; histórico é contexto sem confiança
+e não autoriza consultas ou ações. Resolução de referências como "o último"
+usa apenas intenção do histórico, e o backend escolhe e autoriza o registro
+persistido da pergunta atual. Para perguntas condicionais de troca de caminhão,
+o Loxi explica critérios, mas não declara melhoria sem novo cálculo.
+
+Cumprimentos e respostas sociais usam o modelo quando disponível e têm
+fallback determinístico. Falhas de provedor por timeout, autenticação e quota
+recebem mensagens distintas sem vazar respostas brutas ou credenciais.
+Todas as ferramentas continuam somente leitura. Para aprovar, cancelar,
+excluir ou alterar registros, o usuário deve navegar ao formulário autorizado
+e confirmar as ações pelas regras existentes.
 
 `diagnostic_token` opcional em `POST /assistant/messages` referencia a tentativa
 que retornou `details[].assistant_diagnostic` em uma otimização sem capacidade.
