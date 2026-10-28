@@ -174,8 +174,20 @@ const SOURCE_LABELS: Record<AssistantReply["source"], string> = {
   FALLBACK: "Resumo automático · IA indisponível",
 };
 
-function TurnRow({ turn, onLink, onSelectCustomer, working }: {
+function isRepeatedPlan(fact: AssistantFact, earlier: readonly Turn[]): boolean {
+  if (fact.name !== "Análise do planejamento") return false;
+  const plan = (fact.links ?? []).find((link) => /^\/planning\/[0-9a-f-]{36}$/i.test(link.href));
+  if (!plan) return false;
+  return earlier.some((turn) => turn.reply?.facts.some(
+    (previous) => previous.name === fact.name
+      && previous.links?.some((link) => link.href === plan.href)
+      && JSON.stringify(previous.values) === JSON.stringify(fact.values)
+  ));
+}
+
+function TurnRow({ turn, earlier, onLink, onSelectCustomer, working }: {
   readonly turn: Turn;
+  readonly earlier: readonly Turn[];
   readonly onLink: () => void;
   readonly onSelectCustomer: (choice: CustomerChoice) => void;
   readonly working: boolean;
@@ -193,7 +205,14 @@ function TurnRow({ turn, onLink, onSelectCustomer, working }: {
     <div className="assistant-response">
       <strong className="assistant-source">{label}</strong>
       {answer ? <p className="assistant-answer">{answer}</p> : null}
-      {reply.facts.map((fact) => reply.source === "DOCUMENTATION" ? <DocumentationSource key={fact.clientKey} fact={fact} /> : <Fact key={fact.clientKey} fact={fact} onLink={onLink} onSelectCustomer={onSelectCustomer} working={working} />)}
+      {reply.facts.map((fact) => reply.source === "DOCUMENTATION"
+        ? <DocumentationSource key={fact.clientKey} fact={fact} />
+        : isRepeatedPlan(fact, earlier)
+          ? <details key={fact.clientKey} className="assistant-repeated-fact">
+              <summary>Ver dados deste planejamento já exibidos</summary>
+              <Fact fact={fact} onLink={onLink} onSelectCustomer={onSelectCustomer} working={working} />
+            </details>
+          : <Fact key={fact.clientKey} fact={fact} onLink={onLink} onSelectCustomer={onSelectCustomer} working={working} />)}
       <nav className="assistant-action-links" aria-label="Ações relacionadas">{reply.links.filter((link) => allowedLink(link.href) && !factDestinations.has(link.href)).map((link) =>
         <Link key={link.href} to={link.href} onClick={onLink}>{link.label}<Icon name="arrow-right" size={16} /></Link>
       )}</nav>
@@ -220,6 +239,6 @@ export function AssistantConversation({ turns, onLink, onSelectCustomer, working
   }, [lastTurnId]);
   return <div ref={chat} className="assistant-conversation" role="log" aria-label="Conversa com o LoadX" aria-live="polite">
     {turns.length === 0 ? <div className="assistant-welcome assistant-welcome-greeting"><div className="assistant-welcome-icon"><Icon name="message-circle" size={24} /></div><div className="assistant-welcome-copy"><span className="assistant-source">Loxi - Assistente</span><h3>Olá! Eu sou o Loxi 👋</h3><p>Posso conversar sobre sua operação, consultar registros autorizados e explicar os resultados do algoritmo nos planejamentos anteriores ou no mais recente.</p><p>Também posso orientar ações permitidas. Para ver ideias do que perguntar, é só escrever <strong>“Me dê sugestões”</strong>.</p></div></div> : null}
-    {turns.map((turn) => <TurnRow key={turn.id} turn={turn} onLink={onLink} onSelectCustomer={onSelectCustomer} working={working} />)}
+    {turns.map((turn, index) => <TurnRow key={turn.id} turn={turn} earlier={turns.slice(0, index)} onLink={onLink} onSelectCustomer={onSelectCustomer} working={working} />)}
   </div>;
 }
