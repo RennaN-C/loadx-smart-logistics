@@ -133,7 +133,7 @@ def test_followup_facts_are_revalidated_and_wording_is_natural(
     provider = Mock()
     provider.complete.return_value = {
         "content": json.dumps({
-            "answer": "No registro consultado, 2 volumes foram carregados. Quer ver o 3D?",
+            "answer": "No registro consultado, 2 volumes foram carregados. Quer ver o visualizador tridimensional?",
             "source_names": ["Análise do planejamento"],
         })
     }
