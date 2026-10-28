@@ -46,7 +46,7 @@ Consultas agregadas parametrizadas pertencem ao módulo reports; nenhuma migrati
 - `GROQ_API_KEY`: segredo exclusivo do backend, nunca VITE_ ou browser.
 - `GROQ_MODEL`: identificador disponível/aprovado na conta Groq; padrão configurável
   `llama-3.3-70b-versatile`, sem afirmar disponibilidade na conta sem chamada real.
-- `AI_CHAT_TIMEOUT_SECONDS=10` (1–20); `AI_CHAT_REQUESTS_PER_MINUTE=6` (1–30).
+- `AI_CHAT_TIMEOUT_SECONDS=16` (1–20); `AI_CHAT_REQUESTS_PER_MINUTE=12` (1–30).
 - `AI_EXPLANATION_TIMEOUT_SECONDS=5` preserva a API legada de explicação.
 
 Sem configuração ou em erro: fallback identificado. O modo `mock` não é rotulado
