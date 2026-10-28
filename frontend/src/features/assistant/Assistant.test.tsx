@@ -274,3 +274,39 @@ it("separa orientação documentada e não repete o artigo em tabela técnica", 
   expect(screen.queryByRole("term", { name: "orientation" })).not.toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Abrir Configurações" })).toHaveAttribute("href", "/settings");
 });
+
+it("envia os oito turnos anteriores com papéis corretos", async () => {
+  show("/orders"); open();
+  for (let index = 0; index < 9; index++) {
+    fireEvent.change(screen.getByLabelText("Sua pergunta"), { target: { value: "Pergunta " + index } });
+    fireEvent.click(screen.getByRole("button", { name: "Enviar pergunta" }));
+    await waitFor(() => expect(vi.mocked(askAssistant).mock.calls.length).toBe(index + 1));
+    await waitFor(() => expect(screen.getByLabelText("Sua pergunta")).toHaveValue(""));
+  }
+  const history = vi.mocked(askAssistant).mock.calls[8][1];
+  expect(history).toHaveLength(16);
+  expect(history[0]).toEqual({ role: "user", content: "Pergunta 0" });
+  expect(history[1]).toEqual({ role: "assistant", content: REPLY.answer });
+  expect(history.at(-1)?.role).toBe("assistant");
+});
+
+it("limpar conversa descarta seleção anterior de plano e cliente", async () => {
+  const planId = "33333333-3333-4333-8333-333333333333";
+  vi.mocked(askAssistant).mockResolvedValueOnce({
+    ...REPLY,
+    source: "BACKEND",
+    facts: [{
+      name: "Análise do planejamento", criteria: "Persistido", timezone: "UTC",
+      period_start: null, period_end: null, values: { loaded_volumes: 1 },
+      links: [{ label: "Abrir plano", href: "/planning/" + planId }],
+    }],
+  });
+  show("/orders"); open(); send();
+  expect(await screen.findByText(REPLY.answer)).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Limpar conversa" }));
+  fireEvent.change(screen.getByLabelText("Sua pergunta"), { target: { value: "Vamos começar de novo" } });
+  fireEvent.click(screen.getByRole("button", { name: "Enviar pergunta" }));
+  await waitFor(() => expect(vi.mocked(askAssistant).mock.calls.length).toBe(2));
+  expect(vi.mocked(askAssistant).mock.calls[1][1]).toEqual([]);
+  expect(vi.mocked(askAssistant).mock.calls[1][2]).toEqual({});
+});

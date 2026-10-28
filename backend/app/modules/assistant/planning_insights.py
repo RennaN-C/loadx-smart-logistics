@@ -251,6 +251,19 @@ def planning_insight(db: Session, user: User, data: ChatRequest) -> ChatResponse
         + "Esses são resultados persistidos, não uma nova simulação: o registro "
         "não comprova que esse era o único ou o melhor arranjo possível."
     )
+    if re.search(
+        r"\b(?:trocar|substituir|mudar|outro|outra|melhora|compensa)\b"
+        r".{0,95}\b(?:caminh\w*|ve[ií]cul\w*|capacidade)\b|"
+        r"\b(?:caminh\w*|ve[ií]cul\w*)\b.{0,95}\b(?:melhora|compensa)\b",
+        data.message,
+        re.IGNORECASE,
+    ):
+        explain += (
+            " A troca de caminhão não foi simulada. Para avaliar se melhora, "
+            "compare limites de peso, dimensões internas, disponibilidade e "
+            "rejeições deste registro com as opções autorizadas. Só um novo "
+            "cálculo do otimizador pode confirmar outro arranjo."
+        )
     values: dict[str, int | float | str | None] = {
         "status": plan.status,
         "loaded_volumes": plan.loaded_count,

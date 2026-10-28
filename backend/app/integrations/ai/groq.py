@@ -51,7 +51,7 @@ class GroqProvider:
         payload = {
             "model": self.config.groq_model,
             "messages": messages,
-            "temperature": 0,
+            "temperature": 0.35,
             "max_completion_tokens": 2048,
         }
         if tools:
@@ -132,7 +132,7 @@ class GroqProvider:
                 )
             else:
                 logger.warning("GROQ_REQUEST_FAILURE category=http_%s", status)
-            raise AIProviderUnavailableError from None
+            raise AIProviderUnavailableError(f"http_{status}") from None
         except TimeoutError:
             logger.warning("GROQ_REQUEST_FAILURE category=timeout")
             raise AIProviderTimeoutError from None

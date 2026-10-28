@@ -16,7 +16,7 @@ class Message(BaseModel):
 class ChatRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     message: str = Field(min_length=1, max_length=2000)
-    history: list[Message] = Field(default_factory=list, max_length=8)
+    history: list[Message] = Field(default_factory=list, max_length=16)
     diagnostic_token: str | None = Field(default=None, min_length=1, max_length=4096)
     customer_id: uuid.UUID | None = None
     plan_id: uuid.UUID | None = None

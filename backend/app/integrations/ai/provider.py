@@ -151,7 +151,11 @@ class AIProviderTimeoutError(AIProviderError):
 
 
 class AIProviderUnavailableError(AIProviderError):
-    """O provider não estava disponível para responder."""
+    """Unavailable provider with a fixed, non-sensitive failure category."""
+
+    def __init__(self, reason: str = "unavailable") -> None:
+        self.reason = reason
+        super().__init__(reason)
 
 
 class AIProvider(Protocol):

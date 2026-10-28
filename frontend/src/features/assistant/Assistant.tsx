@@ -83,7 +83,7 @@ export function Assistant() {
     if (request.current || !question.trim() || working || question.length > 2000) return;
     const controller = new AbortController(); request.current = controller;
     setWorking(true); setFailed(null);
-    const history: ChatMessage[] = turns.slice(-4).flatMap((turn) => turn.reply ? [{ role: "user" as const, content: turn.question }, { role: "assistant" as const, content: turn.reply.answer.slice(0, 2000) }] : []);
+    const history: ChatMessage[] = turns.slice(-8).flatMap((turn) => turn.reply ? [{ role: "user" as const, content: turn.question }, { role: "assistant" as const, content: turn.reply.answer.slice(0, 2000) }] : []);
     try {
       const reply = await askAssistant(question.trim(), history, context, controller.signal);
       if (!controller.signal.aborted && request.current === controller) {
@@ -140,7 +140,7 @@ export function Assistant() {
       {selectedCustomer ? <div className="assistant-filter"><span>Cliente: {selectedCustomer.label}</span><button type="button" className="btn-secondary" disabled={working} onClick={clearCustomer}>Limpar filtro de cliente</button></div> : null}
       <form onSubmit={(event: FormEvent) => { event.preventDefault(); void send(); }}>
         <div className="assistant-compose-header"><label htmlFor="assistant-message">Sua pergunta</label></div><textarea id="assistant-message" value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={handleComposerKeyDown} maxLength={2000} rows={1} disabled={working} title="Enter para enviar, Shift+Enter para nova linha" placeholder="Ex.: Quantos pedidos foram entregues?" />
-        <div className="entity-form-actions"><button className="assistant-clear" type="button" disabled={working || turns.length === 0} onClick={() => { setTurns([]); setFailed(null); }}>Limpar conversa</button><button className="btn-primary assistant-submit" type="submit" aria-label={submitLabel} disabled={working || !draft.trim()}>{working ? "Consultando…" : "Enviar"}<Icon name="arrow-right" size={16} /></button></div>
+        <div className="entity-form-actions"><button className="assistant-clear" type="button" disabled={working || turns.length === 0} onClick={() => { setTurns([]); setFailed(null); setSelectedCustomer(null); setContext(routeContext(pathname)); }}>Limpar conversa</button><button className="btn-primary assistant-submit" type="submit" aria-label={submitLabel} disabled={working || !draft.trim()}>{working ? "Consultando…" : "Enviar"}<Icon name="arrow-right" size={16} /></button></div>
       </form>
         </div>
       </section>
