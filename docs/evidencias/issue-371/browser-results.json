@@ -1,0 +1,148 @@
+{
+  "database": "PostgreSQL 16 isolado loadx_loxi_3d_qa",
+  "authentication": "Sessões sintéticas por fixture; não valida login/MFA",
+  "provider": "Não configurado; sem chamada externa Groq, sem interceptação HTTP",
+  "cases": [
+    {
+      "question": "Explique esse planejamento",
+      "source": "BACKEND",
+      "facts": [
+        "Análise do planejamento"
+      ]
+    },
+    {
+      "question": "Fale sobre as configurações",
+      "source": "DOCUMENTATION",
+      "facts": [
+        "Como usar: Configurações"
+      ]
+    },
+    {
+      "question": "Como funciona o sistema?",
+      "source": "DOCUMENTATION",
+      "facts": [
+        "Mapa de funcionalidades autorizadas"
+      ]
+    },
+    {
+      "question": "Fale sobre os produtos",
+      "source": "DOCUMENTATION",
+      "facts": [
+        "Como usar: Produtos"
+      ]
+    },
+    {
+      "question": "Por que não coube?",
+      "source": "BACKEND",
+      "facts": []
+    },
+    {
+      "question": "E o caminhão anterior?",
+      "source": "BACKEND",
+      "facts": []
+    },
+    {
+      "question": "Fale sobre as configurações",
+      "source": "GUARDRAIL",
+      "facts": []
+    },
+    {
+      "question": "Liste os clientes cadastrados",
+      "source": "BACKEND",
+      "facts": [
+        "Clientes cadastrados"
+      ]
+    },
+    {
+      "question": "Fale sobre as configurações",
+      "source": "GUARDRAIL",
+      "facts": []
+    }
+  ],
+  "responsive": [
+    {
+      "theme": "dark",
+      "width": 1920,
+      "height": 1080,
+      "overflow": false,
+      "response_start_visible": true
+    },
+    {
+      "theme": "dark",
+      "width": 1280,
+      "height": 900,
+      "overflow": false,
+      "response_start_visible": true
+    },
+    {
+      "theme": "dark",
+      "width": 768,
+      "height": 1024,
+      "overflow": false,
+      "response_start_visible": true
+    },
+    {
+      "theme": "dark",
+      "width": 375,
+      "height": 812,
+      "overflow": false,
+      "response_start_visible": true
+    },
+    {
+      "theme": "light",
+      "width": 1920,
+      "height": 1080,
+      "overflow": false,
+      "response_start_visible": true
+    },
+    {
+      "theme": "light",
+      "width": 1280,
+      "height": 900,
+      "overflow": false,
+      "response_start_visible": true
+    },
+    {
+      "theme": "light",
+      "width": 768,
+      "height": 1024,
+      "overflow": false,
+      "response_start_visible": true
+    },
+    {
+      "theme": "light",
+      "width": 375,
+      "height": 812,
+      "overflow": false,
+      "response_start_visible": true
+    }
+  ],
+  "roles": [
+    {
+      "role": "LOGISTICS_MANAGER",
+      "allowed": true,
+      "admin_settings_denied": true
+    },
+    {
+      "role": "CHECKER",
+      "allowed": true,
+      "admin_settings_denied": true
+    },
+    {
+      "role": "DRIVER",
+      "allowed": false
+    },
+    {
+      "role": "CUSTOM",
+      "allowed": false
+    }
+  ],
+  "escape": true,
+  "baseline": {
+    "sha": "73fd043",
+    "real_api": true,
+    "question": "Fale sobre as configurações",
+    "wrong_planning_reply": true,
+    "source": "BACKEND"
+  }
+}

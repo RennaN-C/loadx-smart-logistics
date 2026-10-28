@@ -12,15 +12,14 @@ interface PlanSummaryProps {
   readonly canManage: boolean;
   readonly approvalAllowed?: boolean;
   readonly isWorking: boolean;
+  readonly showContinuity?: boolean;
   readonly onApprove: () => void;
   readonly onRecalculate: () => void;
 }
 
-export function PlanSummary({ plan, canManage, approvalAllowed = canManage, isWorking, onApprove, onRecalculate }: PlanSummaryProps) {
+export function PlanSummary({ plan, canManage, approvalAllowed = canManage, isWorking, onApprove, onRecalculate, showContinuity = true }: PlanSummaryProps) {
   const hasRejections = plan.unloadedCount > 0;
-  const inactiveDistribution = plan.distributionStatus === "CANCELED" ||
-    plan.distributionStatus === "INCOMPLETE" || plan.partStatus === "CANCELED" ||
-    plan.isCurrentPart === false;
+  const inactiveDistribution = inactive(plan);
   const canApprove = !inactiveDistribution && approvalAllowed && plan.status === "CALCULATED" && !hasRejections && plan.ordersReadyForApproval !== false;
 
   return (
@@ -77,7 +76,7 @@ export function PlanSummary({ plan, canManage, approvalAllowed = canManage, isWo
         <div className="plan-occupancy-fill" style={{ width: `${Math.min(plan.occupancyPercent, 100)}%` }} />
       </div>
 
-      {plan.status === "APPROVED" && !inactiveDistribution ? <PlanContinuity key={plan.id} planId={plan.id} canManage={canManage} /> : null}
+      {showContinuity ? <PlanOperationalContinuity plan={plan} canManage={canManage} /> : null}
 
       {plan.status === "CALCULATED" && plan.ordersReadyForApproval === false ? <output className="entity-form-help">Os pedidos deste cálculo já saíram da fila de planejamento. Consulte o estado atual em Pedidos; este plano permanece disponível como histórico e não pode ser aprovado novamente.</output> : null}
       {(canManage || approvalAllowed) && plan.status !== "APPROVED" ? (
@@ -116,4 +115,14 @@ export function PlanSummary({ plan, canManage, approvalAllowed = canManage, isWo
       ) : null}
     </section>
   );
+}
+
+function inactive(plan: LoadPlan): boolean {
+  return plan.distributionStatus === "CANCELED" ||
+    plan.distributionStatus === "INCOMPLETE" || plan.partStatus === "CANCELED" ||
+    plan.isCurrentPart === false;
+}
+
+export function PlanOperationalContinuity({ plan, canManage }: { readonly plan: LoadPlan; readonly canManage: boolean }) {
+  return plan.status === "APPROVED" && !inactive(plan) ? <PlanContinuity key={plan.id} planId={plan.id} canManage={canManage} /> : null;
 }

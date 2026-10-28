@@ -420,3 +420,20 @@
   border-left: 3px solid var(--accent); border-radius: 6px; white-space: pre-wrap;
 }
 .plan-ai-explanation .plan-ai-result p { color: var(--ink); }
+
+.plan-persisted-reference { display:flex; align-items:center; gap:10px; flex-wrap:wrap; color:var(--muted); font-size:.82rem; margin:10px 0; }
+.plan-persisted-reference a { margin-left:auto; }
+.planning-page .plan-summary { padding:16px 20px; margin-block:12px; }
+.planning-page .plan-summary-head h2 { font-size:1.15rem; margin:0; }
+.planning-page .plan-metrics { margin-block:12px; gap:12px; }
+
+.planning-page > .entity-header { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:18px; margin-block:12px; }
+.planning-page > .entity-header .entity-toolbar { display:flex; flex-wrap:wrap; justify-content:flex-end; max-width:390px; }
+.planning-page > .entity-header h1 { font-size:clamp(1.5rem,2.2vw,1.9rem); }
+.planning-page > .entity-header .entity-lede { font-size:.85rem; }
+.planning-page .plan-summary { gap:8px; }
+.planning-page .plan-summary .plan-metrics { margin-block:8px; }
+.planning-page > .plan-continuity { margin-block:18px; padding:16px; border:1px solid var(--line); border-radius:10px; background:var(--card); }
+@media(max-width:900px) { .planning-page > .entity-header { grid-template-columns:1fr; } .planning-page > .entity-header .entity-toolbar { justify-content:flex-start; max-width:none; } }
+.planning-page > .tabs { margin-block:8px; }
+.planning-page .viewer { margin-top:0; gap:10px; }

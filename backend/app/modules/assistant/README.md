@@ -101,3 +101,25 @@ que retornou `details[].assistant_diagnostic` em uma otimização sem capacidade
 ser guardado em logs/histórico/storage. CHECKER não pode consultar esse contexto.
 Adulteração, expiração ou troca de usuário retorna 422 `ASSISTANT_DIAGNOSTIC_INVALID`;
 falta de permissão retorna 403. Não enviar detalhes brutos do erro como contexto.
+
+## Revisão de intenção e capacidades — Issue #371
+
+A intenção explícita da pergunta precede o contexto opcional da página. `sobre`
+não é um seletor de planejamento; `Explique`, `Por que não coube?` e seguimentos
+vinculados usam referências revalidadas. Mudanças de assunto removem fatos e
+histórico do tópico anterior. Caminhão/plano anterior ambíguo pede esclarecimento.
+
+Catálogo executável: `capabilities.py`; inventário auditável e limites por módulo:
+`docs/evidencias/issue-371/capacidades.md`. `get_usage_guidance` responde COMO USAR,
+com enum fechado de módulos e permissão efetiva; não consulta cadastros. Listagens
+adicionais de clientes/motoristas ativos e pedidos usam Services públicos, dez
+registros por página, sem documentos/contatos/endereços e sem nomes enviados à Groq.
+Comparações limitam-se a dois snapshots; distribuição a dez partes; sequência a dez
+volumes quando solicitada. CHECKER continua restrito a planos aprovados e vigentes.
+
+Origens públicas adicionais: DOCUMENTATION (orientação das fontes reais) e GENERAL
+(conversa social gerada, sem consulta a registros e sem indicadores operacionais).
+A redação natural não substitui fatos: nomes cadastrados, números e causas físicas
+continuam vindo dos serviços/snapshots. O canal geral é limitado, identificado e
+não é um verificador universal de afirmações linguísticas. Falhas da Groq preservam
+fallback honesto. Ações confirmáveis da Issue #368 não fazem parte desta entrega.
