@@ -117,4 +117,12 @@ def brief_verified_plan(question: str, result: ChatResponse) -> ChatResponse:
     ):
         return result
     answer = _summary(question, result.facts[0])
-    return result.model_copy(update={"answer": answer}) if answer else result
+    if answer is None:
+        # Never fall back to repeating the entire old report if an expected
+        # summary field is absent or has a different type in a persisted plan.
+        answer = (
+            "Encontrei o planejamento autorizado, mas não há informações "
+            "suficientes para resumir essa pergunta com segurança. "
+            "Confira os dados verificados abaixo; nenhum cálculo foi executado."
+        )
+    return result.model_copy(update={"answer": answer})
