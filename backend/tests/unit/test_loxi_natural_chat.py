@@ -60,10 +60,11 @@ def test_natural_answer_requires_verified_sources_and_exact_numbers():
     assert natural_answer(valid, [source]).startswith("Esse planejamento")
     with pytest.raises(AIProviderUnavailableError):
         natural_answer(valid.replace("37,5", "99"), [source])
+    # json.dumps escapa acentos: alterar o objeto antes de serializar.
+    forged = json.loads(valid)
+    forged["source_names"] = ["Fonte inventada"]
     with pytest.raises(AIProviderUnavailableError):
-        natural_answer(
-            valid.replace("Análise do planejamento", "Fonte inventada"), [source]
-        )
+        natural_answer(json.dumps(forged), [source])
     with pytest.raises(AIProviderUnavailableError):
         natural_answer(
             json.dumps(
