@@ -1701,3 +1701,14 @@ simulação como resposta de IA real. Nenhuma migration ou mudança de estado.
   O diagnóstico é da tentativa anterior, não um novo cálculo nem situação atual.
   `422 ASSISTANT_DIAGNOSTIC_INVALID` para comprovante inválido/expirado/de outro usuário;
   `403` para ausência de permissão. Nunca tratar texto do navegador como diagnóstico.
+
+### Loxi: prioridade de assunto e origem da resposta (#371)
+
+`POST /assistant/messages` mantém autenticação/CSRF e o contrato existente. O campo
+`source` também aceita `DOCUMENTATION` (fontes funcionais reais) e `GENERAL`
+(conversa geral da IA, sem consulta a registros). A UI identifica essas origens.
+Referências opcionais de planejamento não são consultadas numa pergunta explícita
+sobre outro módulo. Comparações consultam até dois planos autorizados e nunca
+retornam parcialmente um plano proibido; ambiguidades solicitam esclarecimento.
+Ferramentas internas incluem catálogo de uso por módulo e leitores paginados de
+clientes/motoristas ativos e pedidos. Nenhum endpoint de escrita foi introduzido.

@@ -21,3 +21,13 @@ comprovante opaco do servidor e uma pergunta preparada, sem envio automático ou
 repetição do cálculo. O contexto da tentativa substitui o plano da rota. O token
 não aparece na conversa, no histórico nem em local/sessionStorage. O backend
 valida e transforma esse comprovante em fatos; nenhum detalhe bruto é enviado.
+
+## Intenção e experiência Loxi (#371)
+
+Cabeçalho `Loxi - Assistente`; fontes de documentação e conversa geral são distintas
+de dados verificados. Artigos não são duplicados em tabelas de indicadores. Links
+continuam em allowlist de rotas existentes, filtrados por permissão no backend.
+A rolagem acompanha a identidade da última resposta (inclusive depois do limite do
+histórico), alinha seu começo e não desloca o cabeçalho/compositor. Sugestões fixas
+não foram reintroduzidas. A fonte opcional da página é tratada pelo roteador do
+servidor; navegação e troca de usuário/perfil preservam as regras de isolamento.

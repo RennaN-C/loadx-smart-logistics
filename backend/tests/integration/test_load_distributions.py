@@ -1104,3 +1104,32 @@ def test_recovery_keeps_link_after_part_reprocess(distribution_scenario):
         f"/api/v1/load-plans/{part['load_plan']['id']}", headers=scenario.user.headers
     )
     assert old.json()["distribution_id"] == result["id"]
+
+
+def test_loxi_explains_actual_distribution_parts_and_blocks_unapproved_checker(
+    distribution_scenario,
+):
+    s = distribution_scenario
+    result = s.create()
+    payload = {"message": "Explique esta distribuição", "distribution_id": result["id"]}
+    response = s.client.post(
+        "/api/v1/assistant/messages", headers=s.user.headers, json=payload
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["source"] == "BACKEND"
+    assert response.json()["facts"][0]["values"]["truck_count"] == 2
+    assert response.json()["facts"][0]["values"]["volume_count"] == 3
+    for part in result["parts"]:
+        assert part["truck"]["plate"] in response.json()["answer"]
+    with s.factory() as db:
+        db.get(User, s.user.id).role = "CHECKER"
+        db.commit()
+    try:
+        denied = s.client.post(
+            "/api/v1/assistant/messages", headers=s.user.headers, json=payload
+        )
+        assert denied.status_code == 403
+    finally:
+        with s.factory() as db:
+            db.get(User, s.user.id).role = "LOGISTICS_MANAGER"
+            db.commit()
