@@ -230,9 +230,7 @@ def test_social_plain_text_is_accepted_only_without_operational_claims(isolated)
     assert result.source == "GENERAL"
     assert result.answer.startswith("Oi!")
 
-    provider.complete.return_value = {
-        "content": "O pedido foi entregue hoje."
-    }
+    provider.complete.return_value = {"content": "O pedido foi entregue hoje."}
     result = AssistantService(Mock(), config(), provider).chat(
         user(), ChatRequest(message="Como estão as entregas?")
     )
