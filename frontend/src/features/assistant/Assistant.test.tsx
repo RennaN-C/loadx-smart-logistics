@@ -332,3 +332,34 @@ it("mostra cada link de consulta apenas uma vez na conversa", async () => {
   expect(await screen.findByText("Encontrei 7 pedidos cadastrados.")).toBeInTheDocument();
   expect(screen.getAllByRole("link", { name: "Abrir Pedidos cadastrados" })).toHaveLength(1);
 });
+
+
+it("recolhe métricas repetidas do mesmo planejamento em perguntas seguintes", async () => {
+  const fact: AssistantReply["facts"][number] = {
+    name: "Análise do planejamento",
+    criteria: "Snapshot persistido",
+    timezone: "UTC",
+    period_start: null,
+    period_end: null,
+    values: { loaded_volumes: 24, rejected_volumes: 0, occupancy_percent: 22.5 },
+    links: [{
+      label: "Abrir planejamento",
+      href: "/planning/33333333-3333-4333-8333-333333333333",
+    }],
+  };
+  vi.mocked(askAssistant).mockResolvedValue({
+    ...REPLY,
+    source: "BACKEND",
+    answer: "Neste planejamento, os volumes couberam.",
+    facts: [fact],
+  });
+  show("/orders"); open(); send();
+  await waitFor(() => expect(askAssistant).toHaveBeenCalledTimes(1));
+  await screen.findByText("Neste planejamento, os volumes couberam.");
+  fireEvent.change(screen.getByLabelText("Sua pergunta"), {
+    target: { value: "Trocar de caminhão ajudaria?" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Enviar pergunta" }));
+  await waitFor(() => expect(askAssistant).toHaveBeenCalledTimes(2));
+  expect(await screen.findByText("Ver dados deste planejamento já exibidos")).toBeInTheDocument();
+});
