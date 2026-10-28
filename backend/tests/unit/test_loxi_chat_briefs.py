@@ -71,7 +71,9 @@ def test_unknown_fields_never_create_new_numbers():
     result = ChatResponse(
         source="BACKEND",
         answer="Sem dados adicionais.",
-        facts=[Source(name="Análise do planejamento", criteria="Persistido", values={})],
+        facts=[
+            Source(name="Análise do planejamento", criteria="Persistido", values={})
+        ],
     )
     assert brief_verified_plan("Explique o plano", result) == result
 
