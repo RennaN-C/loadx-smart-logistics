@@ -27,7 +27,7 @@ from app.modules.assistant.answers import (
     natural_answer,
     verified_answer,
 )
-from app.modules.assistant.capabilities import documentation_reply, scoped_request
+from app.modules.assistant.capabilities import documentation_reply, scoped_request, topics
 from app.modules.assistant.context import planning_context
 from app.modules.assistant.conversation import conversation_reply
 from app.modules.assistant.followups import resolve_followup
@@ -495,7 +495,9 @@ class AssistantService:
             general = general_answer(answer, data.message, facts)
             if general is not None:
                 return ChatResponse(source="GENERAL", answer=sanitize(general))
-            natural = natural_answer(answer, facts)
+            natural = natural_answer(
+                answer, facts, allow_plain_text=not facts and not topics(data.message)
+            )
             if natural is not None:
                 return ChatResponse(
                     source="GROQ" if facts else "GENERAL",
