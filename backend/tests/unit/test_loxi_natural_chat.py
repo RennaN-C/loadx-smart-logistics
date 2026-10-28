@@ -31,8 +31,10 @@ def test_general_reply_is_model_authored_not_a_fixed_greeting(isolated):
     provider = Mock()
     provider.complete.return_value = {
         "content": json.dumps(
-            {"answer": "Oi! Quer explorar a operação ou conversar sobre um plano?",
-             "source_names": []}
+            {
+                "answer": "Oi! Quer explorar a operação ou conversar sobre um plano?",
+                "source_names": [],
+            }
         )
     }
     result = AssistantService(Mock(), config(), provider).chat(
@@ -49,18 +51,24 @@ def test_natural_answer_requires_verified_sources_and_exact_numbers():
         criteria="Persistido e autorizado",
         values={"loaded_volumes": 3, "occupancy_percent": 37.5},
     )
-    valid = json.dumps({
-        "answer": "Esse planejamento registrou 3 volumes e ocupação de 37,5%.",
-        "source_names": ["Análise do planejamento"],
-    })
+    valid = json.dumps(
+        {
+            "answer": "Esse planejamento registrou 3 volumes e ocupação de 37,5%.",
+            "source_names": ["Análise do planejamento"],
+        }
+    )
     assert natural_answer(valid, [source]).startswith("Esse planejamento")
     with pytest.raises(AIProviderUnavailableError):
         natural_answer(valid.replace("37,5", "99"), [source])
     with pytest.raises(AIProviderUnavailableError):
-        natural_answer(valid.replace("Análise do planejamento", "Fonte inventada"), [source])
+        natural_answer(
+            valid.replace("Análise do planejamento", "Fonte inventada"), [source]
+        )
     with pytest.raises(AIProviderUnavailableError):
         natural_answer(
-            json.dumps({"answer": "Pronto, aprovei o planejamento.", "source_names": []}),
+            json.dumps(
+                {"answer": "Pronto, aprovei o planejamento.", "source_names": []}
+            ),
             [],
         )
     with pytest.raises(AIProviderUnavailableError):
@@ -112,9 +120,7 @@ def test_truck_hypothesis_uses_only_current_authorized_plan_reference():
     assert resolved.message.startswith("Explique esse planejamento")
 
 
-def test_followup_facts_are_revalidated_and_wording_is_natural(
-    isolated, monkeypatch
-):
+def test_followup_facts_are_revalidated_and_wording_is_natural(isolated, monkeypatch):
     facts = [
         Source(
             name="Análise do planejamento",
@@ -132,10 +138,12 @@ def test_followup_facts_are_revalidated_and_wording_is_natural(
     monkeypatch.setattr("app.modules.assistant.service.planning_insight", lookup)
     provider = Mock()
     provider.complete.return_value = {
-        "content": json.dumps({
-            "answer": "No registro consultado, 2 volumes foram carregados. Quer ver o visualizador tridimensional?",
-            "source_names": ["Análise do planejamento"],
-        })
+        "content": json.dumps(
+            {
+                "answer": "No registro consultado, 2 volumes foram carregados. Quer ver o visualizador tridimensional?",
+                "source_names": ["Análise do planejamento"],
+            }
+        )
     }
     data = ChatRequest(
         message="O último. Deu algum problema?",
@@ -150,21 +158,28 @@ def test_followup_facts_are_revalidated_and_wording_is_natural(
     assert "2 volumes" in result.answer
 
 
-def test_invalid_provider_claim_keeps_verifiable_backend_answer(
-    isolated, monkeypatch
-):
-    facts = [Source(name="Análise do planejamento", criteria="Persistido",
-                    values={"rejected_volumes": 0})]
+def test_invalid_provider_claim_keeps_verifiable_backend_answer(isolated, monkeypatch):
+    facts = [
+        Source(
+            name="Análise do planejamento",
+            criteria="Persistido",
+            values={"rejected_volumes": 0},
+        )
+    ]
     monkeypatch.setattr(
         "app.modules.assistant.service.planning_insight",
-        lambda *_: ChatResponse(source="BACKEND", answer="Não houve rejeições.", facts=facts),
+        lambda *_: ChatResponse(
+            source="BACKEND", answer="Não houve rejeições.", facts=facts
+        ),
     )
     provider = Mock()
     provider.complete.return_value = {
-        "content": json.dumps({
-            "answer": "Houve 999 volumes rejeitados.",
-            "source_names": ["Análise do planejamento"],
-        })
+        "content": json.dumps(
+            {
+                "answer": "Houve 999 volumes rejeitados.",
+                "source_names": ["Análise do planejamento"],
+            }
+        )
     }
     result = AssistantService(Mock(), config(), provider).chat(
         user(),
@@ -181,10 +196,12 @@ def test_invalid_provider_claim_keeps_verifiable_backend_answer(
 def test_history_roles_remain_conversational_not_authoritative(isolated):
     provider = Mock()
     provider.complete.return_value = {
-        "content": json.dumps({
-            "answer": "Posso te ajudar a entender a dúvida.",
-            "source_names": [],
-        })
+        "content": json.dumps(
+            {
+                "answer": "Posso te ajudar a entender a dúvida.",
+                "source_names": [],
+            }
+        )
     }
     history = [
         {"role": "user", "content": "Você pode me ajudar?"},
@@ -198,4 +215,6 @@ def test_history_roles_remain_conversational_not_authoritative(isolated):
     assert messages[-2]["role"] == "assistant"
     assert messages[-2]["content"] == "[trecho omitido por segurança]"
     assert "não confiável" in messages[0]["content"]
-    assert all(message["role"] in {"user", "assistant", "system"} for message in messages)
+    assert all(
+        message["role"] in {"user", "assistant", "system"} for message in messages
+    )
