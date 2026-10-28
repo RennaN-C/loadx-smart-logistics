@@ -252,9 +252,9 @@ def planning_insight(db: Session, user: User, data: ChatRequest) -> ChatResponse
         "não comprova que esse era o único ou o melhor arranjo possível."
     )
     if re.search(
-        r"\\b(?:trocar|substituir|mudar|outro|outra|melhora|compensa)\\b"
-        r".{0,95}\\b(?:caminh\\w*|ve[ií]cul\\w*|capacidade)\\b|"
-        r"\\b(?:caminh\\w*|ve[ií]cul\\w*)\\b.{0,95}\\b(?:melhora|compensa)\\b",
+        r"\b(?:trocar|substituir|mudar|outro|outra|melhora|compensa)\b"
+        r".{0,95}\b(?:caminh\w*|ve[ií]cul\w*|capacidade)\b|"
+        r"\b(?:caminh\w*|ve[ií]cul\w*)\b.{0,95}\b(?:melhora|compensa)\b",
         data.message,
         re.IGNORECASE,
     ):
