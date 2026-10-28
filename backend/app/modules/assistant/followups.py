@@ -51,6 +51,15 @@ def resolve_followup(data: ChatRequest) -> tuple[ChatRequest, bool]:
         return data.model_copy(
             update={"message": "Explique o último planejamento. " + data.message}
         ), True
+    if planning_recent and not data.plan_id and _TRUCK_HYPOTHESIS.search(current):
+        # Re-read the latest authorized snapshot instead of trusting older
+        # conversational claims; do not invent a plan reference.
+        return data.model_copy(
+            update={
+                "message": "Explique o último planejamento e responda: "
+                + data.message
+            }
+        ), True
     if (
         data.plan_id
         and (_TRUCK_HYPOTHESIS.search(current) or _PLAN_FOLLOWUP.search(current))
