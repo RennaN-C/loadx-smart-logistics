@@ -60,7 +60,8 @@ class GroqProvider:
             messages
             and isinstance(messages[0], dict)
             and isinstance(messages[0].get("content"), str)
-            and "Você é o Loxi, assistente operacional do LoadX" in messages[0]["content"]
+            and "Você é o Loxi, assistente operacional do LoadX"
+            in messages[0]["content"]
         ):
             # JSON mode only for the Loxi conversational contract. The separate
             # technical explanation endpoint still expects ordinary prose.
