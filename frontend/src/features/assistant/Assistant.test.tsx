@@ -310,3 +310,25 @@ it("limpar conversa descarta seleção anterior de plano e cliente", async () =>
   expect(vi.mocked(askAssistant).mock.calls[1][1]).toEqual([]);
   expect(vi.mocked(askAssistant).mock.calls[1][2]).toEqual({});
 });
+
+it("mostra cada link de consulta apenas uma vez na conversa", async () => {
+  const link = { label: "Abrir Pedidos cadastrados", href: "/orders" };
+  vi.mocked(askAssistant).mockResolvedValueOnce({
+    ...REPLY,
+    source: "BACKEND",
+    answer: "Encontrei 7 pedidos cadastrados.",
+    links: [link],
+    facts: [{
+      name: "Pedidos cadastrados",
+      criteria: "Registros autorizados",
+      timezone: "UTC",
+      period_start: null,
+      period_end: null,
+      values: { total_records: 7, page: 1, total_pages: 1 },
+      links: [link],
+    }],
+  });
+  show(); open(); send();
+  expect(await screen.findByText("Encontrei 7 pedidos cadastrados.")).toBeInTheDocument();
+  expect(screen.getAllByRole("link", { name: "Abrir Pedidos cadastrados" })).toHaveLength(1);
+});
