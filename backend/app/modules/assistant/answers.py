@@ -171,7 +171,9 @@ def natural_answer(content: str, facts: list[Source]) -> str | None:
     if len(answer) < 2 or len(answer.split()) > 240:
         raise AIProviderUnavailableError
     known = {fact.name for fact in facts}
-    if set(selection.source_names) - known or len(set(selection.source_names)) != len(selection.source_names):
+    if set(selection.source_names) - known or len(set(selection.source_names)) != len(
+        selection.source_names
+    ):
         raise AIProviderUnavailableError
     if facts and not selection.source_names:
         raise AIProviderUnavailableError
@@ -209,7 +211,9 @@ def natural_answer(content: str, facts: list[Source]) -> str | None:
                     displayed = format(value, "g")
                     allowed.update({displayed, displayed.replace(".", ",")})
                 elif isinstance(value, str):
-                    allowed.update(re.findall(r"(?<![\w])\d+(?:[.,]\d+)?(?![\w])", value))
+                    allowed.update(
+                        re.findall(r"(?<![\w])\d+(?:[.,]\d+)?(?![\w])", value)
+                    )
         if any(number not in allowed for number in numbers):
             raise AIProviderUnavailableError
     return answer
