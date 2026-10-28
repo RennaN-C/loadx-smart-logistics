@@ -145,7 +145,83 @@ def general_answer(content: str, question: str, facts: list[Source]) -> str | No
     return answer
 
 
+class NaturalSelection(BaseModel):
+    """Model-generated wording with explicit evidence references."""
+
+    model_config = ConfigDict(extra="forbid")
+    answer: str = Field(min_length=1, max_length=1600)
+    source_names: list[str] = Field(default_factory=list, max_length=6)
+
+
+def natural_answer(content: str, facts: list[Source]) -> str | None:
+    """Permit conversational prose, but reject ungrounded numbers and operations.
+
+    A source reference is not evidence by itself: only server-fetched Source objects
+    provide facts. The server remains responsible for authorization and all writes.
+    """
+    payload = json.loads(content)
+    if not isinstance(payload, dict) or "answer" not in payload:
+        return None
+    selection = NaturalSelection.model_validate(payload)
+    answer = selection.answer.strip()
+    if len(answer) < 2 or len(answer.split()) > 240:
+        raise AIProviderUnavailableError
+    known = {fact.name for fact in facts}
+    if set(selection.source_names) - known or len(set(selection.source_names)) != len(selection.source_names):
+        raise AIProviderUnavailableError
+    if facts and not selection.source_names:
+        raise AIProviderUnavailableError
+    if not facts and selection.source_names:
+        raise AIProviderUnavailableError
+
+    plain = normalize(answer)
+    # A model can converse and explain but cannot certify mutations or expose secrets.
+    if re.search(
+        r"\b(?:aprovei|cancelei|exclui|alterei|cadastrei|recalculei|"
+        r"criei|salvei|enviei|executei|removi|liberei)\b|"
+        r"\b(?:senha|token|api.?key|credencial|prompt de sistema)\b|"
+        r"https?://|[<>{}]",
+        plain,
+    ):
+        raise AIProviderUnavailableError
+    if not facts and re.search(
+        r"\b(?:foi|esta|estao|ficou|ficaram|foram)\s+"
+        r"(?:aprovad\w*|cancelad\w*|entreg\w*|rejeitad\w*|"
+        r"bloquead\w*|indisponiv\w*|carregad\w*|calculad\w*)\b",
+        plain,
+    ):
+        raise AIProviderUnavailableError
+
+    # Numerical claims must be exactly traceable to the current authorized facts,
+    # not to client history, model memory or untrusted database instructions.
+    numbers = re.findall(r"(?<![\w])\d+(?:[.,]\d+)?(?![\w])", answer)
+    if numbers:
+        allowed: set[str] = set()
+        for fact in facts:
+            for value in fact.values.values():
+                if isinstance(value, bool):
+                    continue
+                if isinstance(value, (int, float)):
+                    displayed = format(value, "g")
+                    allowed.update({displayed, displayed.replace(".", ",")})
+                elif isinstance(value, str):
+                    allowed.update(re.findall(r"(?<![\w])\d+(?:[.,]\d+)?(?![\w])", value))
+        if any(number not in allowed for number in numbers):
+            raise AIProviderUnavailableError
+    return answer
+
+
 ANSWER_CONTRACT += """
+Preferência para uma conversa natural: responda com JSON
+{"answer":"uma resposta própria, direta e contextual em português",
+ "source_names":["nome exato de cada fonte consultada que fundamenta a resposta"]}.
+Pode variar a linguagem, considerar perguntas anteriores, reconhecer ambiguidades
+e propor a próxima consulta útil. NÃO copie o texto de orientação literalmente.
+Nunca mencione números, resultados, situações de registros ou nomes sem fontes
+reais desta solicitação. Se não houver fatos do servidor, faça perguntas e explique
+limites sem afirmar o estado dos registros. Não afirme executar ações.
+O servidor valida referências e números; informação insegura será descartada.
+Formato legado {"guidance":["facts"]} permanece aceito como alternativa restrita.
 Alternativa apenas para conversa social/geral sem fatos ou consulta de registros:
 {"conversation":"resposta natural, breve e acolhedora"}. Não use frases fixas.
 Esta alternativa não pode afirmar dados, nomes de cadastros, números, regras,
