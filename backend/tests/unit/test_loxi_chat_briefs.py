@@ -75,7 +75,11 @@ def test_unknown_fields_never_create_new_numbers():
             Source(name="Análise do planejamento", criteria="Persistido", values={})
         ],
     )
-    assert brief_verified_plan("Explique o plano", result) == result
+    answer = brief_verified_plan("Explique o plano", result)
+    assert answer.source == "BACKEND"
+    assert answer.facts == result.facts
+    assert "informações suficientes" in answer.answer
+    assert "Sem dados adicionais." not in answer.answer
 
 
 def test_registry_list_has_friendly_order_summary():
