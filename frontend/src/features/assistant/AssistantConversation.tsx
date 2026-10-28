@@ -186,12 +186,15 @@ function TurnRow({ turn, onLink, onSelectCustomer, working }: {
   const hasMetric = reply.facts.some((fact) => PRIMARY_METRICS.some((key) => typeof fact.values[key] === "number"));
   const answer = visibleAnswer(reply, hasMetric);
   const label = SOURCE_LABELS[reply.source];
+  const factDestinations = new Set(
+    reply.facts.flatMap((fact) => (fact.links ?? []).map((link) => link.href))
+  );
   return <section className="assistant-turn">{question}
     <div className="assistant-response">
       <strong className="assistant-source">{label}</strong>
       {answer ? <p className="assistant-answer">{answer}</p> : null}
       {reply.facts.map((fact) => reply.source === "DOCUMENTATION" ? <DocumentationSource key={fact.clientKey} fact={fact} /> : <Fact key={fact.clientKey} fact={fact} onLink={onLink} onSelectCustomer={onSelectCustomer} working={working} />)}
-      <nav className="assistant-action-links" aria-label="Ações relacionadas">{reply.links.filter((link) => allowedLink(link.href)).map((link) =>
+      <nav className="assistant-action-links" aria-label="Ações relacionadas">{reply.links.filter((link) => allowedLink(link.href) && !factDestinations.has(link.href)).map((link) =>
         <Link key={link.href} to={link.href} onClick={onLink}>{link.label}<Icon name="arrow-right" size={16} /></Link>
       )}</nav>
     </div>
