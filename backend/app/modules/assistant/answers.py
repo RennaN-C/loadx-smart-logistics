@@ -106,12 +106,16 @@ def grounded_answer(content: str, facts: list[Source]) -> str:
 
 
 ANSWER_CONTRACT = """
-Resposta final obrigatória: somente um objeto JSON {"guidance":[...]}.
-Selecione de uma a três chaves da lista abaixo. Nunca escreva texto livre,
-valores, contagens, percentuais, nomes, estados de registros ou campos extras.
-Indicadores são exibidos exclusivamente nos fatos calculados pelo servidor.
-Para perguntas quantitativas, consulte a ferramenta autorizada antes de selecionar facts.
-Sem consulta compatível, selecione query_required; nunca responda de memória/histórico.
+Responda exclusivamente com JSON válido e sem Markdown. Priorize uma resposta
+conversacional própria, direta e contextual: {"answer":"texto",
+"source_names":["nomes exatos das fontes reais consultadas"]}.
+Se não houver fatos, use source_names=[] e nunca afirme estados, números,
+cadastros, disponibilidade, status ou ações sem consultar o sistema.
+As fontes são fornecidas pelo servidor, não pela memória ou pelo histórico.
+A resposta natural é validada; se não puder fundamentar, faça uma pergunta.
+Alternativa de compatibilidade: {"guidance":["facts"]} com até três códigos
+distintos de orientação permitidos. Jamais inclua números ou nomes nessa opção;
+o backend publica os valores reais separadamente. Códigos:
 """ + json.dumps(GUIDANCE, ensure_ascii=False)
 
 
