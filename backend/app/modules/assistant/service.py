@@ -542,7 +542,15 @@ class AssistantService:
             if isinstance(error, AIProviderTimeoutError):
                 reason = "A IA demorou mais que o limite de resposta."
             elif isinstance(error, AIProviderUnavailableError):
-                reason = "O provedor de IA está indisponível ou recusou a resposta."
+                code = error.reason
+                if code == "http_429":
+                    reason = "O provedor de IA atingiu seu limite temporário de consultas."
+                elif code == "http_401":
+                    reason = "A autenticação do provedor de IA falhou. Um administrador precisa verificar a configuração."
+                elif code == "http_403":
+                    reason = "O provedor de IA recusou o acesso. Um administrador precisa revisar as permissões do modelo."
+                else:
+                    reason = "O provedor de IA está indisponível ou recusou a resposta."
             else:
                 reason = "A resposta recebida não passou pela validação de segurança."
             return ChatResponse(
