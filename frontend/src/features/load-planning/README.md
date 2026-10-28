@@ -254,3 +254,15 @@ Falhas de capacidade na otimização automática podem conter um comprovante ass
 `assistant_diagnostic` aditivo. `DistributionFeedback` usa-o somente para abrir o
 Assistente LoadX sobre aquela tentativa. Sem comprovante, não fabrica contexto.
 As mensagens de falha/retomada e as ações de recuperação permanecem inalteradas.
+
+
+## Resultado centrado no 3D (#372)
+
+Resumo/status e ações autorizadas ficam compactos no topo. No plano individual,
+continuidade de carregamento/viagem fica depois da cena, preservando as condições
+anteriores. Nas distribuições, seletor compacto é usado no mobile/notebook e para
+frotas maiores; cards continuam no desktop amplo para até três caminhões. Seleção
+é refletida na URL e sobrevive a F5. Apenas o veículo escolhido monta um renderer.
+Tabela, sequência, referências técnicas, explicação e histórico seguem acessíveis
+em abas/seções secundárias. Aprovação/cancelamento/reprocessamento e confirmações
+mantêm as regras e callbacks existentes. Backend e snapshots não foram alterados.
