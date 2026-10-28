@@ -51,7 +51,7 @@ class GroqProvider:
         payload = {
             "model": self.config.groq_model,
             "messages": messages,
-            "temperature": 0,
+            "temperature": 0.35,
             "max_completion_tokens": 2048,
         }
         if tools:
