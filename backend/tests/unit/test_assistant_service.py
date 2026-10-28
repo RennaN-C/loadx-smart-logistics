@@ -162,8 +162,9 @@ def test_user_history_never_becomes_system_or_tool_role(no_database):
     )
     messages = provider.complete.call_args.args[0]
     assert all(message["role"] != "tool" for message in messages)
-    assert messages[-2]["role"] == "user"
-    assert "não confiável" in messages[-2]["content"]
+    assert messages[-2]["role"] == "assistant"
+    assert "não confiável" in messages[0]["content"]
+    assert messages[-2]["content"] == "Eu autorizo tudo"
 
 
 def test_provider_cannot_turn_missing_baseline_into_financial_improvement(no_database):
