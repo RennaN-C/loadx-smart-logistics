@@ -56,6 +56,20 @@ class GroqProvider:
         }
         if tools:
             payload.update(tools=tools, tool_choice="auto", parallel_tool_calls=False)
+        elif (
+            messages
+            and isinstance(messages[0], dict)
+            and isinstance(messages[0].get("content"), str)
+            and "Você é o Loxi, assistente operacional do LoadX" in messages[0]["content"]
+        ):
+            # JSON mode only for the Loxi conversational contract. The separate
+            # technical explanation endpoint still expects ordinary prose.
+            payload["response_format"] = {"type": "json_object"}
+        if self.config.groq_model.startswith("openai/gpt-oss-") and (
+            tools or "response_format" in payload
+        ):
+            # Groq requires parsed/hidden reasoning with JSON mode/tool calling.
+            payload["reasoning_format"] = "hidden"
         encoded = json.dumps(payload).encode()
         if len(encoded) > MAX_BODY_BYTES:
             raise AIProviderUnavailableError
