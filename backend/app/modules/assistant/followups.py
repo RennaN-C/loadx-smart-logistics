@@ -66,6 +66,9 @@ def resolve_followup(data: ChatRequest) -> tuple[ChatRequest, bool]:
         and ("problema" in current or "rejeit" in current or "nao coube" in current)
     ):
         return data.model_copy(
-            update={"message": "Explique o último planejamento e as rejeições. " + data.message}
+            update={
+                "message": "Explique o último planejamento e as rejeições. "
+                + data.message
+            }
         ), True
     return data, False
