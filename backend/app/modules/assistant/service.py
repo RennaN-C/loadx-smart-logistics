@@ -638,8 +638,14 @@ class AssistantService:
         ) as error:
             reason = getattr(error, "reason", None)
             safe_reasons = {
-                "http_400", "http_401", "http_403", "http_404",
-                "http_422", "http_429", "http_500", "http_502",
+                "http_400",
+                "http_401",
+                "http_403",
+                "http_404",
+                "http_422",
+                "http_429",
+                "http_500",
+                "http_502",
                 "http_503",
             }
             category = reason if reason in safe_reasons else type(error).__name__
