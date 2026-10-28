@@ -27,7 +27,11 @@ from app.modules.assistant.answers import (
     natural_answer,
     verified_answer,
 )
-from app.modules.assistant.capabilities import documentation_reply, scoped_request, topics
+from app.modules.assistant.capabilities import (
+    documentation_reply,
+    scoped_request,
+    topics,
+)
 from app.modules.assistant.context import planning_context
 from app.modules.assistant.conversation import conversation_reply
 from app.modules.assistant.followups import resolve_followup
