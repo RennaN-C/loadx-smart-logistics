@@ -223,10 +223,7 @@ def _catalog_answer(fact: Source) -> str:
             f"Encontrei {total} pedidos cadastrados. "
             "Estes são os mais recentes na consulta:"
         )
-        outro = (
-            "\nPosso filtrar pelos prontos, planejados ou entregues "
-            "se você quiser."
-        )
+        outro = "\nPosso filtrar pelos prontos, planejados ou entregues se você quiser."
     else:
         intro = f"Encontrei {total} registros de {fact.name.lower()}:"
         outro = ""
