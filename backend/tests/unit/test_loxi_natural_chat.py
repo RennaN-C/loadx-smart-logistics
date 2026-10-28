@@ -218,3 +218,22 @@ def test_history_roles_remain_conversational_not_authoritative(isolated):
     assert all(
         message["role"] in {"user", "assistant", "system"} for message in messages
     )
+
+def test_social_plain_text_is_accepted_only_without_operational_claims(isolated):
+    provider = Mock()
+    provider.complete.return_value = {
+        "content": "Oi! Em que posso ajudar na conversa de hoje?"
+    }
+    result = AssistantService(Mock(), config(), provider).chat(
+        user(), ChatRequest(message="Olá Loxi")
+    )
+    assert result.source == "GENERAL"
+    assert result.answer.startswith("Oi!")
+
+    provider.complete.return_value = {
+        "content": "O pedido foi entregue hoje."
+    }
+    result = AssistantService(Mock(), config(), provider).chat(
+        user(), ChatRequest(message="Como estão as entregas?")
+    )
+    assert result.source == "FALLBACK"
