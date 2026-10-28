@@ -56,8 +56,7 @@ def resolve_followup(data: ChatRequest) -> tuple[ChatRequest, bool]:
         # conversational claims; do not invent a plan reference.
         return data.model_copy(
             update={
-                "message": "Explique o último planejamento e responda: "
-                + data.message
+                "message": "Explique o último planejamento e responda: " + data.message
             }
         ), True
     if (
