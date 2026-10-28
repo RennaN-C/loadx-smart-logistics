@@ -9,7 +9,7 @@ import { PlanItemsTable } from "./PlanItemsTable";
 import { PlanAIExplanation } from "./PlanAIExplanation";
 
 const LoadViewer = lazy(() => import("../../load-visualization/components/LoadViewer").then((m) => ({ default: m.LoadViewer })));
-const RESULT_TABS = [{ id: "summary", label: "Volumes e sequência" }, { id: "scene", label: "Visualização 3D" }] as const;
+const RESULT_TABS = [{ id: "scene", label: "Visualização 3D" }, { id: "summary", label: "Volumes e sequência" }] as const;
 
 export function DistributionDetail({ distribution, part, canApprove, canCreate, disabled, onAction, onReprocess }: {
   readonly distribution: LoadDistribution; readonly part: DistributionPart;
@@ -17,20 +17,21 @@ export function DistributionDetail({ distribution, part, canApprove, canCreate, 
   readonly onAction: (action: "approve" | "cancel", partId?: string) => void;
   readonly onReprocess: (truckId: string) => void;
 }) {
-  const [tab, setTab] = useState<"summary" | "scene">("summary");
+  const [tab, setTab] = useState<"summary" | "scene">("scene");
   return (
       <section id="distribution-vehicle-detail" className="distribution-detail" aria-label={`Carga de ${part.truck.plate}`}>
-        <header className="distribution-detail-heading"><div><span className="distribution-eyebrow">Parte {part.id.slice(0, 8)} · Plano {part.loadPlan.id.slice(0, 8)}</span><h2>Carga de {part.truck.plate}</h2><p>{PART_LABELS[part.status]} · {part.truck.model}</p></div><Link className="btn-secondary" to={`/planning/${part.loadPlan.id}`}>Abrir plano desta parte</Link></header>
-        <p className="entity-form-help">Baú {part.truck.lengthCm} × {part.truck.widthCm} × {part.truck.heightCm} cm · Capacidade {part.truck.maxWeightKg.toLocaleString("pt-BR")} kg · {part.loadPlan.unloadedCount} volumes rejeitados.</p>
+        <header className="distribution-detail-heading"><div><h2>Carga de {part.truck.plate}</h2><p>{PART_LABELS[part.status]} · {part.truck.model}</p></div><Link className="btn-secondary" to={`/planning/${part.loadPlan.id}`}>Abrir plano desta parte</Link></header>
+
+        <Tabs items={RESULT_TABS} active={tab} onChange={setTab} label="Detalhes da carga selecionada" />
+        <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
+          {tab === "summary" ? <PlanItemsTable items={part.loadPlan.items} /> : <Suspense fallback={<p className="entity-state">Carregando visualização 3D…</p>}><LoadViewer key={`explanation-${part.loadPlan.id}`} planId={part.loadPlan.id} plan={part.loadPlan} /></Suspense>}
+        </div>
+        <details className="distribution-technical"><summary>Dados do veículo e referência do plano</summary><span className="distribution-eyebrow">Parte {part.id.slice(0, 8)} · Plano {part.loadPlan.id.slice(0, 8)}</span><p className="entity-form-help">Baú {part.truck.lengthCm} × {part.truck.widthCm} × {part.truck.heightCm} cm · Capacidade {part.truck.maxWeightKg.toLocaleString("pt-BR")} kg · {part.loadPlan.unloadedCount} volumes rejeitados.</p></details>
         <DistributionPartActions key={`${part.id}-${part.loadPlan.id}-${part.status}`} distribution={distribution} part={part} canApprove={canApprove} canCreate={canCreate} disabled={disabled}
           onAction={(action, partId) => onAction(action, partId)}
           onReprocess={(truckId) => onReprocess(truckId)} />
         <PlanAIExplanation key={part.loadPlan.id} planId={part.loadPlan.id} />
-        <Tabs items={RESULT_TABS} active={tab} onChange={setTab} label="Detalhes da carga selecionada" />
-        <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
-          {tab === "summary" ? <PlanItemsTable items={part.loadPlan.items} /> : <Suspense fallback={<p className="entity-state">Carregando visualização 3D…</p>}><LoadViewer key={part.loadPlan.id} planId={part.loadPlan.id} plan={part.loadPlan} /></Suspense>}
-        </div>
-        {distribution.status === "APPROVED" ? <PlanContinuity key={part.loadPlan.id} planId={part.loadPlan.id} canManage={canCreate} /> : null}
+        {distribution.status === "APPROVED" ? <PlanContinuity key={`continuity-${part.loadPlan.id}`} planId={part.loadPlan.id} canManage={canCreate} /> : null}
       </section>
   );
 }
