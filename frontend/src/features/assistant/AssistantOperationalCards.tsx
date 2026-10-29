@@ -174,6 +174,8 @@ function RecordOperationalCard({ fact, onLink }: { readonly fact: AssistantFact;
   const pages = metric(values, "total_pages");
   const items = rows(values);
   const route = RECORD_ROUTES[fact.name];
+  const label = (fact.links ?? []).find((link) => link.href === route)?.label
+    ?? "Consultar " + fact.name.toLowerCase();
   return <section className="loxi-operational-card loxi-records-card" aria-label={fact.name}>
     <header className="loxi-card-header">
       <div><span className="loxi-eyebrow"><Icon name="chart" size={14} /> Loxi · Cadastros</span>
@@ -193,7 +195,7 @@ function RecordOperationalCard({ fact, onLink }: { readonly fact: AssistantFact;
     </div>
     {pages !== null && pages > 1 ? <p className="loxi-page-note">Página {page ?? 1} de {pages}. Mais resultados estão disponíveis na tela.</p> : null}
     <div className="loxi-card-actions">
-      <Link to={route} onClick={onLink}>Consultar {fact.name.toLowerCase()} <Icon name="arrow-right" size={14} /></Link>
+      <Link to={route} onClick={onLink}>{label} <Icon name="arrow-right" size={14} /></Link>
     </div>
   </section>;
 }
@@ -216,4 +218,11 @@ export function AssistantOperationalCard({ fact, onLink }: {
 export function hasOperationalCard(fact: AssistantFact): boolean {
   return ["Análise do planejamento", "Plano autorizado", "Disponibilidade atual da frota", "Caminhões cadastrados"].includes(fact.name)
     || fact.name in RECORD_ROUTES;
+}
+
+/** The card owns these navigation targets, even when Source.links is empty. */
+export function operationalCardDestination(fact: AssistantFact): string | null {
+  if (fact.name === "Disponibilidade atual da frota") return "/trucks?tab=availability";
+  if (fact.name === "Caminhões cadastrados") return "/trucks";
+  return RECORD_ROUTES[fact.name] ?? null;
 }
