@@ -33,7 +33,7 @@ function planReference(fact: AssistantFact): string | null {
   return path ? path.split("/").at(-1)! : null;
 }
 
-function PlanPreview({ planId }: { readonly planId: string }) {
+function PlanPreview({ planId, onLink }: { readonly planId: string; readonly onLink: () => void }) {
   const [plan, setPlan] = useState<LoadPlan | null>(null);
   const [error, setError] = useState(false);
   useEffect(() => {
@@ -55,7 +55,7 @@ function PlanPreview({ planId }: { readonly planId: string }) {
   return <>
     <p className="loxi-preview-hint">
       Prévia interativa · arraste para girar e use a rolagem para aproximar.
-      <Link to={`/planning/${planId}`}>Visualização completa</Link>
+      <Link to={`/planning/${planId}`} onClick={onLink}>Visualização completa</Link>
     </p>
     <Suspense fallback={<p className="assistant-inline-note" role="status">Carregando visualizador 3D…</p>}>
       <LoadViewer planId={planId} plan={plan} />
@@ -111,7 +111,7 @@ function PlanOperationalCard({ fact, onLink }: { readonly fact: AssistantFact; r
       </button>
       <Link to={`/planning/${planId}`} onClick={onLink}>Abrir plano <Icon name="arrow-right" size={14} /></Link>
     </div> : null}
-    {preview && planId ? <div className="loxi-preview"><PlanPreview key={planId} planId={planId} /></div> : null}
+    {preview && planId ? <div className="loxi-preview"><PlanPreview key={planId} planId={planId} onLink={onLink} /></div> : null}
   </section>;
 }
 
