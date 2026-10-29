@@ -218,7 +218,11 @@ function TurnRow({ turn, earlier, onLink, onSelectCustomer, working }: {
   const answer = visualList
     ? rawAnswer.split("\n").filter((line) => !line.trimStart().startsWith("•")).join("\n").trim()
     : rawAnswer;
-  const label = SOURCE_LABELS[reply.source];
+  // Greetings, navigation and financial limits have no database snapshot:
+  // don't label that guidance as "Dados verificados".
+  const label = reply.source === "BACKEND" && reply.facts.length === 0
+    ? "Loxi · Assistente"
+    : SOURCE_LABELS[reply.source];
   const factDestinations = new Set(
     reply.facts.flatMap((fact) => [
       ...(fact.links ?? []).map((link) => link.href),
