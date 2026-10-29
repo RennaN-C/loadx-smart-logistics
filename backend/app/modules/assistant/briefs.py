@@ -117,4 +117,18 @@ def brief_verified_plan(question: str, result: ChatResponse) -> ChatResponse:
     ):
         return result
     answer = _summary(question, result.facts[0])
-    return result.model_copy(update={"answer": answer}) if answer else result
+    if answer is None:
+        # Never fall back to repeating the entire old report if an expected
+        # summary field is absent or has a different type in a persisted plan.
+        # Keep the short, verified zero-rejection answer when a richer
+        # summary cannot be built from incomplete persisted plan fields.
+        # Never reuse arbitrary long reports or provider narration.
+        rejected = _number(result.facts[0].values.get("rejected_volumes"))
+        if rejected == "0" and result.answer.strip() == "Não houve rejeições.":
+            return result
+        answer = (
+            "Encontrei o planejamento autorizado, mas não há informações "
+            "suficientes para resumir essa pergunta com segurança. "
+            "Confira os dados verificados abaixo; nenhum cálculo foi executado."
+        )
+    return result.model_copy(update={"answer": answer})

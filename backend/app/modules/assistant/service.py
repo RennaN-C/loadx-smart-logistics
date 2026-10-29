@@ -329,6 +329,10 @@ class AssistantService:
                 and planned.facts[0].name == "Análise do planejamento"
             ):
                 concise = brief_verified_plan(data.message, planned)
+                logger.info(
+                    "ASSISTANT_PLAN_REPLY mode=%s",
+                    "brief" if concise.answer != planned.answer else "original",
+                )
                 return self._narrate_verified(data, concise)
             return planned
         facts, links = planning_context(self.db, user, data)
@@ -608,13 +612,16 @@ class AssistantService:
                 messages, timeout_seconds=self.config.ai_chat_timeout_seconds
             )
             if reply.get("tool_calls"):
-                return result
+                logger.warning("ASSISTANT_NARRATION_FALLBACK category=unexpected_tool")
+                return brief_verified_plan(data.message, result)
             content = reply.get("content")
             if not isinstance(content, str):
-                return result
+                logger.warning("ASSISTANT_NARRATION_FALLBACK category=missing_content")
+                return brief_verified_plan(data.message, result)
             answer = natural_answer(content, result.facts)
             if answer is None:
-                return result
+                logger.warning("ASSISTANT_NARRATION_FALLBACK category=invalid_format")
+                return brief_verified_plan(data.message, result)
             return ChatResponse(
                 source="GROQ",
                 answer=sanitize(answer),
@@ -628,9 +635,23 @@ class AssistantService:
             ValueError,
             KeyError,
             TypeError,
-        ):
-            logger.warning("ASSISTANT_NARRATION_FALLBACK")
-            return result
+        ) as error:
+            reason = getattr(error, "reason", None)
+            safe_reasons = {
+                "http_400",
+                "http_401",
+                "http_403",
+                "http_404",
+                "http_422",
+                "http_429",
+                "http_500",
+                "http_502",
+                "http_503",
+            }
+            category = reason if reason in safe_reasons else type(error).__name__
+            logger.warning("ASSISTANT_NARRATION_FALLBACK category=%s", category)
+            # Even an invalid response may never restore a long static report.
+            return brief_verified_plan(data.message, result)
 
     def _run_tool(
         self,

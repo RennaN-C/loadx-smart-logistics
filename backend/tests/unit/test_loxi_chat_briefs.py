@@ -75,7 +75,11 @@ def test_unknown_fields_never_create_new_numbers():
             Source(name="Análise do planejamento", criteria="Persistido", values={})
         ],
     )
-    assert brief_verified_plan("Explique o plano", result) == result
+    answer = brief_verified_plan("Explique o plano", result)
+    assert answer.source == "BACKEND"
+    assert answer.facts == result.facts
+    assert "informações suficientes" in answer.answer
+    assert "Sem dados adicionais." not in answer.answer
 
 
 def test_registry_list_has_friendly_order_summary():
@@ -155,3 +159,44 @@ def test_groq_can_answer_first_planning_question_naturally(isolated):
     assert response.answer.startswith("O plano posicionou")
     assert response.facts[0].values["loaded_volumes"] == 24
     assert provider.complete.call_count == 1
+
+
+def test_real_planning_service_routes_to_short_fallback(monkeypatch):
+    """Use the real planning insight parser, not a mocked ChatResponse."""
+    from tests.unit.test_assistant_planning_insights import (
+        person,
+        stub_service,
+        summary,
+    )
+
+    saved = summary()
+    stub_service(monkeypatch, [saved])
+    monkeypatch.setattr("app.modules.assistant.service.ensure_budget", Mock())
+    provider = Mock()
+    provider.complete.side_effect = AIProviderUnavailableError("http_403")
+    user = person()
+
+    initial = AssistantService(Mock(), config(), provider).chat(
+        user, ChatRequest(message="Me explique o último planejamento")
+    )
+    assert initial.source == "BACKEND"
+    assert initial.facts[0].name == "Análise do planejamento"
+    assert initial.answer.startswith("O planejamento")
+    assert "Analisei o planejamento salvo" not in initial.answer
+
+    followup = AssistantService(Mock(), config(), provider).chat(
+        user,
+        ChatRequest(
+            message="Trocar de caminhão ajudaria?",
+            plan_id=saved.id,
+            history=[
+                {"role": "user", "content": "Me explique o último planejamento"},
+                {"role": "assistant", "content": initial.answer},
+            ],
+        ),
+    )
+    assert followup.source == "BACKEND"
+    assert "comparação" in followup.answer
+    assert "novo cálculo" in followup.answer
+    assert "Analisei o planejamento salvo" not in followup.answer
+    assert followup.facts[0].name == "Análise do planejamento"
