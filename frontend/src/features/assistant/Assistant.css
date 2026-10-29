@@ -342,3 +342,60 @@
     min-width: 34px;
   }
 }
+
+
+/* Loxi conversational composer: the chat is responsive even during a request. */
+.assistant-panel { box-shadow: 0 22px 66px rgb(0 0 0 / .24); }
+.assistant-panel-body { gap: 7px; }
+.assistant-conversation { gap: 16px; scroll-behavior: smooth; padding-bottom: 16px; }
+.assistant-question { max-width: 88%; border-radius: 16px 16px 5px 16px; }
+.assistant-question span { font-size: .69rem; }
+.assistant-response { gap: 8px; }
+.assistant-repeated-fact { font-size: .74rem; color: var(--muted); }
+.assistant-repeated-fact > summary { cursor: pointer; width: fit-content; padding: 3px 0; }
+.assistant-repeated-fact[open] > .assistant-result { margin-top: 8px; }
+.assistant-typing {
+  align-self: flex-start; display: inline-flex; align-items: center;
+  gap: 10px; min-height: 32px; color: var(--muted);
+}
+.assistant-typing-avatar {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: 10px;
+  color: var(--accent-strong); background: var(--accent-bg);
+}
+.assistant-typing-dots { display: inline-flex; align-items: center; gap: 4px; }
+.assistant-typing-dots i {
+  width: 6px; height: 6px; display: inline-block; border-radius: 50%;
+  background: currentColor; opacity: .3;
+  animation: loxi-typing 1.2s infinite ease-in-out;
+}
+.assistant-typing-dots i:nth-child(2) { animation-delay: .15s; }
+.assistant-typing-dots i:nth-child(3) { animation-delay: .3s; }
+@keyframes loxi-typing {
+  0%, 60%, 100% { transform: translateY(0); opacity: .3; }
+  30% { transform: translateY(-3px); opacity: 1; }
+}
+.assistant-panel-body form {
+  gap: 7px; padding: 10px 0 0; background: var(--paper);
+}
+.assistant-composer-hint { color: var(--muted); font-size: .68rem; font-weight: 400; }
+.assistant-panel-body textarea {
+  min-height: 48px; border-radius: 14px; padding: 12px 14px;
+  font-size: .88rem; transition: border-color .15s, box-shadow .15s;
+}
+.assistant-panel-body textarea:focus-visible {
+  outline: none; border-color: var(--accent-strong);
+  box-shadow: 0 0 0 2px var(--accent-bg);
+}
+.assistant-panel-body .entity-form-actions .assistant-submit {
+  min-width: 116px; border-radius: 11px;
+}
+.assistant-panel-body .entity-form-actions .assistant-submit:disabled { opacity: .65; cursor: wait; }
+@media (max-width: 420px) {
+  .assistant-composer-hint { display: none; }
+  .assistant-conversation { gap: 13px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .assistant-conversation { scroll-behavior: auto; }
+  .assistant-typing-dots i { animation: none; opacity: .7; }
+}
