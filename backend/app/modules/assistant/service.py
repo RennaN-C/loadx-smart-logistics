@@ -35,7 +35,7 @@ from app.modules.assistant.capabilities import (
 )
 from app.modules.assistant.context import planning_context
 from app.modules.assistant.conversation import conversation_reply
-from app.modules.assistant.followups import resolve_followup
+from app.modules.assistant.followups import fleet_reason_followup, resolve_followup
 from app.modules.assistant.limits import ensure_budget
 from app.modules.assistant.planning_insights import planning_insight
 from app.modules.assistant.schemas import (
@@ -369,6 +369,7 @@ class AssistantService:
                 links=[],
                 suggestions=["Quais consultas posso fazer?"],
             )
+        fleet_followup = fleet_reason_followup(data)
         data, conversational_followup = resolve_followup(data)
         casual = conversation_reply(user, data.message)
         # Ações continuam na UI autenticada; jamais escrevemos no chat.
@@ -398,12 +399,18 @@ class AssistantService:
             casual.source == "GUARDRAIL"
             or casual.links
             or "sugest" in data.message.casefold()
+            # Greetings and thanks must never be routed through factual LLM
+            # verification, which otherwise rejects ordinary "Olá" messages.
+            or not topics(data.message)
         ):
             return casual
         data = scoped_request(data)
         # Disponibilidade atual é dado operacional. Nunca pedir ao provedor que
         # invente placas ou omita registros que o backend já autorizou.
-        if _fleet_availability_intent(data.message) and not data.diagnostic_token:
+        if (
+            (_fleet_availability_intent(data.message) or fleet_followup)
+            and not data.diagnostic_token
+        ):
             name = "get_fleet_availability"
             if not allowed_tool(user, name):
                 return ChatResponse(
@@ -427,10 +434,36 @@ class AssistantService:
             )
             return ChatResponse(
                 source="BACKEND",
-                answer=_fleet_availability_answer(result.fact),
+                answer=(
+                    "Consultei novamente a disponibilidade atual e seus motivos "
+                    "registrados.\n" + _fleet_availability_answer(result.fact)
+                    if fleet_followup
+                    else _fleet_availability_answer(result.fact)
+                ),
                 facts=[result.fact],
                 links=[result.link] if result.link else [],
                 suggestions=["Quais caminhões temos cadastrados?"],
+            )
+        # Estimativas financeiras exigem custos e base de comparação reais.
+        # Não entregar a pergunta ao provedor quando ele não possui essas fontes.
+        if re.search(
+            r"\\b(?:econom\\w*|poupar\\w*|custo\\w*|lucro|roi|"
+            r"financeir\\w*)\\b",
+            unicodedata.normalize("NFKD", data.message.casefold()),
+        ) and re.search(
+            r"\\b(?:caminh\\w*|veicul\\w*|troca\\w*|planej\\w*)\\b",
+            unicodedata.normalize("NFKD", data.message.casefold()),
+        ):
+            return ChatResponse(
+                source="BACKEND",
+                answer=(
+                    "Não tenho uma comparação financeira validada entre os "
+                    "caminhões nesta consulta. Para calcular a economia, são "
+                    "necessários os custos reais de transporte, percurso, "
+                    "combustível e a mesma carga em cenários comparáveis. "
+                    "O LoadX não executou outra simulação nem confirmou economia."
+                ),
+                suggestions=["Trocar de caminhão ajudaria na capacidade?"],
             )
         # Explicit saved-plan questions and conversation follow-ups outrank
         # documentation about the fleet. Ordinary how-to questions stay on docs.
