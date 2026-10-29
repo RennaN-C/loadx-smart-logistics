@@ -530,8 +530,8 @@ it("recolhe disponibilidade idêntica em follow-ups sem esconder mudanças reais
   await screen.findByRole("region", { name: "Disponibilidade operacional da frota" });
   send();
   await waitFor(() => expect(vi.mocked(askAssistant)).toHaveBeenCalledTimes(2));
-  expect(await screen.findByText("Dados da frota já exibidos")).toBeInTheDocument();
-  expect(screen.getAllByRole("region", { name: "Disponibilidade operacional da frota" })).toHaveLength(1);
+  const repeated = await screen.findByText("Dados da frota já exibidos");
+  expect(repeated.closest("details")).not.toHaveAttribute("open");
 
   vi.mocked(askAssistant).mockResolvedValue({
     ...first, facts: [{ ...first.facts[0], values: {
@@ -541,6 +541,6 @@ it("recolhe disponibilidade idêntica em follow-ups sem esconder mudanças reais
   });
   send();
   await waitFor(() => expect(vi.mocked(askAssistant)).toHaveBeenCalledTimes(3));
-  expect(await screen.findByText("manutenção")).toBeInTheDocument();
-  expect(screen.getAllByRole("region", { name: "Disponibilidade operacional da frota" })).toHaveLength(2);
+  const changed = await screen.findByText("manutenção");
+  expect(changed.closest(".assistant-repeated-fact")).toBeNull();
 });
