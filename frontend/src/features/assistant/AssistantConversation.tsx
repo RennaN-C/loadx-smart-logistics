@@ -211,7 +211,9 @@ function TurnRow({ turn, earlier, onLink, onSelectCustomer, working }: {
   const hasMetric = reply.facts.some((fact) => PRIMARY_METRICS.some((key) => typeof fact.values[key] === "number"));
   const rawAnswer = visibleAnswer(reply, hasMetric);
   const visualList = reply.facts.some((fact) =>
-    fact.name === "Caminhões cadastrados" || fact.name === "Disponibilidade atual da frota");
+    ["Caminhões cadastrados", "Disponibilidade atual da frota",
+      "Pedidos cadastrados", "Produtos cadastrados", "Clientes cadastrados",
+      "Motoristas cadastrados"].includes(fact.name));
   // Vehicle identifiers appear in the structured card, not twice in text.
   const answer = visualList
     ? rawAnswer.split("\n").filter((line) => !line.trimStart().startsWith("•")).join("\n").trim()
