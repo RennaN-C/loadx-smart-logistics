@@ -288,12 +288,11 @@ def _fleet_availability_answer(fact: Source) -> str:
     ]
     if not isinstance(count, int):
         count = len(vehicles)
-    opening = (
-        f"Encontrei {count} " + ("caminhão indisponível" if count == 1 else "caminhões indisponíveis")
-        + " nesta página da frota."
-        if count
-        else "Não há caminhões indisponíveis nesta página da frota."
-    )
+    if count:
+        noun = "caminhão indisponível" if count == 1 else "caminhões indisponíveis"
+        opening = f"Encontrei {count} {noun} nesta página da frota."
+    else:
+        opening = "Não há caminhões indisponíveis nesta página da frota."
     if vehicles:
         opening += "\n" + "\n".join(f"• {vehicle}" for vehicle in vehicles)
     opening += (
