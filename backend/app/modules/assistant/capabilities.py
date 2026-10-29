@@ -305,6 +305,14 @@ def documentation_reply(user: User, message: str) -> ChatResponse | None:
 
 def scoped_request(data: ChatRequest) -> ChatRequest:
     current = topics(data.message)
+    general_help = bool(
+        re.search(
+            r"\b(?:como funciona o (?:sistema|loadx)|"
+            r"o que (?:voce|vc) (?:consegue |pode |sabe )?fazer|"
+            r"quais funcionalidades|catalogo de capacidades)\b",
+            normalize(data.message),
+        )
+    )
     physical = bool(
         re.search(
             r"\b(?:nao coube|rejeit\w*|colis\w*|ocupacao|empilh\w*|peso|dimens\w*)\b",
@@ -354,6 +362,7 @@ def scoped_request(data: ChatRequest) -> ChatRequest:
         planning = True
     if (
         unrelated
+        or (general_help and not planning)
         or (not planning and not data.diagnostic_token)
         or (not current and previous_topics and "planning" not in previous_topics)
     ):
