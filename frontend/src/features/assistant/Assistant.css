@@ -498,3 +498,59 @@
 @media (prefers-reduced-motion: reduce) {
   .assistant-turn, .loxi-meter-fill { animation: none; }
 }
+
+/* Loxi aberto: o botão flutuante não pode sobrepor Enviar nem o canvas. */
+.assistant-launch[aria-expanded="true"] { display: none; }
+
+/* Janela expandida centralizada, mantendo o composer ancorado no rodapé. */
+.assistant-panel.is-expanded {
+  left: 50%;
+  right: auto;
+  bottom: 12px;
+  width: min(1080px, calc(100vw - 24px));
+  height: min(880px, calc(100dvh - 24px));
+  max-height: calc(100dvh - 24px);
+  transform: translateX(-50%);
+}
+.assistant-panel.is-expanded .assistant-panel-body { min-height: 0; overflow: hidden; }
+.assistant-panel.is-expanded .assistant-conversation { min-height: 0; overflow-y: auto; }
+.assistant-panel.is-expanded form { flex-shrink: 0; position: relative; z-index: 1; }
+
+/* Preview, não um segundo workspace: mantém o 3D interativo sem duplicar
+   controles, indicadores e barras de rolagem dentro do chat. */
+.loxi-preview { display: grid; gap: 7px; max-width: 100%; min-width: 0; }
+.loxi-preview-hint {
+  margin: 0; display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; flex-wrap: wrap; color: var(--muted); font-size: .73rem;
+  line-height: 1.5;
+}
+.loxi-preview-hint a { color: var(--accent-strong); font-weight: 650; }
+.loxi-preview .viewer {
+  margin: 0; display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "toolbar" "canvas";
+  gap: 8px;
+  min-width: 0; max-width: 100%;
+}
+.loxi-preview .viewer-toolbar { min-height: 24px; }
+.loxi-preview .viewer-toolbar h3 { font-size: .82rem; }
+.loxi-preview .viewer-toolbar button,
+.loxi-preview .viewer-controls,
+.loxi-preview .viewer-stepper,
+.loxi-preview .viewer-side { display: none; }
+.loxi-preview .viewer-canvas {
+  width: 100%;
+  height: clamp(220px, 36dvh, 350px);
+  min-height: 220px;
+  border-radius: 12px;
+  overflow: hidden;
+}
+@media (max-width: 600px) {
+  .assistant-panel.is-expanded {
+    inset: 0; left: 0; right: 0; bottom: 0;
+    width: 100vw; height: 100dvh; max-height: 100dvh;
+    transform: none; border-radius: 0;
+  }
+  .loxi-preview .viewer-canvas { height: clamp(200px, 32dvh, 290px); min-height: 200px; }
+  .loxi-preview-hint { font-size: .69rem; }
+}
