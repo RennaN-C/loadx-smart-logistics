@@ -3,6 +3,8 @@
 import json
 import logging
 import ssl
+import time
+from threading import Lock
 from urllib.error import HTTPError
 from urllib.request import HTTPRedirectHandler, HTTPSHandler, Request, build_opener
 
@@ -19,6 +21,11 @@ MAX_BODY_BYTES = 65_536
 # A identificacao padrao Python-urllib e bloqueada por alguns filtros da borda da Groq.
 USER_AGENT = "LoadX-Smart-Logistics/1.2"
 logger = logging.getLogger(__name__)
+
+# Process-local short circuit for repeated Groq 429s. Backend facts continue
+# without a provider; do not retry blindly or log provider response bodies.
+_rate_lock = Lock()
+_rate_limited_until = 0.0
 
 
 class AIProviderToolGenerationError(AIProviderUnavailableError):
@@ -48,6 +55,11 @@ class GroqProvider:
             or not key.get_secret_value().strip()
         ):
             raise AIProviderUnavailableError
+        global _rate_limited_until
+        if self.config.app_env != "local":
+            with _rate_lock:
+                if time.monotonic() < _rate_limited_until:
+                    raise AIProviderUnavailableError("http_429")
         payload = {
             "model": self.config.groq_model,
             "messages": messages,
@@ -102,6 +114,9 @@ class GroqProvider:
                 if error.code in {400, 401, 403, 404, 413, 422, 429, 498, 500, 502, 503}
                 else "other"
             )
+            if status == 429 and self.config.app_env != "local":
+                with _rate_lock:
+                    _rate_limited_until = max(_rate_limited_until, time.monotonic() + 60)
             if status == 400:
                 # Groq may return 400 when the model creates an invalid tool
                 # call. Parse only a bounded response and log a fixed category.
