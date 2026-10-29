@@ -363,3 +363,19 @@ it("recolhe métricas repetidas do mesmo planejamento em perguntas seguintes", a
   await waitFor(() => expect(askAssistant).toHaveBeenCalledTimes(2));
   expect(await screen.findByText("Ver dados deste planejamento já exibidos")).toBeInTheDocument();
 });
+
+it("distingue ocupação geométrica e utilização de peso nos cartões do plano", async () => {
+  vi.mocked(askAssistant).mockResolvedValue({
+    source: "BACKEND",
+    answer: "O espaço é 22,5% e a capacidade de peso utilizada é 90%.",
+    facts: [{ name: "Análise do planejamento", criteria: "Snapshot persistido", timezone: "UTC", period_start: null, period_end: null,
+      values: { loaded_volumes: 24, rejected_volumes: 0, occupancy_percent: 22.5, weight_utilization_percent: 90 },
+      links: [{ label: "Abrir plano", href: "/planning/11111111-1111-4111-8111-111111111111" }] }],
+    links: [], suggestions: [],
+  });
+  show(); open(); send();
+  expect((await screen.findAllByText("Ocupação geométrica (%)")).length).toBeGreaterThan(0);
+  expect((await screen.findAllByText("Capacidade de peso utilizada (%)")).length).toBeGreaterThan(0);
+  expect(screen.getAllByText("22,5").length).toBeGreaterThan(0);
+  expect(screen.getAllByText("90").length).toBeGreaterThan(0);
+});

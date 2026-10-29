@@ -50,7 +50,8 @@ const FACT_LABELS: Record<string, string> = {
   status: "Situação",
   loaded_volumes: "Volumes carregados",
   rejected_volumes: "Volumes rejeitados",
-  occupancy_percent: "Ocupação (%)",
+  occupancy_percent: "Ocupação geométrica (%)",
+  weight_utilization_percent: "Capacidade de peso utilizada (%)",
   weight_kg: "Peso (kg)",
   truck_capacity_weight_kg: "Capacidade de peso (kg)",
   internal_width_cm: "Largura interna (cm)",
@@ -124,10 +125,14 @@ function DocumentationSource({ fact }: { readonly fact: AssistantFact }) {
 function Fact({ fact, onLink, onSelectCustomer, working }: FactProps) {
   const primaryKey = PRIMARY_METRICS.find((key) => typeof fact.values[key] === "number");
   const primary = primaryKey ? fact.values[primaryKey] : null;
+  const planSummary = fact.name === "Análise do planejamento" || fact.name === "Plano autorizado";
   const secondary = Object.entries(fact.values).filter(([key, value]) =>
     key !== primaryKey && typeof value === "number" &&
     !["page", "total_pages", "top_customer_delivered_orders", "bounded_matches"].includes(key)
-  ).slice(0, 2);
+  );
+  const visibleSecondary = planSummary
+    ? ["rejected_volumes", "occupancy_percent", "weight_utilization_percent"].flatMap((key) => secondary.filter(([entry]) => entry === key))
+    : secondary.slice(0, 2);
   const customer = fact.values.top_customer_name;
   const hasChoices = Boolean(fact.choices?.length);
   const compact = typeof primary === "number";
@@ -139,7 +144,7 @@ function Fact({ fact, onLink, onSelectCustomer, working }: FactProps) {
         <strong className="assistant-main-value">{formatValue(primary)}</strong>
         <span>{readable(primaryKey!)}</span>
       </div>
-      {secondary.length ? <dl className="assistant-metric-grid">{secondary.map(([key, value]) =>
+      {visibleSecondary.length ? <dl className="assistant-metric-grid">{visibleSecondary.map(([key, value]) =>
         <div key={key}><dt>{readable(key)}</dt><dd>{formatValue(value)}</dd></div>
       )}</dl> : null}
       {typeof customer === "string" && customer ? <p className="assistant-customer">Cliente com mais entregas: <strong>{customer}</strong></p> : null}

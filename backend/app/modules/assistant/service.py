@@ -27,7 +27,7 @@ from app.modules.assistant.answers import (
     natural_answer,
     verified_answer,
 )
-from app.modules.assistant.briefs import brief_verified_plan
+from app.modules.assistant.briefs import brief_verified_plan, needs_grounded_answer
 from app.modules.assistant.capabilities import (
     documentation_reply,
     scoped_request,
@@ -175,7 +175,8 @@ def _catalog_intent(question: str) -> str | None:
     text = unicodedata.normalize("NFKD", question.casefold())
     text = "".join(char for char in text if not unicodedata.combining(char))
     if len(text) > 165 or not re.search(
-        r"\b(?:quais|list\w*|mostr\w*|temos|cadastrad\w*|registrad\w*)\b", text
+        r"\b(?:quais|quantos|quantas|list\w*|mostr\w*|temos|cadastrad\w*|registrad\w*)\b",
+        text,
     ):
         return None
     if re.search(
@@ -217,7 +218,7 @@ def _catalog_answer(fact: Source) -> str:
     page = fact.values.get("page", 1)
     pages = fact.values.get("total_pages", 0)
     if not rows:
-        return f"Não encontrei registros de {fact.name.lower()} nesta página."
+        return f"Não encontrei {fact.name.lower()} nesta página."
     if fact.name == "Pedidos cadastrados":
         intro = (
             f"Encontrei {total} pedidos cadastrados. "
@@ -225,7 +226,17 @@ def _catalog_answer(fact: Source) -> str:
         )
         outro = "\nPosso filtrar pelos prontos, planejados ou entregues se você quiser."
     else:
-        intro = f"Encontrei {total} registros de {fact.name.lower()}:"
+        singular = {
+            "Produtos cadastrados": "produto cadastrado",
+            "Caminhões cadastrados": "caminhão cadastrado",
+            "Clientes cadastrados": "cliente cadastrado",
+            "Motoristas cadastrados": "motorista cadastrado",
+        }
+        intro = (
+            f"Encontrei 1 {singular[fact.name]}:"
+            if total == 1 and fact.name in singular
+            else f"Encontrei {total} {fact.name.lower()}:"
+        )
         outro = ""
     return (
         intro
@@ -300,9 +311,31 @@ class AssistantService:
                 links=[],
                 suggestions=["Quais consultas posso fazer?"],
             )
-        data, _conversational_followup = resolve_followup(data)
+        data, conversational_followup = resolve_followup(data)
         casual = conversation_reply(user, data.message)
-        # Ações continuam na UI autorizada; cumprimentos sociais vão ao modelo.
+        # Ações continuam na UI autenticada; jamais escrevemos no chat.
+        if (
+            casual is not None
+            and casual.links
+            and data.plan_id
+            and any(link["href"] == "/planning" for link in casual.links)
+        ):
+            # Re-read through the existing permission-aware service; an
+            # arbitrary plan_id from the client cannot become a navigation.
+            allowed_facts, allowed_links = planning_context(self.db, user, data)
+            if allowed_facts and allowed_links:
+                casual = casual.model_copy(
+                    update={
+                        "links": [
+                            {
+                                "label": "Abrir planejamento para confirmar ação",
+                                "href": link["href"],
+                            }
+                            for link in allowed_links
+                            if link["href"].startswith("/planning/")
+                        ]
+                    }
+                )
         if casual is not None and (
             casual.source == "GUARDRAIL"
             or casual.links
@@ -310,10 +343,24 @@ class AssistantService:
         ):
             return casual
         data = scoped_request(data)
-        documented = documentation_reply(user, data.message)
-        if documented is not None:
-            return documented
-        planned = planning_insight(self.db, user, data)
+        # Explicit saved-plan questions and conversation follow-ups outrank
+        # documentation about the fleet. Ordinary how-to questions stay on docs.
+        plan_question = bool(
+            conversational_followup
+            or data.plan_id
+            or data.distribution_id
+            or re.search(
+                r"\b(?:[uú]ltim\w*|mais recente|pen[uú]ltim\w*)\b",
+                data.message,
+                re.IGNORECASE,
+            )
+        )
+        planned = planning_insight(self.db, user, data) if plan_question else None
+        if planned is None:
+            documented = documentation_reply(user, data.message)
+            if documented is not None:
+                return documented
+            planned = planning_insight(self.db, user, data)
         if planned is not None:
             emit_security_event(
                 SecurityEvent.ASSISTANT_READ_QUERY,
@@ -333,6 +380,8 @@ class AssistantService:
                     "ASSISTANT_PLAN_REPLY mode=%s",
                     "brief" if concise.answer != planned.answer else "original",
                 )
+                if needs_grounded_answer(data.message):
+                    return concise
                 return self._narrate_verified(data, concise)
             return planned
         facts, links = planning_context(self.db, user, data)

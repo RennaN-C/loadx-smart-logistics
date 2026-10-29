@@ -160,6 +160,80 @@ class NaturalSelection(BaseModel):
     source_names: list[str] = Field(default_factory=list, max_length=6)
 
 
+def _validate_plan_semantics(answer: str, facts: list[Source]) -> None:
+    """Validate *meaning*, not just the presence of numbers in the snapshot."""
+    plan = next(
+        (
+            fact
+            for fact in facts
+            if fact.name in {"Análise do planejamento", "Plano autorizado"}
+        ),
+        None,
+    )
+    if plan is None:
+        return
+    values = plan.values
+    plain = normalize(answer)
+
+    # A part/distribution may have a separate state. Never present those as
+    # the state of the load plan itself.
+    if values.get("status") == "CALCULATED":
+        if re.search(r"\b(?:proposed|pending)\b", plain):
+            raise AIProviderUnavailableError
+        if re.search(r"\b(?:ja|foi|esta)\s+aprovad\w*\b", plain):
+            raise AIProviderUnavailableError
+
+    geometric = values.get("occupancy_percent")
+    weight_usage = values.get("weight_utilization_percent")
+    if (
+        isinstance(geometric, (int, float))
+        and not isinstance(geometric, bool)
+        and (
+            re.search(
+                r"(?:ocupacao|espaco|volume).{0,60}"
+                r"(?:nao (?:foi |esta )?registrad|nao (?:ha|tem) dados)",
+                plain,
+            )
+            or re.search(
+                r"(?:nao (?:foi |esta )?registrad).{0,60}"
+                r"(?:ocupacao|espaco|volume)",
+                plain,
+            )
+        )
+    ):
+        raise AIProviderUnavailableError
+
+    # Associate each percentage with its *closest preceding indicator*. A
+    # correct geometric 22.5 must not silently become weight utilization.
+    for match in re.finditer(r"(\d+(?:[.,]\d+)?)\s*%", plain):
+        prefix = plain[max(0, match.start() - 85) : match.start()]
+        labels = list(
+            re.finditer(
+                r"\b(?:ocupacao (?:de )?peso|capacidade de peso|"
+                r"ocupacao geometrica|ocupacao de espaco|"
+                r"ocupacao espacial|espaco interno|peso|geometrica|espaco)\b",
+                prefix,
+            )
+        )
+        if not labels:
+            continue
+        label = labels[-1].group()
+        number = float(match.group(1).replace(",", "."))
+        expected = (
+            weight_usage
+            if "peso" in label
+            else geometric
+            if any(part in label for part in ("geometrica", "espaco"))
+            else None
+        )
+        if (
+            isinstance(expected, (int, float))
+            and not isinstance(expected, bool)
+            and abs(number - expected) > 0.051
+        ):
+            raise AIProviderUnavailableError
+
+
 def natural_answer(
     content: str, facts: list[Source], *, allow_plain_text: bool = False
 ) -> str | None:
@@ -226,6 +300,7 @@ def natural_answer(
                     )
         if any(number not in allowed for number in numbers):
             raise AIProviderUnavailableError
+    _validate_plan_semantics(answer, facts)
     return answer
 
 

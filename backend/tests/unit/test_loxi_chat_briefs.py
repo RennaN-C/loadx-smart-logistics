@@ -138,7 +138,7 @@ def test_groq_unavailable_keeps_concise_relevant_fallback(isolated):
     assert "não parece necessária" in response.answer
     assert "novo cálculo" in response.answer
     assert "O algoritmo posicionou" not in response.answer
-    assert provider.complete.call_count == 1
+    provider.complete.assert_not_called()
 
 
 def test_groq_can_answer_first_planning_question_naturally(isolated):

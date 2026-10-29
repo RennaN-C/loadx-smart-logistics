@@ -33,7 +33,7 @@ _PLAN_WORD = re.compile(
 )
 _EXPLAIN_WORD = re.compile(
     r"\b(?:expli[cq]\w*|analis\w*|por qu[eê]|porque|resultado|peso|dimens\w*|sequ[eê]ncia|ordem de carregamento|"
-    r"rejeit\w*|n[aã]o coube|ocupa\w*|coub\w*)\b",
+    r"rejeit\w*|n[aã]o coube|ocupa\w*|coub\w*|aprovad\w*|status|situa[cç][aã]o)\b",
     re.IGNORECASE,
 )
 _LATEST_WORD = re.compile(
@@ -77,7 +77,10 @@ def _kind(question: str, data: ChatRequest) -> str | None:
     # A route context by itself is not a request to fetch every plan.
     if _UUID.search(text) and _PLAN_WORD.search(text):
         return "explain"
-    if data.plan_id and _EXPLAIN_WORD.search(text):
+    if data.plan_id and (
+        _EXPLAIN_WORD.search(text)
+        or re.search(r"\b(?:trocar|substituir|mudar|melhora|compensa)\b", text)
+    ):
         return "explain"
     if not _PLAN_WORD.search(text):
         return None
@@ -269,6 +272,9 @@ def planning_insight(db: Session, user: User, data: ChatRequest) -> ChatResponse
         "loaded_volumes": plan.loaded_count,
         "rejected_volumes": plan.unloaded_count,
         "occupancy_percent": occupied,
+        "weight_utilization_percent": round(100 * weight / limit, 2)
+        if limit > 0
+        else None,
         "weight_kg": weight,
         "truck_capacity_weight_kg": limit,
         "algorithm_version": plan.algorithm_version[:64],
