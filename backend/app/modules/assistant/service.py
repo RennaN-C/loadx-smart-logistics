@@ -309,6 +309,30 @@ def _fleet_availability_answer(fact: Source) -> str:
     return opening
 
 
+def _fleet_reason_answer(fact: Source) -> str:
+    """Explain each verified restriction without trusting dialogue or the provider."""
+    vehicles: list[str] = []
+    for key, value in fact.values.items():
+        if not key.startswith("item_") or not isinstance(value, str):
+            continue
+        parts = sanitize(value).split(" · ")
+        if len(parts) >= 3 and parts[1].startswith("placa "):
+            plate = parts[1].removeprefix("placa ")
+            vehicles.append(f"{parts[0]} (placa {plate}): {' · '.join(parts[2:])}")
+        else:
+            vehicles.append(sanitize(value)[:220])
+    if not vehicles:
+        return (
+            "Não há veículos indisponíveis com motivo detalhado nesta página. "
+            "Consulte a disponibilidade atual para verificar outras páginas."
+        )
+    return (
+        "Os motivos registrados nesta consulta são: "
+        + "; ".join(vehicles[:10])
+        + ". Cadastro ativo e disponibilidade operacional são situações distintas."
+    )
+
+
 def tool_definitions(user: User) -> list[dict]:
     descriptions = {
         "get_usage_guidance": "Consultar documentação real de COMO USAR um módulo, sem dados cadastrados. Informe module pela lista fechada. Respeita permissões; não inventa funcionalidades.",
@@ -434,8 +458,7 @@ class AssistantService:
             return ChatResponse(
                 source="BACKEND",
                 answer=(
-                    "Consultei novamente a disponibilidade atual e seus motivos "
-                    "registrados.\n" + _fleet_availability_answer(result.fact)
+                    _fleet_reason_answer(result.fact)
                     if fleet_followup
                     else _fleet_availability_answer(result.fact)
                 ),
