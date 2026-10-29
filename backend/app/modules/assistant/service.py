@@ -238,13 +238,15 @@ def _catalog_answer(fact: Source) -> str:
             else f"Encontrei {total} {fact.name.lower()}:"
         )
         outro = ""
+    if isinstance(total, int) and total > len(rows):
+        intro += f" Mostrando {len(rows)} registro(s) nesta página."
     return (
         intro
         + "\n"
         + "\n".join(f"• {row}" for row in rows)
         + (
-            f"\nEsta é a página {page} de {pages}; há mais resultados."
-            if isinstance(pages, int) and pages > page
+            f"\nPágina {page} de {pages}."
+            if isinstance(pages, int) and pages > 1
             else ""
         )
         + outro
