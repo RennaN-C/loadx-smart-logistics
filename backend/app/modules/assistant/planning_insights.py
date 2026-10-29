@@ -77,7 +77,10 @@ def _kind(question: str, data: ChatRequest) -> str | None:
     # A route context by itself is not a request to fetch every plan.
     if _UUID.search(text) and _PLAN_WORD.search(text):
         return "explain"
-    if data.plan_id and _EXPLAIN_WORD.search(text):
+    if data.plan_id and (
+        _EXPLAIN_WORD.search(text)
+        or re.search(r"\b(?:trocar|substituir|mudar|melhora|compensa)\b", text)
+    ):
         return "explain"
     if not _PLAN_WORD.search(text):
         return None

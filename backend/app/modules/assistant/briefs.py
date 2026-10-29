@@ -144,6 +144,19 @@ def _summary(question: str, fact: Source) -> str | None:
     )
 
 
+
+def needs_grounded_answer(question: str) -> bool:
+    """Keep physical metrics, approval states and truck comparisons out of LLM prose."""
+    normalized = normalize(question)
+    return bool(
+        re.search(
+            r"\b(?:ocup\w*|espaco|peso|percentual|aprovad\w*|"
+            r"calculad\w*|status|situacao|trocar|substituir|"
+            r"melhora|compensa|rejeit\w*|problema)\b",
+            normalized,
+        )
+    )
+
 def brief_verified_plan(question: str, result: ChatResponse) -> ChatResponse:
     """Preserve source records but avoid repeating a full technical report."""
     if (

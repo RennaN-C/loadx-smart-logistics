@@ -317,7 +317,15 @@ def scoped_request(data: ChatRequest) -> ChatRequest:
             normalize(data.message),
         )
     )
-    planning = "planning" in current or physical or direct_reference
+    truck_followup = bool(
+        data.plan_id
+        and re.search(
+            r"\b(?:trocar|substituir|mudar|melhora|compensa)\b"
+            r".{0,100}\b(?:caminh\w*|veicul\w*|frota|capacidade)\b",
+            normalize(data.message),
+        )
+    )
+    planning = "planning" in current or physical or direct_reference or truck_followup
     related = (
         {"planning", "fleet", "loading"}
         if "planning" in current

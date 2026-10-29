@@ -27,7 +27,7 @@ from app.modules.assistant.answers import (
     natural_answer,
     verified_answer,
 )
-from app.modules.assistant.briefs import brief_verified_plan
+from app.modules.assistant.briefs import brief_verified_plan, needs_grounded_answer
 from app.modules.assistant.capabilities import (
     documentation_reply,
     scoped_request,
@@ -317,7 +317,7 @@ class AssistantService:
             or data.plan_id
             or data.distribution_id
             or re.search(
-                r"\\b(?:[uú]ltim\\w*|mais recente|pen[uú]ltim\\w*)\\b",
+                r"\b(?:[uú]ltim\w*|mais recente|pen[uú]ltim\w*)\b",
                 data.message,
                 re.IGNORECASE,
             )
@@ -347,6 +347,8 @@ class AssistantService:
                     "ASSISTANT_PLAN_REPLY mode=%s",
                     "brief" if concise.answer != planned.answer else "original",
                 )
+                if needs_grounded_answer(data.message):
+                    return concise
                 return self._narrate_verified(data, concise)
             return planned
         facts, links = planning_context(self.db, user, data)
