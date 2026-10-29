@@ -408,9 +408,8 @@ class AssistantService:
         # Disponibilidade atual é dado operacional. Nunca pedir ao provedor que
         # invente placas ou omita registros que o backend já autorizou.
         if (
-            (_fleet_availability_intent(data.message) or fleet_followup)
-            and not data.diagnostic_token
-        ):
+            _fleet_availability_intent(data.message) or fleet_followup
+        ) and not data.diagnostic_token:
             name = "get_fleet_availability"
             if not allowed_tool(user, name):
                 return ChatResponse(
