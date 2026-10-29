@@ -257,18 +257,18 @@ def _fleet_availability_intent(question: str) -> bool:
     text = "".join(char for char in text if not unicodedata.combining(char))
     return (
         len(text) <= 165
-        and bool(re.search(r"\\b(?:caminh\\w*|veicul\\w*|frota)\\b", text))
+        and bool(re.search(r"\b(?:caminh\w*|veicul\w*|frota)\b", text))
         and bool(
             re.search(
-                r"\\b(?:indispon\\w*|nao dispon\\w*|bloquead\\w*|"
-                r"fora de operac\\w*)\\b",
+                r"\b(?:indispon\w*|nao dispon\w*|bloquead\w*|"
+                r"fora de operac\w*)\b",
                 text,
             )
         )
         and not bool(
             re.search(
-                r"\\b(?:ontem|semana passada|mes passado|historico|"
-                r"quando|por que|porque|como|poderia)\\b",
+                r"\b(?:ontem|semana passada|mes passado|historico|"
+                r"quando|por que|porque|como|poderia)\b",
                 text,
             )
         )
@@ -289,16 +289,15 @@ def _fleet_availability_answer(fact: Source) -> str:
     if not isinstance(count, int):
         count = len(vehicles)
     opening = (
-        f"Encontrei {count} caminhão" + ("" if count == 1 else "ões")
-        + " indisponível" + ("" if count == 1 else "eis")
+        f"Encontrei {count} " + ("caminhão indisponível" if count == 1 else "caminhões indisponíveis")
         + " nesta página da frota."
         if count
         else "Não há caminhões indisponíveis nesta página da frota."
     )
     if vehicles:
-        opening += "\\n" + "\\n".join(f"• {vehicle}" for vehicle in vehicles)
+        opening += "\n" + "\n".join(f"• {vehicle}" for vehicle in vehicles)
     opening += (
-        "\\nUm caminhão com cadastro ativo também pode estar temporariamente "
+        "\nUm caminhão com cadastro ativo também pode estar temporariamente "
         "indisponível por manutenção, documentos ou uso operacional."
     )
     if isinstance(pages, int) and pages > 1:
