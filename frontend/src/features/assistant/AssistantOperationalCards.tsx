@@ -101,7 +101,7 @@ function PlanOperationalCard({ fact, onLink }: { readonly fact: AssistantFact; r
     <div className="loxi-insight"><Icon name="gauge" size={16} /><p>{insight} Nenhuma simulação nova foi executada pelo chat.</p></div>
     {planId ? <div className="loxi-card-actions">
       <button type="button" className="loxi-action" onClick={() => setPreview((old) => !old)} aria-expanded={preview}>
-        <Icon name="box" size={15} /> {preview ? "Fechar prévia 3D" : "Explorar carga em 3D"}
+        <Icon name="planning" size={15} /> {preview ? "Fechar prévia 3D" : "Explorar carga em 3D"}
       </button>
       <Link to={`/planning/${planId}`} onClick={onLink}>Abrir plano <Icon name="arrow-right" size={14} /></Link>
     </div> : null}
@@ -186,7 +186,7 @@ function RecordOperationalCard({ fact, onLink }: { readonly fact: AssistantFact;
       {items.map((item, index) => {
         const parts = item.split(" · ");
         return <div className="loxi-vehicle" key={index}>
-          <span className="loxi-vehicle-icon"><Icon name="box" size={17} /></span>
+          <span className="loxi-vehicle-icon"><Icon name="report" size={17} /></span>
           <div className="loxi-vehicle-info"><strong>{parts[0]}</strong>
             {parts.slice(1).length ? <span className="loxi-vehicle-state">{parts.slice(1).join(" · ")}</span> : null}</div>
         </div>;
