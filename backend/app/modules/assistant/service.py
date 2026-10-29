@@ -300,7 +300,9 @@ def _fleet_availability_answer(fact: Source) -> str:
         "indisponível por manutenção, documentos ou uso operacional."
     )
     if isinstance(pages, int) and pages > 1:
-        opening += f" Página {page} de {pages}; consulte as demais páginas para o total."
+        opening += (
+            f" Página {page} de {pages}; consulte as demais páginas para o total."
+        )
     return opening
 
 
