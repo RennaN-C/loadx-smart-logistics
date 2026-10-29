@@ -288,19 +288,44 @@ class AssistantMetricsService:
         result = TruckOperationalStatusService(self.db).list_statuses(
             PaginationParams(page=page, page_size=20, sort_order="desc")
         )
-        unavailable = [item.plate for item in result.items if not item.available]
+        unavailable = [item for item in result.items if not item.available]
+        values: dict[str, int | float | str | None] = {
+            "page": result.page,
+            "total_pages": result.total_pages,
+            "page_vehicle_count": len(result.items),
+            "page_active_count": sum(item.active for item in result.items),
+            "page_archived_count": sum(not item.active for item in result.items),
+            "page_unavailable_count": len(unavailable),
+            "unavailable_vehicles": ", ".join(item.plate[:16] for item in unavailable)
+            or "Nenhum nesta página",
+        }
+        for index, truck in enumerate(unavailable, start=1):
+            reasons = []
+            if not truck.active:
+                reasons.append("cadastro arquivado")
+            if truck.has_maintenance_conflict:
+                reasons.append("manutenção")
+            if truck.has_document_conflict:
+                reasons.append("documentação")
+            if truck.has_operation_conflict:
+                reasons.append("operação em andamento")
+            if not reasons:
+                reasons.append("restrição operacional não detalhada")
+            values[f"item_{index}"] = (
+                f"{truck.model[:100]} · placa {truck.plate[:16]} · "
+                + ", ".join(reasons)
+            )
         return Source(
             name="Disponibilidade atual da frota",
-            criteria="Snapshot operacional do backend, até 20 cadastros por página. Cadastro ativo e disponibilidade operacional são critérios separados; arquivados não podem operar. Não é um agregado global.",
-            values={
-                "page": result.page,
-                "total_pages": result.total_pages,
-                "page_vehicle_count": len(result.items),
-                "page_active_count": sum(item.active for item in result.items),
-                "page_archived_count": sum(not item.active for item in result.items),
-                "page_unavailable_count": len(unavailable),
-                "unavailable_vehicles": ", ".join(unavailable) or "Nenhum nesta página",
-            },
+            criteria=(
+                "Snapshot operacional do backend; até 20 veículos por página. "
+                "Ativo é uma propriedade do cadastro, disponível é a condição "
+                "operacional neste instante. Um caminhão ativo pode estar "
+                "indisponível por manutenção, documentos ou operação. "
+                "As quantidades são desta página, não da frota inteira."
+            ),
+            values=values,
+            links=[{"label": "Consultar disponibilidade", "href": "/trucks?tab=availability"}],
         )
 
     def _metadata(self, name: str) -> Source | None:
