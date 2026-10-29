@@ -313,24 +313,28 @@ class AssistantService:
         data, conversational_followup = resolve_followup(data)
         casual = conversation_reply(user, data.message)
         # Ações continuam na UI autenticada; jamais escrevemos no chat.
-        if casual is not None and casual.links and data.plan_id:
-            if any(link["href"] == "/planning" for link in casual.links):
-                # Re-read through the existing permission-aware service; an
-                # arbitrary plan_id from the client cannot become a navigation.
-                allowed_facts, allowed_links = planning_context(self.db, user, data)
-                if allowed_facts and allowed_links:
-                    casual = casual.model_copy(
-                        update={
-                            "links": [
-                                {
-                                    "label": "Abrir planejamento para confirmar ação",
-                                    "href": link["href"],
-                                }
-                                for link in allowed_links
-                                if link["href"].startswith("/planning/")
-                            ]
-                        }
-                    )
+        if (
+            casual is not None
+            and casual.links
+            and data.plan_id
+            and any(link["href"] == "/planning" for link in casual.links)
+        ):
+            # Re-read through the existing permission-aware service; an
+            # arbitrary plan_id from the client cannot become a navigation.
+            allowed_facts, allowed_links = planning_context(self.db, user, data)
+            if allowed_facts and allowed_links:
+                casual = casual.model_copy(
+                    update={
+                        "links": [
+                            {
+                                "label": "Abrir planejamento para confirmar ação",
+                                "href": link["href"],
+                            }
+                            for link in allowed_links
+                            if link["href"].startswith("/planning/")
+                        ]
+                    }
+                )
         if casual is not None and (
             casual.source == "GUARDRAIL"
             or casual.links
