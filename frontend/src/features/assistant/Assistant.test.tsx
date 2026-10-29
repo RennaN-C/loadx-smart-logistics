@@ -490,14 +490,57 @@ it("exibe plano com indicadores distintos e carrega 3D apenas após ação expl�
   fireEvent.click(screen.getByRole("button", { name: "Explorar carga em 3D" }));
   expect(await screen.findByText("Visualização 3D do plano " + id)).toBeInTheDocument();
   expect(getLoadPlan).toHaveBeenCalledWith(id);
+  expect(screen.getByText(/Prévia interativa/)).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Visualização completa" })).toHaveAttribute("href", "/planning/" + id);
 });
 
 it("expande e reduz a janela sem apagar a conversa", async () => {
   show(); open(); send();
   await screen.findByText(REPLY.answer);
+  const overflow = document.body.style.overflow;
   fireEvent.click(screen.getByRole("button", { name: "Expandir assistente" }));
   expect(screen.getByRole("dialog")).toHaveClass("is-expanded");
+  expect(document.body.style.overflow).toBe("hidden");
   expect(screen.getByText(REPLY.answer)).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Reduzir assistente" }));
   expect(screen.getByRole("dialog")).not.toHaveClass("is-expanded");
+  expect(document.body.style.overflow).toBe(overflow);
+});
+
+it("recolhe disponibilidade idêntica em follow-ups sem esconder mudanças reais", async () => {
+  const first: AssistantReply = {
+    ...REPLY,
+    source: "BACKEND",
+    answer: "Os motivos são cadastro arquivado e operação em andamento.",
+    facts: [{
+      name: "Disponibilidade atual da frota",
+      criteria: "Dados operacionais atuais",
+      timezone: "UTC", period_start: null, period_end: null,
+      values: {
+        page_vehicle_count: 5,
+        page_unavailable_count: 2,
+        item_1: "Baú Médio · placa ABD5543 · cadastro arquivado",
+        item_2: "Baú Médio · placa ABD5544 · operação em andamento",
+      },
+    }],
+  };
+  vi.mocked(askAssistant).mockResolvedValue(first);
+  show("/orders"); open(); send();
+  await waitFor(() => expect(vi.mocked(askAssistant)).toHaveBeenCalledTimes(1));
+  await screen.findByRole("region", { name: "Disponibilidade operacional da frota" });
+  send();
+  await waitFor(() => expect(vi.mocked(askAssistant)).toHaveBeenCalledTimes(2));
+  expect(await screen.findByText("Dados da frota já exibidos")).toBeInTheDocument();
+  expect(screen.getAllByRole("region", { name: "Disponibilidade operacional da frota" })).toHaveLength(1);
+
+  vi.mocked(askAssistant).mockResolvedValue({
+    ...first, facts: [{ ...first.facts[0], values: {
+      ...first.facts[0].values,
+      item_2: "Baú Médio · placa ABD5544 · manutenção",
+    } }],
+  });
+  send();
+  await waitFor(() => expect(vi.mocked(askAssistant)).toHaveBeenCalledTimes(3));
+  expect(await screen.findByText("manutenção")).toBeInTheDocument();
+  expect(screen.getAllByRole("region", { name: "Disponibilidade operacional da frota" })).toHaveLength(2);
 });
