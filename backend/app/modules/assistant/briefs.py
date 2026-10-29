@@ -109,7 +109,9 @@ def _summary(question: str, fact: Source) -> str | None:
 
     if re.search(r"\b(?:ocup\w*|espaco|percentual)\b", q):
         if occupancy is None and weight_usage is None:
-            return "Este registro não contém indicadores suficientes de ocupação." + extras
+            return (
+                "Este registro não contém indicadores suficientes de ocupação." + extras
+            )
         details = []
         if occupancy is not None:
             details.append(f"A ocupação geométrica (espaço interno) é {occupancy}%.")
@@ -144,7 +146,6 @@ def _summary(question: str, fact: Source) -> str | None:
     )
 
 
-
 def needs_grounded_answer(question: str) -> bool:
     """Keep physical metrics, approval states and truck comparisons out of LLM prose."""
     normalized = normalize(question)
@@ -156,6 +157,7 @@ def needs_grounded_answer(question: str) -> bool:
             normalized,
         )
     )
+
 
 def brief_verified_plan(question: str, result: ChatResponse) -> ChatResponse:
     """Preserve source records but avoid repeating a full technical report."""

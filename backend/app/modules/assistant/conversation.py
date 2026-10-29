@@ -84,7 +84,12 @@ def conversation_reply(user: User, message: str) -> ChatResponse | None:
             ),
         )
     actions = (
-        ("aprovar|aprove", "loadx.planning.approve", "/planning", "aprovação de planejamento"),
+        (
+            "aprovar|aprove",
+            "loadx.planning.approve",
+            "/planning",
+            "aprovação de planejamento",
+        ),
         (
             "recalcular",
             "loadx.planning.create",
@@ -97,7 +102,12 @@ def conversation_reply(user: User, message: str) -> ChatResponse | None:
             "/planning",
             "revisão das opções de cancelamento de planejamento",
         ),
-        ("excluir|exclua", "loadx.products.manage", "/products", "exclusão de cadastro"),
+        (
+            "excluir|exclua",
+            "loadx.products.manage",
+            "/products",
+            "exclusão de cadastro",
+        ),
     )
     # No implicit execution: a text command is an invitation to a reviewed UI flow.
     for verb, permission, href, label in actions:

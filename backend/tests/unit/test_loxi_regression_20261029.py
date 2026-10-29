@@ -46,9 +46,7 @@ def _plan():
 
 
 def _narration(answer):
-    return json.dumps(
-        {"answer": answer, "source_names": ["Análise do planejamento"]}
-    )
+    return json.dumps({"answer": answer, "source_names": ["Análise do planejamento"]})
 
 
 def test_occupation_question_distinguishes_weight_from_geometry():
@@ -71,7 +69,9 @@ def test_percentage_difference_is_explained_without_a_new_simulation():
 
 
 def test_saved_status_and_truck_comparison_are_brief():
-    state = brief_verified_plan("Esse planejamento está calculado ou aprovado?", _plan())
+    state = brief_verified_plan(
+        "Esse planejamento está calculado ou aprovado?", _plan()
+    )
     assert "calculado, ainda não aprovado" in state.answer
     change = brief_verified_plan(
         "Trocar de caminhão ajudaria? Explique usando os dados reais.", _plan()
@@ -114,7 +114,10 @@ def test_fleet_question_retains_recent_planning_through_weight_followup():
     history = [
         {"role": "user", "content": "Esse planejamento está calculado ou aprovado?"},
         {"role": "assistant", "content": "Calculado."},
-        {"role": "user", "content": "Por que 22,5% de ocupação se o caminhão tem 3600 kg?"},
+        {
+            "role": "user",
+            "content": "Por que 22,5% de ocupação se o caminhão tem 3600 kg?",
+        },
         {"role": "assistant", "content": "Peso e espaço são diferentes."},
     ]
     result, changed = resolve_followup(
@@ -142,9 +145,7 @@ def test_single_registered_product_uses_correct_portuguese():
 
 
 def test_general_capabilities_are_server_documented_without_groq():
-    result = documentation_reply(
-        _user(), "O que você consegue fazer dentro do LoadX?"
-    )
+    result = documentation_reply(_user(), "O que você consegue fazer dentro do LoadX?")
     assert result is not None
     assert result.source == "DOCUMENTATION"
     assert "Planejamento" in result.answer
@@ -171,7 +172,13 @@ def test_action_handoff_never_writes_and_links_only_authorized_record(monkeypatc
     plan_id = uuid.uuid4()
     permitted = Mock(
         return_value=(
-            [Source(name="Plano autorizado", criteria="Persistido", values={"status": "CALCULATED"})],
+            [
+                Source(
+                    name="Plano autorizado",
+                    criteria="Persistido",
+                    values={"status": "CALCULATED"},
+                )
+            ],
             [{"label": "Abrir plano", "href": f"/planning/{plan_id}"}],
         )
     )

@@ -175,7 +175,8 @@ def _catalog_intent(question: str) -> str | None:
     text = unicodedata.normalize("NFKD", question.casefold())
     text = "".join(char for char in text if not unicodedata.combining(char))
     if len(text) > 165 or not re.search(
-        r"\b(?:quais|quantos|quantas|list\w*|mostr\w*|temos|cadastrad\w*|registrad\w*)\b", text
+        r"\b(?:quais|quantos|quantas|list\w*|mostr\w*|temos|cadastrad\w*|registrad\w*)\b",
+        text
     ):
         return None
     if re.search(

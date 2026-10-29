@@ -53,7 +53,8 @@ def planning_context(
                     "occupancy_percent": float(plan.occupancy_percent),
                     "weight_utilization_percent": (
                         round(
-                            100 * float(plan.total_weight_kg)
+                            100
+                            * float(plan.total_weight_kg)
                             / float(plan.truck_snapshot_max_weight_kg),
                             2,
                         )

@@ -116,7 +116,9 @@ class GroqProvider:
             )
             if status == 429 and self.config.app_env != "local":
                 with _rate_lock:
-                    _rate_limited_until = max(_rate_limited_until, time.monotonic() + 60)
+                    _rate_limited_until = max(
+                        _rate_limited_until, time.monotonic() + 60
+                    )
             if status == 400:
                 # Groq may return 400 when the model creates an invalid tool
                 # call. Parse only a bounded response and log a fixed category.
