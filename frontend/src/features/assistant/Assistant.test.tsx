@@ -71,7 +71,7 @@ it("bloqueia cliques duplicados e ignora resposta após fechar", async () => {
   let resolve!: (reply: AssistantReply) => void;
   vi.mocked(askAssistant).mockReturnValue(new Promise((done) => { resolve = done; }));
   show(); open(); send();
-  expect(screen.getByRole("button", { name: "Consultando…" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Aguardando resposta do Loxi" })).toBeDisabled();
   fireEvent.click(screen.getByRole("button", { name: "Minimizar assistente" }));
   resolve(REPLY);
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
@@ -159,7 +159,7 @@ it("mantém mais de três respostas no histórico visível", async () => {
     fireEvent.change(screen.getByLabelText("Sua pergunta"), { target: { value: prompt } });
     fireEvent.click(screen.getByRole("button", { name: "Enviar pergunta" }));
     await waitFor(() => expect(vi.mocked(askAssistant).mock.calls.length).toBe(i + 1));
-    await waitFor(() => expect(screen.getByLabelText("Sua pergunta")).toHaveValue(""));
+    await waitFor(() => expect(screen.getAllByText(REPLY.answer)).toHaveLength(i + 1));
   }
   expect(screen.getByText("Pergunta 0")).toBeInTheDocument();
   expect(screen.getByText("Pergunta 4")).toBeInTheDocument();
@@ -281,7 +281,7 @@ it("envia os oito turnos anteriores com papéis corretos", async () => {
     fireEvent.change(screen.getByLabelText("Sua pergunta"), { target: { value: "Pergunta " + index } });
     fireEvent.click(screen.getByRole("button", { name: "Enviar pergunta" }));
     await waitFor(() => expect(vi.mocked(askAssistant).mock.calls.length).toBe(index + 1));
-    await waitFor(() => expect(screen.getByLabelText("Sua pergunta")).toHaveValue(""));
+    await waitFor(() => expect(screen.getAllByText(REPLY.answer)).toHaveLength(index + 1));
   }
   const history = vi.mocked(askAssistant).mock.calls[8][1];
   expect(history).toHaveLength(16);
@@ -361,7 +361,7 @@ it("recolhe métricas repetidas do mesmo planejamento em perguntas seguintes", a
   });
   fireEvent.click(screen.getByRole("button", { name: "Enviar pergunta" }));
   await waitFor(() => expect(askAssistant).toHaveBeenCalledTimes(2));
-  expect(await screen.findByText("Ver dados deste planejamento já exibidos")).toBeInTheDocument();
+  expect(await screen.findByText("Dados do planejamento já exibidos")).toBeInTheDocument();
 });
 
 it("distingue ocupação geométrica e utilização de peso nos cartões do plano", async () => {
@@ -378,4 +378,56 @@ it("distingue ocupação geométrica e utilização de peso nos cartões do plan
   expect((await screen.findAllByText("Capacidade de peso utilizada (%)")).length).toBeGreaterThan(0);
   expect(screen.getAllByText("22,5").length).toBeGreaterThan(0);
   expect(screen.getAllByText("90").length).toBeGreaterThan(0);
+});
+
+
+it("mostra a mensagem imediatamente e posiciona a resposta no próprio chat", async () => {
+  let resolve!: (reply: AssistantReply) => void;
+  vi.mocked(askAssistant).mockReturnValue(new Promise((done) => { resolve = done; }));
+  show("/orders"); open();
+  const composer = screen.getByLabelText("Sua pergunta");
+  fireEvent.change(composer, { target: { value: "Olá" } });
+  fireEvent.click(screen.getByRole("button", { name: "Enviar pergunta" }));
+  expect(screen.getByText("Olá")).toBeInTheDocument();
+  expect(screen.getByRole("status", { name: "Loxi está preparando a resposta" })).toBeInTheDocument();
+  expect(screen.queryByText("Consultando informações autorizadas…")).not.toBeInTheDocument();
+  expect(composer).not.toBeDisabled();
+  expect(composer).toHaveValue("");
+  fireEvent.change(composer, { target: { value: "Próxima pergunta" } });
+  expect(composer).toHaveValue("Próxima pergunta");
+  expect(screen.getByRole("button", { name: "Aguardando resposta do Loxi" })).toBeDisabled();
+  resolve(REPLY);
+  expect(await screen.findByText(REPLY.answer)).toBeInTheDocument();
+  await waitFor(() => expect(screen.queryByRole("status", { name: "Loxi está preparando a resposta" })).not.toBeInTheDocument());
+  expect(composer).toHaveValue("Próxima pergunta");
+});
+
+it("restaura a pergunta após erro de API e permite nova tentativa", async () => {
+  vi.mocked(askAssistant).mockRejectedValueOnce(new Error("erro técnico interno"));
+  show("/orders"); open();
+  fireEvent.change(screen.getByLabelText("Sua pergunta"), { target: { value: "Olá" } });
+  fireEvent.click(screen.getByRole("button", { name: "Enviar pergunta" }));
+  expect(await screen.findByRole("alert")).not.toHaveTextContent("erro técnico interno");
+  expect(screen.getByLabelText("Sua pergunta")).toHaveValue("Olá");
+  expect(screen.queryByRole("status", { name: "Loxi está preparando a resposta" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Tentar novamente" }));
+  expect(await screen.findByText(REPLY.answer)).toBeInTheDocument();
+});
+
+it("mantém registro operacional legível sem obrigar o usuário a abrir métricas", async () => {
+  vi.mocked(askAssistant).mockResolvedValue({
+    source: "BACKEND",
+    answer: "Encontrei 2 caminhões indisponíveis nesta página da frota.\\n• Baú Médio · placa ABD5543 · cadastro arquivado\\n• Baú Pequeno · placa TESTE M2 · manutenção",
+    facts: [{
+      name: "Disponibilidade atual da frota", criteria: "Disponibilidade real do backend",
+      timezone: "UTC", period_start: null, period_end: null,
+      values: { page_unavailable_count: 2, page_vehicle_count: 5, page_active_count: 4, item_1: "Baú Médio · placa ABD5543 · cadastro arquivado" },
+    }],
+    links: [{ label: "Consultar disponibilidade", href: "/trucks?tab=availability" }],
+    suggestions: [],
+  });
+  show("/trucks"); open(); send();
+  expect(await screen.findByText(/ABD5543 · cadastro arquivado/)).toBeInTheDocument();
+  expect(screen.getByText(/TESTE M2 · manutenção/)).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Consultar disponibilidade" })).toHaveAttribute("href", "/trucks?tab=availability");
 });
