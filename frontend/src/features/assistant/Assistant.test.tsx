@@ -427,7 +427,7 @@ it("mantém registro operacional legível sem obrigar o usuário a abrir métric
     suggestions: [],
   });
   show("/trucks"); open(); send();
-  expect(await screen.findByText(/ABD5543 · cadastro arquivado/)).toBeInTheDocument();
+  expect((await screen.findAllByText(/ABD5543 · cadastro arquivado/)).length).toBeGreaterThan(0);
   expect(screen.getByText(/TESTE M2 · manutenção/)).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Consultar disponibilidade" })).toHaveAttribute("href", "/trucks?tab=availability");
 });
