@@ -160,6 +160,44 @@ function FleetOperationalCard({ fact, onLink, unavailable }: {
   </section>;
 }
 
+const RECORD_ROUTES: Record<string, string> = {
+  "Pedidos cadastrados": "/orders",
+  "Produtos cadastrados": "/products",
+  "Clientes cadastrados": "/contacts?tab=customers",
+  "Motoristas cadastrados": "/contacts?tab=drivers",
+};
+
+function RecordOperationalCard({ fact, onLink }: { readonly fact: AssistantFact; readonly onLink: () => void }) {
+  const values = fact.values;
+  const count = metric(values, "total_records");
+  const page = metric(values, "page");
+  const pages = metric(values, "total_pages");
+  const items = rows(values);
+  const route = RECORD_ROUTES[fact.name];
+  return <section className="loxi-operational-card loxi-records-card" aria-label={fact.name}>
+    <header className="loxi-card-header">
+      <div><span className="loxi-eyebrow"><Icon name="chart" size={14} /> Loxi · Cadastros</span>
+        <strong>{fact.name}</strong></div>
+      {count !== null ? <span className="loxi-status-chip">{number.format(count)} no total</span> : null}
+    </header>
+    <div className="loxi-vehicle-list">
+      {items.map((item, index) => {
+        const parts = item.split(" · ");
+        return <div className="loxi-vehicle" key={index}>
+          <span className="loxi-vehicle-icon"><Icon name="box" size={17} /></span>
+          <div className="loxi-vehicle-info"><strong>{parts[0]}</strong>
+            {parts.slice(1).length ? <span className="loxi-vehicle-state">{parts.slice(1).join(" · ")}</span> : null}</div>
+        </div>;
+      })}
+      {!items.length ? <p className="assistant-inline-note">Nenhum registro nesta página.</p> : null}
+    </div>
+    {pages !== null && pages > 1 ? <p className="loxi-page-note">Página {page ?? 1} de {pages}. Mais resultados estão disponíveis na tela.</p> : null}
+    <div className="loxi-card-actions">
+      <Link to={route} onClick={onLink}>Consultar {fact.name.toLowerCase()} <Icon name="arrow-right" size={14} /></Link>
+    </div>
+  </section>;
+}
+
 /** Only known backend Source names activate rich cards; no model-controlled layout. */
 export function AssistantOperationalCard({ fact, onLink }: {
   readonly fact: AssistantFact; readonly onLink: () => void;
@@ -170,9 +208,12 @@ export function AssistantOperationalCard({ fact, onLink }: {
     return <FleetOperationalCard fact={fact} onLink={onLink} unavailable />;
   if (fact.name === "Caminhões cadastrados")
     return <FleetOperationalCard fact={fact} onLink={onLink} unavailable={false} />;
+  if (fact.name in RECORD_ROUTES)
+    return <RecordOperationalCard fact={fact} onLink={onLink} />;
   return null;
 }
 
 export function hasOperationalCard(fact: AssistantFact): boolean {
-  return ["Análise do planejamento", "Plano autorizado", "Disponibilidade atual da frota", "Caminhões cadastrados"].includes(fact.name);
+  return ["Análise do planejamento", "Plano autorizado", "Disponibilidade atual da frota", "Caminhões cadastrados"].includes(fact.name)
+    || fact.name in RECORD_ROUTES;
 }
