@@ -239,7 +239,8 @@ def _catalog_answer(fact: Source) -> str:
         )
         outro = ""
     if isinstance(total, int) and total > len(rows):
-        intro += f" Mostrando {len(rows)} registro(s) nesta página."
+        noun = "registro" if len(rows) == 1 else "registros"
+        intro = intro.rstrip(":") + f". Esta página mostra {len(rows)} {noun}:"
     return (
         intro
         + "\n"
