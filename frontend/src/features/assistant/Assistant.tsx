@@ -44,6 +44,12 @@ export function Assistant() {
     setContext((previous) => ({ ...routeContext(pathname), customerId: previous.customerId }));
   }, [pathname]);
   useEffect(() => {
+    if (!open || !expanded) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = previous; };
+  }, [open, expanded]);
+  useEffect(() => {
     if (!open) return;
     const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const launchButton = launcher.current;
