@@ -111,6 +111,8 @@ def test_fleet_query_rechecks_permission_without_provider(monkeypatch):
 def test_historical_or_ambiguous_questions_do_not_claim_current_snapshot():
     assert _fleet_availability_intent("Quais veículos estão indisponíveis?")
     assert _fleet_availability_intent("Quantos caminhões estão bloqueados?")
-    assert not _fleet_availability_intent("Quais caminhões estavam indisponíveis ontem?")
+    assert not _fleet_availability_intent(
+        "Quais caminhões estavam indisponíveis ontem?"
+    )
     assert not _fleet_availability_intent("Como faço para liberar caminhões?")
     assert not _fleet_availability_intent("Quais caminhões temos cadastrados?")
