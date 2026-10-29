@@ -52,9 +52,15 @@ function PlanPreview({ planId }: { readonly planId: string }) {
   if (!plan) return <p className="assistant-inline-note" role="status">
     <span className="spinner" aria-hidden="true" /> Carregando dados autorizados do plano…
   </p>;
-  return <Suspense fallback={<p className="assistant-inline-note" role="status">Carregando visualizador 3D…</p>}>
-    <LoadViewer planId={planId} plan={plan} />
-  </Suspense>;
+  return <>
+    <p className="loxi-preview-hint">
+      Prévia interativa · arraste para girar e use a rolagem para aproximar.
+      <Link to={`/planning/${planId}`}>Visualização completa</Link>
+    </p>
+    <Suspense fallback={<p className="assistant-inline-note" role="status">Carregando visualizador 3D…</p>}>
+      <LoadViewer planId={planId} plan={plan} />
+    </Suspense>
+  </>;
 }
 
 function PlanOperationalCard({ fact, onLink }: { readonly fact: AssistantFact; readonly onLink: () => void }) {
