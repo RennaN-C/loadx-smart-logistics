@@ -233,13 +233,13 @@ def documentation_reply(user: User, message: str) -> ChatResponse | None:
     text = normalize(message)
     general = bool(
         re.search(
-            r"\b(?:como funciona o (?:sistema|loadx)|o que (?:e|faz) o loadx|quais funcionalidades|catalogo de capacidades|o que (?:voce|vc) (?:consegue |pode |sabe )?fazer(?: dentro do loadx| no loadx)?|como (?:voce|vc) pode me ajudar)\b",
+            r"\b(?:como funciona o (?:sistema|loadx)|o que (?:e|faz) o loadx|quais funcionalidades|catalogo de capacidades|o que (?:voce|vc) (?:consegue |pode |sabe )?fazer(?: dentro do loadx| no loadx)?)\b",
             text,
         )
     )
     how = bool(
         re.search(
-            r"\b(?:fale|explique|explicar|como (?:funciona|usar|uso|cadastrar|cadastro|consultar|acessar)|sobre|o que e|para que serve)\b",
+            r"\b(?:fale|explique|explicar|como (?:funciona|usar|uso|cadastrar|cadastro|consultar|acessar)|como (?:voce|vc) pode me ajudar|sobre|o que e|para que serve)\b",
             text,
         )
     )

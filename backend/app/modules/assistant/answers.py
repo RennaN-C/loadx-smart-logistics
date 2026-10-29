@@ -185,17 +185,23 @@ def _validate_plan_semantics(answer: str, facts: list[Source]) -> None:
 
     geometric = values.get("occupancy_percent")
     weight_usage = values.get("weight_utilization_percent")
-    if isinstance(geometric, (int, float)) and not isinstance(geometric, bool):
-        if re.search(
-            r"(?:ocupacao|espaco|volume).{0,60}"
-            r"(?:nao (?:foi |esta )?registrad|nao (?:ha|tem) dados)",
-            plain,
-        ) or re.search(
-            r"(?:nao (?:foi |esta )?registrad).{0,60}"
-            r"(?:ocupacao|espaco|volume)",
-            plain,
-        ):
-            raise AIProviderUnavailableError
+    if (
+        isinstance(geometric, (int, float))
+        and not isinstance(geometric, bool)
+        and (
+            re.search(
+                r"(?:ocupacao|espaco|volume).{0,60}"
+                r"(?:nao (?:foi |esta )?registrad|nao (?:ha|tem) dados)",
+                plain,
+            )
+            or re.search(
+                r"(?:nao (?:foi |esta )?registrad).{0,60}"
+                r"(?:ocupacao|espaco|volume)",
+                plain,
+            )
+        )
+    ):
+        raise AIProviderUnavailableError
 
     # Associate each percentage with its *closest preceding indicator*. A
     # correct geometric 22.5 must not silently become weight utilization.
@@ -220,9 +226,12 @@ def _validate_plan_semantics(answer: str, facts: list[Source]) -> None:
             if any(part in label for part in ("geometrica", "espaco"))
             else None
         )
-        if isinstance(expected, (int, float)) and not isinstance(expected, bool):
-            if abs(number - expected) > 0.051:
-                raise AIProviderUnavailableError
+        if (
+            isinstance(expected, (int, float))
+            and not isinstance(expected, bool)
+            and abs(number - expected) > 0.051
+        ):
+            raise AIProviderUnavailableError
 
 
 def natural_answer(

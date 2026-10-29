@@ -128,6 +128,19 @@ def test_fleet_question_retains_recent_planning_through_weight_followup():
     assert result.plan_id is None
 
 
+def test_single_registered_product_uses_correct_portuguese():
+    from app.modules.assistant.service import _catalog_answer
+
+    response = _catalog_answer(
+        Source(
+            name="Produtos cadastrados",
+            criteria="Persistido",
+            values={"total_records": 1, "item_1": "Caixa média"},
+        )
+    )
+    assert "Encontrei 1 produto cadastrado" in response
+
+
 def test_general_capabilities_are_server_documented_without_groq():
     result = documentation_reply(
         _user(), "O que você consegue fazer dentro do LoadX?"

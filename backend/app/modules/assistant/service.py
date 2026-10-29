@@ -175,7 +175,7 @@ def _catalog_intent(question: str) -> str | None:
     text = unicodedata.normalize("NFKD", question.casefold())
     text = "".join(char for char in text if not unicodedata.combining(char))
     if len(text) > 165 or not re.search(
-        r"\b(?:quais|list\w*|mostr\w*|temos|cadastrad\w*|registrad\w*)\b", text
+        r"\b(?:quais|quantos|quantas|list\w*|mostr\w*|temos|cadastrad\w*|registrad\w*)\b", text
     ):
         return None
     if re.search(
@@ -217,7 +217,7 @@ def _catalog_answer(fact: Source) -> str:
     page = fact.values.get("page", 1)
     pages = fact.values.get("total_pages", 0)
     if not rows:
-        return f"Não encontrei registros de {fact.name.lower()} nesta página."
+        return f"Não encontrei {fact.name.lower()} nesta página."
     if fact.name == "Pedidos cadastrados":
         intro = (
             f"Encontrei {total} pedidos cadastrados. "
@@ -225,7 +225,17 @@ def _catalog_answer(fact: Source) -> str:
         )
         outro = "\nPosso filtrar pelos prontos, planejados ou entregues se você quiser."
     else:
-        intro = f"Encontrei {total} registros de {fact.name.lower()}:"
+        singular = {
+            "Produtos cadastrados": "produto cadastrado",
+            "Caminhões cadastrados": "caminhão cadastrado",
+            "Clientes cadastrados": "cliente cadastrado",
+            "Motoristas cadastrados": "motorista cadastrado",
+        }
+        intro = (
+            f"Encontrei 1 {singular[fact.name]}:"
+            if total == 1 and fact.name in singular
+            else f"Encontrei {total} {fact.name.lower()}:"
+        )
         outro = ""
     return (
         intro
