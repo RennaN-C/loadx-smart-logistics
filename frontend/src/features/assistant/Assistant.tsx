@@ -106,7 +106,7 @@ export function Assistant() {
         const planLink = reply.facts
           .filter((fact) => fact.name === "Análise do planejamento")
           .flatMap((fact) => fact.links ?? [])
-          .map((link) => /^\\/planning\\/([0-9a-f-]{36})$/i.exec(link.href))
+          .map((link) => /^\/planning\/([0-9a-f-]{36})$/i.exec(link.href))
           .find((match) => match !== null);
         if (planLink) {
           setContext((current) => ({ ...current, planId: planLink[1], distributionId: undefined }));
@@ -151,7 +151,7 @@ export function Assistant() {
       {failed ? <AlertBanner>{failed}</AlertBanner> : null}
       {selectedCustomer ? <div className="assistant-filter"><span>Cliente: {selectedCustomer.label}</span><button type="button" className="btn-secondary" disabled={working} onClick={clearCustomer}>Limpar filtro de cliente</button></div> : null}
       <form onSubmit={(event: FormEvent) => { event.preventDefault(); void send(); }}>
-        <div className="assistant-compose-header"><label htmlFor="assistant-message">Mensagem para o Loxi</label><span className="assistant-composer-hint">Enter envia · Shift+Enter quebra linha</span></div><textarea id="assistant-message" value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={handleComposerKeyDown} maxLength={2000} rows={1} title="Enter para enviar, Shift+Enter para nova linha" placeholder="Pergunte ao Loxi…" />
+        <div className="assistant-compose-header"><label htmlFor="assistant-message">Sua pergunta</label><span className="assistant-composer-hint">Enter envia · Shift+Enter quebra linha</span></div><textarea id="assistant-message" value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={handleComposerKeyDown} maxLength={2000} rows={1} title="Enter para enviar, Shift+Enter para nova linha" placeholder="Pergunte ao Loxi…" />
         <div className="entity-form-actions"><button className="assistant-clear" type="button" disabled={working || turns.length === 0} onClick={() => { setTurns([]); setFailed(null); setSelectedCustomer(null); setContext(routeContext(pathname)); }}>Limpar conversa</button><button className="btn-primary assistant-submit" type="submit" aria-label={submitLabel} disabled={working || !draft.trim()}>{working ? "Respondendo…" : "Enviar"}<Icon name="arrow-up" size={16} /></button></div>
       </form>
         </div>
