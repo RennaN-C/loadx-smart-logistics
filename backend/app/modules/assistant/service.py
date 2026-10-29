@@ -447,11 +447,11 @@ class AssistantService:
         # Estimativas financeiras exigem custos e base de comparação reais.
         # Não entregar a pergunta ao provedor quando ele não possui essas fontes.
         if re.search(
-            r"\\b(?:econom\\w*|poupar\\w*|custo\\w*|lucro|roi|"
-            r"financeir\\w*)\\b",
+            r"\b(?:econom\w*|poupar\w*|custo\w*|lucro|roi|"
+            r"financeir\w*)\b",
             unicodedata.normalize("NFKD", data.message.casefold()),
         ) and re.search(
-            r"\\b(?:caminh\\w*|veicul\\w*|troca\\w*|planej\\w*)\\b",
+            r"\b(?:caminh\w*|veicul\w*|troca\w*|planej\w*)\b",
             unicodedata.normalize("NFKD", data.message.casefold()),
         ):
             return ChatResponse(
