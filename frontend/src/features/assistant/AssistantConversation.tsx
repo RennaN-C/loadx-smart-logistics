@@ -192,6 +192,15 @@ function isRepeatedPlan(fact: AssistantFact, earlier: readonly Turn[]): boolean 
   ));
 }
 
+function isRepeatedFleet(fact: AssistantFact, earlier: readonly Turn[]): boolean {
+  if (fact.name !== "Disponibilidade atual da frota") return false;
+  // Only collapse an identical page; never hide updated operational statuses.
+  return earlier.some((turn) => turn.reply?.facts.some(
+    (previous) => previous.name === fact.name
+      && JSON.stringify(previous.values) === JSON.stringify(fact.values),
+  ));
+}
+
 function TurnRow({ turn, earlier, onLink, onSelectCustomer, working }: {
   readonly turn: Turn;
   readonly earlier: readonly Turn[];
@@ -235,9 +244,10 @@ function TurnRow({ turn, earlier, onLink, onSelectCustomer, working }: {
       {answer ? <p className="assistant-answer">{answer}</p> : null}
       {reply.facts.map((fact) => reply.source === "DOCUMENTATION"
         ? <DocumentationSource key={fact.clientKey} fact={fact} />
-        : isRepeatedPlan(fact, earlier)
+        : isRepeatedPlan(fact, earlier) || isRepeatedFleet(fact, earlier)
           ? <details key={fact.clientKey} className="assistant-repeated-fact">
-              <summary>Dados do planejamento já exibidos</summary>
+              <summary>{fact.name === "Disponibilidade atual da frota"
+                ? "Dados da frota já exibidos" : "Dados do planejamento já exibidos"}</summary>
               <Fact fact={fact} onLink={onLink} onSelectCustomer={onSelectCustomer} working={working} />
             </details>
           : <Fact key={fact.clientKey} fact={fact} onLink={onLink} onSelectCustomer={onSelectCustomer} working={working} />)}

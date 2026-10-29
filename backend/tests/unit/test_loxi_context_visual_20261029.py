@@ -72,9 +72,62 @@ def test_fleet_reason_requeries_backend_and_never_trusts_history(monkeypatch):
     assert "cadastro arquivado" in reply.answer
     assert "ABD5544" in reply.answer
     assert "operação em andamento" in reply.answer
-    assert "Consultei novamente" in reply.answer
+    assert "Os motivos registrados nesta consulta" in reply.answer
     assert query.call_count == 1
     provider.complete.assert_not_called()
+
+
+def test_repeated_fleet_reasons_with_mas_stay_deterministic(monkeypatch):
+    from app.modules.assistant import service
+
+    monkeypatch.setattr(service, "ensure_budget", Mock())
+    fact = Source(
+        name="Disponibilidade atual da frota",
+        criteria="Dados atuais e autorizados",
+        values={
+            "page_unavailable_count": 2,
+            "item_1": "Baú Médio · placa ABD5543 · cadastro arquivado",
+            "item_2": "Baú Médio · placa ABD5544 · operação em andamento",
+        },
+    )
+    query = Mock(return_value=fact)
+    monkeypatch.setattr(service.AssistantMetricsService, "query", query)
+    provider = Mock()
+    result = service.AssistantService(Mock(), config(), provider).chat(
+        _user(),
+        ChatRequest(
+            message="Mas por que eles estão indisponíveis?",
+            history=[
+                {"role": "user", "content": "Quais caminhões estão indisponíveis?"},
+                {"role": "assistant", "content": "Dois veículos."},
+                {
+                    "role": "user",
+                    "content": "Por que esses caminhões estão indisponíveis?",
+                },
+                {"role": "assistant", "content": "Informação já consultada."},
+            ],
+        ),
+    )
+    assert result.source == "BACKEND"
+    assert "ABD5543" in result.answer
+    assert "cadastro arquivado" in result.answer
+    assert "ABD5544" in result.answer
+    assert "operação em andamento" in result.answer
+    provider.complete.assert_not_called()
+    query.assert_called_once()
+
+
+def test_fleet_reference_does_not_cross_other_module(monkeypatch):
+    history = [
+        {"role": "user", "content": "Quais caminhões estão indisponíveis?"},
+        {"role": "user", "content": "Quais pedidos temos cadastrados?"},
+    ]
+    assert not fleet_reason_followup(
+        ChatRequest(
+            message="Mas por que eles estão indisponíveis?",
+            history=history,
+        )
+    )
 
 
 def test_physical_difference_is_one_plan_not_comparison(monkeypatch):
