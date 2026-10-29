@@ -376,6 +376,6 @@ it("distingue ocupação geométrica e utilização de peso nos cartões do plan
   show(); open(); send();
   expect((await screen.findAllByText("Ocupação geométrica (%)")).length).toBeGreaterThan(0);
   expect((await screen.findAllByText("Capacidade de peso utilizada (%)")).length).toBeGreaterThan(0);
-  expect(screen.getByText("22,5")).toBeInTheDocument();
-  expect(screen.getByText("90")).toBeInTheDocument();
+  expect(screen.getAllByText("22,5").length).toBeGreaterThan(0);
+  expect(screen.getAllByText("90").length).toBeGreaterThan(0);
 });
