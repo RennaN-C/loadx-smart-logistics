@@ -300,7 +300,7 @@ class AssistantService:
                 links=[],
                 suggestions=["Quais consultas posso fazer?"],
             )
-        data, _conversational_followup = resolve_followup(data)
+        data, conversational_followup = resolve_followup(data)
         casual = conversation_reply(user, data.message)
         # Ações continuam na UI autorizada; cumprimentos sociais vão ao modelo.
         if casual is not None and (
@@ -310,10 +310,24 @@ class AssistantService:
         ):
             return casual
         data = scoped_request(data)
-        documented = documentation_reply(user, data.message)
-        if documented is not None:
-            return documented
-        planned = planning_insight(self.db, user, data)
+        # Explicit saved-plan questions and conversation follow-ups outrank
+        # documentation about the fleet. Ordinary how-to questions stay on docs.
+        plan_question = bool(
+            conversational_followup
+            or data.plan_id
+            or data.distribution_id
+            or re.search(
+                r"\\b(?:[uú]ltim\\w*|mais recente|pen[uú]ltim\\w*)\\b",
+                data.message,
+                re.IGNORECASE,
+            )
+        )
+        planned = planning_insight(self.db, user, data) if plan_question else None
+        if planned is None:
+            documented = documentation_reply(user, data.message)
+            if documented is not None:
+                return documented
+            planned = planning_insight(self.db, user, data)
         if planned is not None:
             emit_security_event(
                 SecurityEvent.ASSISTANT_READ_QUERY,

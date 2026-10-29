@@ -269,6 +269,7 @@ def planning_insight(db: Session, user: User, data: ChatRequest) -> ChatResponse
         "loaded_volumes": plan.loaded_count,
         "rejected_volumes": plan.unloaded_count,
         "occupancy_percent": occupied,
+        "weight_utilization_percent": round(100 * weight / limit, 2) if limit > 0 else None,
         "weight_kg": weight,
         "truck_capacity_weight_kg": limit,
         "algorithm_version": plan.algorithm_version[:64],

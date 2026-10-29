@@ -38,13 +38,16 @@ def resolve_followup(data: ChatRequest) -> tuple[ChatRequest, bool]:
     ]
     if not previous_questions:
         return data, False
-    # The most recent explicit user topic controls context; never inherit an older
-    # planning topic after a customer, order or settings discussion.
-    previous_explicit = next(
-        (topics(text) for text in reversed(previous_questions) if topics(text)),
-        set(),
-    )
-    planning_recent = "planning" in previous_explicit
+    # A truck question may follow a weight question (fleet) about the same plan.
+    # Do not cross an intervening order, customer, settings or other topic.
+    planning_recent = False
+    for previous in reversed(previous_questions[-4:]):
+        previous_topics = topics(previous)
+        if previous_topics - {"planning", "fleet", "loading"}:
+            break
+        if "planning" in previous_topics:
+            planning_recent = True
+            break
     if current_topics - {"planning", "fleet", "loading"}:
         return data, False
     if _LATEST.search(current) and planning_recent and not current_topics:
