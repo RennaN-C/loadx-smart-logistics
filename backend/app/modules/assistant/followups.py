@@ -18,9 +18,10 @@ _LATEST_PLAN_FOLLOWUP = re.compile(
     r"(?:o\s+)?(?:ultim\w*|planejamento|plano)\b"
 )
 _FLEET_REASON_FOLLOWUP = re.compile(
-    r"^(?:(?:e\s+)?por que|porque|qual(?:\s+e)?\s+o\s+motivo|"
+    r"^(?:(?:mas|e|entao)\s+)?(?:por que|porque|qual(?:\s+e)?\s+o\s+motivo|"
     r"quais\s+(?:os\s+)?motivos|o que\s+impede)"
-    r".{0,120}\b(?:caminh\w*|veicul\w*|eles|esses|estas|estao)\b"
+    r".{0,120}\b(?:caminh\w*|veicul\w*|eles|esses|estas|estao|"
+    r"indispon\w*|ambos)\b"
 )
 _FLEET_UNAVAILABLE = re.compile(
     r"\b(?:caminh\w*|veicul\w*|frota)\b.{0,110}"
