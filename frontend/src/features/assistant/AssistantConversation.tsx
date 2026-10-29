@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { Icon } from "../../components/Icon";
 import { PLAN_STATUS_LABELS, REJECTION_LABELS } from "../load-planning/components/loadPlanLabels";
 import type { AssistantFact, AssistantReply, CustomerChoice } from "./assistantApi";
-import { AssistantOperationalCard, hasOperationalCard } from "./AssistantOperationalCards";
+import { AssistantOperationalCard, hasOperationalCard, operationalCardDestination } from "./AssistantOperationalCards";
 
 const LABELS: Record<string, string> = {
   ...PLAN_STATUS_LABELS, ...REJECTION_LABELS,
@@ -220,7 +220,10 @@ function TurnRow({ turn, earlier, onLink, onSelectCustomer, working }: {
     : rawAnswer;
   const label = SOURCE_LABELS[reply.source];
   const factDestinations = new Set(
-    reply.facts.flatMap((fact) => (fact.links ?? []).map((link) => link.href))
+    reply.facts.flatMap((fact) => [
+      ...(fact.links ?? []).map((link) => link.href),
+      ...(operationalCardDestination(fact) ? [operationalCardDestination(fact)!] : []),
+    ])
   );
   return <section className="assistant-turn">{question}
     <div className="assistant-response">
