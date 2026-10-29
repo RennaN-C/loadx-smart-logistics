@@ -27,6 +27,7 @@ from app.modules.assistant.answers import (
     natural_answer,
     verified_answer,
 )
+from app.modules.assistant.briefs import brief_verified_plan
 from app.modules.assistant.capabilities import (
     documentation_reply,
     scoped_request,
@@ -216,15 +217,26 @@ def _catalog_answer(fact: Source) -> str:
     page = fact.values.get("page", 1)
     pages = fact.values.get("total_pages", 0)
     if not rows:
-        return f"{fact.name}: nenhum registro nesta página."
+        return f"Não encontrei registros de {fact.name.lower()} nesta página."
+    if fact.name == "Pedidos cadastrados":
+        intro = (
+            f"Encontrei {total} pedidos cadastrados. "
+            "Estes são os mais recentes na consulta:"
+        )
+        outro = "\nPosso filtrar pelos prontos, planejados ou entregues se você quiser."
+    else:
+        intro = f"Encontrei {total} registros de {fact.name.lower()}:"
+        outro = ""
     return (
-        f"{fact.name} ({total} no total; página {page} de {pages}):\n"
+        intro
+        + "\n"
         + "\n".join(f"• {row}" for row in rows)
         + (
-            "\nHá mais registros nas páginas seguintes."
+            f"\nEsta é a página {page} de {pages}; há mais resultados."
             if isinstance(pages, int) and pages > page
             else ""
         )
+        + outro
     )
 
 
@@ -288,7 +300,7 @@ class AssistantService:
                 links=[],
                 suggestions=["Quais consultas posso fazer?"],
             )
-        data, conversational_followup = resolve_followup(data)
+        data, _conversational_followup = resolve_followup(data)
         casual = conversation_reply(user, data.message)
         # Ações continuam na UI autorizada; cumprimentos sociais vão ao modelo.
         if casual is not None and (
@@ -308,14 +320,20 @@ class AssistantService:
                 actor_id=str(user.id),
                 tool="planning_insight",
             )
-            # Somente a explicação de um seguimento usa linguagem do modelo.
-            # Fatos e fallback continuam sendo redigidos pelo LoadX.
+            # Todo planejamento individual recebe uma resposta voltada à
+            # pergunta atual. Mesmo quando Groq falha, o fallback é curto,
+            # verificável e não repete o relatório técnico inteiro.
             if (
-                conversational_followup
-                and planned.facts
-                and planned.source == "BACKEND"
+                planned.source == "BACKEND"
+                and len(planned.facts) == 1
+                and planned.facts[0].name == "Análise do planejamento"
             ):
-                return self._narrate_verified(data, planned)
+                concise = brief_verified_plan(data.message, planned)
+                logger.info(
+                    "ASSISTANT_PLAN_REPLY mode=%s",
+                    "brief" if concise.answer != planned.answer else "original",
+                )
+                return self._narrate_verified(data, concise)
             return planned
         facts, links = planning_context(self.db, user, data)
         if facts:
@@ -581,17 +599,29 @@ class AssistantService:
         """Rephrase a follow-up using fresh, authorized facts; always preserve a safe fallback."""
         try:
             messages = _messages(data, result.facts, datetime.now(UTC))
+            messages[0]["content"] += (
+                "\nResponda somente à pergunta ATUAL do usuário. Seja conversacional "
+                "e objetivo: de duas a quatro frases, sem repetir o relatório "
+                "inteiro ou listar métricas que não sejam relevantes. Explique "
+                "incertezas e diferencie resultados salvos de simulações. "
+                "Use exclusivamente os números do servidor. "
+                "Se perguntarem sobre troca de caminhão, não afirme melhora "
+                "sem novo cálculo. Retorne JSON answer/source_names."
+            )
             reply = self.provider.complete(
                 messages, timeout_seconds=self.config.ai_chat_timeout_seconds
             )
             if reply.get("tool_calls"):
-                return result
+                logger.warning("ASSISTANT_NARRATION_FALLBACK category=unexpected_tool")
+                return brief_verified_plan(data.message, result)
             content = reply.get("content")
             if not isinstance(content, str):
-                return result
+                logger.warning("ASSISTANT_NARRATION_FALLBACK category=missing_content")
+                return brief_verified_plan(data.message, result)
             answer = natural_answer(content, result.facts)
             if answer is None:
-                return result
+                logger.warning("ASSISTANT_NARRATION_FALLBACK category=invalid_format")
+                return brief_verified_plan(data.message, result)
             return ChatResponse(
                 source="GROQ",
                 answer=sanitize(answer),
@@ -605,9 +635,23 @@ class AssistantService:
             ValueError,
             KeyError,
             TypeError,
-        ):
-            logger.warning("ASSISTANT_NARRATION_FALLBACK")
-            return result
+        ) as error:
+            reason = getattr(error, "reason", None)
+            safe_reasons = {
+                "http_400",
+                "http_401",
+                "http_403",
+                "http_404",
+                "http_422",
+                "http_429",
+                "http_500",
+                "http_502",
+                "http_503",
+            }
+            category = reason if reason in safe_reasons else type(error).__name__
+            logger.warning("ASSISTANT_NARRATION_FALLBACK category=%s", category)
+            # Even an invalid response may never restore a long static report.
+            return brief_verified_plan(data.message, result)
 
     def _run_tool(
         self,
