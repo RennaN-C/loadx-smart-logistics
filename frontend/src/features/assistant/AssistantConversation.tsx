@@ -199,7 +199,13 @@ function TurnRow({ turn, earlier, onLink, onSelectCustomer, working }: {
 }) {
   const question = <div className="assistant-question"><span>Você</span><p>{turn.question}</p></div>;
   const reply = turn.reply;
-  if (!reply) return <section className="assistant-turn">{question}</section>;
+  if (!reply) return <section className="assistant-turn">{question}
+    <div className="assistant-typing" role="status" aria-label="Loxi está preparando a resposta">
+      <span className="assistant-typing-avatar" aria-hidden="true"><Icon name="message-circle" size={15} /></span>
+      <span className="assistant-typing-dots" aria-hidden="true"><i /><i /><i /></span>
+      <span className="sr-only">Loxi está preparando a resposta.</span>
+    </div>
+  </section>;
   const hasMetric = reply.facts.some((fact) => PRIMARY_METRICS.some((key) => typeof fact.values[key] === "number"));
   const answer = visibleAnswer(reply, hasMetric);
   const label = SOURCE_LABELS[reply.source];
@@ -214,7 +220,7 @@ function TurnRow({ turn, earlier, onLink, onSelectCustomer, working }: {
         ? <DocumentationSource key={fact.clientKey} fact={fact} />
         : isRepeatedPlan(fact, earlier)
           ? <details key={fact.clientKey} className="assistant-repeated-fact">
-              <summary>Ver dados deste planejamento já exibidos</summary>
+              <summary>Dados do planejamento já exibidos</summary>
               <Fact fact={fact} onLink={onLink} onSelectCustomer={onSelectCustomer} working={working} />
             </details>
           : <Fact key={fact.clientKey} fact={fact} onLink={onLink} onSelectCustomer={onSelectCustomer} working={working} />)}
@@ -233,6 +239,7 @@ export function AssistantConversation({ turns, onLink, onSelectCustomer, working
 }) {
   const chat = useRef<HTMLDivElement>(null);
   const lastTurnId = turns.at(-1)?.id;
+  const lastTurnCompleted = Boolean(turns.at(-1)?.reply);
   useEffect(() => {
     const container = chat.current;
     const lastTurn = container?.lastElementChild;
@@ -241,7 +248,7 @@ export function AssistantConversation({ turns, onLink, onSelectCustomer, working
     // resposta longa. Nunca forçar scroll enquanto o usuário lê detalhes.
     const beginning = lastTurn.querySelector(".assistant-response") ?? lastTurn;
     container.scrollTop += beginning.getBoundingClientRect().top - container.getBoundingClientRect().top;
-  }, [lastTurnId]);
+  }, [lastTurnId, lastTurnCompleted]);
   return <div ref={chat} className="assistant-conversation" role="log" aria-label="Conversa com o LoadX" aria-live="polite">
     {turns.length === 0 ? <div className="assistant-welcome assistant-welcome-greeting"><div className="assistant-welcome-icon"><Icon name="message-circle" size={24} /></div><div className="assistant-welcome-copy"><span className="assistant-source">Loxi - Assistente</span><h3>Olá! Eu sou o Loxi 👋</h3><p>Posso conversar sobre sua operação, consultar registros autorizados e explicar os resultados do algoritmo nos planejamentos anteriores ou no mais recente.</p><p>Também posso orientar ações permitidas. Para ver ideias do que perguntar, é só escrever <strong>“Me dê sugestões”</strong>.</p></div></div> : null}
     {turns.map((turn, index) => <TurnRow key={turn.id} turn={turn} earlier={turns.slice(0, index)} onLink={onLink} onSelectCustomer={onSelectCustomer} working={working} />)}

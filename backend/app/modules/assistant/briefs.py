@@ -57,6 +57,18 @@ def _summary(question: str, fact: Source) -> str | None:
         capacity = _number(values.get("truck_capacity_weight_kg"))
         if weight is not None and capacity is not None:
             answer += f" O peso registrado foi {weight} de {capacity} kg."
+            raw_weight = values.get("weight_kg")
+            raw_limit = values.get("truck_capacity_weight_kg")
+            if (
+                isinstance(raw_weight, (int, float))
+                and not isinstance(raw_weight, bool)
+                and isinstance(raw_limit, (int, float))
+                and not isinstance(raw_limit, bool)
+                and raw_limit >= raw_weight
+            ):
+                remaining = _number(round(raw_limit - raw_weight, 2))
+                if remaining is not None:
+                    answer += f" Restam {remaining} kg de capacidade de peso."
         return (
             answer + " Uma comparação dos veículos disponíveis e um novo cálculo "
             "são necessários para confirmar qualquer melhoria; não simulei a troca."

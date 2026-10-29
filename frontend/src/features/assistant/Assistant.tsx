@@ -78,14 +78,30 @@ export function Assistant() {
     setDraft(turns.at(-1)?.question ?? "Consultar pedidos deste cliente");
   }
   function clearCustomer() { setSelectedCustomer(null); setContext((current) => ({ ...current, customerId: undefined })); }
-  function close() { request.current?.abort(); request.current = null; setWorking(false); setOpen(false); }
+  function close() {
+    request.current?.abort(); request.current = null;
+    // An aborted request cannot leave a permanent "typing" placeholder.
+    setTurns((previous) => previous.filter((turn) => turn.reply));
+    setWorking(false); setOpen(false);
+  }
   async function send(question = draft) {
-    if (request.current || !question.trim() || working || question.length > 2000) return;
-    const controller = new AbortController(); request.current = controller;
-    setWorking(true); setFailed(null);
-    const history: ChatMessage[] = turns.slice(-8).flatMap((turn) => turn.reply ? [{ role: "user" as const, content: turn.question }, { role: "assistant" as const, content: turn.reply.answer.slice(0, 2000) }] : []);
+    const normalized = question.trim();
+    if (request.current || !normalized || working || question.length > 2000) return;
+    const controller = new AbortController();
+    const turnId = crypto.randomUUID();
+    const history: ChatMessage[] = turns.slice(-8).flatMap((turn) => turn.reply
+      ? [{ role: "user" as const, content: turn.question },
+        { role: "assistant" as const, content: turn.reply.answer.slice(0, 2000) }]
+      : []);
+    request.current = controller;
+    // Optimistic chat: show the message and allow composing a next question
+    // immediately, without waiting for network, provider or database latency.
+    setTurns((previous) => [...previous.slice(-19), { id: turnId, question: normalized }]);
+    setDraft("");
+    setWorking(true);
+    setFailed(null);
     try {
-      const reply = await askAssistant(question.trim(), history, context, controller.signal);
+      const reply = await askAssistant(normalized, history, context, controller.signal);
       if (!controller.signal.aborted && request.current === controller) {
         const planLink = reply.facts
           .filter((fact) => fact.name === "Análise do planejamento")
@@ -93,21 +109,18 @@ export function Assistant() {
           .map((link) => /^\/planning\/([0-9a-f-]{36})$/i.exec(link.href))
           .find((match) => match !== null);
         if (planLink) {
-          // A referência veio de fato autorizado pelo backend; será revalidada
-          // no servidor em cada pergunta, não inferida do histórico da IA.
           setContext((current) => ({ ...current, planId: planLink[1], distributionId: undefined }));
         } else if (reply.facts.some((fact) => fact.name === "Histórico de planejamentos")) {
-          // Uma lista não seleciona plano; evita associar o próximo "esse" ao antigo.
-          setContext((current) => ({ ...current, planId: routeContext(pathname).planId }));
+          setContext((current) => ({ ...current, planId: routeContext(currentPath.current).planId }));
         }
-        setTurns((previous) => [...previous.slice(-19), {
-          id: crypto.randomUUID(), question,
-          reply: { ...reply, facts: reply.facts.map((fact) => ({ ...fact, clientKey: crypto.randomUUID() })) },
-        }]);
-        setDraft("");
+        setTurns((previous) => previous.map((turn) => turn.id === turnId
+          ? { ...turn, reply: { ...reply, facts: reply.facts.map((fact) => ({ ...fact, clientKey: crypto.randomUUID() })) } }
+          : turn));
       }
     } catch (error) {
       if (!controller.signal.aborted && request.current === controller) {
+        setTurns((previous) => previous.filter((turn) => turn.id !== turnId));
+        setDraft((current) => current.trim() ? current : normalized);
         setFailed(assistantErrorMessage(error));
       }
     } finally {
@@ -120,7 +133,7 @@ export function Assistant() {
     void send();
   }
   if (!enabled) return null;
-  const sendLabel = working ? "Consultando…" : "Enviar pergunta";
+  const sendLabel = working ? "Aguardando resposta do Loxi" : "Enviar pergunta";
   const submitLabel = failed && !working ? "Tentar novamente" : sendLabel;
   return <>
     <button ref={launcher} type="button" className="assistant-launch" aria-label="Conversar com Loxi" aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? titleId : undefined} onClick={() => open ? close() : setOpen(true)}>
@@ -135,12 +148,11 @@ export function Assistant() {
         <div className="assistant-panel-body">
       <details className="assistant-privacy"><summary>Privacidade e limites</summary><p>Não compartilhe senhas ou documentos. O Loxi consulta somente informações autorizadas. Alterações exigem confirmação nas telas do LoadX.</p></details>
       <AssistantConversation turns={turns} onLink={close} onSelectCustomer={selectCustomer} working={working} />
-      {working ? <output><span className="spinner" aria-hidden="true" /> Consultando informações autorizadas…</output> : null}
       {failed ? <AlertBanner>{failed}</AlertBanner> : null}
       {selectedCustomer ? <div className="assistant-filter"><span>Cliente: {selectedCustomer.label}</span><button type="button" className="btn-secondary" disabled={working} onClick={clearCustomer}>Limpar filtro de cliente</button></div> : null}
       <form onSubmit={(event: FormEvent) => { event.preventDefault(); void send(); }}>
-        <div className="assistant-compose-header"><label htmlFor="assistant-message">Sua pergunta</label></div><textarea id="assistant-message" value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={handleComposerKeyDown} maxLength={2000} rows={1} disabled={working} title="Enter para enviar, Shift+Enter para nova linha" placeholder="Ex.: Quantos pedidos foram entregues?" />
-        <div className="entity-form-actions"><button className="assistant-clear" type="button" disabled={working || turns.length === 0} onClick={() => { setTurns([]); setFailed(null); setSelectedCustomer(null); setContext(routeContext(pathname)); }}>Limpar conversa</button><button className="btn-primary assistant-submit" type="submit" aria-label={submitLabel} disabled={working || !draft.trim()}>{working ? "Consultando…" : "Enviar"}<Icon name="arrow-right" size={16} /></button></div>
+        <div className="assistant-compose-header"><label htmlFor="assistant-message">Sua pergunta</label><span className="assistant-composer-hint">Enter envia · Shift+Enter quebra linha</span></div><textarea id="assistant-message" value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={handleComposerKeyDown} maxLength={2000} rows={1} title="Enter para enviar, Shift+Enter para nova linha" placeholder="Pergunte ao Loxi…" />
+        <div className="entity-form-actions"><button className="assistant-clear" type="button" disabled={working || turns.length === 0} onClick={() => { setTurns([]); setFailed(null); setSelectedCustomer(null); setContext(routeContext(pathname)); }}>Limpar conversa</button><button className="btn-primary assistant-submit" type="submit" aria-label={submitLabel} disabled={working || !draft.trim()}>{working ? "Respondendo…" : "Enviar"}<Icon name="arrow-up" size={16} /></button></div>
       </form>
         </div>
       </section>

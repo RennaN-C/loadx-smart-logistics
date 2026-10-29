@@ -31,13 +31,15 @@ export type IconName =
   | "chart"
   | "report"
   | "gauge"
-  | "arrow-right";
+  | "arrow-right"
+  | "arrow-up";
 
 const PATHS: Record<IconName, ReactNode> = {
   "message-circle": <><path d="M20.5 11.5a8.5 8.5 0 0 1-8.5 8.5c-1.3 0-2.5-.2-3.6-.7L3 21l1.7-5.1A8.5 8.5 0 1 1 20.5 11.5Z" /><path d="M8 11.5h8M8 15h5" /></>,
   bell: <><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" /><path d="M10 21h4" /></>,
   search: <><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 4.5 4.5" /></>,
   "arrow-right": <path d="M5 12h14m-6-6 6 6-6 6" />,
+  "arrow-up": <path d="M12 19V5m-6 6 6-6 6 6" />,
   settings: (
     <>
       <path d="M9 3h6l.7 3 2.7 1 2.5 2.5-1.7 2.5 1.7 2.5-2.5 2.5-2.7 1-.7 3H9l-.7-3-2.7-1-2.5-2.5L4.8 12 3.1 9.5 5.6 7l2.7-1z" />
