@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { Icon } from "../../components/Icon";
 import { PLAN_STATUS_LABELS, REJECTION_LABELS } from "../load-planning/components/loadPlanLabels";
 import type { AssistantFact, AssistantReply, CustomerChoice } from "./assistantApi";
+import { AssistantOperationalCard, hasOperationalCard } from "./AssistantOperationalCards";
 
 const LABELS: Record<string, string> = {
   ...PLAN_STATUS_LABELS, ...REJECTION_LABELS,
@@ -137,8 +138,9 @@ function Fact({ fact, onLink, onSelectCustomer, working }: FactProps) {
   const hasChoices = Boolean(fact.choices?.length);
   const compact = typeof primary === "number";
   const period = periodLabel(fact);
-  return <section className="assistant-result" aria-label={fact.name}>
-    {compact ? <>
+  const rich = hasOperationalCard(fact);
+  return <section className={rich ? "assistant-result assistant-result-rich" : "assistant-result"} aria-label={fact.name}>
+    {rich ? <AssistantOperationalCard fact={fact} onLink={onLink} /> : compact ? <>
       <div className="assistant-result-heading"><span>{fact.name}</span>{period ? <span className="assistant-period">{period}</span> : null}</div>
       <div className="assistant-main-metric">
         <strong className="assistant-main-value">{formatValue(primary)}</strong>
@@ -153,10 +155,10 @@ function Fact({ fact, onLink, onSelectCustomer, working }: FactProps) {
     {hasChoices ? <div className="assistant-choice-list" aria-label="Escolher cliente">{fact.choices?.map((choice) =>
       <button type="button" className="btn-secondary" disabled={working} key={choice.reference} onClick={() => onSelectCustomer(choice)}>Selecionar {choice.label}</button>
     )}</div> : null}
-    {fact.links?.length ? <nav className="assistant-result-links" aria-label="Registros da consulta">{fact.links.filter((link) => allowedLink(link.href)).map((link) =>
+    {!rich && fact.links?.length ? <nav className="assistant-result-links" aria-label="Registros da consulta">{fact.links.filter((link) => allowedLink(link.href)).map((link) =>
       <Link key={link.href} to={link.href} onClick={onLink}>{link.label}<Icon name="arrow-right" size={15} /></Link>
     )}</nav> : null}
-    <details className="assistant-fact" open={compact || Object.keys(fact.values).some((key) => key.startsWith("item_")) ? undefined : true}>
+    <details className="assistant-fact" open={rich || compact || Object.keys(fact.values).some((key) => key.startsWith("item_")) ? undefined : true}>
       <summary>{compact ? "Ver critérios e dados completos" : "Informações da consulta"}</summary>
       <div className="assistant-fact-content">
         <p>{fact.criteria}</p>
@@ -207,7 +209,13 @@ function TurnRow({ turn, earlier, onLink, onSelectCustomer, working }: {
     </div>
   </section>;
   const hasMetric = reply.facts.some((fact) => PRIMARY_METRICS.some((key) => typeof fact.values[key] === "number"));
-  const answer = visibleAnswer(reply, hasMetric);
+  const rawAnswer = visibleAnswer(reply, hasMetric);
+  const visualList = reply.facts.some((fact) =>
+    fact.name === "Caminhões cadastrados" || fact.name === "Disponibilidade atual da frota");
+  // Vehicle identifiers appear in the structured card, not twice in text.
+  const answer = visualList
+    ? rawAnswer.split("\n").filter((line) => !line.trimStart().startsWith("•")).join("\n").trim()
+    : rawAnswer;
   const label = SOURCE_LABELS[reply.source];
   const factDestinations = new Set(
     reply.facts.flatMap((fact) => (fact.links ?? []).map((link) => link.href))
