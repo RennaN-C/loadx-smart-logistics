@@ -134,5 +134,5 @@ def test_catalog_distinguishes_total_from_current_page():
     )
     answer = _catalog_answer(fact)
     assert "Encontrei 30 caminhões cadastrados" in answer
-    assert "Mostrando 2 registro(s) nesta página" in answer
+    assert "Esta página mostra 2 registros" in answer
     assert "Página 2 de 3" in answer
