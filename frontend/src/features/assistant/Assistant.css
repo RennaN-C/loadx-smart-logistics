@@ -399,3 +399,102 @@
   .assistant-conversation { scroll-behavior: auto; }
   .assistant-typing-dots i { animation: none; opacity: .7; }
 }
+
+
+/* Visualizações operacionais: o conteúdo é renderizado a partir de Source
+   autorizado pelo servidor, nunca de markup ou números livres da IA. */
+.assistant-panel.is-expanded {
+  width: min(940px, calc(100vw - 44px));
+  height: min(880px, calc(100dvh - 48px));
+  max-height: calc(100dvh - 48px);
+  bottom: 24px;
+}
+.assistant-expand {
+  position: absolute; top: 11px; right: 56px; width: 38px; height: 38px;
+  display: inline-grid; place-items: center; border: 1px solid var(--line);
+  border-radius: 11px; background: var(--card); color: var(--ink);
+  font-size: 1.2rem; cursor: pointer;
+}
+.assistant-expand:hover, .assistant-close:hover { background: var(--accent-bg); }
+.assistant-expand:focus-visible, .loxi-card-actions button:focus-visible,
+.loxi-card-actions a:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
+.assistant-panel-header { padding-right: 110px; }
+.assistant-turn { animation: loxi-enter .22s ease-out both; }
+@keyframes loxi-enter {
+  from { opacity: .2; transform: translateY(7px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.assistant-result-rich { padding: 0; overflow: hidden; gap: 0; }
+.assistant-result-rich .assistant-fact {
+  margin: 0 14px 12px; padding-top: 10px;
+}
+.loxi-operational-card { padding: 15px; display: grid; gap: 14px; min-width: 0; }
+.loxi-card-header { display: flex; align-items: start; gap: 9px; justify-content: space-between; }
+.loxi-card-header > div { display: grid; gap: 5px; min-width: 0; }
+.loxi-card-header > div > strong { font-size: 1rem; overflow-wrap: anywhere; }
+.loxi-eyebrow { display: inline-flex; align-items: center; gap: 6px;
+  font-size: .68rem; text-transform: uppercase; letter-spacing: .055em;
+  font-weight: 700; color: var(--muted); }
+.loxi-status-chip { flex-shrink: 0; border: 1px solid var(--line); border-radius: 999px;
+  padding: 4px 9px; color: var(--ink); background: var(--card); font-size: .71rem; font-weight: 650; }
+.loxi-plan-kpis, .loxi-fleet-kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+.loxi-fleet-kpis:has(> div:nth-child(3)) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.loxi-plan-kpis > div, .loxi-fleet-kpis > div {
+  border: 1px solid var(--line); border-radius: 12px; padding: 11px 10px;
+  display: grid; gap: 4px; background: var(--card); min-width: 0;
+}
+.loxi-plan-kpis strong, .loxi-fleet-kpis strong {
+  color: var(--ink); font-size: 1.48rem; line-height: 1.1; font-variant-numeric: tabular-nums;
+}
+.loxi-plan-kpis span, .loxi-fleet-kpis span { color: var(--muted); line-height: 1.25; font-size: .69rem; }
+.loxi-meter { display: grid; gap: 7px; }
+.loxi-meter-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: .79rem; }
+.loxi-meter-head strong { font-size: .94rem; font-variant-numeric: tabular-nums; }
+.loxi-meter-track { height: 9px; border-radius: 100px; background: var(--line); overflow: hidden; }
+.loxi-meter-fill { height: 100%; border-radius: inherit; transform-origin: left;
+  animation: loxi-meter-in .65s ease-out both; }
+.loxi-meter-weight { background: #dba43e; }
+.loxi-meter-space { background: #36a69a; }
+@keyframes loxi-meter-in { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.loxi-meter small { color: var(--muted); font-size: .71rem; }
+.loxi-insight { display: flex; gap: 10px; align-items: flex-start;
+  background: var(--accent-bg); border-radius: 12px; padding: 11px;
+  font-size: .76rem; line-height: 1.5; color: var(--ink); }
+.loxi-insight svg { flex-shrink: 0; margin-top: 2px; }
+.loxi-insight p { margin: 0; }
+.loxi-vehicle-list { display: grid; gap: 0; }
+.loxi-vehicle { padding: 11px 1px; display: flex; align-items: flex-start;
+  gap: 10px; border-top: 1px solid var(--line); }
+.loxi-vehicle-icon { flex-shrink: 0; display: grid; place-items: center; width: 36px; height: 36px;
+  border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--ink); }
+.loxi-vehicle-info { display: grid; gap: 4px; min-width: 0; }
+.loxi-vehicle-info strong { font-size: .8rem; font-weight: 650; overflow-wrap: anywhere; }
+.loxi-vehicle-state { display: inline-flex; width: fit-content; padding: 3px 7px;
+  border-radius: 7px; background: var(--accent-bg); color: var(--ink);
+  font-size: .7rem; line-height: 1.3; }
+.loxi-vehicle-state.is-restricted { background: #da9b3024; color: var(--ink); }
+.loxi-page-note, .assistant-inline-note { margin: 0; color: var(--muted); font-size: .73rem; line-height: 1.5; }
+.loxi-card-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  padding-top: 10px; border-top: 1px solid var(--line); }
+.loxi-card-actions a, .loxi-card-actions button { display: inline-flex; align-items: center;
+  justify-content: center; gap: 6px; border: 1px solid var(--line); border-radius: 10px;
+  padding: 9px 11px; background: var(--card); color: var(--ink); font: inherit;
+  font-size: .75rem; font-weight: 650; cursor: pointer; text-decoration: none; }
+.loxi-card-actions a:hover, .loxi-card-actions button:hover { background: var(--accent-bg); }
+.loxi-preview { min-width: 0; max-width: 100%; overflow: hidden; }
+.loxi-preview .viewer { min-width: 0; max-width: 100%; }
+.loxi-preview .viewer-canvas { min-height: 250px; }
+.loxi-preview .viewer-toolbar { flex-wrap: wrap; }
+.assistant-panel:not(.is-expanded) .loxi-preview .viewer-canvas { min-height: 240px; }
+.assistant-panel.is-expanded .assistant-conversation { padding-inline: min(5vw, 50px); }
+@media (max-width: 600px) {
+  .assistant-panel.is-expanded { inset: 0; width: 100vw; height: 100dvh; max-height: 100dvh; border-radius: 0; }
+  .loxi-fleet-kpis { gap: 5px; }
+  .loxi-fleet-kpis > div { padding: 9px 5px; }
+  .loxi-fleet-kpis strong { font-size: 1.18rem; }
+  .loxi-operational-card { padding: 12px; gap: 11px; }
+  .assistant-panel.is-expanded .assistant-conversation { padding-inline: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .assistant-turn, .loxi-meter-fill { animation: none; }
+}

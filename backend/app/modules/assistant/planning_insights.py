@@ -334,6 +334,19 @@ def _comparison(db: Session, user: User, data: ChatRequest) -> ChatResponse | No
         r"\b(?:compar\w*|diferen[cç]a entre)\b", data.message, re.IGNORECASE
     ) or not _PLAN_WORD.search(data.message):
         return None
+    # "Diferença entre ocupação de peso e espaço nesse planejamento" compara
+    # dois indicadores do MESMO plano, não dois planos salvos.
+    if re.search(
+        r"\b(?:peso|ocup\w*|espa[cç]o|geom[eé]tric\w*)\b",
+        data.message,
+        re.IGNORECASE,
+    ) and not re.search(
+        r"\b(?:dois|duas|outro|outra|anterior|pen[uú]ltim\w*)\s+"
+        r"(?:planejament\w*|planos?|caminh\w*)\b",
+        data.message,
+        re.IGNORECASE,
+    ):
+        return None
     identifiers = list(dict.fromkeys(_UUID.findall(data.message)))
     if len(identifiers) == 2:
         questions = ["Explique o plano " + identifier for identifier in identifiers]
