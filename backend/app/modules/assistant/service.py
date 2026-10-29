@@ -251,6 +251,61 @@ def _catalog_answer(fact: Source) -> str:
     )
 
 
+def _fleet_availability_intent(question: str) -> bool:
+    """Route explicit unavailability questions to authorized operational data."""
+    text = unicodedata.normalize("NFKD", question.casefold())
+    text = "".join(char for char in text if not unicodedata.combining(char))
+    return (
+        len(text) <= 165
+        and bool(re.search(r"\\b(?:caminh\\w*|veicul\\w*|frota)\\b", text))
+        and bool(
+            re.search(
+                r"\\b(?:indispon\\w*|nao dispon\\w*|bloquead\\w*|"
+                r"fora de operac\\w*)\\b",
+                text,
+            )
+        )
+        and not bool(
+            re.search(
+                r"\\b(?:ontem|semana passada|mes passado|historico|"
+                r"quando|por que|porque|como|poderia)\\b",
+                text,
+            )
+        )
+    )
+
+
+def _fleet_availability_answer(fact: Source) -> str:
+    """Never ask a model to guess plates or operational restrictions."""
+    values = fact.values
+    count = values.get("page_unavailable_count", 0)
+    page = values.get("page", 1)
+    pages = values.get("total_pages", 0)
+    vehicles = [
+        sanitize(value)[:220]
+        for key, value in values.items()
+        if key.startswith("item_") and isinstance(value, str)
+    ]
+    if not isinstance(count, int):
+        count = len(vehicles)
+    opening = (
+        f"Encontrei {count} caminhão" + ("" if count == 1 else "ões")
+        + " indisponível" + ("" if count == 1 else "eis")
+        + " nesta página da frota."
+        if count
+        else "Não há caminhões indisponíveis nesta página da frota."
+    )
+    if vehicles:
+        opening += "\\n" + "\\n".join(f"• {vehicle}" for vehicle in vehicles)
+    opening += (
+        "\\nUm caminhão com cadastro ativo também pode estar temporariamente "
+        "indisponível por manutenção, documentos ou uso operacional."
+    )
+    if isinstance(pages, int) and pages > 1:
+        opening += f" Página {page} de {pages}; consulte as demais páginas para o total."
+    return opening
+
+
 def tool_definitions(user: User) -> list[dict]:
     descriptions = {
         "get_usage_guidance": "Consultar documentação real de COMO USAR um módulo, sem dados cadastrados. Informe module pela lista fechada. Respeita permissões; não inventa funcionalidades.",
@@ -343,6 +398,37 @@ class AssistantService:
         ):
             return casual
         data = scoped_request(data)
+        # Disponibilidade atual é dado operacional. Nunca pedir ao provedor que
+        # invente placas ou omita registros que o backend já autorizou.
+        if _fleet_availability_intent(data.message) and not data.diagnostic_token:
+            name = "get_fleet_availability"
+            if not allowed_tool(user, name):
+                return ChatResponse(
+                    source="GUARDRAIL",
+                    answer="Você não tem permissão para consultar a disponibilidade da frota.",
+                )
+            result = self._run_tool(
+                user,
+                {
+                    "id": "loadx_fleet_unavailable",
+                    "type": "function",
+                    "function": {
+                        "name": name,
+                        "arguments": json.dumps({"page": _catalog_page(data.message)}),
+                    },
+                },
+                datetime.now(UTC),
+                time.monotonic() + self.config.ai_chat_timeout_seconds,
+                None,
+                frozenset({name}),
+            )
+            return ChatResponse(
+                source="BACKEND",
+                answer=_fleet_availability_answer(result.fact),
+                facts=[result.fact],
+                links=[result.link] if result.link else [],
+                suggestions=["Quais caminhões temos cadastrados?"],
+            )
         # Explicit saved-plan questions and conversation follow-ups outrank
         # documentation about the fleet. Ordinary how-to questions stay on docs.
         plan_question = bool(
