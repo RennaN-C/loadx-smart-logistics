@@ -325,7 +325,12 @@ class AssistantMetricsService:
                 "As quantidades são desta página, não da frota inteira."
             ),
             values=values,
-            links=[{"label": "Consultar disponibilidade", "href": "/trucks?tab=availability"}],
+            links=[
+                {
+                    "label": "Consultar disponibilidade",
+                    "href": "/trucks?tab=availability",
+                }
+            ],
         )
 
     def _metadata(self, name: str) -> Source | None:
