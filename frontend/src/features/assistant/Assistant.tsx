@@ -18,6 +18,7 @@ export function Assistant() {
   const { user } = useAuth();
   const { pathname } = useLocation();
   const [open, setOpen] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const [context, setContext] = useState<AssistantContext>({});
   const [turns, setTurns] = useState<Turn[]>([]);
   const [draft, setDraft] = useState("");
@@ -34,7 +35,7 @@ export function Assistant() {
   const enabled = user && ["ADMIN", "LOGISTICS_MANAGER", "CHECKER"].includes(user.role);
   useEffect(() => {
     request.current?.abort(); request.current = null;
-    setOpen(false); setSelectedCustomer(null); setTurns([]); setDraft(""); setFailed(null); setWorking(false); setContext(routeContext(currentPath.current));
+    setOpen(false); setExpanded(false); setSelectedCustomer(null); setTurns([]); setDraft(""); setFailed(null); setWorking(false); setContext(routeContext(currentPath.current));
     // Trocar de tela NÃO remove a conversa; somente trocar de usuário/perfil.
   }, [identity]);
   useEffect(() => {
@@ -140,9 +141,12 @@ export function Assistant() {
       <Icon name="message-circle" size={23} /><span>Loxi</span>
     </button>
     {open ? createPortal(<div className="assistant-shell">
-      <section ref={panel} className="assistant-panel" id={titleId} role="dialog" aria-modal="false" aria-labelledby={titleId + "-title"}>
+      <section ref={panel} className={expanded ? "assistant-panel is-expanded" : "assistant-panel"} id={titleId} role="dialog" aria-modal="false" aria-labelledby={titleId + "-title"}>
         <header className="assistant-panel-header">
           <div><h2 id={titleId + "-title"}>Loxi - Assistente</h2><p>Consultas, planejamentos e orientação operacional</p></div>
+          <button type="button" className="assistant-expand" aria-label={expanded ? "Reduzir assistente" : "Expandir assistente"} title={expanded ? "Reduzir assistente" : "Expandir assistente"} aria-pressed={expanded} onClick={() => setExpanded((value) => !value)}>
+            {expanded ? "↘" : "⤢"}
+          </button>
           <button type="button" className="assistant-close" aria-label="Minimizar assistente" title="Minimizar assistente" onClick={close}>×</button>
         </header>
         <div className="assistant-panel-body">
