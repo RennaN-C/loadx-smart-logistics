@@ -116,3 +116,23 @@ def test_historical_or_ambiguous_questions_do_not_claim_current_snapshot():
     )
     assert not _fleet_availability_intent("Como faço para liberar caminhões?")
     assert not _fleet_availability_intent("Quais caminhões temos cadastrados?")
+
+
+def test_catalog_distinguishes_total_from_current_page():
+    from app.modules.assistant.service import _catalog_answer
+
+    fact = Source(
+        name="Caminhões cadastrados",
+        criteria="Listagem paginada",
+        values={
+            "total_records": 30,
+            "page": 2,
+            "total_pages": 3,
+            "item_1": "Baú Pequeno · placa ABC123 · Ativo",
+            "item_2": "Baú Médio · placa DEF456 · Arquivado",
+        },
+    )
+    answer = _catalog_answer(fact)
+    assert "Encontrei 30 caminhões cadastrados" in answer
+    assert "Mostrando 2 registro(s) nesta página" in answer
+    assert "Página 2 de 3" in answer
