@@ -140,3 +140,20 @@ A redação natural não substitui fatos: nomes cadastrados, números e causas f
 continuam vindo dos serviços/snapshots. O canal geral é limitado, identificado e
 não é um verificador universal de afirmações linguísticas. Falhas da Groq preservam
 fallback honesto. Ações confirmáveis da Issue #368 não fazem parte desta entrega.
+
+## Confiabilidade operacional e respostas sem IA
+
+- Ocupação geométrica (`occupancy_percent`) e capacidade de peso utilizada
+  (`weight_utilization_percent`) são indicadores independentes calculados
+  pelo backend; valores de planos não são inferidos pela Groq.
+- Perguntas sobre peso, espaço, status, rejeições e comparação de caminhões
+  usam explicação determinística dos snapshots autorizados. As demais respostas
+  naturais passam por validação de proveniência, números e semântica do plano.
+- Um HTTP 429 da Groq ativa um resguardo local por processo de até 60 segundos
+  em ambiente não local; consultas e explicações determinísticas continuam.
+  Não há garantia de sincronização do resguardo entre processos.
+- O assistente oferece links para operações já implementadas. **Não executa
+  alterações pelo chat**: aprovação, recálculo, cancelamento e exclusão usam
+  os formulários existentes com autenticação, confirmação e auditoria.
+- Perguntas sobre capacidades consultam o catálogo de funcionalidades
+  permitido ao perfil, mesmo com o provedor indisponível.

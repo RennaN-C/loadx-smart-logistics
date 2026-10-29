@@ -33,7 +33,7 @@ _PLAN_WORD = re.compile(
 )
 _EXPLAIN_WORD = re.compile(
     r"\b(?:expli[cq]\w*|analis\w*|por qu[eê]|porque|resultado|peso|dimens\w*|sequ[eê]ncia|ordem de carregamento|"
-    r"rejeit\w*|n[aã]o coube|ocupa\w*|coub\w*)\b",
+    r"rejeit\w*|n[aã]o coube|ocupa\w*|coub\w*|aprovad\w*|status|situa[cç][aã]o)\b",
     re.IGNORECASE,
 )
 _LATEST_WORD = re.compile(
