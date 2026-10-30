@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.responses import error_response, openapi_error_responses
 from app.database.session import get_db
+from app.modules.load_planning.assistant_diagnostics import issue_capacity_diagnostic
 from app.modules.load_planning.distribution_schemas import (
     DistributionAction,
     DistributionCreate,
@@ -106,6 +107,17 @@ def optimize(
             data, changed_by=user.id, idempotency_key=idempotency_key
         )
     except ERRORS as error:
+        if (
+            isinstance(error, DistributionError)
+            and error.code == "DISTRIBUTION_CAPACITY_INSUFFICIENT"
+        ):
+            token = issue_capacity_diagnostic(user.id, error.details)
+            if token:
+                # Additive metadata; packing result, rollback and idempotency are unchanged.
+                error.details = [
+                    *(error.details or []),
+                    {"assistant_diagnostic": token},
+                ]
         return _error(error)
 
 

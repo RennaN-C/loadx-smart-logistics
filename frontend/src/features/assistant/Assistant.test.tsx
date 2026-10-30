@@ -1,0 +1,546 @@
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { MemoryRouter, useNavigate } from "react-router-dom";
+import { beforeEach, expect, it, vi } from "vitest";
+import { useAuth } from "../auth/hooks/useAuth";
+import { Assistant } from "./Assistant";
+import { askAssistant, type AssistantReply } from "./assistantApi";
+import { getLoadPlan } from "../load-planning/api/loadPlansApi";
+import type { LoadPlan } from "../load-planning/types";
+
+vi.mock("../auth/hooks/useAuth");
+vi.mock("./assistantApi", () => ({ askAssistant: vi.fn(), assistantErrorMessage: () => "Não foi possível responder agora. Tente novamente." }));
+vi.mock("../load-planning/api/loadPlansApi", () => ({ getLoadPlan: vi.fn() }));
+vi.mock("../load-visualization/components/LoadViewer", () => ({
+  LoadViewer: ({ planId }: { planId: string }) => <div>Visualização 3D do plano {planId}</div>,
+}));
+const user = { id: "synthetic-user", name: "Pessoa de teste", role: "ADMIN", active: true };
+const REPLY: AssistantReply = { source: "GROQ", answer: "O pedido foi entregue integralmente.", facts: [], links: [], suggestions: [] };
+beforeEach(() => {
+  vi.clearAllMocks();
+  vi.mocked(useAuth).mockReturnValue({ user } as ReturnType<typeof useAuth>);
+  vi.mocked(askAssistant).mockResolvedValue(REPLY);
+});
+function RouteJump() {
+  const navigate = useNavigate();
+  return <button onClick={() => navigate("/orders")}>Ir para Pedidos</button>;
+}
+function show(path = "/planning/11111111-1111-4111-8111-111111111111") {
+  return render(<MemoryRouter initialEntries={[path]}><RouteJump /><Assistant /></MemoryRouter>);
+}
+function open() { const button = screen.getByRole("button", { name: "Conversar com Loxi" }); button.focus(); fireEvent.click(button); }
+function send() { fireEvent.change(screen.getByLabelText("Sua pergunta"), { target: { value: "Quantos pedidos entregues?" } }); fireEvent.click(screen.getByRole("button", { name: "Enviar pergunta" })); }
+
+it.each(["DRIVER", "CUSTOM"])("oculta assistente de %s", (role) => {
+  vi.mocked(useAuth).mockReturnValue({ user: { ...user, role } } as ReturnType<typeof useAuth>);
+  show(); expect(screen.queryByRole("button", { name: "Conversar com Loxi" })).not.toBeInTheDocument();
+});
+it.each(["ADMIN", "LOGISTICS_MANAGER", "CHECKER"])("permite abrir assistente de %s sem consulta automática", (role) => {
+  vi.mocked(useAuth).mockReturnValue({ user: { ...user, role } } as ReturnType<typeof useAuth>);
+  show(); open(); expect(screen.getByRole("dialog")).toBeInTheDocument(); expect(askAssistant).not.toHaveBeenCalled();
+});
+it("envia contexto de rota, identifica Groq real e fecha com Escape", async () => {
+  show(); open(); send();
+  expect(await screen.findByText(REPLY.answer)).toBeInTheDocument();
+  expect(screen.getByText("Assistente LoadX · Groq")).toBeInTheDocument();
+  expect(askAssistant).toHaveBeenCalledWith("Quantos pedidos entregues?", [], { planId: "11111111-1111-4111-8111-111111111111" }, expect.any(AbortSignal));
+  fireEvent.keyDown(document, { key: "Escape" });
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Conversar com Loxi" })).toHaveFocus();
+});
+it("exibe fallback honestamente e mantém fatos legíveis sem JSON ou links externos", async () => {
+  vi.mocked(askAssistant).mockResolvedValue({ ...REPLY, source: "FALLBACK", facts: [{ name: "Pedido autorizado", criteria: "Situação atual", timezone: "UTC", period_start: null, period_end: null, values: { situacao: "DELIVERED" } }], links: [{ label: "Não autorizado", href: "https://example.com" }] });
+  show(); open(); send();
+  expect(await screen.findByText("Resumo automático · IA indisponível")).toBeInTheDocument();
+  expect(screen.getByText("Entregue")).toBeInTheDocument();
+  expect(screen.queryByRole("link", { name: "Não autorizado" })).not.toBeInTheDocument();
+});
+it("distingue resposta verificada do backend de falha total da IA", async () => {
+  vi.mocked(askAssistant).mockResolvedValue({
+    ...REPLY, source: "BACKEND",
+    answer: "Resultado confirmado pelo LoadX: 1 pedido totalmente entregue.",
+    facts: [{ name: "Expedição e entregas", criteria: "Dados autorizados", timezone: "UTC", period_start: null, period_end: null, values: { fully_delivered_orders: 1 } }]
+  });
+  show(); open(); send();
+  expect(await screen.findByText("Dados verificados · LoadX")).toBeInTheDocument();
+  expect(screen.getAllByText("Pedidos totalmente entregues")[0]).toBeInTheDocument();
+  expect(screen.getAllByText("1").length).toBeGreaterThan(0);
+  expect(screen.queryByText("Resumo automático · IA indisponível")).not.toBeInTheDocument();
+});
+it("falha permite tentar novamente e não expõe mensagem técnica", async () => {
+  vi.mocked(askAssistant).mockRejectedValueOnce(new Error("private-provider-message"));
+  show(); open(); send();
+  expect(await screen.findByRole("alert")).not.toHaveTextContent("private-provider-message");
+  fireEvent.click(screen.getByRole("button", { name: "Tentar novamente" }));
+  expect(await screen.findByText(REPLY.answer)).toBeInTheDocument();
+});
+it("bloqueia cliques duplicados e ignora resposta após fechar", async () => {
+  let resolve!: (reply: AssistantReply) => void;
+  vi.mocked(askAssistant).mockReturnValue(new Promise((done) => { resolve = done; }));
+  show(); open(); send();
+  expect(screen.getByRole("button", { name: "Aguardando resposta do Loxi" })).toBeDisabled();
+  fireEvent.click(screen.getByRole("button", { name: "Minimizar assistente" }));
+  resolve(REPLY);
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  open(); expect(screen.queryByText(REPLY.answer)).not.toBeInTheDocument(); expect(askAssistant).toHaveBeenCalledTimes(1);
+});
+
+it("mostra registros cancelados com rótulos legíveis e navegação real", async () => {
+  const href = "/planning/distributions/22222222-2222-4222-8222-222222222222";
+  vi.mocked(askAssistant).mockResolvedValue({ ...REPLY, facts: [{ name: "Distribuições canceladas", criteria: "Criadas no período", timezone: "UTC", period_start: null, period_end: null, values: { currently_canceled_distributions_created_in_period: 1 }, links: [{ label: "Distribuição criada em 26/10/2026", href }] }] });
+  show(); open(); send();
+  expect((await screen.findAllByText("Distribuições canceladas criadas no período"))[0]).toBeInTheDocument();
+  const link = screen.getByRole("link", { name: "Distribuição criada em 26/10/2026" });
+  expect(link).toHaveAttribute("href", href);
+  fireEvent.click(link);
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+});
+
+it("abre ajuda de falha com pergunta preparada sem enviar automaticamente", () => {
+  show("/planning");
+  fireEvent(window, new CustomEvent("loadx:assistant", { detail: { question: "Como resolver uma falha sem perder o trabalho salvo?" } }));
+  expect(screen.getByRole("dialog")).toBeInTheDocument();
+  expect(screen.getByLabelText("Sua pergunta")).toHaveValue("Como resolver uma falha sem perder o trabalho salvo?");
+  expect(askAssistant).not.toHaveBeenCalled();
+});
+
+it("exige seleção explícita de cliente ambíguo e conserva filtro visível", async () => {
+  const reference = "33333333-3333-4333-8333-333333333333";
+  vi.mocked(askAssistant).mockResolvedValue({ ...REPLY, facts: [{ name: "Seleção de cliente", criteria: "Selecione um cliente", timezone: "UTC", period_start: null, period_end: null, values: { result: "ambiguous_customer" }, choices: [{ reference, label: "Cliente Operacional — Outra cidade/SP" }] }] });
+  show(); open(); send();
+  fireEvent.click(await screen.findByRole("button", { name: "Selecionar Cliente Operacional — Outra cidade/SP" }));
+  expect(askAssistant).toHaveBeenCalledTimes(1);
+  expect(screen.getByText("Cliente: Cliente Operacional — Outra cidade/SP")).toBeInTheDocument();
+  expect(screen.getByLabelText("Sua pergunta")).toHaveValue("Quantos pedidos entregues?");
+  fireEvent.click(screen.getByRole("button", { name: "Enviar pergunta" }));
+  await waitFor(() => expect(askAssistant).toHaveBeenCalledTimes(2));
+  expect(vi.mocked(askAssistant).mock.calls[1][2].customerId).toBe(reference);
+});
+
+
+it("envia diagnóstico separado do plano da rota e sem consulta automática", async () => {
+  show();
+  const receipt = "opaque-signed-receipt";
+  fireEvent(window, new CustomEvent("loadx:assistant", { detail: { diagnosticToken: receipt, question: "Por que falhou?" } }));
+  await screen.findByRole("dialog");
+  expect(askAssistant).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Enviar pergunta" }));
+  await waitFor(() => expect(askAssistant).toHaveBeenCalledOnce());
+  expect(vi.mocked(askAssistant).mock.calls[0][2]).toEqual({ diagnosticToken: receipt });
+});
+
+it("mantém histórico ao navegar e ao minimizar sem bloquear a tela", async () => {
+  show();
+  open(); send();
+  expect(await screen.findByText(REPLY.answer)).toBeInTheDocument();
+  expect(screen.getByRole("dialog")).toHaveAttribute("aria-modal", "false");
+  fireEvent.click(screen.getByRole("button", { name: "Ir para Pedidos" }));
+  expect(screen.getByRole("dialog")).toBeInTheDocument();
+  expect(screen.getByText(REPLY.answer)).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Minimizar assistente" }));
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  open();
+  expect(screen.getByText(REPLY.answer)).toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText("Sua pergunta"), { target: { value: "Quais pedidos estão prontos?" } });
+  fireEvent.click(screen.getByRole("button", { name: "Enviar pergunta" }));
+  await waitFor(() => expect(vi.mocked(askAssistant).mock.calls.length).toBe(2));
+  expect(vi.mocked(askAssistant).mock.calls[1][2]).toEqual({});
+});
+
+
+it("abre com a apresentação do Loxi sem consultar IA nem cobrir o chat com sugestões", async () => {
+  show(); open();
+  expect(screen.getByText("Olá! Eu sou o Loxi 👋")).toBeInTheDocument();
+  expect(screen.getByText(/é só escrever/)).toBeInTheDocument();
+  expect(screen.queryByLabelText("Perguntas sugeridas")).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Sugestões" })).not.toBeInTheDocument();
+  expect(askAssistant).not.toHaveBeenCalled();
+  send();
+  expect(await screen.findByText(REPLY.answer)).toBeInTheDocument();
+});
+
+it("mantém mais de três respostas no histórico visível", async () => {
+  show(); open();
+  for (let i = 0; i < 5; i++) {
+    const prompt = "Pergunta " + i;
+    fireEvent.change(screen.getByLabelText("Sua pergunta"), { target: { value: prompt } });
+    fireEvent.click(screen.getByRole("button", { name: "Enviar pergunta" }));
+    await waitFor(() => expect(vi.mocked(askAssistant).mock.calls.length).toBe(i + 1));
+    await waitFor(() => expect(screen.getAllByText(REPLY.answer)).toHaveLength(i + 1));
+  }
+  expect(screen.getByText("Pergunta 0")).toBeInTheDocument();
+  expect(screen.getByText("Pergunta 4")).toBeInTheDocument();
+  expect(screen.getByRole("dialog")).toHaveAttribute("aria-modal", "false");
+});
+
+it("identifica resposta de proteção sem atribuir falsamente falha à Groq", async () => {
+  vi.mocked(askAssistant).mockResolvedValue({
+    ...REPLY, source: "GUARDRAIL", answer: "Comando não autorizado."
+  });
+  show(); open(); send();
+  expect(await screen.findByText("Comando não autorizado.")).toBeInTheDocument();
+  expect(screen.getByText("Proteção do LoadX · somente leitura")).toBeInTheDocument();
+  expect(screen.queryByText("Resumo automático · IA indisponível")).not.toBeInTheDocument();
+});
+
+
+it("mostra resumo objetivo com métricas verificadas e detalhes recolhidos", async () => {
+  vi.mocked(askAssistant).mockResolvedValue({
+    ...REPLY,
+    answer: "Resultado confirmado pelo LoadX: 1 pedido totalmente entregue; 1 pedido expedido.\n\nConsultei os registros autorizados. Os detalhes abaixo mostram a origem, os critérios e o período da consulta.",
+    facts: [{
+      name: "Expedição e entregas",
+      criteria: "Origem: pedidos, viagens e entregas. Última perna concluída.",
+      timezone: "UTC",
+      period_start: "2026-09-27T14:21:45Z",
+      period_end: "2026-10-27T14:21:45Z",
+      values: {
+        fully_delivered_orders: 1,
+        dispatched_orders: 1,
+        completed_delivery_legs: 1,
+        top_customer_name: "Distribuidoria Aurora",
+      },
+    }],
+    links: [{ label: "Consultar entregas", href: "/deliveries" }],
+  });
+  show("/deliveries"); open(); send();
+  expect((await screen.findAllByText("Pedidos totalmente entregues"))[0]).toBeInTheDocument();
+  expect(screen.getByText("Últimos 30 dias")).toBeInTheDocument();
+  expect(screen.getAllByText("Distribuidoria Aurora")[0]).toBeInTheDocument();
+  expect(screen.queryByText(/Consultei os registros autorizados/)).not.toBeInTheDocument();
+  const details = screen.getByText("Ver critérios e dados completos").closest("details");
+  expect(details).not.toHaveAttribute("open");
+  const link = screen.getByRole("link", { name: "Consultar entregas" });
+  expect(link).toHaveAttribute("href", "/deliveries");
+  fireEvent.click(screen.getByText("Ver critérios e dados completos"));
+  expect(details).toHaveAttribute("open");
+  expect(screen.getByText(/Última perna concluída/)).toBeInTheDocument();
+});
+
+it("envia com Enter, mas mantém Shift+Enter para texto multilinha", async () => {
+  show(); open();
+  const composer = screen.getByLabelText("Sua pergunta");
+  fireEvent.change(composer, { target: { value: "Quantos pedidos foram entregues?" } });
+  fireEvent.keyDown(composer, { key: "Enter", shiftKey: true });
+  expect(askAssistant).not.toHaveBeenCalled();
+  fireEvent.keyDown(composer, { key: "Enter" });
+  await waitFor(() => expect(askAssistant).toHaveBeenCalledOnce());
+  expect(vi.mocked(askAssistant).mock.calls[0][0]).toBe("Quantos pedidos foram entregues?");
+});
+
+it("permite pedir sugestões como mensagem, sem botões extras na tela", async () => {
+  show(); open();
+  const composer = screen.getByLabelText("Sua pergunta");
+  fireEvent.change(composer, { target: { value: "Me dê sugestões" } });
+  fireEvent.click(screen.getByRole("button", { name: "Enviar pergunta" }));
+  await waitFor(() => expect(askAssistant).toHaveBeenCalledOnce());
+  expect(vi.mocked(askAssistant).mock.calls[0][0]).toBe("Me dê sugestões");
+  expect(screen.queryByLabelText("Perguntas sugeridas")).not.toBeInTheDocument();
+});
+
+it("preserva indicadores iguais a zero sem inferir sucesso", async () => {
+  vi.mocked(askAssistant).mockResolvedValue({
+    ...REPLY, source: "BACKEND", answer: "Resultado confirmado pelo LoadX: 0 pedidos totalmente entregues.",
+    facts: [{
+      name: "Expedição e entregas", criteria: "Dados autorizados", timezone: "UTC",
+      period_start: null, period_end: null,
+      values: { fully_delivered_orders: 0 },
+    }],
+  });
+  show(); open(); send();
+  expect((await screen.findAllByText("Pedidos totalmente entregues"))[0]).toBeInTheDocument();
+  expect(screen.getAllByText("0")[0]).toBeInTheDocument();
+});
+
+it("mantém plano autorizado na conversa para perguntas seguintes", async () => {
+  const planId = "33333333-3333-4333-8333-333333333333";
+  vi.mocked(askAssistant).mockResolvedValueOnce({
+    ...REPLY, source: "BACKEND", answer: "Analisei o planejamento salvo.",
+    facts: [{
+      name: "Análise do planejamento", criteria: "Snapshot autorizado",
+      timezone: "UTC", period_start: null, period_end: null,
+      values: { loaded_volumes: 2 },
+      links: [{ label: "Abrir planejamento e ações permitidas", href: "/planning/" + planId }],
+    }],
+  });
+  show("/orders"); open(); send();
+  expect(await screen.findByText("Analisei o planejamento salvo.")).toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText("Sua pergunta"), { target: { value: "E por que houve rejeições?" } });
+  fireEvent.click(screen.getByRole("button", { name: "Enviar pergunta" }));
+  await waitFor(() => expect(askAssistant).toHaveBeenCalledTimes(2));
+  expect(vi.mocked(askAssistant).mock.calls[1][2]).toEqual({ planId });
+});
+
+
+it("separa orientação documentada e não repete o artigo em tabela técnica", async () => {
+  const guide = "Use as configurações para editar os dados institucionais.";
+  vi.mocked(askAssistant).mockResolvedValue({ source: "DOCUMENTATION", answer: guide, links: [{ label: "Abrir Configurações", href: "/settings" }], suggestions: [], facts: [{ name: "Como usar: Configurações", criteria: "Fonte: docs/05-contratos-api.md", values: { orientation: guide }, period_start: null, period_end: null, timezone: "UTC" }] });
+  show(); open(); send();
+  expect(await screen.findByText("Orientação documentada · LoadX")).toBeInTheDocument();
+  expect(screen.getAllByText(guide)).toHaveLength(1);
+  expect(screen.queryByRole("term", { name: "orientation" })).not.toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Abrir Configurações" })).toHaveAttribute("href", "/settings");
+});
+
+it("envia os oito turnos anteriores com papéis corretos", async () => {
+  show("/orders"); open();
+  for (let index = 0; index < 9; index++) {
+    fireEvent.change(screen.getByLabelText("Sua pergunta"), { target: { value: "Pergunta " + index } });
+    fireEvent.click(screen.getByRole("button", { name: "Enviar pergunta" }));
+    await waitFor(() => expect(vi.mocked(askAssistant).mock.calls.length).toBe(index + 1));
+    await waitFor(() => expect(screen.getAllByText(REPLY.answer)).toHaveLength(index + 1));
+  }
+  const history = vi.mocked(askAssistant).mock.calls[8][1];
+  expect(history).toHaveLength(16);
+  expect(history[0]).toEqual({ role: "user", content: "Pergunta 0" });
+  expect(history[1]).toEqual({ role: "assistant", content: REPLY.answer });
+  expect(history.at(-1)?.role).toBe("assistant");
+});
+
+it("limpar conversa descarta seleção anterior de plano e cliente", async () => {
+  const planId = "33333333-3333-4333-8333-333333333333";
+  vi.mocked(askAssistant).mockResolvedValueOnce({
+    ...REPLY,
+    source: "BACKEND",
+    facts: [{
+      name: "Análise do planejamento", criteria: "Persistido", timezone: "UTC",
+      period_start: null, period_end: null, values: { loaded_volumes: 1 },
+      links: [{ label: "Abrir plano", href: "/planning/" + planId }],
+    }],
+  });
+  show("/orders"); open(); send();
+  expect(await screen.findByText(REPLY.answer)).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Limpar conversa" }));
+  fireEvent.change(screen.getByLabelText("Sua pergunta"), { target: { value: "Vamos começar de novo" } });
+  fireEvent.click(screen.getByRole("button", { name: "Enviar pergunta" }));
+  await waitFor(() => expect(vi.mocked(askAssistant).mock.calls.length).toBe(2));
+  expect(vi.mocked(askAssistant).mock.calls[1][1]).toEqual([]);
+  expect(vi.mocked(askAssistant).mock.calls[1][2]).toEqual({});
+});
+
+it("mostra cada link de consulta apenas uma vez na conversa", async () => {
+  const link = { label: "Abrir Pedidos cadastrados", href: "/orders" };
+  vi.mocked(askAssistant).mockResolvedValueOnce({
+    ...REPLY,
+    source: "BACKEND",
+    answer: "Encontrei 7 pedidos cadastrados.",
+    links: [link],
+    facts: [{
+      name: "Pedidos cadastrados",
+      criteria: "Registros autorizados",
+      timezone: "UTC",
+      period_start: null,
+      period_end: null,
+      values: { total_records: 7, page: 1, total_pages: 1 },
+      links: [link],
+    }],
+  });
+  show(); open(); send();
+  expect(await screen.findByText("Encontrei 7 pedidos cadastrados.")).toBeInTheDocument();
+  expect(screen.getAllByRole("link", { name: "Abrir Pedidos cadastrados" })).toHaveLength(1);
+});
+
+
+it("recolhe métricas repetidas do mesmo planejamento em perguntas seguintes", async () => {
+  const fact: AssistantReply["facts"][number] = {
+    name: "Análise do planejamento",
+    criteria: "Snapshot persistido",
+    timezone: "UTC",
+    period_start: null,
+    period_end: null,
+    values: { loaded_volumes: 24, rejected_volumes: 0, occupancy_percent: 22.5 },
+    links: [{
+      label: "Abrir planejamento",
+      href: "/planning/33333333-3333-4333-8333-333333333333",
+    }],
+  };
+  vi.mocked(askAssistant).mockResolvedValue({
+    ...REPLY,
+    source: "BACKEND",
+    answer: "Neste planejamento, os volumes couberam.",
+    facts: [fact],
+  });
+  show("/orders"); open(); send();
+  await waitFor(() => expect(askAssistant).toHaveBeenCalledTimes(1));
+  await screen.findByText("Neste planejamento, os volumes couberam.");
+  fireEvent.change(screen.getByLabelText("Sua pergunta"), {
+    target: { value: "Trocar de caminhão ajudaria?" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Enviar pergunta" }));
+  await waitFor(() => expect(askAssistant).toHaveBeenCalledTimes(2));
+  expect(await screen.findByText("Dados do planejamento já exibidos")).toBeInTheDocument();
+});
+
+it("distingue ocupação geométrica e utilização de peso nos cartões do plano", async () => {
+  vi.mocked(askAssistant).mockResolvedValue({
+    source: "BACKEND",
+    answer: "O espaço é 22,5% e a capacidade de peso utilizada é 90%.",
+    facts: [{ name: "Análise do planejamento", criteria: "Snapshot persistido", timezone: "UTC", period_start: null, period_end: null,
+      values: { loaded_volumes: 24, rejected_volumes: 0, occupancy_percent: 22.5, weight_utilization_percent: 90 },
+      links: [{ label: "Abrir plano", href: "/planning/11111111-1111-4111-8111-111111111111" }] }],
+    links: [], suggestions: [],
+  });
+  show(); open(); send();
+  expect((await screen.findAllByText("Ocupação geométrica (%)")).length).toBeGreaterThan(0);
+  expect((await screen.findAllByText("Capacidade de peso utilizada (%)")).length).toBeGreaterThan(0);
+  expect(screen.getAllByText("22,5").length).toBeGreaterThan(0);
+  expect(screen.getAllByText("90").length).toBeGreaterThan(0);
+});
+
+
+it("mostra a mensagem imediatamente e posiciona a resposta no próprio chat", async () => {
+  let resolve!: (reply: AssistantReply) => void;
+  vi.mocked(askAssistant).mockReturnValue(new Promise((done) => { resolve = done; }));
+  show("/orders"); open();
+  const composer = screen.getByLabelText("Sua pergunta");
+  fireEvent.change(composer, { target: { value: "Olá" } });
+  fireEvent.click(screen.getByRole("button", { name: "Enviar pergunta" }));
+  expect(screen.getByText("Olá")).toBeInTheDocument();
+  expect(screen.getByRole("status", { name: "Loxi está preparando a resposta" })).toBeInTheDocument();
+  expect(screen.queryByText("Consultando informações autorizadas…")).not.toBeInTheDocument();
+  expect(composer).not.toBeDisabled();
+  expect(composer).toHaveValue("");
+  fireEvent.change(composer, { target: { value: "Próxima pergunta" } });
+  expect(composer).toHaveValue("Próxima pergunta");
+  expect(screen.getByRole("button", { name: "Aguardando resposta do Loxi" })).toBeDisabled();
+  resolve(REPLY);
+  expect(await screen.findByText(REPLY.answer)).toBeInTheDocument();
+  await waitFor(() => expect(screen.queryByRole("status", { name: "Loxi está preparando a resposta" })).not.toBeInTheDocument());
+  expect(composer).toHaveValue("Próxima pergunta");
+});
+
+it("restaura a pergunta após erro de API e permite nova tentativa", async () => {
+  vi.mocked(askAssistant).mockRejectedValueOnce(new Error("erro técnico interno"));
+  show("/orders"); open();
+  fireEvent.change(screen.getByLabelText("Sua pergunta"), { target: { value: "Olá" } });
+  fireEvent.click(screen.getByRole("button", { name: "Enviar pergunta" }));
+  expect(await screen.findByRole("alert")).not.toHaveTextContent("erro técnico interno");
+  expect(screen.getByLabelText("Sua pergunta")).toHaveValue("Olá");
+  expect(screen.queryByRole("status", { name: "Loxi está preparando a resposta" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Tentar novamente" }));
+  expect(await screen.findByText(REPLY.answer)).toBeInTheDocument();
+});
+
+it("mantém registro operacional legível sem obrigar o usuário a abrir métricas", async () => {
+  vi.mocked(askAssistant).mockResolvedValue({
+    source: "BACKEND",
+    answer: "Encontrei 2 caminhões indisponíveis nesta página da frota.\\n• Baú Médio · placa ABD5543 · cadastro arquivado\\n• Baú Pequeno · placa TESTE M2 · manutenção",
+    facts: [{
+      name: "Disponibilidade atual da frota", criteria: "Disponibilidade real do backend",
+      timezone: "UTC", period_start: null, period_end: null,
+      values: { page_unavailable_count: 2, page_vehicle_count: 5, page_active_count: 4, item_1: "Baú Médio · placa ABD5543 · cadastro arquivado", item_2: "Baú Pequeno · placa TESTE M2 · manutenção" },
+    }],
+    links: [{ label: "Consultar disponibilidade", href: "/trucks?tab=availability" }],
+    suggestions: [],
+  });
+  show("/trucks"); open(); send();
+  expect(await screen.findByText("Baú Médio · ABD5543")).toBeInTheDocument();
+  expect(screen.getByText("cadastro arquivado")).toBeInTheDocument();
+  expect(screen.getByText("Baú Pequeno · TESTE M2")).toBeInTheDocument();
+  expect(screen.getByText("manutenção")).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Consultar disponibilidade" })).toHaveAttribute("href", "/trucks?tab=availability");
+});
+
+
+it("apresenta disponibilidade em cartões e totais por página sem inventar nomes", async () => {
+  vi.mocked(askAssistant).mockResolvedValue({
+    ...REPLY, source: "BACKEND",
+    answer: "Encontrei 2 caminhões indisponíveis nesta página da frota.",
+    facts: [{
+      name: "Disponibilidade atual da frota", criteria: "Snapshot autorizado",
+      timezone: "UTC", period_start: null, period_end: null,
+      values: {
+        page: 1, total_pages: 1, page_vehicle_count: 5, page_active_count: 4,
+        page_unavailable_count: 2, item_1: "Baú Médio · placa ABD5543 · cadastro arquivado",
+        item_2: "Baú Médio · placa ABD5544 · operação em andamento",
+      },
+    }],
+  });
+  show("/orders"); open(); send();
+  expect(await screen.findByRole("region", { name: "Disponibilidade operacional da frota" })).toBeInTheDocument();
+  expect(screen.getByText("Baú Médio · ABD5543")).toBeInTheDocument();
+  expect(screen.getByText("Baú Médio · ABD5544")).toBeInTheDocument();
+  expect(screen.getByText("operação em andamento")).toBeInTheDocument();
+  expect(screen.getByText("Ativo no cadastro não significa disponível para operar.")).toBeInTheDocument();
+});
+
+it("exibe plano com indicadores distintos e carrega 3D apenas após ação explícita", async () => {
+  const id = "33333333-3333-4333-8333-333333333333";
+  vi.mocked(askAssistant).mockResolvedValue({
+    ...REPLY, source: "BACKEND",
+    answer: "Dados verificados do plano.",
+    facts: [{
+      name: "Análise do planejamento", criteria: "Snapshot persistido",
+      timezone: "UTC", period_start: null, period_end: null,
+      values: {
+        status: "CALCULATED", truck_plate: "TESTE M2", loaded_volumes: 24,
+        rejected_volumes: 0, occupancy_percent: 22.5,
+        weight_utilization_percent: 90, weight_kg: 3600,
+        truck_capacity_weight_kg: 4000,
+      },
+      links: [{ label: "Abrir planejamento e ações permitidas", href: "/planning/" + id }],
+    }],
+  });
+  vi.mocked(getLoadPlan).mockResolvedValue({ id } as LoadPlan);
+  show("/orders"); open(); send();
+  expect(await screen.findByRole("region", { name: "Resumo visual do planejamento" })).toBeInTheDocument();
+  expect(screen.getByRole("progressbar", { name: "Utilização de peso" })).toHaveAttribute("aria-valuenow", "90");
+  expect(screen.getByRole("progressbar", { name: "Ocupação geométrica" })).toHaveAttribute("aria-valuenow", "22.5");
+  expect(screen.getByText(/400 kg restantes/)).toBeInTheDocument();
+  expect(getLoadPlan).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Explorar carga em 3D" }));
+  expect(await screen.findByText("Visualização 3D do plano " + id)).toBeInTheDocument();
+  expect(getLoadPlan).toHaveBeenCalledWith(id);
+  expect(screen.getByText(/Prévia interativa/)).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Visualização completa" })).toHaveAttribute("href", "/planning/" + id);
+});
+
+it("expande e reduz a janela sem apagar a conversa", async () => {
+  show(); open(); send();
+  await screen.findByText(REPLY.answer);
+  const overflow = document.body.style.overflow;
+  fireEvent.click(screen.getByRole("button", { name: "Expandir assistente" }));
+  expect(screen.getByRole("dialog")).toHaveClass("is-expanded");
+  expect(document.body.style.overflow).toBe("hidden");
+  expect(screen.getByText(REPLY.answer)).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Reduzir assistente" }));
+  expect(screen.getByRole("dialog")).not.toHaveClass("is-expanded");
+  expect(document.body.style.overflow).toBe(overflow);
+});
+
+it("recolhe disponibilidade idêntica em follow-ups sem esconder mudanças reais", async () => {
+  const first: AssistantReply = {
+    ...REPLY,
+    source: "BACKEND",
+    answer: "Os motivos são cadastro arquivado e operação em andamento.",
+    facts: [{
+      name: "Disponibilidade atual da frota",
+      criteria: "Dados operacionais atuais",
+      timezone: "UTC", period_start: null, period_end: null,
+      values: {
+        page_vehicle_count: 5,
+        page_unavailable_count: 2,
+        item_1: "Baú Médio · placa ABD5543 · cadastro arquivado",
+        item_2: "Baú Médio · placa ABD5544 · operação em andamento",
+      },
+    }],
+  };
+  vi.mocked(askAssistant).mockResolvedValue(first);
+  show("/orders"); open(); send();
+  await waitFor(() => expect(vi.mocked(askAssistant)).toHaveBeenCalledTimes(1));
+  await screen.findByRole("region", { name: "Disponibilidade operacional da frota" });
+  send();
+  await waitFor(() => expect(vi.mocked(askAssistant)).toHaveBeenCalledTimes(2));
+  const repeated = await screen.findByText("Dados da frota já exibidos");
+  expect(repeated.closest("details")).not.toHaveAttribute("open");
+
+  vi.mocked(askAssistant).mockResolvedValue({
+    ...first, facts: [{ ...first.facts[0], values: {
+      ...first.facts[0].values,
+      item_2: "Baú Médio · placa ABD5544 · manutenção",
+    } }],
+  });
+  send();
+  await waitFor(() => expect(vi.mocked(askAssistant)).toHaveBeenCalledTimes(3));
+  const changed = await screen.findByText("manutenção");
+  expect(changed.closest(".assistant-repeated-fact")).toBeNull();
+});

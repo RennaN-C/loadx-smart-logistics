@@ -4,7 +4,7 @@
 
 O **LoadX Smart Logistics** é um projeto acadêmico de Engenharia de Software que reúne, em um único sistema, o planejamento tridimensional de cargas, a distribuição de volumes entre caminhões e o acompanhamento das etapas de transporte. A proposta é ajudar a organizar o uso da frota e dar mais clareza às operações, desde o cadastro de um pedido até a conclusão de sua entrega.
 
-**Versão oficial:** [v1.2.0 — Evolução Operacional e Multi-Caminhão](https://github.com/RennaN-C/loadx-smart-logistics/releases/tag/v1.2.0) · **Publicada em 26 de outubro de 2026**  
+**Versão oficial:** [v1.2.1 — Loxi e Experiência Inteligente](https://github.com/RennaN-C/loadx-smart-logistics/releases/tag/v1.2.1) · **30 de outubro de 2026**  
 **Estado:** código disponível para execução local, testes e evolução acadêmica. A publicação no GitHub não representa certificação de uma implantação de produção.
 
 [Funcionalidades](#funcionalidades-do-sistema) · [Como funciona](#como-funciona-na-prática) · [Executar localmente](#executar-o-loadx-localmente) · [Arquitetura](#arquitetura-e-tecnologias) · [Testes](#qualidade-testes-e-segurança) · [Documentação](#documentação-e-referências) · [Roadmap](#versões-e-evolução)

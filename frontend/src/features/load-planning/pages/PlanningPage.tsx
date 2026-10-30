@@ -13,11 +13,12 @@ import { ReportDownloadButton } from "../../reports/components/ReportDownloadBut
 import { canReadReports } from "../../reports/permissions";
 import { approveLoadPlan, getLoadPlan, recalculateLoadPlan } from "../api/loadPlansApi";
 import { PlanHistory } from "../components/PlanHistory";
+import { PlanAIExplanation } from "../components/PlanAIExplanation";
 import { PlanExecution } from "../components/PlanExecution";
 import { PlanningActivity } from "../components/PlanningActivity";
 import { PlanBuilder } from "../components/PlanBuilder";
 import { PlanItemsTable } from "../components/PlanItemsTable";
-import { PlanSummary } from "../components/PlanSummary";
+import { PlanSummary, PlanOperationalContinuity } from "../components/PlanSummary";
 import { mapLoadPlanErrorToMessage } from "../components/loadPlansErrorMessages";
 import type { LoadDistribution, LoadPlan } from "../types";
 import "./PlanningPage.css";
@@ -34,8 +35,8 @@ const LoadViewer = lazy(() =>
 type PlanTab = "summary" | "scene";
 
 const PLAN_TABS: readonly TabItem<PlanTab>[] = [
-  { id: "summary", label: "Resumo e sequência" },
   { id: "scene", label: "Visualização 3D" },
+  { id: "summary", label: "Resumo e sequência" },
 ];
 
 function PlanningHeader({ plan, canManage, canDownload }: {
@@ -103,12 +104,13 @@ function PlanningResult({ plan, canManage, approvalAllowed, isWorking, onApprove
   const { user } = useAuth();
   const distributionId = plan.distributionId;
   return <>
-    {distributionId ? <div className="distribution-notice"><p>Este plano pertence a uma distribuição. Aprovação, cancelamento e reprocessamento são feitos pela necessidade completa.</p><Link className="btn-secondary" to={`/planning/distributions/${distributionId}`}>Abrir distribuição completa</Link></div> : null}
-    <div className="plan-saved-notice">
-      <div><span className="plan-saved-icon" aria-hidden="true"><Icon name="planning" size={19} /></span><p><strong>Plano salvo</strong><span>Referência {plan.id.slice(0, 8)} · Disponível para consulta em Planos existentes.</span></p></div>
-      <div className="plan-saved-actions"><Link className="btn-secondary" to="/planning">Planos existentes</Link><Link className="btn-primary" to={`/planning/${plan.id}`}>Abrir este plano<Icon name="arrow-right" size={16} /></Link></div>
-    </div>
-    <PlanSummary plan={plan} canManage={canManage && !distributionId} approvalAllowed={approvalAllowed && !distributionId} isWorking={isWorking} onApprove={onApprove} onRecalculate={onRecalculate} />
+    {distributionId ? <div className="distribution-notice"><p>{plan.distributionStatus === "CANCELED"
+        ? "Distribuição cancelada: este plano é apenas um registro histórico. Para calcular novamente, inicie uma nova distribuição."
+        : plan.distributionStatus === "INCOMPLETE"
+          ? "Distribuição incompleta: consulte as partes canceladas e reprocesse a carga antes de aprovar."
+          : "Este plano pertence a uma distribuição. Aprovação, cancelamento e reprocessamento são feitos pela necessidade completa."}</p><Link className="btn-secondary" to={`/planning/distributions/${distributionId}`}>Abrir distribuição completa</Link></div> : null}
+    <p className="plan-persisted-reference"><Icon name="planning" size={16} />Plano salvo · Referência {plan.id.slice(0, 8)}<Link to="/planning">Planos existentes</Link><Link to={`/planning/${plan.id}`}>Abrir este plano</Link></p>
+    <PlanSummary showContinuity={false} plan={plan} canManage={canManage && !distributionId} approvalAllowed={approvalAllowed && !distributionId} isWorking={isWorking} onApprove={onApprove} onRecalculate={onRecalculate} />
     <Tabs items={PLAN_TABS} active={tab} onChange={onTabChange} label="Formato do resultado" />
     <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
       {tab === "summary" ? <PlanItemsTable items={plan.items} /> :
@@ -116,6 +118,8 @@ function PlanningResult({ plan, canManage, approvalAllowed, isWorking, onApprove
           <LoadViewer planId={plan.id} plan={plan} />
         </Suspense>}
     </div>
+    <PlanOperationalContinuity plan={plan} canManage={canManage && !distributionId} />
+    <PlanAIExplanation key={plan.id} planId={plan.id} />
     {hasPermission(user, "loadx.audit.read") ? <AuditTrail entityType="LOAD_PLAN" entityId={plan.id} title="Histórico do plano" /> : null}
   </>;
 }
@@ -133,7 +137,7 @@ export function PlanningPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isWorking, setIsWorking] = useState(false);
   const [loadAttempt, setLoadAttempt] = useState(0);
-  const [tab, setTab] = useState<PlanTab>("summary");
+  const [tab, setTab] = useState<PlanTab>("scene");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const mounted = useRef(false);
@@ -215,10 +219,10 @@ export function PlanningPage() {
   }
 
   if (!canRead) {
-    return <div className="entity-page"><h1>Planejamento de carga</h1><AlertBanner>Seu perfil não tem acesso ao planejamento.</AlertBanner><Link to="/">Voltar ao início</Link></div>;
+    return <div className="entity-page planning-page"><h1>Planejamento de carga</h1><AlertBanner>Seu perfil não tem acesso ao planejamento.</AlertBanner><Link to="/">Voltar ao início</Link></div>;
   }
 
-  return <div className="entity-page">
+  return <div className="entity-page planning-page">
     {planId ? <nav className="entity-toolbar entity-page-nav" aria-label="Caminhos do planejamento"><Link to="/planning">Voltar ao planejamento</Link><Link to="/orders">Voltar aos pedidos</Link></nav> : null}
     <PlanningHeader plan={plan} canManage={canManage && !isNew} canDownload={canDownload} />
     <PlanningFeedback error={errorMessage} loading={isLoading} hasPlanId={Boolean(planId)} hasPlan={Boolean(plan)} retry={() => setLoadAttempt((value) => value + 1)} />

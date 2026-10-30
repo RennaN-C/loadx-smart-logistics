@@ -151,7 +151,11 @@ class AIProviderTimeoutError(AIProviderError):
 
 
 class AIProviderUnavailableError(AIProviderError):
-    """O provider não estava disponível para responder."""
+    """Unavailable provider with a fixed, non-sensitive failure category."""
+
+    def __init__(self, reason: str = "unavailable") -> None:
+        self.reason = reason
+        super().__init__(reason)
 
 
 class AIProvider(Protocol):
@@ -217,7 +221,23 @@ class FakeAIProvider:
         return self.response
 
 
-def get_ai_provider() -> AIProvider:
-    """Fornece o fake local até o Dev4 integrar um adapter concreto."""
+class ChatProvider(Protocol):
+    def complete(
+        self,
+        messages: list[dict],
+        *,
+        tools: list[dict] | None = None,
+        timeout_seconds: float,
+    ) -> dict:
+        """Return untrusted text/tool calls without database or authorization access."""
+        ...
 
-    return FakeAIProvider()
+
+def get_ai_provider() -> AIProvider:
+    """Runtime never labels a mock answer as real AI; explicit fakes stay in tests."""
+    from app.core.config import settings
+    from app.integrations.ai.groq import GroqProvider, UnconfiguredAIProvider
+
+    if settings.ai_provider == "groq":
+        return GroqProvider(settings)
+    return UnconfiguredAIProvider()

@@ -1,3 +1,4 @@
+import { Assistant } from "../features/assistant/Assistant";
 import { NotificationProvider } from "../features/notifications/components/NotificationProvider";
 import { NotificationBell } from "../features/notifications/components/NotificationBell";
 import { hasPermission } from "../features/auth/permissions";
@@ -367,6 +368,7 @@ export function AppLayout() {
         </header>
         <Outlet />
       </main>
+      {user ? <Assistant key={`${user.id}:${user.role}:${user.permissions?.join(",")}`} /> : null}
     </div>
     </NotificationProvider>
   );
