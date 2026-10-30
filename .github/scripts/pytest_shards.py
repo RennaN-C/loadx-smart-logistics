@@ -8,7 +8,6 @@ Run from backend/:
 """
 
 import argparse
-import subprocess
 import sys
 from pathlib import Path
 
@@ -79,17 +78,20 @@ def main() -> int:
     print(f"Running {len(selected)} test files:", flush=True)
     for path in selected:
         print(f"  {path}", flush=True)
-    return subprocess.call(
-        [
-            sys.executable,
-            "-m",
-            "pytest",
-            "-q",
-            *(str(path) for path in selected),
-            "--cov=app",
-            "--cov-report=",
-            "--durations=20",
-        ]
+    # Direct invocation avoids delegating dynamically discovered paths to a
+    # subprocess while preserving pytest-cov and the same test selection.
+    import pytest
+
+    return int(
+        pytest.main(
+            [
+                "-q",
+                *(str(path) for path in selected),
+                "--cov=app",
+                "--cov-report=",
+                "--durations=20",
+            ]
+        )
     )
 
 

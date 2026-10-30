@@ -30,7 +30,6 @@ jobs:
       APP_ENV: local
       DATABASE_URL: postgresql+psycopg://loadx_test:loadx_test_local@localhost:5432/loadx_test
       TEST_DATABASE_URL: postgresql+psycopg://loadx_test:loadx_test_local@127.0.0.1:5432/loadx_test
-      SECRET_KEY: ci-only-secret-key-at-least-32-characters
       COVERAGE_FILE: .coverage.unit
     defaults:
       run:
@@ -48,6 +47,9 @@ jobs:
 
       - name: Instalar dependências travadas
         run: python -m pip install --require-hashes -r requirements-dev.lock.txt
+
+      - name: Gerar chave efêmera exclusiva do job
+        run: printf 'SECRET_KEY=%s\\n' "$(openssl rand -hex 32)" >> "$GITHUB_ENV"
 
       - name: Verificar abrangência e isolamento dos shards
         run: python ../.github/scripts/pytest_shards.py --verify
@@ -98,7 +100,6 @@ jobs:
       APP_ENV: local
       DATABASE_URL: postgresql+psycopg://loadx_test:loadx_test_local@localhost:5432/loadx_test
       TEST_DATABASE_URL: postgresql+psycopg://loadx_test:loadx_test_local@127.0.0.1:5432/loadx_test
-      SECRET_KEY: ci-only-secret-key-at-least-32-characters
       COVERAGE_FILE: .coverage.integration-${{ matrix.shard }}
     defaults:
       run:
@@ -116,6 +117,9 @@ jobs:
 
       - name: Instalar dependências travadas
         run: python -m pip install --require-hashes -r requirements-dev.lock.txt
+
+      - name: Gerar chave efêmera exclusiva do job
+        run: printf 'SECRET_KEY=%s\\n' "$(openssl rand -hex 32)" >> "$GITHUB_ENV"
 
       # Full Alembic upgrades/downgrades are exercised by the session fixture
       # against this shard's private database, with no schema shared across jobs.
