@@ -303,7 +303,9 @@ def documentation_reply(user: User, message: str) -> ChatResponse | None:
     )
 
 
-def _history_scope(data: ChatRequest, current: set[str]) -> tuple[list[Message], set[str]]:
+def _history_scope(
+    data: ChatRequest, current: set[str]
+) -> tuple[list[Message], set[str]]:
     previous_topics: set[str] = set()
     boundary = 0
     for index, message in enumerate(data.history):

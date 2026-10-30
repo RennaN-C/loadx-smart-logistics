@@ -168,13 +168,10 @@ class GroqProvider:
         )
         if status == 429 and self.config.app_env != "local":
             with _rate_lock:
-                _rate_limited_until = max(
-                    _rate_limited_until, time.monotonic() + 60
-                )
+                _rate_limited_until = max(_rate_limited_until, time.monotonic() + 60)
         if status == 400 and self._invalid_tool_generation(error):
             logger.warning(
-                "GROQ_REQUEST_FAILURE category=http_400 "
-                "reason=invalid_tool_generation"
+                "GROQ_REQUEST_FAILURE category=http_400 reason=invalid_tool_generation"
             )
             raise AIProviderToolGenerationError from None
         if status == 403:
