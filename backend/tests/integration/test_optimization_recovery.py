@@ -294,14 +294,74 @@ def test_abandoned_transaction_releases_lock_for_restart_without_pending_job(
 
     s = distribution_scenario
     key = uuid.uuid4()
-    with s.factory() as old_worker:
-        assert OptimizationRepository(old_worker).try_lock(s.user.id, key)
+    # A session-scoped advisory lock has its acquisition committed,
+    # so the CPU worker can calculate without an idle DB transaction.
+    with (
+        s.factory() as old_worker,
+        OptimizationRepository(old_worker).session_lock(s.user.id, key) as acquired,
+    ):
+        assert acquired
         assert recover(s, key).status_code == 409
-        # Closing the connection rolls back the uncommitted attempt, as on worker exit.
+    # Leaving the lock scope releases it on PostgreSQL, even after failure.
     assert recover(s, key).status_code == 404
     result = send(s, key)
     assert result.status_code == 201
     assert_one(s, result.json()["id"])
+
+
+def test_packing_runs_without_read_transaction_and_lock_is_still_held(
+    distribution_scenario, monkeypatch
+):
+    """Long calculations must not idle in a database transaction."""
+    from app.modules.load_planning import distribution_service
+
+    s = distribution_scenario
+    key = uuid.uuid4()
+    original = distribution_service.optimize_multi_truck
+    observed = []
+    owner = {}
+    original_optimize = LoadDistributionService._optimize
+
+    def tracked_optimize(service, *args, **kwargs):
+        owner["db"] = service.db
+        return original_optimize(service, *args, **kwargs)
+
+    def during_packing(candidates, volumes):
+        assert not owner["db"].in_transaction()
+        # Another request with the same actor/key sees the committed
+        # session advisory lock, although no transaction is held for packing.
+        with (
+            s.factory() as competing,
+            OptimizationRepository(competing).session_lock(s.user.id, key) as locked,
+        ):
+            assert not locked
+        observed.append(True)
+        return original(candidates, volumes)
+
+    from app.modules.load_planning.optimization_repository import OptimizationRepository
+
+    monkeypatch.setattr(LoadDistributionService, "_optimize", tracked_optimize)
+    monkeypatch.setattr(distribution_service, "optimize_multi_truck", during_packing)
+    first = send(s, key)
+    assert first.status_code == 201, first.text
+    assert observed
+    assert recover(s, key).status_code == 200
+
+
+def test_automatic_distribution_reuses_computed_layout_during_persistence(
+    distribution_scenario, monkeypatch
+):
+    """Do not rerun the expensive physical search under the write transaction."""
+    from app.modules.load_planning import service as planning_service
+
+    def repeated_search(*args, **kwargs):
+        raise AssertionError("Physical planning was already calculated")
+
+    monkeypatch.setattr(planning_service, "calculate_volume_load_plan", repeated_search)
+    s = distribution_scenario
+    result = send(s, uuid.uuid4())
+    assert result.status_code == 201, result.text
+    assert result.json()["volume_count"] == 3
 
 
 def test_openapi_documents_optional_uuid_header_and_recovery():

@@ -13,15 +13,16 @@ Esta pasta reúne **documentação ativa**, **planejamento histórico**, **decis
 | Produto e requisitos de origem | [Visão do produto](00-visao-produto.md) e [escopo inicial](01-escopo-mvp.md) |
 | Arquitetura, dados, contratos, regras e fluxos | [Arquitetura](02-arquitetura.md), [dados](03-modelo-dados.md), [regras](04-regras-negocio.md), [API](05-contratos-api.md) e [fluxo](06-fluxo-operacional.md) |
 | Contribuição e agentes | [Padrões](08-padroes-desenvolvimento.md), [guia para IA](09-guia-para-ia.md), [CONTRIBUTING](../CONTRIBUTING.md), [AGENTS](../AGENTS.md) |
-| Releases e próximos ciclos | [Roadmap canônico](planejamento/roadmap-versoes.md), [Changelog](../CHANGELOG.md), [notas da v1.2.0](releases/v1.2.0.md) |
+| Releases e próximos ciclos | [Roadmap canônico](planejamento/roadmap-versoes.md), [Changelog](../CHANGELOG.md), [notas da v1.2.0](releases/v1.2.0.md) e [notas da v1.3.0](releases/v1.3.0.md) |
 | Qualidade, riscos e histórico de aceite | [Riscos](11-riscos-pendencias.md), [registro de publicação](releases/v1.2.0-readiness.md), `evidencias/`, `validacoes/` |
 | Decisões arquiteturais | [ADRs](decisions/README.md) |
 
 ## Versões
 
-- **Publicadas:** v1.0.0 (fundação), v1.1.0 (maturidade operacional), v1.2.0 (administração e multi-caminhão).
+- **Versões anteriores publicadas:** v1.0.0 (fundação), v1.1.0 (maturidade operacional), v1.2.0 (administração e multi-caminhão).
+- **Código desta versão:** **v1.3.0 — Loxi e Experiência Inteligente** ([PR #388](https://github.com/RennaN-C/loadx-smart-logistics/pull/388)). Confirmar publicação nas [Releases oficiais](https://github.com/RennaN-C/loadx-smart-logistics/releases); não equivale a deploy externo.
 - **Planejamento histórico:** [v1.1.0](planejamento/v1.1.0/00-visao-geral.md) e [v1.2.0](planejamento/v1.2.0/00-visao-geral.md). O histórico mantém atribuições e dependências como foram planejadas.
-- **Próximo ciclo proposto:** v1.3.0 — multiempresa e integração por contratos com CoreFlow. **Não** está automaticamente autorizado para implementação.
+- **Próximo ciclo proposto:** v1.4.0 — multiempresa e integração por contratos com CoreFlow. **Não** está automaticamente autorizado para implementação. Escala de 1.000+ volumes, tipos de embalagem, ações autorizadas do Loxi e estabilidade são backlog transversal de **versão a definir**.
 
 ## Histórico e limpeza segura
 

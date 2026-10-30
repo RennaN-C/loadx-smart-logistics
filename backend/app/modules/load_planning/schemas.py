@@ -25,7 +25,12 @@ RejectionReasonValue = Literal[
 
 
 OperationStatus = Literal[
-    "NOT_STARTED", "IN_PROGRESS", "PARTIALLY_DELIVERED", "COMPLETED", "CANCELED"
+    "NOT_STARTED",
+    "IN_PROGRESS",
+    "PARTIALLY_DELIVERED",
+    "COMPLETED",
+    "INCOMPLETE",
+    "CANCELED",
 ]
 OperationScope = Literal["ongoing", "completed", "all"]
 
@@ -49,6 +54,12 @@ class PlanOperationRead(BaseModel):
 class LoadPlanListRead(BaseModel):
     operation: PlanOperationRead | None = None
     distribution_id: uuid.UUID | None = None
+    distribution_status: (
+        Literal["PROPOSED", "PARTIALLY_APPROVED", "APPROVED", "INCOMPLETE", "CANCELED"]
+        | None
+    ) = None
+    part_status: Literal["PENDING", "APPROVED", "CANCELED"] | None = None
+    is_current_part: bool = True
     id: uuid.UUID
     truck_id: uuid.UUID
     truck_plate: str
@@ -230,6 +241,12 @@ class UnloadedLoadPlanItemRead(_LoadPlanItemSnapshotRead):
 class LoadPlanRead(BaseModel):
     orders_ready_for_approval: bool | None = None
     distribution_id: uuid.UUID | None = None
+    distribution_status: (
+        Literal["PROPOSED", "PARTIALLY_APPROVED", "APPROVED", "INCOMPLETE", "CANCELED"]
+        | None
+    ) = None
+    part_status: Literal["PENDING", "APPROVED", "CANCELED"] | None = None
+    is_current_part: bool = True
     id: uuid.UUID
     truck_id: uuid.UUID
     recalculated_from_id: uuid.UUID | None
@@ -353,6 +370,9 @@ def map_load_plan_read(
     load_plan: LoadPlan,
     *,
     distribution_id: uuid.UUID | None = None,
+    distribution_status: str | None = None,
+    part_status: str | None = None,
+    is_current_part: bool = True,
     orders_ready_for_approval: bool | None = None,
 ) -> LoadPlanRead:
     items = sorted(
@@ -366,6 +386,9 @@ def map_load_plan_read(
     return LoadPlanRead(
         orders_ready_for_approval=orders_ready_for_approval,
         distribution_id=distribution_id,
+        distribution_status=distribution_status,
+        part_status=part_status,
+        is_current_part=is_current_part,
         id=load_plan.id,
         truck_id=load_plan.truck_id,
         recalculated_from_id=load_plan.recalculated_from_id,

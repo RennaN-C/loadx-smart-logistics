@@ -171,10 +171,21 @@ export function OrderForm({ order, customers, products, onSaved, onCancel }: Ord
 
     try {
       if (order) {
-        await updateOrder(order.id, payload);
-        // Situação tem endpoint próprio (OC52); o PATCH genérico recusa `status`.
-        if (status !== order.status) {
-          await changeOrderStatus(order.id, status);
+        // READY -> DRAFT precisa ocorrer ANTES de salvar os dados editáveis.
+        if (order.status === "READY" && status === "DRAFT") {
+          await changeOrderStatus(order.id, "DRAFT");
+          await updateOrder(order.id, payload);
+        } else if (order.status === "READY" && status === "CANCELED") {
+          await changeOrderStatus(order.id, "CANCELED");
+        } else if (order.status === "DRAFT") {
+          await updateOrder(order.id, payload);
+          if (status !== "DRAFT") await changeOrderStatus(order.id, status);
+        } else {
+          setErrorMessage(order.status === "READY"
+            ? "Para alterar dados, escolha Rascunho na situação e salve. Para cancelar, selecione Cancelado."
+            : "Não é possível editar um pedido nesta situação.");
+          setIsSubmitting(false);
+          return;
         }
       } else {
         await createOrder(payload);
@@ -192,6 +203,9 @@ export function OrderForm({ order, customers, products, onSaved, onCancel }: Ord
     <form className="entity-form" onSubmit={handleSubmit}>
       {errorMessage ? <AlertBanner>{errorMessage}</AlertBanner> : null}
 
+      {order?.status === "READY" ? <output className="entity-form-help">
+        Para alterar dados de um pedido pronto, selecione <strong>Rascunho</strong> em Situação e salve.
+        A transição poderá ser recusada se existir distribuição ativa.</output> : null}
       <fieldset disabled={isSubmitting} className="entity-form-fieldset">
         <div className="entity-form-row">
           <FormField id="order-customer" label="CLIENTE">

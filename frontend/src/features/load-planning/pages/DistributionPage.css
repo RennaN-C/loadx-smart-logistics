@@ -11,16 +11,13 @@
 .distribution-vehicle:hover { border-color: var(--accent); }
 .distribution-vehicle[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 3px var(--accent); background: linear-gradient(var(--accent-bg), var(--card) 60%); }
 .distribution-vehicle:focus-visible { outline: 3px solid var(--accent-strong); outline-offset: 4px; }
-.distribution-vehicle-heading { display: flex; align-items: center; gap: 12px; }
 .distribution-vehicle-heading small { display: block; color: var(--muted); font-size: .78rem; margin-bottom: 4px; }
 .distribution-vehicle-heading strong { font: 700 1.16rem var(--font-mono); letter-spacing: .04em; }
 .distribution-vehicle-icon { display: inline-flex; padding: 10px; border-radius: 10px; background: var(--accent-bg); color: var(--accent-strong); }
-.distribution-vehicle-model { color: var(--muted); font-size: .85rem; overflow-wrap: anywhere; }
 .distribution-vehicle-metrics, .distribution-vehicle-occupancy { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: .84rem; }
 .distribution-vehicle-metrics { padding-top: 8px; border-top: 1px solid var(--line); }
 .distribution-vehicle-metrics strong { font-size: 1rem; }
 .distribution-vehicle .plan-occupancy, .distribution-vehicle .plan-occupancy-fill { display: block; }
-.distribution-vehicle .status-pill { justify-self: start; }
 .distribution-detail { min-width: 0; padding-top: 8px; }
 .distribution-detail-heading p { color: var(--muted); font-size: .88rem; margin-top: 0; }
 .distribution-part-actions { margin: 20px 0; line-height: 1.7; font-size: .9rem; }
@@ -57,3 +54,83 @@
 }
 fieldset.distribution-vehicles { border: 0; padding: 0; min-width: 0; }
 fieldset.distribution-confirm { border: 0; border-top: 1px solid var(--line); padding: 16px 0; min-width: 0; }
+
+/* Compact operational overview keeps the selected load close to the page heading. */
+.distribution-page .distribution-overview h2 { margin:0 0 8px; font-size:1.15rem; }
+.distribution-page .distribution-overview p { margin:8px 0; line-height:1.5; }
+.distribution-page .distribution-vehicle-icon { padding:7px; }
+.distribution-page .distribution-detail h2 { margin:4px 0; font-size:1.15rem; }
+
+.distribution-vehicle-select { display:none; min-width:0; gap:6px; color:var(--muted); font-size:.85rem; }
+.distribution-vehicle-select select { min-width:0; width:100%; padding:12px; border:1px solid var(--line); border-radius:8px; color:var(--ink); background:var(--card); font:inherit; }
+.distribution-vehicles-many { display:block; }
+.distribution-vehicles-many .distribution-vehicle-select { display:grid; }
+.distribution-vehicles-many .distribution-vehicle { display:none; }
+@media(max-width:700px) { .distribution-page .distribution-vehicles { display:block; } .distribution-vehicles .distribution-vehicle-select { display:grid; } .distribution-vehicles .distribution-vehicle { display:none; } }
+
+.distribution-method { color:var(--muted); font-size:.82rem; margin-block:8px; }
+.distribution-method summary { cursor:pointer; }
+.distribution-page .distribution-vehicle {
+  padding: 12px 16px;
+  grid-template-columns: minmax(0,1fr) auto auto;
+  grid-template-areas: "heading heading state" "model metrics occupancy" "bar bar bar";
+  align-items: center;
+  gap: 6px 12px;
+}
+.distribution-vehicle-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  grid-area: heading;
+}
+.distribution-vehicle-model {
+  color: var(--muted);
+  font-size: .85rem;
+  overflow-wrap: anywhere;
+  grid-area: model;
+}
+.distribution-page .distribution-vehicle-metrics { grid-area:metrics; border:0; padding:0; }
+.distribution-vehicle-occupancy { grid-area:occupancy; }
+.distribution-vehicle .plan-occupancy { grid-area:bar; }
+.distribution-vehicle .status-pill {
+  grid-area: state;
+  justify-self: end;
+}
+.distribution-page .distribution-detail-heading p { margin-bottom:4px; }
+@media(max-width:1000px) and (min-width:701px) { .distribution-page .distribution-vehicle { grid-template-areas:"heading heading state" "model model model" "metrics metrics occupancy" "bar bar bar"; } }
+
+@media(min-width:901px) {
+  .distribution-page .distribution-overview { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:6px 18px; padding:12px 16px; }
+  .distribution-page .distribution-overview-heading { align-items:center; gap:8px; }
+  .distribution-page .distribution-overview-heading h2 { font-size:1.05rem; margin:2px 0; }
+  .distribution-page .distribution-totals { padding:0; font-size:.8rem; gap:4px 14px; align-content:center; }
+  .distribution-page .distribution-totals strong { font-size:1.05rem; }
+  .distribution-page .distribution-overview > p { margin:0; font-size:.8rem; line-height:1.45; }
+  .distribution-page .distribution-method { margin:0; align-self:center; font-size:.78rem; }
+  .distribution-page .distribution-overview > .entity-form-actions, .distribution-page .distribution-confirm { grid-column:1/-1; }
+}
+.distribution-technical { margin-block:14px; color:var(--muted); font-size:.84rem; }
+.distribution-technical summary { cursor:pointer; padding-block:8px; }
+.distribution-page .distribution-detail-heading { align-items:center; }
+.distribution-page > .entity-header h1 { font-size:clamp(1.5rem,2.3vw,1.9rem); }
+.distribution-page > .entity-header .entity-lede { font-size:.85rem; margin:6px 0 0; }
+@media(max-width:1350px) { .distribution-page .distribution-vehicles { display:block; } .distribution-vehicles .distribution-vehicle-select { display:grid; } .distribution-vehicles .distribution-vehicle { display:none; } }
+
+.distribution-page .entity-page-nav { margin-bottom:8px; }
+.distribution-page > .entity-header {
+  margin-block: 6px;
+}
+.distribution-page .distribution-overview {
+  margin: 12px 0;
+  padding: 16px 20px;
+  margin-block: 6px;
+}
+.distribution-page .distribution-vehicles {
+  gap: 10px;
+  margin: 12px 0 18px;
+  grid-template-columns: repeat(auto-fit,minmax(min(200px,100%),1fr));
+  margin-block: 8px;
+}
+.distribution-page .distribution-detail { padding-top:0; }
+.distribution-detail > .tabs { margin-block:8px; }
+.distribution-detail .viewer { margin-top:0; gap:10px; }

@@ -36,6 +36,7 @@ describe("distribuição persistida", () => {
     vi.mocked(getDistribution).mockResolvedValue(makeDistribution(count)); setup();
     const vehicles = await screen.findByRole("group", { name: "Caminhões da distribuição" });
     expect(within(vehicles).getAllByRole("button")).toHaveLength(count);
+    fireEvent.click(screen.getByRole("tab", { name: "Volumes e sequência" }));
     expect(screen.getByText(`Volume 1 de ${count} · item order-it`)).toBeInTheDocument();
     expect(optimizeDistribution).not.toHaveBeenCalled();
   });
@@ -130,4 +131,17 @@ describe("distribuição persistida", () => {
     fireEvent.click(screen.getByRole("button", { name: "Confirmar cancelamento" })); await screen.findByText("Cancelada");
     expect(screen.getByText("Carga de TST1A23")).toBeInTheDocument(); expect(screen.queryByRole("button", { name: "Aprovar distribuição completa" })).not.toBeInTheDocument();
   });
+});
+
+
+it("mantém dez caminhões acessíveis com seletor compacto e apenas uma cena", async () => {
+  vi.mocked(getDistribution).mockResolvedValue(makeDistribution(10));
+  setup();
+  const selector = await screen.findByLabelText("Caminhão para visualizar", { exact: true });
+  expect(within(selector).getAllByRole("option")).toHaveLength(10);
+  expect(screen.queryByRole("button", { name: /Caminhão 10/ })).not.toBeInTheDocument();
+  fireEvent.change(selector, { target: { value: "part-10" } });
+  expect(await screen.findByTestId("scene")).toHaveTextContent("plan-10");
+  expect(screen.getAllByTestId("scene")).toHaveLength(1);
+  expect(optimizeDistribution).not.toHaveBeenCalled();
 });
