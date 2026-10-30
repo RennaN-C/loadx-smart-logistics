@@ -1,0 +1,68 @@
+name: Publicar release v1.2.1
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-v1.2.1
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    name: GitHub Release v1.2.1
+    if: >-
+      ${{ github.event.workflow_run.conclusion == 'success'
+          && github.event.workflow_run.event == 'push'
+          && github.event.workflow_run.head_branch == 'main' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validar commit atual da main
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          CURRENT_SHA="$(gh api "repos/${GH_REPO}/git/ref/heads/main" --jq '.object.sha')"
+          test "$CURRENT_SHA" = "$SOURCE_SHA"
+          echo "RELEASE_SHA=$SOURCE_SHA" >> "$GITHUB_ENV"
+
+      - name: Baixar commit aprovado
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+
+      - name: Verificar versão e notas
+        run: |
+          set -euo pipefail
+          node -e 'if (require("./frontend/package.json").version !== "1.2.1") process.exit(1)'
+          grep -Fq 'version="1.2.1"' backend/app/main.py
+          test -s docs/releases/v1.2.1.md
+
+      - name: Publicar release uma única vez
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          if gh release view v1.2.1 --repo "$GH_REPO" >/dev/null 2>&1; then
+            echo "Release v1.2.1 já publicada; nenhuma ação necessária."
+            exit 0
+          fi
+          if gh api "repos/${GH_REPO}/git/ref/tags/v1.2.1" >/dev/null 2>&1; then
+            echo "::error::Tag v1.2.1 existe sem GitHub Release. Verificar manualmente."
+            exit 1
+          fi
+          gh release create v1.2.1 \
+            --repo "$GH_REPO" \
+            --target "$RELEASE_SHA" \
+            --title "LoadX Smart Logistics v1.2.1 — Loxi e Experiência Inteligente" \
+            --notes-file docs/releases/v1.2.1.md \
+            --latest
