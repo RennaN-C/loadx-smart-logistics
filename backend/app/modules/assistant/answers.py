@@ -273,7 +273,6 @@ def _validate_natural_prose(answer: str, facts: list[Source]) -> None:
         raise AIProviderUnavailableError
 
 
-
 def _validate_factual_numbers(answer: str, facts: list[Source]) -> None:
     # Numerical claims must be exactly traceable to the current authorized facts,
     # not to client history, model memory or untrusted database instructions.

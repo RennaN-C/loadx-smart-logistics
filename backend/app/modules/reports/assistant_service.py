@@ -197,7 +197,6 @@ class AssistantMetricsService:
             else None,
         )
 
-
     def _registered_records(self, name: str, arguments: ToolArguments) -> Source:
         pagination = PaginationParams(
             page=arguments.page, page_size=10, sort_order="desc"

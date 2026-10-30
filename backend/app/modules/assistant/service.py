@@ -172,9 +172,13 @@ def _safe_recovery_tool(question: str, allowed_names: frozenset[str]) -> str | N
 
 
 _CATALOG_EXCLUSIONS = (
-    re.compile(r"\b(?:(?:in)?dispon\w*|manutenc\w*|entreg\w*|viagem|status|situacao|arquivad\w*)\b"),
+    re.compile(
+        r"\b(?:(?:in)?dispon\w*|manutenc\w*|entreg\w*|viagem|status|situacao|arquivad\w*)\b"
+    ),
     re.compile(r"\b(?:ontem|hoje|pode\w*|oper\w*|peso|dimens\w*|fragil\w*)\b"),
-    re.compile(r"\b(?:empilh\w*|rotac\w*|plano\w*|planej\w*|distribui\w*|carga\w*|mais)\b"),
+    re.compile(
+        r"\b(?:empilh\w*|rotac\w*|plano\w*|planej\w*|distribui\w*|carga\w*|mais)\b"
+    ),
     re.compile(r"\b(?:menos|compr\w*)\b"),
 )
 
@@ -463,12 +467,22 @@ class AssistantService:
         allowed_names = frozenset(tool["function"]["name"] for tool in definitions)
         # Consultas de cadastro não dependem do modelo nem de tool calls frágeis.
         # Permissão é conferida antes e depois do refresh na execução da ferramenta.
-        catalog_response = self._catalog_response(user, data, now, deadline, allowed_names)
+        catalog_response = self._catalog_response(
+            user, data, now, deadline, allowed_names
+        )
         if catalog_response is not None:
             return catalog_response
         return self._provider_roundtrip(
-            user, data, casual, facts, links, now, deadline,
-            messages, definitions, allowed_names,
+            user,
+            data,
+            casual,
+            facts,
+            links,
+            now,
+            deadline,
+            messages,
+            definitions,
+            allowed_names,
         )
 
 

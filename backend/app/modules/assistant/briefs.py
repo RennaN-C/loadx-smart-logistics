@@ -89,9 +89,7 @@ def _occupancy_reply(
     extras: str,
 ) -> str:
     if occupancy is None and weight_usage is None:
-        return (
-            "Este registro não contém indicadores suficientes de ocupação." + extras
-        )
+        return "Este registro não contém indicadores suficientes de ocupação." + extras
     details = []
     if occupancy is not None:
         details.append(f"A ocupação geométrica (espaço interno) é {occupancy}%.")

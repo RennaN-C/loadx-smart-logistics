@@ -253,7 +253,6 @@ def _persisted_insight(
     )
 
 
-
 def planning_insight(db: Session, user: User, data: ChatRequest) -> ChatResponse | None:
     if re.search(r"\bcaminh\w*\s+anterior\b", data.message, re.IGNORECASE):
         return ChatResponse(
