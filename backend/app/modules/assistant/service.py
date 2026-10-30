@@ -27,7 +27,7 @@ from app.modules.assistant.answers import (
     natural_answer,
     verified_answer,
 )
-from app.modules.assistant.briefs import brief_verified_plan
+from app.modules.assistant.briefs import brief_verified_plan, needs_grounded_answer
 from app.modules.assistant.capabilities import (
     documentation_reply,
     scoped_request,
@@ -35,7 +35,7 @@ from app.modules.assistant.capabilities import (
 )
 from app.modules.assistant.context import planning_context
 from app.modules.assistant.conversation import conversation_reply
-from app.modules.assistant.followups import resolve_followup
+from app.modules.assistant.followups import fleet_reason_followup, resolve_followup
 from app.modules.assistant.limits import ensure_budget
 from app.modules.assistant.planning_insights import planning_insight
 from app.modules.assistant.schemas import (
@@ -175,7 +175,8 @@ def _catalog_intent(question: str) -> str | None:
     text = unicodedata.normalize("NFKD", question.casefold())
     text = "".join(char for char in text if not unicodedata.combining(char))
     if len(text) > 165 or not re.search(
-        r"\b(?:quais|list\w*|mostr\w*|temos|cadastrad\w*|registrad\w*)\b", text
+        r"\b(?:quais|quantos|quantas|list\w*|mostr\w*|temos|cadastrad\w*|registrad\w*)\b",
+        text,
     ):
         return None
     if re.search(
@@ -217,7 +218,7 @@ def _catalog_answer(fact: Source) -> str:
     page = fact.values.get("page", 1)
     pages = fact.values.get("total_pages", 0)
     if not rows:
-        return f"Não encontrei registros de {fact.name.lower()} nesta página."
+        return f"Não encontrei {fact.name.lower()} nesta página."
     if fact.name == "Pedidos cadastrados":
         intro = (
             f"Encontrei {total} pedidos cadastrados. "
@@ -225,18 +226,110 @@ def _catalog_answer(fact: Source) -> str:
         )
         outro = "\nPosso filtrar pelos prontos, planejados ou entregues se você quiser."
     else:
-        intro = f"Encontrei {total} registros de {fact.name.lower()}:"
+        singular = {
+            "Produtos cadastrados": "produto cadastrado",
+            "Caminhões cadastrados": "caminhão cadastrado",
+            "Clientes cadastrados": "cliente cadastrado",
+            "Motoristas cadastrados": "motorista cadastrado",
+        }
+        intro = (
+            f"Encontrei 1 {singular[fact.name]}:"
+            if total == 1 and fact.name in singular
+            else f"Encontrei {total} {fact.name.lower()}:"
+        )
         outro = ""
+    if isinstance(total, int) and total > len(rows):
+        noun = "registro" if len(rows) == 1 else "registros"
+        intro = intro.rstrip(":") + f". Esta página mostra {len(rows)} {noun}:"
     return (
         intro
         + "\n"
         + "\n".join(f"• {row}" for row in rows)
         + (
-            f"\nEsta é a página {page} de {pages}; há mais resultados."
-            if isinstance(pages, int) and pages > page
+            f"\nPágina {page} de {pages}."
+            if isinstance(pages, int) and pages > 1
             else ""
         )
         + outro
+    )
+
+
+def _fleet_availability_intent(question: str) -> bool:
+    """Route explicit unavailability questions to authorized operational data."""
+    text = unicodedata.normalize("NFKD", question.casefold())
+    text = "".join(char for char in text if not unicodedata.combining(char))
+    return (
+        len(text) <= 165
+        and bool(re.search(r"\b(?:caminh\w*|veicul\w*|frota)\b", text))
+        and bool(
+            re.search(
+                r"\b(?:indispon\w*|nao dispon\w*|bloquead\w*|"
+                r"fora de operac\w*)\b",
+                text,
+            )
+        )
+        and not bool(
+            re.search(
+                r"\b(?:ontem|semana passada|mes passado|historico|"
+                r"quando|por que|porque|como|poderia)\b",
+                text,
+            )
+        )
+    )
+
+
+def _fleet_availability_answer(fact: Source) -> str:
+    """Never ask a model to guess plates or operational restrictions."""
+    values = fact.values
+    count = values.get("page_unavailable_count", 0)
+    page = values.get("page", 1)
+    pages = values.get("total_pages", 0)
+    vehicles = [
+        sanitize(value)[:220]
+        for key, value in values.items()
+        if key.startswith("item_") and isinstance(value, str)
+    ]
+    if not isinstance(count, int):
+        count = len(vehicles)
+    if count:
+        noun = "caminhão indisponível" if count == 1 else "caminhões indisponíveis"
+        opening = f"Encontrei {count} {noun} nesta página da frota."
+    else:
+        opening = "Não há caminhões indisponíveis nesta página da frota."
+    if vehicles:
+        opening += "\n" + "\n".join(f"• {vehicle}" for vehicle in vehicles)
+    opening += (
+        "\nUm caminhão com cadastro ativo também pode estar temporariamente "
+        "indisponível por manutenção, documentos ou uso operacional."
+    )
+    if isinstance(pages, int) and pages > 1:
+        opening += (
+            f" Página {page} de {pages}; consulte as demais páginas para o total."
+        )
+    return opening
+
+
+def _fleet_reason_answer(fact: Source) -> str:
+    """Explain each verified restriction without trusting dialogue or the provider."""
+    vehicles: list[str] = []
+    for key, value in fact.values.items():
+        if not key.startswith("item_") or not isinstance(value, str):
+            continue
+        parts = sanitize(value).split(" · ")
+        if len(parts) >= 3 and parts[1].startswith("placa "):
+            plate = parts[1].removeprefix("placa ")
+            vehicles.append(f"{parts[0]} (placa {plate}): {' · '.join(parts[2:])}")
+        else:
+            vehicles.append(sanitize(value)[:220])
+    if not vehicles:
+        return (
+            "Não há veículos indisponíveis com motivo detalhado nesta página. "
+            "Consulte a disponibilidade atual para verificar outras páginas."
+        )
+    return (
+        "Os motivos registrados nesta consulta são: "
+        + "; ".join(vehicles[:10])
+        + ". Cadastro ativo e disponibilidade operacional são situações distintas."
     )
 
 
@@ -300,20 +393,118 @@ class AssistantService:
                 links=[],
                 suggestions=["Quais consultas posso fazer?"],
             )
-        data, _conversational_followup = resolve_followup(data)
+        fleet_followup = fleet_reason_followup(data)
+        data, conversational_followup = resolve_followup(data)
         casual = conversation_reply(user, data.message)
-        # Ações continuam na UI autorizada; cumprimentos sociais vão ao modelo.
+        # Ações continuam na UI autenticada; jamais escrevemos no chat.
+        if (
+            casual is not None
+            and casual.links
+            and data.plan_id
+            and any(link["href"] == "/planning" for link in casual.links)
+        ):
+            # Re-read through the existing permission-aware service; an
+            # arbitrary plan_id from the client cannot become a navigation.
+            allowed_facts, allowed_links = planning_context(self.db, user, data)
+            if allowed_facts and allowed_links:
+                casual = casual.model_copy(
+                    update={
+                        "links": [
+                            {
+                                "label": "Abrir planejamento para confirmar ação",
+                                "href": link["href"],
+                            }
+                            for link in allowed_links
+                            if link["href"].startswith("/planning/")
+                        ]
+                    }
+                )
         if casual is not None and (
             casual.source == "GUARDRAIL"
             or casual.links
             or "sugest" in data.message.casefold()
+            # Greetings and thanks must never be routed through factual LLM
+            # verification, which otherwise rejects ordinary "Olá" messages.
+            or not topics(data.message)
         ):
             return casual
         data = scoped_request(data)
-        documented = documentation_reply(user, data.message)
-        if documented is not None:
-            return documented
-        planned = planning_insight(self.db, user, data)
+        # Disponibilidade atual é dado operacional. Nunca pedir ao provedor que
+        # invente placas ou omita registros que o backend já autorizou.
+        if (
+            _fleet_availability_intent(data.message) or fleet_followup
+        ) and not data.diagnostic_token:
+            name = "get_fleet_availability"
+            if not allowed_tool(user, name):
+                return ChatResponse(
+                    source="GUARDRAIL",
+                    answer="Você não tem permissão para consultar a disponibilidade da frota.",
+                )
+            result = self._run_tool(
+                user,
+                {
+                    "id": "loadx_fleet_unavailable",
+                    "type": "function",
+                    "function": {
+                        "name": name,
+                        "arguments": json.dumps({"page": _catalog_page(data.message)}),
+                    },
+                },
+                datetime.now(UTC),
+                time.monotonic() + self.config.ai_chat_timeout_seconds,
+                None,
+                frozenset({name}),
+            )
+            return ChatResponse(
+                source="BACKEND",
+                answer=(
+                    _fleet_reason_answer(result.fact)
+                    if fleet_followup
+                    else _fleet_availability_answer(result.fact)
+                ),
+                facts=[result.fact],
+                links=[result.link] if result.link else [],
+                suggestions=["Quais caminhões temos cadastrados?"],
+            )
+        # Estimativas financeiras exigem custos e base de comparação reais.
+        # Não entregar a pergunta ao provedor quando ele não possui essas fontes.
+        if re.search(
+            r"\b(?:econom\w*|poupar\w*|custo\w*|lucro|roi|"
+            r"financeir\w*)\b",
+            unicodedata.normalize("NFKD", data.message.casefold()),
+        ) and re.search(
+            r"\b(?:caminh\w*|veicul\w*|troca\w*|planej\w*)\b",
+            unicodedata.normalize("NFKD", data.message.casefold()),
+        ):
+            return ChatResponse(
+                source="BACKEND",
+                answer=(
+                    "Não tenho uma comparação financeira validada entre os "
+                    "caminhões nesta consulta. Para calcular a economia, são "
+                    "necessários os custos reais de transporte, percurso, "
+                    "combustível e a mesma carga em cenários comparáveis. "
+                    "O LoadX não executou outra simulação nem confirmou economia."
+                ),
+                suggestions=["Trocar de caminhão ajudaria na capacidade?"],
+            )
+        # Explicit saved-plan questions and conversation follow-ups outrank
+        # documentation about the fleet. Ordinary how-to questions stay on docs.
+        plan_question = bool(
+            conversational_followup
+            or data.plan_id
+            or data.distribution_id
+            or re.search(
+                r"\b(?:[uú]ltim\w*|mais recente|pen[uú]ltim\w*)\b",
+                data.message,
+                re.IGNORECASE,
+            )
+        )
+        planned = planning_insight(self.db, user, data) if plan_question else None
+        if planned is None:
+            documented = documentation_reply(user, data.message)
+            if documented is not None:
+                return documented
+            planned = planning_insight(self.db, user, data)
         if planned is not None:
             emit_security_event(
                 SecurityEvent.ASSISTANT_READ_QUERY,
@@ -333,6 +524,8 @@ class AssistantService:
                     "ASSISTANT_PLAN_REPLY mode=%s",
                     "brief" if concise.answer != planned.answer else "original",
                 )
+                if needs_grounded_answer(data.message):
+                    return concise
                 return self._narrate_verified(data, concise)
             return planned
         facts, links = planning_context(self.db, user, data)

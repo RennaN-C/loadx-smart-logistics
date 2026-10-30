@@ -298,9 +298,10 @@ def test_vehicle_identifiers_remain_in_authorized_facts_only(no_database, monkey
     result = AssistantService(Mock(), config(), provider).chat(
         actor("CHECKER"), ChatRequest(message="Quais veículos estão indisponíveis?")
     )
-    assert result.source == "GROQ"
+    assert result.source == "BACKEND"
     assert result.facts[0].values["unavailable_vehicles"] == "FIC1A23"
-    assert "FIC1A23" not in str(provider.complete.call_args)
+    # Identificadores vêm exclusivamente da consulta autorizada; a IA nem é chamada.
+    provider.complete.assert_not_called()
 
 
 @pytest.mark.parametrize(

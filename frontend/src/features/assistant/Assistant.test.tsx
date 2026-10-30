@@ -4,9 +4,15 @@ import { beforeEach, expect, it, vi } from "vitest";
 import { useAuth } from "../auth/hooks/useAuth";
 import { Assistant } from "./Assistant";
 import { askAssistant, type AssistantReply } from "./assistantApi";
+import { getLoadPlan } from "../load-planning/api/loadPlansApi";
+import type { LoadPlan } from "../load-planning/types";
 
 vi.mock("../auth/hooks/useAuth");
 vi.mock("./assistantApi", () => ({ askAssistant: vi.fn(), assistantErrorMessage: () => "Não foi possível responder agora. Tente novamente." }));
+vi.mock("../load-planning/api/loadPlansApi", () => ({ getLoadPlan: vi.fn() }));
+vi.mock("../load-visualization/components/LoadViewer", () => ({
+  LoadViewer: ({ planId }: { planId: string }) => <div>Visualização 3D do plano {planId}</div>,
+}));
 const user = { id: "synthetic-user", name: "Pessoa de teste", role: "ADMIN", active: true };
 const REPLY: AssistantReply = { source: "GROQ", answer: "O pedido foi entregue integralmente.", facts: [], links: [], suggestions: [] };
 beforeEach(() => {
@@ -71,7 +77,7 @@ it("bloqueia cliques duplicados e ignora resposta após fechar", async () => {
   let resolve!: (reply: AssistantReply) => void;
   vi.mocked(askAssistant).mockReturnValue(new Promise((done) => { resolve = done; }));
   show(); open(); send();
-  expect(screen.getByRole("button", { name: "Consultando…" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Aguardando resposta do Loxi" })).toBeDisabled();
   fireEvent.click(screen.getByRole("button", { name: "Minimizar assistente" }));
   resolve(REPLY);
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
@@ -159,7 +165,7 @@ it("mantém mais de três respostas no histórico visível", async () => {
     fireEvent.change(screen.getByLabelText("Sua pergunta"), { target: { value: prompt } });
     fireEvent.click(screen.getByRole("button", { name: "Enviar pergunta" }));
     await waitFor(() => expect(vi.mocked(askAssistant).mock.calls.length).toBe(i + 1));
-    await waitFor(() => expect(screen.getByLabelText("Sua pergunta")).toHaveValue(""));
+    await waitFor(() => expect(screen.getAllByText(REPLY.answer)).toHaveLength(i + 1));
   }
   expect(screen.getByText("Pergunta 0")).toBeInTheDocument();
   expect(screen.getByText("Pergunta 4")).toBeInTheDocument();
@@ -281,7 +287,7 @@ it("envia os oito turnos anteriores com papéis corretos", async () => {
     fireEvent.change(screen.getByLabelText("Sua pergunta"), { target: { value: "Pergunta " + index } });
     fireEvent.click(screen.getByRole("button", { name: "Enviar pergunta" }));
     await waitFor(() => expect(vi.mocked(askAssistant).mock.calls.length).toBe(index + 1));
-    await waitFor(() => expect(screen.getByLabelText("Sua pergunta")).toHaveValue(""));
+    await waitFor(() => expect(screen.getAllByText(REPLY.answer)).toHaveLength(index + 1));
   }
   const history = vi.mocked(askAssistant).mock.calls[8][1];
   expect(history).toHaveLength(16);
@@ -361,5 +367,180 @@ it("recolhe métricas repetidas do mesmo planejamento em perguntas seguintes", a
   });
   fireEvent.click(screen.getByRole("button", { name: "Enviar pergunta" }));
   await waitFor(() => expect(askAssistant).toHaveBeenCalledTimes(2));
-  expect(await screen.findByText("Ver dados deste planejamento já exibidos")).toBeInTheDocument();
+  expect(await screen.findByText("Dados do planejamento já exibidos")).toBeInTheDocument();
+});
+
+it("distingue ocupação geométrica e utilização de peso nos cartões do plano", async () => {
+  vi.mocked(askAssistant).mockResolvedValue({
+    source: "BACKEND",
+    answer: "O espaço é 22,5% e a capacidade de peso utilizada é 90%.",
+    facts: [{ name: "Análise do planejamento", criteria: "Snapshot persistido", timezone: "UTC", period_start: null, period_end: null,
+      values: { loaded_volumes: 24, rejected_volumes: 0, occupancy_percent: 22.5, weight_utilization_percent: 90 },
+      links: [{ label: "Abrir plano", href: "/planning/11111111-1111-4111-8111-111111111111" }] }],
+    links: [], suggestions: [],
+  });
+  show(); open(); send();
+  expect((await screen.findAllByText("Ocupação geométrica (%)")).length).toBeGreaterThan(0);
+  expect((await screen.findAllByText("Capacidade de peso utilizada (%)")).length).toBeGreaterThan(0);
+  expect(screen.getAllByText("22,5").length).toBeGreaterThan(0);
+  expect(screen.getAllByText("90").length).toBeGreaterThan(0);
+});
+
+
+it("mostra a mensagem imediatamente e posiciona a resposta no próprio chat", async () => {
+  let resolve!: (reply: AssistantReply) => void;
+  vi.mocked(askAssistant).mockReturnValue(new Promise((done) => { resolve = done; }));
+  show("/orders"); open();
+  const composer = screen.getByLabelText("Sua pergunta");
+  fireEvent.change(composer, { target: { value: "Olá" } });
+  fireEvent.click(screen.getByRole("button", { name: "Enviar pergunta" }));
+  expect(screen.getByText("Olá")).toBeInTheDocument();
+  expect(screen.getByRole("status", { name: "Loxi está preparando a resposta" })).toBeInTheDocument();
+  expect(screen.queryByText("Consultando informações autorizadas…")).not.toBeInTheDocument();
+  expect(composer).not.toBeDisabled();
+  expect(composer).toHaveValue("");
+  fireEvent.change(composer, { target: { value: "Próxima pergunta" } });
+  expect(composer).toHaveValue("Próxima pergunta");
+  expect(screen.getByRole("button", { name: "Aguardando resposta do Loxi" })).toBeDisabled();
+  resolve(REPLY);
+  expect(await screen.findByText(REPLY.answer)).toBeInTheDocument();
+  await waitFor(() => expect(screen.queryByRole("status", { name: "Loxi está preparando a resposta" })).not.toBeInTheDocument());
+  expect(composer).toHaveValue("Próxima pergunta");
+});
+
+it("restaura a pergunta após erro de API e permite nova tentativa", async () => {
+  vi.mocked(askAssistant).mockRejectedValueOnce(new Error("erro técnico interno"));
+  show("/orders"); open();
+  fireEvent.change(screen.getByLabelText("Sua pergunta"), { target: { value: "Olá" } });
+  fireEvent.click(screen.getByRole("button", { name: "Enviar pergunta" }));
+  expect(await screen.findByRole("alert")).not.toHaveTextContent("erro técnico interno");
+  expect(screen.getByLabelText("Sua pergunta")).toHaveValue("Olá");
+  expect(screen.queryByRole("status", { name: "Loxi está preparando a resposta" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Tentar novamente" }));
+  expect(await screen.findByText(REPLY.answer)).toBeInTheDocument();
+});
+
+it("mantém registro operacional legível sem obrigar o usuário a abrir métricas", async () => {
+  vi.mocked(askAssistant).mockResolvedValue({
+    source: "BACKEND",
+    answer: "Encontrei 2 caminhões indisponíveis nesta página da frota.\\n• Baú Médio · placa ABD5543 · cadastro arquivado\\n• Baú Pequeno · placa TESTE M2 · manutenção",
+    facts: [{
+      name: "Disponibilidade atual da frota", criteria: "Disponibilidade real do backend",
+      timezone: "UTC", period_start: null, period_end: null,
+      values: { page_unavailable_count: 2, page_vehicle_count: 5, page_active_count: 4, item_1: "Baú Médio · placa ABD5543 · cadastro arquivado", item_2: "Baú Pequeno · placa TESTE M2 · manutenção" },
+    }],
+    links: [{ label: "Consultar disponibilidade", href: "/trucks?tab=availability" }],
+    suggestions: [],
+  });
+  show("/trucks"); open(); send();
+  expect(await screen.findByText("Baú Médio · ABD5543")).toBeInTheDocument();
+  expect(screen.getByText("cadastro arquivado")).toBeInTheDocument();
+  expect(screen.getByText("Baú Pequeno · TESTE M2")).toBeInTheDocument();
+  expect(screen.getByText("manutenção")).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Consultar disponibilidade" })).toHaveAttribute("href", "/trucks?tab=availability");
+});
+
+
+it("apresenta disponibilidade em cartões e totais por página sem inventar nomes", async () => {
+  vi.mocked(askAssistant).mockResolvedValue({
+    ...REPLY, source: "BACKEND",
+    answer: "Encontrei 2 caminhões indisponíveis nesta página da frota.",
+    facts: [{
+      name: "Disponibilidade atual da frota", criteria: "Snapshot autorizado",
+      timezone: "UTC", period_start: null, period_end: null,
+      values: {
+        page: 1, total_pages: 1, page_vehicle_count: 5, page_active_count: 4,
+        page_unavailable_count: 2, item_1: "Baú Médio · placa ABD5543 · cadastro arquivado",
+        item_2: "Baú Médio · placa ABD5544 · operação em andamento",
+      },
+    }],
+  });
+  show("/orders"); open(); send();
+  expect(await screen.findByRole("region", { name: "Disponibilidade operacional da frota" })).toBeInTheDocument();
+  expect(screen.getByText("Baú Médio · ABD5543")).toBeInTheDocument();
+  expect(screen.getByText("Baú Médio · ABD5544")).toBeInTheDocument();
+  expect(screen.getByText("operação em andamento")).toBeInTheDocument();
+  expect(screen.getByText("Ativo no cadastro não significa disponível para operar.")).toBeInTheDocument();
+});
+
+it("exibe plano com indicadores distintos e carrega 3D apenas após ação explícita", async () => {
+  const id = "33333333-3333-4333-8333-333333333333";
+  vi.mocked(askAssistant).mockResolvedValue({
+    ...REPLY, source: "BACKEND",
+    answer: "Dados verificados do plano.",
+    facts: [{
+      name: "Análise do planejamento", criteria: "Snapshot persistido",
+      timezone: "UTC", period_start: null, period_end: null,
+      values: {
+        status: "CALCULATED", truck_plate: "TESTE M2", loaded_volumes: 24,
+        rejected_volumes: 0, occupancy_percent: 22.5,
+        weight_utilization_percent: 90, weight_kg: 3600,
+        truck_capacity_weight_kg: 4000,
+      },
+      links: [{ label: "Abrir planejamento e ações permitidas", href: "/planning/" + id }],
+    }],
+  });
+  vi.mocked(getLoadPlan).mockResolvedValue({ id } as LoadPlan);
+  show("/orders"); open(); send();
+  expect(await screen.findByRole("region", { name: "Resumo visual do planejamento" })).toBeInTheDocument();
+  expect(screen.getByRole("progressbar", { name: "Utilização de peso" })).toHaveAttribute("aria-valuenow", "90");
+  expect(screen.getByRole("progressbar", { name: "Ocupação geométrica" })).toHaveAttribute("aria-valuenow", "22.5");
+  expect(screen.getByText(/400 kg restantes/)).toBeInTheDocument();
+  expect(getLoadPlan).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Explorar carga em 3D" }));
+  expect(await screen.findByText("Visualização 3D do plano " + id)).toBeInTheDocument();
+  expect(getLoadPlan).toHaveBeenCalledWith(id);
+  expect(screen.getByText(/Prévia interativa/)).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Visualização completa" })).toHaveAttribute("href", "/planning/" + id);
+});
+
+it("expande e reduz a janela sem apagar a conversa", async () => {
+  show(); open(); send();
+  await screen.findByText(REPLY.answer);
+  const overflow = document.body.style.overflow;
+  fireEvent.click(screen.getByRole("button", { name: "Expandir assistente" }));
+  expect(screen.getByRole("dialog")).toHaveClass("is-expanded");
+  expect(document.body.style.overflow).toBe("hidden");
+  expect(screen.getByText(REPLY.answer)).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Reduzir assistente" }));
+  expect(screen.getByRole("dialog")).not.toHaveClass("is-expanded");
+  expect(document.body.style.overflow).toBe(overflow);
+});
+
+it("recolhe disponibilidade idêntica em follow-ups sem esconder mudanças reais", async () => {
+  const first: AssistantReply = {
+    ...REPLY,
+    source: "BACKEND",
+    answer: "Os motivos são cadastro arquivado e operação em andamento.",
+    facts: [{
+      name: "Disponibilidade atual da frota",
+      criteria: "Dados operacionais atuais",
+      timezone: "UTC", period_start: null, period_end: null,
+      values: {
+        page_vehicle_count: 5,
+        page_unavailable_count: 2,
+        item_1: "Baú Médio · placa ABD5543 · cadastro arquivado",
+        item_2: "Baú Médio · placa ABD5544 · operação em andamento",
+      },
+    }],
+  };
+  vi.mocked(askAssistant).mockResolvedValue(first);
+  show("/orders"); open(); send();
+  await waitFor(() => expect(vi.mocked(askAssistant)).toHaveBeenCalledTimes(1));
+  await screen.findByRole("region", { name: "Disponibilidade operacional da frota" });
+  send();
+  await waitFor(() => expect(vi.mocked(askAssistant)).toHaveBeenCalledTimes(2));
+  const repeated = await screen.findByText("Dados da frota já exibidos");
+  expect(repeated.closest("details")).not.toHaveAttribute("open");
+
+  vi.mocked(askAssistant).mockResolvedValue({
+    ...first, facts: [{ ...first.facts[0], values: {
+      ...first.facts[0].values,
+      item_2: "Baú Médio · placa ABD5544 · manutenção",
+    } }],
+  });
+  send();
+  await waitFor(() => expect(vi.mocked(askAssistant)).toHaveBeenCalledTimes(3));
+  const changed = await screen.findByText("manutenção");
+  expect(changed.closest(".assistant-repeated-fact")).toBeNull();
 });

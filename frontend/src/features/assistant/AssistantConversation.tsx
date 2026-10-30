@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { Icon } from "../../components/Icon";
 import { PLAN_STATUS_LABELS, REJECTION_LABELS } from "../load-planning/components/loadPlanLabels";
 import type { AssistantFact, AssistantReply, CustomerChoice } from "./assistantApi";
+import { AssistantOperationalCard, hasOperationalCard, operationalCardDestination } from "./AssistantOperationalCards";
 
 const LABELS: Record<string, string> = {
   ...PLAN_STATUS_LABELS, ...REJECTION_LABELS,
@@ -50,7 +51,8 @@ const FACT_LABELS: Record<string, string> = {
   status: "Situação",
   loaded_volumes: "Volumes carregados",
   rejected_volumes: "Volumes rejeitados",
-  occupancy_percent: "Ocupação (%)",
+  occupancy_percent: "Ocupação geométrica (%)",
+  weight_utilization_percent: "Capacidade de peso utilizada (%)",
   weight_kg: "Peso (kg)",
   truck_capacity_weight_kg: "Capacidade de peso (kg)",
   internal_width_cm: "Largura interna (cm)",
@@ -124,22 +126,27 @@ function DocumentationSource({ fact }: { readonly fact: AssistantFact }) {
 function Fact({ fact, onLink, onSelectCustomer, working }: FactProps) {
   const primaryKey = PRIMARY_METRICS.find((key) => typeof fact.values[key] === "number");
   const primary = primaryKey ? fact.values[primaryKey] : null;
+  const planSummary = fact.name === "Análise do planejamento" || fact.name === "Plano autorizado";
   const secondary = Object.entries(fact.values).filter(([key, value]) =>
     key !== primaryKey && typeof value === "number" &&
     !["page", "total_pages", "top_customer_delivered_orders", "bounded_matches"].includes(key)
-  ).slice(0, 2);
+  );
+  const visibleSecondary = planSummary
+    ? ["rejected_volumes", "occupancy_percent", "weight_utilization_percent"].flatMap((key) => secondary.filter(([entry]) => entry === key))
+    : secondary.slice(0, 2);
   const customer = fact.values.top_customer_name;
   const hasChoices = Boolean(fact.choices?.length);
   const compact = typeof primary === "number";
   const period = periodLabel(fact);
-  return <section className="assistant-result" aria-label={fact.name}>
-    {compact ? <>
+  const rich = hasOperationalCard(fact);
+  return <section className={rich ? "assistant-result assistant-result-rich" : "assistant-result"} aria-label={fact.name}>
+    {rich ? <AssistantOperationalCard fact={fact} onLink={onLink} /> : compact ? <>
       <div className="assistant-result-heading"><span>{fact.name}</span>{period ? <span className="assistant-period">{period}</span> : null}</div>
       <div className="assistant-main-metric">
         <strong className="assistant-main-value">{formatValue(primary)}</strong>
         <span>{readable(primaryKey!)}</span>
       </div>
-      {secondary.length ? <dl className="assistant-metric-grid">{secondary.map(([key, value]) =>
+      {visibleSecondary.length ? <dl className="assistant-metric-grid">{visibleSecondary.map(([key, value]) =>
         <div key={key}><dt>{readable(key)}</dt><dd>{formatValue(value)}</dd></div>
       )}</dl> : null}
       {typeof customer === "string" && customer ? <p className="assistant-customer">Cliente com mais entregas: <strong>{customer}</strong></p> : null}
@@ -148,10 +155,10 @@ function Fact({ fact, onLink, onSelectCustomer, working }: FactProps) {
     {hasChoices ? <div className="assistant-choice-list" aria-label="Escolher cliente">{fact.choices?.map((choice) =>
       <button type="button" className="btn-secondary" disabled={working} key={choice.reference} onClick={() => onSelectCustomer(choice)}>Selecionar {choice.label}</button>
     )}</div> : null}
-    {fact.links?.length ? <nav className="assistant-result-links" aria-label="Registros da consulta">{fact.links.filter((link) => allowedLink(link.href)).map((link) =>
+    {!rich && fact.links?.length ? <nav className="assistant-result-links" aria-label="Registros da consulta">{fact.links.filter((link) => allowedLink(link.href)).map((link) =>
       <Link key={link.href} to={link.href} onClick={onLink}>{link.label}<Icon name="arrow-right" size={15} /></Link>
     )}</nav> : null}
-    <details className="assistant-fact" open={compact || Object.keys(fact.values).some((key) => key.startsWith("item_")) ? undefined : true}>
+    <details className="assistant-fact" open={rich || compact || Object.keys(fact.values).some((key) => key.startsWith("item_")) ? undefined : true}>
       <summary>{compact ? "Ver critérios e dados completos" : "Informações da consulta"}</summary>
       <div className="assistant-fact-content">
         <p>{fact.criteria}</p>
@@ -185,6 +192,15 @@ function isRepeatedPlan(fact: AssistantFact, earlier: readonly Turn[]): boolean 
   ));
 }
 
+function isRepeatedFleet(fact: AssistantFact, earlier: readonly Turn[]): boolean {
+  if (fact.name !== "Disponibilidade atual da frota") return false;
+  // Only collapse an identical page; never hide updated operational statuses.
+  return earlier.some((turn) => turn.reply?.facts.some(
+    (previous) => previous.name === fact.name
+      && JSON.stringify(previous.values) === JSON.stringify(fact.values),
+  ));
+}
+
 function TurnRow({ turn, earlier, onLink, onSelectCustomer, working }: {
   readonly turn: Turn;
   readonly earlier: readonly Turn[];
@@ -194,12 +210,33 @@ function TurnRow({ turn, earlier, onLink, onSelectCustomer, working }: {
 }) {
   const question = <div className="assistant-question"><span>Você</span><p>{turn.question}</p></div>;
   const reply = turn.reply;
-  if (!reply) return <section className="assistant-turn">{question}</section>;
+  if (!reply) return <section className="assistant-turn">{question}
+    <div className="assistant-typing" role="status" aria-label="Loxi está preparando a resposta">
+      <span className="assistant-typing-avatar" aria-hidden="true"><Icon name="message-circle" size={15} /></span>
+      <span className="assistant-typing-dots" aria-hidden="true"><i /><i /><i /></span>
+      <span className="sr-only">Loxi está preparando a resposta.</span>
+    </div>
+  </section>;
   const hasMetric = reply.facts.some((fact) => PRIMARY_METRICS.some((key) => typeof fact.values[key] === "number"));
-  const answer = visibleAnswer(reply, hasMetric);
-  const label = SOURCE_LABELS[reply.source];
+  const rawAnswer = visibleAnswer(reply, hasMetric);
+  const visualList = reply.facts.some((fact) =>
+    ["Caminhões cadastrados", "Disponibilidade atual da frota",
+      "Pedidos cadastrados", "Produtos cadastrados", "Clientes cadastrados",
+      "Motoristas cadastrados"].includes(fact.name));
+  // Vehicle identifiers appear in the structured card, not twice in text.
+  const answer = visualList
+    ? rawAnswer.split("\n").filter((line) => !line.trimStart().startsWith("•")).join("\n").trim()
+    : rawAnswer;
+  // Greetings, navigation and financial limits have no database snapshot:
+  // don't label that guidance as "Dados verificados".
+  const label = reply.source === "BACKEND" && reply.facts.length === 0
+    ? "Loxi · Assistente"
+    : SOURCE_LABELS[reply.source];
   const factDestinations = new Set(
-    reply.facts.flatMap((fact) => (fact.links ?? []).map((link) => link.href))
+    reply.facts.flatMap((fact) => [
+      ...(fact.links ?? []).map((link) => link.href),
+      ...(operationalCardDestination(fact) ? [operationalCardDestination(fact)!] : []),
+    ])
   );
   return <section className="assistant-turn">{question}
     <div className="assistant-response">
@@ -207,9 +244,10 @@ function TurnRow({ turn, earlier, onLink, onSelectCustomer, working }: {
       {answer ? <p className="assistant-answer">{answer}</p> : null}
       {reply.facts.map((fact) => reply.source === "DOCUMENTATION"
         ? <DocumentationSource key={fact.clientKey} fact={fact} />
-        : isRepeatedPlan(fact, earlier)
+        : isRepeatedPlan(fact, earlier) || isRepeatedFleet(fact, earlier)
           ? <details key={fact.clientKey} className="assistant-repeated-fact">
-              <summary>Ver dados deste planejamento já exibidos</summary>
+              <summary>{fact.name === "Disponibilidade atual da frota"
+                ? "Dados da frota já exibidos" : "Dados do planejamento já exibidos"}</summary>
               <Fact fact={fact} onLink={onLink} onSelectCustomer={onSelectCustomer} working={working} />
             </details>
           : <Fact key={fact.clientKey} fact={fact} onLink={onLink} onSelectCustomer={onSelectCustomer} working={working} />)}
@@ -228,6 +266,7 @@ export function AssistantConversation({ turns, onLink, onSelectCustomer, working
 }) {
   const chat = useRef<HTMLDivElement>(null);
   const lastTurnId = turns.at(-1)?.id;
+  const lastTurnCompleted = Boolean(turns.at(-1)?.reply);
   useEffect(() => {
     const container = chat.current;
     const lastTurn = container?.lastElementChild;
@@ -236,7 +275,7 @@ export function AssistantConversation({ turns, onLink, onSelectCustomer, working
     // resposta longa. Nunca forçar scroll enquanto o usuário lê detalhes.
     const beginning = lastTurn.querySelector(".assistant-response") ?? lastTurn;
     container.scrollTop += beginning.getBoundingClientRect().top - container.getBoundingClientRect().top;
-  }, [lastTurnId]);
+  }, [lastTurnId, lastTurnCompleted]);
   return <div ref={chat} className="assistant-conversation" role="log" aria-label="Conversa com o LoadX" aria-live="polite">
     {turns.length === 0 ? <div className="assistant-welcome assistant-welcome-greeting"><div className="assistant-welcome-icon"><Icon name="message-circle" size={24} /></div><div className="assistant-welcome-copy"><span className="assistant-source">Loxi - Assistente</span><h3>Olá! Eu sou o Loxi 👋</h3><p>Posso conversar sobre sua operação, consultar registros autorizados e explicar os resultados do algoritmo nos planejamentos anteriores ou no mais recente.</p><p>Também posso orientar ações permitidas. Para ver ideias do que perguntar, é só escrever <strong>“Me dê sugestões”</strong>.</p></div></div> : null}
     {turns.map((turn, index) => <TurnRow key={turn.id} turn={turn} earlier={turns.slice(0, index)} onLink={onLink} onSelectCustomer={onSelectCustomer} working={working} />)}

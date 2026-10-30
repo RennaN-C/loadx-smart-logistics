@@ -57,6 +57,18 @@ def _summary(question: str, fact: Source) -> str | None:
         capacity = _number(values.get("truck_capacity_weight_kg"))
         if weight is not None and capacity is not None:
             answer += f" O peso registrado foi {weight} de {capacity} kg."
+            raw_weight = values.get("weight_kg")
+            raw_limit = values.get("truck_capacity_weight_kg")
+            if (
+                isinstance(raw_weight, (int, float))
+                and not isinstance(raw_weight, bool)
+                and isinstance(raw_limit, (int, float))
+                and not isinstance(raw_limit, bool)
+                and raw_limit >= raw_weight
+            ):
+                remaining = _number(round(raw_limit - raw_weight, 2))
+                if remaining is not None:
+                    answer += f" Restam {remaining} kg de capacidade de peso."
         return (
             answer + " Uma comparação dos veículos disponíveis e um novo cálculo "
             "são necessários para confirmar qualquer melhoria; não simulei a troca."
@@ -94,6 +106,44 @@ def _summary(question: str, fact: Source) -> str | None:
     occupancy = _number(values.get("occupancy_percent"))
     weight = _number(values.get("weight_kg"))
     capacity = _number(values.get("truck_capacity_weight_kg"))
+    weight_usage = _number(values.get("weight_utilization_percent"))
+    if weight_usage is None:
+        raw_weight = values.get("weight_kg")
+        raw_limit = values.get("truck_capacity_weight_kg")
+        if (
+            isinstance(raw_weight, (int, float))
+            and not isinstance(raw_weight, bool)
+            and isinstance(raw_limit, (int, float))
+            and not isinstance(raw_limit, bool)
+            and raw_limit > 0
+        ):
+            weight_usage = _number(round(100 * raw_weight / raw_limit, 2))
+
+    if re.search(r"\b(?:ocup\w*|espaco|percentual)\b", q):
+        if occupancy is None and weight_usage is None:
+            return (
+                "Este registro não contém indicadores suficientes de ocupação." + extras
+            )
+        details = []
+        if occupancy is not None:
+            details.append(f"A ocupação geométrica (espaço interno) é {occupancy}%.")
+        if weight_usage is not None and weight is not None and capacity is not None:
+            details.append(
+                f"A utilização da capacidade de peso é {weight_usage}% "
+                f"({weight} de {capacity} kg)."
+            )
+        elif weight is not None and capacity is not None:
+            details.append(f"O peso é {weight} de {capacity} kg.")
+        details.append(
+            "Peso e espaço são indicadores diferentes: o primeiro compara "
+            "quilogramas, o segundo mede o volume ocupado no baú. "
+            "São dados do plano salvo, sem nova simulação."
+        )
+        return " ".join(details) + extras
+
+    if re.search(r"\b(?:aprovad\w*|calculad\w*|status|situacao)\b", q):
+        return f"O planejamento{vehicle} está {state}." + extras
+
     answer = (
         f"O planejamento{vehicle} está {state}: "
         f"{loaded} volumes carregados e {rejected} rejeitados."
@@ -105,6 +155,19 @@ def _summary(question: str, fact: Source) -> str | None:
     return (
         answer + extras + " Esses dados vêm do cálculo salvo, não de uma nova "
         "simulação. Quer analisar as rejeições ou comparar caminhões?"
+    )
+
+
+def needs_grounded_answer(question: str) -> bool:
+    """Keep physical metrics, approval states and truck comparisons out of LLM prose."""
+    normalized = normalize(question)
+    return bool(
+        re.search(
+            r"\b(?:ocup\w*|espaco|peso|percentual|aprovad\w*|"
+            r"calculad\w*|status|situacao|trocar|substituir|"
+            r"melhora|compensa|rejeit\w*|problema)\b",
+            normalized,
+        )
     )
 
 
