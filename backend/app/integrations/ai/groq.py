@@ -108,63 +108,7 @@ class GroqProvider:
                 raise AIProviderUnavailableError
             return self._parse_response(body)
         except HTTPError as error:
-            # Log only an HTTP status; provider bodies can contain private prompts.
-            status = (
-                error.code
-                if error.code in {400, 401, 403, 404, 413, 422, 429, 498, 500, 502, 503}
-                else "other"
-            )
-            if status == 429 and self.config.app_env != "local":
-                with _rate_lock:
-                    _rate_limited_until = max(
-                        _rate_limited_until, time.monotonic() + 60
-                    )
-            if status == 400:
-                # Groq may return 400 when the model creates an invalid tool
-                # call. Parse only a bounded response and log a fixed category.
-                try:
-                    details = json.loads(error.read(4096))
-                    issue = details.get("error") if isinstance(details, dict) else None
-                    if (
-                        isinstance(issue, dict)
-                        and "failed_generation" in issue
-                        and isinstance(issue["failed_generation"], (dict, str))
-                    ):
-                        logger.warning(
-                            "GROQ_REQUEST_FAILURE category=http_400 "
-                            "reason=invalid_tool_generation"
-                        )
-                        raise AIProviderToolGenerationError from None
-                except (OSError, ValueError, TypeError):
-                    pass
-            if status == 403:
-                # Only accept documented, fixed codes. Never log the HTTP body, its
-                # arbitrary message, project names, prompts, authorization or headers.
-                reason = "unclassified"
-                try:
-                    body = error.read(4096)
-                    if b"error code: 1010" in body.lower():
-                        # Cloudflare rejected the HTTP client's signature.
-                        reason = "edge_client_signature_1010"
-                    else:
-                        details = json.loads(body)
-                        if isinstance(details, dict):
-                            metadata = details.get("error")
-                            if isinstance(metadata, dict):
-                                code = metadata.get("code")
-                                if code in {
-                                    "model_permission_blocked_org",
-                                    "model_permission_blocked_project",
-                                }:
-                                    reason = code
-                except (OSError, ValueError, TypeError):
-                    pass
-                logger.warning(
-                    "GROQ_REQUEST_FAILURE category=http_403 reason=%s", reason
-                )
-            else:
-                logger.warning("GROQ_REQUEST_FAILURE category=http_%s", status)
-            raise AIProviderUnavailableError(f"http_{status}") from None
+            self._raise_http_error(error)
         except TimeoutError:
             logger.warning("GROQ_REQUEST_FAILURE category=timeout")
             raise AIProviderTimeoutError from None
@@ -178,6 +122,70 @@ class GroqProvider:
         ):
             logger.warning("GROQ_REQUEST_FAILURE category=transport_or_payload")
             raise AIProviderUnavailableError from None
+
+    @staticmethod
+    def _invalid_tool_generation(error: HTTPError) -> bool:
+        # Read a bounded body and only match the structured indicator.
+        try:
+            details = json.loads(error.read(4096))
+        except (OSError, ValueError, TypeError):
+            return False
+        issue = details.get("error") if isinstance(details, dict) else None
+        return bool(
+            isinstance(issue, dict)
+            and "failed_generation" in issue
+            and isinstance(issue["failed_generation"], (dict, str))
+        )
+
+    @staticmethod
+    def _forbidden_reason(error: HTTPError) -> str:
+        # Never log arbitrary messages, prompts or authentication data.
+        try:
+            body = error.read(4096)
+            if b"error code: 1010" in body.lower():
+                return "edge_client_signature_1010"
+            details = json.loads(body)
+        except (OSError, ValueError, TypeError):
+            return "unclassified"
+        if not isinstance(details, dict):
+            return "unclassified"
+        metadata = details.get("error")
+        if not isinstance(metadata, dict):
+            return "unclassified"
+        code = metadata.get("code")
+        if code in {
+            "model_permission_blocked_org",
+            "model_permission_blocked_project",
+        }:
+            return code
+        return "unclassified"
+
+    def _raise_http_error(self, error: HTTPError) -> None:
+        global _rate_limited_until
+        status = (
+            error.code
+            if error.code in {400, 401, 403, 404, 413, 422, 429, 498, 500, 502, 503}
+            else "other"
+        )
+        if status == 429 and self.config.app_env != "local":
+            with _rate_lock:
+                _rate_limited_until = max(
+                    _rate_limited_until, time.monotonic() + 60
+                )
+        if status == 400 and self._invalid_tool_generation(error):
+            logger.warning(
+                "GROQ_REQUEST_FAILURE category=http_400 "
+                "reason=invalid_tool_generation"
+            )
+            raise AIProviderToolGenerationError from None
+        if status == 403:
+            logger.warning(
+                "GROQ_REQUEST_FAILURE category=http_403 reason=%s",
+                self._forbidden_reason(error),
+            )
+        else:
+            logger.warning("GROQ_REQUEST_FAILURE category=http_%s", status)
+        raise AIProviderUnavailableError(f"http_{status}") from None
 
     @staticmethod
     def _parse_response(body: bytes) -> dict:
