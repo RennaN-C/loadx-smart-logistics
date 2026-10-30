@@ -51,6 +51,16 @@ def planning_context(
                     "loaded_volumes": plan.loaded_count,
                     "rejected_volumes": plan.unloaded_count,
                     "occupancy_percent": float(plan.occupancy_percent),
+                    "weight_utilization_percent": (
+                        round(
+                            100
+                            * float(plan.total_weight_kg)
+                            / float(plan.truck_snapshot_max_weight_kg),
+                            2,
+                        )
+                        if float(plan.truck_snapshot_max_weight_kg) > 0
+                        else None
+                    ),
                     "weight_kg": float(plan.total_weight_kg),
                     "truck_capacity_weight_kg": float(
                         plan.truck_snapshot_max_weight_kg

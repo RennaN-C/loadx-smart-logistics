@@ -33,7 +33,7 @@ _PLAN_WORD = re.compile(
 )
 _EXPLAIN_WORD = re.compile(
     r"\b(?:expli[cq]\w*|analis\w*|por qu[eê]|porque|resultado|peso|dimens\w*|sequ[eê]ncia|ordem de carregamento|"
-    r"rejeit\w*|n[aã]o coube|ocupa\w*|coub\w*)\b",
+    r"rejeit\w*|n[aã]o coube|ocupa\w*|coub\w*|aprovad\w*|status|situa[cç][aã]o)\b",
     re.IGNORECASE,
 )
 _LATEST_WORD = re.compile(
@@ -77,7 +77,10 @@ def _kind(question: str, data: ChatRequest) -> str | None:
     # A route context by itself is not a request to fetch every plan.
     if _UUID.search(text) and _PLAN_WORD.search(text):
         return "explain"
-    if data.plan_id and _EXPLAIN_WORD.search(text):
+    if data.plan_id and (
+        _EXPLAIN_WORD.search(text)
+        or re.search(r"\b(?:trocar|substituir|mudar|melhora|compensa)\b", text)
+    ):
         return "explain"
     if not _PLAN_WORD.search(text):
         return None
@@ -251,11 +254,27 @@ def planning_insight(db: Session, user: User, data: ChatRequest) -> ChatResponse
         + "Esses são resultados persistidos, não uma nova simulação: o registro "
         "não comprova que esse era o único ou o melhor arranjo possível."
     )
+    if re.search(
+        r"\b(?:trocar|substituir|mudar|outro|outra|melhora|compensa)\b"
+        r".{0,95}\b(?:caminh\w*|ve[ií]cul\w*|capacidade)\b|"
+        r"\b(?:caminh\w*|ve[ií]cul\w*)\b.{0,95}\b(?:melhora|compensa)\b",
+        data.message,
+        re.IGNORECASE,
+    ):
+        explain += (
+            " A troca de caminhão não foi simulada. Para avaliar se melhora, "
+            "compare limites de peso, dimensões internas, disponibilidade e "
+            "rejeições deste registro com as opções autorizadas. Só um novo "
+            "cálculo do otimizador pode confirmar outro arranjo."
+        )
     values: dict[str, int | float | str | None] = {
         "status": plan.status,
         "loaded_volumes": plan.loaded_count,
         "rejected_volumes": plan.unloaded_count,
         "occupancy_percent": occupied,
+        "weight_utilization_percent": round(100 * weight / limit, 2)
+        if limit > 0
+        else None,
         "weight_kg": weight,
         "truck_capacity_weight_kg": limit,
         "algorithm_version": plan.algorithm_version[:64],
@@ -314,6 +333,19 @@ def _comparison(db: Session, user: User, data: ChatRequest) -> ChatResponse | No
     if not re.search(
         r"\b(?:compar\w*|diferen[cç]a entre)\b", data.message, re.IGNORECASE
     ) or not _PLAN_WORD.search(data.message):
+        return None
+    # "Diferença entre ocupação de peso e espaço nesse planejamento" compara
+    # dois indicadores do MESMO plano, não dois planos salvos.
+    if re.search(
+        r"\b(?:peso|ocup\w*|espa[cç]o|geom[eé]tric\w*)\b",
+        data.message,
+        re.IGNORECASE,
+    ) and not re.search(
+        r"\b(?:dois|duas|outro|outra|anterior|pen[uú]ltim\w*)\s+"
+        r"(?:planejament\w*|planos?|caminh\w*)\b",
+        data.message,
+        re.IGNORECASE,
+    ):
         return None
     identifiers = list(dict.fromkeys(_UUID.findall(data.message)))
     if len(identifiers) == 2:

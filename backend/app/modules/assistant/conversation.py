@@ -84,7 +84,12 @@ def conversation_reply(user: User, message: str) -> ChatResponse | None:
             ),
         )
     actions = (
-        ("aprovar", "loadx.planning.approve", "/planning", "aprovação de planejamento"),
+        (
+            "aprovar|aprove",
+            "loadx.planning.approve",
+            "/planning",
+            "aprovação de planejamento",
+        ),
         (
             "recalcular",
             "loadx.planning.create",
@@ -93,15 +98,20 @@ def conversation_reply(user: User, message: str) -> ChatResponse | None:
         ),
         (
             "cancelar",
-            "loadx.planning.approve",
+            "loadx.planning.read",
             "/planning",
-            "cancelamento de planejamento",
+            "revisão das opções de cancelamento de planejamento",
         ),
-        ("excluir", "loadx.products.manage", "/products", "exclusão de cadastro"),
+        (
+            "excluir|exclua",
+            "loadx.products.manage",
+            "/products",
+            "exclusão de cadastro",
+        ),
     )
     # No implicit execution: a text command is an invitation to a reviewed UI flow.
     for verb, permission, href, label in actions:
-        if re.search(rf"\b{verb}\b", text) and (
+        if re.search(rf"\b(?:{verb})\b", text) and (
             "plano" in text or "planej" in text or "cadastro" in text
         ):
             if not has_permission(user, permission):
@@ -112,9 +122,10 @@ def conversation_reply(user: User, message: str) -> ChatResponse | None:
             return ChatResponse(
                 source="BACKEND",
                 answer=(
-                    f"Posso te levar à tela de {label}. "
-                    "Nenhum registro foi alterado pelo chat. Confira o registro, "
-                    "as regras de negócio e a confirmação exigida antes de continuar."
+                    f"Posso preparar a navegação para {label}. "
+                    "Nenhum registro foi alterado pelo chat. Na tela, confira "
+                    "o item e confirme a operação explicitamente. As regras e "
+                    "permissões serão verificadas novamente pelo servidor."
                 ),
                 links=[{"label": "Abrir tela da operação", "href": href}],
             )

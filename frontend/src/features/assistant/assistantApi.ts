@@ -17,7 +17,7 @@ export interface AssistantReply {
 export async function askAssistant(message: string, history: ChatMessage[], context: AssistantContext, signal?: AbortSignal): Promise<AssistantReply> {
   try {
     const { data } = await api.post<AssistantReply>("/assistant/messages", {
-      message, history: history.slice(-8), diagnostic_token: context.diagnosticToken, customer_id: context.customerId, plan_id: context.planId, distribution_id: context.distributionId,
+      message, history: history.slice(-16), diagnostic_token: context.diagnosticToken, customer_id: context.customerId, plan_id: context.planId, distribution_id: context.distributionId,
     }, { signal, timeout: 25_000 });
     return data;
   } catch (error) { throw toApiError(error); }

@@ -23,6 +23,7 @@ from tests.unit.test_groq_provider import config
     [
         ("Fale sobre as configurações", "Configurações"),
         ("Como funciona o sistema?", "LoadX"),
+        ("O que você consegue fazer dentro do LoadX?", "LoadX"),
         ("Fale sobre os produtos", "Produtos"),
     ],
 )
@@ -49,6 +50,22 @@ def test_explicit_subject_never_fetches_stale_planning(monkeypatch, question, mo
     assert "500" not in result.answer
     provider.complete.assert_not_called()
     query.assert_not_called()
+
+
+def test_general_help_clears_stale_plan_and_diagnostic_context():
+    request = ChatRequest(
+        message="Como funciona o sistema?",
+        plan_id=uuid.uuid4(),
+        diagnostic_token="stale-diagnostic-token",
+        history=[
+            {"role": "user", "content": "Explique esse planejamento"},
+            {"role": "assistant", "content": "O plano foi calculado."},
+        ],
+    )
+    scoped = scoped_request(request)
+    assert scoped.plan_id is None
+    assert scoped.distribution_id is None
+    assert scoped.diagnostic_token is None
 
 
 @pytest.mark.parametrize(
