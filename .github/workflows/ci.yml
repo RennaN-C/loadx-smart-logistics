@@ -16,7 +16,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}${{ github.head_ref == 'release/v1.2.1-loxi' && format('-{0}', github.sha) || '' }}
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}${{ github.head_ref == 'release/v1.3.0-loxi' && format('-{0}', github.sha) || '' }}
   cancel-in-progress: true
 
 jobs:
@@ -127,16 +127,46 @@ jobs:
           --exit-code 1
           loadx-backend:ci
 
-  # Só publica após todos os checks internos do commit enviado à main.
+  # Publica apos CI interna e SonarCloud do SHA enviado a main.
   # Nunca recebe privilégios de escrita no contexto de pull_request.
   publicar-release:
-    name: Publicar release v1.2.1
+    name: Publicar release v1.3.0
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [backend, frontend, security-backend]
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: write
+      checks: read
     steps:
+      - name: Exigir SonarCloud aprovado neste SHA da main
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          SHA_APROVADO: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          # SonarCloud e check externo, nao faz parte do needs.
+          for tentativa in $(seq 1 60); do
+            resposta="$(gh api "repos/$GH_REPO/commits/$SHA_APROVADO/check-runs?per_page=100")"
+            estado="$(jq -r --arg sha "$SHA_APROVADO" '
+              [.check_runs[] | select(
+                .head_sha == $sha and
+                .name == "SonarCloud Code Analysis" and
+                .app.slug == "sonarqubecloud"
+              )] | sort_by(.id) | last |
+              if . == null or .status != "completed" then "pending"
+              else (.conclusion // "failure") end
+            ' <<<"$resposta")"
+            case "$estado" in
+              success) echo "SonarCloud aprovado para $SHA_APROVADO"; exit 0 ;;
+              pending) echo "Aguardando SonarCloud ($tentativa/60)"; sleep 20 ;;
+              *) echo "::error::SonarCloud reprovou $SHA_APROVADO: $estado"; exit 1 ;;
+            esac
+          done
+          echo "::error::SonarCloud ausente/inconclusivo apos 20 minutos."
+          exit 1
+
       - name: Baixar commit exato da CI
         uses: actions/checkout@v4
         with:
@@ -145,9 +175,9 @@ jobs:
       - name: Validar versão e notas
         run: |
           set -euo pipefail
-          node -e 'if (require("./frontend/package.json").version !== "1.2.1") process.exit(1)'
-          grep -Fq 'version="1.2.1"' backend/app/main.py
-          test -s docs/releases/v1.2.1.md
+          node -e 'if (require("./frontend/package.json").version !== "1.3.0") process.exit(1)'
+          grep -Fq 'version="1.3.0"' backend/app/main.py
+          test -s docs/releases/v1.3.0.md
 
       - name: Criar tag e GitHub Release uma única vez
         env:
@@ -156,17 +186,17 @@ jobs:
           SHA_APROVADO: ${{ github.sha }}
         run: |
           set -euo pipefail
-          if gh release view v1.2.1 --repo "$GH_REPO" >/dev/null 2>&1; then
-            echo "Release v1.2.1 já publicada."
+          if gh release view v1.3.0 --repo "$GH_REPO" >/dev/null 2>&1; then
+            echo "Release v1.3.0 já publicada."
             exit 0
           fi
-          if gh api "repos/${GH_REPO}/git/ref/tags/v1.2.1" >/dev/null 2>&1; then
+          if gh api "repos/${GH_REPO}/git/ref/tags/v1.3.0" >/dev/null 2>&1; then
             echo "::error::Tag já existe sem release; publicação interrompida."
             exit 1
           fi
-          gh release create v1.2.1 \
+          gh release create v1.3.0 \
             --repo "$GH_REPO" \
             --target "$SHA_APROVADO" \
-            --title "LoadX Smart Logistics v1.2.1 — Loxi e Experiência Inteligente" \
-            --notes-file docs/releases/v1.2.1.md \
+            --title "LoadX Smart Logistics v1.3.0 — Loxi e Experiência Inteligente" \
+            --notes-file docs/releases/v1.3.0.md \
             --latest

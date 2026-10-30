@@ -4,9 +4,9 @@
 
 O **LoadX Smart Logistics** é um projeto acadêmico de Engenharia de Software que reúne, em um único sistema, o planejamento tridimensional de cargas, a distribuição de volumes entre caminhões e o acompanhamento das etapas de transporte. A proposta é ajudar a organizar o uso da frota e dar mais clareza às operações, desde o cadastro de um pedido até a conclusão de sua entrega.
 
-**Última versão publicada:** [v1.2.0](https://github.com/RennaN-C/loadx-smart-logistics/releases/tag/v1.2.0) · **26 de outubro de 2026**  
-**Próxima candidata:** [v1.2.1 — Loxi e Experiência Inteligente (PR #388)](https://github.com/RennaN-C/loadx-smart-logistics/pull/388) · preparada em 30 de outubro de 2026, **ainda não publicada nesta revisão**.  
-**Estado:** código disponível para execução local, testes e evolução acadêmica. GitHub Release não representa certificação ou implantação em produção.
+**Versão deste código:** **v1.3.0 — Loxi e Experiência Inteligente** (versão funcional posterior à [v1.2.0](https://github.com/RennaN-C/loadx-smart-logistics/releases/tag/v1.2.0)).  
+**Publicação oficial:** consulte as [Releases do GitHub](https://github.com/RennaN-C/loadx-smart-logistics/releases). Uma PR e sua CI não equivalem à tag publicada.  
+**Estado:** código para execução local, testes e evolução acadêmica. Publicação no GitHub não certifica implantação em produção.
 
 [Funcionalidades](#funcionalidades-do-sistema) · [Como funciona](#como-funciona-na-prática) · [Executar localmente](#executar-o-loadx-localmente) · [Arquitetura](#arquitetura-e-tecnologias) · [Testes](#qualidade-testes-e-segurança) · [Documentação](#documentação-e-referências) · [Roadmap](#versões-e-evolução)
 
@@ -109,9 +109,9 @@ O sistema aplica autorização no backend e utiliza sessões revogáveis. A admi
 
 **Atenção:** o WhatsApp Business real **não está ativo** nesta release. O envio externo por WhatsApp permanece simulado. Integrações externas e armazenamento durável em produção dependem de configuração e validação adicionais.
 
-### Loxi — assistente da candidata v1.2.1
+### Loxi — assistente incorporado à v1.3.0
 
-A candidata v1.2.1 integra um chat consultivo **Loxi** com provider Groq configurável, contexto de conversa, consultas autorizadas de frota e indicadores, explicação de planejamentos persistidos, cartões de informação e acesso contextual à visualização 3D. O backend revalida os dados e permissões; respostas do provider e indicadores não são tratados como novas simulações. **O Loxi não executa ações de escrita**, não substitui o otimizador e não comprova conectividade Groq sem configuração e teste real do ambiente. [Notas da candidata](docs/releases/v1.2.1.md).
+A v1.3.0 integra um chat consultivo **Loxi** com provider Groq configurável, contexto de conversa, consultas autorizadas de frota e indicadores, explicação de planejamentos persistidos, cartões de informação e acesso contextual à visualização 3D. O backend revalida os dados e permissões; respostas do provider e indicadores não são tratados como novas simulações. **O Loxi não executa ações de escrita**, não substitui o otimizador e não comprova conectividade Groq sem configuração e teste real do ambiente. [Notas da candidata](docs/releases/v1.3.0.md).
 
 ## Como funciona na prática
 
@@ -395,9 +395,9 @@ O README apresenta a visão geral; os detalhes de implementação e regras têm 
 | [**v1.0.0**](https://github.com/RennaN-C/loadx-smart-logistics/releases/tag/v1.0.0) | Primeira versão funcional: cadastros, planejamento 3D e operação-base |
 | [**v1.1.0**](https://github.com/RennaN-C/loadx-smart-logistics/releases/tag/v1.1.0) | Maturidade operacional: validações, disponibilidade, RBAC e confiabilidade |
 | [**v1.2.0**](https://github.com/RennaN-C/loadx-smart-logistics/releases/tag/v1.2.0) | Multi-caminhão, administração, segurança de conta, frota, comunicação interna e melhorias de interface |
-| [**v1.2.1 — candidata**](https://github.com/RennaN-C/loadx-smart-logistics/pull/388) | Loxi conversacional com dados verificados, contexto, interface de planejamento e prévia 3D — publicação pendente |
+| **v1.3.0** | Loxi conversacional, dados verificados, contexto, planejamento e prévia 3D. Consultar tag nas Releases oficiais |
 
-**Direções futuras, não entregues na candidata v1.2.1:** suporte validado a 1.000+ volumes (limite atual: 200), tipos de embalagem/agrupadores, ações de escrita confirmáveis pelo Loxi, armazenamento externo durável, WhatsApp Business real e, mediante novo planejamento, multiempresa e integração com CoreFlow (v1.3.0 proposta). A versão desses itens ainda não foi definida.
+**Direções futuras, não entregues na v1.3.0:** suporte validado a 1.000+ volumes (limite atual: 200), tipos de embalagem/agrupadores, ações de escrita confirmáveis pelo Loxi, armazenamento externo durável, WhatsApp Business real e, mediante novo planejamento, multiempresa e integração com CoreFlow (v1.4.0 proposta). A versão desses itens ainda não foi definida.
 
 A próxima versão exige Issues, critérios de aceite e decisões próprias antes da implementação. Consulte o [roadmap canônico](docs/planejamento/roadmap-versoes.md).
 
@@ -419,6 +419,6 @@ O trabalho envolve especificação de requisitos, versionamento, arquitetura mod
 
 ---
 
-**LoadX Smart Logistics v1.2.0** · [Release oficial](https://github.com/RennaN-C/loadx-smart-logistics/releases/tag/v1.2.0) · [Histórico de alterações](CHANGELOG.md) · [Roadmap](docs/planejamento/roadmap-versoes.md)
+**LoadX Smart Logistics — código v1.3.0** · [Releases oficiais](https://github.com/RennaN-C/loadx-smart-logistics/releases) · [Histórico de alterações](CHANGELOG.md) · [Roadmap](docs/planejamento/roadmap-versoes.md)
 
 *O projeto permanece em evolução acadêmica. Funcionalidades de integração real e requisitos de infraestrutura devem ser habilitados e homologados separadamente antes de qualquer uso operacional em produção.*

@@ -2,7 +2,7 @@
 
 ## Status e governança deste documento
 
-`CONFIRMADO`: esta é a referência canônica para o **histórico das versões publicadas** e o planejamento futuro. As releases v1.0.0, v1.1.0 e **v1.2.0** já foram publicadas. A **v1.2.1** está preparada na [PR #388](https://github.com/RennaN-C/loadx-smart-logistics/pull/388), mas ainda não é uma release publicada. A v1.3.0 continua direção de produto e exige planejamento/Issues próprios antes de implementação.
+`CONFIRMADO`: esta é a referência canônica para o **histórico das versões publicadas** e o planejamento futuro. As releases v1.0.0, v1.1.0 e **v1.2.0** já foram publicadas. A **v1.3.0** é a versão funcional desta árvore ([PR #388](https://github.com/RennaN-C/loadx-smart-logistics/pull/388)); conferir publicação nas [Releases](https://github.com/RennaN-C/loadx-smart-logistics/releases). A v1.4.0 continua direção de produto e exige planejamento/Issues próprios antes de implementação.
 
 `CONFIRMADO`: o histórico de construção do MVP e da seleção da v1.1.0 permanece
 em `docs/10-roadmap-inicial.md`. O detalhamento oficial da v1.1.0 permanece em
@@ -52,12 +52,12 @@ ajuste.
 
 `CONFIRMADO`: versões PATCH normalmente não são pré-planejadas neste roadmap. Elas surgem quando uma versão publicada exige correção compatível.
 
-`PONTO DE REVISÃO SEMVER`: a candidata **v1.2.1** inclui o novo assistente conversacional Loxi e melhorias de interface. Antes da publicação, avaliar se isso representa nova funcionalidade `MINOR` em vez de apenas correção `PATCH`. Este documento não renomeia unilateralmente a release nem aprova quebra de compatibilidade.
+`DECISÃO SEMVER (30/10/2026)`: o Loxi, a integração Groq, as novas consultas e a experiência 3D são funcionalidades compatíveis. Por isso a release é **v1.3.0 (MINOR)**, não PATCH. A antiga proposta de CoreFlow/multiempresa é renumerada como **v1.4.0**, sem antecipar implementação.
 
 `DECISÃO NECESSÁRIA`: o marco atualmente chamado de v2.0.0 somente deverá usar
 esse número se introduzir mudança incompatível que justifique incremento de
 MAJOR. Se a plataforma móvel puder ser adicionada de forma compatível, o número
-correto continuará a sequência MINOR, por exemplo v1.8.0.
+correto continuará a sequência MINOR, por exemplo v1.9.0.
 
 Este documento não altera sozinho o fluxo Git de hotfix. O processo de uma
 eventual versão PATCH deverá ser definido quando a necessidade surgir.
@@ -82,7 +82,7 @@ Esses números somente representam trabalho executável enquanto as respectivas
 Issues permanecerem aprovadas, atribuídas e vinculadas ao planejamento da versão.
 
 `CONFIRMADO`: números posteriores à OC112 não ficam reservados antecipadamente.
-A numeração da v1.3.0 em diante será definida no momento do planejamento de cada
+A numeração da v1.4.0 em diante será definida no momento do planejamento de cada
 release, usando a próxima OC realmente disponível.
 
 Essa regra evita engessar dezenas de números para funcionalidades que ainda
@@ -277,11 +277,11 @@ O planejamento da v1.2.0 estabeleceu os seguintes objetivos; seu aceite de códi
 - permitir perfis administrativos flexíveis sem retirar a autorização do backend.
 
 ---
-# v1.2.1 — Loxi e Experiência Inteligente (candidata)
+# v1.3.0 — Loxi e Experiência Inteligente
 
-**Estado verificado em 30/10/2026:** [PR #388](https://github.com/RennaN-C/loadx-smart-logistics/pull/388) aberta para `main`, sem tag/release publicada. O conteúdo abaixo descreve a **candidata de código**, não implantação externa, certificação nem aceite automático da CI. As [notas da candidata](../releases/v1.2.1.md) e o [Changelog](../../CHANGELOG.md) detalham o escopo.
+**Escopo da versão:** a [PR #388](https://github.com/RennaN-C/loadx-smart-logistics/pull/388) consolida a evolução. A publicação oficial depende de aprovação da CI, integração na `main` e criação da [tag/release](https://github.com/RennaN-C/loadx-smart-logistics/releases), sem certificar deploy externo. As [notas da candidata](../releases/v1.3.0.md) e o [Changelog](../../CHANGELOG.md) detalham o escopo.
 
-## Entregas propostas na candidata
+## Entregas da versão
 
 - **Loxi (Groq):** conversa natural, perguntas de acompanhamento e contexto limitado; fallback quando o provider não responde. Não depende de WhatsApp real.
 - **Consultas verificadas:** frota, disponibilidade e motivos autorizados, indicadores e planejamentos persistidos, com dados e permissões revalidados pelo backend. Fontes operacionais não são inventadas pela IA.
@@ -291,14 +291,14 @@ O planejamento da v1.2.0 estabeleceu os seguintes objetivos; seu aceite de códi
 
 **Limites mantidos:** LoadX monoempresa/standalone, limite atual de **200 volumes físicos totais** por otimização síncrona e até **10 veículos candidatos**; não inclui CoreFlow, tenant_id, WhatsApp Business real, storage externo de produção nem automações de escrita pelo Loxi. A disponibilização da chave e o teste Groq ao vivo dependem de configuração do ambiente.
 
-**Gate de publicação:** aprovação do Backend, Frontend, Segurança e SonarCloud para o commit exato; revisão da PR; merge e nova CI na `main`; somente então tag/release automatizada. Publicar no GitHub não significa fazer deploy no Render/Vercel.
+**Gate de publicação:** checks Backend, Frontend, Segurança e SonarCloud na PR. Após merge, o job de publicação exige a CI interna da `main` aprovada **e valida explicitamente o check SonarCloud do SHA exato do push** antes de criar tag/release; falha, ausência e timeout bloqueiam publicação. Isso não representa deploy no Render/Vercel.
 
 ## Manutenção ativa e critérios de fechamento
 
 - [#382](https://github.com/RennaN-C/loadx-smart-logistics/issues/382): estabilização do Loxi, contexto, Groq, verificações e testes; a presença da funcionalidade na candidata **não encerra automaticamente** a Issue.
 - [#368](https://github.com/RennaN-C/loadx-smart-logistics/issues/368): ações operacionais confirmáveis, RBAC e auditoria — **futuro**; exige proposta, revalidação server-side, prévia, confirmação, idempotência e trilha de auditoria.
 - [#254](https://github.com/RennaN-C/loadx-smart-logistics/issues/254): desempenho e resposta ao usuário da otimização multi-caminhão; revalidar tempos e recuperação antes de declarar resolvido.
-- [#268](https://github.com/RennaN-C/loadx-smart-logistics/issues/268) e [#256](https://github.com/RennaN-C/loadx-smart-logistics/issues/256): cobertura SonarCloud e auditoria incremental.
+- [#268](https://github.com/RennaN-C/loadx-smart-logistics/issues/268) e [#256](https://github.com/RennaN-C/loadx-smart-logistics/issues/256): cobertura SonarCloud e auditoria incremental. A [triagem da PR #388](../qualidade/sonarcloud-pr388-20261030.md) registra 118 apontamentos, ainda sem classificação individual por severidade.
 - [#248](https://github.com/RennaN-C/loadx-smart-logistics/issues/248) e [#242](https://github.com/RennaN-C/loadx-smart-logistics/issues/242): entrega/diagnóstico de e-mail e recuperação de senha exigem validação do ambiente, não apenas testes locais.
 - [#323](https://github.com/RennaN-C/loadx-smart-logistics/issues/323): decisão entre exclusão e arquivamento seguro de cadastros.
 - [#193](https://github.com/RennaN-C/loadx-smart-logistics/issues/193): ativar WhatsApp Business real somente quando provider, autenticação e operação forem aprovados.
@@ -308,9 +308,9 @@ As Issues acima são um retrato das pendências abertas em 30/10/2026; consultar
 
 ---
 
-# Backlog transversal pós-v1.2.1 — versão a definir
+# Backlog transversal pós-v1.3.0 — versão a definir
 
-Estes são **objetivos e propostas**, não recursos disponíveis, OCs reservadas ou compromissos de inclusão automática na v1.3.0:
+Estes são **objetivos e propostas**, não recursos disponíveis, OCs reservadas ou compromissos de inclusão automática na v1.4.0:
 
 1. **Escala do otimizador:** investigar evolução do limite de 200 para **1.000 ou mais volumes** por operação, incluindo consumo de CPU/memória, duração, filas, idempotência, timeouts, benchmarks com PostgreSQL, recuperação e UX para processamentos demorados. A meta depende de critérios de desempenho e testes de segurança/física.
 2. **Embalagens/unidades logísticas:** estudar tipos como caixas, paletes e outros agrupadores, dimensões externas, tara, agrupamento de itens, empilhamento, compatibilidade e rastreabilidade individual; desenhar contratos e ADR antes de mudar a engine.
@@ -322,14 +322,14 @@ Priorizar este backlog juntamente com o planejamento da próxima versão; a orde
 
 ---
 
-# v1.3.0 — Multi-tenancy logístico e integração com CoreFlow
+# v1.4.0 — Multi-tenancy logístico e integração com CoreFlow
 
 `RECOMENDAÇÃO`: evoluir o LoadX de produto monoempresa para **módulo logístico
 multi-tenant**, capaz de operar integrado ao CoreFlow sem duplicar o control plane
 da plataforma.
 
 `CONFIRMADO`: esta seção é **roadmap, não planejamento executável**. Nenhuma OC ou
-Issue funcional da v1.3.0 foi criada ou reservada.
+Issue funcional da v1.4.0 foi criada ou reservada.
 
 ## Ownership no alvo integrado
 
@@ -449,7 +449,7 @@ authentication, sincronização/vínculo de usuários, estratégia de eventos, l
 de tenant desativado e eventual mapeamento entre Person do CoreFlow e Customer do LoadX.
 ---
 
-# v1.4.0 — Rastreamento e acompanhamento em tempo real
+# v1.5.0 — Rastreamento e acompanhamento em tempo real
 
 `RECOMENDAÇÃO`: evolução destinada à localização de viagens, ETA e
 acompanhamento operacional.
@@ -473,7 +473,7 @@ precisão necessária, geofencing, privacidade e tratamento de perda de sinal.
 
 ---
 
-# v1.5.0 — Roteirização e custos logísticos
+# v1.6.0 — Roteirização e custos logísticos
 
 `RECOMENDAÇÃO`: evolução destinada ao planejamento geográfico e econômico das
 viagens.
@@ -503,9 +503,9 @@ geográfico externo ou composição dos dois.
 problemas diferentes e não devem ser misturados.
 
 ---
-# v1.6.0 — Inteligência artificial avançada
+# v1.7.0 — Inteligência artificial avançada
 
-`RECOMENDAÇÃO`: ampliar a IA **além do Loxi consultivo da candidata v1.2.1**. Conversa contextual, Groq e consultas read-only já pertencem à candidata; esta etapa futura trata previsões, recomendações avançadas e ações operacionais efetivamente autorizadas, com escopo/versão a decidir. A Issue #368 pode ser priorizada antes da v1.6.0 mediante planejamento próprio.
+`RECOMENDAÇÃO`: ampliar a IA **além do Loxi consultivo da v1.3.0**. Conversa contextual, Groq e consultas read-only já pertencem à candidata; esta etapa futura trata previsões, recomendações avançadas e ações operacionais efetivamente autorizadas, com escopo/versão a decidir. A Issue #368 pode ser priorizada antes da v1.7.0 mediante planejamento próprio.
 
 | OC | Responsável principal | Capacidade planejada |
 |---|---|---|
@@ -536,11 +536,11 @@ A IA não pode:
 - escrever diretamente no banco;
 - executar ação operacional sem passar pelo service responsável.
 
-`CONFIRMADO`: a candidata v1.2.1 já possui adapter Groq configurável, limites e fallback. `DECISÃO NECESSÁRIA`: critérios e eventual provider para **novos usos** (previsões, ações), tratamento de dados, observabilidade, orçamento e controles por tenant se a v1.3.0 for aprovada.
+`CONFIRMADO`: a v1.3.0 possui adapter Groq configurável, limites e fallback. `DECISÃO NECESSÁRIA`: critérios e eventual provider para **novos usos** (previsões, ações), tratamento de dados, observabilidade, orçamento e controles por tenant se a v1.4.0 for aprovada.
 
 ---
 
-# v1.7.0 — Visão computacional e análise física avançada
+# v1.8.0 — Visão computacional e análise física avançada
 
 `RECOMENDAÇÃO`: adicionar apoio visual e físico à conferência sem substituir o
 núcleo determinístico.
@@ -597,7 +597,7 @@ formal.
 
 Se a plataforma móvel puder ser adicionada mantendo compatibilidade com os
 contratos públicos existentes, o incremento correto pelo SemVer deverá ser
-MINOR, por exemplo v1.8.0.
+MINOR, por exemplo v1.9.0.
 
 A denominação v2.0.0 somente será adotada quando houver breaking change que
 justifique MAJOR.
@@ -608,7 +608,7 @@ justifique MAJOR.
 
 A ordem abaixo representa direção de produto, não dependência técnica automática:
 
-v1.0.0 → v1.1.0 → v1.2.0 → **v1.2.1 (candidata)** → v1.3.0 → v1.4.0 → v1.5.0 → v1.6.0 → v1.7.0 → marco móvel
+v1.0.0 → v1.1.0 → v1.2.0 → **v1.3.0 (candidata)** → v1.4.0 → v1.5.0 → v1.6.0 → v1.7.0 → v1.8.0 → marco móvel
 
 Uma versão pode começar a ser planejada enquanto a anterior ainda está em
 validação, mas uma implementação não deve depender de contratos ainda instáveis.
@@ -672,8 +672,8 @@ Uma versão somente deve ser considerada pronta para promoção quando:
 
 **Já publicadas:** [v1.0.0](https://github.com/RennaN-C/loadx-smart-logistics/releases/tag/v1.0.0), [v1.1.0](https://github.com/RennaN-C/loadx-smart-logistics/releases/tag/v1.1.0) e [v1.2.0](https://github.com/RennaN-C/loadx-smart-logistics/releases/tag/v1.2.0) em 26/10/2026.
 
-**Release em preparação:** [v1.2.1 / PR #388](https://github.com/RennaN-C/loadx-smart-logistics/pull/388) — Loxi contextual e melhorias no planejamento/3D; não publicada nesta revisão. **Próximo ciclo funcional proposto:** v1.3.0 — multi-tenancy logístico e integração com CoreFlow, ainda sem autorização de desenvolvimento. O backlog transversal (escala ≥1.000 volumes, embalagens, ações do Loxi e confiabilidade) não possui versão aprovada.
+**Código desta versão:** [v1.3.0 / PR #388](https://github.com/RennaN-C/loadx-smart-logistics/pull/388) — Loxi e planejamento/3D; conferir publicação em [Releases](https://github.com/RennaN-C/loadx-smart-logistics/releases). **Próximo ciclo funcional proposto:** v1.4.0 — multi-tenancy logístico e integração com CoreFlow, ainda sem autorização de desenvolvimento. O backlog transversal (escala ≥1.000 volumes, embalagens, ações do Loxi e confiabilidade) não possui versão aprovada.
 
-**Manutenção:** acompanhar as Issues ativas listadas na seção v1.2.1, sobretudo #268, #256, #254 e #382. Não reescrever tags anteriores; cada correção exige classificação SemVer adequada e nova validação.
+**Manutenção:** acompanhar as Issues ativas listadas na seção v1.3.0, sobretudo #268, #256, #254 e #382. Não reescrever tags anteriores; cada correção exige classificação SemVer adequada e nova validação.
 
 **Implantação externa:** publicação do código não equivale a homologação de provedores, storage ou workers remotos. A ativação de WhatsApp Business real e a infraestrutura de produção devem ser aprovadas separadamente.
