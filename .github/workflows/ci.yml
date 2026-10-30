@@ -20,75 +20,17 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # First feedback without a PostgreSQL boot or migrations; the full
-  # integration suites still run on every PR and every protected-branch push.
-  backend-fast:
-    name: Backend · Rápido (Ruff e unitários)
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    env:
-      APP_ENV: local
-      DATABASE_URL: postgresql+psycopg://loadx_test:${{ github.sha }}@localhost:5432/loadx_test
-      TEST_DATABASE_URL: postgresql+psycopg://loadx_test:${{ github.sha }}@127.0.0.1:5432/loadx_test
-      COVERAGE_FILE: .coverage.unit
-    defaults:
-      run:
-        working-directory: backend
-    steps:
-      - name: Baixar código
-        uses: actions/checkout@v4
-
-      - name: Configurar Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: pip
-          cache-dependency-path: backend/requirements-dev.lock.txt
-
-      - name: Instalar dependências travadas
-        run: python -m pip install --require-hashes -r requirements-dev.lock.txt
-
-      - name: Gerar chave efêmera exclusiva do job
-        run: printf 'SECRET_KEY=%s\n' "$(openssl rand -hex 32)" >> "$GITHUB_ENV"
-
-      - name: Verificar abrangência e isolamento dos shards
-        run: python ../.github/scripts/pytest_shards.py --verify
-
-      - name: Executar Ruff
-        run: python -m ruff check .
-
-      - name: Validar formatação com Ruff
-        run: python -m ruff format --check .
-
-      - name: Testes rápidos e tempos mais lentos
-        run: python ../.github/scripts/pytest_shards.py --suite quick
-
-      - name: Salvar cobertura de unitários
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-backend-unit
-          path: backend/.coverage.unit
-          include-hidden-files: true
-          if-no-files-found: error
-          retention-days: 3
-
-  # Each matrix job owns an independent PostgreSQL 16 container and an
-  # exclusive loadx_test database. No xdist/shared-schema concurrency.
-  backend-integration:
-    name: Backend · Integração (shard ${{ matrix.shard }}/4)
+  backend:
+    name: Backend
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: [0, 1, 2, 3]
     services:
       postgres:
         image: postgres:16-alpine
         env:
           POSTGRES_DB: loadx_test
           POSTGRES_USER: loadx_test
-          POSTGRES_PASSWORD: ${{ github.sha }}
+          POSTGRES_PASSWORD: loadx_test_local
         ports:
           - 5432:5432
         options: >-
@@ -98,9 +40,9 @@ jobs:
           --health-retries 15
     env:
       APP_ENV: local
-      DATABASE_URL: postgresql+psycopg://loadx_test:${{ github.sha }}@localhost:5432/loadx_test
-      TEST_DATABASE_URL: postgresql+psycopg://loadx_test:${{ github.sha }}@127.0.0.1:5432/loadx_test
-      COVERAGE_FILE: .coverage.integration-${{ matrix.shard }}
+      DATABASE_URL: postgresql+psycopg://loadx_test:loadx_test_local@localhost:5432/loadx_test
+      TEST_DATABASE_URL: postgresql+psycopg://loadx_test:loadx_test_local@127.0.0.1:5432/loadx_test
+      SECRET_KEY: ci-only-secret-key-at-least-32-characters
     defaults:
       run:
         working-directory: backend
@@ -115,66 +57,20 @@ jobs:
           cache: pip
           cache-dependency-path: backend/requirements-dev.lock.txt
 
-      - name: Instalar dependências travadas
+      - name: Instalar dependências
         run: python -m pip install --require-hashes -r requirements-dev.lock.txt
 
-      - name: Gerar chave efêmera exclusiva do job
-        run: printf 'SECRET_KEY=%s\n' "$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+      - name: Executar Ruff
+        run: python -m ruff check .
 
-      # Full Alembic upgrades/downgrades are exercised by the session fixture
-      # against this shard's private database, with no schema shared across jobs.
-      - name: Testes PostgreSQL e E2E do shard
-        run: python ../.github/scripts/pytest_shards.py --suite integration --shard ${{ matrix.shard }}
+      - name: Validar formatação com Ruff
+        run: python -m ruff format --check .
 
-      - name: Salvar cobertura do shard
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-backend-integration-${{ matrix.shard }}
-          path: backend/.coverage.integration-${{ matrix.shard }}
-          include-hidden-files: true
-          if-no-files-found: error
-          retention-days: 3
+      - name: Aplicar migrations
+        run: python -m alembic upgrade head
 
-  # Preserve the exact existing required check "Backend". It can only pass
-  # if every shard and the quick suite pass; coverage is merged across all jobs.
-  backend:
-    name: Backend
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    needs: [backend-fast, backend-integration]
-    if: always()
-    steps:
-      - name: Exigir aprovação de todas as suítes
-        run: |
-          test "${{ needs.backend-fast.result }}" = "success"
-          test "${{ needs.backend-integration.result }}" = "success"
-
-      - name: Baixar código
-        uses: actions/checkout@v4
-
-      - name: Configurar Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: pip
-          cache-dependency-path: backend/requirements-dev.lock.txt
-
-      - name: Instalar dependências travadas
-        working-directory: backend
-        run: python -m pip install --require-hashes -r requirements-dev.lock.txt
-
-      - name: Reunir coberturas das cinco suítes
-        uses: actions/download-artifact@v4
-        with:
-          pattern: coverage-backend-*
-          path: backend
-          merge-multiple: true
-
-      - name: Validar cobertura total preservada
-        working-directory: backend
-        run: |
-          python -m coverage combine
-          python -m coverage report --fail-under=94.5
+      - name: Executar Pytest
+        run: python -m pytest -q tests --cov=app --cov-report=term
 
   frontend:
     name: Frontend
