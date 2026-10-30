@@ -1,8 +1,8 @@
 # Changelog
 
-Histórico das versões **publicadas** do LoadX. Para planejamento futuro, consulte o [roadmap canônico](docs/planejamento/roadmap-versoes.md). Versões anteriores e seus commits são mantidos para rastreabilidade.
+Histórico das versões publicadas e, quando explicitamente identificado, de **candidatas ainda não publicadas**. Para planejamento futuro, consulte o [roadmap canônico](docs/planejamento/roadmap-versoes.md). Versões anteriores e seus commits são mantidos para rastreabilidade.
 
-## [1.2.1] - 2026-10-30
+## [1.2.1] — candidata preparada em 2026-10-30 (PR #388; publicação pendente)
 
 ### Loxi — inteligência contextual e experiência visual
 - Conversa fluida: envio otimista, respostas naturais, indicador discreto e painel expansível.
