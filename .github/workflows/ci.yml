@@ -126,3 +126,47 @@ jobs:
           --ignore-unfixed
           --exit-code 1
           loadx-backend:ci
+
+  # Só publica após todos os checks internos do commit enviado à main.
+  # Nunca recebe privilégios de escrita no contexto de pull_request.
+  publicar-release:
+    name: Publicar release v1.2.1
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [backend, frontend, security-backend]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Baixar commit exato da CI
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Validar versão e notas
+        run: |
+          set -euo pipefail
+          node -e 'if (require("./frontend/package.json").version !== "1.2.1") process.exit(1)'
+          grep -Fq 'version="1.2.1"' backend/app/main.py
+          test -s docs/releases/v1.2.1.md
+
+      - name: Criar tag e GitHub Release uma única vez
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          SHA_APROVADO: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          if gh release view v1.2.1 --repo "$GH_REPO" >/dev/null 2>&1; then
+            echo "Release v1.2.1 já publicada."
+            exit 0
+          fi
+          if gh api "repos/${GH_REPO}/git/ref/tags/v1.2.1" >/dev/null 2>&1; then
+            echo "::error::Tag já existe sem release; publicação interrompida."
+            exit 1
+          fi
+          gh release create v1.2.1 \
+            --repo "$GH_REPO" \
+            --target "$SHA_APROVADO" \
+            --title "LoadX Smart Logistics v1.2.1 — Loxi e Experiência Inteligente" \
+            --notes-file docs/releases/v1.2.1.md \
+            --latest
