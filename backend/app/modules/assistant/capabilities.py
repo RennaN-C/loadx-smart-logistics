@@ -304,20 +304,20 @@ def documentation_reply(user: User, message: str) -> ChatResponse | None:
 
 
 def _history_scope(data: ChatRequest, current: set[str]) -> tuple[list[Message], set[str]]:
-previous_topics: set[str] = set()
-boundary = 0
-for index, message in enumerate(data.history):
-    if message.role != "user":
-        continue
-    found = topics(message.content)
-    if not found:
-        continue
-    if previous_topics and not previous_topics.intersection(found):
-        boundary = index
-    previous_topics = found
-relevant_history = data.history[boundary:]
-if current and previous_topics and not current.intersection(previous_topics):
-    relevant_history = []
+    previous_topics: set[str] = set()
+    boundary = 0
+    for index, message in enumerate(data.history):
+        if message.role != "user":
+            continue
+        found = topics(message.content)
+        if not found:
+            continue
+        if previous_topics and not previous_topics.intersection(found):
+            boundary = index
+        previous_topics = found
+    relevant_history = data.history[boundary:]
+    if current and previous_topics and not current.intersection(previous_topics):
+        relevant_history = []
     return relevant_history, previous_topics
 
 
