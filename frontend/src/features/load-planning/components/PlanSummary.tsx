@@ -17,6 +17,13 @@ interface PlanSummaryProps {
   readonly onRecalculate: () => void;
 }
 
+function displayPlanStatus(plan: LoadPlan): string {
+  if (plan.distributionStatus === "CANCELED") return "Distribuição cancelada";
+  if (plan.distributionStatus === "INCOMPLETE") return "Distribuição incompleta";
+  if (plan.isCurrentPart === false) return "Versão anterior do plano";
+  return PLAN_STATUS_LABELS[plan.status];
+}
+
 export function PlanSummary({ plan, canManage, approvalAllowed = canManage, isWorking, onApprove, onRecalculate, showContinuity = true }: PlanSummaryProps) {
   const hasRejections = plan.unloadedCount > 0;
   const inactiveDistribution = inactive(plan);
@@ -33,10 +40,7 @@ export function PlanSummary({ plan, canManage, approvalAllowed = canManage, isWo
           </p>
         </div>
         <StatusPill tone={inactiveDistribution ? "neutral" : planStatusTone(plan.status)}>
-          {plan.distributionStatus === "CANCELED" ? "Distribuição cancelada"
-            : plan.distributionStatus === "INCOMPLETE" ? "Distribuição incompleta"
-              : plan.isCurrentPart === false ? "Versão anterior do plano"
-                : PLAN_STATUS_LABELS[plan.status]}
+          {displayPlanStatus(plan)}
         </StatusPill>
       </header>
 

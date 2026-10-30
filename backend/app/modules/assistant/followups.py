@@ -49,6 +49,16 @@ _TRUCK_HYPOTHESIS = re.compile(
 )
 
 
+def _planning_recent(previous_questions: list[str]) -> bool:
+    for previous in reversed(previous_questions[-4:]):
+        previous_topics = topics(previous)
+        if previous_topics - {"planning", "fleet", "loading"}:
+            break
+        if "planning" in previous_topics:
+            return True
+    return False
+
+
 def resolve_followup(data: ChatRequest) -> tuple[ChatRequest, bool]:
     """Rewrite only clear planning followups into resolvable questions.
 
@@ -69,14 +79,7 @@ def resolve_followup(data: ChatRequest) -> tuple[ChatRequest, bool]:
         return data, False
     # A truck question may follow a weight question (fleet) about the same plan.
     # Do not cross an intervening order, customer, settings or other topic.
-    planning_recent = False
-    for previous in reversed(previous_questions[-4:]):
-        previous_topics = topics(previous)
-        if previous_topics - {"planning", "fleet", "loading"}:
-            break
-        if "planning" in previous_topics:
-            planning_recent = True
-            break
+    planning_recent = _planning_recent(previous_questions)
     if current_topics - {"planning", "fleet", "loading"}:
         return data, False
     if (

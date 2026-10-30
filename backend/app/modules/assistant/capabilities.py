@@ -5,7 +5,7 @@ import unicodedata
 from dataclasses import dataclass
 
 from app.modules.access_profiles.catalog import has_permission
-from app.modules.assistant.schemas import ChatRequest, ChatResponse, Source
+from app.modules.assistant.schemas import ChatRequest, ChatResponse, Message, Source
 from app.modules.users.models import User
 
 
@@ -303,6 +303,24 @@ def documentation_reply(user: User, message: str) -> ChatResponse | None:
     )
 
 
+def _history_scope(data: ChatRequest, current: set[str]) -> tuple[list[Message], set[str]]:
+previous_topics: set[str] = set()
+boundary = 0
+for index, message in enumerate(data.history):
+    if message.role != "user":
+        continue
+    found = topics(message.content)
+    if not found:
+        continue
+    if previous_topics and not previous_topics.intersection(found):
+        boundary = index
+    previous_topics = found
+relevant_history = data.history[boundary:]
+if current and previous_topics and not current.intersection(previous_topics):
+    relevant_history = []
+    return relevant_history, previous_topics
+
+
 def scoped_request(data: ChatRequest) -> ChatRequest:
     current = topics(data.message)
     general_help = bool(
@@ -340,20 +358,7 @@ def scoped_request(data: ChatRequest) -> ChatRequest:
         else {"planning", "fleet"}
     )
     unrelated = current - related
-    previous_topics: set[str] = set()
-    boundary = 0
-    for index, message in enumerate(data.history):
-        if message.role != "user":
-            continue
-        found = topics(message.content)
-        if not found:
-            continue
-        if previous_topics and not previous_topics.intersection(found):
-            boundary = index
-        previous_topics = found
-    relevant_history = data.history[boundary:]
-    if current and previous_topics and not current.intersection(previous_topics):
-        relevant_history = []
+    relevant_history, previous_topics = _history_scope(data, current)
     if (
         re.search(r"^(?:e |mas |por que|porque|como assim)", normalize(data.message))
         and previous_topics == {"planning"}

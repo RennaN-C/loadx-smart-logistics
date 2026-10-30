@@ -22,6 +22,37 @@ def _normalize(question: str) -> str:
     )
 
 
+def _suggested_questions(user: User) -> ChatResponse:
+    options: list[str] = []
+    if has_permission(user, "loadx.planning.read"):
+        options.extend(
+            [
+                "Qual foi o último planejamento calculado?",
+                "Liste os planejamentos anteriores.",
+                "Por que houve volumes rejeitados no último cálculo?",
+            ]
+        )
+    if has_permission(user, "loadx.products.read"):
+        options.append("Quais produtos estão cadastrados?")
+    if has_permission(user, "loadx.trucks.read"):
+        options.append("Quais caminhões estão indisponíveis?")
+    if has_permission(user, "loadx.deliveries.read"):
+        options.append("Quantos pedidos foram entregues nos últimos 30 dias?")
+    return ChatResponse(
+        source="BACKEND",
+        answer=(
+            "Você pode perguntar, por exemplo:\n"
+            + (
+                "\n".join(f"• {item}" for item in options[:6])
+                if options
+                else "• Como funciona o fluxo de carregamento?"
+            )
+            + "\n\nPara ações que alteram dados, posso orientar a tela correta; "
+            "a confirmação deve ser feita no sistema."
+        ),
+    )
+
+
 def conversation_reply(user: User, message: str) -> ChatResponse | None:
     text = _normalize(message).strip(" ?!.")
     greeting = {
@@ -58,34 +89,7 @@ def conversation_reply(user: User, message: str) -> ChatResponse | None:
         r"como (?:posso|comeco) perguntar|me ajude|ajuda no chat)\b",
         text,
     ):
-        options: list[str] = []
-        if has_permission(user, "loadx.planning.read"):
-            options.extend(
-                [
-                    "Qual foi o último planejamento calculado?",
-                    "Liste os planejamentos anteriores.",
-                    "Por que houve volumes rejeitados no último cálculo?",
-                ]
-            )
-        if has_permission(user, "loadx.products.read"):
-            options.append("Quais produtos estão cadastrados?")
-        if has_permission(user, "loadx.trucks.read"):
-            options.append("Quais caminhões estão indisponíveis?")
-        if has_permission(user, "loadx.deliveries.read"):
-            options.append("Quantos pedidos foram entregues nos últimos 30 dias?")
-        return ChatResponse(
-            source="BACKEND",
-            answer=(
-                "Você pode perguntar, por exemplo:\n"
-                + (
-                    "\n".join(f"• {item}" for item in options[:6])
-                    if options
-                    else "• Como funciona o fluxo de carregamento?"
-                )
-                + "\n\nPara ações que alteram dados, posso orientar a tela correta; "
-                "a confirmação deve ser feita no sistema."
-            ),
-        )
+        return _suggested_questions(user)
     actions = (
         (
             "aprovar|aprove",

@@ -145,11 +145,11 @@ function FleetOperationalCard({ fact, onLink, unavailable }: {
         <div><strong>{inactive === null ? "—" : number.format(inactive)}</strong><span>Indisponíveis</span></div></>}
     </div>
     <div className="loxi-vehicle-list">
-      {items.length ? items.map((item, i) => {
+      {items.length ? items.map((item) => {
         const truck = parseTruck(item);
         const reason = unavailable ? truck.reason : (truck.reason || "Situação não informada");
         const restricted = /arquivad|manuten|document|opera|indispon/i.test(reason.normalize("NFD").replace(/[\u0300-\u036f]/g, ""));
-        return <div className="loxi-vehicle" key={i}>
+        return <div className="loxi-vehicle" key={item}>
           <span className="loxi-vehicle-icon"><Icon name="truck" size={17}/></span>
           <div className="loxi-vehicle-info"><strong>{truck.name} · {truck.plate}</strong>
             <span className={restricted ? "loxi-vehicle-state is-restricted" : "loxi-vehicle-state"}>{reason}</span></div>
@@ -189,9 +189,9 @@ function RecordOperationalCard({ fact, onLink }: { readonly fact: AssistantFact;
       {count !== null ? <span className="loxi-status-chip">{number.format(count)} no total</span> : null}
     </header>
     <div className="loxi-vehicle-list">
-      {items.map((item, index) => {
+      {items.map((item) => {
         const parts = item.split(" · ");
-        return <div className="loxi-vehicle" key={index}>
+        return <div className="loxi-vehicle" key={item}>
           <span className="loxi-vehicle-icon"><Icon name="report" size={17} /></span>
           <div className="loxi-vehicle-info"><strong>{parts[0]}</strong>
             {parts.slice(1).length ? <span className="loxi-vehicle-state">{parts.slice(1).join(" · ")}</span> : null}</div>
