@@ -55,7 +55,6 @@ class GroqProvider:
             or not key.get_secret_value().strip()
         ):
             raise AIProviderUnavailableError
-        global _rate_limited_until
         if self.config.app_env != "local":
             with _rate_lock:
                 if time.monotonic() < _rate_limited_until:

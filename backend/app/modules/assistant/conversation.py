@@ -11,7 +11,6 @@ from app.modules.access_profiles.catalog import has_permission
 from app.modules.assistant.schemas import ChatResponse
 from app.modules.users.models import User
 
-
 PLANNING_ROUTE = "/planning"
 
 
