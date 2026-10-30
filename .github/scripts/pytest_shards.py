@@ -78,8 +78,12 @@ def main() -> int:
     print(f"Running {len(selected)} test files:", flush=True)
     for path in selected:
         print(f"  {path}", flush=True)
-    # Direct invocation avoids delegating dynamically discovered paths to a
-    # subprocess while preserving pytest-cov and the same test selection.
+    # Executing this script as a file sets sys.path[0] to .github/scripts;
+    # python -m pytest would instead include the backend working directory.
+    # Restore that import root for 'app' and 'scripts' without a subprocess.
+    backend_root = str(TEST_ROOT.parent.resolve())
+    if backend_root not in sys.path:
+        sys.path.insert(0, backend_root)
     import pytest
 
     return int(
