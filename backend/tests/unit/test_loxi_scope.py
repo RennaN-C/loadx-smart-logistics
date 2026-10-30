@@ -159,8 +159,9 @@ def test_natural_social_response_has_no_verified_records():
     ],
 )
 def test_general_channel_cannot_publish_domain_claims(text):
+    payload = json.dumps({"conversation": text})
     with pytest.raises(AIProviderUnavailableError):
-        general_answer(json.dumps({"conversation": text}), "Tudo certo por aí?", [])
+        general_answer(payload, "Tudo certo por aí?", [])
 
 
 def test_followup_history_drops_the_previous_subject_not_just_the_plan_id():

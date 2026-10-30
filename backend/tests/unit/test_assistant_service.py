@@ -515,11 +515,10 @@ def test_groq_400_recovery_rechecks_permissions_before_read(no_database, monkeyp
     provider.complete.side_effect = AIProviderToolGenerationError()
     query = Mock()
     monkeypatch.setattr(AssistantMetricsService, "query", query)
+    service = AssistantService(db, config(), provider)
+    request = ChatRequest(message="Quantos pedidos foram entregues nos últimos 30 dias?")
     with pytest.raises(ApiError) as caught:
-        AssistantService(db, config(), provider).chat(
-            user,
-            ChatRequest(message="Quantos pedidos foram entregues nos últimos 30 dias?"),
-        )
+        service.chat(user, request)
     assert caught.value.status_code == 403
     query.assert_not_called()
     provider.complete.assert_not_called()

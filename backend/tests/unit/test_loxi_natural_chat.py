@@ -58,25 +58,25 @@ def test_natural_answer_requires_verified_sources_and_exact_numbers():
         }
     )
     assert natural_answer(valid, [source]).startswith("Esse planejamento")
+    altered = valid.replace("37,5", "99")
     with pytest.raises(AIProviderUnavailableError):
-        natural_answer(valid.replace("37,5", "99"), [source])
+        natural_answer(altered, [source])
     # json.dumps escapa acentos: alterar o objeto antes de serializar.
     forged = json.loads(valid)
     forged["source_names"] = ["Fonte inventada"]
+    forged_payload = json.dumps(forged)
     with pytest.raises(AIProviderUnavailableError):
-        natural_answer(json.dumps(forged), [source])
+        natural_answer(forged_payload, [source])
+    claimed_approval = json.dumps(
+        {"answer": "Pronto, aprovei o planejamento.", "source_names": []}
+    )
     with pytest.raises(AIProviderUnavailableError):
-        natural_answer(
-            json.dumps(
-                {"answer": "Pronto, aprovei o planejamento.", "source_names": []}
-            ),
-            [],
-        )
+        natural_answer(claimed_approval, [])
+    claimed_delivery = json.dumps(
+        {"answer": "O pedido foi entregue.", "source_names": []}
+    )
     with pytest.raises(AIProviderUnavailableError):
-        natural_answer(
-            json.dumps({"answer": "O pedido foi entregue.", "source_names": []}),
-            [],
-        )
+        natural_answer(claimed_delivery, [])
 
 
 def test_recent_planning_followup_resolves_latest_without_untrusted_plan_id():

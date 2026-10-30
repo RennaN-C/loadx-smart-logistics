@@ -92,8 +92,10 @@ def test_saved_status_and_truck_comparison_are_brief():
     ],
 )
 def test_provider_cannot_relabel_verified_metrics_or_status(answer):
+    narration = _narration(answer)
+    facts = _plan().facts
     with pytest.raises(AIProviderUnavailableError):
-        natural_answer(_narration(answer), _plan().facts)
+        natural_answer(narration, facts)
 
 
 def test_provider_can_use_both_percentages_with_correct_meaning():
@@ -101,7 +103,8 @@ def test_provider_can_use_both_percentages_with_correct_meaning():
         _narration("A ocupação de peso é 90% e a ocupação geométrica é 22,5%."),
         _plan().facts,
     )
-    assert "90%" in response and "22,5%" in response
+    assert "90%" in response
+    assert "22,5%" in response
 
 
 def test_savings_and_new_optimization_are_not_claimed_by_backend():

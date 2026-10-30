@@ -113,12 +113,11 @@ def test_checker_uses_original_role_filtered_service(monkeypatch):
 
 def test_checker_cannot_read_unapproved_plan_by_guessed_id(monkeypatch):
     service = stub_service(monkeypatch, [])
+    requester = person("CHECKER")
+    request = ChatRequest(message="Explique o planejamento " + str(uuid.uuid4()))
+    db = Mock()
     with pytest.raises(ApiError) as error:
-        planning_insight(
-            Mock(),
-            person("CHECKER"),
-            ChatRequest(message="Explique o planejamento " + str(uuid.uuid4())),
-        )
+        planning_insight(db, requester, request)
     assert error.value.status_code == 403
     assert service.get_distribution_state_for_plan.call_count == 0
 
@@ -213,10 +212,9 @@ def test_checker_cannot_read_approved_plan_from_canceled_distribution(monkeypatc
         "APPROVED",
         True,
     )
+    requester = person("CHECKER")
+    request = ChatRequest(message="Explique o plano " + str(latest.id))
+    db = Mock()
     with pytest.raises(ApiError) as error:
-        planning_insight(
-            Mock(),
-            person("CHECKER"),
-            ChatRequest(message="Explique o plano " + str(latest.id)),
-        )
+        planning_insight(db, requester, request)
     assert error.value.status_code == 403
