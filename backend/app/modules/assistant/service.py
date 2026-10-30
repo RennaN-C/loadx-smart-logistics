@@ -171,6 +171,14 @@ def _safe_recovery_tool(question: str, allowed_names: frozenset[str]) -> str | N
     return name if name in allowed_names else None
 
 
+_CATALOG_EXCLUSIONS = (
+    re.compile(r"\b(?:(?:in)?dispon\w*|manutenc\w*|entreg\w*|viagem|status|situacao|arquivad\w*)\b"),
+    re.compile(r"\b(?:ontem|hoje|pode\w*|oper\w*|peso|dimens\w*|fragil\w*)\b"),
+    re.compile(r"\b(?:empilh\w*|rotac\w*|plano\w*|planej\w*|distribui\w*|carga\w*|mais)\b"),
+    re.compile(r"\b(?:menos|compr\w*)\b"),
+)
+
+
 def _catalog_intent(question: str) -> str | None:
     text = unicodedata.normalize("NFKD", question.casefold())
     text = "".join(char for char in text if not unicodedata.combining(char))
@@ -179,10 +187,7 @@ def _catalog_intent(question: str) -> str | None:
         text,
     ):
         return None
-    if re.search(
-        r"\b(?:(?:in)?dispon\w*|manutenc\w*|entreg\w*|viagem|status|situacao|arquivad\w*|ontem|hoje|pode\w*|oper\w*|peso|dimens\w*|fragil\w*|empilh\w*|rotac\w*|plano\w*|planej\w*|distribui\w*|carga\w*|mais|menos|compr\w*)\b",
-        text,
-    ):
+    if any(pattern.search(text) for pattern in _CATALOG_EXCLUSIONS):
         return None
     routes = {
         "produto": "get_registered_products",
@@ -431,6 +436,45 @@ class AssistantService:
         data = scoped_request(data)
         # Disponibilidade atual é dado operacional. Nunca pedir ao provedor que
         # invente placas ou omita registros que o backend já autorizou.
+        fleet_response = self._fleet_response(user, data, fleet_followup)
+        if fleet_response is not None:
+            return fleet_response
+        # Estimativas financeiras exigem custos e base de comparação reais.
+        # Não entregar a pergunta ao provedor quando ele não possui essas fontes.
+        financial_response = self._financial_response(data)
+        if financial_response is not None:
+            return financial_response
+        # Explicit saved-plan questions and conversation follow-ups outrank
+        # documentation about the fleet. Ordinary how-to questions stay on docs.
+        plan_response = self._planning_response(user, data, conversational_followup)
+        if plan_response is not None:
+            return plan_response
+        facts, links = planning_context(self.db, user, data)
+        if facts:
+            emit_security_event(
+                SecurityEvent.ASSISTANT_READ_QUERY,
+                actor_id=str(user.id),
+                tool="planning_context",
+            )
+        now = datetime.now(UTC)
+        messages = _messages(data, facts, now)
+        deadline = time.monotonic() + self.config.ai_chat_timeout_seconds
+        definitions = tool_definitions(user)
+        allowed_names = frozenset(tool["function"]["name"] for tool in definitions)
+        # Consultas de cadastro não dependem do modelo nem de tool calls frágeis.
+        # Permissão é conferida antes e depois do refresh na execução da ferramenta.
+        catalog_response = self._catalog_response(user, data, now, deadline, allowed_names)
+        if catalog_response is not None:
+            return catalog_response
+        return self._provider_roundtrip(
+            user, data, casual, facts, links, now, deadline,
+            messages, definitions, allowed_names,
+        )
+
+
+    def _fleet_response(
+        self, user: User, data: ChatRequest, fleet_followup: bool
+    ) -> ChatResponse | None:
         if (
             _fleet_availability_intent(data.message) or fleet_followup
         ) and not data.diagnostic_token:
@@ -466,8 +510,9 @@ class AssistantService:
                 links=[result.link] if result.link else [],
                 suggestions=["Quais caminhões temos cadastrados?"],
             )
-        # Estimativas financeiras exigem custos e base de comparação reais.
-        # Não entregar a pergunta ao provedor quando ele não possui essas fontes.
+        return None
+
+    def _financial_response(self, data: ChatRequest) -> ChatResponse | None:
         if re.search(
             r"\b(?:econom\w*|poupar\w*|custo\w*|lucro|roi|"
             r"financeir\w*)\b",
@@ -487,8 +532,11 @@ class AssistantService:
                 ),
                 suggestions=["Trocar de caminhão ajudaria na capacidade?"],
             )
-        # Explicit saved-plan questions and conversation follow-ups outrank
-        # documentation about the fleet. Ordinary how-to questions stay on docs.
+        return None
+
+    def _planning_response(
+        self, user: User, data: ChatRequest, conversational_followup: bool
+    ) -> ChatResponse | None:
         plan_question = bool(
             conversational_followup
             or data.plan_id
@@ -511,7 +559,7 @@ class AssistantService:
                 actor_id=str(user.id),
                 tool="planning_insight",
             )
-            # Todo planejamento individual recebe uma resposta voltada à
+            # Cada planejamento individual recebe uma resposta voltada à
             # pergunta atual. Mesmo quando Groq falha, o fallback é curto,
             # verificável e não repete o relatório técnico inteiro.
             if (
@@ -528,20 +576,16 @@ class AssistantService:
                     return concise
                 return self._narrate_verified(data, concise)
             return planned
-        facts, links = planning_context(self.db, user, data)
-        if facts:
-            emit_security_event(
-                SecurityEvent.ASSISTANT_READ_QUERY,
-                actor_id=str(user.id),
-                tool="planning_context",
-            )
-        now = datetime.now(UTC)
-        messages = _messages(data, facts, now)
-        deadline = time.monotonic() + self.config.ai_chat_timeout_seconds
-        definitions = tool_definitions(user)
-        allowed_names = frozenset(tool["function"]["name"] for tool in definitions)
-        # Consultas de cadastro não dependem do modelo nem de tool calls frágeis.
-        # Permissão é conferida antes e depois do refresh na execução da ferramenta.
+        return None
+
+    def _catalog_response(
+        self,
+        user: User,
+        data: ChatRequest,
+        now: datetime,
+        deadline: float,
+        allowed_names: frozenset[str],
+    ) -> ChatResponse | None:
         catalog_route = (
             _catalog_intent(data.message) if not data.diagnostic_token else None
         )
@@ -576,6 +620,21 @@ class AssistantService:
                 links=[result.link] if result.link else [],
                 suggestions=["Quais outros cadastros posso consultar?"],
             )
+        return None
+
+    def _provider_roundtrip(
+        self,
+        user: User,
+        data: ChatRequest,
+        casual: ChatResponse | None,
+        facts: list[Source],
+        links: list[dict],
+        now: datetime,
+        deadline: float,
+        messages: list[dict],
+        definitions: list[dict],
+        allowed_names: frozenset[str],
+    ) -> ChatResponse:
         try:
             # Para indicadores quantitativos inequívocos, o servidor consulta
             # primeiro os dados autorizados. Assim a Groq não precisa gerar

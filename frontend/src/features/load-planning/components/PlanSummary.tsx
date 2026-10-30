@@ -44,11 +44,11 @@ export function PlanSummary({ plan, canManage, approvalAllowed = canManage, isWo
         </StatusPill>
       </header>
 
-      {inactiveDistribution ? <p className="entity-form-help" role="status">
+      {inactiveDistribution ? <output className="entity-form-help">
         Este plano não integra uma distribuição ativa. O resultado físico
         ({PLAN_STATUS_LABELS[plan.status].toLowerCase()}) permanece disponível para consulta histórica,
         mas a operação deve ser retomada pela distribuição ou por um novo planejamento.
-      </p> : null}
+      </output> : null}
 
       <dl className="plan-metrics">
         <div>

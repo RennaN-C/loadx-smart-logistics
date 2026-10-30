@@ -203,9 +203,9 @@ export function OrderForm({ order, customers, products, onSaved, onCancel }: Ord
     <form className="entity-form" onSubmit={handleSubmit}>
       {errorMessage ? <AlertBanner>{errorMessage}</AlertBanner> : null}
 
-      {order?.status === "READY" ? <p className="entity-form-help" role="status">
+      {order?.status === "READY" ? <output className="entity-form-help">
         Para alterar dados de um pedido pronto, selecione <strong>Rascunho</strong> em Situação e salve.
-        A transição poderá ser recusada se existir distribuição ativa.</p> : null}
+        A transição poderá ser recusada se existir distribuição ativa.</output> : null}
       <fieldset disabled={isSubmitting} className="entity-form-fieldset">
         <div className="entity-form-row">
           <FormField id="order-customer" label="CLIENTE">

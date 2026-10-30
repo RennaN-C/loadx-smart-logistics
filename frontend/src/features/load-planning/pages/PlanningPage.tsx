@@ -100,15 +100,17 @@ interface PlanningResultProps extends ComponentProps<typeof PlanSummary> {
   readonly onTabChange: (tab: PlanTab) => void;
 }
 
+function distributionNotice(status: LoadPlan["distributionStatus"]): string {
+  if (status === "CANCELED") return "Distribuição cancelada: este plano é apenas um registro histórico. Para calcular novamente, inicie uma nova distribuição.";
+  if (status === "INCOMPLETE") return "Distribuição incompleta: consulte as partes canceladas e reprocesse a carga antes de aprovar.";
+  return "Este plano pertence a uma distribuição. Aprovação, cancelamento e reprocessamento são feitos pela necessidade completa.";
+}
+
 function PlanningResult({ plan, canManage, approvalAllowed, isWorking, onApprove, onRecalculate, tab, onTabChange }: PlanningResultProps) {
   const { user } = useAuth();
   const distributionId = plan.distributionId;
   return <>
-    {distributionId ? <div className="distribution-notice"><p>{plan.distributionStatus === "CANCELED"
-        ? "Distribuição cancelada: este plano é apenas um registro histórico. Para calcular novamente, inicie uma nova distribuição."
-        : plan.distributionStatus === "INCOMPLETE"
-          ? "Distribuição incompleta: consulte as partes canceladas e reprocesse a carga antes de aprovar."
-          : "Este plano pertence a uma distribuição. Aprovação, cancelamento e reprocessamento são feitos pela necessidade completa."}</p><Link className="btn-secondary" to={`/planning/distributions/${distributionId}`}>Abrir distribuição completa</Link></div> : null}
+    {distributionId ? <div className="distribution-notice"><p>{distributionNotice(plan.distributionStatus)}</p><Link className="btn-secondary" to={`/planning/distributions/${distributionId}`}>Abrir distribuição completa</Link></div> : null}
     <p className="plan-persisted-reference"><Icon name="planning" size={16} />Plano salvo · Referência {plan.id.slice(0, 8)}<Link to="/planning">Planos existentes</Link><Link to={`/planning/${plan.id}`}>Abrir este plano</Link></p>
     <PlanSummary showContinuity={false} plan={plan} canManage={canManage && !distributionId} approvalAllowed={approvalAllowed && !distributionId} isWorking={isWorking} onApprove={onApprove} onRecalculate={onRecalculate} />
     <Tabs items={PLAN_TABS} active={tab} onChange={onTabChange} label="Formato do resultado" />

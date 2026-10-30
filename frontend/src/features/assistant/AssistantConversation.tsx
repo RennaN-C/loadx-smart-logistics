@@ -139,18 +139,21 @@ function Fact({ fact, onLink, onSelectCustomer, working }: FactProps) {
   const compact = typeof primary === "number";
   const period = periodLabel(fact);
   const rich = hasOperationalCard(fact);
-  return <section className={rich ? "assistant-result assistant-result-rich" : "assistant-result"} aria-label={fact.name}>
-    {rich ? <AssistantOperationalCard fact={fact} onLink={onLink} /> : compact ? <>
+  let metricContent = <p className="assistant-result-heading">{fact.name}</p>;
+  if (rich) {
+    metricContent = <AssistantOperationalCard fact={fact} onLink={onLink} />;
+  } else if (compact) {
+    metricContent = <>
       <div className="assistant-result-heading"><span>{fact.name}</span>{period ? <span className="assistant-period">{period}</span> : null}</div>
-      <div className="assistant-main-metric">
-        <strong className="assistant-main-value">{formatValue(primary)}</strong>
-        <span>{readable(primaryKey!)}</span>
-      </div>
+      <div className="assistant-main-metric"><strong className="assistant-main-value">{formatValue(primary)}</strong><span>{readable(primaryKey!)}</span></div>
       {visibleSecondary.length ? <dl className="assistant-metric-grid">{visibleSecondary.map(([key, value]) =>
         <div key={key}><dt>{readable(key)}</dt><dd>{formatValue(value)}</dd></div>
       )}</dl> : null}
       {typeof customer === "string" && customer ? <p className="assistant-customer">Cliente com mais entregas: <strong>{customer}</strong></p> : null}
-    </> : <p className="assistant-result-heading">{fact.name}</p>}
+    </>;
+  }
+  return <section className={rich ? "assistant-result assistant-result-rich" : "assistant-result"} aria-label={fact.name}>
+    {metricContent}
 
     {hasChoices ? <div className="assistant-choice-list" aria-label="Escolher cliente">{fact.choices?.map((choice) =>
       <button type="button" className="btn-secondary" disabled={working} key={choice.reference} onClick={() => onSelectCustomer(choice)}>Selecionar {choice.label}</button>
@@ -201,6 +204,15 @@ function isRepeatedFleet(fact: AssistantFact, earlier: readonly Turn[]): boolean
   ));
 }
 
+function TurnFact({ fact, source, earlier, onLink, onSelectCustomer, working }: FactProps & { readonly source: AssistantReply["source"]; readonly earlier: readonly Turn[] }) {
+  if (source === "DOCUMENTATION") return <DocumentationSource fact={fact} />;
+  if (isRepeatedPlan(fact, earlier) || isRepeatedFleet(fact, earlier)) return <details className="assistant-repeated-fact">
+    <summary>{fact.name === "Disponibilidade atual da frota" ? "Dados da frota já exibidos" : "Dados do planejamento já exibidos"}</summary>
+    <Fact fact={fact} onLink={onLink} onSelectCustomer={onSelectCustomer} working={working} />
+  </details>;
+  return <Fact fact={fact} onLink={onLink} onSelectCustomer={onSelectCustomer} working={working} />;
+}
+
 function TurnRow({ turn, earlier, onLink, onSelectCustomer, working }: {
   readonly turn: Turn;
   readonly earlier: readonly Turn[];
@@ -242,15 +254,7 @@ function TurnRow({ turn, earlier, onLink, onSelectCustomer, working }: {
     <div className="assistant-response">
       <strong className="assistant-source">{label}</strong>
       {answer ? <p className="assistant-answer">{answer}</p> : null}
-      {reply.facts.map((fact) => reply.source === "DOCUMENTATION"
-        ? <DocumentationSource key={fact.clientKey} fact={fact} />
-        : isRepeatedPlan(fact, earlier) || isRepeatedFleet(fact, earlier)
-          ? <details key={fact.clientKey} className="assistant-repeated-fact">
-              <summary>{fact.name === "Disponibilidade atual da frota"
-                ? "Dados da frota já exibidos" : "Dados do planejamento já exibidos"}</summary>
-              <Fact fact={fact} onLink={onLink} onSelectCustomer={onSelectCustomer} working={working} />
-            </details>
-          : <Fact key={fact.clientKey} fact={fact} onLink={onLink} onSelectCustomer={onSelectCustomer} working={working} />)}
+      {reply.facts.map((fact) => <TurnFact key={fact.clientKey} fact={fact} source={reply.source} earlier={earlier} onLink={onLink} onSelectCustomer={onSelectCustomer} working={working} />)}
       <nav className="assistant-action-links" aria-label="Ações relacionadas">{reply.links.filter((link) => allowedLink(link.href) && !factDestinations.has(link.href)).map((link) =>
         <Link key={link.href} to={link.href} onClick={onLink}>{link.label}<Icon name="arrow-right" size={16} /></Link>
       )}</nav>

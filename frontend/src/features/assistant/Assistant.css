@@ -20,29 +20,6 @@
 }
 .assistant-launch:hover { filter: brightness(1.05); }
 .assistant-shell { position: fixed; inset: 0; pointer-events: none; z-index: 47; }
-.assistant-panel {
-  position: fixed;
-  inset: auto 24px 86px auto;
-  width: min(480px, calc(100vw - 32px));
-  height: min(670px, calc(100dvh - 116px));
-  max-height: calc(100dvh - 116px);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  pointer-events: auto;
-  color: var(--ink);
-  background: var(--paper);
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  box-shadow: 0 24px 72px rgb(0 0 0 / .28);
-}
-.assistant-panel-header {
-  position: relative;
-  flex-shrink: 0;
-  padding: 15px 58px 13px 19px;
-  border-bottom: 1px solid var(--line);
-  background: var(--paper);
-}
 .assistant-panel-header h2 { margin: 0 0 3px; font-size: .98rem; color: var(--ink); }
 .assistant-panel-header p { margin: 0; font-size: .74rem; color: var(--muted); }
 .assistant-close {
@@ -67,15 +44,6 @@
   outline: 2px solid var(--accent-strong);
   outline-offset: 3px;
 }
-.assistant-panel-body {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-  gap: 9px;
-  padding: 12px 16px 15px;
-  overflow: hidden;
-}
 .assistant-privacy {
   flex-shrink: 0;
   color: var(--muted);
@@ -84,41 +52,9 @@
 .assistant-privacy summary { width: max-content; max-width: 100%; cursor: pointer; }
 .assistant-privacy p { margin: 6px 0 0; line-height: 1.45; }
 
-.assistant-conversation {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  gap: 22px;
-  min-width: 0;
-  min-height: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-color: var(--line) transparent;
-  scrollbar-width: thin;
-  padding: 4px 4px 10px 1px;
-}
 .assistant-conversation::-webkit-scrollbar { width: 6px; }
 .assistant-conversation::-webkit-scrollbar-thumb { background: var(--line); border-radius: 10px; }
-.assistant-turn {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  flex-shrink: 0;
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-.assistant-question {
-  align-self: flex-end;
-  max-width: 92%;
-  border: 1px solid var(--line);
-  border-radius: 14px 14px 4px 14px;
-  background: var(--card);
-  padding: 10px 13px;
-}
-.assistant-question span { display: block; margin-bottom: 4px; font-size: .72rem; font-weight: 650; color: var(--muted); }
 .assistant-question p { margin: 0; line-height: 1.45; white-space: pre-wrap; font-size: .9rem; }
-.assistant-response { display: flex; flex-direction: column; align-items: stretch; gap: 11px; min-width: 0; }
 .assistant-source { display: block; font-size: .75rem; font-weight: 650; color: var(--muted); }
 .assistant-answer { margin: 0; white-space: pre-wrap; line-height: 1.58; font-size: .88rem; }
 .assistant-welcome { margin: auto 0; text-align: center; padding: 22px 16px; }
@@ -233,13 +169,6 @@
 .assistant-panel-body > output { flex-shrink: 0; font-size: .8rem; color: var(--muted); }
 
 /* Caixa de envio sempre acessível; não cria uma segunda rolagem de mensagens. */
-.assistant-panel-body form {
-  display: grid;
-  flex-shrink: 0;
-  gap: 8px;
-  padding-top: 11px;
-  border-top: 1px solid var(--line);
-}
 .assistant-compose-header { display: flex; align-items: center; justify-content: space-between; gap: 9px; font-size: .78rem; }
 .assistant-compose-header label { font-weight: 600; }
 .assistant-ideas-button {
@@ -251,27 +180,10 @@
   padding: 3px;
   cursor: pointer;
 }
-.assistant-panel-body textarea {
-  width: 100%;
-  min-height: 46px;
-  max-height: 112px;
-  padding: 11px 12px;
-  border: 1px solid var(--line);
-  border-radius: 11px;
-  background: var(--card);
-  color: var(--ink);
-  font: inherit;
-  font-size: .86rem;
-  line-height: 1.45;
-  resize: none;
-  overflow-y: auto;
-}
-.assistant-panel-body textarea:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
 .assistant-panel-body .entity-form-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0; }
 .assistant-panel-body .entity-form-actions button { min-width: 0; font-size: .82rem; }
 .assistant-panel-body .entity-form-actions .assistant-clear { padding: 8px 3px; border: none; background: transparent; color: var(--muted); }
 .assistant-panel-body .entity-form-actions .assistant-clear:hover { color: var(--ink); }
-.assistant-panel-body .entity-form-actions .assistant-submit { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 41px; padding-inline: 17px; }
 
 @media (max-width: 767px) {
   .assistant-launch { inset: auto 15px 15px auto; min-width: 54px; min-height: 54px; justify-content: center; padding: 14px; }
@@ -345,12 +257,69 @@
 
 
 /* Loxi conversational composer: the chat is responsive even during a request. */
-.assistant-panel { box-shadow: 0 22px 66px rgb(0 0 0 / .24); }
-.assistant-panel-body { gap: 7px; }
-.assistant-conversation { gap: 16px; scroll-behavior: smooth; padding-bottom: 16px; }
-.assistant-question { max-width: 88%; border-radius: 16px 16px 5px 16px; }
-.assistant-question span { font-size: .69rem; }
-.assistant-response { gap: 8px; }
+.assistant-panel {
+  position: fixed;
+  inset: auto 24px 86px auto;
+  width: min(480px, calc(100vw - 32px));
+  height: min(670px, calc(100dvh - 116px));
+  max-height: calc(100dvh - 116px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  pointer-events: auto;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: 0 22px 66px rgb(0 0 0 / .24);
+}
+.assistant-panel-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  padding: 12px 16px 15px;
+  overflow: hidden;
+  gap: 7px;
+}
+.assistant-conversation {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: var(--line) transparent;
+  scrollbar-width: thin;
+  padding: 4px 4px 10px 1px;
+  gap: 16px;
+  scroll-behavior: smooth;
+  padding-bottom: 16px;
+}
+.assistant-question {
+  align-self: flex-end;
+  border: 1px solid var(--line);
+  background: var(--card);
+  padding: 10px 13px;
+  max-width: 88%;
+  border-radius: 16px 16px 5px 16px;
+}
+.assistant-question span {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: 650;
+  color: var(--muted);
+  font-size: .69rem;
+}
+.assistant-response {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 0;
+  gap: 8px;
+}
 .assistant-repeated-fact { font-size: .74rem; color: var(--muted); }
 .assistant-repeated-fact > summary { cursor: pointer; width: fit-content; padding: 3px 0; }
 .assistant-repeated-fact[open] > .assistant-result { margin-top: 8px; }
@@ -376,19 +345,46 @@
   30% { transform: translateY(-3px); opacity: 1; }
 }
 .assistant-panel-body form {
-  gap: 7px; padding: 10px 0 0; background: var(--paper);
+  display: grid;
+  flex-shrink: 0;
+  padding-top: 11px;
+  border-top: 1px solid var(--line);
+  gap: 7px;
+  padding: 10px 0 0;
+  background: var(--paper);
 }
 .assistant-composer-hint { color: var(--muted); font-size: .68rem; font-weight: 400; }
 .assistant-panel-body textarea {
-  min-height: 48px; border-radius: 14px; padding: 12px 14px;
-  font-size: .88rem; transition: border-color .15s, box-shadow .15s;
+  width: 100%;
+  max-height: 112px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  line-height: 1.45;
+  resize: none;
+  overflow-y: auto;
+  min-height: 48px;
+  border-radius: 14px;
+  padding: 12px 14px;
+  font-size: .88rem;
+  transition: border-color .15s, box-shadow .15s;
 }
 .assistant-panel-body textarea:focus-visible {
-  outline: none; border-color: var(--accent-strong);
+  outline-offset: 2px;
+  outline: none;
+  border-color: var(--accent-strong);
   box-shadow: 0 0 0 2px var(--accent-bg);
 }
 .assistant-panel-body .entity-form-actions .assistant-submit {
-  min-width: 116px; border-radius: 11px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 41px;
+  padding-inline: 17px;
+  min-width: 116px;
+  border-radius: 11px;
 }
 .assistant-panel-body .entity-form-actions .assistant-submit:disabled { opacity: .65; cursor: wait; }
 @media (max-width: 420px) {
@@ -403,12 +399,6 @@
 
 /* Visualizações operacionais: o conteúdo é renderizado a partir de Source
    autorizado pelo servidor, nunca de markup ou números livres da IA. */
-.assistant-panel.is-expanded {
-  width: min(940px, calc(100vw - 44px));
-  height: min(880px, calc(100dvh - 48px));
-  max-height: calc(100dvh - 48px);
-  bottom: 24px;
-}
 .assistant-expand {
   position: absolute; top: 11px; right: 56px; width: 38px; height: 38px;
   display: inline-grid; place-items: center; border: 1px solid var(--line);
@@ -418,8 +408,23 @@
 .assistant-expand:hover, .assistant-close:hover { background: var(--accent-bg); }
 .assistant-expand:focus-visible, .loxi-card-actions button:focus-visible,
 .loxi-card-actions a:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
-.assistant-panel-header { padding-right: 110px; }
-.assistant-turn { animation: loxi-enter .22s ease-out both; }
+.assistant-panel-header {
+  position: relative;
+  flex-shrink: 0;
+  padding: 15px 58px 13px 19px;
+  border-bottom: 1px solid var(--line);
+  background: var(--paper);
+  padding-right: 110px;
+}
+.assistant-turn {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex-shrink: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  animation: loxi-enter .22s ease-out both;
+}
 @keyframes loxi-enter {
   from { opacity: .2; transform: translateY(7px); }
   to { opacity: 1; transform: translateY(0); }
@@ -481,12 +486,7 @@
   padding: 9px 11px; background: var(--card); color: var(--ink); font: inherit;
   font-size: .75rem; font-weight: 650; cursor: pointer; text-decoration: none; }
 .loxi-card-actions a:hover, .loxi-card-actions button:hover { background: var(--accent-bg); }
-.loxi-preview { min-width: 0; max-width: 100%; overflow: hidden; }
-.loxi-preview .viewer { min-width: 0; max-width: 100%; }
-.loxi-preview .viewer-canvas { min-height: 250px; }
-.loxi-preview .viewer-toolbar { flex-wrap: wrap; }
 .assistant-panel:not(.is-expanded) .loxi-preview .viewer-canvas { min-height: 240px; }
-.assistant-panel.is-expanded .assistant-conversation { padding-inline: min(5vw, 50px); }
 @media (max-width: 600px) {
   .assistant-panel.is-expanded { inset: 0; width: 100vw; height: 100dvh; max-height: 100dvh; border-radius: 0; }
   .loxi-fleet-kpis { gap: 5px; }
@@ -513,12 +513,22 @@
   transform: translateX(-50%);
 }
 .assistant-panel.is-expanded .assistant-panel-body { min-height: 0; overflow: hidden; }
-.assistant-panel.is-expanded .assistant-conversation { min-height: 0; overflow-y: auto; }
+.assistant-panel.is-expanded .assistant-conversation {
+  padding-inline: min(5vw, 50px);
+  min-height: 0;
+  overflow-y: auto;
+}
 .assistant-panel.is-expanded form { flex-shrink: 0; position: relative; z-index: 1; }
 
 /* Preview, não um segundo workspace: mantém o 3D interativo sem duplicar
    controles, indicadores e barras de rolagem dentro do chat. */
-.loxi-preview { display: grid; gap: 7px; max-width: 100%; min-width: 0; }
+.loxi-preview {
+  overflow: hidden;
+  display: grid;
+  gap: 7px;
+  max-width: 100%;
+  min-width: 0;
+}
 .loxi-preview-hint {
   margin: 0; display: flex; align-items: center; justify-content: space-between;
   gap: 10px; flex-wrap: wrap; color: var(--muted); font-size: .73rem;
@@ -526,13 +536,18 @@
 }
 .loxi-preview-hint a { color: var(--accent-strong); font-weight: 650; }
 .loxi-preview .viewer {
-  margin: 0; display: grid;
+  margin: 0;
+  display: grid;
   grid-template-columns: minmax(0, 1fr);
   grid-template-areas: "toolbar" "canvas";
   gap: 8px;
-  min-width: 0; max-width: 100%;
+  min-width: 0;
+  max-width: 100%;
 }
-.loxi-preview .viewer-toolbar { min-height: 24px; }
+.loxi-preview .viewer-toolbar {
+  flex-wrap: wrap;
+  min-height: 24px;
+}
 .loxi-preview .viewer-toolbar h3 { font-size: .82rem; }
 .loxi-preview .viewer-toolbar button,
 .loxi-preview .viewer-controls,

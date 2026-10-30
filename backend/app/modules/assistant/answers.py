@@ -41,20 +41,24 @@ _HIGHLIGHTS = {
 }
 
 
+def _format_highlight(value: object, labels: tuple[str, str]) -> str | None:
+    if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+        return None
+    label = labels[0] if value == 1 else labels[1]
+    return f"{value:,} {label}".replace(",", ".")
+
+
 def factual_highlights(facts: list[Source]) -> str:
     statements: list[str] = []
     for fact in facts:
         for key, labels in _HIGHLIGHTS.items():
-            value = fact.values.get(key)
-            if isinstance(value, int) and not isinstance(value, bool) and value >= 0:
-                label = labels[0] if value == 1 else labels[1]
-                statements.append(f"{value:,} {label}".replace(",", "."))
+            statement = _format_highlight(fact.values.get(key), labels)
+            if statement is not None:
+                statements.append(statement)
                 if len(statements) == 2:
-                    return (
-                        "Resultado confirmado pelo LoadX: "
-                        + "; ".join(statements)
-                        + "."
-                    )
+                    break
+        if len(statements) == 2:
+            break
     return (
         "Resultado confirmado pelo LoadX: " + "; ".join(statements) + "."
         if statements
@@ -124,6 +128,21 @@ class GeneralSelection(BaseModel):
     conversation: str = Field(min_length=1, max_length=900)
 
 
+_GENERAL_FORBIDDEN = (
+    re.compile(r"\d|https?://|[<>{}]"),
+    re.compile(r"\b(?:dois|duas|tres|quatro|cinco|seis)\b"),
+    re.compile(r"\b(?:sete|oito|nove|dez|onze|doze)\b"),
+    re.compile(r"\b(?:treze|catorze|quatorze|quinze|dezesseis|dezassete)\b"),
+    re.compile(r"\b(?:dezessete|dezoito|dezenove|vinte|trinta|quarenta)\b"),
+    re.compile(r"\b(?:cinquenta|sessenta|setenta|oitenta|noventa|cem)\b"),
+    re.compile(r"\b(?:cento|duzentos|trezentos|quatrocentos|quinhentos|seiscentos)\b"),
+    re.compile(r"\b(?:setecentos|oitocentos|novecentos|mil|milhao|milhoes)\b"),
+    re.compile(r"\b(?:bilhao|bilhoes|registros?|unidades?|itens?|bloquead\w*)\b"),
+    re.compile(r"\b(?:autorizad\w*|instru\w*|secret\w*|token\w*|senha\w*|prompt\w*)\b"),
+    re.compile(r"\b(?:system|aprovei|cancelei|salvei|criei|executei)\b"),
+)
+
+
 def general_answer(content: str, question: str, facts: list[Source]) -> str | None:
     """Natural social prose is labelled general, never promoted to operational evidence."""
     if (
@@ -144,10 +163,7 @@ def general_answer(content: str, question: str, facts: list[Source]) -> str | No
     answer = GeneralSelection.model_validate(raw).conversation.strip()
     text = normalize(answer)
     # This channel has no records/documents. Domain claims must use an authorized tool.
-    if topics(answer) or re.search(
-        r"\d|\b(?:dois|duas|tres|quatro|cinco|seis|sete|oito|nove|dez|onze|doze|treze|catorze|quatorze|quinze|dezesseis|dezassete|dezessete|dezoito|dezenove|vinte|trinta|quarenta|cinquenta|sessenta|setenta|oitenta|noventa|cem|cento|duzentos|trezentos|quatrocentos|quinhentos|seiscentos|setecentos|oitocentos|novecentos|mil|milhao|milhoes|bilhao|bilhoes|registros?|unidades?|itens?|bloquead\w*|autorizad\w*|instru\w*|secret\w*|token\w*|senha\w*|prompt\w*|system|aprovei|cancelei|salvei|criei|executei)\b|https?://|[<>{}]",
-        text,
-    ):
+    if topics(answer) or any(pattern.search(text) for pattern in _GENERAL_FORBIDDEN):
         raise AIProviderUnavailableError
     return answer
 
@@ -203,8 +219,12 @@ def _validate_plan_semantics(answer: str, facts: list[Source]) -> None:
     ):
         raise AIProviderUnavailableError
 
-    # Associate each percentage with its *closest preceding indicator*. A
-    # correct geometric 22.5 must not silently become weight utilization.
+    _validate_metric_percentages(plain, geometric, weight_usage)
+
+
+def _validate_metric_percentages(
+    plain: str, geometric: object, weight_usage: object
+) -> None:
     for match in re.finditer(r"(\d+(?:[.,]\d+)?)\s*%", plain):
         prefix = plain[max(0, match.start() - 85) : match.start()]
         labels = list(
@@ -230,6 +250,48 @@ def _validate_plan_semantics(answer: str, facts: list[Source]) -> None:
             and not isinstance(expected, bool)
             and abs(number - expected) > 0.051
         ):
+            raise AIProviderUnavailableError
+
+
+def _validate_natural_prose(answer: str, facts: list[Source]) -> None:
+    plain = normalize(answer)
+    # A model can converse and explain but cannot certify mutations or expose secrets.
+    if re.search(
+        r"\b(?:aprovei|cancelei|exclui|alterei|cadastrei|recalculei|"
+        r"criei|salvei|enviei|executei|removi|liberei)\b|"
+        r"\b(?:senha|token|api.?key|credencial|prompt de sistema)\b|"
+        r"https?://|[<>{}]",
+        plain,
+    ):
+        raise AIProviderUnavailableError
+    if not facts and re.search(
+        r"\b(?:foi|esta|estao|ficou|ficaram|foram)\s+"
+        r"(?:aprovad\w*|cancelad\w*|entreg\w*|rejeitad\w*|"
+        r"bloquead\w*|indisponiv\w*|carregad\w*|calculad\w*)\b",
+        plain,
+    ):
+        raise AIProviderUnavailableError
+
+
+
+def _validate_factual_numbers(answer: str, facts: list[Source]) -> None:
+    # Numerical claims must be exactly traceable to the current authorized facts,
+    # not to client history, model memory or untrusted database instructions.
+    numbers = re.findall(r"(?<![\w])\d+(?:[.,]\d+)?(?![\w])", answer)
+    if numbers:
+        allowed: set[str] = set()
+        for fact in facts:
+            for value in fact.values.values():
+                if isinstance(value, bool):
+                    continue
+                if isinstance(value, (int, float)):
+                    displayed = format(value, "g")
+                    allowed.update({displayed, displayed.replace(".", ",")})
+                elif isinstance(value, str):
+                    allowed.update(
+                        re.findall(r"(?<![\w])\d+(?:[.,]\d+)?(?![\w])", value)
+                    )
+        if any(number not in allowed for number in numbers):
             raise AIProviderUnavailableError
 
 
@@ -263,42 +325,8 @@ def natural_answer(
     if not facts and selection.source_names:
         raise AIProviderUnavailableError
 
-    plain = normalize(answer)
-    # A model can converse and explain but cannot certify mutations or expose secrets.
-    if re.search(
-        r"\b(?:aprovei|cancelei|exclui|alterei|cadastrei|recalculei|"
-        r"criei|salvei|enviei|executei|removi|liberei)\b|"
-        r"\b(?:senha|token|api.?key|credencial|prompt de sistema)\b|"
-        r"https?://|[<>{}]",
-        plain,
-    ):
-        raise AIProviderUnavailableError
-    if not facts and re.search(
-        r"\b(?:foi|esta|estao|ficou|ficaram|foram)\s+"
-        r"(?:aprovad\w*|cancelad\w*|entreg\w*|rejeitad\w*|"
-        r"bloquead\w*|indisponiv\w*|carregad\w*|calculad\w*)\b",
-        plain,
-    ):
-        raise AIProviderUnavailableError
-
-    # Numerical claims must be exactly traceable to the current authorized facts,
-    # not to client history, model memory or untrusted database instructions.
-    numbers = re.findall(r"(?<![\w])\d+(?:[.,]\d+)?(?![\w])", answer)
-    if numbers:
-        allowed: set[str] = set()
-        for fact in facts:
-            for value in fact.values.values():
-                if isinstance(value, bool):
-                    continue
-                if isinstance(value, (int, float)):
-                    displayed = format(value, "g")
-                    allowed.update({displayed, displayed.replace(".", ",")})
-                elif isinstance(value, str):
-                    allowed.update(
-                        re.findall(r"(?<![\w])\d+(?:[.,]\d+)?(?![\w])", value)
-                    )
-        if any(number not in allowed for number in numbers):
-            raise AIProviderUnavailableError
+    _validate_natural_prose(answer, facts)
+    _validate_factual_numbers(answer, facts)
     _validate_plan_semantics(answer, facts)
     return answer
 

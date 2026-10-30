@@ -97,130 +97,55 @@ def _kind(question: str, data: ChatRequest) -> str | None:
     return None
 
 
-def planning_insight(db: Session, user: User, data: ChatRequest) -> ChatResponse | None:
-    if re.search(r"\bcaminh\w*\s+anterior\b", data.message, re.IGNORECASE):
-        return ChatResponse(
-            source="BACKEND",
-            answer="Você quer comparar o caminhão de um plano anterior ou consultar o cadastro de outro veículo? Informe qual plano ou caminhão.",
-        )
-    compared = _comparison(db, user, data)
-    if compared is not None:
-        return compared
-    if data.distribution_id and (
-        _PLAN_WORD.search(data.message) or _EXPLAIN_WORD.search(data.message)
-    ):
-        return _distribution(db, user, data)
-    if (
-        not (data.plan_id or data.distribution_id or data.diagnostic_token)
-        and not (_LATEST_WORD.search(data.message) or _UUID.search(data.message))
-        and re.search(
-            r"n[aã]o coube|colis[aã]o|volumes rejeitados", data.message, re.IGNORECASE
-        )
-    ):
-        return ChatResponse(
-            source="BACKEND",
-            answer="Qual planejamento ou tentativa você quer analisar? Abra o registro ou informe sua referência para eu consultar os motivos reais, sem presumir a causa.",
-        )
-    kind = _kind(data.message, data)
-    if kind is None:
-        return None
-    # Permission changes between turns must take effect before any plan lookup.
-    db.refresh(user)
-    if not user.active or not has_permission(user, "loadx.planning.read"):
-        return ChatResponse(
-            source="GUARDRAIL",
-            answer="Seu perfil não permite consultar planejamentos.",
-        )
-    svc = LoadPlanningService(db)
-    page_number = _page(data.message)
-    if kind == "list":
-        page = svc.list_load_plans(
-            PaginationParams(page=page_number, page_size=8, sort_order="desc"),
-            requester_role=user.role,
-        )
-        values: dict[str, int | float | str | None] = {
-            "total_records": page.total,
-            "page": page.page,
-            "total_pages": page.total_pages,
-        }
-        links: list[dict[str, str]] = []
-        for idx, plan in enumerate(page.items, 1):
-            status = _PLAN_STATES.get(plan.status, plan.status)
-            values[f"item_{idx}"] = (
-                f"{plan.truck_plate[:16]} · {status} · "
-                f"{plan.loaded_count} carregados, {plan.unloaded_count} rejeitados"
-            )
-            links.append(
-                {
-                    "label": f"Abrir plano {idx} · {plan.truck_plate[:16]}",
-                    "href": f"/planning/{plan.id}",
-                }
-            )
-        answer = (
-            f"Encontrei {page.total} planejamentos autorizados. "
-            f"Página {page.page} de {page.total_pages} (mais recentes primeiro). "
-            "Abra um plano para analisar seu cálculo em detalhes."
-            if page.total
-            else "Nenhum planejamento disponível para seu perfil."
-        )
-        return ChatResponse(
-            source="BACKEND",
-            answer=answer,
-            facts=[
-                Source(
-                    name="Histórico de planejamentos",
-                    criteria="Registros persistidos mais recentes primeiro; até oito por página. "
-                    "O Conferente visualiza apenas planos aprovados e ativos. "
-                    "Planos cancelados permanecem no histórico de perfis autorizados.",
-                    values=values,
-                    links=links,
-                )
-            ],
-        )
-
-    match = _UUID.search(data.message)
-    if match:
-        plan_id = uuid.UUID(match.group())
-    elif _LATEST_WORD.search(data.message):
-        plan_id = None
-    else:
-        plan_id = data.plan_id
-    if plan_id is None:
-        # Never guess an arbitrary plan from conversation history or model text.
-        offset = (
-            2
-            if re.search(
-                r"\b(?:pen[uú]ltim\w*|anterior)\b", data.message, re.IGNORECASE
-            )
-            else 1
-        )
-        page = svc.list_load_plans(
-            PaginationParams(page=1, page_size=offset, sort_order="desc"),
-            requester_role=user.role,
-        )
-        if len(page.items) < offset:
-            return ChatResponse(
-                source="BACKEND",
-                answer="Não encontrei esse planejamento entre os registros que seu perfil pode consultar.",
-            )
-        plan_id = page.items[offset - 1].id
-    try:
-        plan = svc.get_load_plan(plan_id)
-    except LoadPlanNotFoundError:
-        raise ApiError(
-            404, "LOAD_PLAN_NOT_FOUND", "Planejamento não encontrado."
-        ) from None
-    if user.role == "CHECKER" and plan.status != "APPROVED":
-        raise ApiError(403, "AUTH_FORBIDDEN", "Planejamento não autorizado.")
-    _dist_id, dist_status, part_status, is_current = (
-        svc.get_distribution_state_for_plan(plan.id)
+def _list_insights(svc, user: User, page_number: int) -> ChatResponse:
+    page = svc.list_load_plans(
+        PaginationParams(page=page_number, page_size=8, sort_order="desc"),
+        requester_role=user.role,
     )
-    if user.role == "CHECKER" and (
-        dist_status in {"CANCELED", "INCOMPLETE"}
-        or part_status == "CANCELED"
-        or not is_current
-    ):
-        raise ApiError(403, "AUTH_FORBIDDEN", "Planejamento não autorizado.")
+    values: dict[str, int | float | str | None] = {
+        "total_records": page.total,
+        "page": page.page,
+        "total_pages": page.total_pages,
+    }
+    links: list[dict[str, str]] = []
+    for idx, plan in enumerate(page.items, 1):
+        status = _PLAN_STATES.get(plan.status, plan.status)
+        values[f"item_{idx}"] = (
+            f"{plan.truck_plate[:16]} · {status} · "
+            f"{plan.loaded_count} carregados, {plan.unloaded_count} rejeitados"
+        )
+        links.append(
+            {
+                "label": f"Abrir plano {idx} · {plan.truck_plate[:16]}",
+                "href": f"/planning/{plan.id}",
+            }
+        )
+    answer = (
+        f"Encontrei {page.total} planejamentos autorizados. "
+        f"Página {page.page} de {page.total_pages} (mais recentes primeiro). "
+        "Abra um plano para analisar seu cálculo em detalhes."
+        if page.total
+        else "Nenhum planejamento disponível para seu perfil."
+    )
+    return ChatResponse(
+        source="BACKEND",
+        answer=answer,
+        facts=[
+            Source(
+                name="Histórico de planejamentos",
+                criteria="Registros persistidos mais recentes primeiro; até oito por página. "
+                "O Conferente visualiza apenas planos aprovados e ativos. "
+                "Planos cancelados permanecem no histórico de perfis autorizados.",
+                values=values,
+                links=links,
+            )
+        ],
+    )
+
+
+def _persisted_insight(
+    plan, data: ChatRequest, dist_status, part_status, is_current: bool
+) -> ChatResponse:
     reasons = Counter(
         item.rejection_reason for item in plan.items if item.rejection_reason
     )
@@ -326,6 +251,92 @@ def planning_insight(db: Session, user: User, data: ChatRequest) -> ChatResponse
             )
         ],
     )
+
+
+
+def planning_insight(db: Session, user: User, data: ChatRequest) -> ChatResponse | None:
+    if re.search(r"\bcaminh\w*\s+anterior\b", data.message, re.IGNORECASE):
+        return ChatResponse(
+            source="BACKEND",
+            answer="Você quer comparar o caminhão de um plano anterior ou consultar o cadastro de outro veículo? Informe qual plano ou caminhão.",
+        )
+    compared = _comparison(db, user, data)
+    if compared is not None:
+        return compared
+    if data.distribution_id and (
+        _PLAN_WORD.search(data.message) or _EXPLAIN_WORD.search(data.message)
+    ):
+        return _distribution(db, user, data)
+    if (
+        not (data.plan_id or data.distribution_id or data.diagnostic_token)
+        and not (_LATEST_WORD.search(data.message) or _UUID.search(data.message))
+        and re.search(
+            r"n[aã]o coube|colis[aã]o|volumes rejeitados", data.message, re.IGNORECASE
+        )
+    ):
+        return ChatResponse(
+            source="BACKEND",
+            answer="Qual planejamento ou tentativa você quer analisar? Abra o registro ou informe sua referência para eu consultar os motivos reais, sem presumir a causa.",
+        )
+    kind = _kind(data.message, data)
+    if kind is None:
+        return None
+    # Permission changes between turns must take effect before any plan lookup.
+    db.refresh(user)
+    if not user.active or not has_permission(user, "loadx.planning.read"):
+        return ChatResponse(
+            source="GUARDRAIL",
+            answer="Seu perfil não permite consultar planejamentos.",
+        )
+    svc = LoadPlanningService(db)
+    page_number = _page(data.message)
+    if kind == "list":
+        return _list_insights(svc, user, page_number)
+
+    match = _UUID.search(data.message)
+    if match:
+        plan_id = uuid.UUID(match.group())
+    elif _LATEST_WORD.search(data.message):
+        plan_id = None
+    else:
+        plan_id = data.plan_id
+    if plan_id is None:
+        # Never guess an arbitrary plan from conversation history or model text.
+        offset = (
+            2
+            if re.search(
+                r"\b(?:pen[uú]ltim\w*|anterior)\b", data.message, re.IGNORECASE
+            )
+            else 1
+        )
+        page = svc.list_load_plans(
+            PaginationParams(page=1, page_size=offset, sort_order="desc"),
+            requester_role=user.role,
+        )
+        if len(page.items) < offset:
+            return ChatResponse(
+                source="BACKEND",
+                answer="Não encontrei esse planejamento entre os registros que seu perfil pode consultar.",
+            )
+        plan_id = page.items[offset - 1].id
+    try:
+        plan = svc.get_load_plan(plan_id)
+    except LoadPlanNotFoundError:
+        raise ApiError(
+            404, "LOAD_PLAN_NOT_FOUND", "Planejamento não encontrado."
+        ) from None
+    if user.role == "CHECKER" and plan.status != "APPROVED":
+        raise ApiError(403, "AUTH_FORBIDDEN", "Planejamento não autorizado.")
+    _dist_id, dist_status, part_status, is_current = (
+        svc.get_distribution_state_for_plan(plan.id)
+    )
+    if user.role == "CHECKER" and (
+        dist_status in {"CANCELED", "INCOMPLETE"}
+        or part_status == "CANCELED"
+        or not is_current
+    ):
+        raise ApiError(403, "AUTH_FORBIDDEN", "Planejamento não autorizado.")
+    return _persisted_insight(plan, data, dist_status, part_status, is_current)
 
 
 def _comparison(db: Session, user: User, data: ChatRequest) -> ChatResponse | None:

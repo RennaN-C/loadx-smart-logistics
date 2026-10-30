@@ -12,6 +12,104 @@ def _number(value: object) -> str | None:
     return format(value, "g").replace(".", ",")
 
 
+def _vehicle_change(
+    values: dict, loaded: str, rejected: str, vehicle: str, extras: str
+) -> str:
+    if rejected == "0":
+        answer = (
+            f"Neste planejamento{vehicle}, os {loaded} volumes foram "
+            "posicionados sem rejeições. Portanto, a troca não parece "
+            "necessária apenas para acomodar a carga."
+        )
+    else:
+        answer = (
+            f"Neste planejamento{vehicle}, {loaded} volumes couberam e "
+            f"{rejected} foram rejeitados. Outro caminhão pode ajudar, "
+            "dependendo das restrições que causaram as rejeições."
+        )
+    weight = _number(values.get("weight_kg"))
+    capacity = _number(values.get("truck_capacity_weight_kg"))
+    if weight is not None and capacity is not None:
+        answer += f" O peso registrado foi {weight} de {capacity} kg."
+        raw_weight = values.get("weight_kg")
+        raw_limit = values.get("truck_capacity_weight_kg")
+        if (
+            isinstance(raw_weight, (int, float))
+            and not isinstance(raw_weight, bool)
+            and isinstance(raw_limit, (int, float))
+            and not isinstance(raw_limit, bool)
+            and raw_limit >= raw_weight
+        ):
+            remaining = _number(round(raw_limit - raw_weight, 2))
+            if remaining is not None:
+                answer += f" Restam {remaining} kg de capacidade de peso."
+    return (
+        answer + " Uma comparação dos veículos disponíveis e um novo cálculo "
+        "são necessários para confirmar qualquer melhoria; não simulei a troca."
+        + extras
+    )
+
+
+def _rejection_reply(
+    values: dict, loaded: str, rejected: str, vehicle: str, extras: str
+) -> str:
+    if rejected == "0":
+        return (
+            f"No cálculo salvo{vehicle}, os {loaded} volumes couberam e "
+            "nenhuma rejeição foi registrada. Isso não comprova que não houve "
+            "outros problemas operacionais." + extras
+        )
+    labels = {
+        "reason_TRUCK_WEIGHT_EXCEEDED": "limite de peso",
+        "reason_TRUCK_DIMENSIONS_EXCEEDED": "dimensões do caminhão",
+        "reason_NO_VALID_POSITION": "nenhuma posição válida",
+        "reason_COLLISION": "posição sem colisão não encontrada",
+    }
+    reasons = [
+        label
+        for key, label in labels.items()
+        if isinstance(values.get(key), (int, float)) and values[key] > 0
+    ]
+    reason_text = (
+        " Motivos registrados: " + ", ".join(reasons) + "."
+        if reasons
+        else " Consulte os motivos no registro detalhado."
+    )
+    return (
+        f"Neste planejamento{vehicle}, {rejected} volumes foram rejeitados "
+        f"e {loaded} foram posicionados." + reason_text + extras
+    )
+
+
+def _occupancy_reply(
+    occupancy: str | None,
+    weight_usage: str | None,
+    weight: str | None,
+    capacity: str | None,
+    extras: str,
+) -> str:
+    if occupancy is None and weight_usage is None:
+        return (
+            "Este registro não contém indicadores suficientes de ocupação." + extras
+        )
+    details = []
+    if occupancy is not None:
+        details.append(f"A ocupação geométrica (espaço interno) é {occupancy}%.")
+    if weight_usage is not None and weight is not None and capacity is not None:
+        details.append(
+            f"A utilização da capacidade de peso é {weight_usage}% "
+            f"({weight} de {capacity} kg)."
+        )
+    elif weight is not None and capacity is not None:
+        details.append(f"O peso é {weight} de {capacity} kg.")
+    details.append(
+        "Peso e espaço são indicadores diferentes: o primeiro compara "
+        "quilogramas, o segundo mede o volume ocupado no baú. "
+        "São dados do plano salvo, sem nova simulação."
+    )
+    return " ".join(details) + extras
+
+
 def _summary(question: str, fact: Source) -> str | None:
     values = fact.values
     loaded = _number(values.get("loaded_volumes"))
@@ -37,72 +135,12 @@ def _summary(question: str, fact: Source) -> str | None:
     elif values.get("distribution_status") == "INCOMPLETE":
         extras += " A distribuição está incompleta."
 
-    changing = re.search(
+    if re.search(
         r"\b(?:trocar|substituir|mudar|outro|outra|melhora|compensa)\b", q
-    ) and re.search(r"\b(?:caminh\w*|veicul\w*|frota|capacidade)\b", q)
-    if changing:
-        if rejected == "0":
-            answer = (
-                f"Neste planejamento{vehicle}, os {loaded} volumes foram "
-                "posicionados sem rejeições. Portanto, a troca não parece "
-                "necessária apenas para acomodar a carga."
-            )
-        else:
-            answer = (
-                f"Neste planejamento{vehicle}, {loaded} volumes couberam e "
-                f"{rejected} foram rejeitados. Outro caminhão pode ajudar, "
-                "dependendo das restrições que causaram as rejeições."
-            )
-        weight = _number(values.get("weight_kg"))
-        capacity = _number(values.get("truck_capacity_weight_kg"))
-        if weight is not None and capacity is not None:
-            answer += f" O peso registrado foi {weight} de {capacity} kg."
-            raw_weight = values.get("weight_kg")
-            raw_limit = values.get("truck_capacity_weight_kg")
-            if (
-                isinstance(raw_weight, (int, float))
-                and not isinstance(raw_weight, bool)
-                and isinstance(raw_limit, (int, float))
-                and not isinstance(raw_limit, bool)
-                and raw_limit >= raw_weight
-            ):
-                remaining = _number(round(raw_limit - raw_weight, 2))
-                if remaining is not None:
-                    answer += f" Restam {remaining} kg de capacidade de peso."
-        return (
-            answer + " Uma comparação dos veículos disponíveis e um novo cálculo "
-            "são necessários para confirmar qualquer melhoria; não simulei a troca."
-            + extras
-        )
-
+    ) and re.search(r"\b(?:caminh\w*|veicul\w*|frota|capacidade)\b", q):
+        return _vehicle_change(values, loaded, rejected, vehicle, extras)
     if re.search(r"\b(?:problema|rejeit\w*|nao coube|falhou|erro)\b", q):
-        if rejected == "0":
-            return (
-                f"No cálculo salvo{vehicle}, os {loaded} volumes couberam e "
-                "nenhuma rejeição foi registrada. Isso não comprova que não houve "
-                "outros problemas operacionais." + extras
-            )
-        labels = {
-            "reason_TRUCK_WEIGHT_EXCEEDED": "limite de peso",
-            "reason_TRUCK_DIMENSIONS_EXCEEDED": "dimensões do caminhão",
-            "reason_NO_VALID_POSITION": "nenhuma posição válida",
-            "reason_COLLISION": "posição sem colisão não encontrada",
-        }
-        reasons = [
-            label
-            for key, label in labels.items()
-            if isinstance(values.get(key), (int, float)) and values[key] > 0
-        ]
-        reason_text = (
-            " Motivos registrados: " + ", ".join(reasons) + "."
-            if reasons
-            else " Consulte os motivos no registro detalhado."
-        )
-        return (
-            f"Neste planejamento{vehicle}, {rejected} volumes foram rejeitados "
-            f"e {loaded} foram posicionados." + reason_text + extras
-        )
-
+        return _rejection_reply(values, loaded, rejected, vehicle, extras)
     occupancy = _number(values.get("occupancy_percent"))
     weight = _number(values.get("weight_kg"))
     capacity = _number(values.get("truck_capacity_weight_kg"))
@@ -120,27 +158,7 @@ def _summary(question: str, fact: Source) -> str | None:
             weight_usage = _number(round(100 * raw_weight / raw_limit, 2))
 
     if re.search(r"\b(?:ocup\w*|espaco|percentual)\b", q):
-        if occupancy is None and weight_usage is None:
-            return (
-                "Este registro não contém indicadores suficientes de ocupação." + extras
-            )
-        details = []
-        if occupancy is not None:
-            details.append(f"A ocupação geométrica (espaço interno) é {occupancy}%.")
-        if weight_usage is not None and weight is not None and capacity is not None:
-            details.append(
-                f"A utilização da capacidade de peso é {weight_usage}% "
-                f"({weight} de {capacity} kg)."
-            )
-        elif weight is not None and capacity is not None:
-            details.append(f"O peso é {weight} de {capacity} kg.")
-        details.append(
-            "Peso e espaço são indicadores diferentes: o primeiro compara "
-            "quilogramas, o segundo mede o volume ocupado no baú. "
-            "São dados do plano salvo, sem nova simulação."
-        )
-        return " ".join(details) + extras
-
+        return _occupancy_reply(occupancy, weight_usage, weight, capacity, extras)
     if re.search(r"\b(?:aprovad\w*|calculad\w*|status|situacao)\b", q):
         return f"O planejamento{vehicle} está {state}." + extras
 

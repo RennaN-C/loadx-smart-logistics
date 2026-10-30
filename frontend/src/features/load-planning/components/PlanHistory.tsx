@@ -13,6 +13,28 @@ import { DISTRIBUTION_LABELS } from "./distributionLabels";
 
 const date = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" });
 
+function historyStatus(plan: LoadPlanListItem, canceled: boolean, incomplete: boolean): string | null {
+  if (plan.distributionStatus === "CANCELED" || canceled) return "Cancelada";
+  if (incomplete) return "Incompleta";
+  if (plan.isCurrentPart === false) return "Versão anterior";
+  return plan.distributionStatus ? DISTRIBUTION_LABELS[plan.distributionStatus] : null;
+}
+function historyTone(plan: LoadPlanListItem, canceled: boolean, old: boolean): "neutral" | "good" | "warn" {
+  if (canceled || old) return "neutral";
+  return plan.distributionStatus === "APPROVED" ? "good" : "warn";
+}
+function historyAction(plan: LoadPlanListItem, canceled: boolean, incomplete: boolean, old: boolean): string {
+  if (!plan.distributionId) return "Abrir planejamento";
+  return canceled || incomplete || old ? "Ver histórico da distribuição" : "Abrir distribuição";
+}
+function historyDetails(plan: LoadPlanListItem, distCanceled: boolean, canceled: boolean, incomplete: boolean, old: boolean) {
+  if (distCanceled) return <output className="entity-form-help">Esta distribuição foi cancelada. A carga não está ativa; o cálculo permanece para consulta e auditoria.</output>;
+  if (canceled) return <output className="entity-form-help">Esta operação foi cancelada. O registro está disponível apenas para consulta histórica.</output>;
+  if (incomplete) return <output className="entity-form-help">Distribuição incompleta. Uma parte precisa ser reprocessada antes de continuar.</output>;
+  if (old) return <p className="entity-form-help">Versão substituída por um reprocessamento. Consulte a distribuição para ver a carga atual.</p>;
+  return plan.operation ? <PlanOperationSummary operation={plan.operation} /> : null;
+}
+
 function PlanHistoryRow({ plan, canReadOrigin }: { readonly plan: LoadPlanListItem; readonly canReadOrigin: boolean }) {
   const destination = plan.distributionId ? `/planning/distributions/${plan.distributionId}` : `/planning/${plan.id}`;
   const isDistributionCanceled = plan.distributionStatus === "CANCELED";
@@ -20,32 +42,29 @@ function PlanHistoryRow({ plan, canReadOrigin }: { readonly plan: LoadPlanListIt
   const isCanceled = isDistributionCanceled || (!isIncomplete &&
     (plan.partStatus === "CANCELED" || plan.operation?.status === "CANCELED"));
   const historicalVersion = plan.isCurrentPart === false;
-  const lifecycleStatus = isDistributionCanceled ? "Cancelada"
-    : isIncomplete ? "Incompleta"
-      : isCanceled ? "Cancelada"
-        : historicalVersion ? "Versão anterior"
-          : plan.distributionStatus ? DISTRIBUTION_LABELS[plan.distributionStatus] : null;
+  const lifecycleStatus = historyStatus(plan, isCanceled, isIncomplete);
+  const badge = lifecycleStatus
+    ? <StatusPill tone={historyTone(plan, isCanceled, historicalVersion)}>{isCanceled && !isDistributionCanceled && !isIncomplete ? "Operação" : plan.distributionId ? "Distribuição" : "Operação"}: {lifecycleStatus}</StatusPill>
+    : <StatusPill tone={planStatusTone(plan.status)}>Plano: {PLAN_STATUS_LABELS[plan.status]}</StatusPill>;
+  const details = historyDetails(plan, isDistributionCanceled, isCanceled, isIncomplete, historicalVersion);
+  const action = historyAction(plan, isCanceled, isIncomplete, historicalVersion);
   return <li className="plan-history-row">
     <div className="plan-history-identification">
-      <div className="plan-history-title"><h3><Link to={destination}>Plano {plan.id.slice(0, 8).toLocaleUpperCase("pt-BR")}</Link></h3>{lifecycleStatus ? <StatusPill tone={isCanceled || historicalVersion ? "neutral" : plan.distributionStatus === "APPROVED" ? "good" : "warn"}>{isCanceled && !isDistributionCanceled && !isIncomplete ? "Operação" : plan.distributionId ? "Distribuição" : "Operação"}: {lifecycleStatus}</StatusPill> : <StatusPill tone={planStatusTone(plan.status)}>Plano: {PLAN_STATUS_LABELS[plan.status]}</StatusPill>}</div>
+      <div className="plan-history-title"><h3><Link to={destination}>Plano {plan.id.slice(0, 8).toLocaleUpperCase("pt-BR")}</Link></h3>{badge}</div>
       <Link className="plan-history-plate" to={`/planning?truck=${plan.truckId}`} aria-label={`Filtrar planos do caminhão ${plan.truckPlate}`}>{plan.truckPlate}</Link>
       <p>{plan.truckModel}</p>
       {plan.distributionId ? <p>Parte da distribuição {plan.distributionId.slice(0, 8)}</p> : null}
       <time dateTime={plan.createdAt}>Criado em {date.format(new Date(plan.createdAt))}</time>
     </div>
     <div className="plan-history-summary">
-      {isDistributionCanceled ? <p className="entity-form-help" role="status">Esta distribuição foi cancelada. A carga não está ativa; o cálculo permanece para consulta e auditoria.</p>
-        : isCanceled ? <p className="entity-form-help" role="status">Esta operação foi cancelada. O registro está disponível apenas para consulta histórica.</p>
-        : isIncomplete ? <p className="entity-form-help" role="status">Distribuição incompleta. Uma parte precisa ser reprocessada antes de continuar.</p>
-          : historicalVersion ? <p className="entity-form-help">Versão substituída por um reprocessamento. Consulte a distribuição para ver a carga atual.</p>
-            : plan.operation ? <PlanOperationSummary operation={plan.operation} /> : null}
+      {details}
       {lifecycleStatus ? <p className="entity-form-help">Resultado físico do cálculo: {PLAN_STATUS_LABELS[plan.status].toLowerCase()}.</p> : null}
       <p className="plan-history-facts"><span>{plan.orderCount} pedido(s)</span><span>{plan.loadedCount} volumes</span><span>{plan.totalWeightKg.toLocaleString("pt-BR")} kg</span></p>
       <div className="plan-history-occupancy"><span style={{ width: `${Math.min(plan.occupancyPercent, 100)}%` }} /><strong>{plan.occupancyPercent.toLocaleString("pt-BR")}% de ocupação</strong></div>
       {plan.unloadedCount > 0 ? <p className="plan-history-rejected">{plan.unloadedCount} volume(s) recusado(s)</p> : null}
       {plan.recalculatedFromId && canReadOrigin ? <Link to={`/planning/${plan.recalculatedFromId}`}>Ver plano de origem</Link> : null}
     </div>
-    <Link className="btn-secondary" to={destination} aria-label={`Abrir plano ${plan.id.slice(0, 8)}`}>{plan.distributionId ? isCanceled || isIncomplete || historicalVersion ? "Ver histórico da distribuição" : "Abrir distribuição" : "Abrir planejamento"}</Link>
+    <Link className="btn-secondary" to={destination} aria-label={`Abrir plano ${plan.id.slice(0, 8)}`}>{action}</Link>
   </li>;
 }
 

@@ -3,6 +3,11 @@ import { StatusPill } from "../../../components/StatusPill";
 import type { LoadDistribution } from "../types";
 import { DISTRIBUTION_LABELS } from "./distributionLabels";
 
+function distributionTone(status: LoadDistribution["status"]): "good" | "neutral" | "warn" {
+  if (status === "APPROVED") return "good";
+  return status === "CANCELED" ? "neutral" : "warn";
+}
+
 function distributionGuidance(status: LoadDistribution["status"]): string {
   switch (status) {
     case "APPROVED": return "Distribuição aprovada. Consulte o carregamento e as viagens de cada caminhão.";
@@ -21,7 +26,7 @@ export function DistributionOverview({ distribution, canApprove, working, disabl
   const mutable = distribution.status !== "APPROVED" && distribution.status !== "CANCELED";
   return (
       <section className="distribution-overview" aria-label="Resumo da distribuição" aria-busy={working}>
-        <div className="distribution-overview-heading"><div><span className="distribution-eyebrow">Distribuição {distribution.id.slice(0, 8)}</span><h2>{distribution.truckCount} {distribution.truckCount === 1 ? "caminhão" : "caminhões"} para esta carga</h2></div><StatusPill tone={distribution.status === "APPROVED" ? "good" : distribution.status === "CANCELED" ? "neutral" : "warn"}>{DISTRIBUTION_LABELS[distribution.status]}</StatusPill></div>
+        <div className="distribution-overview-heading"><div><span className="distribution-eyebrow">Distribuição {distribution.id.slice(0, 8)}</span><h2>{distribution.truckCount} {distribution.truckCount === 1 ? "caminhão" : "caminhões"} para esta carga</h2></div><StatusPill tone={distributionTone(distribution.status)}>{DISTRIBUTION_LABELS[distribution.status]}</StatusPill></div>
         <div className="distribution-totals"><span><strong>{distribution.orderIds.length}</strong> {distribution.orderIds.length === 1 ? "pedido" : "pedidos"}</span><span><strong>{distribution.volumeCount}</strong> volumes físicos</span><span>Salva em {new Date(distribution.createdAt).toLocaleString("pt-BR")}</span></div>
         <details className="distribution-method"><summary>Como a distribuição foi calculada</summary><p>{distribution.truckCount === 1 ? "A solução persistida acomoda toda a necessidade em um caminhão." : "A solução persistida distribui a necessidade entre estes veículos. A busca tenta um caminhão antes de ampliar a frota, respeitando as regras físicas no servidor."} A busca é heurística; não representa garantia de ótimo global.</p></details>
         <p className="entity-form-help">{distributionGuidance(distribution.status)}</p>

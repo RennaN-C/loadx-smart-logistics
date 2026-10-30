@@ -41,24 +41,7 @@ class GroqProvider:
     def __init__(self, config: Settings) -> None:
         self.config = config
 
-    def complete(
-        self,
-        messages: list[dict],
-        *,
-        tools: list[dict] | None = None,
-        timeout_seconds: float,
-    ) -> dict:
-        key = self.config.groq_api_key
-        if (
-            self.config.ai_provider != "groq"
-            or key is None
-            or not key.get_secret_value().strip()
-        ):
-            raise AIProviderUnavailableError
-        if self.config.app_env != "local":
-            with _rate_lock:
-                if time.monotonic() < _rate_limited_until:
-                    raise AIProviderUnavailableError("http_429")
+    def _request_payload(self, messages: list[dict], tools: list[dict] | None) -> dict:
         payload = {
             "model": self.config.groq_model,
             "messages": messages,
@@ -82,6 +65,27 @@ class GroqProvider:
         ):
             # Groq requires parsed/hidden reasoning with JSON mode/tool calling.
             payload["reasoning_format"] = "hidden"
+        return payload
+
+    def complete(
+        self,
+        messages: list[dict],
+        *,
+        tools: list[dict] | None = None,
+        timeout_seconds: float,
+    ) -> dict:
+        key = self.config.groq_api_key
+        if (
+            self.config.ai_provider != "groq"
+            or key is None
+            or not key.get_secret_value().strip()
+        ):
+            raise AIProviderUnavailableError
+        if self.config.app_env != "local":
+            with _rate_lock:
+                if time.monotonic() < _rate_limited_until:
+                    raise AIProviderUnavailableError("http_429")
+        payload = self._request_payload(messages, tools)
         encoded = json.dumps(payload).encode()
         if len(encoded) > MAX_BODY_BYTES:
             raise AIProviderUnavailableError

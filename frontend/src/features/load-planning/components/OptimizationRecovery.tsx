@@ -23,16 +23,16 @@ export function OptimizationRecovery({ count, working, onConsult, onRetry, canDi
       {canDiscard ? <button type="button" className="btn-secondary" disabled={working}
         onClick={() => setConfirmDiscard(true)}>Encerrar tentativa sem resultado</button> : null}
     </div>
-    {canDiscard ? <p role="status" className="entity-form-help">O servidor confirmou que não encontrou um resultado salvo para esta solicitação.
-      Você pode encerrar o acompanhamento LOCAL e iniciar um novo planejamento após verificar os planos existentes.</p> : null}
-    {canDiscard && confirmDiscard ? <div className="optimization-recovery-confirm" role="group" aria-label="Confirmar encerramento da tentativa">
+    {canDiscard ? <output className="entity-form-help">O servidor confirmou que não encontrou um resultado salvo para esta solicitação.
+      Você pode encerrar o acompanhamento LOCAL e iniciar um novo planejamento após verificar os planos existentes.</output> : null}
+    {canDiscard && confirmDiscard ? <fieldset className="optimization-recovery-confirm" aria-label="Confirmar encerramento da tentativa">
       <p>Encerrar apenas o acompanhamento desta tentativa nesta aba? Nenhum pedido ou plano será excluído do servidor.
         Confira os planos existentes antes de começar outra otimização.</p>
       <div className="optimization-recovery-actions">
         <button type="button" className="btn-secondary" disabled={working} onClick={() => setConfirmDiscard(false)}>Manter tentativa</button>
         <button type="button" className="btn-primary" disabled={working} onClick={onDiscard}>Confirmar e voltar ao planejamento</button>
       </div>
-    </div> : null}
+    </fieldset> : null}
     <p className="entity-form-help">A repetição usa a mesma identidade e os pedidos originais. Se o servidor ainda estiver calculando, aguarde e consulte novamente.</p>
   </section>;
 }
