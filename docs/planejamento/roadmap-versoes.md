@@ -295,7 +295,7 @@ O planejamento da v1.2.0 estabeleceu os seguintes objetivos; seu aceite de códi
 
 ## Manutenção ativa e critérios de fechamento
 
-- [#382](https://github.com/RennaN-C/loadx-smart-logistics/issues/382): estabilização do Loxi, contexto, Groq, verificações e testes; a presença da funcionalidade na candidata **não encerra automaticamente** a Issue.
+- [#382](https://github.com/RennaN-C/loadx-smart-logistics/issues/382): estabilização do Loxi, contexto, Groq, verificações e testes; a presença da funcionalidade na versão **não encerra automaticamente** a Issue.
 - [#368](https://github.com/RennaN-C/loadx-smart-logistics/issues/368): ações operacionais confirmáveis, RBAC e auditoria — **futuro**; exige proposta, revalidação server-side, prévia, confirmação, idempotência e trilha de auditoria.
 - [#254](https://github.com/RennaN-C/loadx-smart-logistics/issues/254): desempenho e resposta ao usuário da otimização multi-caminhão; revalidar tempos e recuperação antes de declarar resolvido.
 - [#268](https://github.com/RennaN-C/loadx-smart-logistics/issues/268) e [#256](https://github.com/RennaN-C/loadx-smart-logistics/issues/256): cobertura SonarCloud e auditoria incremental. A [triagem da PR #388](../qualidade/sonarcloud-pr388-20261030.md) registra 118 apontamentos, ainda sem classificação individual por severidade.
@@ -505,7 +505,7 @@ problemas diferentes e não devem ser misturados.
 ---
 # v1.7.0 — Inteligência artificial avançada
 
-`RECOMENDAÇÃO`: ampliar a IA **além do Loxi consultivo da v1.3.0**. Conversa contextual, Groq e consultas read-only já pertencem à candidata; esta etapa futura trata previsões, recomendações avançadas e ações operacionais efetivamente autorizadas, com escopo/versão a decidir. A Issue #368 pode ser priorizada antes da v1.7.0 mediante planejamento próprio.
+`RECOMENDAÇÃO`: ampliar a IA **além do Loxi consultivo da v1.3.0**. Conversa contextual, Groq e consultas read-only já estão contempladas na v1.3.0; esta etapa futura trata previsões, recomendações avançadas e ações operacionais efetivamente autorizadas, com escopo/versão a decidir. A Issue #368 pode ser priorizada antes da v1.7.0 mediante planejamento próprio.
 
 | OC | Responsável principal | Capacidade planejada |
 |---|---|---|
@@ -608,7 +608,7 @@ justifique MAJOR.
 
 A ordem abaixo representa direção de produto, não dependência técnica automática:
 
-v1.0.0 → v1.1.0 → v1.2.0 → **v1.3.0 (candidata)** → v1.4.0 → v1.5.0 → v1.6.0 → v1.7.0 → v1.8.0 → marco móvel
+v1.0.0 → v1.1.0 → v1.2.0 → **v1.3.0** → v1.4.0 → v1.5.0 → v1.6.0 → v1.7.0 → v1.8.0 → marco móvel
 
 Uma versão pode começar a ser planejada enquanto a anterior ainda está em
 validação, mas uma implementação não deve depender de contratos ainda instáveis.
@@ -670,7 +670,7 @@ Uma versão somente deve ser considerada pronta para promoção quando:
 
 # Estado das versões e próximo ciclo
 
-**Já publicadas:** [v1.0.0](https://github.com/RennaN-C/loadx-smart-logistics/releases/tag/v1.0.0), [v1.1.0](https://github.com/RennaN-C/loadx-smart-logistics/releases/tag/v1.1.0) e [v1.2.0](https://github.com/RennaN-C/loadx-smart-logistics/releases/tag/v1.2.0) em 26/10/2026.
+**Versões anteriores já publicadas:** [v1.0.0](https://github.com/RennaN-C/loadx-smart-logistics/releases/tag/v1.0.0), [v1.1.0](https://github.com/RennaN-C/loadx-smart-logistics/releases/tag/v1.1.0) e [v1.2.0](https://github.com/RennaN-C/loadx-smart-logistics/releases/tag/v1.2.0) em 26/10/2026.
 
 **Código desta versão:** [v1.3.0 / PR #388](https://github.com/RennaN-C/loadx-smart-logistics/pull/388) — Loxi e planejamento/3D; conferir publicação em [Releases](https://github.com/RennaN-C/loadx-smart-logistics/releases). **Próximo ciclo funcional proposto:** v1.4.0 — multi-tenancy logístico e integração com CoreFlow, ainda sem autorização de desenvolvimento. O backlog transversal (escala ≥1.000 volumes, embalagens, ações do Loxi e confiabilidade) não possui versão aprovada.
 
