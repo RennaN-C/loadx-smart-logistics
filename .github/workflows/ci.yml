@@ -28,8 +28,8 @@ jobs:
     timeout-minutes: 15
     env:
       APP_ENV: local
-      DATABASE_URL: postgresql+psycopg://loadx_test:loadx_test_local@localhost:5432/loadx_test
-      TEST_DATABASE_URL: postgresql+psycopg://loadx_test:loadx_test_local@127.0.0.1:5432/loadx_test
+      DATABASE_URL: postgresql+psycopg://loadx_test:${{ github.sha }}@localhost:5432/loadx_test
+      TEST_DATABASE_URL: postgresql+psycopg://loadx_test:${{ github.sha }}@127.0.0.1:5432/loadx_test
       COVERAGE_FILE: .coverage.unit
     defaults:
       run:
@@ -88,7 +88,7 @@ jobs:
         env:
           POSTGRES_DB: loadx_test
           POSTGRES_USER: loadx_test
-          POSTGRES_PASSWORD: loadx_test_local
+          POSTGRES_PASSWORD: ${{ github.sha }}
         ports:
           - 5432:5432
         options: >-
@@ -98,8 +98,8 @@ jobs:
           --health-retries 15
     env:
       APP_ENV: local
-      DATABASE_URL: postgresql+psycopg://loadx_test:loadx_test_local@localhost:5432/loadx_test
-      TEST_DATABASE_URL: postgresql+psycopg://loadx_test:loadx_test_local@127.0.0.1:5432/loadx_test
+      DATABASE_URL: postgresql+psycopg://loadx_test:${{ github.sha }}@localhost:5432/loadx_test
+      TEST_DATABASE_URL: postgresql+psycopg://loadx_test:${{ github.sha }}@127.0.0.1:5432/loadx_test
       COVERAGE_FILE: .coverage.integration-${{ matrix.shard }}
     defaults:
       run:
