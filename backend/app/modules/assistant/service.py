@@ -485,7 +485,6 @@ class AssistantService:
             allowed_names,
         )
 
-
     def _fleet_response(
         self, user: User, data: ChatRequest, fleet_followup: bool
     ) -> ChatResponse | None:
