@@ -41,31 +41,34 @@ GET_REGISTERED_PRODUCTS = "get_registered_products"
 GET_REGISTERED_TRUCKS = "get_registered_trucks"
 
 REPORTS_READ_PERMISSION = "loadx.reports.read"
+CUSTOMERS_READ_PERMISSION = "loadx.customers.read"
+ORDERS_READ_PERMISSION = "loadx.orders.read"
+TRUCKS_READ_PERMISSION = "loadx.trucks.read"
 
 TOOL_PERMISSIONS = {
     "get_usage_guidance": (),
-    "get_registered_customers": ("loadx.customers.read",),
+    "get_registered_customers": (CUSTOMERS_READ_PERMISSION,),
     "get_registered_drivers": ("loadx.drivers.read",),
-    "get_registered_orders": ("loadx.orders.read",),
+    "get_registered_orders": (ORDERS_READ_PERMISSION,),
     GET_REGISTERED_PRODUCTS: ("loadx.products.read",),
-    GET_REGISTERED_TRUCKS: ("loadx.trucks.read",),
-    GET_FLEET_AVAILABILITY: ("loadx.trucks.read",),
+    GET_REGISTERED_TRUCKS: (TRUCKS_READ_PERMISSION,),
+    GET_FLEET_AVAILABILITY: (TRUCKS_READ_PERMISSION,),
     GET_COMPANY_SUMMARY: (),
     GET_CUSTOMER_ORDER_METRICS: (
         REPORTS_READ_PERMISSION,
-        "loadx.orders.read",
-        "loadx.customers.read",
+        ORDERS_READ_PERMISSION,
+        CUSTOMERS_READ_PERMISSION,
     ),
     GET_DELIVERY_METRICS: (
         REPORTS_READ_PERMISSION,
         "loadx.deliveries.read",
-        "loadx.orders.read",
-        "loadx.customers.read",
+        ORDERS_READ_PERMISSION,
+        CUSTOMERS_READ_PERMISSION,
         "loadx.trips.read",
     ),
     GET_FLEET_UTILIZATION: (
         REPORTS_READ_PERMISSION,
-        "loadx.trucks.read",
+        TRUCKS_READ_PERMISSION,
         "loadx.trips.read",
         "loadx.planning.read",
     ),

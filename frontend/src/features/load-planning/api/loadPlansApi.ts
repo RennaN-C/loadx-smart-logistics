@@ -52,8 +52,8 @@ interface LoadPlanItemDto extends ItemSnapshotDto {
 export interface LoadPlanDto {
   orders_ready_for_approval?: boolean | null;
   distribution_id?: string | null;
-  distribution_status?: LoadPlan["distributionStatus"];
-  part_status?: LoadPlan["partStatus"];
+  distribution_status?: Exclude<LoadPlan["distributionStatus"], undefined>;
+  part_status?: Exclude<LoadPlan["partStatus"], undefined>;
   is_current_part?: boolean;
   id: string;
   truck_id: string;
@@ -247,8 +247,8 @@ export async function recalculateLoadPlan(id: string): Promise<LoadPlan> {
 interface LoadPlanListDto {
   operation?: PlanOperation | null;
   distribution_id?: string | null;
-  distribution_status?: LoadPlanListItem["distributionStatus"];
-  part_status?: LoadPlanListItem["partStatus"];
+  distribution_status?: Exclude<LoadPlanListItem["distributionStatus"], undefined>;
+  part_status?: Exclude<LoadPlanListItem["partStatus"], undefined>;
   is_current_part?: boolean;
   id: string;
   truck_id: string;

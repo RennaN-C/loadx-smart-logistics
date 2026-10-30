@@ -219,13 +219,12 @@ def _validate_plan_semantics(answer: str, facts: list[Source]) -> None:
             continue
         label = labels[-1].group()
         number = float(match.group(1).replace(",", "."))
-        expected = (
-            weight_usage
-            if "peso" in label
-            else geometric
-            if any(part in label for part in ("geometrica", "espaco"))
-            else None
-        )
+        if "peso" in label:
+            expected = weight_usage
+        elif any(part in label for part in ("geometrica", "espaco")):
+            expected = geometric
+        else:
+            expected = None
         if (
             isinstance(expected, (int, float))
             and not isinstance(expected, bool)

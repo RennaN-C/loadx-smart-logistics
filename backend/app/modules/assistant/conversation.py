@@ -12,6 +12,9 @@ from app.modules.assistant.schemas import ChatResponse
 from app.modules.users.models import User
 
 
+PLANNING_ROUTE = "/planning"
+
+
 def _normalize(question: str) -> str:
     raw = unicodedata.normalize("NFKD", question.casefold())
     return " ".join(
@@ -87,19 +90,19 @@ def conversation_reply(user: User, message: str) -> ChatResponse | None:
         (
             "aprovar|aprove",
             "loadx.planning.approve",
-            "/planning",
+            PLANNING_ROUTE,
             "aprovação de planejamento",
         ),
         (
             "recalcular",
             "loadx.planning.create",
-            "/planning",
+            PLANNING_ROUTE,
             "recálculo de planejamento",
         ),
         (
             "cancelar",
             "loadx.planning.read",
-            "/planning",
+            PLANNING_ROUTE,
             "revisão das opções de cancelamento de planejamento",
         ),
         (

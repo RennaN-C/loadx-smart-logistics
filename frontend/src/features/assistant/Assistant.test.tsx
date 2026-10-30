@@ -142,7 +142,7 @@ it("mantém histórico ao navegar e ao minimizar sem bloquear a tela", async () 
   expect(screen.getByText(REPLY.answer)).toBeInTheDocument();
   fireEvent.change(screen.getByLabelText("Sua pergunta"), { target: { value: "Quais pedidos estão prontos?" } });
   fireEvent.click(screen.getByRole("button", { name: "Enviar pergunta" }));
-  await waitFor(() => expect(vi.mocked(askAssistant).mock.calls.length).toBe(2));
+  await waitFor(() => expect(vi.mocked(askAssistant).mock.calls).toHaveLength(2));
   expect(vi.mocked(askAssistant).mock.calls[1][2]).toEqual({});
 });
 
@@ -164,7 +164,7 @@ it("mantém mais de três respostas no histórico visível", async () => {
     const prompt = "Pergunta " + i;
     fireEvent.change(screen.getByLabelText("Sua pergunta"), { target: { value: prompt } });
     fireEvent.click(screen.getByRole("button", { name: "Enviar pergunta" }));
-    await waitFor(() => expect(vi.mocked(askAssistant).mock.calls.length).toBe(i + 1));
+    await waitFor(() => expect(vi.mocked(askAssistant).mock.calls).toHaveLength(i + 1));
     await waitFor(() => expect(screen.getAllByText(REPLY.answer)).toHaveLength(i + 1));
   }
   expect(screen.getByText("Pergunta 0")).toBeInTheDocument();
@@ -286,7 +286,7 @@ it("envia os oito turnos anteriores com papéis corretos", async () => {
   for (let index = 0; index < 9; index++) {
     fireEvent.change(screen.getByLabelText("Sua pergunta"), { target: { value: "Pergunta " + index } });
     fireEvent.click(screen.getByRole("button", { name: "Enviar pergunta" }));
-    await waitFor(() => expect(vi.mocked(askAssistant).mock.calls.length).toBe(index + 1));
+    await waitFor(() => expect(vi.mocked(askAssistant).mock.calls).toHaveLength(index + 1));
     await waitFor(() => expect(screen.getAllByText(REPLY.answer)).toHaveLength(index + 1));
   }
   const history = vi.mocked(askAssistant).mock.calls[8][1];
@@ -312,7 +312,7 @@ it("limpar conversa descarta seleção anterior de plano e cliente", async () =>
   fireEvent.click(screen.getByRole("button", { name: "Limpar conversa" }));
   fireEvent.change(screen.getByLabelText("Sua pergunta"), { target: { value: "Vamos começar de novo" } });
   fireEvent.click(screen.getByRole("button", { name: "Enviar pergunta" }));
-  await waitFor(() => expect(vi.mocked(askAssistant).mock.calls.length).toBe(2));
+  await waitFor(() => expect(vi.mocked(askAssistant).mock.calls).toHaveLength(2));
   expect(vi.mocked(askAssistant).mock.calls[1][1]).toEqual([]);
   expect(vi.mocked(askAssistant).mock.calls[1][2]).toEqual({});
 });

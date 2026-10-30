@@ -972,7 +972,7 @@ def _safe_provider_fact(fact: Source) -> dict:
     """Send numerical/operational evidence, not business or personal identifiers."""
     payload = fact.model_dump(mode="json", exclude={"links", "choices", "filter_label"})
     values = payload.get("values", {})
-    for key in list(values):
+    for key in values:
         if re.search(
             r"(?:plate|customer|client|company|name|email|phone|document|address|contact)",
             key,
