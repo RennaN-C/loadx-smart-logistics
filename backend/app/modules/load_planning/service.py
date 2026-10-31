@@ -2,7 +2,6 @@ import uuid
 from collections.abc import Sequence
 from dataclasses import replace
 from datetime import UTC, datetime
-from typing import cast
 
 from sqlalchemy.orm import Session
 
@@ -631,7 +630,7 @@ class LoadPlanningService:
             rejected = tuple(row.volume for row in candidate.rejected_volumes)
 
             def normalize(volume: IndividualVolume) -> IndividualVolume:
-                return cast(IndividualVolume, replace(volume, product_name=None))
+                return replace(volume, product_name=None)
 
             def volume_key(volume: IndividualVolume) -> tuple[int, int]:
                 return volume.order_item_id.int, volume.volume_index

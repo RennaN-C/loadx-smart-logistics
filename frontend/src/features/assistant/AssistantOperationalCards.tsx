@@ -49,24 +49,18 @@ function PlanPreview({ planId, onLink }: { readonly planId: string; readonly onL
   if (error) return <p className="assistant-inline-note" role="alert">
     Não foi possível consultar a prévia autorizada. Abra o planejamento para ver o 3D completo.
   </p>;
-  if (!plan) return <output className="assistant-inline-note">
+  if (!plan) return <p className="assistant-inline-note" role="status">
     <span className="spinner" aria-hidden="true" /> Carregando dados autorizados do plano…
-  </output>;
+  </p>;
   return <>
     <p className="loxi-preview-hint">
       Prévia interativa · arraste para girar e use a rolagem para aproximar.
       <Link to={`/planning/${planId}`} onClick={onLink}>Visualização completa</Link>
     </p>
-    <Suspense fallback={<output className="assistant-inline-note">Carregando visualizador 3D…</output>}>
+    <Suspense fallback={<p className="assistant-inline-note" role="status">Carregando visualizador 3D…</p>}>
       <LoadViewer planId={planId} plan={plan} />
     </Suspense>
   </>;
-}
-
-function planInsight(rejected: number | null, geometric: number | null, utilization: number | null): string {
-  if (rejected !== 0 || geometric === null || utilization === null) return "Os indicadores são do cálculo salvo. Consulte as rejeições e a sequência antes de tomar decisões.";
-  if (utilization > geometric + 15) return "Todos os volumes foram posicionados. A capacidade de peso está proporcionalmente mais utilizada que o espaço do baú.";
-  return "Todos os volumes foram posicionados. Confira peso e espaço antes de aprovar a operação.";
 }
 
 function PlanOperationalCard({ fact, onLink }: { readonly fact: AssistantFact; readonly onLink: () => void }) {
@@ -83,7 +77,11 @@ function PlanOperationalCard({ fact, onLink }: { readonly fact: AssistantFact; r
     ? (PLAN_STATUS_LABELS[values.status as keyof typeof PLAN_STATUS_LABELS] ?? values.status) : "Salvo";
   const planId = planReference(fact);
   const [preview, setPreview] = useState(false);
-  const insight = planInsight(rejected, geometric, utilization);
+  const insight = rejected === 0 && geometric !== null && utilization !== null
+    ? utilization > geometric + 15
+      ? "Todos os volumes foram posicionados. A capacidade de peso está proporcionalmente mais utilizada que o espaço do baú."
+      : "Todos os volumes foram posicionados. Confira peso e espaço antes de aprovar a operação."
+    : "Os indicadores são do cálculo salvo. Consulte as rejeições e a sequência antes de tomar decisões.";
   return <section className="loxi-operational-card loxi-plan-card" aria-label="Resumo visual do planejamento">
     <header className="loxi-card-header">
       <div><span className="loxi-eyebrow"><Icon name="planning" size={14} /> Planejamento salvo</span>

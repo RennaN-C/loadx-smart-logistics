@@ -158,16 +158,6 @@ class AssistantMetricsService:
         metadata = self._metadata(name)
         if metadata is not None:
             return metadata
-        return self._query_metrics(name, arguments, window, customer_id, customer_label)
-
-    def _query_metrics(
-        self,
-        name: str,
-        arguments: ToolArguments,
-        window: ManagementFilters,
-        customer_id,
-        customer_label,
-    ) -> Source:
         if name == GET_CUSTOMER_ORDER_METRICS:
             values = self.repository.orders(
                 window.start, window.end, customer_id, arguments.status
