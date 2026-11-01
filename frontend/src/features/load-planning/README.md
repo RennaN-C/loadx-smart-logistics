@@ -227,3 +227,42 @@ pedido ausente, seleção desatualizada, limite, veículo ausente, consulta pend
 falha e indisponibilidade. Pré-validação permanece montada ao alternar etapas,
 sem transformar uma consulta em reserva. A explicação do limite de 200 volumes
 agora deixa explícita sua aplicação à seleção inteira, inclusive multi-caminhões.
+
+## Recuperação após erro do cálculo multi-caminhão
+
+`CONFIRMADO`: a UI mantém uma chave idempotente por usuário em `sessionStorage` para recuperar um resultado após timeout, 500 ou falha de rede, sem repetir a operação automaticamente. A tela de recuperação não cria plano ao abrir. Se o GET de recuperação retornar `OPTIMIZATION_NOT_FOUND` (404) após a consulta explícita, o usuário pode **encerrar apenas a referência local**, mediante confirmação, e iniciar outro planejamento. Erros 409 (`OPTIMIZATION_IN_PROGRESS`) ou 500 na consulta não habilitam descarte. O botão de encerramento não apaga pedidos, planos ou dados do backend; antes de iniciar outra solicitação o usuário deve consultar os planos existentes. Nenhum timeout/limite do otimizador foi modificado por esta correção.
+
+## Sincronização de estados cancelados e explicação de IA (manutenção #330)
+
+- `CALCULATED` permanece o **resultado físico histórico** do cálculo; não se converte artificialmente em `CANCELED` por cancelar uma distribuição.
+- A listagem `GET /load-plans` recebe também `distribution_status`, `part_status` e `is_current_part`, derivados da distribuição persistida, inclusive versões anteriores por recálculo.
+- O filtro operacional `ongoing` é aplicado no servidor **antes da contagem/paginação** e exclui distribuições canceladas, incompletas e partes antigas/canceladas. `all` preserva o histórico completo e mostra a situação atual da distribuição, em vez de apresentar `CALCULATED` como se a operação estivesse em andamento.
+- As transições de viagem, carregamento, pedido, distribuição e partes são consultadas nas projeções já existentes. Cancelar não exclui registros nem altera a cena 3D histórica. Perfis sem acesso aos detalhes da operação não recebem esses dados.
+- Após salvar um plano aparece uma área **separada de Assistente de IA**, com botão de consulta opcional a `POST /load-plans/{id}/explain`. O backend já diferencia resposta real `source=AI` de fallback `source=FALLBACK`; a interface identifica a origem e não diz que foi IA quando for fallback. A área nunca recalcula posições, não aprova e não altera a distribuição.
+- Mensagens da UI orientam o usuário a consultar o histórico ou iniciar um novo planejamento quando a distribuição estiver cancelada.
+
+## Assistente contextual — #336
+
+`PlanAIExplanation` abre o Assistente LoadX do layout com o plano selecionado;
+retira a explicação estática sem recalcular nem mudar a API legada. O painel
+compartilhado fica em `features/assistant`, usa Modal por portal para evitar
+recorte do cabeçalho, temas existentes e foco/Escape. Dados vêm de contrato real,
+com marcador GROQ/FALLBACK, fatos inspecionáveis e navegação autorizada. Histórico
+curto em memória, limpo ao trocar contexto, identidade, perfil ou rota.
+
+Falhas de capacidade na otimização automática podem conter um comprovante assinado
+`assistant_diagnostic` aditivo. `DistributionFeedback` usa-o somente para abrir o
+Assistente LoadX sobre aquela tentativa. Sem comprovante, não fabrica contexto.
+As mensagens de falha/retomada e as ações de recuperação permanecem inalteradas.
+
+
+## Resultado centrado no 3D (#372)
+
+Resumo/status e ações autorizadas ficam compactos no topo. No plano individual,
+continuidade de carregamento/viagem fica depois da cena, preservando as condições
+anteriores. Nas distribuições, seletor compacto é usado no mobile/notebook e para
+frotas maiores; cards continuam no desktop amplo para até três caminhões. Seleção
+é refletida na URL e sobrevive a F5. Apenas o veículo escolhido monta um renderer.
+Tabela, sequência, referências técnicas, explicação e histórico seguem acessíveis
+em abas/seções secundárias. Aprovação/cancelamento/reprocessamento e confirmações
+mantêm as regras e callbacks existentes. Backend e snapshots não foram alterados.

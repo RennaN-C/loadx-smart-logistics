@@ -1,5 +1,6 @@
 import "./Modal.css";
-import { useEffect, useId, useRef, type ReactNode } from "react";
+import { useDialogLifecycle } from "./useDialogLifecycle";
+import { useId, useRef, type ReactNode } from "react";
 
 interface ModalProps {
   readonly title: string;
@@ -9,55 +10,11 @@ interface ModalProps {
   readonly children: ReactNode;
 }
 
-let openModalCount = 0;
-let previousBodyOverflow = "";
-
 export function Modal({ title, subtitle, onClose, children, active = true }: ModalProps) {
   const titleId = useId();
 
   const dialogRef = useRef<HTMLDivElement>(null);
-  const closeRef = useRef(onClose);
-  closeRef.current = onClose;
-
-  useEffect(() => {
-    if (!active) return;
-    const dialog = dialogRef.current;
-    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    if (openModalCount++ === 0) {
-      previousBodyOverflow = document.body.style.overflow;
-      document.body.style.overflow = "hidden";
-    }
-    const focusables = () => Array.from(dialog?.querySelectorAll<HTMLElement>(
-      'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], [tabindex]:not([tabindex="-1"])',
-    ) ?? []).filter((element) => !element.closest('[hidden], [aria-hidden="true"]'));
-    (focusables()[0] ?? dialog)?.focus();
-
-    function handleKeyDown(event: KeyboardEvent) {
-      const dialogs = document.querySelectorAll('[role="dialog"]');
-      if (dialogs[dialogs.length - 1] !== dialog) return;
-      if (event.key === "Escape") {
-        event.preventDefault();
-        closeRef.current();
-      }
-      if (event.key !== "Tab") return;
-      const elements = focusables();
-      const first = elements[0];
-      const last = elements[elements.length - 1];
-      if (!first || !last) { event.preventDefault(); dialog?.focus(); return; }
-      if (!dialog?.contains(document.activeElement) || (event.shiftKey && document.activeElement === first)) {
-        event.preventDefault(); (event.shiftKey ? last : first).focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault(); first.focus();
-      }
-    }
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-      if (--openModalCount === 0) document.body.style.overflow = previousBodyOverflow;
-      if (previousFocus?.isConnected) previousFocus.focus();
-    };
-  }, [active]);
+  useDialogLifecycle(dialogRef, active, onClose);
 
   return (
     <div className="modal-overlay" hidden={!active}>

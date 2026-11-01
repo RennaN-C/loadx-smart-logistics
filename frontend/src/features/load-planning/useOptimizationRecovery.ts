@@ -31,19 +31,22 @@ export function useOptimizationRecovery(actor: string, onResult?: (value: LoadDi
   const [state, setState] = useState(() => ({ actor, request: read(actor) }));
   const [working, setWorking] = useState(false);
   const [error, setError] = useState<unknown>(null);
+  // Um GET 404 após obter o lock do servidor permite oferecer descarte explícito
+  // da referência LOCAL. Nunca inferir ausência a partir de POST 500/timeout.
+  const [notFoundConfirmed, setNotFoundConfirmed] = useState(false);
   const busy = useRef(false);
   const currentActor = useRef(actor);
   currentActor.current = actor;
   const alive = useRef(true);
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
   const request = state.actor === actor ? state.request : read(actor);
-  useEffect(() => { setState({ actor, request: read(actor) }); setError(null); }, [actor]);
+  useEffect(() => { setState({ actor, request: read(actor) }); setError(null); setNotFoundConfirmed(false); }, [actor]);
 
   const isCurrent = () => alive.current && currentActor.current === actor;
 
   async function execute(value: PendingRequest, consult: boolean) {
     if (busy.current) return;
-    busy.current = true; setWorking(true); setError(null);
+    busy.current = true; setWorking(true); setError(null); setNotFoundConfirmed(false);
     write(actor, value); setState({ actor, request: value });
     try {
       const result = consult ? await recoverOptimization(value.key) : await optimizeDistribution(value.orderIds, value.key);
@@ -56,6 +59,8 @@ export function useOptimizationRecovery(actor: string, onResult?: (value: LoadDi
       if (clear) write(actor, null);
       if (isCurrent()) {
         setError(error_);
+        setNotFoundConfirmed(consult && error_ instanceof ApiError
+          && error_.status === 404 && error_.code === "OPTIMIZATION_NOT_FOUND");
         if (clear) setState({ actor, request: null });
       }
     } finally {
@@ -64,6 +69,15 @@ export function useOptimizationRecovery(actor: string, onResult?: (value: LoadDi
     }
   }
   return { request, working, error,
+    // A referência só pode ser descartada após consulta explícita com 404.
+    canDiscard: Boolean(request) && notFoundConfirmed && !working,
+    discard: () => {
+      if (!request || busy.current || working || !notFoundConfirmed) return;
+      write(actor, null);
+      setState({ actor, request: null });
+      setNotFoundConfirmed(false);
+      setError(null);
+    },
     start: (orderIds: string[]) => {
       if (request || busy.current) return Promise.resolve();
       return execute({ key: crypto.randomUUID(), orderIds: [...orderIds] }, false);

@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from app.core.responses import openapi_error_responses
 from app.modules.access_profiles.router import router as profiles_router
+from app.modules.assistant.router import router as assistant_router
 from app.modules.attachments.router import router as attachments_router
 from app.modules.auth.identity_router import router as identity_router
 from app.modules.auth.router import router as auth_router
@@ -98,3 +99,5 @@ api_router.include_router(notifications_router)
 api_router.include_router(outbox_router)
 
 api_router.include_router(delivery_communications_router)
+
+api_router.include_router(assistant_router)

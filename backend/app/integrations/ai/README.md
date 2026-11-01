@@ -51,3 +51,15 @@ não classificado como falha do provider.
 `CONFIRMADO`: nem a resposta do provider nem o fallback podem substituir
 `load_plan_id` ou `algorithm_version`, recalcular métricas, mudar posições,
 rejeições ou estado, ou aprovar o plano.
+
+## Provider Groq e Assistente — #336
+
+`CONFIRMADO`: `groq.py` implementa a port legada e o chat com endpoint HTTPS fixo,
+SecretStr, sem redirects e sem SDK. `get_ai_provider` usa Groq quando selecionado;
+sem configuração/mock usa provider indisponível para fallback determinístico.
+`FakeAIProvider` permanece apenas para injeção explícita em testes; a descrição
+histórica do fake acima não descreve a seleção runtime atual.
+
+Configuração, ferramentas, limites e teste externo no
+[README do Assistente](../../modules/assistant/README.md). Não expor chave,
+SQL, dados pessoais ou identidade interna no contexto técnico.

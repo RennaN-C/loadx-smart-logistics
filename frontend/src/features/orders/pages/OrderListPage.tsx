@@ -4,6 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import { OrderDetail } from "../components/OrderDetail";
 
 import { AlertBanner } from "../../../components/AlertBanner";
+import { ApiError } from "../../../types/api";
 import { Modal } from "../../../components/Modal";
 import { Pagination } from "../../../components/Pagination";
 import { useEditTarget } from "../../../hooks/useEditTarget";
@@ -13,7 +14,7 @@ import { useAuth } from "../../auth/hooks/useAuth";
 import { canManageLogistics, hasPermission } from "../../auth/permissions";
 import { listCustomers } from "../../customers/api/customersApi";
 import { listProducts } from "../../products/api/productsApi";
-import { getOrder, listOrders } from "../api/ordersApi";
+import { changeOrderStatus, getOrder, listOrders } from "../api/ordersApi";
 import { OrderCard } from "../components/OrderCard";
 import { OrderForm } from "../components/OrderForm";
 import { STATUS_LABELS } from "../components/orderLabels";
@@ -106,6 +107,28 @@ export function OrderListPage() {
     await refetch();
   }
 
+  const [changingStatusId, setChangingStatusId] = useState<string | null>(null);
+  const [statusActionError, setStatusActionError] = useState<string | null>(null);
+
+  async function handleStatusAction(id: string, nextStatus: OrderStatus) {
+    if (changingStatusId) return;
+    if (nextStatus === "CANCELED" && !window.confirm(
+      "Cancelar este pedido? Ele permanecerá no histórico e não poderá ser editado novamente."
+    )) return;
+    setChangingStatusId(id);
+    setStatusActionError(null);
+    try {
+      await changeOrderStatus(id, nextStatus);
+      await refetch();
+    } catch (error) {
+      const apiError = error instanceof ApiError
+        ? error : new ApiError("UNKNOWN_ERROR", "Não foi possível alterar o pedido.");
+      setStatusActionError(mapOrderErrorToMessage(apiError));
+    } finally {
+      setChangingStatusId(null);
+    }
+  }
+
   return (
     <div className="entity-page">
       <header className="entity-header">
@@ -165,6 +188,7 @@ export function OrderListPage() {
 
       {status === "error" && error ? <div className="order-error"><AlertBanner>{mapOrderErrorToMessage(error)}</AlertBanner><button type="button" className="btn-secondary" onClick={() => void refetch()}>Tentar novamente</button></div> : null}
       {edit.error ? <AlertBanner>{mapOrderErrorToMessage(edit.error)}</AlertBanner> : null}
+      {statusActionError ? <AlertBanner>{statusActionError}</AlertBanner> : null}
 
       {status === "success" && orders.length === 0 ? (
         <p className="entity-state">
@@ -188,6 +212,8 @@ export function OrderListPage() {
               isOpening={edit.loadingId === order.id}
               onAttachments={setAttachmentOrderId}
               onEdit={(id) => void edit.open(id)}
+              changingStatus={changingStatusId === order.id}
+              onChangeStatus={(id, nextStatus) => void handleStatusAction(id, nextStatus)}
             />
           ))}
           </tbody></table></div>

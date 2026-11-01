@@ -1,7 +1,9 @@
 import hashlib
 import json
+import logging
 import uuid
 from datetime import UTC, datetime
+from time import perf_counter
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -36,8 +38,10 @@ from app.modules.load_planning.optimizer.contracts import (
 )
 from app.modules.load_planning.optimizer.engine import (
     MAX_VOLUMES,
+    LoadPlanResult,
     LoadPlanVolumeLimitExceededError,
 )
+from app.modules.load_planning.optimizer.metrics import calculate_load_metrics
 from app.modules.load_planning.optimizer.multi_truck import (
     MultiTruckCandidate,
     optimize_multi_truck,
@@ -58,6 +62,8 @@ from app.modules.products.service import ProductService
 from app.modules.status_history.schemas import StatusHistoryCreate
 from app.modules.status_history.service import StatusHistoryService
 from app.modules.trucks.service import TruckNotFoundError, TruckService
+
+logger = logging.getLogger(__name__)
 
 
 class DistributionError(Exception):
@@ -184,12 +190,13 @@ class LoadDistributionService:
         self, key: uuid.UUID, *, changed_by: uuid.UUID
     ) -> DistributionRead:
         repository = OptimizationRepository(self.db)
-        if not repository.try_lock(changed_by, key):
-            raise DistributionError("OPTIMIZATION_IN_PROGRESS")
-        request = repository.get(changed_by, key)
-        if request is None:
-            raise DistributionError("OPTIMIZATION_NOT_FOUND", status=404)
-        return self.get(request.distribution_id)
+        with repository.session_lock(changed_by, key) as acquired:
+            if not acquired:
+                raise DistributionError("OPTIMIZATION_IN_PROGRESS")
+            request = repository.get(changed_by, key)
+            if request is None:
+                raise DistributionError("OPTIMIZATION_NOT_FOUND", status=404)
+            return self.get(request.distribution_id)
 
     def optimize(
         self,
@@ -199,10 +206,11 @@ class LoadDistributionService:
         idempotency_key: uuid.UUID | None = None,
     ) -> DistributionRead:
         try:
-            request = None
-            if idempotency_key is not None:
-                repository = OptimizationRepository(self.db)
-                if not repository.try_lock(changed_by, idempotency_key):
+            if idempotency_key is None:
+                return self._optimize(data, changed_by=changed_by, request=None)
+            repository = OptimizationRepository(self.db)
+            with repository.session_lock(changed_by, idempotency_key) as acquired:
+                if not acquired:
                     raise DistributionError("OPTIMIZATION_IN_PROGRESS")
                 payload_hash = hashlib.sha256(
                     json.dumps(
@@ -219,7 +227,7 @@ class LoadDistributionService:
                     request_key=idempotency_key,
                     payload_hash=payload_hash,
                 )
-            return self._optimize(data, changed_by=changed_by, request=request)
+                return self._optimize(data, changed_by=changed_by, request=request)
         except Exception:
             self.db.rollback()
             raise
@@ -267,7 +275,20 @@ class LoadDistributionService:
             for volume in need.volumes
         )
 
-        result = optimize_multi_truck(candidates, volumes)
+        # Everything needed by the pure optimizer is now an immutable snapshot.
+        # End the read transaction before expensive CPU work: a PostgreSQL
+        # idle-in-transaction timeout must never interrupt physical packing.
+        self.db.rollback()
+        started = perf_counter()
+        try:
+            result = optimize_multi_truck(candidates, volumes)
+        finally:
+            logger.info(
+                "multi_truck_packing elapsed_ms=%.0f volumes=%d candidates=%d",
+                (perf_counter() - started) * 1000,
+                len(volumes),
+                len(candidates),
+            )
 
         if not result.complete:
             failures = {
@@ -329,8 +350,27 @@ class LoadDistributionService:
                 for part in result.parts
             ],
         )
+        # The multi-truck engine has already computed a valid layout for each
+        # selected part. Build an all-placed view; other trucks' rejected items
+        # are not rejections of the selected part and must not be persisted.
+        prepared = {}
+        for part in result.parts:
+            original = part.load_plan
+            prepared[part.truck_id] = LoadPlanResult(
+                capacity=original.capacity,
+                placed_volumes=original.placed_volumes,
+                rejected_volumes=(),
+                metrics=calculate_load_metrics(
+                    internal_volume_cm3=original.capacity.internal_volume_cm3,
+                    placed_volumes=[row.volume for row in original.placed_volumes],
+                    rejected_volumes=(),
+                ),
+            )
         return self.create(
-            proposal, changed_by=changed_by, optimization_request=request
+            proposal,
+            changed_by=changed_by,
+            optimization_request=request,
+            precomputed_parts=prepared,
         )
 
     def _lock_trucks(self, identifiers):
@@ -351,6 +391,7 @@ class LoadDistributionService:
         *,
         changed_by: uuid.UUID,
         optimization_request: OptimizationRequest | None = None,
+        precomputed_parts: dict[uuid.UUID, LoadPlanResult] | None = None,
     ) -> DistributionRead:
         try:
             trucks = self._lock_trucks([p.truck_id for p in data.parts])
@@ -384,6 +425,11 @@ class LoadDistributionService:
                     products,
                     part_volumes,
                     changed_by,
+                    precomputed_result=(
+                        precomputed_parts.get(proposed.truck_id)
+                        if precomputed_parts is not None
+                        else None
+                    ),
                 )
                 part = LoadDistributionPart(
                     id=uuid.uuid4(),
@@ -421,7 +467,15 @@ class LoadDistributionService:
             raise
 
     def _stage_part_plan(
-        self, truck, orders, items, products, volumes, actor, source=None
+        self,
+        truck,
+        orders,
+        items,
+        products,
+        volumes,
+        actor,
+        source=None,
+        precomputed_result=None,
     ):
         related_ids = {v.order_id for v in volumes}
         plan, result = self.planning.stage_plan_for_volumes(
@@ -432,6 +486,7 @@ class LoadDistributionService:
             volumes=volumes,
             changed_by=actor,
             recalculated_from_id=source,
+            precomputed_result=precomputed_result,
         )
         if result.rejected_volumes:
             raise DistributionError(

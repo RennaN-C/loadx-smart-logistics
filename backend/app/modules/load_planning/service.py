@@ -1,5 +1,6 @@
 import uuid
 from collections.abc import Sequence
+from dataclasses import replace
 from datetime import UTC, datetime
 
 from sqlalchemy.orm import Session
@@ -12,7 +13,10 @@ from app.modules.load_planning.models import (
     LoadPlanItem,
     LoadPlanOrder,
 )
-from app.modules.load_planning.optimizer.capacity import TruckCapacityInput
+from app.modules.load_planning.optimizer.capacity import (
+    TruckCapacityInput,
+    calculate_truck_capacity,
+)
 from app.modules.load_planning.optimizer.comparison import (
     MAX_COMPARISON_TRUCKS,
     MIN_COMPARISON_TRUCKS,
@@ -182,11 +186,27 @@ class LoadPlanningService:
             truck_id=truck_id,
             include_operations=include_operations,
             operation_scope=operation_scope,
+            hide_inactive=requester_role == "CHECKER",
+        )
+
+    def get_distribution_state_for_plan(
+        self, load_plan_id: uuid.UUID
+    ) -> tuple[uuid.UUID | None, str | None, str | None, bool]:
+        part = LoadDistributionRepository(self.db).plan_part(load_plan_id)
+        if part is None:
+            return None, None, None, True
+        from app.modules.load_planning.distribution_models import LoadDistribution
+
+        distribution = self.db.get(LoadDistribution, part.distribution_id)
+        return (
+            part.distribution_id,
+            distribution.status if distribution else None,
+            part.status,
+            part.load_plan_id == load_plan_id,
         )
 
     def get_distribution_id_for_plan(self, load_plan_id: uuid.UUID) -> uuid.UUID | None:
-        part = LoadDistributionRepository(self.db).plan_part(load_plan_id)
-        return part.distribution_id if part else None
+        return self.get_distribution_state_for_plan(load_plan_id)[0]
 
     def get_load_plan(self, load_plan_id: uuid.UUID) -> LoadPlan:
         load_plan = self.repository.get(load_plan_id)
@@ -582,8 +602,9 @@ class LoadPlanningService:
         volumes: Sequence[IndividualVolume],
         changed_by: uuid.UUID,
         recalculated_from_id: uuid.UUID | None = None,
+        precomputed_result: LoadPlanResult | None = None,
     ) -> tuple[LoadPlan, LoadPlanResult]:
-        """Stage an explicitly selected subset for the owning distribution commit."""
+        """Stage a subset, reusing a fully validated previously calculated result."""
         if (
             truck.internal_width_cm
             * truck.internal_height_cm
@@ -593,15 +614,37 @@ class LoadPlanningService:
             raise InvalidLoadPlanInputError(
                 "truck_id", "internal volume exceeds persisted BIGINT range"
             )
-        result = calculate_volume_load_plan(
-            TruckCapacityInput(
-                internal_width_cm=truck.internal_width_cm,
-                internal_height_cm=truck.internal_height_cm,
-                internal_length_cm=truck.internal_length_cm,
-                max_weight_kg=truck.max_weight_kg,
-            ),
-            volumes,
+        capacity = TruckCapacityInput(
+            internal_width_cm=truck.internal_width_cm,
+            internal_height_cm=truck.internal_height_cm,
+            internal_length_cm=truck.internal_length_cm,
+            max_weight_kg=truck.max_weight_kg,
         )
+        # For automatic multi-truck allocation we already ran the physical
+        # engine. Reuse only if *all* physical inputs and truck capacity still
+        # match after row locks / source revalidation. Product names are
+        # presentation metadata and do not affect physical placement.
+        candidate = precomputed_result
+        if candidate is not None:
+            placed = tuple(row.volume for row in candidate.placed_volumes)
+            rejected = tuple(row.volume for row in candidate.rejected_volumes)
+
+            def normalize(volume: IndividualVolume) -> IndividualVolume:
+                return replace(volume, product_name=None)
+
+            def volume_key(volume: IndividualVolume) -> tuple[int, int]:
+                return volume.order_item_id.int, volume.volume_index
+
+            expected = sorted((normalize(v) for v in volumes), key=volume_key)
+            actual = sorted(
+                (normalize(v) for v in (*placed, *rejected)), key=volume_key
+            )
+            if (
+                candidate.capacity != calculate_truck_capacity(capacity)
+                or actual != expected
+            ):
+                candidate = None
+        result = candidate or calculate_volume_load_plan(capacity, volumes)
         plan = self._build_load_plan(
             truck=truck,
             orders=orders,

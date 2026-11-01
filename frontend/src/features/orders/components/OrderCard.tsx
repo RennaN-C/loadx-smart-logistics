@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 
 import { RowActions } from "../../../components/RowActions";
 import { StatusPill } from "../../../components/StatusPill";
-import type { OrderListItem } from "../types";
+import type { OrderListItem, OrderStatus } from "../types";
 import { priorityIsUrgent, priorityLabel, STATUS_LABELS, statusTone } from "./orderLabels";
 
 const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
@@ -18,13 +18,15 @@ interface OrderCardProps {
   readonly isOpening: boolean;
   readonly onAttachments?: (id: string) => void;
   readonly onEdit: (id: string) => void;
+  readonly onChangeStatus?: (id: string, status: OrderStatus) => void;
+  readonly changingStatus?: boolean;
 }
 
 /**
  * Mostra só o que a listagem entrega. Endereço e itens ficam no detalhe
  * (`GET /orders/{id}`), então o card exibe a contagem em vez da lista.
  */
-export function OrderCard({ order, customerName, canManage, isOpening, onEdit, onAttachments }: OrderCardProps) {
+export function OrderCard({ order, customerName, canManage, isOpening, onEdit, onAttachments, onChangeStatus, changingStatus = false }: OrderCardProps) {
   return (
     <tr>
       <td data-label="Pedido"><Link className="btn-link" to={`/orders?order=${encodeURIComponent(order.id)}`}>{order.id.slice(0, 8)}</Link></td>
@@ -40,15 +42,17 @@ export function OrderCard({ order, customerName, canManage, isOpening, onEdit, o
       <td data-label="Ações"><RowActions label={`Ações do pedido ${order.id.slice(0, 8)}`}>
         <Link className="btn-link" to={`/orders?order=${encodeURIComponent(order.id)}`}>Ver pedido</Link>
         {onAttachments ? <button type="button" className="btn-link" onClick={() => onAttachments(order.id)}>Anexos</button> : null}
-        {canManage ? (
-          <button
-            type="button"
-            className="btn-link"
-            disabled={isOpening}
-            onClick={() => onEdit(order.id)}
-          >
-            {isOpening ? "Abrindo…" : "Editar"}
-          </button>
+        {canManage && (order.status === "DRAFT" || order.status === "READY") ? (
+          <button type="button" className="btn-link" disabled={isOpening || changingStatus}
+            onClick={() => onEdit(order.id)}>{isOpening ? "Abrindo…" : "Editar"}</button>
+        ) : null}
+        {canManage && onChangeStatus && order.status === "READY" ? (
+          <button type="button" className="btn-link" disabled={changingStatus}
+            onClick={() => onChangeStatus(order.id, "DRAFT")}>Voltar para rascunho</button>
+        ) : null}
+        {canManage && onChangeStatus && (order.status === "DRAFT" || order.status === "READY") ? (
+          <button type="button" className="btn-link" disabled={changingStatus}
+            onClick={() => onChangeStatus(order.id, "CANCELED")}>Cancelar pedido</button>
         ) : null}
       </RowActions></td>
     </tr>

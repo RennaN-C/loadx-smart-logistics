@@ -1,6 +1,28 @@
 # Changelog
 
-Histórico das versões **publicadas** do LoadX. Para planejamento futuro, consulte o [roadmap canônico](docs/planejamento/roadmap-versoes.md). Versões anteriores e seus commits são mantidos para rastreabilidade.
+Histórico das versões publicadas e, quando explicitamente identificado, de **candidatas ainda não publicadas**. Para planejamento futuro, consulte o [roadmap canônico](docs/planejamento/roadmap-versoes.md). Versões anteriores e seus commits são mantidos para rastreabilidade.
+
+## [1.3.0] — Loxi e Experiência Inteligente (ciclo de 30/10/2026)
+
+Versão funcional MINOR, posterior à v1.2.0. A publicação deve ser confirmada na [tag/release GitHub](https://github.com/RennaN-C/loadx-smart-logistics/releases/tag/v1.3.0), sem presumir a data da PR como data de lançamento.
+
+### Loxi — inteligência contextual e experiência visual
+- Conversa fluida: envio otimista, respostas naturais, indicador discreto e painel expansível.
+- Contexto entre perguntas; motivos atuais de indisponibilidade com modelo, placa e restrições verificadas no backend.
+- Análises de planejamento salvo com peso, espaço, volumes e capacidade restante, sem simulação inventada.
+- Cartões operacionais e prévia 3D compacta sob demanda com autenticação e controles de acesso.
+- Cartões repetidos recolhidos, ações contextuais e integração Groq com limites/fallback.
+- RBAC, confirmações e backend como fonte de verdade mantidos.
+
+### Segurança, distribuição e limites
+- Melhorias homologadas na `pentest-lab` e sincronizadas via PR #381 na `desenvolvimento`.
+- CI original da `main` mantida: a paralelização #385 necessita de revisão de segurança no SonarCloud.
+- Persistem pendências de cobertura remota SonarCloud (Issue #268) e integrações externas simuladas. O check da PR #388 registrou 118 apontamentos novos, embora o Quality Gate tenha passado; classificação detalhada pendente. [Triagem](docs/qualidade/sonarcloud-pr388-20261030.md).
+- GitHub Release é publicação de código; não comprova deploy ou migrações em ambientes externos.
+
+## [1.2.0] - 2026-10-26
+
+### Histórico de OCs integradas no ciclo v1.2.0
 
 - OC92: Meu perfil para todos os usuários autenticados, edição de nome/e-mail, alteração segura de senha com revogação integral e gerenciamento de sessões próprias; sem migration.
 
@@ -20,7 +42,6 @@ Histórico das versões **publicadas** do LoadX. Para planejamento futuro, consu
 - Migration `20261009_0023`, encadeada em `20261009_0022`; downgrade bloqueia
   remoção de cadastro/histórico existentes. ADR-035 documenta limites standalone.
 
-## [1.2.0] - 2026-10-26
 
 `CONFIRMADO`: a v1.2.0 foi publicada em 26/10/2026 com administração, segurança, evolução visual e operação multi-caminhão. A comunicação interna foi ampliada; **WhatsApp Business real continua simulado nesta versão**.
 

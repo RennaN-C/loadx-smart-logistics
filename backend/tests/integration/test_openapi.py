@@ -6,6 +6,7 @@ from app.core.config import Settings
 from app.main import create_app
 
 EXPECTED_ERROR_STATUSES = {
+    ("/api/v1/assistant/messages", "post"): {"401", "403", "404", "422", "429", "500"},
     ("/api/v1/load-distributions/optimization-requests/{request_key}", "get"): {
         "401",
         "403",

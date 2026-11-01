@@ -48,6 +48,43 @@ describe("recuperação idempotente", () => {
     const pending = result.current.request;
     await act(() => result.current.consult());
     expect(result.current.request).toEqual(pending);
+    expect(result.current.canDiscard).toBe(true);
+  });
+  it("consulta após POST 500, confirma ausência no servidor e destrava novo planejamento sem duplicar a requisição anterior", async () => {
+    vi.mocked(optimizeDistribution).mockRejectedValueOnce(new ApiError("UNKNOWN_ERROR", "Falha", [], 500))
+      .mockResolvedValueOnce(makeDistribution());
+    vi.mocked(recoverOptimization).mockRejectedValue(new ApiError("OPTIMIZATION_NOT_FOUND", "Não encontrado", [], 404));
+    const { result } = renderHook(() => useOptimizationRecovery("actor-1"));
+    await act(() => result.current.start(["order-1"]));
+    const key = result.current.request!.key;
+    expect(result.current.canDiscard).toBe(false);
+    act(() => result.current.discard());
+    expect(result.current.request!.key).toBe(key);
+    await act(() => result.current.consult());
+    expect(recoverOptimization).toHaveBeenCalledWith(key);
+    expect(result.current.canDiscard).toBe(true);
+    act(() => result.current.discard());
+    expect(result.current.request).toBeNull();
+    expect(sessionStorage.getItem(storedKey)).toBeNull();
+    expect(optimizeDistribution).toHaveBeenCalledTimes(1);
+    await act(() => result.current.start(["order-2"]));
+    expect(optimizeDistribution).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(optimizeDistribution).mock.calls[1][0]).toEqual(["order-2"]);
+  });
+  it("não permite encerrar quando a consulta indica operação em andamento ou erro", async () => {
+    vi.mocked(optimizeDistribution).mockRejectedValue(new ApiError("NETWORK_ERROR", "Sem conexão"));
+    vi.mocked(recoverOptimization)
+      .mockRejectedValueOnce(new ApiError("OPTIMIZATION_IN_PROGRESS", "Em andamento", [], 409))
+      .mockRejectedValueOnce(new ApiError("UNKNOWN_ERROR", "Falha", [], 500));
+    const { result } = renderHook(() => useOptimizationRecovery("actor-1"));
+    await act(() => result.current.start(["order-1"]));
+    await act(() => result.current.consult());
+    expect(result.current.canDiscard).toBe(false);
+    await act(() => result.current.consult());
+    expect(result.current.canDiscard).toBe(false);
+    act(() => result.current.discard());
+    expect(result.current.request).not.toBeNull();
+    expect(sessionStorage.getItem(storedKey)).not.toBeNull();
   });
   it("expiração da sessão preserva referência para o próximo login do mesmo ator", async () => {
     vi.mocked(optimizeDistribution).mockRejectedValue(new ApiError("AUTH_INVALID_TOKEN", "Sessão expirada", [], 401));

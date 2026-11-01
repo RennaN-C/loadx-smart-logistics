@@ -93,6 +93,29 @@ it("conferente nao recebe link de origem cuja aprovacao nao foi confirmada", asy
 });
 
 
+it("mostra cancelamento no lugar de Calculado quando a distribuição foi cancelada", async () => {
+  vi.mocked(listLoadPlans).mockResolvedValue(makePage([{
+    ...item, distributionId: "d1", distributionStatus: "CANCELED", partStatus: "CANCELED",
+    operation: { status: "CANCELED", loading_session_id: null, loading_status: null,
+      trip_id: null, trip_status: null, order_count: 2, delivered_order_count: 0,
+      partial_order_count: 0, ready_order_count: 2, delivery_count: 0, delivered_leg_count: 0 },
+  }]));
+  setup("/planning?scope=all", false, true);
+  expect(await screen.findByText("Distribuição: Cancelada")).toBeInTheDocument();
+  expect(screen.queryByText("Plano: Calculado")).not.toBeInTheDocument();
+  expect(screen.queryByText("Operação não iniciada")).not.toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Abrir plano abcd1234" })).toHaveTextContent("Ver histórico da distribuição");
+});
+
+it("marca distribuição incompleta sem confundir com operação ativa", async () => {
+  vi.mocked(listLoadPlans).mockResolvedValue(makePage([{
+    ...item, distributionId: "d1", distributionStatus: "INCOMPLETE", partStatus: "PENDING",
+  }]));
+  setup("/planning?scope=all", false, true);
+  expect(await screen.findByText("Distribuição: Incompleta")).toBeInTheDocument();
+  expect(screen.getByText(/precisa ser reprocessada/)).toBeInTheDocument();
+});
+
 it("abre agregado persistido ao reencontrar plano de uma distribuição", async () => {
   vi.mocked(listLoadPlans).mockResolvedValue(makePage([{ ...item, distributionId: "distribution-1" }]));
   setup();
@@ -108,7 +131,7 @@ it("distingue situacao do plano aprovado da conclusao de entrega", async () => {
   );
   setup();
   expect(await screen.findByText("ABC1D23")).toBeInTheDocument();
-  expect(screen.getByText(/A aprovação registra a decisão sobre a carga/)).toBeInTheDocument();
+  expect(screen.getByText(/Cancelamentos e versões substituídas ficam fora de Em andamento/)).toBeInTheDocument();
   expect(screen.getAllByText("Plano: Aprovado").length).toBeGreaterThanOrEqual(1);
 });
 

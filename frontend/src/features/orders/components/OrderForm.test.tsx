@@ -254,6 +254,33 @@ describe("OrderForm", () => {
     expect(vi.mocked(updateOrder).mock.calls[0][1]).not.toHaveProperty("status");
   });
 
+  it("volta READY para DRAFT antes do PATCH dos campos", async () => {
+    const ready = { ...ORDER, status: "READY" as const };
+    vi.mocked(changeOrderStatus).mockResolvedValue({ ...ready, status: "DRAFT" });
+    vi.mocked(updateOrder).mockResolvedValue(ORDER);
+    renderForm(ready);
+    fireEvent.change(screen.getByLabelText("SITUAÇÃO"), { target: { value: "DRAFT" } });
+    fireEvent.click(screen.getByRole("button", { name: "Salvar alterações" }));
+    await waitFor(() => expect(updateOrder).toHaveBeenCalledWith("o1", expect.anything()));
+    expect(changeOrderStatus).toHaveBeenCalledWith("o1", "DRAFT");
+    expect(vi.mocked(changeOrderStatus).mock.invocationCallOrder[0])
+      .toBeLessThan(vi.mocked(updateOrder).mock.invocationCallOrder[0]);
+  });
+  it("cancela READY sem PATCH inválido", async () => {
+    const ready = { ...ORDER, status: "READY" as const };
+    vi.mocked(changeOrderStatus).mockResolvedValue({ ...ready, status: "CANCELED" });
+    renderForm(ready);
+    fireEvent.change(screen.getByLabelText("SITUAÇÃO"), { target: { value: "CANCELED" } });
+    fireEvent.click(screen.getByRole("button", { name: "Salvar alterações" }));
+    await waitFor(() => expect(changeOrderStatus).toHaveBeenCalledWith("o1", "CANCELED"));
+    expect(updateOrder).not.toHaveBeenCalled();
+  });
+  it("informa como editar quando READY permanece READY", async () => {
+    renderForm({ ...ORDER, status: "READY" });
+    fireEvent.click(screen.getByRole("button", { name: "Salvar alterações" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("escolha Rascunho");
+    expect(updateOrder).not.toHaveBeenCalled();
+  });
   it("não chama o endpoint de situação quando ela não mudou", async () => {
     vi.mocked(updateOrder).mockResolvedValue(ORDER);
 

@@ -1,0 +1,15 @@
+# Optional backend-only override for compose.production.yaml; no deployment here.
+services:
+  backend:
+    environment:
+      AI_PROVIDER: groq
+      GROQ_MODEL: "${GROQ_MODEL:-llama-3.3-70b-versatile}"
+      AI_CHAT_TIMEOUT_SECONDS: "${AI_CHAT_TIMEOUT_SECONDS:-10}"
+      AI_CHAT_REQUESTS_PER_MINUTE: "${AI_CHAT_REQUESTS_PER_MINUTE:-6}"
+    secrets:
+      - source: groq_api_key
+        target: GROQ_API_KEY
+
+secrets:
+  groq_api_key:
+    environment: GROQ_API_KEY

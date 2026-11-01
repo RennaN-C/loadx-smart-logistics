@@ -319,9 +319,15 @@ def get_load_plan(
     forbidden = _ensure_read_access(load_plan, current_user)
     if forbidden is not None:
         return forbidden
+    distribution_id, distribution_status, part_status, is_current_part = (
+        service.get_distribution_state_for_plan(load_plan_id)
+    )
     return map_load_plan_read(
         load_plan,
-        distribution_id=service.get_distribution_id_for_plan(load_plan_id),
+        distribution_id=distribution_id,
+        distribution_status=distribution_status,
+        part_status=part_status,
+        is_current_part=is_current_part,
         orders_ready_for_approval=service.orders_ready_for_approval(load_plan),
     )
 

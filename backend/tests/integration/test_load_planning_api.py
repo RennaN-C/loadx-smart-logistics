@@ -1509,7 +1509,8 @@ def test_explain_load_plan_enforces_authentication_and_role_matrix(
     for user in (manager, admin):
         response = client.post(explain_path, headers=user.headers)
         assert response.status_code == 200
-        assert response.json()["source"] == "AI"
+        assert response.json()["source"] == "FALLBACK"
+        assert "simulada" not in response.json()["explanation"].lower()
 
     approval = client.post(
         f"/api/v1/load-plans/{created['id']}/approve",
@@ -1518,7 +1519,7 @@ def test_explain_load_plan_enforces_authentication_and_role_matrix(
     assert approval.status_code == 200
     checker_after_approval = client.post(explain_path, headers=checker.headers)
     assert checker_after_approval.status_code == 200
-    assert checker_after_approval.json()["source"] == "AI"
+    assert checker_after_approval.json()["source"] == "FALLBACK"
 
 
 @pytest.mark.parametrize(

@@ -43,6 +43,14 @@ class AuthorizationCase:
 
 
 AUTHORIZATION_CASES = (
+    AuthorizationCase(
+        "assistant_chat",
+        "POST",
+        "/api/v1/assistant/messages",
+        OPERATION_READERS,
+        200,
+        "assistant_question",
+    ),
     AuthorizationCase("auth_me", "GET", "/api/v1/auth/me", ALL_ROLE_SET, 200),
     AuthorizationCase("users_list", "GET", "/api/v1/users", ADMIN_ONLY, 200),
     AuthorizationCase(
@@ -297,6 +305,7 @@ def seed_resources(session_factory: SessionFactory) -> dict[str, str]:
 
 def get_payload(payload_name: str | None, resource_ids: dict[str, str]):
     payloads = {
+        "assistant_question": {"message": "Como consultar um plano?"},
         "user_create": {
             "name": "Novo Usuário",
             "email": "new-user@example.test",

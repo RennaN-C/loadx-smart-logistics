@@ -361,6 +361,87 @@ def test_cancel_releases_claims_but_preserves_history_and_blocks_legacy_bypass(
         ]
 
 
+def test_cancelled_distribution_is_hidden_from_active_plans_and_kept_in_history(
+    distribution_scenario,
+):
+    s = distribution_scenario
+    result = s.create()
+    plan_ids = {part["load_plan"]["id"] for part in result["parts"]}
+    endpoint = "/api/v1/load-plans"
+
+    active = s.client.get(
+        endpoint, params={"operation_scope": "ongoing"}, headers=s.user.headers
+    )
+    assert active.status_code == 200, active.text
+    assert plan_ids <= {p["id"] for p in active.json()["items"]}
+
+    cancel = s.post(f"/{result['id']}/cancel")
+    assert cancel.status_code == 200
+    assert cancel.json()["status"] == "CANCELED"
+
+    active = s.client.get(
+        endpoint, params={"operation_scope": "ongoing"}, headers=s.user.headers
+    )
+    assert active.status_code == 200, active.text
+    assert not plan_ids.intersection(p["id"] for p in active.json()["items"])
+    finished = s.client.get(
+        endpoint, params={"operation_scope": "completed"}, headers=s.user.headers
+    )
+    assert finished.status_code == 200, finished.text
+    assert not plan_ids.intersection(p["id"] for p in finished.json()["items"])
+
+    history = s.client.get(
+        endpoint, params={"operation_scope": "all"}, headers=s.user.headers
+    )
+    assert history.status_code == 200, history.text
+    records = [p for p in history.json()["items"] if p["id"] in plan_ids]
+    assert len(records) == 2
+    for plan in records:
+        assert plan["status"] == "CALCULATED"  # Snapshot must remain immutable.
+        assert plan["distribution_id"] == result["id"]
+        assert plan["distribution_status"] == "CANCELED"
+        assert plan["part_status"] == "CANCELED"
+        assert plan["is_current_part"] is True
+        assert plan["operation"]["status"] == "CANCELED"
+        detail = s.client.get(
+            f"/api/v1/load-plans/{plan['id']}", headers=s.user.headers
+        )
+        assert detail.status_code == 200
+        assert detail.json()["distribution_status"] == "CANCELED"
+        assert detail.json()["part_status"] == "CANCELED"
+
+
+def test_part_cancellation_moves_distribution_out_of_active_scope(
+    distribution_scenario,
+):
+    s = distribution_scenario
+    created = s.create()
+    part_id = created["parts"][0]["id"]
+    canceled = s.post(f"/{created['id']}/parts/{part_id}/cancel")
+    assert canceled.status_code == 200, canceled.text
+    assert canceled.json()["status"] == "INCOMPLETE"
+    plan_ids = {p["load_plan"]["id"] for p in created["parts"]}
+
+    active = s.client.get(
+        "/api/v1/load-plans",
+        params={"operation_scope": "ongoing"},
+        headers=s.user.headers,
+    )
+    assert active.status_code == 200, active.text
+    assert not plan_ids.intersection(p["id"] for p in active.json()["items"])
+    all_plans = s.client.get(
+        "/api/v1/load-plans",
+        params={"operation_scope": "all"},
+        headers=s.user.headers,
+    )
+    assert all_plans.status_code == 200, all_plans.text
+    records = [p for p in all_plans.json()["items"] if p["id"] in plan_ids]
+    assert len(records) == 2
+    assert {p["distribution_status"] for p in records} == {"INCOMPLETE"}
+    assert {p["part_status"] for p in records} == {"CANCELED", "PENDING"}
+    assert {p["operation"]["status"] for p in records} == {"INCOMPLETE", "CANCELED"}
+
+
 def test_history_failure_rolls_back_distribution_and_approval(
     distribution_scenario, monkeypatch
 ):
@@ -932,6 +1013,27 @@ def test_oc88_insufficient_fleet_is_explainable_and_does_not_persist_partial_pla
     assert payload["details"][0]["remaining_volumes"]
     assert payload["details"][0]["attempt_count"] > 0
     assert len(payload["details"][0]["ineligible_trucks"]) == 2
+    token = payload["details"][1]["assistant_diagnostic"]
+    chat = s.client.post(
+        "/api/v1/assistant/messages",
+        headers=s.user.headers,
+        json={"message": "Explique esta tentativa", "diagnostic_token": token},
+    )
+    assert chat.status_code == 200, chat.text
+    diagnostic = chat.json()["facts"][0]
+    assert diagnostic["values"]["remaining_volumes"] == len(
+        payload["details"][0]["remaining_volumes"]
+    )
+    assert diagnostic["values"]["unavailable_trucks"] == 2
+    expected_collision = sum(
+        "COLLISION" in item["reasons"]
+        for item in payload["details"][0]["remaining_volumes"]
+    )
+    assert expected_collision > 0
+    assert diagnostic["values"]["COLLISION"] == expected_collision
+    assert "sem sobrepor volumes" in diagnostic["criteria"]
+    assert str(s.source.order_item_id) not in str(diagnostic)
+    assert token not in str(chat.json())
 
     with s.factory() as db:
         persisted_plans = db.scalar(
@@ -1002,3 +1104,32 @@ def test_recovery_keeps_link_after_part_reprocess(distribution_scenario):
         f"/api/v1/load-plans/{part['load_plan']['id']}", headers=scenario.user.headers
     )
     assert old.json()["distribution_id"] == result["id"]
+
+
+def test_loxi_explains_actual_distribution_parts_and_blocks_unapproved_checker(
+    distribution_scenario,
+):
+    s = distribution_scenario
+    result = s.create()
+    payload = {"message": "Explique esta distribuição", "distribution_id": result["id"]}
+    response = s.client.post(
+        "/api/v1/assistant/messages", headers=s.user.headers, json=payload
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["source"] == "BACKEND"
+    assert response.json()["facts"][0]["values"]["truck_count"] == 2
+    assert response.json()["facts"][0]["values"]["volume_count"] == 3
+    for part in result["parts"]:
+        assert part["truck"]["plate"] in response.json()["answer"]
+    with s.factory() as db:
+        db.get(User, s.user.id).role = "CHECKER"
+        db.commit()
+    try:
+        denied = s.client.post(
+            "/api/v1/assistant/messages", headers=s.user.headers, json=payload
+        )
+        assert denied.status_code == 403
+    finally:
+        with s.factory() as db:
+            db.get(User, s.user.id).role = "LOGISTICS_MANAGER"
+            db.commit()

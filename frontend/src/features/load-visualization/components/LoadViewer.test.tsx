@@ -181,12 +181,51 @@ it("remonta a cena ao mudar de plano e não apresenta volumes anteriores", async
   vi.mocked(getLoadPlanVisualization).mockReset();
   let finish!: (value: LoadPlanVisualization) => void;
   vi.mocked(getLoadPlanVisualization).mockReturnValueOnce(new Promise((resolve) => { finish = resolve; })).mockResolvedValueOnce(VIEW);
-  const view = render(<LoadViewer key="first" planId="lp1" plan={PLAN} />);
+  const view = render(<LoadViewer planId="lp1" plan={PLAN} />);
   // The first deferred response belongs to the old vehicle and must be ignored.
-  view.rerender(<LoadViewer key="second" planId="lp2" plan={{ ...PLAN, id: "lp2" }} />);
+  view.rerender(<LoadViewer planId="lp2" plan={{ ...PLAN, id: "lp2" }} />);
   await screen.findByTestId("cena");
   await act(async () => finish({ ...VIEW, truck: { ...TRUCK, plate: "OLD0X00" } }));
   expect(ultimaCena().truck.plate).toBe(TRUCK.plate);
   expect(ultimaCena().items.map((volume) => volume.id)).toEqual(VIEW.items.map((volume) => volume.id));
   expect(getLoadPlanVisualization).toHaveBeenNthCalledWith(2, "lp2");
+});
+
+
+it("expande a mesma cena, preserva câmera e devolve foco após Escape", async () => {
+  vi.mocked(getLoadPlanVisualization).mockReset().mockResolvedValue(VIEW);
+  render(<LoadViewer planId="lp1" plan={PLAN} />);
+  const scene = await screen.findByTestId("cena");
+  fireEvent.click(screen.getByRole("button", { name: "Topo" }));
+  expect(ultimaCena().view).toBe("top");
+  const expand = screen.getByRole("button", { name: "Expandir visualização 3D" });
+  expand.focus();
+  fireEvent.click(expand);
+  const dialog = screen.getByRole("dialog", { name: "Visualização 3D da carga" });
+  expect(dialog).toHaveAttribute("aria-modal", "true");
+  expect(document.body.style.overflow).toBe("hidden");
+  expect(screen.getByTestId("cena")).toBe(scene);
+  fireEvent.keyDown(document, { key: "Escape" });
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(screen.getByTestId("cena")).toBe(scene);
+  expect(expand).toHaveFocus();
+  expect(document.body.style.overflow).not.toBe("hidden");
+  expect(getLoadPlanVisualization).toHaveBeenCalledTimes(1);
+  expect(ultimaCena().view).toBe("top");
+});
+
+
+it("retira a geometria antiga enquanto o próximo caminhão carrega, mesmo sem key no consumidor", async () => {
+  vi.mocked(getLoadPlanVisualization).mockReset();
+  let finish!: (value: LoadPlanVisualization) => void;
+  vi.mocked(getLoadPlanVisualization).mockResolvedValueOnce(VIEW).mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));
+  const component = render(<LoadViewer planId="lp1" plan={PLAN} />);
+  await screen.findByTestId("cena");
+  component.rerender(<LoadViewer planId="lp2" plan={{ ...PLAN, id: "lp2" }} />);
+  expect(screen.queryByTestId("cena")).not.toBeInTheDocument();
+  const replacement = { ...VIEW, truck: { ...TRUCK, widthCm: 100 }, items: [item(7)] };
+  await act(async () => { finish(replacement); });
+  await screen.findByTestId("cena");
+  expect(ultimaCena().truck.widthCm).toBe(100);
+  expect(ultimaCena().items.map(volume => volume.id)).toEqual(["v7"]);
 });

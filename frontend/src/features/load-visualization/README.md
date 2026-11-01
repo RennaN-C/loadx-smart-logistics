@@ -19,7 +19,7 @@ Consome `GET /load-plans/{id}/visualization`.
 - `components/cargoTexture.ts`: a superfície dos volumes por tipo, desenhada em canvas.
 - `components/cameraViews.ts`: os cinco ângulos prontos. **Funções puras, testadas.**
 
-A tela vive na aba "Visualização 3D" de `features/load-planning/pages/PlanningPage.tsx`.
+O 3D é a visualização inicial dos resultados individuais e de cada parte da distribuição. A tabela e a sequência permanecem na aba secundária. O módulo Three.js continua carregado sob demanda apenas ao acessar a carga calculada.
 
 ## Coordenadas: só conversão, nunca cálculo
 
@@ -314,3 +314,15 @@ diretamente, eliminando 48 pacotes e a dependência depreciada
 ## Permissões
 
 Mesma regra do plano: `ADMIN`, `CHECKER` e `LOGISTICS_MANAGER` leem.
+
+
+## Workspace ampliado (#372)
+
+O modo expandido ocupa a área do navegador com a mesma cena e preserva vista,
+seleção e controles. Usa o ciclo de foco/Escape/scroll compartilhado com Modal,
+sem dependências externas ou cenas duplicadas. O ResizeObserver do renderer
+acompanha o tamanho do canvas. Mudança de planId remonta a instância interna e
+retira geometria anterior durante a consulta; respostas tardias são descartadas.
+SceneBoundary limita falhas WebGL ao visualizador; métricas e tabela continuam
+operacionais. Não houve alteração em LoadScene, CameraControls, materiais,
+posições, rotações, dimensões, capacidades ou regras de cor.

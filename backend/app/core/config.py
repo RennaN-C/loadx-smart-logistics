@@ -35,7 +35,16 @@ class Settings(BaseSettings):
     )
     secret_key: str = "local-only"
     password_blocklist_path: Path | None = None
-    ai_provider: str = "mock"
+    ai_provider: Literal["mock", "groq"] = "mock"
+    groq_api_key: SecretStr | None = Field(default=None, repr=False)
+    groq_model: str = Field(
+        default="llama-3.3-70b-versatile",
+        min_length=1,
+        max_length=100,
+        pattern=r"^[a-zA-Z0-9._/-]+$",
+    )
+    ai_chat_timeout_seconds: float = Field(default=16, ge=1, le=20)
+    ai_chat_requests_per_minute: int = Field(default=12, ge=1, le=30)
     ai_explanation_timeout_seconds: float = Field(default=5.0, gt=0)
     whatsapp_provider: Literal["mock"] = "mock"
     outbox_lease_seconds: int = Field(default=60, ge=10, le=600)
