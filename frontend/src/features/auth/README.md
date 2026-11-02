@@ -21,6 +21,27 @@ cookie `HttpOnly`; o frontend não lê nem persiste credenciais. O
 `X-CSRF-Token` devolvido por login e `/auth/me` fica apenas em memória em
 `frontend/src/services/csrfToken.ts`.
 
+
+## Autenticação publicada na Vercel — Issue #393
+
+`CONFIRMADO`: o frontend da homologação usa `VITE_API_URL=/api/v1` para chamar
+a API na **mesma origem** do domínio da Vercel. `frontend/vercel.json`
+encaminha `/api/:path*` para a API Render e mantém o fallback SPA
+`/:path*` → `/index.html`. A ordem importa: o proxy vem primeiro.
+O cookie `__Host-loadx_session` continua sendo `HttpOnly`, `Secure`,
+`SameSite=Lax`, sem `Domain`; nunca exponha segredo ou permita scripts
+de terceiros para contornar a sessão.
+
+`CONFIRMADO`: `npm run build` executa
+`scripts/check-vercel-routing.mjs` para recusar builds sem o proxy,
+sem fallback ou com `VITE_API_URL` externa. A Vercel precisa receber o
+valor relativo **`/api/v1`** nos ambientes de produção e preview;
+por ser variável protegida no painel, conferir sem copiar seu conteúdo
+para logs. Depois de publicar, conferir a resposta HTTP real de
+`POST /api/v1/auth/login` sem compartilhar credenciais.
+Um deploy `READY` sozinho não prova login funcional.
+
+
 ## Pendências
 
 - `CONFIRMADO`: recuperação e MFA foram implementados na OC98, descrita abaixo.
