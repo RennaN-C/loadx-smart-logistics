@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build && node scripts/check-bundle-budget.mjs",
+    "build": "tsc -b && vite build && node scripts/check-bundle-budget.mjs && node scripts/check-vercel-routing.mjs",
     "lint": "eslint .",
     "test": "vitest"
   },
