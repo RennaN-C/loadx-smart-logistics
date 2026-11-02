@@ -179,13 +179,12 @@ def planning_insight(db: Session, user: User, data: ChatRequest) -> ChatResponse
         )
 
     match = _UUID.search(data.message)
-    plan_id = (
-        uuid.UUID(match.group())
-        if match
-        else None
-        if _LATEST_WORD.search(data.message)
-        else data.plan_id
-    )
+    if match:
+        plan_id = uuid.UUID(match.group())
+    elif _LATEST_WORD.search(data.message):
+        plan_id = None
+    else:
+        plan_id = data.plan_id
     if plan_id is None:
         # Never guess an arbitrary plan from conversation history or model text.
         offset = (
