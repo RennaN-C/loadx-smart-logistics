@@ -45,6 +45,30 @@ artefatos fictícios: wheel com hash aprovado instala; hash divergente falha;
 sdist com hash aprovado é recusada antes do hook de build. Remover a restrição
 de binários faz a regressão da sdist falhar, comprovando sua sensibilidade.
 
+`CONFIRMADO`: validação local em Windows/Python 3.12: Ruff check aprovado,
+595 arquivos no format check e três regressões aprovadas. Download dos artefatos
+do lock com hashes e somente wheels para CPython 3.12/manylinux aprovado
+(`pip download --no-deps`, sem avaliar dependências transitivas pelo host Windows).
+O YAML também foi carregado com `js-yaml`; o argumento `:all:` está entre aspas
+para preservar a sintaxe do escalar YAML.
+
+`CONFIRMADO`: frontend local: ESLint sem erros (dois warnings), 1.189 testes
+aprovados, TypeScript/build e orçamento de bundle aprovados. `npm audit
+--audit-level=high` terminou com exit code 0, mas registrou 14 vulnerabilidades
+moderadas; isso não equivale a auditoria sem alertas. Node local 22.16.0 está
+abaixo do intervalo do projeto; a CI usa a versão de `.nvmrc`.
+
+`CONFIRMADO`: a suíte backend unitária/health local ampliada teve 1.707 aprovados,
+seis falhas e dois erros. Cinco falhas envolvem storage com permissões POSIX;
+outra é a ausência de APP_STOPPED no teste de encerramento do Uvicorn. Os dois
+erros são do parâmetro extenso de Groq excedendo o limite de 32.767 caracteres
+de variável de ambiente no Windows. Esses arquivos não foram alterados.
+O lock Linux não instala integralmente no Windows (`uvloop`; dependência
+`tzdata` específica do Windows ausente no lock Linux). Para os ensaios locais,
+usou-se ambiente isolado, omitindo somente uvloop e a resolução transitiva,
+sem alterar o lock. Docker estava indisponível; integração PostgreSQL e Trivy
+devem ser comprovados na CI oficial. Não se declara suíte backend local verde.
+
 `PENDENTE DE DEFINIÇÃO`: a aprovação Sonar da correção deve ser conferida na PR
 e novamente no SHA da main após o merge normal. Não houve alteração do Quality
 Gate, baseline, classificação do apontamento, lógica de publicação ou proteções.
