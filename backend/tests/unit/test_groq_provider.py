@@ -116,8 +116,9 @@ def test_groq_logs_only_safe_status_on_http_error(monkeypatch, caplog):
         "https://example.invalid", 401, "secret-key and private prompt", {}, None
     )
     monkeypatch.setattr("app.integrations.ai.groq.build_opener", lambda *_: opener)
+    provider = GroqProvider(config())
     with pytest.raises(AIProviderUnavailableError):
-        GroqProvider(config()).complete([], timeout_seconds=1)
+        provider.complete([], timeout_seconds=1)
     assert "GROQ_REQUEST_FAILURE category=http_401" in caplog.text
     assert "secret-key" not in caplog.text
     assert "private prompt" not in caplog.text
@@ -142,8 +143,9 @@ def test_groq_403_reports_only_allowlisted_error_code(
         "https://example.invalid", 403, "Forbidden", {}, io.BytesIO(body)
     )
     monkeypatch.setattr("app.integrations.ai.groq.build_opener", lambda *_: opener)
+    provider = GroqProvider(config())
     with pytest.raises(AIProviderUnavailableError):
-        GroqProvider(config()).complete([], timeout_seconds=1)
+        provider.complete([], timeout_seconds=1)
     assert f"GROQ_REQUEST_FAILURE category=http_403 reason={expected}" in caplog.text
     assert "private-customer-prompt" not in caplog.text
     assert "arbitrary-private-message" not in caplog.text
@@ -159,8 +161,9 @@ def test_groq_cloudflare_client_signature_403_logs_safe_reason(monkeypatch, capl
         io.BytesIO(b"error code: 1010"),
     )
     monkeypatch.setattr("app.integrations.ai.groq.build_opener", lambda *_: opener)
+    provider = GroqProvider(config())
     with pytest.raises(AIProviderUnavailableError):
-        GroqProvider(config()).complete([], timeout_seconds=1)
+        provider.complete([], timeout_seconds=1)
     assert (
         "GROQ_REQUEST_FAILURE category=http_403 reason=edge_client_signature_1010"
         in caplog.text
@@ -184,8 +187,9 @@ def test_groq_invalid_tool_generation_has_safe_retryable_category(monkeypatch, c
         "https://example.invalid", 400, "Bad Request", {}, io.BytesIO(body)
     )
     monkeypatch.setattr("app.integrations.ai.groq.build_opener", lambda *_: opener)
+    provider = GroqProvider(config())
     with pytest.raises(AIProviderToolGenerationError):
-        GroqProvider(config()).complete([], timeout_seconds=1)
+        provider.complete([], timeout_seconds=1)
     assert "reason=invalid_tool_generation" in caplog.text
     assert "private-customer-token" not in caplog.text
 
@@ -200,8 +204,9 @@ def test_groq_other_http_400_fails_closed_without_tool_retry(monkeypatch):
         io.BytesIO(b'{"error":{"type":"invalid_request_error"}}'),
     )
     monkeypatch.setattr("app.integrations.ai.groq.build_opener", lambda *_: opener)
+    provider = GroqProvider(config())
     with pytest.raises(AIProviderUnavailableError) as caught:
-        GroqProvider(config()).complete([], timeout_seconds=1)
+        provider.complete([], timeout_seconds=1)
     assert not isinstance(caught.value, AIProviderToolGenerationError)
 
 

@@ -11,11 +11,44 @@ from app.modules.access_profiles.catalog import has_permission
 from app.modules.assistant.schemas import ChatResponse
 from app.modules.users.models import User
 
+PLANNING_ROUTE = "/planning"
+
 
 def _normalize(question: str) -> str:
     raw = unicodedata.normalize("NFKD", question.casefold())
     return " ".join(
         "".join(char for char in raw if not unicodedata.combining(char)).split()
+    )
+
+
+def _suggested_questions(user: User) -> ChatResponse:
+    options: list[str] = []
+    if has_permission(user, "loadx.planning.read"):
+        options.extend(
+            [
+                "Qual foi o último planejamento calculado?",
+                "Liste os planejamentos anteriores.",
+                "Por que houve volumes rejeitados no último cálculo?",
+            ]
+        )
+    if has_permission(user, "loadx.products.read"):
+        options.append("Quais produtos estão cadastrados?")
+    if has_permission(user, "loadx.trucks.read"):
+        options.append("Quais caminhões estão indisponíveis?")
+    if has_permission(user, "loadx.deliveries.read"):
+        options.append("Quantos pedidos foram entregues nos últimos 30 dias?")
+    return ChatResponse(
+        source="BACKEND",
+        answer=(
+            "Você pode perguntar, por exemplo:\n"
+            + (
+                "\n".join(f"• {item}" for item in options[:6])
+                if options
+                else "• Como funciona o fluxo de carregamento?"
+            )
+            + "\n\nPara ações que alteram dados, posso orientar a tela correta; "
+            "a confirmação deve ser feita no sistema."
+        ),
     )
 
 
@@ -55,51 +88,24 @@ def conversation_reply(user: User, message: str) -> ChatResponse | None:
         r"como (?:posso|comeco) perguntar|me ajude|ajuda no chat)\b",
         text,
     ):
-        options: list[str] = []
-        if has_permission(user, "loadx.planning.read"):
-            options.extend(
-                [
-                    "Qual foi o último planejamento calculado?",
-                    "Liste os planejamentos anteriores.",
-                    "Por que houve volumes rejeitados no último cálculo?",
-                ]
-            )
-        if has_permission(user, "loadx.products.read"):
-            options.append("Quais produtos estão cadastrados?")
-        if has_permission(user, "loadx.trucks.read"):
-            options.append("Quais caminhões estão indisponíveis?")
-        if has_permission(user, "loadx.deliveries.read"):
-            options.append("Quantos pedidos foram entregues nos últimos 30 dias?")
-        return ChatResponse(
-            source="BACKEND",
-            answer=(
-                "Você pode perguntar, por exemplo:\n"
-                + (
-                    "\n".join(f"• {item}" for item in options[:6])
-                    if options
-                    else "• Como funciona o fluxo de carregamento?"
-                )
-                + "\n\nPara ações que alteram dados, posso orientar a tela correta; "
-                "a confirmação deve ser feita no sistema."
-            ),
-        )
+        return _suggested_questions(user)
     actions = (
         (
             "aprovar|aprove",
             "loadx.planning.approve",
-            "/planning",
+            PLANNING_ROUTE,
             "aprovação de planejamento",
         ),
         (
             "recalcular",
             "loadx.planning.create",
-            "/planning",
+            PLANNING_ROUTE,
             "recálculo de planejamento",
         ),
         (
             "cancelar",
             "loadx.planning.read",
-            "/planning",
+            PLANNING_ROUTE,
             "revisão das opções de cancelamento de planejamento",
         ),
         (

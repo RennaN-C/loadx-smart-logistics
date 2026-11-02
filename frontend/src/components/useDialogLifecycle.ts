@@ -22,8 +22,8 @@ export function useDialogLifecycle(dialogRef: RefObject<HTMLElement>, active: bo
     (focusables()[0] ?? dialog)?.focus();
 
     function handleKeyDown(event: KeyboardEvent) {
-      const dialogs = document.querySelectorAll('[role="dialog"]');
-      if (dialogs[dialogs.length - 1] !== dialog) return;
+      const dialogs = Array.from(document.querySelectorAll('[role="dialog"]'));
+      if (dialogs.at(-1) !== dialog) return;
       if (event.key === "Escape") {
         event.preventDefault();
         closeRef.current();

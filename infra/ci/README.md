@@ -12,7 +12,7 @@ O job independente `Backend` usa Ubuntu, Python 3.12 e um serviço PostgreSQL 16
 com o banco exclusivo `loadx_test`. A sequência validada é:
 
 1. instalar as dependências travadas de `backend/requirements-dev.lock.txt` com
-   `python -m pip install --require-hashes`;
+   `python -m pip install --only-binary=:all: --require-hashes`;
 2. executar `python -m ruff check .`;
 3. executar `python -m ruff format --check .`;
 4. aplicar `python -m alembic upgrade head`;
@@ -22,7 +22,15 @@ com o banco exclusivo `loadx_test`. A sequência validada é:
 `backend/requirements-dev.txt` inclui runtime e ferramentas de desenvolvimento. O arquivo
 `backend/requirements-dev.lock.txt`, gerado em Python 3.12, fixa as versões diretas
 e transitivas e registra hashes SHA-256. A CI instala exclusivamente o lock com
-`--require-hashes`, sem atualizar o `pip` de forma não versionada.
+`--only-binary=:all: --require-hashes`, sem atualizar o `pip` de forma não versionada.
+
+`CONFIRMADO`: a restrição a wheels impede execução de scripts de build de
+distribuições fonte durante a instalação (SonarCloud `githubactions:S8541`).
+Os hashes continuam obrigatórios. Dependência sem wheel compatível faz a CI
+falhar; não remover a restrição para contornar essa falha.
+`tests/unit/test_ci_dependency_install.py` executa o comando da CI sem rede,
+com artefatos fictícios: aceita wheel com hash aprovado, rejeita hash divergente
+e rejeita distribuição fonte antes de executar seu código de build.
 
 ## Frontend
 

@@ -18,8 +18,9 @@ def test_busy_request_does_not_charge_chat_quota(monkeypatch):
         "AssistantConcurrencyRepository",
         lambda db: SimpleNamespace(try_acquire=lambda identity: False),
     )
+    db = Mock()
     with pytest.raises(ApiError) as busy:
-        limits.ensure_budget(Mock(), actor, 1)
+        limits.ensure_budget(db, actor, 1)
     assert busy.value.status_code == 429
 
     monkeypatch.setattr(
@@ -27,7 +28,7 @@ def test_busy_request_does_not_charge_chat_quota(monkeypatch):
         "AssistantConcurrencyRepository",
         lambda db: SimpleNamespace(try_acquire=lambda identity: True),
     )
-    limits.ensure_budget(Mock(), actor, 1)
+    limits.ensure_budget(db, actor, 1)
     with pytest.raises(ApiError) as limited:
-        limits.ensure_budget(Mock(), actor, 1)
+        limits.ensure_budget(db, actor, 1)
     assert limited.value.status_code == 429
