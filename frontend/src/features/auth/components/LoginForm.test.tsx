@@ -65,6 +65,7 @@ describe("LoginForm", () => {
     vi.mocked(useAuth).mockReturnValue({ status: "unauthenticated", user: null, login, updateUser: vi.fn(), logout: vi.fn() });
 
     render(<MemoryRouter><LoginForm /></MemoryRouter>);
+    expect(document.querySelector(".login-access-mark .loadx-brand-mark")).toHaveAttribute("src", "/branding/loadx-mark-128.png");
 
     fireEvent.change(screen.getByLabelText("E-MAIL"), { target: { value: "admin@example.test" } });
     fireEvent.change(screen.getByLabelText("SENHA"), { target: { value: "senha-local" } });
