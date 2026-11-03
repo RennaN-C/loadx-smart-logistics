@@ -57,6 +57,8 @@ describe("AppLayout", () => {
     renderLayout();
 
     expect(screen.getByText("LOADX", { selector: ".app-brand-label" })).toBeInTheDocument();
+    expect(document.querySelector(".app-brand .loadx-brand-mark")).toHaveAttribute("src", "/branding/loadx-mark-128.png");
+    expect(document.querySelector(".app-mobile-brand .loadx-brand-mark")).toHaveAttribute("src", "/branding/loadx-mark-128.png");
     expect(screen.getByText("conteudo da rota")).toBeInTheDocument();
   });
 

@@ -173,40 +173,19 @@ export function Icon({ name, size = 18 }: IconProps) {
 }
 
 /**
- * Marca da LoadX. Repete a linguagem do painel do login — eixos e volumes
- * apoiados na base —, para a barra lateral e a tela de entrada parecerem o
- * mesmo produto.
+ * Marca oficial da LoadX, compartilhada por login, sidebar e barra mobile.
+ * Decorativa: o nome do produto aparece em texto nesses contextos.
  */
 export function BrandMark({ size = 26 }: { readonly size?: number }) {
   return (
-    <svg
+    <img
+      className="loadx-brand-mark"
+      src="/branding/loadx-mark-128.png"
       width={size}
       height={size}
-      viewBox="0 0 24 24"
-      fill="none"
+      alt=""
       aria-hidden="true"
-      focusable="false"
-    >
-      <path d="M4 3.2v16.6h16.6" stroke="var(--accent)" strokeWidth="1.6" strokeLinecap="round" />
-      <rect
-        x="7"
-        y="13.4"
-        width="5.4"
-        height="6.4"
-        stroke="currentColor"
-        strokeOpacity="0.5"
-        strokeWidth="1.4"
-      />
-      <rect
-        x="13.6"
-        y="9"
-        width="5.4"
-        height="10.8"
-        fill="var(--accent)"
-        fillOpacity="0.2"
-        stroke="var(--accent)"
-        strokeWidth="1.4"
-      />
-    </svg>
+      decoding="async"
+    />
   );
 }

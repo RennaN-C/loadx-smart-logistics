@@ -7,6 +7,7 @@ it("apresenta a marca sem inventar ambiente ou versao do sistema", () => {
   render(<BrandPanel />);
   expect(screen.getByRole("heading", { name: /Logística inteligente.*Operação conectada/ })).toBeInTheDocument();
   expect(screen.getByText("LOADX", { exact: true })).toBeInTheDocument();
+  expect(document.querySelector(".login-wordmark .loadx-brand-mark")).toHaveAttribute("src", "/branding/loadx-mark-128.png");
   expect(screen.getByText("LOADX · LOGÍSTICA INTELIGENTE")).toBeInTheDocument();
   expect(screen.queryByText(/AMBIENTE LOCAL|V0\.1/)).not.toBeInTheDocument();
 });
