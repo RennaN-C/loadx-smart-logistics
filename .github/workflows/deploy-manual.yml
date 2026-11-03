@@ -1,0 +1,143 @@
+name: LoadX - Deploy manual (Vercel e Render)
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Qual plataforma deve receber o deploy da pentest-lab?"
+        required: true
+        type: choice
+        default: both
+        options:
+          - both
+          - vercel
+          - render
+
+permissions:
+  contents: read
+  checks: read
+
+concurrency:
+  group: loadx-manual-deploy-pentest
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Solicitar deploy de pentest-lab
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Validar branch, SHA e CI
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "$GITHUB_REF" != "refs/heads/pentest-lab" ]]; then
+            echo "::error::Deploy manual permitido somente com --ref pentest-lab."
+            exit 1
+          fi
+
+          atual="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/pentest-lab" --jq '.object.sha')"
+          if [[ "$atual" != "$GITHUB_SHA" ]]; then
+            echo "::error::pentest-lab mudou desde o acionamento. Execute novamente."
+            exit 1
+          fi
+
+          gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/check-runs?per_page=100" > "$RUNNER_TEMP/loadx-checks.json"
+          python3 - <<'PY'
+          import json
+          import os
+          import sys
+
+          path = os.path.join(os.environ["RUNNER_TEMP"], "loadx-checks.json")
+          with open(path, encoding="utf-8") as handle:
+              checks = json.load(handle)["check_runs"]
+
+          required = ("Backend", "Frontend", "Segurança do backend", "SonarCloud Code Analysis")
+          for name in required:
+              results = [run for run in checks if run["name"] == name]
+              results.sort(key=lambda run: (run.get("started_at") or "", run["id"]), reverse=True)
+              if not results or results[0]["conclusion"] != "success":
+                  print(f"::error::{name} não está aprovado neste commit. Nenhum deploy será solicitado.")
+                  sys.exit(1)
+              print(f"OK: {name}")
+          PY
+
+          echo "Branch aprovada: pentest-lab ($GITHUB_SHA)"
+          echo "Nenhuma branch será sincronizada ou alterada."
+
+      - name: Conferir secrets dos destinos antes de solicitar deploy
+        env:
+          VERCEL_HOOK: ${{ secrets.LOADX_VERCEL_DEPLOY_HOOK_URL }}
+          RENDER_HOOK: ${{ secrets.LOADX_RENDER_DEPLOY_HOOK_URL }}
+          DEPLOY_TARGET: ${{ inputs.target }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "$DEPLOY_TARGET" in
+            both|vercel|render) ;;
+            *) echo "::error::Destino invalido."; exit 1 ;;
+          esac
+          if [[ "$DEPLOY_TARGET" == "both" || "$DEPLOY_TARGET" == "render" ]]; then
+            if [[ -z "$RENDER_HOOK" || "$RENDER_HOOK" != https://api.render.com/deploy/srv-db241sss728c73b0iai0?* || "$RENDER_HOOK" == *"ref="* ]]; then
+              echo "::error::Configure o Render Deploy Hook correto, sem parâmetro ref."
+              exit 1
+            fi
+          fi
+          if [[ "$DEPLOY_TARGET" == "both" || "$DEPLOY_TARGET" == "vercel" ]]; then
+            if [[ -z "$VERCEL_HOOK" || "$VERCEL_HOOK" != https://api.vercel.com/v1/integrations/deploy/prj_5ubGrZP2xjyVnFLu8WXaPfATmycD/* ]]; then
+              echo "::error::Configure o Vercel Deploy Hook do projeto e da branch pentest-lab."
+              exit 1
+            fi
+          fi
+          echo "Hooks configurados para o destino solicitado. Nenhuma URL será exibida."
+
+      - name: Solicitar novo deploy ao Render
+        if: ${{ inputs.target == 'both' || inputs.target == 'render' }}
+        env:
+          HOOK_URL: ${{ secrets.LOADX_RENDER_DEPLOY_HOOK_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "$HOOK_URL" ]]; then
+            echo "::error::Configure LOADX_RENDER_DEPLOY_HOOK_URL em Secrets and variables > Actions."
+            exit 1
+          fi
+          if [[ "$HOOK_URL" != https://api.render.com/deploy/srv-db241sss728c73b0iai0?* ]]; then
+            echo "::error::O hook Render não corresponde ao serviço autorizado."
+            exit 1
+          fi
+          if [[ "$HOOK_URL" == *"ref="* ]]; then
+            echo "::error::Remova o parâmetro ref do hook: o serviço deve seguir pentest-lab."
+            exit 1
+          fi
+          code="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --max-time 45 --request POST "$HOOK_URL")"
+          if [[ ! "$code" =~ ^2[0-9][0-9]$ ]]; then
+            echo "::error::Render recusou a solicitação (HTTP $code)."
+            exit 1
+          fi
+          echo "Render aceitou a solicitação (HTTP $code). Acompanhe o build no painel Render."
+
+      - name: Solicitar novo deploy à Vercel
+        if: ${{ inputs.target == 'both' || inputs.target == 'vercel' }}
+        env:
+          HOOK_URL: ${{ secrets.LOADX_VERCEL_DEPLOY_HOOK_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "$HOOK_URL" ]]; then
+            echo "::error::Configure LOADX_VERCEL_DEPLOY_HOOK_URL em Secrets and variables > Actions."
+            exit 1
+          fi
+          if [[ "$HOOK_URL" != https://api.vercel.com/v1/integrations/deploy/prj_5ubGrZP2xjyVnFLu8WXaPfATmycD/* ]]; then
+            echo "::error::O hook Vercel não corresponde ao projeto autorizado."
+            exit 1
+          fi
+          code="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --max-time 45 --request POST "$HOOK_URL")"
+          if [[ ! "$code" =~ ^2[0-9][0-9]$ ]]; then
+            echo "::error::Vercel recusou a solicitação (HTTP $code)."
+            exit 1
+          fi
+          echo "Vercel aceitou a solicitação (HTTP $code). Acompanhe o build no painel Vercel."
