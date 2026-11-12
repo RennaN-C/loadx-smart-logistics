@@ -154,3 +154,10 @@ prioritário; não adiciona dependências nem utiliza hotlink.
 rotas SVG animadas. Sinais/nós/luz/zoom podem ser pausados; movimento reduzido
 os desliga e mobile reduz a decoração. Nenhuma alteração em sessão, MFA,
 recuperação, validações ou backend. [Comparação e testes](../../../../docs/evidencias/premium-navy-gold/README.md).
+
+
+## Cenário cinematográfico de login — PR #405 (pentest)
+
+O painel de marca utiliza `/images/login-cinematic-scene.webp` (900×1000 px, WebP local, 43.542 bytes), composto a partir da referência visual aprovada para o LoadX. O cenário contém caminhão, centro de distribuição, empilhadeira e mapa luminoso, **sem campos, texto de autenticação ou botões rasterizados**. Toda a marca, texto, formulários, recuperação e MFA permanecem componentes React acessíveis.
+
+O `BrandPanel` mantém caminhos SVG, nós e brilho ambiental decorativos com `prefers-reduced-motion` e controle de pausa. O novo CSS é escopado à `.login-page`, com acabamento Navy & Gold e prioridade à legibilidade. Esta alteração não modifica API, credenciais, sessões, rotas, RBAC, banco nem módulos operacionais. Para publicar em `pentest-lab`, exigir lint, suíte e build no workflow `UI Fidelity (pentest)` e validar a página carregada na Vercel.
