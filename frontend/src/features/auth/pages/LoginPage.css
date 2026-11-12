@@ -349,3 +349,76 @@
   letter-spacing: .24em;
 }
 .login-card .login-lede { margin: 16px auto 0; }
+
+
+/* LOGIN CLARITY POLISH 2026-11-12
+   A fotografia continua por trás dos controles reais; o mapa SVG mantém
+   traços vetoriais definidos e a coluna de login compartilha a mesma cor
+   do fade no canto direito da imagem. */
+.login-hero-photo {
+  filter: contrast(1.055) saturate(1.045) brightness(1.02);
+  image-rendering: auto;
+}
+
+/* Dissolve o cenário gradualmente em navy: sem costura vertical marcada. */
+.login-brand::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 0 auto;
+  z-index: -1;
+  width: clamp(96px, 13vw, 205px);
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgb(7 23 36 / 22%) 30%,
+    rgb(7 23 36 / 67%) 70%,
+    #071724 100%
+  );
+}
+.login-formside {
+  background:
+    radial-gradient(ellipse at 95% 0, rgb(33 79 107 / 25%), transparent 58%),
+    linear-gradient(90deg, #071724 0%, #0b1e2e 22%, #0a1b2b 100%);
+}
+
+/* Ponto central definido, halo de fundo discreto: o brilho nao deve
+   substituir a forma do ponto ou borrar as rotas vetoriais. */
+.login-routes {
+  opacity: .86;
+  mix-blend-mode: normal;
+  shape-rendering: geometricPrecision;
+}
+.login-route-track {
+  stroke-width: 1.25;
+  opacity: .38;
+  filter: none;
+}
+.login-route-signal {
+  stroke-width: 2.25;
+  filter: none;
+}
+.login-route-hub {
+  stroke: #fff2d3;
+  stroke-width: 1;
+  filter: none;
+  animation: login-node-glow 7s ease-in-out infinite alternate;
+}
+.login-route-core {
+  fill: #fff9e9;
+  stroke: #f5c779;
+  stroke-width: 1;
+  filter: none;
+}
+.login-route-core.is-blue { stroke: #66b8e4; }
+.login-atmosphere {
+  background:
+    radial-gradient(ellipse at 80% 25%, rgb(38 99 143 / 7%), transparent 45%),
+    radial-gradient(ellipse at 20% 80%, rgb(255 180 50 / 6%), transparent 42%);
+}
+
+@media (max-width: 820px) {
+  /* Sem imagem a atravessar o painel no layout vertical compacto. */
+  .login-brand::before { display: none; }
+  .login-formside { background: none; }
+}
