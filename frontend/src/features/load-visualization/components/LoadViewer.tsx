@@ -1,4 +1,5 @@
 import { useDialogLifecycle } from "../../../components/useDialogLifecycle";
+import { Icon } from "../../../components/Icon";
 import { SceneBoundary } from "./SceneBoundary";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -312,6 +313,7 @@ function LoadViewerWorkspace({ planId, plan }: LoadViewerProps) {
 
       <div className="viewer-kpis">
         <div className="viewer-kpi">
+          <Icon name="planning" size={24} />
           <span className="viewer-kpi-label">OCUPAÇÃO</span>
           <span className="viewer-kpi-value">
             {plan.occupancyPercent.toFixed(1)}
@@ -319,6 +321,7 @@ function LoadViewerWorkspace({ planId, plan }: LoadViewerProps) {
           </span>
         </div>
         <div className="viewer-kpi">
+          <Icon name="package" size={24} />
           <span className="viewer-kpi-label">PESO EMBARCADO</span>
           <span className="viewer-kpi-value">
             {(plan.totalWeightKg / 1000).toFixed(2)}
@@ -326,10 +329,12 @@ function LoadViewerWorkspace({ planId, plan }: LoadViewerProps) {
           </span>
         </div>
         <div className="viewer-kpi">
+          <Icon name="package" size={24} />
           <span className="viewer-kpi-label">VOLUMES</span>
           <span className="viewer-kpi-value">{plan.loadedCount}</span>
         </div>
         <div className={plan.unloadedCount > 0 ? "viewer-kpi viewer-kpi-alert" : "viewer-kpi"}>
+          <Icon name="priority" size={24} />
           <span className="viewer-kpi-label">FORA DA CARGA</span>
           <span className="viewer-kpi-value">{plan.unloadedCount}</span>
         </div>
