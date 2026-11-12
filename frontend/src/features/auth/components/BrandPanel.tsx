@@ -5,20 +5,20 @@ export function BrandPanel() {
   const [motionPaused, setMotionPaused] = useState(false);
   return (
     <aside className={`login-brand${motionPaused ? " is-motion-paused" : ""}`}>
-      <img className="login-hero-photo" src="/images/login-logistics-hero-v2.webp" alt="" aria-hidden="true" width={1024} height={1536} fetchPriority="high" />
+      <img className="login-hero-photo" src="/images/login-cinematic-scene.webp" alt="" aria-hidden="true" width={900} height={1000} fetchPriority="high" />
       <div className="login-atmosphere" aria-hidden="true" />
       <svg className="login-routes" viewBox="0 0 1000 900" fill="none" aria-hidden="true" focusable="false">
         {[
-          "M 220 550 Q 490 190 815 290",
-          "M 390 660 Q 920 510 815 290",
-          "M 815 290 Q 720 90 520 110",
+          "M 675 415 C 720 362 767 326 835 330",
+          "M 835 330 C 912 259 885 189 785 166",
+          "M 598 522 C 649 449 755 432 835 330",
         ].map((path, index) => <g key={path} className={`login-route login-route-${index + 1}`}>
           <path d={path} className="login-route-track" />
           <path d={path} className="login-route-signal" pathLength="1" />
         </g>)}
-        <circle className="login-route-hub" cx="815" cy="290" r="5" />
-        <circle className="login-route-hub" cx="390" cy="660" r="3" />
-        <circle className="login-route-hub" cx="520" cy="110" r="3" />
+        <circle className="login-route-hub" cx="835" cy="330" r="5" />
+        <circle className="login-route-hub" cx="598" cy="522" r="3" />
+        <circle className="login-route-hub" cx="785" cy="166" r="3" />
       </svg>
       <p className="login-wordmark"><BrandMark size={25} /> LOADX</p>
       <div className="login-brand-main">
