@@ -338,3 +338,14 @@
 @media (prefers-reduced-motion: reduce) {
   .login-route-signal, .login-route-hub, .login-atmosphere, .login-hero-photo { animation: none !important; }
 }
+
+/* Login concept fidelity: branded heading remains semantic HTML, never part of the photo. */
+.login-card-highlight { color: #ffca61; }
+.login-card-subtitle {
+  margin: 8px 0 0;
+  color: #d1dfec;
+  font-size: .73rem;
+  font-weight: 600;
+  letter-spacing: .24em;
+}
+.login-card .login-lede { margin: 16px auto 0; }
