@@ -42,7 +42,7 @@ export function LoginForm() {
       <div className="login-card-intro">
         <span className="login-access-mark" aria-hidden="true"><BrandMark size={25} /></span>
         <p className="login-access-eyebrow">ACESSO À PLATAFORMA</p>
-        <h2>Bem-vindo ao Load<span className="login-card-highlight">X</span></h2>
+        <h2 aria-label="Bem-vindo ao LoadX">Bem-vindo ao Load<span className="login-card-highlight">X</span></h2>
         <p className="login-card-subtitle">SMART LOGISTICS</p>
         <p className="login-lede">Acesse sua conta para planejar cargas<br />e acompanhar sua operação logística.</p>
       </div>
