@@ -3,7 +3,7 @@ import { expect, it } from "vitest";
 
 import { BrandPanel } from "./BrandPanel";
 
-it("mantém marca oficial, título e funcionalidades exibidas sem inventar novas capacidades", () => {
+it("preserva a identidade real do LoadX e o conteúdo semântico para mobile e acessibilidade", () => {
   render(<BrandPanel />);
   expect(screen.getByRole("heading", { name: /Planejamento inteligente para.*uma logística mais eficiente/ })).toBeInTheDocument();
   expect(screen.getByText("LOADX", { exact: true })).toBeInTheDocument();
@@ -12,25 +12,22 @@ it("mantém marca oficial, título e funcionalidades exibidas sem inventar novas
   expect(screen.queryByText(/AMBIENTE LOCAL|V0\\.1/)).not.toBeInTheDocument();
 });
 
-it("usa o asset HD real e deixa os textos e o login fora da fotografia", () => {
+it("usa somente a arte aprovada no desktop sem substituir os controles de login", () => {
   render(<BrandPanel />);
-  const image = document.querySelector(".login-hero-photo");
-  expect(image).toHaveAttribute("src", "/images/login-cinematic-scene-hd.webp");
-  expect(image).toHaveAttribute("width", "1800");
-  expect(image).toHaveAttribute("height", "2000");
-  expect(image).toHaveAttribute("alt", "");
+  const image = document.querySelector(".login-reference-art");
+  expect(image).toHaveAttribute("src", "/images/login-reference-left.avif");
+  expect(image).toHaveAttribute("width", "1006");
+  expect(image).toHaveAttribute("height", "941");
   expect(image).toHaveAttribute("aria-hidden", "true");
+  expect(image).toHaveAttribute("alt", "");
+  expect(document.querySelector(".login-brand-live")).toBeInTheDocument();
 });
 
-it("não desenha rotas sobre o caminhão nem mostra botão de pausar efeitos", () => {
+it("remove as camadas artificiais, linhas cruzando o caminhão e botões de efeitos", () => {
   render(<BrandPanel />);
   expect(document.querySelector(".login-routes")).not.toBeInTheDocument();
   expect(document.querySelector(".login-atmosphere")).not.toBeInTheDocument();
+  expect(document.querySelector(".login-world-map")).not.toBeInTheDocument();
+  expect(document.querySelector(".login-map-veil")).not.toBeInTheDocument();
   expect(screen.queryByRole("button", { name: /pausar efeitos|ativar efeitos/i })).not.toBeInTheDocument();
-  const map = document.querySelector(".login-world-map");
-  expect(map).toHaveAttribute("aria-hidden", "true");
-  expect(map).toHaveAttribute("focusable", "false");
-  expect(map?.querySelectorAll(".login-world-connections path")).toHaveLength(4);
-  expect(map?.querySelectorAll(".login-world-points circle")).toHaveLength(5);
-  expect(document.querySelector(".login-map-veil")).toHaveAttribute("aria-hidden", "true");
 });
