@@ -147,3 +147,10 @@ prioritário; não adiciona dependências nem utiliza hotlink.
 `CONFIRMADO`: proveniência e prompt em
 [images/README.md](../../../public/images/README.md). Capturas e verificações em
 [login fotográfico](../../../../docs/evidencias/login-fotografico/README.md).
+
+## Navy & Gold — #403
+
+`CONFIRMADO`: login e recuperação usam cenário fotográfico local amplo e três
+rotas SVG animadas. Sinais/nós/luz/zoom podem ser pausados; movimento reduzido
+os desliga e mobile reduz a decoração. Nenhuma alteração em sessão, MFA,
+recuperação, validações ou backend. [Comparação e testes](../../../../docs/evidencias/premium-navy-gold/README.md).

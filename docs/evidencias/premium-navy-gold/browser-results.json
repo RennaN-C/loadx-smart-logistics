@@ -1,0 +1,457 @@
+{
+  "base": "49a8ddd90f24ea2e9720bffd208ebb691ec4eb68",
+  "source": "Real local HTTP API + isolated PostgreSQL16, synthetic data/sessions; no intercepted requests",
+  "gpu": "SwiftShader, not physical GPU/FPS benchmark",
+  "responsive": [
+    {
+      "page": "login",
+      "theme": "dark",
+      "width": 1920,
+      "scrollWidth": 1920,
+      "bodyWidth": 1920,
+      "canvasCount": 0
+    },
+    {
+      "page": "login",
+      "theme": "dark",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "bodyWidth": 1440,
+      "canvasCount": 0
+    },
+    {
+      "page": "login",
+      "theme": "dark",
+      "width": 1024,
+      "scrollWidth": 1024,
+      "bodyWidth": 1024,
+      "canvasCount": 0
+    },
+    {
+      "page": "login",
+      "theme": "dark",
+      "width": 768,
+      "scrollWidth": 768,
+      "bodyWidth": 768,
+      "canvasCount": 0
+    },
+    {
+      "page": "login",
+      "theme": "dark",
+      "width": 375,
+      "scrollWidth": 375,
+      "bodyWidth": 375,
+      "canvasCount": 0
+    },
+    {
+      "page": "login",
+      "theme": "light",
+      "width": 1920,
+      "scrollWidth": 1920,
+      "bodyWidth": 1920,
+      "canvasCount": 0
+    },
+    {
+      "page": "login",
+      "theme": "light",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "bodyWidth": 1440,
+      "canvasCount": 0
+    },
+    {
+      "page": "login",
+      "theme": "light",
+      "width": 1024,
+      "scrollWidth": 1024,
+      "bodyWidth": 1024,
+      "canvasCount": 0
+    },
+    {
+      "page": "login",
+      "theme": "light",
+      "width": 768,
+      "scrollWidth": 768,
+      "bodyWidth": 768,
+      "canvasCount": 0
+    },
+    {
+      "page": "login",
+      "theme": "light",
+      "width": 375,
+      "scrollWidth": 375,
+      "bodyWidth": 375,
+      "canvasCount": 0
+    },
+    {
+      "page": "overview",
+      "theme": "dark",
+      "width": 1920,
+      "scrollWidth": 1920,
+      "bodyWidth": 1920,
+      "canvasCount": 0
+    },
+    {
+      "page": "overview",
+      "theme": "dark",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "bodyWidth": 1440,
+      "canvasCount": 0
+    },
+    {
+      "page": "overview",
+      "theme": "dark",
+      "width": 1024,
+      "scrollWidth": 1024,
+      "bodyWidth": 1024,
+      "canvasCount": 0
+    },
+    {
+      "page": "overview",
+      "theme": "dark",
+      "width": 768,
+      "scrollWidth": 768,
+      "bodyWidth": 768,
+      "canvasCount": 0
+    },
+    {
+      "page": "overview",
+      "theme": "dark",
+      "width": 375,
+      "scrollWidth": 375,
+      "bodyWidth": 375,
+      "canvasCount": 0
+    },
+    {
+      "page": "overview",
+      "theme": "light",
+      "width": 1920,
+      "scrollWidth": 1920,
+      "bodyWidth": 1920,
+      "canvasCount": 0
+    },
+    {
+      "page": "overview",
+      "theme": "light",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "bodyWidth": 1440,
+      "canvasCount": 0
+    },
+    {
+      "page": "overview",
+      "theme": "light",
+      "width": 1024,
+      "scrollWidth": 1024,
+      "bodyWidth": 1024,
+      "canvasCount": 0
+    },
+    {
+      "page": "overview",
+      "theme": "light",
+      "width": 768,
+      "scrollWidth": 768,
+      "bodyWidth": 768,
+      "canvasCount": 0
+    },
+    {
+      "page": "overview",
+      "theme": "light",
+      "width": 375,
+      "scrollWidth": 375,
+      "bodyWidth": 375,
+      "canvasCount": 0
+    },
+    {
+      "page": "planning",
+      "theme": "dark",
+      "width": 1920,
+      "scrollWidth": 1920,
+      "bodyWidth": 1920,
+      "canvasCount": 0
+    },
+    {
+      "page": "planning",
+      "theme": "dark",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "bodyWidth": 1440,
+      "canvasCount": 0
+    },
+    {
+      "page": "planning",
+      "theme": "dark",
+      "width": 1024,
+      "scrollWidth": 1024,
+      "bodyWidth": 1024,
+      "canvasCount": 0
+    },
+    {
+      "page": "planning",
+      "theme": "dark",
+      "width": 768,
+      "scrollWidth": 768,
+      "bodyWidth": 768,
+      "canvasCount": 0
+    },
+    {
+      "page": "planning",
+      "theme": "dark",
+      "width": 375,
+      "scrollWidth": 375,
+      "bodyWidth": 375,
+      "canvasCount": 0
+    },
+    {
+      "page": "planning",
+      "theme": "light",
+      "width": 1920,
+      "scrollWidth": 1920,
+      "bodyWidth": 1920,
+      "canvasCount": 0
+    },
+    {
+      "page": "planning",
+      "theme": "light",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "bodyWidth": 1440,
+      "canvasCount": 0
+    },
+    {
+      "page": "planning",
+      "theme": "light",
+      "width": 1024,
+      "scrollWidth": 1024,
+      "bodyWidth": 1024,
+      "canvasCount": 0
+    },
+    {
+      "page": "planning",
+      "theme": "light",
+      "width": 768,
+      "scrollWidth": 768,
+      "bodyWidth": 768,
+      "canvasCount": 0
+    },
+    {
+      "page": "planning",
+      "theme": "light",
+      "width": 375,
+      "scrollWidth": 375,
+      "bodyWidth": 375,
+      "canvasCount": 0
+    },
+    {
+      "page": "distribution",
+      "theme": "dark",
+      "width": 1920,
+      "scrollWidth": 1920,
+      "bodyWidth": 1920,
+      "canvasCount": 1
+    },
+    {
+      "page": "distribution",
+      "theme": "dark",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "bodyWidth": 1440,
+      "canvasCount": 1
+    },
+    {
+      "page": "distribution",
+      "theme": "dark",
+      "width": 1024,
+      "scrollWidth": 1024,
+      "bodyWidth": 1024,
+      "canvasCount": 1
+    },
+    {
+      "page": "distribution",
+      "theme": "dark",
+      "width": 768,
+      "scrollWidth": 768,
+      "bodyWidth": 768,
+      "canvasCount": 1
+    },
+    {
+      "page": "distribution",
+      "theme": "dark",
+      "width": 375,
+      "scrollWidth": 375,
+      "bodyWidth": 375,
+      "canvasCount": 1
+    },
+    {
+      "page": "distribution",
+      "theme": "light",
+      "width": 1920,
+      "scrollWidth": 1920,
+      "bodyWidth": 1920,
+      "canvasCount": 1
+    },
+    {
+      "page": "distribution",
+      "theme": "light",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "bodyWidth": 1440,
+      "canvasCount": 1
+    },
+    {
+      "page": "distribution",
+      "theme": "light",
+      "width": 1024,
+      "scrollWidth": 1024,
+      "bodyWidth": 1024,
+      "canvasCount": 1
+    },
+    {
+      "page": "distribution",
+      "theme": "light",
+      "width": 768,
+      "scrollWidth": 768,
+      "bodyWidth": 768,
+      "canvasCount": 1
+    },
+    {
+      "page": "distribution",
+      "theme": "light",
+      "width": 375,
+      "scrollWidth": 375,
+      "bodyWidth": 375,
+      "canvasCount": 1
+    },
+    {
+      "page": "3d",
+      "theme": "dark",
+      "width": 1920,
+      "scrollWidth": 1920,
+      "bodyWidth": 1920,
+      "canvasCount": 1
+    },
+    {
+      "page": "3d",
+      "theme": "dark",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "bodyWidth": 1440,
+      "canvasCount": 1
+    },
+    {
+      "page": "3d",
+      "theme": "dark",
+      "width": 1024,
+      "scrollWidth": 1024,
+      "bodyWidth": 1024,
+      "canvasCount": 1
+    },
+    {
+      "page": "3d",
+      "theme": "dark",
+      "width": 768,
+      "scrollWidth": 768,
+      "bodyWidth": 768,
+      "canvasCount": 1
+    },
+    {
+      "page": "3d",
+      "theme": "dark",
+      "width": 375,
+      "scrollWidth": 375,
+      "bodyWidth": 375,
+      "canvasCount": 1
+    },
+    {
+      "page": "3d",
+      "theme": "light",
+      "width": 1920,
+      "scrollWidth": 1920,
+      "bodyWidth": 1920,
+      "canvasCount": 1
+    },
+    {
+      "page": "3d",
+      "theme": "light",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "bodyWidth": 1440,
+      "canvasCount": 1
+    },
+    {
+      "page": "3d",
+      "theme": "light",
+      "width": 1024,
+      "scrollWidth": 1024,
+      "bodyWidth": 1024,
+      "canvasCount": 1
+    },
+    {
+      "page": "3d",
+      "theme": "light",
+      "width": 768,
+      "scrollWidth": 768,
+      "bodyWidth": 768,
+      "canvasCount": 1
+    },
+    {
+      "page": "3d",
+      "theme": "light",
+      "width": 375,
+      "scrollWidth": 375,
+      "bodyWidth": 375,
+      "canvasCount": 1
+    }
+  ],
+  "roles": [
+    {
+      "role": "ADMIN",
+      "planning": "allowed",
+      "mobileDrawerEscape": true
+    },
+    {
+      "role": "LOGISTICS_MANAGER",
+      "planning": "allowed",
+      "mobileDrawerEscape": true
+    },
+    {
+      "role": "CHECKER",
+      "planning": "allowed",
+      "mobileDrawerEscape": true
+    },
+    {
+      "role": "DRIVER",
+      "planning": "denied",
+      "mobileDrawerEscape": true
+    },
+    {
+      "role": "CUSTOM",
+      "planning": "denied",
+      "mobileDrawerEscape": true
+    }
+  ],
+  "interactions": {
+    "pauseAll": [
+      "paused",
+      "paused",
+      "paused",
+      "paused",
+      "paused",
+      "paused",
+      "paused",
+      "paused"
+    ],
+    "resume": true,
+    "reducedMotion": true,
+    "invalidLogin": "Real backend rejection visible",
+    "recoveryNavigation": true,
+    "truckSwitchAndRefresh": true,
+    "expandSingleSceneEscape": true,
+    "cameraAndSequence": true,
+    "validCheckerLoginAndF5": true,
+    "notifications": true,
+    "searchEndpointStatus": 200
+  },
+  "pageErrors": []
+}

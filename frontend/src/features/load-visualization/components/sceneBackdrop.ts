@@ -33,13 +33,13 @@ export interface BackdropPalette {
  * O tema do LoadX segue a preferência global de aparência, inclusive o modo automático.
  */
 const DARK: BackdropPalette = {
-  zenith: "#0c1014",
-  horizon: "#2b333d",
-  ground: "#1a1f25",
+  zenith: "#071824",
+  horizon: "#152b3b",
+  ground: "#10212e",
   // Discreta de propósito: a grade dá escala, não é o assunto. No primeiro
   // ajuste ela ficou clara demais e disputava atenção com a carga.
-  gridLine: "#262d36",
-  gridEdge: "#333c47",
+  gridLine: "#213a4c",
+  gridEdge: "#304b5e",
 };
 
 const LIGHT: BackdropPalette = {

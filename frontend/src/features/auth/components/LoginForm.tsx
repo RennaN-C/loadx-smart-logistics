@@ -43,13 +43,13 @@ export function LoginForm() {
         <span className="login-access-mark" aria-hidden="true"><BrandMark size={25} /></span>
         <p className="login-access-eyebrow">ACESSO À PLATAFORMA</p>
         <h2>Entrar</h2>
-        <p className="login-lede">Sua operação começa com uma visão clara.<br />Use suas credenciais internas para continuar.</p>
+        <p className="login-lede">Acesse sua conta para gerenciar cargas<br />e acompanhar a operação logística.</p>
       </div>
 
       <fieldset disabled={isSubmitting} className="login-fieldset">
         <div className="login-field">
           <label className="login-field-label" htmlFor="email">
-            E-MAIL
+            E-mail
           </label>
           <input
             type="email"
@@ -66,7 +66,7 @@ export function LoginForm() {
         <div className="login-field">
           <div className="login-field-label-row">
             <label className="login-field-label" htmlFor="password">
-              SENHA
+              Senha
             </label>
             <button
               type="button"
@@ -91,6 +91,8 @@ export function LoginForm() {
         </div>
       </fieldset>
 
+      <Link className="login-recovery-link" to="/password-recovery">Esqueci minha senha</Link>
+
       <button type="submit" className="btn-primary login-submit" disabled={isSubmitting}>
         {isSubmitting ? (
           <>
@@ -102,7 +104,6 @@ export function LoginForm() {
         )}
       </button>
 
-      <Link className="login-recovery-link" to="/password-recovery">Esqueci minha senha</Link>
       <p className="login-hint">Não tem acesso? Fale com o administrador do sistema.</p>
     </form>
   );

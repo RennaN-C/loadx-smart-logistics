@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
+import { Icon } from "../../../components/Icon";
 import { AlertBanner } from "../../../components/AlertBanner";
 import { Pagination } from "../../../components/Pagination";
 import { StatusPill } from "../../../components/StatusPill";
@@ -27,20 +28,21 @@ function PlanHistoryRow({ plan, canReadOrigin }: { readonly plan: LoadPlanListIt
           : plan.distributionStatus ? DISTRIBUTION_LABELS[plan.distributionStatus] : null;
   return <li className="plan-history-row">
     <div className="plan-history-identification">
-      <div className="plan-history-title"><h3><Link to={destination}>Plano {plan.id.slice(0, 8).toLocaleUpperCase("pt-BR")}</Link></h3>{lifecycleStatus ? <StatusPill tone={isCanceled || historicalVersion ? "neutral" : plan.distributionStatus === "APPROVED" ? "good" : "warn"}>{isCanceled && !isDistributionCanceled && !isIncomplete ? "Operação" : plan.distributionId ? "Distribuição" : "Operação"}: {lifecycleStatus}</StatusPill> : <StatusPill tone={planStatusTone(plan.status)}>Plano: {PLAN_STATUS_LABELS[plan.status]}</StatusPill>}</div>
+      <div className="plan-history-title"><h3><Link to={destination}>Plano {plan.id.slice(0, 8).toLocaleUpperCase("pt-BR")}</Link></h3></div>
       <Link className="plan-history-plate" to={`/planning?truck=${plan.truckId}`} aria-label={`Filtrar planos do caminhão ${plan.truckPlate}`}>{plan.truckPlate}</Link>
       <p>{plan.truckModel}</p>
       {plan.distributionId ? <p>Parte da distribuição {plan.distributionId.slice(0, 8)}</p> : null}
       <time dateTime={plan.createdAt}>Criado em {date.format(new Date(plan.createdAt))}</time>
     </div>
     <div className="plan-history-summary">
+      <div className="plan-history-state">{lifecycleStatus ? <StatusPill tone={isCanceled || historicalVersion ? "neutral" : plan.distributionStatus === "APPROVED" ? "good" : "warn"}>{isCanceled && !isDistributionCanceled && !isIncomplete ? "Operação" : plan.distributionId ? "Distribuição" : "Operação"}: {lifecycleStatus}</StatusPill> : <StatusPill tone={planStatusTone(plan.status)}>Plano: {PLAN_STATUS_LABELS[plan.status]}</StatusPill>}</div>
       {isDistributionCanceled ? <p className="entity-form-help" role="status">Esta distribuição foi cancelada. A carga não está ativa; o cálculo permanece para consulta e auditoria.</p>
         : isCanceled ? <p className="entity-form-help" role="status">Esta operação foi cancelada. O registro está disponível apenas para consulta histórica.</p>
         : isIncomplete ? <p className="entity-form-help" role="status">Distribuição incompleta. Uma parte precisa ser reprocessada antes de continuar.</p>
           : historicalVersion ? <p className="entity-form-help">Versão substituída por um reprocessamento. Consulte a distribuição para ver a carga atual.</p>
             : plan.operation ? <PlanOperationSummary operation={plan.operation} /> : null}
       {lifecycleStatus ? <p className="entity-form-help">Resultado físico do cálculo: {PLAN_STATUS_LABELS[plan.status].toLowerCase()}.</p> : null}
-      <p className="plan-history-facts"><span>{plan.orderCount} pedido(s)</span><span>{plan.loadedCount} volumes</span><span>{plan.totalWeightKg.toLocaleString("pt-BR")} kg</span></p>
+      <p className="plan-history-facts"><span><Icon name="orders" size={18} /><span><small>Pedidos</small><strong>{plan.orderCount}</strong></span></span><span><Icon name="planning" size={18} /><span><small>Volumes</small><strong>{plan.loadedCount}</strong></span></span><span><Icon name="package" size={18} /><span><small>Peso</small><strong>{plan.totalWeightKg.toLocaleString("pt-BR")} kg</strong></span></span></p>
       <div className="plan-history-occupancy"><span style={{ width: `${Math.min(plan.occupancyPercent, 100)}%` }} /><strong>{plan.occupancyPercent.toLocaleString("pt-BR")}% de ocupação</strong></div>
       {plan.unloadedCount > 0 ? <p className="plan-history-rejected">{plan.unloadedCount} volume(s) recusado(s)</p> : null}
       {plan.recalculatedFromId && canReadOrigin ? <Link to={`/planning/${plan.recalculatedFromId}`}>Ver plano de origem</Link> : null}
@@ -102,11 +104,10 @@ export function PlanHistory({ checker, canReadOperations = false }: { readonly c
     setParams(next);
   }
   return <section className="plan-history" aria-label="Planos existentes">
+    <div className="plan-history-controls">
     {canReadOperations ? <fieldset className="plan-operation-filters" aria-label="Filtrar situação logística"><legend className="sr-only">Filtrar situação logística</legend>
       {([['ongoing', 'Em andamento'], ['completed', 'Concluídos'], ['all', 'Todos (inclui cancelados)']] as const).map(([key, title]) => <button type="button" key={key} aria-pressed={operationScope === key} onClick={() => change("scope", key)}>{title}</button>)}
     </fieldset> : null}
-    <div className="plan-history-toolbar">
-      <div><h2>Planos de carga</h2><p className="entity-lede">Retome planejamentos persistidos e acompanhe o estado real de cada operação.</p><p className="entity-form-help">Cancelamentos e versões substituídas ficam fora de Em andamento. Para consultar registros históricos, selecione Todos (inclui cancelados).</p></div>
       <div className="plan-history-filters">
         {!checker ? <label>Situação<select value={status ?? ""} onChange={(event) => change("status", event.target.value)}>
           <option value="">Todas as situações</option>
@@ -116,6 +117,10 @@ export function PlanHistory({ checker, canReadOperations = false }: { readonly c
           <option value="desc">Mais recentes primeiro</option><option value="asc">Mais antigos primeiro</option>
         </select></label>
       </div>
+    </div>
+    <div className="plan-history-toolbar">
+      <div><h2>Planos de carga</h2><p className="entity-lede">Retome planejamentos persistidos e acompanhe o estado real de cada operação.</p><p className="entity-form-help">Cancelamentos e versões substituídas ficam fora de Em andamento. Para consultar registros históricos, selecione Todos (inclui cancelados).</p></div>
+
     </div>
     {truckId ? <p className="entity-form-help">Filtro de caminhão ativo. <button type="button" className="btn-secondary" onClick={() => change("truck", "")}>Limpar filtro de caminhão</button></p> : null}
     <PlanHistoryContent checker={checker} failed={failed} result={result} page={page}
