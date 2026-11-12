@@ -215,10 +215,10 @@
   letter-spacing: .2em;
 }
 .login-brand-mark {
-  font-size: clamp(2rem, 3vw, 3.3rem);
+  font-size: clamp(1.9rem, 2.65vw, 2.9rem);
   font-weight: 450;
   line-height: 1.16;
-  max-width: 18ch;
+  max-width: 680px;
   text-shadow: 0 2px 28px rgba(0, 8, 16, .4);
 }
 .login-brand-mark em { color: #ffd27d; }
