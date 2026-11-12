@@ -1,0 +1,246 @@
+{
+  "environment": "Chromium; frontend real, API simulada; dados fictícios",
+  "viewports": [
+    {
+      "viewport": {
+        "width": 1366,
+        "height": 768
+      },
+      "scrollWidth": 1366,
+      "card": {
+        "x": 838.703125,
+        "y": 49.921875,
+        "width": 496.5625,
+        "height": 668.15625
+      },
+      "heading": {
+        "x": 72.390625,
+        "y": 182.703125,
+        "width": 747.203125,
+        "height": 83.65625
+      },
+      "scene": {
+        "x": 0,
+        "y": 268.796875,
+        "width": 819.59375,
+        "height": 499.203125
+      },
+      "liveCopyVisible": true,
+      "photo": {
+        "source": "login-scene-1024.webp",
+        "fit": "cover",
+        "filter": "none"
+      },
+      "logo": "/branding/loadx-login-mark.svg",
+      "formFont": "Poppins, \"Segoe UI\", sans-serif"
+    },
+    {
+      "viewport": {
+        "width": 1600,
+        "height": 900
+      },
+      "scrollWidth": 1600,
+      "card": {
+        "x": 982.390625,
+        "y": 58.5,
+        "width": 581.609375,
+        "height": 783
+      },
+      "heading": {
+        "x": 84.796875,
+        "y": 214.078125,
+        "width": 875.203125,
+        "height": 97.96875
+      },
+      "scene": {
+        "x": 0,
+        "y": 315,
+        "width": 960,
+        "height": 585
+      },
+      "liveCopyVisible": true,
+      "photo": {
+        "source": "login-scene-1024.webp",
+        "fit": "cover",
+        "filter": "none"
+      },
+      "logo": "/branding/loadx-login-mark.svg",
+      "formFont": "Poppins, \"Segoe UI\", sans-serif"
+    },
+    {
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "scrollWidth": 1920,
+      "card": {
+        "x": 1178.875,
+        "y": 70.203125,
+        "width": 697.9375,
+        "height": 939.59375
+      },
+      "heading": {
+        "x": 101.75,
+        "y": 256.890625,
+        "width": 1050.25,
+        "height": 117.59375
+      },
+      "scene": {
+        "x": 0,
+        "y": 378,
+        "width": 1152,
+        "height": 702
+      },
+      "liveCopyVisible": true,
+      "photo": {
+        "source": "login-scene-hd.webp",
+        "fit": "cover",
+        "filter": "none"
+      },
+      "logo": "/branding/loadx-login-mark.svg",
+      "formFont": "Poppins, \"Segoe UI\", sans-serif"
+    },
+    {
+      "viewport": {
+        "width": 2560,
+        "height": 1440
+      },
+      "scrollWidth": 2560,
+      "card": {
+        "x": 1571.828125,
+        "y": 93.59375,
+        "width": 930.578125,
+        "height": 1252.796875
+      },
+      "heading": {
+        "x": 135.671875,
+        "y": 342.5,
+        "width": 1400.328125,
+        "height": 156.8125
+      },
+      "scene": {
+        "x": 0,
+        "y": 504,
+        "width": 1536,
+        "height": 936
+      },
+      "liveCopyVisible": true,
+      "photo": {
+        "source": "login-scene-hd.webp",
+        "fit": "cover",
+        "filter": "none"
+      },
+      "logo": "/branding/loadx-login-mark.svg",
+      "formFont": "Poppins, \"Segoe UI\", sans-serif"
+    },
+    {
+      "viewport": {
+        "width": 820,
+        "height": 1180
+      },
+      "scrollWidth": 820,
+      "card": {
+        "x": 120,
+        "y": 328.109375,
+        "width": 580,
+        "height": 619.78125
+      },
+      "heading": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scene": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "liveCopyVisible": false,
+      "photo": {
+        "source": "ACwAAAAAAQABAAACADs=",
+        "fit": "cover",
+        "filter": "none"
+      },
+      "logo": "/branding/loadx-login-mark.svg",
+      "formFont": "Poppins, \"Segoe UI\", sans-serif"
+    },
+    {
+      "viewport": {
+        "width": 375,
+        "height": 667
+      },
+      "scrollWidth": 375,
+      "card": {
+        "x": 14,
+        "y": 106,
+        "width": 347,
+        "height": 617.4375
+      },
+      "heading": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scene": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "liveCopyVisible": false,
+      "photo": {
+        "source": "ACwAAAAAAQABAAACADs=",
+        "fit": "cover",
+        "filter": "none"
+      },
+      "logo": "/branding/loadx-login-mark.svg",
+      "formFont": "Poppins, \"Segoe UI\", sans-serif"
+    },
+    {
+      "viewport": {
+        "width": 320,
+        "height": 568
+      },
+      "scrollWidth": 320,
+      "card": {
+        "x": 14,
+        "y": 106,
+        "width": 292,
+        "height": 636.546875
+      },
+      "heading": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scene": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "liveCopyVisible": false,
+      "photo": {
+        "source": "ACwAAAAAAQABAAACADs=",
+        "fit": "cover",
+        "filter": "none"
+      },
+      "logo": "/branding/loadx-login-mark.svg",
+      "formFont": "Poppins, \"Segoe UI\", sans-serif"
+    }
+  ],
+  "flows": [
+    "Validação nativa de campos obrigatórios",
+    "Erro de credenciais e formulário liberado para nova tentativa",
+    "Recuperação: envio ao contrato existente e resposta neutra",
+    "Redefinição: fragmento removido e confirmação sem autenticação automática",
+    "MFA: desafio em memória, opt-in desmarcado, verificação e redirecionamento",
+    "Login: retorno ao destino protegido solicitado"
+  ],
+  "errors": [],
+  "browser": "156.0.8078.4"
+}

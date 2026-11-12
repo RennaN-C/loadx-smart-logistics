@@ -1,45 +1,39 @@
-import { BrandMark, Icon } from "../../../components/Icon";
+import { Icon } from "../../../components/Icon";
 
-/**
- * The approved desktop reference is a decorative static illustration.
- * All authentication remains live React; the brand copy stays semantic and
- * visible at mobile widths (and available to assistive technology on desktop).
- * No procedural map or overlays should cross the truck.
- */
+/** Decorative scene and geographic artwork stay separate from readable UI. */
 export function BrandPanel() {
   return (
     <aside className="login-brand">
-      <img
-        className="login-reference-art"
-        src="/images/login-reference-left.avif"
-        alt=""
-        aria-hidden="true"
-        width={1006}
-        height={941}
-        fetchPriority="high"
-        decoding="async"
-      />
+      <picture className="login-scene">
+        <source media="(max-width: 820px)" srcSet="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" />
+        <img
+          className="login-scene-photo"
+          src="/images/login-scene-hd.webp"
+          srcSet="/images/login-scene-1024.webp 1024w, /images/login-scene-hd.webp 1606w"
+          sizes="60vw"
+          alt=""
+          aria-hidden="true"
+          width={1606}
+          height={979}
+          fetchPriority="high"
+          decoding="async"
+        />
+      </picture>
+      <img className="login-globe" src="/images/login-globe.svg" width={480} height={530} alt="" aria-hidden="true" />
       <div className="login-brand-live">
-        <p className="login-wordmark"><BrandMark size={38} /> <span>LOADX</span></p>
+        <div className="login-wordmark" aria-label="LoadX Smart Logistics">
+          <img className="login-brand-symbol" src="/branding/loadx-login-mark.svg" width={164} height={86} alt="" aria-hidden="true" />
+          <div className="login-wordmark-type"><span>Load<span className="login-gold">X</span></span><small>SMART LOGISTICS</small></div>
+        </div>
         <div className="login-brand-main">
-          <div>
-            <p className="login-brand-eyebrow">SMART LOGISTICS</p>
-            <h1 className="login-brand-mark">Planejamento inteligente para<br /><em>uma logística mais eficiente.</em></h1>
-            <p className="login-brand-tag">
-              Planejamento, controle e rastreabilidade de cargas em uma única plataforma.
-            </p>
-          </div>
+          <h1>Planejamento inteligente para<br /><em>uma logística mais eficiente.</em></h1>
+          <p className="login-brand-tag">Planejamento, controle e rastreabilidade de cargas em uma única plataforma.</p>
         </div>
-        <div className="login-brand-bottom">
-          <ol className="login-journey">
-            <li><Icon name="planning" size={26} /><span>Planejamento<br />de cargas</span></li>
-            <li><Icon name="package" size={26} /><span>Conferência<br />de volumes</span></li>
-            <li><Icon name="truck" size={26} /><span>Acompanhamento<br />de entregas</span></li>
-          </ol>
-          <div className="login-brand-footer">
-            <p className="login-brand-foot">LOADX · LOGÍSTICA INTELIGENTE</p>
-          </div>
-        </div>
+        <ul className="login-journey">
+          <li><Icon name="calendar" size={36} /><span>Planejamento<br />de Cargas</span></li>
+          <li><Icon name="package" size={36} /><span>Conferência<br />de Volumes</span></li>
+          <li><Icon name="truck" size={36} /><span>Acompanhamento<br />de Entregas</span></li>
+        </ul>
       </div>
     </aside>
   );
