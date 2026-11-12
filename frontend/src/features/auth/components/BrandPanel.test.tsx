@@ -5,7 +5,7 @@ import { BrandPanel } from "./BrandPanel";
 
 it("apresenta a marca sem inventar ambiente ou versao do sistema", () => {
   render(<BrandPanel />);
-  expect(screen.getByRole("heading", { name: /Logística inteligente.*Operação conectada/ })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: /Planejamento inteligente para.*uma logística mais eficiente/ })).toBeInTheDocument();
   expect(screen.getByText("LOADX", { exact: true })).toBeInTheDocument();
   expect(document.querySelector(".login-wordmark .loadx-brand-mark")).toHaveAttribute("src", "/branding/loadx-mark-128.png");
   expect(screen.getByText("LOADX · LOGÍSTICA INTELIGENTE")).toBeInTheDocument();
@@ -22,4 +22,16 @@ it("permite pausar e retomar os efeitos decorativos sem alterar o acesso", () =>
   fireEvent.click(screen.getByRole("button", { name: "Ativar efeitos" }));
   expect(screen.getByRole("button", { name: "Pausar efeitos" })).toHaveAttribute("aria-pressed", "false");
   expect(pause.closest("aside")).not.toHaveClass("is-motion-paused");
+});
+
+
+it("desenha três rotas locais decorativas com sinais e conexões", () => {
+  render(<BrandPanel />);
+  const routes = document.querySelector(".login-routes");
+  expect(routes).toHaveAttribute("aria-hidden", "true");
+  expect(routes).toHaveAttribute("focusable", "false");
+  expect(routes?.querySelectorAll(".login-route-signal")).toHaveLength(3);
+  expect(routes?.querySelectorAll(".login-route-track")).toHaveLength(3);
+  expect(routes?.querySelectorAll(".login-route-hub")).toHaveLength(3);
+  expect(screen.queryByText(/rotas|rentabilidade/i)).not.toBeInTheDocument();
 });
