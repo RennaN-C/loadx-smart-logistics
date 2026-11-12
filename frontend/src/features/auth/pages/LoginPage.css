@@ -422,3 +422,103 @@
   .login-brand::before { display: none; }
   .login-formside { background: none; }
 }
+
+/* Login fidelity 2026-11: prioritize a crisp, static scene and real interactive form.
+   The routes previously painted over the truck have been removed from JSX. */
+.login-page {
+  background: #061827;
+}
+.login-brand {
+  isolation: isolate;
+}
+.login-hero-photo {
+  object-position: center 77%;
+  image-rendering: auto;
+  filter: saturate(1.09) contrast(1.075);
+  animation: none;
+  transform: none;
+  will-change: auto;
+}
+.login-brand::after {
+  background:
+    linear-gradient(90deg, rgba(3, 16, 29, .43) 0%, rgba(4, 19, 33, .23) 33%, transparent 72%),
+    linear-gradient(180deg, rgba(4, 17, 31, .04) 0%, transparent 55%, rgba(4, 17, 31, .2) 100%);
+}
+.login-map-veil {
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  top: 0;
+  right: 0;
+  width: 69%;
+  height: 51%;
+  background:
+    radial-gradient(ellipse at 77% 32%, rgba(5, 26, 45, .98) 0%, rgba(5, 26, 45, .95) 46%, rgba(5, 26, 45, .65) 63%, transparent 88%),
+    linear-gradient(90deg, transparent 0%, rgba(4, 20, 36, .7) 80%, rgba(4, 20, 36, .88) 100%);
+}
+.login-world-map {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+  top: -42px;
+  right: -1%;
+  width: min(60%, 670px);
+  height: min(54vh, 480px);
+  max-width: none;
+  overflow: visible;
+  opacity: .95;
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 78%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 78%, transparent 100%);
+}
+.login-world-outline { stroke-dasharray: 3 3; }
+.login-world-connections { opacity: .9; }
+.login-world-points { opacity: 1; }
+.login-wordmark,
+.login-brand-main,
+.login-card {
+  animation: none;
+}
+.login-wordmark,
+.login-brand-main,
+.login-brand-bottom {
+  position: relative;
+  z-index: 1;
+}
+.login-formside {
+  isolation: isolate;
+}
+.login-formside::before {
+  content: '';
+  position: absolute;
+  z-index: 0;
+  top: 0;
+  bottom: 0;
+  left: -145px;
+  width: 146px;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent 0%, rgba(5, 22, 36, .3) 30%, rgba(7, 23, 37, .83) 76%, #071725 100%);
+}
+.login-formside > .login-card,
+.login-formside > output {
+  position: relative;
+  z-index: 1;
+}
+.login-brand-footer {
+  justify-content: flex-start;
+}
+@media (max-width: 1100px) and (min-width: 821px) {
+  .login-world-map { width: 57%; right: -4%; top: -26px; height: min(41vh, 380px); }
+  .login-map-veil { height: 49%; }
+  .login-formside::before { left: -85px; width: 86px; }
+}
+@media (max-width: 820px) {
+  .login-world-map,
+  .login-map-veil,
+  .login-formside::before {
+    display: none;
+  }
+  .login-hero-photo {
+    animation: none;
+    object-position: center 57%;
+  }
+}
