@@ -145,3 +145,18 @@
 .overview-page .dash-block-head h2 { font-size: 1rem; }
 .overview-page .kpi { box-shadow: none; min-height: 116px; }
 @media (min-width: 1100px) { .overview-page .kpi-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
+/* Match the reference's compact overview without changing indicator contracts. */
+.overview-page .kpi { background: var(--surface-gradient); box-shadow: inset 0 1px var(--surface-edge); min-height: 106px; padding: 18px; }
+.overview-page .kpi-icon { width: 48px; height: 48px; border-radius: 10px; }
+.overview-page .kpi-label { color: var(--ink); font-size: .83rem; }
+.overview-page .kpi-value { font-size: 1.9rem; font-weight: 750; font-variant-numeric: tabular-nums; }
+.overview-page .kpi-description { font-size: .75rem; }
+.overview-page .distribution-chart { background: var(--surface-gradient); box-shadow: inset 0 1px var(--surface-edge); padding: 22px; }
+.overview-page .distribution-chart figcaption h3 { font-size: 1.15rem; }
+.overview-page .distribution-chart figcaption p { font-size: .8rem; }
+.overview-page .distribution-ring { max-width: 210px; }
+.overview-page .operational-charts { margin-top: 20px; }
+.overview-page .distribution-columns { height: 210px; }
+@media (min-width: 1500px) { .overview-page.entity-page { padding-top: 32px; } }
+@media (max-width: 620px) { .overview-page .kpi { min-height: 100px; } }
