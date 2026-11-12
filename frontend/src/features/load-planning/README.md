@@ -266,3 +266,11 @@ frotas maiores; cards continuam no desktop amplo para até três caminhões. Sel
 Tabela, sequência, referências técnicas, explicação e histórico seguem acessíveis
 em abas/seções secundárias. Aprovação/cancelamento/reprocessamento e confirmações
 mantêm as regras e callbacks existentes. Backend e snapshots não foram alterados.
+
+## Apresentação premium — #403
+
+`CONFIRMADO`: filtros reais antecedem o resumo da listagem. Nos resultados
+individuais, a cena aparece antes de Resultado do cálculo e suas ações; todos
+os botões e dados continuam disponíveis. Distribuição preserva seleção por URL,
+status e confirmação. Somente hierarquia, tokens e cenário decorativo mudam.
+[Evidências](../../../../docs/evidencias/premium-navy-gold/README.md).

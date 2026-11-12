@@ -109,8 +109,6 @@ function PlanningResult({ plan, canManage, approvalAllowed, isWorking, onApprove
         : plan.distributionStatus === "INCOMPLETE"
           ? "Distribuição incompleta: consulte as partes canceladas e reprocesse a carga antes de aprovar."
           : "Este plano pertence a uma distribuição. Aprovação, cancelamento e reprocessamento são feitos pela necessidade completa."}</p><Link className="btn-secondary" to={`/planning/distributions/${distributionId}`}>Abrir distribuição completa</Link></div> : null}
-
-
     <Tabs items={PLAN_TABS} active={tab} onChange={onTabChange} label="Formato do resultado" />
     <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
       {tab === "summary" ? <PlanItemsTable items={plan.items} /> :
