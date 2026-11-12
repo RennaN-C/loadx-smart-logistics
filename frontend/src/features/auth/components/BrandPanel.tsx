@@ -5,7 +5,7 @@ export function BrandPanel() {
   const [motionPaused, setMotionPaused] = useState(false);
   return (
     <aside className={`login-brand${motionPaused ? " is-motion-paused" : ""}`}>
-      <img className="login-hero-photo" src="/images/login-cinematic-scene.webp" alt="" aria-hidden="true" width={900} height={1000} fetchPriority="high" />
+      <img className="login-hero-photo" src="/images/login-cinematic-scene-hd.webp" alt="" aria-hidden="true" width={1800} height={2000} fetchPriority="high" />
       <div className="login-atmosphere" aria-hidden="true" />
       <svg className="login-routes" viewBox="0 0 1000 900" fill="none" aria-hidden="true" focusable="false">
         {[
