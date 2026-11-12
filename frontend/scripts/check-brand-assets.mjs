@@ -21,4 +21,11 @@ for (const name of ["favicon-16.png", "favicon-32.png"]) {
 }
 const component = readFileSync(new URL("../src/components/Icon.tsx", import.meta.url), "utf8");
 assert.ok(component.includes("/branding/loadx-mark-128.png"), "Marca oficial ausente do BrandMark");
-console.log("Identidade LoadX: favicons, HTML e BrandMark validados.");
+const loginArtName = "login-cinematic-scene.webp";
+const loginArt = readFileSync(new URL(`../public/images/${loginArtName}`, import.meta.url));
+assert.equal(loginArt.toString("ascii", 0, 4), "RIFF", `${loginArtName}: RIFF inválido`);
+assert.equal(loginArt.toString("ascii", 8, 12), "WEBP", `${loginArtName}: WebP inválido`);
+assert.ok(loginArt.length >= 10_000 && loginArt.length < 150_000, `${loginArtName}: tamanho inesperado`);
+const brandPanel = readFileSync(new URL("../src/features/auth/components/BrandPanel.tsx", import.meta.url), "utf8");
+assert.ok(brandPanel.includes(`/images/${loginArtName}`), "Cena cinematográfica não referenciada pelo login");
+console.log("Identidade LoadX: favicons, HTML BrandMark e cena de login validados.");
