@@ -5,7 +5,7 @@ export function BrandPanel() {
   const [motionPaused, setMotionPaused] = useState(false);
   return (
     <aside className={`login-brand${motionPaused ? " is-motion-paused" : ""}`}>
-      <img className="login-hero-photo" src="/images/login-cinematic-scene.webp" alt="" aria-hidden="true" width={900} height={1000} fetchPriority="high" />
+      <img className="login-hero-photo" src="/images/login-cinematic-scene-hd.webp" alt="" aria-hidden="true" width={1800} height={2000} fetchPriority="high" />
       <div className="login-atmosphere" aria-hidden="true" />
       <svg className="login-routes" viewBox="0 0 1000 900" fill="none" aria-hidden="true" focusable="false">
         {[
@@ -19,6 +19,9 @@ export function BrandPanel() {
         <circle className="login-route-hub" cx="835" cy="330" r="5" />
         <circle className="login-route-hub" cx="598" cy="522" r="3" />
         <circle className="login-route-hub" cx="785" cy="166" r="3" />
+        <circle className="login-route-core" cx="835" cy="330" r="1.65" />
+        <circle className="login-route-core" cx="598" cy="522" r="1.45" />
+        <circle className="login-route-core is-blue" cx="785" cy="166" r="1.45" />
       </svg>
       <p className="login-wordmark"><BrandMark size={25} /> LOADX</p>
       <div className="login-brand-main">

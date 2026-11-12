@@ -21,11 +21,15 @@ for (const name of ["favicon-16.png", "favicon-32.png"]) {
 }
 const component = readFileSync(new URL("../src/components/Icon.tsx", import.meta.url), "utf8");
 assert.ok(component.includes("/branding/loadx-mark-128.png"), "Marca oficial ausente do BrandMark");
-const loginArtName = "login-cinematic-scene.webp";
+const loginArtName = "login-cinematic-scene-hd.webp";
 const loginArt = readFileSync(new URL(`../public/images/${loginArtName}`, import.meta.url));
 assert.equal(loginArt.toString("ascii", 0, 4), "RIFF", `${loginArtName}: RIFF inválido`);
 assert.equal(loginArt.toString("ascii", 8, 12), "WEBP", `${loginArtName}: WebP inválido`);
-assert.ok(loginArt.length >= 10_000 && loginArt.length < 150_000, `${loginArtName}: tamanho inesperado`);
+assert.ok(loginArt.length >= 180_000 && loginArt.length < 750_000, `${loginArtName}: tamanho inesperado`);
+const vp8Header = loginArt.indexOf(Buffer.from([0x9d, 0x01, 0x2a]));
+assert.ok(vp8Header >= 0 && vp8Header + 7 <= loginArt.length, `${loginArtName}: cabecalho VP8 invalido`);
+assert.equal(loginArt.readUInt16LE(vp8Header + 3) & 0x3fff, 1800, `${loginArtName}: largura inesperada`);
+assert.equal(loginArt.readUInt16LE(vp8Header + 5) & 0x3fff, 2000, `${loginArtName}: altura inesperada`);
 const brandPanel = readFileSync(new URL("../src/features/auth/components/BrandPanel.tsx", import.meta.url), "utf8");
 assert.ok(brandPanel.includes(`/images/${loginArtName}`), "Cena cinematográfica não referenciada pelo login");
 console.log("Identidade LoadX: favicons, HTML BrandMark e cena de login validados.");
