@@ -110,3 +110,12 @@ it("alterna visibilidade sem apagar a senha e preserva recuperação real", () =
   expect(password).toHaveAttribute("type", "password");
   expect(screen.getByRole("link", { name: "Esqueci minha senha" })).toHaveAttribute("href", "/password-recovery");
 });
+
+
+it("mantém cabeçalho LoadX real separado da arte e botão Entrar acessível", () => {
+  vi.mocked(useAuth).mockReturnValue({ status: "unauthenticated", user: null, login: vi.fn(), updateUser: vi.fn(), logout: vi.fn() });
+  render(<MemoryRouter><LoginForm /></MemoryRouter>);
+  expect(screen.getByRole("heading", { name: "Bem-vindo ao LoadX" })).toBeInTheDocument();
+  expect(screen.getByText("SMART LOGISTICS")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Entrar" })).toBeEnabled();
+});
