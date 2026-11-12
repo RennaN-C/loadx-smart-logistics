@@ -33,6 +33,7 @@ it("desenha três rotas locais decorativas com sinais e conexões", () => {
   expect(routes?.querySelectorAll(".login-route-signal")).toHaveLength(3);
   expect(routes?.querySelectorAll(".login-route-track")).toHaveLength(3);
   expect(routes?.querySelectorAll(".login-route-hub")).toHaveLength(3);
+  expect(routes?.querySelectorAll(".login-route-core")).toHaveLength(3);
   expect(screen.queryByText(/rotas|rentabilidade/i)).not.toBeInTheDocument();
 });
 
@@ -40,9 +41,9 @@ it("desenha três rotas locais decorativas com sinais e conexões", () => {
 it("utiliza o cenário cinematográfico local sem texto ou autenticação embutidos", () => {
   render(<BrandPanel />);
   const artwork = document.querySelector(".login-hero-photo");
-  expect(artwork).toHaveAttribute("src", "/images/login-cinematic-scene.webp");
-  expect(artwork).toHaveAttribute("width", "900");
-  expect(artwork).toHaveAttribute("height", "1000");
+  expect(artwork).toHaveAttribute("src", "/images/login-cinematic-scene-hd.webp");
+  expect(artwork).toHaveAttribute("width", "1800");
+  expect(artwork).toHaveAttribute("height", "2000");
   expect(artwork).toHaveAttribute("aria-hidden", "true");
   expect(artwork).toHaveAttribute("alt", "");
 });
