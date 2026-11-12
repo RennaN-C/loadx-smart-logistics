@@ -19,6 +19,9 @@ export function BrandPanel() {
         <circle className="login-route-hub" cx="835" cy="330" r="5" />
         <circle className="login-route-hub" cx="598" cy="522" r="3" />
         <circle className="login-route-hub" cx="785" cy="166" r="3" />
+        <circle className="login-route-core" cx="835" cy="330" r="1.65" />
+        <circle className="login-route-core" cx="598" cy="522" r="1.45" />
+        <circle className="login-route-core is-blue" cx="785" cy="166" r="1.45" />
       </svg>
       <p className="login-wordmark"><BrandMark size={25} /> LOADX</p>
       <div className="login-brand-main">
