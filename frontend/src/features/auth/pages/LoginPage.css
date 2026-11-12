@@ -276,7 +276,7 @@
   background: linear-gradient(145deg, rgba(19, 47, 67, .97), rgba(9, 28, 43, .97));
   box-shadow: 0 22px 72px rgba(0, 9, 20, .35), inset 0 1px rgba(223, 244, 255, .14);
 }
-.login-card-intro { text-align: left; }
+.login-card-intro { text-align: center; }
 .login-access-mark {
   width: 50px;
   height: 50px;
@@ -332,7 +332,7 @@
   .login-wordmark { font-size: 1.35rem; }
   .login-formside { background: none; }
   .login-card { max-width: 580px; padding: clamp(24px, 5vw, 34px); }
-  .login-card-intro { text-align: left; }
+  .login-card-intro { text-align: center; }
   .login-routes, .login-atmosphere { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
