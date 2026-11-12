@@ -1,0 +1,38 @@
+name: Generate Login HD Asset (feature branch only)
+
+on:
+  push:
+    branches: [feat/login-clarity-polish-pentest-20261112]
+    paths:
+      - scripts/build_login_hd.py
+      - .github/workflows/generate-login-hd-temp.yml
+
+permissions:
+  contents: write
+
+jobs:
+  render-asset:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install image processing dependency
+        run: python -m pip install --disable-pip-version-check Pillow==11.3.0
+      - name: Refine locally stored original
+        run: python scripts/build_login_hd.py
+      - name: Commit binary only to the reviewed feature branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frontend/public/images/login-cinematic-scene-hd.webp
+          if git diff --cached --quiet; then
+            echo "Already up to date"
+          else
+            git commit -m "asset(login): aprimorar fotografia WebP em 2x"
+            git push origin HEAD:refs/heads/feat/login-clarity-polish-pentest-20261112
+          fi
