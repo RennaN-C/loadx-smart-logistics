@@ -6,7 +6,7 @@ import { BrandPanel } from "./BrandPanel";
 it("mantém os textos e diferenciais em HTML, separados do cenário decorativo", () => {
   render(<BrandPanel />);
   expect(screen.getByRole("heading", { name: /Planejamento inteligente para.*uma logística mais eficiente/ })).toBeInTheDocument();
-  expect(screen.getByLabelText("LoadX Smart Logistics")).toBeInTheDocument();
+  expect(screen.getByRole("img", { name: "LoadX Smart Logistics" })).toBeInTheDocument();
   expect(screen.getAllByRole("listitem")).toHaveLength(3);
   expect(screen.getByText(/Conferência/)).toBeInTheDocument();
   expect(screen.getByText(/Acompanhamento/)).toBeInTheDocument();

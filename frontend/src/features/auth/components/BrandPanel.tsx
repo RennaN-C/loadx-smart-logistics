@@ -21,7 +21,7 @@ export function BrandPanel() {
       </picture>
       <img className="login-globe" src="/images/login-globe.svg" width={480} height={530} alt="" aria-hidden="true" />
       <div className="login-brand-live">
-        <div className="login-wordmark" aria-label="LoadX Smart Logistics">
+        <div className="login-wordmark" role="img" aria-label="LoadX Smart Logistics">
           <img className="login-brand-symbol" src="/branding/loadx-login-mark.svg" width={164} height={86} alt="" aria-hidden="true" />
           <div className="login-wordmark-type"><span>Load<span className="login-gold">X</span></span><small>SMART LOGISTICS</small></div>
         </div>
