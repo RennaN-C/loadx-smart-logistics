@@ -121,9 +121,7 @@ contextual oculta os eventos anteriores enquanto consulta outra entidade, e a
 ação de calcular distingue indisponibilidade de processamento em andamento.
 
 `CONFIRMADO`: a manutenção não adiciona listagens de planos/carregamentos
-nem muda RBAC, contratos HTTP, backend ou migrations. A publicação na
-`pentest-lab`, autorizada separadamente, deve preservar o proxy e headers de
-`frontend/vercel.json`, o gatilho da CI e a identificação do ambiente de testes.
+nem muda RBAC, contratos HTTP, backend ou migrations. A publicação de testes/homologação acompanha a branch `desenvolvimento` na Vercel e no Render. O snapshot antigo da `pentest-lab` está arquivado e não recebe deploy.
 Validação autenticada online exige conta de testes autorizada; liveness/readiness
 não comprovam por si só o SHA nem ausência de erros nos logs do Render.
 
