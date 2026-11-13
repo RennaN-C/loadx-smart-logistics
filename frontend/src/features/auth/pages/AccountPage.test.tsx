@@ -56,7 +56,7 @@ describe("OC92 Meu perfil", () => {
     fireEvent.click(screen.getByRole("tab", { name: "Preferências" }));
     expect(screen.getByRole("radio", { name: /Automático/ })).toBeInTheDocument();
     expect(screen.getByLabelText("Nome")).toHaveValue(USER.name);
-    expect(screen.getByRole("form", { name: "Dados pessoais" })).toHaveTextContent({ CUSTOM: "Personalizado", ADMIN: "Administrador", LOGISTICS_MANAGER: "Gestor de logística", CHECKER: "Conferente", DRIVER: "Motorista" }[role]);
+    expect(screen.getByRole("form", { name: "Dados pessoais", hidden: true })).toHaveTextContent({ CUSTOM: "Personalizado", ADMIN: "Administrador", LOGISTICS_MANAGER: "Gestor de logística", CHECKER: "Conferente", DRIVER: "Motorista" }[role]);
     expect(screen.queryByLabelText("Perfil de acesso")).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Meu perfil" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("link", { name: "Voltar ao início" })).toHaveClass("entity-header-link");
