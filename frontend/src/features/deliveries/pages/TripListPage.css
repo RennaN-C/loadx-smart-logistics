@@ -148,8 +148,8 @@
 }
 
 /* Busca de viagens: mesma hierarquia das demais listas, sem textbox minúsculo. */
-.trip-list-filters { grid-template-columns: minmax(190px, 250px) minmax(300px, 1fr); align-items: end; margin-block: 18px; }
-.trip-list-filters .registry-filter-field { min-width: 0; font-size: .8rem; color: var(--muted); }
+.trip-list-filters { display: grid; grid-template-columns: minmax(190px, 250px) minmax(300px, 1fr); align-items: end; gap: 12px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); margin-block: 18px; }
+.trip-list-filters .registry-filter-field { display: grid; gap: 7px; min-width: 0; font-size: .8rem; color: var(--muted); }
 .trip-list-filters input, .trip-list-filters select { width: 100%; min-width: 0; min-height: 44px; padding: 10px 12px; background: var(--paper); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; font: inherit; font-size: .875rem; }
 .trip-list-filters input:focus-visible, .trip-list-filters select:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
 @media (max-width: 640px) { .trip-list-filters { grid-template-columns: minmax(0, 1fr); } }
