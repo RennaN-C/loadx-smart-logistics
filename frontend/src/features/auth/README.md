@@ -134,7 +134,7 @@ reduzido desativa animações/transições e oculta o controle desnecessário.
 `CONFIRMADO`: formulários, senhas, desafio MFA, recuperação, cookies, CSRF e
 redirecionamentos mantêm seus contratos. Nenhum envio externo foi realizado
 na verificação visual. Capturas e matriz em
-[login profissional](../../../../docs/evidencias/login-profissional/README.md).
+[login profissional](https://github.com/RennaN-C/loadx-smart-logistics/blob/8948cf2e649c25aab1fe7bc30076dcdf1a40744c/docs/evidencias/login-profissional/README.md).
 
 ## Painel fotográfico — Issue #306, 25/10/2026
 
@@ -146,4 +146,4 @@ prioritário; não adiciona dependências nem utiliza hotlink.
 
 `CONFIRMADO`: proveniência e prompt em
 [images/README.md](../../../public/images/README.md). Capturas e verificações em
-[login fotográfico](../../../../docs/evidencias/login-fotografico/README.md).
+[login fotográfico](https://github.com/RennaN-C/loadx-smart-logistics/blob/8948cf2e649c25aab1fe7bc30076dcdf1a40744c/docs/evidencias/login-fotografico/README.md).

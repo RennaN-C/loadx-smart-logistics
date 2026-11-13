@@ -52,4 +52,4 @@ Gestão de usuários ou F5 descarta rascunhos e reconsulta a API, sem Web Storag
 Alterar associação/permissões mantém confirmação, revogação e invariantes no
 servidor. Perfis fixos, último ADMIN, vínculo DRIVER e escopo CHECKER preservados.
 
-Evidências reais: [OC112 UX](../../../../docs/evidencias/oc112-ux/README.md).
+Evidências reais: [OC112 UX](https://github.com/RennaN-C/loadx-smart-logistics/blob/8948cf2e649c25aab1fe7bc30076dcdf1a40744c/docs/evidencias/oc112-ux/README.md).

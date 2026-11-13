@@ -76,4 +76,4 @@ PDFs de viagem/carregamento e suas permissões próprias permanecem intactos.
 carregamento, viagem e gerencial, incluindo resumo, tabelas, paginação e gráficos
 gerenciais. O frontend continua baixando os mesmos endpoints; CSV e indicadores
 da tela mantêm seus dados, limites e permissões. Evidências e exemplos em
-[relatórios e controles](../../../../docs/evidencias/relatorios-controles/README.md).
+[relatórios e controles](https://github.com/RennaN-C/loadx-smart-logistics/blob/8948cf2e649c25aab1fe7bc30076dcdf1a40744c/docs/evidencias/relatorios-controles/README.md).
