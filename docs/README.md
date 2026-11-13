@@ -32,4 +32,4 @@ Para novas validações, priorize **artefatos temporários do GitHub Actions** o
 
 ## Antes de afirmar que algo está pronto
 
-Confira código e testes no SHA final, status das PRs, migrações, condições do ambiente e status da implantação. `main`, `desenvolvimento` e `pentest-lab` podem ter capacidades diferentes; não use capturas antigas para inferir comportamento atual.
+Confira código e testes no SHA final, status das PRs, migrações, condições do ambiente e status da implantação. `main` e `desenvolvimento` têm finalidades distintas. A antiga `pentest-lab` foi arquivada; seu snapshot está em `archive/pentest-lab-pre-migracao-2026-11-13`. Não use capturas antigas para inferir comportamento atual.
