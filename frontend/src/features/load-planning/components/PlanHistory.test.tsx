@@ -21,6 +21,18 @@ function setup(path = "/planning", checker = false, canReadOperations = false) {
   </Routes></MemoryRouter>);
 }
 describe("PlanHistory", () => {
+  it("mantém filtros antes da introdução e métricas reais no cartão", async () => {
+    setup("/planning", false, true);
+    await screen.findByText("ABC1D23");
+    const filters = screen.getByLabelText("Situação");
+    const title = screen.getByRole("heading", { name: "Planos de carga" });
+    expect(filters.compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const facts = document.querySelector(".plan-history-facts");
+    expect(facts).toHaveTextContent("Pedidos2");
+    expect(facts).toHaveTextContent("Volumes10");
+    expect(facts).toHaveTextContent("Peso120 kg");
+    expect(screen.getByText("21,5% de ocupação")).toBeInTheDocument();
+  });
   beforeEach(() => { vi.resetAllMocks(); vi.mocked(listLoadPlans).mockResolvedValue(makePage([item])); });
   it("reencontra o plano depois de sair para Produtos, sem calcular", async () => {
     setup();

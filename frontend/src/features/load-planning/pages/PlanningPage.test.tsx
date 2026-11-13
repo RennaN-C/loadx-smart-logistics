@@ -139,6 +139,16 @@ function calculationButton(name = "Calcular plano de carga") {
 function ordersStep() { fireEvent.click(screen.getByRole("button", { name: "Pedidos" })); }
 
 describe("PlanningPage", () => {
+  it("prioriza a cena sem remover resultado, aprovação ou navegação", async () => {
+    vi.mocked(getLoadPlan).mockResolvedValue(makePlan());
+    renderAt("/planning/lp1");
+    const scene = await screen.findByTestId("viewer");
+    const result = screen.getByRole("heading", { name: "Resultado do cálculo" });
+    expect(scene.compareDocumentPosition(result) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 1, name: "Carga em 3D" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Aprovar plano" })).toBeEnabled();
+    expect(screen.getByRole("link", { name: "Voltar ao planejamento" })).toHaveAttribute("href", "/planning");
+  });
   it("abre Execução dentro do planejamento sem redirecionar para Carregamentos", async () => {
     renderAt("/planning");
     const execution = screen.getByRole("link", { name: "Execução" });

@@ -45,11 +45,11 @@ function PlanningHeader({ plan, canManage, canDownload }: {
   readonly canDownload: boolean;
 }) {
   return <header className="entity-header">
-    <div><p className="eyebrow">OPERAÇÃO</p><h1>Planejamento de carga</h1><p className="entity-lede">Organize cargas, acompanhe a execução e retome planejamentos salvos.</p></div>
+    <div>{!plan ? <p className="eyebrow">OPERAÇÃO</p> : null}<h1>{plan ? "Carga em 3D" : "Planejamento de carga"}</h1><p className="entity-lede">{plan ? "Visualize a distribuição da carga no veículo e confira métricas e detalhes do carregamento." : "Organize cargas, acompanhe a execução e retome planejamentos salvos."}</p></div>
     {(plan && canDownload) || canManage ? <div className="entity-toolbar">
       {plan && canDownload ? <ReportDownloadButton label="Relatório de carregamento"
         filename={`relatorio-carregamento-${plan.id}.pdf`} download={() => downloadLoadingReport(plan.id)} /> : null}
-      {canManage ? <Link className="btn-primary" to="/planning?tab=new"><Icon name="plus" size={18} />Novo planejamento</Link> : null}
+      {canManage && !plan ? <Link className="btn-primary" to="/planning?tab=new"><Icon name="plus" size={18} />Novo planejamento</Link> : null}
     </div> : null}
   </header>;
 }
@@ -85,7 +85,6 @@ function PlanningWorkspace({ isNew, canManage, checker, onCalculated, onDistribu
     <nav className="plan-workspace-nav section-navigation" aria-label="Área de planejamento">
       <Link to="/planning" aria-current={!showBuilder && !execution ? "page" : undefined}><Icon name="planning" size={17} />Planos</Link>
       {canReadOperations ? <Link to="/planning?tab=execution" aria-current={execution ? "page" : undefined}><Icon name="truck" size={17} />Execução</Link> : null}
-      {canReadAudit ? <Link to="/audit"><Icon name="chart" size={17} />Atividade</Link> : null}
     </nav>
     {showBuilder ? <><div className="plan-new-intro"><Link to="/planning">← Voltar aos planos</Link><div><h2>Novo planejamento</h2><p>Selecione os pedidos e o modo de alocação. O plano será salvo somente ao calcular, com limite de 200 volumes.</p></div></div><PlanBuilder onCalculated={onCalculated} onDistributed={onDistributed} /></>
       : <div className={`planning-workspace${canReadAudit ? " planning-workspace-with-activity" : ""}`}>
@@ -109,8 +108,6 @@ function PlanningResult({ plan, canManage, approvalAllowed, isWorking, onApprove
         : plan.distributionStatus === "INCOMPLETE"
           ? "Distribuição incompleta: consulte as partes canceladas e reprocesse a carga antes de aprovar."
           : "Este plano pertence a uma distribuição. Aprovação, cancelamento e reprocessamento são feitos pela necessidade completa."}</p><Link className="btn-secondary" to={`/planning/distributions/${distributionId}`}>Abrir distribuição completa</Link></div> : null}
-    <p className="plan-persisted-reference"><Icon name="planning" size={16} />Plano salvo · Referência {plan.id.slice(0, 8)}<Link to="/planning">Planos existentes</Link><Link to={`/planning/${plan.id}`}>Abrir este plano</Link></p>
-    <PlanSummary showContinuity={false} plan={plan} canManage={canManage && !distributionId} approvalAllowed={approvalAllowed && !distributionId} isWorking={isWorking} onApprove={onApprove} onRecalculate={onRecalculate} />
     <Tabs items={PLAN_TABS} active={tab} onChange={onTabChange} label="Formato do resultado" />
     <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
       {tab === "summary" ? <PlanItemsTable items={plan.items} /> :
@@ -118,6 +115,9 @@ function PlanningResult({ plan, canManage, approvalAllowed, isWorking, onApprove
           <LoadViewer planId={plan.id} plan={plan} />
         </Suspense>}
     </div>
+    <p className="plan-persisted-reference"><Icon name="planning" size={16} />Plano salvo · Referência {plan.id.slice(0, 8)}<Link to="/planning">Planos existentes</Link><Link to={`/planning/${plan.id}`}>Abrir este plano</Link></p>
+    {canManage ? <Link className="btn-secondary" to="/planning?tab=new"><Icon name="plus" size={18} />Novo planejamento</Link> : null}
+    <PlanSummary showContinuity={false} plan={plan} canManage={canManage && !distributionId} approvalAllowed={approvalAllowed && !distributionId} isWorking={isWorking} onApprove={onApprove} onRecalculate={onRecalculate} />
     <PlanOperationalContinuity plan={plan} canManage={canManage && !distributionId} />
     <PlanAIExplanation key={plan.id} planId={plan.id} />
     {hasPermission(user, "loadx.audit.read") ? <AuditTrail entityType="LOAD_PLAN" entityId={plan.id} title="Histórico do plano" /> : null}

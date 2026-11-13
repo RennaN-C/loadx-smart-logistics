@@ -111,3 +111,17 @@ fieldset.distribution-confirm { border: 0; border-top: 1px solid var(--line); pa
 .distribution-page .distribution-detail { padding-top:0; }
 .distribution-detail > .tabs { margin-block:8px; }
 .distribution-detail .viewer { margin-top:0; gap:10px; }
+
+/* Preserve the real multi-truck controls with the reference's compact proportions. */
+.distribution-page .distribution-overview { background: var(--surface-gradient); box-shadow: inset 0 1px var(--surface-edge); border-radius: 12px; padding: 14px 18px; }
+.distribution-page .distribution-overview-heading h2 { font-size: 1.15rem; }
+.distribution-page .distribution-vehicle { background: var(--surface-gradient); padding: 12px 16px; }
+.distribution-page .distribution-vehicle[aria-pressed='true'] { border-color: var(--accent); box-shadow: inset 0 3px var(--accent), inset 0 0 0 1px var(--accent); background: linear-gradient(135deg, var(--accent-bg), var(--card)); }
+.distribution-vehicle-heading strong { font-family: inherit; font-size: 1.2rem; letter-spacing: -.02em; }
+.distribution-page .distribution-vehicle .plan-occupancy { height: 8px; border-radius: 99px; background: var(--line); overflow: hidden; }
+.distribution-page .distribution-vehicle .plan-occupancy-fill { height: 100%; background: linear-gradient(90deg, var(--accent), #ffd16a); }
+@media (min-width: 1101px) and (max-width: 1350px) {
+  .distribution-page .distribution-vehicles:not(.distribution-vehicles-many) { display: grid; }
+  .distribution-vehicles:not(.distribution-vehicles-many) .distribution-vehicle-select { display: none; }
+  .distribution-page .distribution-vehicles:not(.distribution-vehicles-many) .distribution-vehicle { display: grid; grid-template-areas: 'heading heading state' 'model model model' 'metrics metrics occupancy' 'bar bar bar'; }
+}
