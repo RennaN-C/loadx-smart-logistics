@@ -40,7 +40,7 @@
   color-scheme: dark;
 
   --ink: #e8eef7;
-  --paper: #071824;
+  --paper: #071725;
   --card: #102533;
   --line: #304b5e;
   --muted: #bccbda;
@@ -1535,8 +1535,9 @@ a.btn-link { text-decoration: none; }
 .plan-execution .plan-operation-summary p { font-size: .75rem; line-height: 1.4; }
 
 /* Premium navy/gold shell: one set of surfaces, without changing route visibility. */
-.app-shell > main { position: relative; isolation: isolate; background: radial-gradient(ellipse at 70% 0, color-mix(in srgb, var(--surface-highlight) 55%, transparent), transparent 60%); }
-.app-shell > main::before { content: ''; position: absolute; z-index: -1; pointer-events: none; top: 62px; right: 4%; width: 65%; height: 140px; border-top: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); border-radius: 70% 30% 0 0; background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 7%, transparent), transparent 65%); transform: skewY(-8deg); }
+.app-shell > main { position: relative; isolation: isolate; background: var(--paper); }
+/* Fundo sólido, alinhado ao login: sem arco decorativo sobre filtros e títulos. */
+.app-shell > main::before { content: none; }
 .app-sidebar { background: linear-gradient(155deg, var(--card), var(--paper) 60%); }
 .app-sidebar-header { padding-bottom: 10px; }
 .app-nav a { color: var(--ink); transition: background .16s ease, color .16s ease; }

@@ -95,3 +95,10 @@
   .contact-table { min-width: 0; }
   .contact-table td:first-child, .contact-table td:last-child { width: auto; }
 }
+
+/* Hierarquia visual consistente para nomes de produtos e veículos, sem imagens externas. */
+.registry-record-title { display: inline-flex; align-items: center; min-width: 0; gap: 10px; }
+.registry-record-title > strong { min-width: 0; overflow-wrap: anywhere; }
+.registry-record-icon { flex: 0 0 auto; display: inline-grid; place-items: center; width: 33px; height: 33px; border-radius: 9px; border: 1px solid color-mix(in srgb, var(--accent) 23%, var(--line)); color: var(--accent-strong); background: var(--accent-bg); }
+.registry-record-title .product-card-name, .registry-record-title .truck-card-model { display: inline; margin: 0; }
+@media (max-width: 820px) { .registry-record-title { align-items: flex-start; } }

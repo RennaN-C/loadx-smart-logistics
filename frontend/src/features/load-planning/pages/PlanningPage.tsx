@@ -85,7 +85,6 @@ function PlanningWorkspace({ isNew, canManage, checker, onCalculated, onDistribu
     <nav className="plan-workspace-nav section-navigation" aria-label="Área de planejamento">
       <Link to="/planning" aria-current={!showBuilder && !execution ? "page" : undefined}><Icon name="planning" size={17} />Planos</Link>
       {canReadOperations ? <Link to="/planning?tab=execution" aria-current={execution ? "page" : undefined}><Icon name="truck" size={17} />Execução</Link> : null}
-      {canReadAudit ? <Link to="/audit"><Icon name="chart" size={17} />Atividade</Link> : null}
     </nav>
     {showBuilder ? <><div className="plan-new-intro"><Link to="/planning">← Voltar aos planos</Link><div><h2>Novo planejamento</h2><p>Selecione os pedidos e o modo de alocação. O plano será salvo somente ao calcular, com limite de 200 volumes.</p></div></div><PlanBuilder onCalculated={onCalculated} onDistributed={onDistributed} /></>
       : <div className={`planning-workspace${canReadAudit ? " planning-workspace-with-activity" : ""}`}>
