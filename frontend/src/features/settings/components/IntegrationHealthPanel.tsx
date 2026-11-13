@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import { Icon, type IconName } from "../../../components/Icon";
 import { ApiError } from "../../../types/api";
 import { getIntegrationHealth, type ComponentHealth, type HealthComponent, type HealthReason, type HealthStatus, type IntegrationHealthReport } from "../api/integrationHealthApi";
@@ -48,7 +47,7 @@ function HealthCard({ item }: { readonly item: ComponentHealth }) {
         : item.status === "LIMITED"
           ? "Diagnóstico parcial: verifique as limitações antes de depender deste serviço em produção."
           : "Serviço ainda não disponível para uso real neste ambiente."}</p>}
-    {item.component === "notifications" && <Link className="integration-health-action-link" to="/settings#settings-outbox">Consultar fila de eventos</Link>}
+    {item.component === "notifications" && <a className="integration-health-action-link" href="/settings#settings-outbox">Consultar fila de eventos</a>}
   </li>;
 
 }
