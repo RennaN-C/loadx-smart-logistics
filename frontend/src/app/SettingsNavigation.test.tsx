@@ -37,7 +37,7 @@ beforeEach(() => {
   vi.mocked(logout).mockResolvedValue(undefined);
 });
 
-function account() { return screen.getByRole("region", { name: "Conta e administração" }); }
+function company() { return screen.getByRole("region", { name: "Dados da empresa" }); }
 
 describe("OC85: navegação e autorização na aplicação", () => {
   it("ADMIN acessa a rota real e consulta o contexto da sessão sem buscar outra identidade", async () => {
@@ -45,12 +45,12 @@ describe("OC85: navegação e autorização na aplicação", () => {
     await screen.findByRole("heading", { name: "Configurações", level: 1 });
     const menu = screen.getByRole("navigation", { name: "Navegação principal" });
     expect(within(menu).getByRole("link", { name: "Configurações" })).toHaveAttribute("aria-current", "page");
-    expect(within(account()).getByText(USER.name)).toBeInTheDocument();
-    expect(within(account()).getByText(USER.email)).toBeInTheDocument();
-    expect(within(account()).getByText("Administrador")).toBeInTheDocument();
+    expect(company()).toBeVisible();
+    expect(screen.getByRole("navigation", { name: "Seções de Configurações" })).toHaveTextContent("Dados da empresa");
+    expect(screen.queryByRole("link", { name: "Conta e administração" })).not.toBeInTheDocument();
     expect(getCurrentUser).toHaveBeenCalledOnce();
     expect(login).not.toHaveBeenCalled();
-    expect(screen.queryByRole("button", { name: /salvar|criar/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Conta e administração" })).not.toBeInTheDocument();
   });
 
   it.each(OTHER_ROLES)("%s não vê Configurações e recebe acesso negado ao usar endereço direto", async (role) => {
@@ -126,25 +126,20 @@ describe("OC85: navegação e autorização na aplicação", () => {
     expect(screen.queryByText(USER.email)).not.toBeInTheDocument();
   });
 
-  it("separa regiões acessíveis e oferece entrada real para gestão de usuários", async () => {
+  it("mostra apenas seções úteis e preserva os alvos dos links administrativos", async () => {
     render(<App />);
     await screen.findByRole("heading", { name: "Configurações", level: 1 });
     const menu = screen.getByRole("navigation", { name: "Seções de Configurações" });
-    expect(screen.queryByRole("region", { name: "Configurações do LoadX" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("region", { name: "Integrações e Saúde" })).not.toBeInTheDocument();
-    expect(within(menu).getByRole("link", { name: "Integrações e Saúde" })).toHaveAttribute("href", "/settings#settings-integrations");
-    for (const label of ["Gestão de usuários"]) {
-      expect(within(account()).getByRole("heading", { name: label, level: 3 })).toBeInTheDocument();
-      expect(within(menu).getByRole("link", { name: label })).toHaveAttribute("href", "/settings#settings-users");
+    expect(company()).toBeVisible();
+    for (const [label, id] of [
+      ["Dados da empresa", "settings-company"], ["Gestão de usuários", "settings-users"],
+      ["Integrações e Saúde", "settings-integrations"], ["Fila de eventos", "settings-outbox"],
+    ]) {
+      expect(within(menu).getByRole("link", { name: label })).toHaveAttribute("href", `/settings#${id}`);
+      expect(document.getElementById(id)).not.toBeNull();
     }
-    expect(within(account()).getByRole("link", { name: "Meu perfil, senha e sessões" })).toHaveAttribute("href", "/account");
-    expect(within(account()).getByRole("link", { name: "Meu perfil, senha e sessões" })).toHaveClass("settings-account-link");
-    expect(screen.queryByRole("region", { name: "Dados da empresa" })).not.toBeInTheDocument();
-    expect(within(menu).getByRole("link", { name: "Dados da empresa" })).toHaveAttribute("href", "/settings#settings-company");
-    expect(screen.getByRole("navigation", { name: "Seções de Configurações" })).toBeInTheDocument();
-    for (const link of within(menu).getAllByRole("link").filter((item) => item.getAttribute("href")?.includes("/settings#"))) {
-      expect(document.getElementById(link.getAttribute("href")!.split("#")[1])).not.toBeNull();
-    }
+    expect(within(menu).queryByRole("link", { name: "Conta e administração" })).not.toBeInTheDocument();
+    expect(within(menu).queryByRole("link", { name: "Configurações do LoadX" })).not.toBeInTheDocument();
     await waitFor(() => expect(getCurrentUser).toHaveBeenCalledOnce());
   });
 
@@ -156,8 +151,6 @@ describe("OC85: navegação e autorização na aplicação", () => {
       ["Dados da empresa", "settings-company"],
       ["Integrações e Saúde", "settings-integrations"],
       ["Fila de eventos", "settings-outbox"],
-      ["Configurações do LoadX", "settings-logistics"],
-      ["Conta e administração", "settings-account"],
     ]) {
       fireEvent.click(within(menu).getByRole("link", { name: label }));
       expect(window.location.hash).toBe(`#${id}`);
@@ -167,34 +160,38 @@ describe("OC85: navegação e autorização na aplicação", () => {
     }
   });
 
-  it("link direto abre a seção correta; hash desconhecido volta para Conta", async () => {
+  it("link direto abre a seção correta; hash desconhecido volta para Dados da empresa", async () => {
     window.history.replaceState({}, "", "/settings#settings-company");
     const app = render(<App />);
     await screen.findByRole("heading", { name: "Configurações", level: 1 });
     expect(screen.getByRole("region", { name: "Dados da empresa" })).toBeVisible();
-    expect(screen.queryByRole("region", { name: "Conta e administração" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Preferências" })).not.toBeInTheDocument();
     app.unmount();
     window.history.replaceState({}, "", "/settings#nao-existe");
     render(<App />);
     await screen.findByRole("heading", { name: "Configurações", level: 1 });
-    expect(screen.getByRole("region", { name: "Conta e administração" })).toBeVisible();
+    expect(company()).toBeVisible();
   });
 
-  it("mantém os formulários nas abas e remove as subseções da sidebar", async () => {
+  it("preserva apenas seções administrativas, sem duplicar as preferências pessoais", async () => {
     render(<App />);
     await screen.findByRole("heading", { name: "Configurações", level: 1 });
-    const sidebar = screen.getByRole("navigation", { name: "Seções de Configurações" });
-    expect(screen.getByRole("navigation", { name: "Seções de Configurações" })).toBeInTheDocument();
-    expect(screen.getByText("Perfil e segurança")).toBeInTheDocument();
-
-    fireEvent.click(within(sidebar).getByRole("link", { name: "Dados da empresa" }));
+    const nav = screen.getByRole("navigation", { name: "Seções de Configurações" });
     expect(await screen.findByRole("button", { name: "Cadastrar dados da empresa" })).toBeInTheDocument();
     expect(screen.getByText("Identificação da empresa")).toBeInTheDocument();
-    fireEvent.click(within(sidebar).getByRole("link", { name: "Configurações do LoadX" }));
-    const op = screen.getByRole("region", { name: "Configurações do LoadX" });
-    expect(within(op).getByRole("link", { name: /Consultar frota/ })).toHaveAttribute("href", "/fleet");
-    expect(within(op).getByRole("link", { name: /Ir para planejamento/ })).toHaveAttribute("href", "/planning");
+    expect(within(nav).queryByRole("link", { name: "Preferências" })).not.toBeInTheDocument();
+    expect(within(nav).queryByRole("link", { name: "Configurações do LoadX" })).not.toBeInTheDocument();
   });
+
+  it("redireciona links antigos de preferências ao Meu perfil, sem perder o acesso", async () => {
+    window.history.replaceState({}, "", "/settings#settings-preferences");
+    render(<App />);
+    await screen.findByRole("heading", { name: "Meu perfil", level: 1 });
+    expect(window.location.pathname).toBe("/account");
+    expect(window.location.search).toBe("?tab=preferences");
+    expect(screen.getByRole("radio", { name: /Automático/ })).toBeInTheDocument();
+  });
+
 });
 
 

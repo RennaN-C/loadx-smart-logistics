@@ -41,7 +41,7 @@ describe("OC92 Meu perfil", () => {
   });
   it("preserva notificações OC103 junto da segurança OC98 e dispositivos confiáveis", async () => {
     await show();
-    fireEvent.click(screen.getByText("Aparência e notificações"));
+    fireEvent.click(screen.getByRole("tab", { name: "Preferências" }));
     await screen.findByRole("form", { name: "Preferências de notificações" });
     expect(getNotificationPreferences).toHaveBeenCalled();
     expect(screen.getByRole("link", { name: /Abrir central/ })).toHaveAttribute("href", "/notifications");
@@ -53,10 +53,10 @@ describe("OC92 Meu perfil", () => {
   });
   it.each<Role>(["ADMIN", "LOGISTICS_MANAGER", "CHECKER", "DRIVER"])("%s acessa sua conta por URL e menu sem novos privilégios", async (role) => {
     vi.mocked(getCurrentUser).mockResolvedValue({ ...USER, role }); await show();
-    fireEvent.click(screen.getByText("Aparência e notificações"));
+    fireEvent.click(screen.getByRole("tab", { name: "Preferências" }));
     expect(screen.getByRole("radio", { name: /Automático/ })).toBeInTheDocument();
     expect(screen.getByLabelText("Nome")).toHaveValue(USER.name);
-    expect(screen.getByRole("form", { name: "Dados pessoais" })).toHaveTextContent({ CUSTOM: "Personalizado", ADMIN: "Administrador", LOGISTICS_MANAGER: "Gestor de logística", CHECKER: "Conferente", DRIVER: "Motorista" }[role]);
+    expect(screen.getByRole("form", { name: "Dados pessoais", hidden: true })).toHaveTextContent({ CUSTOM: "Personalizado", ADMIN: "Administrador", LOGISTICS_MANAGER: "Gestor de logística", CHECKER: "Conferente", DRIVER: "Motorista" }[role]);
     expect(screen.queryByLabelText("Perfil de acesso")).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Meu perfil" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("link", { name: "Voltar ao início" })).toHaveClass("entity-header-link");
@@ -108,6 +108,22 @@ describe("OC92 Meu perfil", () => {
     vi.mocked(listOwnSessions).mockRejectedValue(new ApiError("NETWORK_ERROR", "segredo")); window.history.replaceState({}, "", "/account?tab=sessions"); render(<App />); await screen.findByRole("alert"); expect(screen.getByLabelText("Nome")).toHaveValue(USER.name); vi.mocked(listOwnSessions).mockResolvedValue([SESSION]); fireEvent.click(screen.getByRole("button", { name: "Atualizar sessões" })); await screen.findByRole("heading", { name: "Sessão atual" }); expect(screen.queryByText("segredo")).not.toBeInTheDocument();
   });
   it("trata vazio real", async () => { vi.mocked(listOwnSessions).mockResolvedValue([]); window.history.replaceState({}, "", "/account?tab=sessions"); render(<App />); await screen.findByText("Nenhuma sessão ativa foi encontrada."); expect(revokeOwnSession).not.toHaveBeenCalled(); });
-  it("nega visitante não autenticado", async () => { vi.mocked(getCurrentUser).mockRejectedValue(new ApiError("AUTH_INVALID_TOKEN", "Sessão inválida")); render(<App />); await screen.findByRole("heading", { name: "Entrar" }); expect(listOwnSessions).not.toHaveBeenCalled(); });
+  it("nega visitante não autenticado", async () => { vi.mocked(getCurrentUser).mockRejectedValue(new ApiError("AUTH_INVALID_TOKEN", "Sessão inválida")); render(<App />); await screen.findByRole("heading", { name: "Bem-vindo ao LoadX" }); expect(listOwnSessions).not.toHaveBeenCalled(); });
   it("mostra carregamento durante a consulta", async () => { vi.mocked(listOwnSessions).mockReturnValue(new Promise(() => {})); window.history.replaceState({}, "", "/account?tab=sessions"); render(<App />); await screen.findByText("Carregando sessões…"); fireEvent.click(screen.getByRole("tab", { name: "Dados pessoais" })); expect(within(screen.getByRole("region", { name: "Dados pessoais" })).getByLabelText("Nome")).toBeInTheDocument(); });
+});
+
+
+it("exibe resumo de identidade real e atalhos para segurança e sessões", async () => {
+  await show();
+  const overview = screen.getByRole("region", { name: "Resumo do perfil" });
+  expect(overview).toHaveTextContent(USER.name);
+  expect(overview).toHaveTextContent(USER.email);
+  expect(overview).toHaveTextContent("Administrador");
+  fireEvent.click(screen.getByRole("button", { name: "Revisar senha e MFA" }));
+  expect(window.location.search).toBe("?tab=security");
+  expect(screen.getByRole("form", { name: "Autenticação multifator" })).toBeVisible();
+  fireEvent.click(screen.getByRole("tab", { name: "Dados pessoais" }));
+  fireEvent.click(screen.getByRole("button", { name: "Ver sessões e dispositivos" }));
+  expect(window.location.search).toBe("?tab=sessions");
+  expect(screen.getByRole("heading", { name: "Sessão atual" })).toBeVisible();
 });

@@ -2,6 +2,7 @@ import { NotificationPreferences } from "../../notifications/components/Notifica
 import { AppearancePreferences } from "../components/AppearancePreferences";
 import { Link, useSearchParams } from "react-router-dom";
 import { Tabs } from "../../../components/Tabs";
+import { Avatar } from "../../../components/Avatar";
 import { useAuth } from "../hooks/useAuth";
 import { OwnProfileForm } from "../components/OwnProfileForm";
 import { TrustedDevicesPanel } from "../components/TrustedDevicesPanel";
@@ -11,7 +12,7 @@ import { OwnPasswordForm } from "../components/OwnPasswordForm";
 import { OwnSessionsPanel } from "../components/OwnSessionsPanel";
 import "./AccountPage.css";
 export function AccountPage() {
-  const { updateUser } = useAuth();
+  const { updateUser, user } = useAuth();
   const [params, setParams] = useSearchParams();
   const active = ACCOUNT_TABS.find((tab) => tab.id === params.get("tab"))?.id ?? "data";
   function selectTab(tab: string) {
@@ -25,11 +26,27 @@ export function AccountPage() {
   return <div className="entity-page account-page"><header className="entity-header"><div><p className="overview-eyebrow">Minha conta</p><h1>Meu perfil</h1><p className="entity-lede">Gerencie seus dados, senha e sessões.</p></div><Link className="entity-header-link" to="/">Voltar ao início</Link></header>
     <Tabs items={ACCOUNT_TABS} active={active} onChange={selectTab} label="Seções do perfil" />
     <div role="tabpanel" id="panel-data" aria-labelledby="tab-data" hidden={active !== "data"}>
+    <section className="account-profile-hero" aria-label="Resumo do perfil">
+      {user && <Avatar name={user.name} size={64} />}
+      <div className="account-profile-identity">
+        <span>Conta conectada</span>
+        <h2>{user?.name}</h2>
+        <p>{user?.email}</p>
+      </div>
+      <div className="account-profile-role">
+        <span>Perfil de acesso</span>
+        <strong>{user ? { CUSTOM: "Personalizado", ADMIN: "Administrador", LOGISTICS_MANAGER: "Gestor de logística", CHECKER: "Conferente", DRIVER: "Motorista" }[user.role] : ""}</strong>
+        <small>Definido pela administração</small>
+      </div>
+    </section>
+    <div className="account-quick-actions" role="group" aria-label="Ações rápidas da conta">
+      <button type="button" className="btn-secondary" onClick={() => selectTab("security")}>Revisar senha e MFA</button>
+      <button type="button" className="btn-secondary" onClick={() => selectTab("sessions")}>Ver sessões e dispositivos</button>
+    </div>
     <section className="account-section" aria-labelledby="own-data"><h2 id="own-data">Dados pessoais</h2><OwnProfileForm /></section>
-    <details className="account-preferences"><summary>Aparência e notificações</summary>
-      <AppearancePreferences />
-      <NotificationPreferences />
-    </details>
+    </div>
+    <div role="tabpanel" id="panel-preferences" aria-labelledby="tab-preferences" hidden={active !== "preferences"}>
+      {active === "preferences" ? <div className="account-preferences-content"><AppearancePreferences /><NotificationPreferences /></div> : null}
     </div>
     <div role="tabpanel" id="panel-security" aria-labelledby="tab-security" hidden={active !== "security"}>
     <section className="account-section" aria-labelledby="own-security"><h2 id="own-security">Segurança</h2><OwnMfaPanel /><OwnPasswordForm onSignedOut={signedOut} /></section>
@@ -43,6 +60,7 @@ export function AccountPage() {
 
 const ACCOUNT_TABS = [
   { id: "data", label: "Dados pessoais" },
+  { id: "preferences", label: "Preferências" },
   { id: "security", label: "Segurança e MFA" },
   { id: "sessions", label: "Sessões e dispositivos" },
 ] as const;
