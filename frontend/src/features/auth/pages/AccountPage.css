@@ -34,3 +34,14 @@
 .account-preferences > summary:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 4px; }
 .account-preferences .account-section { border: 0; padding-inline: 0; }
 .account-preferences .notification-preferences { margin-top: 16px; }
+
+/* Perfil com contexto real da conta e preferências acessíveis sem accordion oculto. */
+.account-identity-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin: 20px 0 0; }
+.account-identity-summary > div { display: grid; gap: 5px; min-width: 0; padding: 18px 20px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
+.account-identity-summary span, .account-identity-summary small { color: var(--muted); font-size: .78rem; overflow-wrap: anywhere; }
+.account-identity-summary strong { font-size: 1rem; overflow-wrap: anywhere; }
+.account-preferences-content { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 20px; }
+.account-preferences-content > .account-section { margin: 0; }
+.account-preferences-content .appearance-options { grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 900px) { .account-preferences-content { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 640px) { .account-identity-summary { grid-template-columns: minmax(0, 1fr); } }
