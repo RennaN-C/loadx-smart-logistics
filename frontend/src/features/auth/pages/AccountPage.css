@@ -36,12 +36,23 @@
 .account-preferences .notification-preferences { margin-top: 16px; }
 
 /* Perfil com contexto real da conta e preferências acessíveis sem accordion oculto. */
-.account-identity-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin: 20px 0 0; }
-.account-identity-summary > div { display: grid; gap: 5px; min-width: 0; padding: 18px 20px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
-.account-identity-summary span, .account-identity-summary small { color: var(--muted); font-size: .78rem; overflow-wrap: anywhere; }
-.account-identity-summary strong { font-size: 1rem; overflow-wrap: anywhere; }
 .account-preferences-content { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 20px; }
 .account-preferences-content > .account-section { margin: 0; }
 .account-preferences-content .appearance-options { grid-template-columns: minmax(0, 1fr); }
 @media (max-width: 900px) { .account-preferences-content { grid-template-columns: minmax(0, 1fr); } }
-@media (max-width: 640px) { .account-identity-summary { grid-template-columns: minmax(0, 1fr); } }
+/* Identidade da conta com acesso direto a ações já implementadas. */
+.account-profile-hero { display: flex; align-items: center; flex-wrap: wrap; gap: 18px; min-width: 0; margin-top: 20px; padding: 24px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+.account-profile-identity { flex: 1 1 220px; min-width: 0; }
+.account-profile-identity span, .account-profile-role span, .account-profile-role small { color: var(--muted); font-size: .78rem; }
+.account-profile-identity h2 { font-size: 1.2rem; margin: 4px 0; font-weight: 600; overflow-wrap: anywhere; }
+.account-profile-identity p { margin: 0; color: var(--muted); font-size: .875rem; overflow-wrap: anywhere; }
+.account-profile-role { display: grid; gap: 6px; min-width: 170px; padding-left: 20px; border-left: 1px solid var(--line); }
+.account-profile-role strong { font-size: .95rem; }
+.account-quick-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0 22px; }
+.account-quick-actions button { width: auto; }
+.account-quick-actions button:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 3px; }
+@media (max-width: 640px) {
+  .account-profile-hero { padding: 18px; }
+  .account-profile-role { flex: 1 1 100%; padding: 14px 0 0; border-left: 0; border-top: 1px solid var(--line); }
+  .account-quick-actions button { width: 100%; }
+}
