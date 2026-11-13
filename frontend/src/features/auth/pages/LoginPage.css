@@ -66,23 +66,23 @@
 .login-wordmark {
   display: flex;
   align-items: center;
-  gap: 2.5vw;
+  gap: clamp(12px, 1.35vw, 20px);
   width: fit-content;
   line-height: 1;
 }
 .login-brand-symbol {
-  width: 9.7vw;
+  width: clamp(84px, 6vw, 108px);
   height: auto;
 }
 .login-wordmark-type {
   display: flex;
   flex-direction: column;
-  gap: .8vw;
-  padding-left: 1.8vw;
+  gap: 6px;
+  padding-left: clamp(12px, 1.2vw, 18px);
   border-left: 1px solid #b9c4d0;
 }
 .login-wordmark-type > span {
-  font-size: 4.7vw;
+  font-size: clamp(34px, 2.4vw, 43px);
   font-weight: 600;
   letter-spacing: -.04em;
 }
@@ -91,16 +91,16 @@
 }
 .login-wordmark-type small {
   color: #c9d0da;
-  font-size: 1.13vw;
-  letter-spacing: .27em;
+  font-size: clamp(10px, .68vw, 12px);
+  letter-spacing: .22em;
 }
 .login-brand-main {
-  margin-top: 4.5svh;
+  margin-top: clamp(26px, 4svh, 42px);
 }
 .login-brand-main h1 {
   margin: 0;
-  font-size: 2.47vw;
-  line-height: 1.24;
+  font-size: clamp(26px, 1.9vw, 32px);
+  line-height: 1.26;
   font-weight: 400;
   letter-spacing: -.025em;
 }
@@ -110,10 +110,10 @@
   font-weight: 700;
 }
 .login-brand-tag {
-  max-width: 41vw;
+  max-width: min(41vw, 540px);
   margin: 1.3svh 0 0;
   color: #c3d0dc;
-  font-size: clamp(11px, .82vw, 21px);
+  font-size: clamp(12px, .85vw, 14px);
   line-height: 1.6;
 }
 .login-journey {
@@ -137,8 +137,8 @@
 .login-journey li {
   display: flex;
   align-items: center;
-  gap: .8vw;
-  font-size: 1vw;
+  gap: clamp(8px, .7vw, 12px);
+  font-size: clamp(12px, .8vw, 14px);
   line-height: 1.4;
 }
 .login-journey li + li {
@@ -147,8 +147,8 @@
 }
 .login-journey svg {
   flex: 0 0 auto;
-  width: 2.3vw;
-  height: 2.3vw;
+  width: clamp(20px, 1.65vw, 26px);
+  height: clamp(20px, 1.65vw, 26px);
   color: #f7cb73;
 }
 
