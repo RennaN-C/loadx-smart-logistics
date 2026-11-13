@@ -176,7 +176,7 @@ Clientes, produtos, motoristas e caminhões cadastrados
           Finalizar operação e consultar relatório
 ```
 
-**Exemplo de demonstração:** cadastre dois caminhões elegíveis, prepare um pedido que não caiba em apenas um deles e escolha a modalidade automática. Depois do cálculo, confira os veículos selecionados, a distribuição dos volumes e a cena 3D de cada parte. Um cenário local com **24 volumes distribuídos entre dois caminhões** foi registrado nos [ensaios do projeto](docs/evidencias/qa-v12-pentest/planejamento-multi-atividade/README.md).
+**Exemplo de demonstração:** cadastre dois caminhões elegíveis, prepare um pedido que não caiba em apenas um deles e escolha a modalidade automática. Depois do cálculo, confira os veículos selecionados, a distribuição dos volumes e a cena 3D de cada parte. Um cenário local com **24 volumes distribuídos entre dois caminhões** foi registrado nos [ensaios históricos do projeto](https://github.com/RennaN-C/loadx-smart-logistics/blob/8948cf2e649c25aab1fe7bc30076dcdf1a40744c/docs/evidencias/qa-v12-pentest/planejamento-multi-atividade/README.md).
 
 Para detalhes sobre estados, regras e exceções, consulte o [fluxo operacional](docs/06-fluxo-operacional.md) e as [regras de negócio](docs/04-regras-negocio.md).
 
