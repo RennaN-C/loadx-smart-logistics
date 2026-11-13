@@ -2,6 +2,7 @@ import { RecordLifecycleAction } from "../../../components/RecordLifecycleAction
 import { StatusPill } from "../../../components/StatusPill";
 import { RowActions } from "../../../components/RowActions";
 import type { Truck } from "../types";
+import { Icon } from "../../../components/Icon";
 const weightFormatter = new Intl.NumberFormat("pt-BR");
 const volumeFormatter = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });
 
@@ -19,7 +20,7 @@ export function TruckCard({ truck, canManage, onEdit, onChanged, onMaintenance, 
   return (
     <tr className="truck-card">
       <td data-label="Placa"><strong className="truck-card-plate">{truck.plate}</strong></td>
-      <td data-label="Veículo"><strong className="truck-card-model">{truck.model}</strong><small>{truck.internalWidthCm} × {truck.internalHeightCm} × {truck.internalLengthCm} cm</small></td>
+      <td data-label="Veículo"><span className="registry-record-title"><span className="registry-record-icon" aria-hidden="true"><Icon name="truck" size={18} /></span><strong className="truck-card-model">{truck.model}</strong></span><small>{truck.internalWidthCm} × {truck.internalHeightCm} × {truck.internalLengthCm} cm</small></td>
       <td data-label="Capacidade"><span className="truck-card-weight"><strong>{weightFormatter.format(truck.maxWeightKg)} kg</strong></span></td>
       <td data-label="Volume interno">{volumeFormatter.format(volumeM3)} m³</td>
       <td data-label="Situação"><StatusPill tone={truck.active ? "good" : "neutral"}>{truck.active ? "Ativo" : "Arquivado"}</StatusPill></td>
