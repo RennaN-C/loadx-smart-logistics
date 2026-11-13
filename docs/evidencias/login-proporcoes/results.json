@@ -1,0 +1,790 @@
+{
+  "browser": "156.0.8078.4",
+  "baseCommit": "44eb90b2",
+  "api": "simulada, dados fictícios",
+  "comparisons": [
+    {
+      "viewport": {
+        "width": 1366,
+        "height": 768
+      },
+      "before": {
+        "card": {
+          "x": 838.703125,
+          "y": 49.921875,
+          "width": 496.5625,
+          "height": 668.15625
+        },
+        "column": {
+          "x": 819.59375,
+          "y": 0,
+          "width": 546.40625,
+          "height": 768
+        },
+        "title": {
+          "fontSize": "29.7788px",
+          "lineHeight": "37.2235px",
+          "padding": "0px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "minHeight": "0px"
+        },
+        "input": {
+          "fontSize": "14px",
+          "lineHeight": "normal",
+          "padding": "9.216px 13.66px 9.216px 51.908px",
+          "gap": "normal",
+          "borderRadius": "14px",
+          "minHeight": "46px"
+        },
+        "submit": {
+          "fontSize": "18.441px",
+          "lineHeight": "normal",
+          "padding": "6.912px 14px",
+          "gap": "13.66px",
+          "borderRadius": "14px",
+          "minHeight": "46px"
+        },
+        "overflow": false,
+        "leftHash": "f1d262ccc8cd3e233577cab957c844e1c3f4a79f4fc41aa3a40fa6d3f60a23fa",
+        "screenshotHash": "17cbbfe44dbc910959975cce8f244c79b040673b5f546a0d7dfa7aaff841e4d2"
+      },
+      "after": {
+        "card": {
+          "x": 851.59375,
+          "y": 87.078125,
+          "width": 482.40625,
+          "height": 593.828125
+        },
+        "column": {
+          "x": 819.59375,
+          "y": 0,
+          "width": 546.40625,
+          "height": 768
+        },
+        "title": {
+          "fontSize": "28px",
+          "lineHeight": "33.6px",
+          "padding": "0px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "minHeight": "0px"
+        },
+        "input": {
+          "fontSize": "15px",
+          "lineHeight": "normal",
+          "padding": "12px 48px",
+          "gap": "normal",
+          "borderRadius": "10px",
+          "minHeight": "50px"
+        },
+        "submit": {
+          "fontSize": "17px",
+          "lineHeight": "normal",
+          "padding": "12px 16px",
+          "gap": "10px",
+          "borderRadius": "11px",
+          "minHeight": "52px"
+        },
+        "overflow": false,
+        "leftHash": "f1d262ccc8cd3e233577cab957c844e1c3f4a79f4fc41aa3a40fa6d3f60a23fa",
+        "screenshotHash": "4208002e7ecf0a1119cb76e9a29e0d63c0c37ac266716a90a94d76d640b1dd65"
+      }
+    },
+    {
+      "viewport": {
+        "width": 1600,
+        "height": 900
+      },
+      "before": {
+        "card": {
+          "x": 982.390625,
+          "y": 58.5,
+          "width": 581.609375,
+          "height": 783
+        },
+        "column": {
+          "x": 960,
+          "y": 0,
+          "width": 640,
+          "height": 900
+        },
+        "title": {
+          "fontSize": "34.88px",
+          "lineHeight": "43.6px",
+          "padding": "0px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "minHeight": "0px"
+        },
+        "input": {
+          "fontSize": "16px",
+          "lineHeight": "normal",
+          "padding": "10.8px 16px 10.8px 60.8px",
+          "gap": "normal",
+          "borderRadius": "14px",
+          "minHeight": "49.5px"
+        },
+        "submit": {
+          "fontSize": "21.6px",
+          "lineHeight": "normal",
+          "padding": "8.1px 14px",
+          "gap": "16px",
+          "borderRadius": "14px",
+          "minHeight": "49.5px"
+        },
+        "overflow": false,
+        "leftHash": "c1f93d3f5de1d75325450b2c28650b8a34a9dc7ef5b4864ae6b46795871d4b87",
+        "screenshotHash": "4620ab19c837b74179672200caada73b0b68d558c4eccec30cab8b0b8d3582bf"
+      },
+      "after": {
+        "card": {
+          "x": 1025,
+          "y": 150.6875,
+          "width": 510,
+          "height": 598.625
+        },
+        "column": {
+          "x": 960,
+          "y": 0,
+          "width": 640,
+          "height": 900
+        },
+        "title": {
+          "fontSize": "32px",
+          "lineHeight": "38.4px",
+          "padding": "0px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "minHeight": "0px"
+        },
+        "input": {
+          "fontSize": "15px",
+          "lineHeight": "normal",
+          "padding": "12px 48px",
+          "gap": "normal",
+          "borderRadius": "10px",
+          "minHeight": "50px"
+        },
+        "submit": {
+          "fontSize": "17px",
+          "lineHeight": "normal",
+          "padding": "12px 16px",
+          "gap": "10px",
+          "borderRadius": "11px",
+          "minHeight": "52px"
+        },
+        "overflow": false,
+        "leftHash": "c1f93d3f5de1d75325450b2c28650b8a34a9dc7ef5b4864ae6b46795871d4b87",
+        "screenshotHash": "c4e80a4cbb158262818325c8374465261222ade364e6aafc1ccf0f358a5bd0ec"
+      }
+    },
+    {
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "before": {
+        "card": {
+          "x": 1178.875,
+          "y": 70.203125,
+          "width": 697.9375,
+          "height": 939.59375
+        },
+        "column": {
+          "x": 1152,
+          "y": 0,
+          "width": 768,
+          "height": 1080
+        },
+        "title": {
+          "fontSize": "41.856px",
+          "lineHeight": "52.32px",
+          "padding": "0px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "minHeight": "0px"
+        },
+        "input": {
+          "fontSize": "19.2px",
+          "lineHeight": "normal",
+          "padding": "12.96px 19.2px 12.96px 72.96px",
+          "gap": "normal",
+          "borderRadius": "14px",
+          "minHeight": "59.4px"
+        },
+        "submit": {
+          "fontSize": "25.92px",
+          "lineHeight": "normal",
+          "padding": "9.72px 14px",
+          "gap": "19.2px",
+          "borderRadius": "14px",
+          "minHeight": "59.4px"
+        },
+        "overflow": false,
+        "leftHash": "538fe3a421e26800014295f8ed462ead1a1ffdae0f62f24072503ed2f20a7227",
+        "screenshotHash": "6bb0700e1b899fa05049e8d9b3075e7af9a522aa96ee2f3fbd9bcb4535b8c927"
+      },
+      "after": {
+        "card": {
+          "x": 1281,
+          "y": 239.484375,
+          "width": 510,
+          "height": 601.03125
+        },
+        "column": {
+          "x": 1152,
+          "y": 0,
+          "width": 768,
+          "height": 1080
+        },
+        "title": {
+          "fontSize": "34px",
+          "lineHeight": "40.8px",
+          "padding": "0px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "minHeight": "0px"
+        },
+        "input": {
+          "fontSize": "15px",
+          "lineHeight": "normal",
+          "padding": "12px 48px",
+          "gap": "normal",
+          "borderRadius": "10px",
+          "minHeight": "50px"
+        },
+        "submit": {
+          "fontSize": "17px",
+          "lineHeight": "normal",
+          "padding": "12px 16px",
+          "gap": "10px",
+          "borderRadius": "11px",
+          "minHeight": "52px"
+        },
+        "overflow": false,
+        "leftHash": "538fe3a421e26800014295f8ed462ead1a1ffdae0f62f24072503ed2f20a7227",
+        "screenshotHash": "5cae912f79034d291b38e095997eb0a78f2b7211bf5bef6a025fe80af22ebfd9"
+      }
+    },
+    {
+      "viewport": {
+        "width": 2560,
+        "height": 1440
+      },
+      "before": {
+        "card": {
+          "x": 1571.828125,
+          "y": 93.59375,
+          "width": 930.578125,
+          "height": 1252.796875
+        },
+        "column": {
+          "x": 1536,
+          "y": 0,
+          "width": 1024,
+          "height": 1440
+        },
+        "title": {
+          "fontSize": "55.808px",
+          "lineHeight": "69.76px",
+          "padding": "0px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "minHeight": "0px"
+        },
+        "input": {
+          "fontSize": "25px",
+          "lineHeight": "normal",
+          "padding": "17.28px 25.6px 17.28px 97.28px",
+          "gap": "normal",
+          "borderRadius": "14px",
+          "minHeight": "79.2px"
+        },
+        "submit": {
+          "fontSize": "34px",
+          "lineHeight": "normal",
+          "padding": "12.96px 14px",
+          "gap": "25.6px",
+          "borderRadius": "14px",
+          "minHeight": "79.2px"
+        },
+        "overflow": false,
+        "leftHash": "57d6c9f342834e30a52bb173737fe310d1761affa726689453ed03af57bae6aa",
+        "screenshotHash": "48430b6a2b929f748867f62ab4aabe7c1b57e4f539734eae9208dab0bf36aa29"
+      },
+      "after": {
+        "card": {
+          "x": 1793,
+          "y": 419.484375,
+          "width": 510,
+          "height": 601.03125
+        },
+        "column": {
+          "x": 1536,
+          "y": 0,
+          "width": 1024,
+          "height": 1440
+        },
+        "title": {
+          "fontSize": "34px",
+          "lineHeight": "40.8px",
+          "padding": "0px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "minHeight": "0px"
+        },
+        "input": {
+          "fontSize": "15px",
+          "lineHeight": "normal",
+          "padding": "12px 48px",
+          "gap": "normal",
+          "borderRadius": "10px",
+          "minHeight": "50px"
+        },
+        "submit": {
+          "fontSize": "17px",
+          "lineHeight": "normal",
+          "padding": "12px 16px",
+          "gap": "10px",
+          "borderRadius": "11px",
+          "minHeight": "52px"
+        },
+        "overflow": false,
+        "leftHash": "57d6c9f342834e30a52bb173737fe310d1761affa726689453ed03af57bae6aa",
+        "screenshotHash": "039ca9c2929d01e26916f6cb0ae9ec9249b93d1dc57f7734a073137444e0283d"
+      }
+    },
+    {
+      "viewport": {
+        "width": 375,
+        "height": 667
+      },
+      "before": {
+        "card": {
+          "x": 14,
+          "y": 106,
+          "width": 347,
+          "height": 617.4375
+        },
+        "column": {
+          "x": 14,
+          "y": 106,
+          "width": 347,
+          "height": 617.4375
+        },
+        "title": {
+          "fontSize": "23px",
+          "lineHeight": "28.75px",
+          "padding": "0px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "minHeight": "0px"
+        },
+        "input": {
+          "fontSize": "16px",
+          "lineHeight": "normal",
+          "padding": "12px 14px 12px 44px",
+          "gap": "normal",
+          "borderRadius": "14px",
+          "minHeight": "50px"
+        },
+        "submit": {
+          "fontSize": "18px",
+          "lineHeight": "normal",
+          "padding": "6.003px 14px",
+          "gap": "14px",
+          "borderRadius": "14px",
+          "minHeight": "50px"
+        },
+        "overflow": false,
+        "leftHash": "89630908d46c340fbfc70c6e1b16d24ff48a68cd3b8ebc63a557d11a1a76e3ab",
+        "screenshotHash": "4c512fa406c4baa86b713a222f93952dc4e66ee01e085acd3564618c92983b2a"
+      },
+      "after": {
+        "card": {
+          "x": 14,
+          "y": 106,
+          "width": 347,
+          "height": 617.4375
+        },
+        "column": {
+          "x": 14,
+          "y": 106,
+          "width": 347,
+          "height": 617.4375
+        },
+        "title": {
+          "fontSize": "23px",
+          "lineHeight": "28.75px",
+          "padding": "0px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "minHeight": "0px"
+        },
+        "input": {
+          "fontSize": "16px",
+          "lineHeight": "normal",
+          "padding": "12px 14px 12px 44px",
+          "gap": "normal",
+          "borderRadius": "14px",
+          "minHeight": "50px"
+        },
+        "submit": {
+          "fontSize": "18px",
+          "lineHeight": "normal",
+          "padding": "6.003px 14px",
+          "gap": "14px",
+          "borderRadius": "14px",
+          "minHeight": "50px"
+        },
+        "overflow": false,
+        "leftHash": "89630908d46c340fbfc70c6e1b16d24ff48a68cd3b8ebc63a557d11a1a76e3ab",
+        "screenshotHash": "4c512fa406c4baa86b713a222f93952dc4e66ee01e085acd3564618c92983b2a"
+      }
+    }
+  ],
+  "identity": [
+    {
+      "width": 1366,
+      "flow": "recovery",
+      "unchanged": true,
+      "before": {
+        "card": {
+          "x": 846.984375,
+          "y": 319.40625,
+          "width": 480,
+          "height": 441.171875
+        },
+        "column": {
+          "x": 819.59375,
+          "y": 0,
+          "width": 546.40625,
+          "height": 1080
+        },
+        "title": {
+          "fontSize": "28.8px",
+          "lineHeight": "34.56px",
+          "padding": "0px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "minHeight": "0px"
+        },
+        "input": {
+          "fontSize": "15.2px",
+          "lineHeight": "normal",
+          "padding": "12px 14px",
+          "gap": "normal",
+          "borderRadius": "10px",
+          "minHeight": "48px"
+        },
+        "submit": {
+          "fontSize": "14.72px",
+          "lineHeight": "normal",
+          "padding": "10px 18px",
+          "gap": "10px",
+          "borderRadius": "10px",
+          "minHeight": "46px"
+        },
+        "overflow": false,
+        "cardHash": "ab76d1ea63291768b943ec469c3d5c99590a2830228fbcd6de2df4fc129c7f5c"
+      },
+      "after": {
+        "card": {
+          "x": 846.984375,
+          "y": 319.40625,
+          "width": 480,
+          "height": 441.171875
+        },
+        "column": {
+          "x": 819.59375,
+          "y": 0,
+          "width": 546.40625,
+          "height": 1080
+        },
+        "title": {
+          "fontSize": "28.8px",
+          "lineHeight": "34.56px",
+          "padding": "0px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "minHeight": "0px"
+        },
+        "input": {
+          "fontSize": "15.2px",
+          "lineHeight": "normal",
+          "padding": "12px 14px",
+          "gap": "normal",
+          "borderRadius": "10px",
+          "minHeight": "48px"
+        },
+        "submit": {
+          "fontSize": "14.72px",
+          "lineHeight": "normal",
+          "padding": "10px 18px",
+          "gap": "10px",
+          "borderRadius": "10px",
+          "minHeight": "46px"
+        },
+        "overflow": false,
+        "cardHash": "ab76d1ea63291768b943ec469c3d5c99590a2830228fbcd6de2df4fc129c7f5c"
+      }
+    },
+    {
+      "width": 1366,
+      "flow": "mfa",
+      "unchanged": true,
+      "before": {
+        "card": {
+          "x": 846.984375,
+          "y": 168.765625,
+          "width": 480,
+          "height": 742.46875
+        },
+        "column": {
+          "x": 819.59375,
+          "y": 0,
+          "width": 546.40625,
+          "height": 1080
+        },
+        "title": {
+          "fontSize": "28.8px",
+          "lineHeight": "34.56px",
+          "padding": "0px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "minHeight": "0px"
+        },
+        "input": {
+          "fontSize": "15.2px",
+          "lineHeight": "normal",
+          "padding": "12px 14px",
+          "gap": "normal",
+          "borderRadius": "10px",
+          "minHeight": "48px"
+        },
+        "submit": {
+          "fontSize": "14.72px",
+          "lineHeight": "normal",
+          "padding": "10px 18px",
+          "gap": "10px",
+          "borderRadius": "10px",
+          "minHeight": "46px"
+        },
+        "overflow": false,
+        "cardHash": "67ae89bb32e02e82c2e9571d6c7271f511f716993a820bcb90efa417c6c38617"
+      },
+      "after": {
+        "card": {
+          "x": 846.984375,
+          "y": 168.765625,
+          "width": 480,
+          "height": 742.46875
+        },
+        "column": {
+          "x": 819.59375,
+          "y": 0,
+          "width": 546.40625,
+          "height": 1080
+        },
+        "title": {
+          "fontSize": "28.8px",
+          "lineHeight": "34.56px",
+          "padding": "0px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "minHeight": "0px"
+        },
+        "input": {
+          "fontSize": "15.2px",
+          "lineHeight": "normal",
+          "padding": "12px 14px",
+          "gap": "normal",
+          "borderRadius": "10px",
+          "minHeight": "48px"
+        },
+        "submit": {
+          "fontSize": "14.72px",
+          "lineHeight": "normal",
+          "padding": "10px 18px",
+          "gap": "10px",
+          "borderRadius": "10px",
+          "minHeight": "46px"
+        },
+        "overflow": false,
+        "cardHash": "67ae89bb32e02e82c2e9571d6c7271f511f716993a820bcb90efa417c6c38617"
+      }
+    },
+    {
+      "width": 1920,
+      "flow": "recovery",
+      "unchanged": true,
+      "before": {
+        "card": {
+          "x": 1287.84375,
+          "y": 314.90625,
+          "width": 480,
+          "height": 450.171875
+        },
+        "column": {
+          "x": 1152,
+          "y": 0,
+          "width": 768,
+          "height": 1080
+        },
+        "title": {
+          "fontSize": "28.8px",
+          "lineHeight": "34.56px",
+          "padding": "0px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "minHeight": "0px"
+        },
+        "input": {
+          "fontSize": "15.2px",
+          "lineHeight": "normal",
+          "padding": "12px 14px",
+          "gap": "normal",
+          "borderRadius": "10px",
+          "minHeight": "48px"
+        },
+        "submit": {
+          "fontSize": "14.72px",
+          "lineHeight": "normal",
+          "padding": "10px 18px",
+          "gap": "10px",
+          "borderRadius": "10px",
+          "minHeight": "46px"
+        },
+        "overflow": false,
+        "cardHash": "34a8d725c7b404740b3dac1fb9e5b6b8655df9104782e6ca5a241086a75eb568"
+      },
+      "after": {
+        "card": {
+          "x": 1287.84375,
+          "y": 314.90625,
+          "width": 480,
+          "height": 450.171875
+        },
+        "column": {
+          "x": 1152,
+          "y": 0,
+          "width": 768,
+          "height": 1080
+        },
+        "title": {
+          "fontSize": "28.8px",
+          "lineHeight": "34.56px",
+          "padding": "0px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "minHeight": "0px"
+        },
+        "input": {
+          "fontSize": "15.2px",
+          "lineHeight": "normal",
+          "padding": "12px 14px",
+          "gap": "normal",
+          "borderRadius": "10px",
+          "minHeight": "48px"
+        },
+        "submit": {
+          "fontSize": "14.72px",
+          "lineHeight": "normal",
+          "padding": "10px 18px",
+          "gap": "10px",
+          "borderRadius": "10px",
+          "minHeight": "46px"
+        },
+        "overflow": false,
+        "cardHash": "34a8d725c7b404740b3dac1fb9e5b6b8655df9104782e6ca5a241086a75eb568"
+      }
+    },
+    {
+      "width": 1920,
+      "flow": "mfa",
+      "unchanged": true,
+      "before": {
+        "card": {
+          "x": 1287.84375,
+          "y": 168.765625,
+          "width": 480,
+          "height": 742.46875
+        },
+        "column": {
+          "x": 1152,
+          "y": 0,
+          "width": 768,
+          "height": 1080
+        },
+        "title": {
+          "fontSize": "28.8px",
+          "lineHeight": "34.56px",
+          "padding": "0px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "minHeight": "0px"
+        },
+        "input": {
+          "fontSize": "15.2px",
+          "lineHeight": "normal",
+          "padding": "12px 14px",
+          "gap": "normal",
+          "borderRadius": "10px",
+          "minHeight": "48px"
+        },
+        "submit": {
+          "fontSize": "14.72px",
+          "lineHeight": "normal",
+          "padding": "10px 18px",
+          "gap": "10px",
+          "borderRadius": "10px",
+          "minHeight": "46px"
+        },
+        "overflow": false,
+        "cardHash": "da47811756d48fe375b33568bf83494d4bcd007cb8f69e624e39b6e365868d70"
+      },
+      "after": {
+        "card": {
+          "x": 1287.84375,
+          "y": 168.765625,
+          "width": 480,
+          "height": 742.46875
+        },
+        "column": {
+          "x": 1152,
+          "y": 0,
+          "width": 768,
+          "height": 1080
+        },
+        "title": {
+          "fontSize": "28.8px",
+          "lineHeight": "34.56px",
+          "padding": "0px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "minHeight": "0px"
+        },
+        "input": {
+          "fontSize": "15.2px",
+          "lineHeight": "normal",
+          "padding": "12px 14px",
+          "gap": "normal",
+          "borderRadius": "10px",
+          "minHeight": "48px"
+        },
+        "submit": {
+          "fontSize": "14.72px",
+          "lineHeight": "normal",
+          "padding": "10px 18px",
+          "gap": "10px",
+          "borderRadius": "10px",
+          "minHeight": "46px"
+        },
+        "overflow": false,
+        "cardHash": "da47811756d48fe375b33568bf83494d4bcd007cb8f69e624e39b6e365868d70"
+      }
+    }
+  ],
+  "errors": []
+}
