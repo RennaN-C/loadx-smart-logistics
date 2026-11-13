@@ -50,4 +50,4 @@ O E2E multi-caminhão foi adaptado à nova apresentação do rótulo de contagem
 mantendo as verificações de UUIDs, escopo da parte e índices físicos.
 
 `CONFIRMADO`: exemplos fictícios e resultados em
-[relatórios e controles](../../../../docs/evidencias/relatorios-controles/README.md).
+[relatórios e controles](https://github.com/RennaN-C/loadx-smart-logistics/blob/8948cf2e649c25aab1fe7bc30076dcdf1a40744c/docs/evidencias/relatorios-controles/README.md).

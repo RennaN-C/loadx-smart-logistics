@@ -23,7 +23,7 @@ não anuncia leitura bem-sucedida. Nenhuma viagem ou ocorrência é criada pela 
 Checkboxes/selects/botões nativos, labels, output/alert, foco pós-leitura e Escape
 preservam teclado/leitores. Tokens existentes resolvem claro/escuro/automático.
 Os testes Vitest simulam somente o transporte; a validação Chromium usa API e
-PostgreSQL reais com dados fictícios. Evidências: docs/evidencias/oc103.
+PostgreSQL reais com dados fictícios. Evidências anteriores: [OC103 arquivada](https://github.com/RennaN-C/loadx-smart-logistics/tree/8948cf2e649c25aab1fe7bc30076dcdf1a40744c/docs/evidencias/oc103).
 
 `CONFIRMADO`: categorias atuais TRIPS/OCCURRENCES e política obrigatória SECURITY;
 nenhum evento de segurança/documento/manutenção é inventado. OC109 não é antecipada.
@@ -34,4 +34,4 @@ nenhum evento de segurança/documento/manutenção é inventado. OC109 não é a
 Sino/central invalidam ações após fechar/navegar; respostas tardias não reabrem a
 operação. Uma leitura já enviada pode concluir no servidor, sem navegação posterior.
 Trava imediata evita acionamento repetido. Evidências em
-[UI03](../../../../docs/evidencias/qa-v12-pentest/ui-lote3.md).
+[UI03](https://github.com/RennaN-C/loadx-smart-logistics/blob/8948cf2e649c25aab1fe7bc30076dcdf1a40744c/docs/evidencias/qa-v12-pentest/ui-lote3.md).
