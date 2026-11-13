@@ -73,7 +73,13 @@ python -m pytest -q tests
 
 Capturas e relatórios antigos de QA **não precisam estar no checkout atual**: os índices em [evidências](evidencias/README.md) e [validações](validacoes/README.md) apontam para os commits históricos. Para novos resultados, prefira artefatos da CI e anexos de PR/Issue.
 
-## 6. Como pensar nas branches
+## 6. Deploy de testes com PowerShell
+
+O projeto possui o [guia de deploy](../deploy/README.md) e o menu `deploy/deploy-menu.ps1`. O código do ambiente de testes deve ser publicado **a partir de `desenvolvimento`** após as verificações de CI; a Vercel e o Render precisam estar configurados para acompanhar essa branch nos respectivos painéis.
+
+O menu somente solicita um redeploy no GitHub Actions. Não use o comando para substituir releases da `main`; consulte o status `READY` / `live` nos provedores antes de confirmar a publicação.
+
+## 7. Como pensar nas branches
 
 - `main`: referência das releases estáveis; não é local para experimentos.
 - `desenvolvimento`: integração de melhorias revisadas e testadas.
