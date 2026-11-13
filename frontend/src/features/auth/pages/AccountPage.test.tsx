@@ -111,3 +111,19 @@ describe("OC92 Meu perfil", () => {
   it("nega visitante não autenticado", async () => { vi.mocked(getCurrentUser).mockRejectedValue(new ApiError("AUTH_INVALID_TOKEN", "Sessão inválida")); render(<App />); await screen.findByRole("heading", { name: "Bem-vindo ao LoadX" }); expect(listOwnSessions).not.toHaveBeenCalled(); });
   it("mostra carregamento durante a consulta", async () => { vi.mocked(listOwnSessions).mockReturnValue(new Promise(() => {})); window.history.replaceState({}, "", "/account?tab=sessions"); render(<App />); await screen.findByText("Carregando sessões…"); fireEvent.click(screen.getByRole("tab", { name: "Dados pessoais" })); expect(within(screen.getByRole("region", { name: "Dados pessoais" })).getByLabelText("Nome")).toBeInTheDocument(); });
 });
+
+
+it("exibe resumo de identidade real e atalhos para segurança e sessões", async () => {
+  await show();
+  const overview = screen.getByRole("region", { name: "Resumo do perfil" });
+  expect(overview).toHaveTextContent(USER.name);
+  expect(overview).toHaveTextContent(USER.email);
+  expect(overview).toHaveTextContent("Administrador");
+  fireEvent.click(screen.getByRole("button", { name: "Revisar senha e MFA" }));
+  expect(window.location.search).toBe("?tab=security");
+  expect(screen.getByRole("form", { name: "Autenticação multifator" })).toBeVisible();
+  fireEvent.click(screen.getByRole("tab", { name: "Dados pessoais" }));
+  fireEvent.click(screen.getByRole("button", { name: "Ver sessões e dispositivos" }));
+  expect(window.location.search).toBe("?tab=sessions");
+  expect(screen.getByRole("heading", { name: "Sessão atual" })).toBeVisible();
+});
