@@ -6,9 +6,9 @@ Este arquivo é a fonte principal de contexto para qualquer IA que ajude a progr
 assistido por IA. Este `AGENTS.md` continua sendo a fonte obrigatória de contexto
 e restrições para agentes de IA.
 
-## Situação das versões (26/10/2026)
+## Situação das versões (13/11/2026)
 
-A release [v1.2.0](https://github.com/RennaN-C/loadx-smart-logistics/releases/tag/v1.2.0) foi publicada pela PR #314. A v1.3.0 (multiempresa/CoreFlow) é **direção proposta**, não autorização para implementar novas OCs. Para decisões atuais, consultar `docs/planejamento/roadmap-versoes.md` e `docs/releases/v1.2.0.md`. O planejamento e as pendências de versões passadas não substituem Issues atuais. Não reescrever tags já publicadas; manutenção deve passar por PR e preservar código funcional.
+A v1.3.0 corresponde à linha de código **Loxi e Experiência Inteligente**. Confira a [release oficial](https://github.com/RennaN-C/loadx-smart-logistics/releases/tag/v1.3.0), o [roadmap](docs/planejamento/roadmap-versoes.md) e as [notas da v1.3.0](docs/releases/v1.3.0.md) antes de afirmar que algo foi publicado ou implantado. Multiempresa SaaS é uma **proposta em fases**, descrita na [ADR-049](docs/decisions/ADR-049-multiempresa-organizacoes-isolamento.md) e na [Issue #416](https://github.com/RennaN-C/loadx-smart-logistics/issues/416), e **não está implementada** neste código. Não reescrever tags já publicadas; manutenção deve passar por PR.
 
 ## Antes de qualquer alteração
 
@@ -28,7 +28,7 @@ reutilizados. OC62 é a primeira ocorrência nova pós-v1.0.0; a v1.1.0 usa
 OC62–OC78. O planejamento não substitui os critérios de aceite das Issues nem
 aprova automaticamente novos contratos ou regras.
 
-`CONFIRMADO`: para planejamento de releases posteriores à v1.1.0, consulte [docs/planejamento/roadmap-versoes.md](docs/planejamento/roadmap-versoes.md). O roadmap define direção de produto, SemVer e gates, mas não substitui Issues, critérios de aceite ou ADRs. A v1.2.0 usa **OC79–OC112**, detalhadas em [docs/planejamento/v1.2.0/00-visao-geral.md](docs/planejamento/v1.2.0/00-visao-geral.md). A v1.3.0 está registrada apenas como direção multiempresa no roadmap e ainda não possui OCs ou Issues funcionais; identificadores posteriores à OC112 somente são definidos no planejamento da respectiva release.
+`CONFIRMADO`: para planejamento de releases posteriores à v1.1.0, consulte [docs/planejamento/roadmap-versoes.md](docs/planejamento/roadmap-versoes.md). O roadmap define direção de produto, SemVer e gates, mas não substitui Issues, critérios de aceite ou ADRs. A v1.2.0 usa **OC79–OC112**, detalhadas em [docs/planejamento/v1.2.0/00-visao-geral.md](docs/planejamento/v1.2.0/00-visao-geral.md). A evolução multiempresa permanece uma iniciativa separada, sem autorização para ativação em produção. A nomenclatura de versões no histórico do roadmap não substitui as releases publicadas nem as Issues atuais.
 
 ## Marcadores obrigatórios de incerteza
 
