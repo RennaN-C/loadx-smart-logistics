@@ -23,6 +23,21 @@ cookie `HttpOnly`; o frontend não lê nem persiste credenciais. O
 
 ## Login em camadas — Issue #409, 12/11/2026
 
+### Proporções do formulário de entrada — Issue #411
+
+`CONFIRMADO`: o card de entrada em desktop (>820 px) tem largura máxima
+510 px, altura natural, padding 36×40 px, título limitado a 28–34 px,
+campos de 50 px e botão de 52 px. O rodapé usa margem de 6 px, sem ocupar
+o espaço livre. Gradientes, cores, bordas e cenário foram preservados.
+
+`CONFIRMADO`: as declarações antigas de escala foram removidas dos estilos
+base e distribuídas entre desktop e mobile. O desktop usa
+`form.login-card:not(.identity-card)` para distinguir entrada de MFA/recuperação;
+a coluna só recebe o padding simétrico quando contém esse formulário.
+Não altera componentes, lógica, contratos, assets nem `Identity.css`.
+Comparações Chromium confirmam mobile idêntico e cards de recuperação/MFA
+idênticos em 1366/1920 px. [Capturas e medidas](../../../../docs/evidencias/login-proporcoes/README.md).
+
 `CONFIRMADO`: a página corrente substitui o AVIF que continha textos e era
 esticado por fotografia limpa, sem marca/textos, com `object-fit: cover` e
 `srcset` WebP de 1024/1606 px. A faixa fotográfica ocupa os 65% inferiores do

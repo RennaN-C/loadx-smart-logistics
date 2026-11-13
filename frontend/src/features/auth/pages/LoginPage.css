@@ -175,14 +175,11 @@
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  gap: 2.6svh;
   width: 100%;
   min-width: 0;
-  min-height: 87svh;
+  min-height: 0;
   margin: 0;
-  padding: 3.5svh 3.9vw;
   border: 1px solid #88c4e4;
-  border-radius: 26px;
   background: radial-gradient(ellipse at 100% 0, #1b4c704d, transparent 65%), linear-gradient(145deg, #081622, #081e2f);
   box-shadow: 0 20px 70px #00071247, 0 0 18px #49a9e81f, inset 0 1px 0 #d3efff40, inset 0 -1px 14px #389edf1f;
 }
@@ -191,37 +188,25 @@
 }
 .login-access-mark {
   display: block;
-  width: 5.1vw;
   height: auto;
-  margin: 0 auto 3svh;
 }
 .login-card h2 {
   margin: 0;
   color: var(--ink);
-  font-size: clamp(24px, 2.18vw, 56px);
   font-weight: 600;
-  line-height: 1.25;
-  letter-spacing: -.035em;
 }
 .login-card-highlight {
   color: #ffca6a;
 }
 .login-card-subtitle {
-  margin: .4svh 0 0;
   color: #e4ebf3;
-  font-size: 1.4vw;
   font-weight: 400;
-  letter-spacing: .12em;
 }
 .login-card .login-lede {
-  margin: 2.5svh auto 0;
   color: var(--muted);
-  font-size: clamp(13px, 1.04vw, 26px);
-  line-height: 1.5;
 }
 .login-fieldset {
   display: grid;
-  gap: 2svh;
   padding: 0;
   margin: 0;
   border: 0;
@@ -232,7 +217,6 @@
 }
 .login-field {
   display: grid;
-  gap: .6svh;
 }
 .login-field-label-row {
   display: flex;
@@ -240,31 +224,23 @@
 }
 .login-field-label {
   color: var(--ink);
-  font-size: clamp(13px, 1vw, 25px);
   font-weight: 600;
 }
 .login-card input[type='email'], .login-card input[type='password'], .login-card input[type='text'] {
   box-sizing: border-box;
   width: 100%;
   min-width: 0;
-  min-height: clamp(46px, 5.5svh, 80px);
-  padding: 1.2svh 1vw 1.2svh 3.8vw;
   border: 1px solid #486176;
-  border-radius: 14px;
   background-color: #0c2133eb;
   background-repeat: no-repeat;
-  background-position: 1.2vw center;
-  background-size: 1.45vw;
   color: var(--ink);
   font-family: inherit;
-  font-size: clamp(14px, 1vw, 25px);
   box-shadow: inset 0 1px 0 #d5e9f80a;
 }
 .login-card #email {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dfeaf4' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2.8' y='5.6' width='18.4' height='12.8' rx='2'/%3E%3Cpath d='m3.8 7 8.2 6.4L20.2 7'/%3E%3C/svg%3E");
 }
 .login-card #password {
-  padding-right: 3.5vw;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dfeaf4' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='5' y='10.5' width='14' height='10' rx='2'/%3E%3Cpath d='M8 10.5V7a4 4 0 0 1 8 0v3.5'/%3E%3C/svg%3E");
 }
 .login-card input::placeholder {
@@ -283,17 +259,14 @@
 }
 .login-toggle {
   position: absolute;
-  right: .5vw;
   top: 50%;
   transform: translateY(-50%);
-  width: clamp(36px, 2.8vw, 64px);
-  min-height: 44px;
   padding: 0;
   border: 0;
   border-radius: 8px;
   cursor: pointer;
   font-size: 0;
-  background: transparent center / clamp(20px, 1.4vw, 32px) no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d9e8f5' stroke-width='1.75'%3E%3Cpath d='M2.5 12s3.5-5.5 9.5-5.5 9.5 5.5 9.5 5.5-3.5 5.5-9.5 5.5S2.5 12 2.5 12Z'/%3E%3Ccircle cx='12' cy='12' r='2.6'/%3E%3C/svg%3E");
+  background: transparent center no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d9e8f5' stroke-width='1.75'%3E%3Cpath d='M2.5 12s3.5-5.5 9.5-5.5 9.5 5.5 9.5 5.5-3.5 5.5-9.5 5.5S2.5 12 2.5 12Z'/%3E%3Ccircle cx='12' cy='12' r='2.6'/%3E%3C/svg%3E");
 }
 .login-toggle[aria-pressed='true'] {
   background-color: #63879c33;
@@ -317,37 +290,96 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 1vw;
   width: 100%;
-  min-height: clamp(46px, 5.5svh, 80px);
-  padding: .9svh 14px;
   border: 1px solid #ffe1a0;
-  border-radius: 14px;
   background: linear-gradient(165deg, #edba60, #ffdc91 45%, #946c2c);
   color: #0a1520;
   font-family: inherit;
-  font-size: clamp(17px, 1.35vw, 34px);
   font-weight: 600;
   box-shadow: inset 0 1px 2px #fff6;
-}
-.login-card .login-submit svg {
-  width: 1.6vw;
-  height: 1.6vw;
 }
 .login-card .login-submit:hover:not(:disabled) {
   filter: brightness(1.08);
 }
 .login-hint {
-  margin: auto 0 0;
-  padding-top: 2.6svh;
   border-top: 1px solid #a6c3d945;
   color: #bfcedb;
-  font-size: clamp(12px, .85vw, 22px);
   text-align: center;
   line-height: 1.6;
 }
-.login-page .identity-card {
-  min-height: 0;
+
+/* Desktop sign-in proportions. Identity cards keep their own sizing in Identity.css. */
+@media (min-width: 821px) {
+  .login-formside:has(> form.login-card:not(.identity-card)) {
+    padding: 28px 32px;
+  }
+  .login-formside > form.login-card:not(.identity-card) {
+    width: min(100%, 510px);
+    padding: 36px 40px;
+    gap: 18px;
+    border-radius: 20px;
+  }
+  .login-access-mark {
+    width: 52px;
+    margin: 0 auto 16px;
+  }
+  .login-formside > form.login-card:not(.identity-card) h2 {
+    font-size: clamp(28px, 2vw, 34px);
+    line-height: 1.2;
+    letter-spacing: -.03em;
+  }
+  .login-card-subtitle {
+    margin: 6px 0 0;
+    font-size: 13px;
+    letter-spacing: .15em;
+  }
+  .login-card .login-lede {
+    margin: 14px auto 0;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .login-fieldset {
+    gap: 16px;
+  }
+  .login-field {
+    gap: 7px;
+  }
+  .login-field-label {
+    font-size: 13px;
+  }
+  .login-formside > form.login-card:not(.identity-card) input {
+    min-height: 50px;
+    padding: 12px 48px;
+    border-radius: 10px;
+    background-size: 19px;
+    background-position: 15px center;
+    font-size: 15px;
+  }
+  .login-toggle {
+    right: 5px;
+    width: 42px;
+    min-height: 42px;
+    background-size: 19px;
+  }
+  .login-formside > form.login-card:not(.identity-card) .login-recovery-link {
+    font-size: 13px;
+  }
+  .login-card .login-submit {
+    min-height: 52px;
+    padding: 12px 16px;
+    border-radius: 11px;
+    font-size: 17px;
+    gap: 10px;
+  }
+  .login-card .login-submit svg {
+    width: 18px;
+    height: 18px;
+  }
+  .login-hint {
+    margin: 6px 0 0;
+    padding-top: 18px;
+    font-size: 12px;
+  }
 }
 
 /* A single compact layout replaces the photographic panel on tablets/phones. */
@@ -401,17 +433,22 @@
   }
   .login-access-mark {
     width: 68px;
-    margin-bottom: 22px;
+    margin: 0 auto 22px;
   }
   .login-card h2 {
     font-size: clamp(23px, 5.7vw, 32px);
+    line-height: 1.25;
+    letter-spacing: -.035em;
   }
   .login-card-subtitle {
     font-size: 17px;
+    margin: .4svh 0 0;
+    letter-spacing: .12em;
   }
   .login-card .login-lede {
     font-size: 13px;
-    margin-top: 18px;
+    margin: 18px auto 0;
+    line-height: 1.5;
   }
   .login-fieldset {
     gap: 18px;
@@ -428,6 +465,7 @@
     background-position: 14px center;
     background-size: 21px;
     font-size: 16px;
+    border-radius: 14px;
   }
   .login-card #password {
     padding-right: 44px;
@@ -435,6 +473,8 @@
   .login-toggle {
     right: 4px;
     width: 40px;
+    min-height: 44px;
+    background-size: 20px;
   }
   .login-page .login-recovery-link {
     font-size: 13px;
@@ -443,6 +483,8 @@
     min-height: 50px;
     font-size: 18px;
     gap: 14px;
+    padding: .9svh 14px;
+    border-radius: 14px;
   }
   .login-card .login-submit svg {
     width: 22px;
@@ -450,7 +492,7 @@
   }
   .login-hint {
     font-size: 12px;
-    margin-top: 10px;
+    margin: 10px 0 0;
     padding-top: 20px;
   }
 }
