@@ -1,36 +1,40 @@
-# Deploy manual LoadX — Vercel e Render
+# Deploy do LoadX — desenvolvimento, Vercel e Render
 
-Este diretório oferece um **acionador manual**, exclusivamente para a branch
-`pentest-lab`, que já é a branch de produção dos serviços de homologação.
-Não observa `main`, não envia commits, não executa merge, não publica
-GitHub Release, não usa Docker Compose e não altera o banco local.
+O **ambiente web de testes** deve publicar a branch `desenvolvimento` como fonte única. O menu PowerShell dispara **redeploy manual**, sem push, merge, migrations, release ou atualização da `main`. O `pentest-lab` permanece apenas como histórico de homologação.
 
-## 1. Configurar uma única vez
+> A branch do serviço Render e a branch de produção do projeto Vercel são **configurações hospedadas**, não são escolhidas pelo `frontend/vercel.json`. Atualizar somente este repositório **não** troca essas configurações. Mantenha a URL do backend existente até planejar uma migração de domínio separada.
 
-**Atenção:** URLs de Deploy Hook são credenciais. Não as coloque no repositório,
-script, terminal compartilhado ou chat.
+## 1. Troca inicial de branch nos provedores
 
-1. No projeto Vercel `loadx-smart-logistics-frontend`, abra
-   **Settings → Git → Deploy Hooks**. Crie **um** hook, chamado
-   `loadx-pentest-manual`, associado à branch **pentest-lab**.
-2. No serviço Render `loadx-pentest-api`, abra
-   **Settings → Deploy Hook**. Copie o link do serviço, sem parâmetro `ref`.
-3. No GitHub, abra
-   **Settings → Secrets and variables → Actions → New repository secret**.
-   Cadastre:
-   - `LOADX_VERCEL_DEPLOY_HOOK_URL`: URL gerada pela Vercel.
-   - `LOADX_RENDER_DEPLOY_HOOK_URL`: URL gerada pelo Render.
-4. Instale o [GitHub CLI](https://cli.github.com/), se necessário, e autentique
-   com `gh auth login`.
+**Vercel — projeto `loadx-smart-logistics-frontend`:**
 
-A automação valida o **nome do serviço/projeto no hook**, o SHA atual de
-`pentest-lab` e a aprovação dos checks obrigatórios neste commit.
-Se uma configuração estiver ausente ou errada, a execução falha sem
-contornar as proteções.
+1. Abra [Vercel](https://vercel.com/rennan-cardoso/loadx-smart-logistics-frontend) → **Settings → Git**. Confirme repositório `RennaN-C/loadx-smart-logistics`, diretório raiz `frontend` e **Production Branch = `desenvolvimento`**.
+2. Em **Settings → Git → Deploy Hooks**, crie um hook exclusivo para a branch **`desenvolvimento`**. Nome sugerido: `loadx-desenvolvimento-manual`. **Não reutilize o hook de `pentest-lab`**: o hook guarda a branch.
+3. Preserve a configuração do proxy da API em `frontend/vercel.json`. Não altere CORS, JWT/cookies ou variáveis de ambiente sem validar login/MFA.
 
-## 2. Uso no Windows (PowerShell)
+**Render — serviço existente `loadx-pentest-api`:**
 
-Da raiz do repositório:
+1. Abra [Render](https://dashboard.render.com/web/srv-db241sss728c73b0iai0) → **Settings → Build & Deploy** e confirme repositório `RennaN-C/loadx-smart-logistics`, **Branch = `desenvolvimento`**.
+2. Confira comandos de build/start, raiz `backend`, health check `/ready`, plano e banco conectado **antes** de salvar. A troca de branch pode iniciar deploy se `Auto-Deploy` estiver ativo.
+3. Em **Settings → Deploy Hook**, use o hook do **mesmo serviço**, sem parâmetro `ref` e sem divulgar a URL. O nome antigo do serviço pode permanecer: renomear não é necessário para mudar a branch.
+4. Confira migrations Alembic/compatibilidade do banco de testes. Nunca execute `down -v` nem migrações destrutivas para trocar a origem Git.
+
+**Ordem para não misturar versões:** confirme CI aprovada em `desenvolvimento`; configure primeiro o Render e verifique que o backend ficou `live` no SHA esperado e que `/ready` funciona; só então troque a branch de produção da Vercel, acompanhe o build `READY` e valide login/MFA e navegação. Um hook HTTP 2xx **não comprova** deploy concluído.
+
+## 2. Habilitar o acionador manual
+
+No GitHub do repositório, em **Settings → Secrets and variables → Actions**:
+
+- *Repository secrets* (valores sensíveis, nunca em commit/chat): `LOADX_RENDER_DEPLOY_HOOK_URL` e `LOADX_VERCEL_DEPLOY_HOOK_URL`. O segundo deve ser o **novo** hook da `desenvolvimento`.
+- *Repository variable* `LOADX_DEPLOY_SOURCE_BRANCH_CONFIRMED=desenvolvimento`. Defina **somente depois de confirmar e testar os dois projetos com essa branch**. Sem a variável, o workflow falha fechado e não chama os hooks.
+
+O workflow valida a branch exata, confere se ela não mudou desde o disparo, exige checks **Backend, Frontend e Segurança do backend** aprovados no SHA publicado. Se existir `SonarCloud Code Analysis` para o mesmo SHA, também exige aprovação; o SonarCloud de PR nem sempre cria check no SHA final do push de `desenvolvimento`. Essa ausência é informada, não confundida com aprovação. Sem os checks obrigatórios, nenhum hook é chamado.
+
+O arquivo `.github/workflows/deploy-manual.yml` precisa estar na branch default `main` **e** na branch `desenvolvimento` para o `workflow_dispatch` ser acessível a partir da branch de trabalho. Não use o botão com a branch `main`: a validação rejeita qualquer referência diferente de `desenvolvimento`.
+
+## 3. Uso no Windows (PowerShell)
+
+Instale [GitHub CLI](https://cli.github.com/), execute `gh auth login` e, na raiz do repositório:
 
 ```powershell
 .\deploy\deploy-menu.ps1
@@ -45,36 +49,18 @@ Comandos diretos:
 .\deploy\deploy-menu.ps1 -Acao status
 ```
 
-O script pede confirmação explícita. O parâmetro `-Confirmado` permite
-execução sem o prompt em automações **iniciadas conscientemente**.
+O menu exige a palavra `DEPLOY` como confirmação, salvo com `-Confirmado` em execução já autorizada. O script não guarda hooks, token Render/Vercel ou configurações de banco no Windows; ele usa a sessão autenticada de `gh` para chamar o GitHub Actions.
 
-Alternativa via GitHub CLI:
+Alternativa:
 
 ```powershell
-gh workflow run deploy-manual.yml --repo RennaN-C/loadx-smart-logistics --ref pentest-lab --field target=both
+gh workflow run deploy-manual.yml --repo RennaN-C/loadx-smart-logistics --ref desenvolvimento --field target=both
 ```
 
-Ou use **Actions → LoadX - Deploy manual (Vercel e Render) → Run workflow**
-e selecione a branch `pentest-lab`.
+## 4. Publicação automática e diagnóstico
 
-## 3. Comportamento e limites
+Depois que ambos os provedores estiverem configurados para `desenvolvimento`, cada push/merge pode gerar novos builds **se o auto-deploy de cada provedor estiver ativo**. Isso é independente do workflow manual acima; não significa que o pipeline de CI impede automaticamente um auto-deploy disparado pelo Git.
 
-- A Vercel recompila o frontend associado à branch `pentest-lab`.
-- O Render recompila o backend associado à mesma branch.
-- O workflow **apenas confirma que os hooks aceitaram os pedidos HTTP**.
-  Para confirmar publicação, consulte os novos deploys da
-  [Vercel](https://vercel.com/rennan-cardoso/loadx-smart-logistics-frontend)
-  (`READY`) e do [Render](https://dashboard.render.com/web/srv-db241sss728c73b0iai0)
-  (`live`), além de `/ready` e do login com conta de teste.
-- Mudanças não commitadas em seu PC, mudanças apenas na `main` e arquivos
-  locais não são publicados. Para publicar código novo, primeiro integre o
-  commit à `pentest-lab` pelo processo já estabelecido.
-- `autoDeploy` continua habilitado nos provedores: um push novo em
-  `pentest-lab` já pode disparar deploy automaticamente. O menu serve para
-  **redeploy manual**, sem precisar gerar commit vazio.
-- Se `pentest-lab` mudar durante a execução, a validação de SHA aborta.
-  O hook constrói o último commit da branch configurada (não imobiliza SHA
-  entre o pedido e o build). Para mudanças simultâneas, acompanhe o SHA no
-  painel dos provedores antes de afirmar qual versão está publicada.
-- Para ativar futuramente acompanhamento automático da `main`, será
-  necessário um workflow separado e uma nova decisão. Nada aqui faz isso.
+O menu `-Acao status` lista as solicitações ao GitHub Actions. Para confirmar execução real, confira o SHA e estado `READY` na Vercel, o SHA e estado `live` no Render, `GET /ready` e fluxos básicos de login/planejamento. Configure verificações de deploy no provedor quando quiser tornar a CI um gate obrigatório também para **auto-deploy**.
+
+Manter a `main` separada preserva as releases estáveis; `pentest-lab` não deve ser mesclada inteira em `desenvolvimento` sem revisão das alterações exclusivas.
