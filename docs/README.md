@@ -9,7 +9,7 @@ A documentação está separada entre **uso e manutenção atual**, **decisões 
 | Entender o produto e executar localmente | [README](../README.md) e [guia de ambientes](13-guia-execucao-ambientes.md) |
 | Entender componentes e regras | [Arquitetura](02-arquitetura.md), [dados](03-modelo-dados.md), [regras](04-regras-negocio.md), [fluxo](06-fluxo-operacional.md) |
 | Consultar as rotas | [Contratos de API](05-contratos-api.md) |
-| Fazer alterações no código | [CONTRIBUTING](../CONTRIBUTING.md), [AGENTS](../AGENTS.md), [padrões](08-padroes-desenvolvimento.md) |
+| Fazer alterações no código | [Guia de manutenção manual](14-guia-manutencao.md), [CONTRIBUTING](../CONTRIBUTING.md), [AGENTS](../AGENTS.md), [padrões](08-padroes-desenvolvimento.md) |
 | Entender decisões de design/segurança | [Registro de ADRs](decisions/README.md) |
 | Ver o comportamento de uma versão | [Releases](releases/), [CHANGELOG](../CHANGELOG.md) e [roadmap](planejamento/roadmap-versoes.md) |
 | Analisar qualidade e pendências | [Riscos](11-riscos-pendencias.md), [qualidade](qualidade/) e [histórico de QA](evidencias/README.md) |
