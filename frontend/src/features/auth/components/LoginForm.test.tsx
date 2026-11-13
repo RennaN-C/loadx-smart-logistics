@@ -65,7 +65,7 @@ describe("LoginForm", () => {
     vi.mocked(useAuth).mockReturnValue({ status: "unauthenticated", user: null, login, updateUser: vi.fn(), logout: vi.fn() });
 
     render(<MemoryRouter><LoginForm /></MemoryRouter>);
-    expect(document.querySelector(".login-access-mark .loadx-brand-mark")).toHaveAttribute("src", "/branding/loadx-mark-128.png");
+    expect(document.querySelector(".login-access-mark")).toHaveAttribute("src", "/branding/loadx-login-mark.svg");
 
     fireEvent.change(screen.getByLabelText("E-mail"), { target: { value: "admin@example.test" } });
     fireEvent.change(screen.getByLabelText("Senha"), { target: { value: "senha-local" } });
@@ -116,6 +116,6 @@ it("mantém cabeçalho LoadX real separado da arte e botão Entrar acessível", 
   vi.mocked(useAuth).mockReturnValue({ status: "unauthenticated", user: null, login: vi.fn(), updateUser: vi.fn(), logout: vi.fn() });
   render(<MemoryRouter><LoginForm /></MemoryRouter>);
   expect(screen.getByRole("heading", { name: "Bem-vindo ao LoadX" })).toBeInTheDocument();
-  expect(screen.getByText("SMART LOGISTICS")).toBeInTheDocument();
+  expect(screen.getByText("Smart Logistics")).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Entrar" })).toBeEnabled();
 });

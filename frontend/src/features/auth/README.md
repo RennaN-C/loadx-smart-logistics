@@ -9,7 +9,7 @@ Login, sessão e proteção de rotas.
 - `components/AuthContext.ts`: o Context em si, separado do provider para preservar o Fast Refresh.
 - `components/RequireAuth.tsx`: guarda de rota, redireciona para `/login` quando não autenticado.
 - `components/SessionLoading.tsx`: estado de carregamento compartilhado por `RequireAuth` e `LoginPage`.
-- `components/BrandPanel.tsx`: painel de marca com ilustração decorativa e controle de movimento.
+- `components/BrandPanel.tsx`: cenário fotográfico, globo decorativo SVG e identificação HTML/SVG em camadas independentes.
 - `components/LoginForm.tsx`: formulário controlado de e-mail/senha.
 - `components/loginErrorMessages.ts`: tradução dos códigos de erro do backend para texto de interface.
 - `api/authApi.ts`: login, restauração e logout revogável.
@@ -20,6 +20,28 @@ Login, sessão e proteção de rotas.
 cookie `HttpOnly`; o frontend não lê nem persiste credenciais. O
 `X-CSRF-Token` devolvido por login e `/auth/me` fica apenas em memória em
 `frontend/src/services/csrfToken.ts`.
+
+## Login em camadas — Issue #409, 12/11/2026
+
+`CONFIRMADO`: a página corrente substitui o AVIF que continha textos e era
+esticado por fotografia limpa, sem marca/textos, com `object-fit: cover` e
+`srcset` WebP de 1024/1606 px. A faixa fotográfica ocupa os 65% inferiores do
+painel; o céu e o mapa são independentes. Marca do conceito aprovado em SVG,
+título, subtítulo e diferenciais permanecem visíveis em HTML no desktop.
+Os diferenciais descrevem planejamento, conferência e entregas, sem anunciar
+roteirização externa. Não há SSO nem promessa de segurança adicionada.
+
+`CONFIRMADO`: `LoginPage.css` concentra tokens locais, componentes e breakpoints
+820/400 px, sem as versões acumuladas ou animações contínuas anteriores. O botão
+de visibilidade fica dentro do campo de senha; labels, handlers, contratos,
+MFA, recuperação, sessões, CSRF e redirecionamentos foram preservados.
+
+`RISCO IDENTIFICADO`: a geração integrada não entregou os 2560–3200 px
+preferidos. O cenário final é nativo **1606×979**, não um upscale, e cobre a
+faixa fotográfica até 2560×1440 em densidade 1×. Em 2× essa fotografia tem
+resolução finita; HTML e SVG continuam vetoriais. Não alegar fotografia 4K.
+As seções de apresentação abaixo registram revisões anteriores.
+[Capturas, testes e limitações](../../../../docs/evidencias/login-alta-definicao/README.md).
 
 
 ## Autenticação publicada na Vercel — Issue #393
