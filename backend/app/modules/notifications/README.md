@@ -222,4 +222,4 @@ abrupto pós-claim, backoff/cap, disputa PENDING/RETRYABLE, fencing e API ADMIN.
 Usa exclusivamente MockOutboxTransport e adapters de falha, sem envio externo.
 Fixtures de API usam commits reais para não prender locks em savepoints do
 processo pai. Evidência incremental em
-`docs/evidencias/qa-v12-pentest/lote-outbox-processos.md`.
+[`docs/evidencias/qa-v12-pentest/lote-outbox-processos.md`](https://github.com/RennaN-C/loadx-smart-logistics/blob/8948cf2e649c25aab1fe7bc30076dcdf1a40744c/docs/evidencias/qa-v12-pentest/lote-outbox-processos.md).

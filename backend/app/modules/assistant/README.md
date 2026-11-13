@@ -127,7 +127,7 @@ vinculados usam referências revalidadas. Mudanças de assunto removem fatos e
 histórico do tópico anterior. Caminhão/plano anterior ambíguo pede esclarecimento.
 
 Catálogo executável: `capabilities.py`; inventário auditável e limites por módulo:
-`docs/evidencias/issue-371/capacidades.md`. `get_usage_guidance` responde COMO USAR,
+[referência histórica não presente no commit de arquivo](https://github.com/RennaN-C/loadx-smart-logistics/issues/382). `get_usage_guidance` responde COMO USAR,
 com enum fechado de módulos e permissão efetiva; não consulta cadastros. Listagens
 adicionais de clientes/motoristas ativos e pedidos usam Services públicos, dez
 registros por página, sem documentos/contatos/endereços e sem nomes enviados à Groq.

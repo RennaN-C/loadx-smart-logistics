@@ -9,7 +9,7 @@ Login, sessão e proteção de rotas.
 - `components/AuthContext.ts`: o Context em si, separado do provider para preservar o Fast Refresh.
 - `components/RequireAuth.tsx`: guarda de rota, redireciona para `/login` quando não autenticado.
 - `components/SessionLoading.tsx`: estado de carregamento compartilhado por `RequireAuth` e `LoginPage`.
-- `components/BrandPanel.tsx`: cenário fotográfico, globo decorativo SVG e identificação HTML/SVG em camadas independentes.
+- `components/BrandPanel.tsx`: painel de marca com ilustração decorativa e controle de movimento.
 - `components/LoginForm.tsx`: formulário controlado de e-mail/senha.
 - `components/loginErrorMessages.ts`: tradução dos códigos de erro do backend para texto de interface.
 - `api/authApi.ts`: login, restauração e logout revogável.
@@ -20,43 +20,6 @@ Login, sessão e proteção de rotas.
 cookie `HttpOnly`; o frontend não lê nem persiste credenciais. O
 `X-CSRF-Token` devolvido por login e `/auth/me` fica apenas em memória em
 `frontend/src/services/csrfToken.ts`.
-
-## Login em camadas — Issue #409, 12/11/2026
-
-### Proporções do formulário de entrada — Issue #411
-
-`CONFIRMADO`: o card de entrada em desktop (>820 px) tem largura máxima
-510 px, altura natural, padding 36×40 px, título limitado a 28–34 px,
-campos de 50 px e botão de 52 px. O rodapé usa margem de 6 px, sem ocupar
-o espaço livre. Gradientes, cores, bordas e cenário foram preservados.
-
-`CONFIRMADO`: as declarações antigas de escala foram removidas dos estilos
-base e distribuídas entre desktop e mobile. O desktop usa
-`form.login-card:not(.identity-card)` para distinguir entrada de MFA/recuperação;
-a coluna só recebe o padding simétrico quando contém esse formulário.
-Não altera componentes, lógica, contratos, assets nem `Identity.css`.
-Comparações Chromium confirmam mobile idêntico e cards de recuperação/MFA
-idênticos em 1366/1920 px. [Capturas e medidas](../../../../docs/evidencias/login-proporcoes/README.md).
-
-`CONFIRMADO`: a página corrente substitui o AVIF que continha textos e era
-esticado por fotografia limpa, sem marca/textos, com `object-fit: cover` e
-`srcset` WebP de 1024/1606 px. A faixa fotográfica ocupa os 65% inferiores do
-painel; o céu e o mapa são independentes. Marca do conceito aprovado em SVG,
-título, subtítulo e diferenciais permanecem visíveis em HTML no desktop.
-Os diferenciais descrevem planejamento, conferência e entregas, sem anunciar
-roteirização externa. Não há SSO nem promessa de segurança adicionada.
-
-`CONFIRMADO`: `LoginPage.css` concentra tokens locais, componentes e breakpoints
-820/400 px, sem as versões acumuladas ou animações contínuas anteriores. O botão
-de visibilidade fica dentro do campo de senha; labels, handlers, contratos,
-MFA, recuperação, sessões, CSRF e redirecionamentos foram preservados.
-
-`RISCO IDENTIFICADO`: a geração integrada não entregou os 2560–3200 px
-preferidos. O cenário final é nativo **1606×979**, não um upscale, e cobre a
-faixa fotográfica até 2560×1440 em densidade 1×. Em 2× essa fotografia tem
-resolução finita; HTML e SVG continuam vetoriais. Não alegar fotografia 4K.
-As seções de apresentação abaixo registram revisões anteriores.
-[Capturas, testes e limitações](../../../../docs/evidencias/login-alta-definicao/README.md).
 
 
 ## Autenticação publicada na Vercel — Issue #393
@@ -171,7 +134,7 @@ reduzido desativa animações/transições e oculta o controle desnecessário.
 `CONFIRMADO`: formulários, senhas, desafio MFA, recuperação, cookies, CSRF e
 redirecionamentos mantêm seus contratos. Nenhum envio externo foi realizado
 na verificação visual. Capturas e matriz em
-[login profissional](../../../../docs/evidencias/login-profissional/README.md).
+[login profissional](https://github.com/RennaN-C/loadx-smart-logistics/blob/8948cf2e649c25aab1fe7bc30076dcdf1a40744c/docs/evidencias/login-profissional/README.md).
 
 ## Painel fotográfico — Issue #306, 25/10/2026
 
@@ -183,18 +146,4 @@ prioritário; não adiciona dependências nem utiliza hotlink.
 
 `CONFIRMADO`: proveniência e prompt em
 [images/README.md](../../../public/images/README.md). Capturas e verificações em
-[login fotográfico](../../../../docs/evidencias/login-fotografico/README.md).
-
-## Navy & Gold — #403
-
-`CONFIRMADO`: login e recuperação usam cenário fotográfico local amplo e três
-rotas SVG animadas. Sinais/nós/luz/zoom podem ser pausados; movimento reduzido
-os desliga e mobile reduz a decoração. Nenhuma alteração em sessão, MFA,
-recuperação, validações ou backend. [Comparação e testes](../../../../docs/evidencias/premium-navy-gold/README.md).
-
-
-## Cenário cinematográfico de login — PR #405 (pentest)
-
-O painel de marca utiliza `/images/login-cinematic-scene.webp` (900×1000 px, WebP local, 43.542 bytes), composto a partir da referência visual aprovada para o LoadX. O cenário contém caminhão, centro de distribuição, empilhadeira e mapa luminoso, **sem campos, texto de autenticação ou botões rasterizados**. Toda a marca, texto, formulários, recuperação e MFA permanecem componentes React acessíveis.
-
-O `BrandPanel` mantém caminhos SVG, nós e brilho ambiental decorativos com `prefers-reduced-motion` e controle de pausa. O novo CSS é escopado à `.login-page`, com acabamento Navy & Gold e prioridade à legibilidade. Esta alteração não modifica API, credenciais, sessões, rotas, RBAC, banco nem módulos operacionais. Para publicar em `pentest-lab`, exigir lint, suíte e build no workflow `UI Fidelity (pentest)` e validar a página carregada na Vercel.
+[login fotográfico](https://github.com/RennaN-C/loadx-smart-logistics/blob/8948cf2e649c25aab1fe7bc30076dcdf1a40744c/docs/evidencias/login-fotografico/README.md).

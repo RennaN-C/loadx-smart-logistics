@@ -25,4 +25,4 @@ Pedidos/viagens mostram UUID curto, preservando identidade/destino completos.
 Plural e vazio orientam o usuário; acesso negado não oferece retry inútil.
 CUSTOM mantém somente permissões delegáveis; trips.own permanece identidade
 exclusiva, sem regra de autorização nova. Evidências em
-[UI03](../../../../docs/evidencias/qa-v12-pentest/ui-lote3.md).
+[UI03](https://github.com/RennaN-C/loadx-smart-logistics/blob/8948cf2e649c25aab1fe7bc30076dcdf1a40744c/docs/evidencias/qa-v12-pentest/ui-lote3.md).
