@@ -230,5 +230,5 @@ rotação, posicionamento, colisão, apoio, fragilidade, profundidade e sequênc
 com capacidades idênticas de 20 volumes; verifica cobertura exata, ausência de
 duplicação e resultado idêntico com entradas invertidas. Não modifica a engine,
 a busca, suas regras ou o limite. Benchmark sintético por chamada documentado
-em docs/evidencias/qa-v12-pentest/planejamento-multi-atividade/validation.json;
+em [validação arquivada](https://github.com/RennaN-C/loadx-smart-logistics/blob/8948cf2e649c25aab1fe7bc30076dcdf1a40744c/docs/evidencias/qa-v12-pentest/planejamento-multi-atividade/validation.json);
 não equivale a p95 ou garantia para cargas heterogêneas de produção.
