@@ -1,4 +1,4 @@
-# Deploy manual e intencional do snapshot remoto de pentest-lab.
+# Deploy manual e intencional do snapshot remoto de desenvolvimento.
 # Nao faz push, merge, sincronizacao com main nem cria releases.
 [CmdletBinding()]
 param(
@@ -12,7 +12,7 @@ $ErrorActionPreference = "Stop"
 
 $Repositorio = "RennaN-C/loadx-smart-logistics"
 $Workflow = "deploy-manual.yml"
-$Branch = "pentest-lab"
+$Branch = "desenvolvimento"
 
 function Exigir-GitHubCli {
     if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
@@ -41,7 +41,7 @@ Exigir-GitHubCli
 
 if ($Acao -eq "menu") {
     Write-Host ""
-    Write-Host "==== LoadX | Deploy manual (pentest-lab) ====" -ForegroundColor Cyan
+    Write-Host "==== LoadX | Deploy manual (desenvolvimento) ====" -ForegroundColor Cyan
     Write-Host "1 - Publicar Vercel e Render"
     Write-Host "2 - Publicar apenas Vercel"
     Write-Host "3 - Publicar apenas Render"
@@ -82,7 +82,7 @@ if (-not $Confirmado) {
 
 & gh workflow run $Workflow --repo $Repositorio --ref $Branch --field "target=$destino"
 if ($LASTEXITCODE -ne 0) {
-    throw "Falha ao solicitar o deploy. Confira o GitHub CLI e se o workflow existe em pentest-lab."
+    throw "Falha ao solicitar o deploy. Confira o GitHub CLI e se o workflow existe em desenvolvimento."
 }
 
 Write-Host ""
