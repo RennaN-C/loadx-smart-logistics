@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { Icon, type IconName } from "../../../components/Icon";
 import { ApiError } from "../../../types/api";
 import { getIntegrationHealth, type ComponentHealth, type HealthComponent, type HealthReason, type HealthStatus, type IntegrationHealthReport } from "../api/integrationHealthApi";
@@ -47,7 +48,7 @@ function HealthCard({ item }: { readonly item: ComponentHealth }) {
         : item.status === "LIMITED"
           ? "Diagnóstico parcial: verifique as limitações antes de depender deste serviço em produção."
           : "Serviço ainda não disponível para uso real neste ambiente."}</p>}
-    {item.component === "notifications" && <a className="integration-health-action-link" href="/settings#settings-outbox">Consultar fila de eventos</a>}
+    {item.component === "notifications" && <Link className="integration-health-action-link" to="/settings#settings-outbox">Consultar fila de eventos</Link>}
   </li>;
 
 }
@@ -81,7 +82,13 @@ export function IntegrationHealthPanel() {
     {error && <p role="alert" className="integration-health-error">{error}</p>}
     {report && <>
       {error && <p className="integration-health-stale">Exibindo a última consulta bem-sucedida; os dados abaixo podem estar desatualizados.</p>}
-      <div className="integration-health-summary" data-status={report.overall_status}><strong>{report.overall_status === "DEGRADED" ? "Saúde degradada: há falha ou demora na resposta." : "Há serviços simulados ou com verificação limitada."}</strong><p>Consulta em <time dateTime={report.checked_at}>{new Date(report.checked_at).toLocaleString("pt-BR")}</time></p></div>
+      <div className="integration-health-summary" data-status={report.overall_status}><strong>{report.overall_status === "DEGRADED"
+        ? "Saúde degradada: há falha ou demora na resposta."
+        : report.components.length === 0
+          ? "Nenhum componente foi informado neste diagnóstico."
+          : report.components.every((item) => item.status === "AVAILABLE")
+            ? "Todos os componentes consultados aparecem disponíveis; o diagnóstico não substitui testes ponta a ponta."
+            : "Há serviços simulados, não configurados ou com verificação limitada."}</strong><p>Consulta em <time dateTime={report.checked_at}>{new Date(report.checked_at).toLocaleString("pt-BR")}</time></p></div>
       {report.components.length > 0 ? <div className="integration-health-totals" aria-label="Resumo dos estados dos serviços">
         {([
           ["Disponíveis", report.components.filter((item) => item.status === "AVAILABLE").length],
