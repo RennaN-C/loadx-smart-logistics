@@ -2,6 +2,7 @@ import { NotificationPreferences } from "../../notifications/components/Notifica
 import { AppearancePreferences } from "../components/AppearancePreferences";
 import { Link, useSearchParams } from "react-router-dom";
 import { Tabs } from "../../../components/Tabs";
+import { Avatar } from "../../../components/Avatar";
 import { useAuth } from "../hooks/useAuth";
 import { OwnProfileForm } from "../components/OwnProfileForm";
 import { TrustedDevicesPanel } from "../components/TrustedDevicesPanel";
@@ -25,9 +26,22 @@ export function AccountPage() {
   return <div className="entity-page account-page"><header className="entity-header"><div><p className="overview-eyebrow">Minha conta</p><h1>Meu perfil</h1><p className="entity-lede">Gerencie seus dados, senha e sessões.</p></div><Link className="entity-header-link" to="/">Voltar ao início</Link></header>
     <Tabs items={ACCOUNT_TABS} active={active} onChange={selectTab} label="Seções do perfil" />
     <div role="tabpanel" id="panel-data" aria-labelledby="tab-data" hidden={active !== "data"}>
-    <div className="account-identity-summary" aria-label="Identidade da conta">
-      <div><span>Conta conectada</span><strong>{user?.name}</strong><small>{user?.email}</small></div>
-      <div><span>Perfil de acesso</span><strong>{user ? { CUSTOM: "Personalizado", ADMIN: "Administrador", LOGISTICS_MANAGER: "Gestor de logística", CHECKER: "Conferente", DRIVER: "Motorista" }[user.role] : ""}</strong><small>Definido pela administração</small></div>
+    <section className="account-profile-hero" aria-label="Resumo do perfil">
+      {user && <Avatar name={user.name} size={64} />}
+      <div className="account-profile-identity">
+        <span>Conta conectada</span>
+        <h2>{user?.name}</h2>
+        <p>{user?.email}</p>
+      </div>
+      <div className="account-profile-role">
+        <span>Perfil de acesso</span>
+        <strong>{user ? { CUSTOM: "Personalizado", ADMIN: "Administrador", LOGISTICS_MANAGER: "Gestor de logística", CHECKER: "Conferente", DRIVER: "Motorista" }[user.role] : ""}</strong>
+        <small>Definido pela administração</small>
+      </div>
+    </section>
+    <div className="account-quick-actions" role="group" aria-label="Ações rápidas da conta">
+      <button type="button" className="btn-secondary" onClick={() => selectTab("security")}>Revisar senha e MFA</button>
+      <button type="button" className="btn-secondary" onClick={() => selectTab("sessions")}>Ver sessões e dispositivos</button>
     </div>
     <section className="account-section" aria-labelledby="own-data"><h2 id="own-data">Dados pessoais</h2><OwnProfileForm /></section>
     </div>
