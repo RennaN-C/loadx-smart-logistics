@@ -119,6 +119,6 @@ O lote `ensaio-01` é separado do lote de gravação. O ensaio usa uma conta
 fictícia dedicada, autenticação real por senha/MFA, navegador, API e PostgreSQL
 locais. Credenciais, cookies e segredos não são incluídos nas evidências.
 
-Resultados e limitações: [ensaio técnico](../evidencias/usabilidade-local/README.md).
+Resultados e limitações: [ensaio técnico arquivado](https://github.com/RennaN-C/loadx-smart-logistics/blob/ea3f5e10420d7a29ce52e00ed79cb3e7de0954e2/docs/evidencias/usabilidade-local/README.md).
 Esse registro informa quais fronteiras foram verificadas e quais tarefas foram
 executadas; não representa avaliação de facilidade por participantes humanos.

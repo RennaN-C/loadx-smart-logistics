@@ -1,0 +1,4 @@
+# Artefatos de QA são publicados na CI/PR e não versionados nesta pasta.
+*
+!.gitignore
+!README.md
