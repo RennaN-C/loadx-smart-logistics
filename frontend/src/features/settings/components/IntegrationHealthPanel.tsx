@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { Icon, type IconName } from "../../../components/Icon";
 import { ApiError } from "../../../types/api";
 import { getIntegrationHealth, type ComponentHealth, type HealthComponent, type HealthReason, type HealthStatus, type IntegrationHealthReport } from "../api/integrationHealthApi";
@@ -34,11 +35,20 @@ function HealthCard({ item }: { readonly item: ComponentHealth }) {
   const metadata = COMPONENTS[item.component];
   let configuration = "Não verificada";
   if (item.configured !== null) configuration = item.configured ? "Presente" : "Ausente";
+  const requiresAttention = item.status !== "AVAILABLE";
   return <li className="integration-health-card">
     <div className="integration-health-card-header"><Icon name={COMPONENT_ICONS[item.component]} size={20} /><h3>{metadata.title}</h3><span className="integration-health-badge" data-status={item.status}>{STATUSES[item.status]}</span></div>
     <p className="integration-health-context">{{ api: "Serviço da aplicação", database: "Persistência e integridade", whatsapp: "Mensagens operacionais", ai: "Apoio ao planejamento", webhook: "Entrada de eventos", notifications: "Comunicação interna" }[item.component]}</p>
     <details className="integration-health-details"><summary>Escopo e limites</summary><p className="integration-health-reason">{REASONS[item.reason_code]}</p><dl><div><dt>Modo</dt><dd>{{ INTERNAL: "Interno", MOCK: "Simulado", REAL: "Real (sujeito à configuração e aprovação)" }[item.mode]}</dd></div><div><dt>Configuração</dt><dd>{configuration}</dd></div></dl>
     <p>{metadata.description}</p></details>
+    {requiresAttention && <p className="integration-health-next-step">{item.status === "TIMEOUT" || item.status === "UNAVAILABLE"
+      ? "Próximo passo: confira os logs operacionais e repita o diagnóstico. Esta tela não realiza testes de envio."
+      : item.status === "SIMULATED"
+        ? "Ambiente simulado: nenhuma integração externa foi confirmada."
+        : item.status === "LIMITED"
+          ? "Diagnóstico parcial: verifique as limitações antes de depender deste serviço em produção."
+          : "Serviço ainda não disponível para uso real neste ambiente."}</p>}
+    {item.component === "notifications" && <Link className="integration-health-action-link" to="/settings#settings-outbox">Consultar fila de eventos</Link>}
   </li>;
 
 }
@@ -52,6 +62,7 @@ export function IntegrationHealthPanel() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refresh, setRefresh] = useState(0);
+  const [filter, setFilter] = useState<"all" | "attention" | "available">("all");
   useEffect(() => {
     let active = true;
     setLoading(true); setError(null);
@@ -64,13 +75,20 @@ export function IntegrationHealthPanel() {
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [refresh]);
+  const visibleComponents = report?.components.filter((item) => filter === "all" || (filter === "available" ? item.status === "AVAILABLE" : item.status !== "AVAILABLE")) ?? [];
   return <div className="integration-health-panel" aria-busy={loading}>
     <div className="integration-health-toolbar"><p>Estado das integrações<span>Consulta somente leitura, sem executar ações nos serviços.</span></p><button type="button" className="btn-secondary" disabled={loading} onClick={() => setRefresh((value) => value + 1)}>{loading ? "Consultando…" : "Atualizar estados"}</button></div>
     {loading && <output className="integration-health-feedback"><span className="spinner" aria-hidden="true" /><span>Carregando integrações e saúde…</span></output>}
     {error && <p role="alert" className="integration-health-error">{error}</p>}
     {report && <>
       {error && <p className="integration-health-stale">Exibindo a última consulta bem-sucedida; os dados abaixo podem estar desatualizados.</p>}
-      <div className="integration-health-summary" data-status={report.overall_status}><strong>{report.overall_status === "DEGRADED" ? "Saúde degradada: há falha ou demora na resposta." : "Há serviços simulados ou com verificação limitada."}</strong><p>Consulta em <time dateTime={report.checked_at}>{new Date(report.checked_at).toLocaleString("pt-BR")}</time></p></div>
+      <div className="integration-health-summary" data-status={report.overall_status}><strong>{report.overall_status === "DEGRADED"
+        ? "Saúde degradada: há falha ou demora na resposta."
+        : report.components.length === 0
+          ? "Nenhum componente foi informado neste diagnóstico."
+          : report.components.every((item) => item.status === "AVAILABLE")
+            ? "Todos os componentes consultados aparecem disponíveis; o diagnóstico não substitui testes ponta a ponta."
+            : "Há serviços simulados, não configurados ou com verificação limitada."}</strong><p>Consulta em <time dateTime={report.checked_at}>{new Date(report.checked_at).toLocaleString("pt-BR")}</time></p></div>
       {report.components.length > 0 ? <div className="integration-health-totals" aria-label="Resumo dos estados dos serviços">
         {([
           ["Disponíveis", report.components.filter((item) => item.status === "AVAILABLE").length],
@@ -81,7 +99,14 @@ export function IntegrationHealthPanel() {
           <div className="integration-health-total" key={title}><span>{title}</span><strong>{count}</strong></div>
         )}
       </div> : null}
-      {report.components.length ? <ul className="integration-health-grid">{report.components.map((item) => <HealthCard key={item.component} item={item} />)}</ul> : <p className="integration-health-empty">Nenhum indicador foi disponibilizado nesta consulta.</p>}
+      {report.components.length > 0 && <div className="integration-health-filters" role="group" aria-label="Filtrar estado das integrações">
+        {([
+          ["all", "Todos"],
+          ["attention", "Precisam de atenção"],
+          ["available", "Disponíveis"],
+        ] as const).map(([value, label]) => <button key={value} type="button" className="btn-secondary" aria-pressed={filter === value} onClick={() => setFilter(value)}>{label}</button>)}
+      </div>}
+      {visibleComponents.length ? <ul className="integration-health-grid">{visibleComponents.map((item) => <HealthCard key={item.component} item={item} />)}</ul> : <p className="integration-health-empty">{report.components.length === 0 ? "Nenhum indicador foi disponibilizado nesta consulta." : "Nenhuma integração corresponde ao filtro selecionado."}</p>}
       <details className="integration-health-reference"><summary>Referência do diagnóstico</summary><p><code>{report.correlation_id}</code>. Falhas desta consulta podem ser correlacionadas aos eventos operacionais sanitizados. Histórico persistente de integrações não está disponível nesta etapa.</p></details>
     </>}
   </div>;

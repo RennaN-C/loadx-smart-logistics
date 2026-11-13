@@ -134,7 +134,6 @@ describe("OC85: navegação e autorização na aplicação", () => {
     for (const [label, id] of [
       ["Dados da empresa", "settings-company"], ["Gestão de usuários", "settings-users"],
       ["Integrações e Saúde", "settings-integrations"], ["Fila de eventos", "settings-outbox"],
-      ["Preferências", "settings-preferences"],
     ]) {
       expect(within(menu).getByRole("link", { name: label })).toHaveAttribute("href", `/settings#${id}`);
       expect(document.getElementById(id)).not.toBeNull();
@@ -152,7 +151,6 @@ describe("OC85: navegação e autorização na aplicação", () => {
       ["Dados da empresa", "settings-company"],
       ["Integrações e Saúde", "settings-integrations"],
       ["Fila de eventos", "settings-outbox"],
-      ["Preferências", "settings-preferences"],
     ]) {
       fireEvent.click(within(menu).getByRole("link", { name: label }));
       expect(window.location.hash).toBe(`#${id}`);
@@ -175,17 +173,23 @@ describe("OC85: navegação e autorização na aplicação", () => {
     expect(company()).toBeVisible();
   });
 
-  it("dados institucionais e preferências reais substituem abas só de atalhos", async () => {
+  it("preserva apenas seções administrativas, sem duplicar as preferências pessoais", async () => {
     render(<App />);
     await screen.findByRole("heading", { name: "Configurações", level: 1 });
     const nav = screen.getByRole("navigation", { name: "Seções de Configurações" });
     expect(await screen.findByRole("button", { name: "Cadastrar dados da empresa" })).toBeInTheDocument();
     expect(screen.getByText("Identificação da empresa")).toBeInTheDocument();
-    fireEvent.click(within(nav).getByRole("link", { name: "Preferências" }));
-    expect(screen.getByRole("region", { name: "Preferências" })).toBeVisible();
-    expect(screen.getByRole("radio", { name: /Automático/ })).toBeInTheDocument();
-    expect(await screen.findByRole("form", { name: "Preferências de notificações" })).toBeInTheDocument();
+    expect(within(nav).queryByRole("link", { name: "Preferências" })).not.toBeInTheDocument();
     expect(within(nav).queryByRole("link", { name: "Configurações do LoadX" })).not.toBeInTheDocument();
+  });
+
+  it("redireciona links antigos de preferências ao Meu perfil, sem perder o acesso", async () => {
+    window.history.replaceState({}, "", "/settings#settings-preferences");
+    render(<App />);
+    await screen.findByRole("heading", { name: "Meu perfil", level: 1 });
+    expect(window.location.pathname).toBe("/account");
+    expect(window.location.search).toBe("?tab=preferences");
+    expect(screen.getByRole("radio", { name: /Automático/ })).toBeInTheDocument();
   });
 
 });

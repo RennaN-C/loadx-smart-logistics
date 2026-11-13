@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../../../types/api";
 import { getIntegrationHealth, type IntegrationHealthReport } from "../api/integrationHealthApi";
@@ -18,7 +19,7 @@ const REPORT: IntegrationHealthReport = {
 beforeEach(() => { vi.resetAllMocks(); vi.mocked(getIntegrationHealth).mockResolvedValue(REPORT); });
 describe("OC108: painel de integrações", () => {
   it("carrega sinais honestos e não promete entrega real", async () => {
-    render(<IntegrationHealthPanel />);
+    render(<MemoryRouter><IntegrationHealthPanel /></MemoryRouter>);
     expect(screen.getByRole("status")).toHaveTextContent("Carregando");
     await screen.findByRole("heading", { name:"WhatsApp" });
     expect(screen.getAllByText("SIMULADO")).toHaveLength(2);
@@ -30,21 +31,21 @@ describe("OC108: painel de integrações", () => {
   });
   it.each(["NOT_CONFIGURED","UNAVAILABLE","TIMEOUT","AVAILABLE"] as const)("representa IA real no estado %s sem ativação fictícia", async (status) => {
     vi.mocked(getIntegrationHealth).mockResolvedValue({ ...REPORT, components:[{ component:"ai",mode:"REAL",status,configured:status==="AVAILABLE",reason_code: status==="AVAILABLE" ? "READY" : "NOT_CONFIGURED" }] });
-    render(<IntegrationHealthPanel />);
+    render(<MemoryRouter><IntegrationHealthPanel /></MemoryRouter>);
     await screen.findByRole("heading", { name:"Inteligência artificial" });
     expect(screen.getByText("Real (sujeito à configuração e aprovação)")).toBeInTheDocument();
     expect(screen.getByText({ NOT_CONFIGURED:"NÃO CONFIGURADO", UNAVAILABLE:"FALHA", TIMEOUT:"TEMPO ESGOTADO", AVAILABLE:"DISPONÍVEL" }[status])).toBeInTheDocument();
   });
   it("falha parcial preserva demais indicadores", async () => {
     vi.mocked(getIntegrationHealth).mockResolvedValue({ ...REPORT, overall_status:"DEGRADED",components:REPORT.components.map((item) => item.component==="database" ? {...item,status:"TIMEOUT",reason_code:"TIMEOUT"} : item) });
-    render(<IntegrationHealthPanel />);
+    render(<MemoryRouter><IntegrationHealthPanel /></MemoryRouter>);
     await screen.findByText("TEMPO ESGOTADO");
     expect(screen.getAllByText("SIMULADO")).toHaveLength(2);
     expect(screen.getByText(/Saúde degradada/)).toBeInTheDocument();
   });
   it("erro de API não exibe detalhes privados e permite repetir", async () => {
     vi.mocked(getIntegrationHealth).mockRejectedValueOnce(new ApiError("NETWORK_ERROR","token-secreto stack trace privatehost"));
-    render(<IntegrationHealthPanel />);
+    render(<MemoryRouter><IntegrationHealthPanel /></MemoryRouter>);
     expect(await screen.findByRole("alert")).toHaveTextContent("Não foi possível consultar");
     expect(screen.queryByText(/token-secreto/)).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name:"Atualizar estados" }));
@@ -53,12 +54,12 @@ describe("OC108: painel de integrações", () => {
   });
   it.each([401,403])("diferencia falha de autorização HTTP %s", async (status) => {
     vi.mocked(getIntegrationHealth).mockRejectedValue(new ApiError("AUTH_FAILED","segredo",[],status));
-    render(<IntegrationHealthPanel />);
+    render(<MemoryRouter><IntegrationHealthPanel /></MemoryRouter>);
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent(status===403 ? "exclusiva do ADMIN" : "Entre novamente");
   });
   it("atualização falha conserva último snapshot explicitamente desatualizado", async () => {
-    render(<IntegrationHealthPanel />);
+    render(<MemoryRouter><IntegrationHealthPanel /></MemoryRouter>);
     await screen.findByRole("heading", { name:"WhatsApp" });
     vi.mocked(getIntegrationHealth).mockRejectedValue(new Error("timeout"));
     fireEvent.click(screen.getByRole("button", { name:"Atualizar estados" }));
@@ -67,7 +68,7 @@ describe("OC108: painel de integrações", () => {
     expect(screen.getByRole("heading", { name:"WhatsApp" })).toBeInTheDocument();
   });
   it("perda de autorização limpa snapshot anterior", async () => {
-    render(<IntegrationHealthPanel />);
+    render(<MemoryRouter><IntegrationHealthPanel /></MemoryRouter>);
     await screen.findByRole("heading", { name:"WhatsApp" });
     vi.mocked(getIntegrationHealth).mockRejectedValue(new ApiError("AUTH_FORBIDDEN","negado",[],403));
     fireEvent.click(screen.getByRole("button", { name:"Atualizar estados" }));
@@ -76,24 +77,24 @@ describe("OC108: painel de integrações", () => {
   });
   it("trata ausência de indicadores sem criar cards fictícios", async () => {
     vi.mocked(getIntegrationHealth).mockResolvedValue({ ...REPORT,components:[] });
-    render(<IntegrationHealthPanel />);
+    render(<MemoryRouter><IntegrationHealthPanel /></MemoryRouter>);
     expect(await screen.findByText("Nenhum indicador foi disponibilizado nesta consulta.")).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name:"WhatsApp" })).not.toBeInTheDocument();
   });
   it("configuração desconhecida não é apresentada como ausente", async () => {
     vi.mocked(getIntegrationHealth).mockResolvedValue({ ...REPORT,components:[{ component:"ai",mode:"REAL",status:"UNAVAILABLE",configured:null,reason_code:"PROVIDER_FAILED" }] });
-    render(<IntegrationHealthPanel />);
+    render(<MemoryRouter><IntegrationHealthPanel /></MemoryRouter>);
     await screen.findByText("Não verificada");
     expect(screen.queryByText("Ausente")).not.toBeInTheDocument();
   });
   it("consulta pendente bloqueia botão e não inicia polling", async () => {
     vi.mocked(getIntegrationHealth).mockReturnValue(new Promise(() => {}));
-    render(<IntegrationHealthPanel />);
+    render(<MemoryRouter><IntegrationHealthPanel /></MemoryRouter>);
     expect(screen.getByRole("button", { name:"Consultando…" })).toBeDisabled();
     await waitFor(() => expect(getIntegrationHealth).toHaveBeenCalledOnce());
   });
   it("mantém limites e referência disponíveis em detalhes acessíveis", async () => {
-    render(<IntegrationHealthPanel />);
+    render(<MemoryRouter><IntegrationHealthPanel /></MemoryRouter>);
     await screen.findByRole("heading", { name: "WhatsApp" });
     const policy = screen.getByText(/Não há conexão, envio ou confirmação de entrega pela Meta/);
     expect(policy).not.toBeVisible();
@@ -115,10 +116,35 @@ it("distingue configuracao do webhook e limitacao do processamento sem prometer 
     if (item.component === "notifications") return {...item, status: "LIMITED", reason_code: "WORKER_NOT_OBSERVED"};
     return item;
   })});
-  render(<IntegrationHealthPanel />);
+  render(<MemoryRouter><IntegrationHealthPanel /></MemoryRouter>);
   await screen.findByRole("heading", {name: "Webhook interno"});
   expect(screen.getByText(/Isso não comprova envio ou recebimento por um serviço externo/)).toBeInTheDocument();
   expect(screen.getByText(/não verifica se o processador de eventos está ativo/)).toBeInTheDocument();
   expect(screen.queryByText(/Aguardando implementação da OC83|OC84 ainda pendente/)).not.toBeInTheDocument();
   expect(screen.getAllByText("SIMULADO")).toHaveLength(2);
+});
+
+
+it("filtra serviços usando estados reais e oferece acesso à fila de eventos", async () => {
+  render(<MemoryRouter><IntegrationHealthPanel /></MemoryRouter>);
+  await screen.findByRole("heading", { name: "WhatsApp" });
+  fireEvent.click(screen.getByRole("button", { name: "Disponíveis" }));
+  expect(screen.getByRole("button", { name: "Disponíveis" })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.queryByRole("heading", { name: "WhatsApp" })).not.toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Banco de dados" })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Precisam de atenção" }));
+  expect(screen.getByRole("heading", { name: "WhatsApp" })).toBeInTheDocument();
+  expect(screen.queryByRole("heading", { name: "Banco de dados" })).not.toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Consultar fila de eventos" })).toHaveAttribute("href", "/settings#settings-outbox");
+  fireEvent.click(screen.getByRole("button", { name: "Todos" }));
+  expect(screen.getByRole("heading", { name: "Banco de dados" })).toBeInTheDocument();
+});
+
+it("não afirma que a saúde é parcial quando todos os sinais retornam disponíveis", async () => {
+  vi.mocked(getIntegrationHealth).mockResolvedValue({
+    ...REPORT,
+    components: REPORT.components.map((item) => ({ ...item, status: "AVAILABLE" as const, reason_code: "READY" as const })),
+  });
+  render(<MemoryRouter><IntegrationHealthPanel /></MemoryRouter>);
+  expect(await screen.findByText(/Todos os componentes consultados aparecem disponíveis/)).toBeInTheDocument();
 });

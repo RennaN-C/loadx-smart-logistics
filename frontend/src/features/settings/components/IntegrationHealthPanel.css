@@ -48,3 +48,11 @@
 .integration-health-total strong { color: var(--ink); font-size: 1.35rem; font-variant-numeric: tabular-nums; }
 @media (max-width: 1000px) { .integration-health-totals { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 600px) { .integration-health-totals { grid-template-columns: minmax(0, 1fr); } }
+
+/* Filtros reais dos estados retornados, sem acionar serviços externos. */
+.integration-health-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+.integration-health-filters button[aria-pressed="true"] { border-color: var(--accent-strong); background: var(--accent-bg); color: var(--accent-strong); }
+.integration-health-filters button:focus-visible, .integration-health-action-link:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 3px; }
+.integration-health-next-step { margin: 16px 0 8px; font-size: .78rem; line-height: 1.6; color: var(--muted); }
+.integration-health-action-link { display: inline-block; font-size: .8rem; font-weight: 600; color: var(--accent-strong); padding-top: 8px; }
+@media (max-width: 600px) { .integration-health-filters button { flex: 1 1 auto; } }

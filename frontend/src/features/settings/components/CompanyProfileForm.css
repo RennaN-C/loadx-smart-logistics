@@ -47,3 +47,6 @@
   .company-profile-actions button { flex: 1 1 130px; }
 }
 @media (prefers-reduced-motion: reduce) { .company-profile-form .company-profile-fields input[type] { transition: none; } }
+
+/* Indicador preservado após remoção dos estilos do painel de conta obsoleto. */
+.company-profile-toolbar .settings-readonly { display: inline-flex; align-items: center; padding: 4px 8px; border-radius: 5px; background: var(--paper); font-size: .75rem; color: var(--muted); }
