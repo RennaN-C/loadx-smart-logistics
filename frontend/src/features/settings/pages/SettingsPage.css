@@ -4,20 +4,10 @@
 .settings-eyebrow { margin: 0 0 8px; font-size: .75rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--accent-strong); }
 .settings-header .entity-lede { margin-top: 10px; font-size: .9rem; line-height: 1.65; }
 .settings-access { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: .8rem; }
-.settings-workspace, .settings-content { min-width: 0; }
+.settings-content { min-width: 0; }
 .settings-section { min-width: 0; overflow-wrap: anywhere; }
 .settings-section[hidden] { display: none; }
 .settings-section-header { margin-bottom: 24px; }
 .settings-section-header h2 { margin: 0; font-size: 1.25rem; font-weight: 600; letter-spacing: -.025em; }
 .settings-section-header p { margin: 8px 0 0; font-size: .875rem; line-height: 1.6; color: var(--muted); }
-.settings-page .btn-primary, .settings-page .btn-secondary, .settings-account-link { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; border-radius: 8px; font-size: .875rem; padding: 10px 16px; white-space: normal; text-align: center; }
 .settings-page .btn-primary:disabled, .settings-page .btn-secondary:disabled { opacity: .6; cursor: wait; }
-.settings-operational-note { margin: 20px 0 0; font-size: .85rem; line-height: 1.65; color: var(--muted); }
-
-/* Preferências reais substituem as abas que eram apenas coleções de atalhos. */
-.settings-preference-grid { display: grid; gap: 16px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.settings-preference-grid > .account-section { min-width: 0; margin: 0; padding: 22px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
-.settings-preference-grid .appearance-options { grid-template-columns: minmax(0, 1fr); }
-.settings-preference-grid .notification-preference-options { min-width: 0; }
-.settings-preference-grid h2 { font-size: 1.05rem; margin-top: 0; }
-@media (max-width: 1050px) { .settings-preference-grid { grid-template-columns: minmax(0, 1fr); } }
