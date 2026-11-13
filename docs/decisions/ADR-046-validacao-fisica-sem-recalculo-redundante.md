@@ -38,7 +38,7 @@ pelo service antes de persistir e não se salva uma partição incompleta.
 
 `CONFIRMADO`: o benchmark do motor é separado de HTTP/PostgreSQL e não representa
 promessa de latência em Render. Resultados, dados sintéticos, repetições e casos
-censurados estão em `docs/evidencias/qa-v12-pentest/performance-254.md`.
+censurados estão em [registro arquivado](https://github.com/RennaN-C/loadx-smart-logistics/blob/8948cf2e649c25aab1fe7bc30076dcdf1a40744c/docs/evidencias/qa-v12-pentest/performance-254.md).
 
 `PENDENTE DE DEFINIÇÃO`: orçamento HTTP e idempotência continuam na Issue #254;
 esta decisão não transforma timeout em autorização para repetir uma operação e
