@@ -122,3 +122,19 @@ it("distingue configuracao do webhook e limitacao do processamento sem prometer 
   expect(screen.queryByText(/Aguardando implementação da OC83|OC84 ainda pendente/)).not.toBeInTheDocument();
   expect(screen.getAllByText("SIMULADO")).toHaveLength(2);
 });
+
+
+it("filtra serviços usando estados reais e oferece acesso à fila de eventos", async () => {
+  render(<IntegrationHealthPanel />);
+  await screen.findByRole("heading", { name: "WhatsApp" });
+  fireEvent.click(screen.getByRole("button", { name: "Disponíveis" }));
+  expect(screen.getByRole("button", { name: "Disponíveis" })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.queryByRole("heading", { name: "WhatsApp" })).not.toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Banco de dados" })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Precisam de atenção" }));
+  expect(screen.getByRole("heading", { name: "WhatsApp" })).toBeInTheDocument();
+  expect(screen.queryByRole("heading", { name: "Banco de dados" })).not.toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Consultar fila de eventos" })).toHaveAttribute("href", "/settings#settings-outbox");
+  fireEvent.click(screen.getByRole("button", { name: "Todos" }));
+  expect(screen.getByRole("heading", { name: "Banco de dados" })).toBeInTheDocument();
+});
