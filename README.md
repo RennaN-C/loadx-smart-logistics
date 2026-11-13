@@ -26,9 +26,10 @@ O **LoadX Smart Logistics** é um projeto acadêmico de Engenharia de Software q
 | `frontend/public/` | Arquivos estáticos efetivamente usados pela interface |
 | `qa/browser/` | Testes E2E de navegador |
 | `infra/` e `.github/workflows/` | Infraestrutura e automação/CI |
+| `deploy/` | Menu PowerShell e guia para deploy do ambiente de testes pela `desenvolvimento` |
 | `docs/` | Guias atuais, decisões arquiteturais, histórico e índice de QA |
 
-**Começando:** [executar o ambiente](docs/13-guia-execucao-ambientes.md) · [manutenção manual](docs/14-guia-manutencao.md) · [guia de documentação](docs/README.md) · [contribuir](CONTRIBUTING.md) · [instruções para IA](AGENTS.md).
+**Começando:** [deploy via PowerShell](deploy/README.md) · [executar o ambiente](docs/13-guia-execucao-ambientes.md) · [manutenção manual](docs/14-guia-manutencao.md) · [guia de documentação](docs/README.md) · [contribuir](CONTRIBUTING.md) · [instruções para IA](AGENTS.md).
 
 Para investigar código, procure primeiro o módulo em `backend/app/modules/<modulo>/` e sua tela em `frontend/src/features/<recurso>/`. Não altere migrações antigas; gere uma migração nova quando necessário.
 
