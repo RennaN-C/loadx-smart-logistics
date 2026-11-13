@@ -2,6 +2,7 @@ import { RecordLifecycleAction } from "../../../components/RecordLifecycleAction
 import { StatusPill } from "../../../components/StatusPill";
 import { RowActions } from "../../../components/RowActions";
 import type { Product } from "../types";
+import { Icon } from "../../../components/Icon";
 
 const weightFormatter = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 3 });
 
@@ -31,7 +32,7 @@ export function ProductCard({ product, canManage, onEdit, onChanged }: ProductCa
   return (
     <tr className="product-card">
       <td data-label="Código"><strong className="product-card-code">{product.code}</strong></td>
-      <td data-label="Produto"><strong className="product-card-name">{product.name}</strong>{product.description ? <small>{product.description}</small> : null}</td>
+      <td data-label="Produto"><span className="registry-record-title"><span className="registry-record-icon" aria-hidden="true"><Icon name="package" size={18} /></span><strong className="product-card-name">{product.name}</strong></span>{product.description ? <small>{product.description}</small> : null}</td>
       <td data-label="Dimensões">{product.widthCm} × {product.heightCm} × {product.lengthCm} cm</td>
       <td data-label="Peso"><strong className="product-card-weight">{weightFormatter.format(product.weightKg)} kg</strong></td>
       <td data-label="Restrições"><div className="product-card-flags">

@@ -1,25 +1,25 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { expect, it } from "vitest";
 
 import { BrandPanel } from "./BrandPanel";
 
-it("apresenta a marca sem inventar ambiente ou versao do sistema", () => {
+it("mantém os textos e diferenciais em HTML, separados do cenário decorativo", () => {
   render(<BrandPanel />);
-  expect(screen.getByRole("heading", { name: /Logística inteligente.*Operação conectada/ })).toBeInTheDocument();
-  expect(screen.getByText("LOADX", { exact: true })).toBeInTheDocument();
-  expect(document.querySelector(".login-wordmark .loadx-brand-mark")).toHaveAttribute("src", "/branding/loadx-mark-128.png");
-  expect(screen.getByText("LOADX · LOGÍSTICA INTELIGENTE")).toBeInTheDocument();
-  expect(screen.queryByText(/AMBIENTE LOCAL|V0\.1/)).not.toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: /Planejamento inteligente para.*uma logística mais eficiente/ })).toBeInTheDocument();
+  expect(screen.getByRole("img", { name: "LoadX Smart Logistics" })).toBeInTheDocument();
+  expect(screen.getAllByRole("listitem")).toHaveLength(3);
+  expect(screen.getByText(/Conferência/)).toBeInTheDocument();
+  expect(screen.getByText(/Acompanhamento/)).toBeInTheDocument();
+  expect(screen.queryByText(/Otimização de Rotas/)).not.toBeInTheDocument();
 });
 
-it("permite pausar e retomar os efeitos decorativos sem alterar o acesso", () => {
+it("usa marca SVG e cenário sem substituir a interface por fotografia", () => {
   render(<BrandPanel />);
-  const pause = screen.getByRole("button", { name: "Pausar efeitos" });
-  expect(pause).toHaveAttribute("aria-pressed", "false");
-  fireEvent.click(pause);
-  expect(screen.getByRole("button", { name: "Ativar efeitos" })).toHaveAttribute("aria-pressed", "true");
-  expect(pause.closest("aside")).toHaveClass("is-motion-paused");
-  fireEvent.click(screen.getByRole("button", { name: "Ativar efeitos" }));
-  expect(screen.getByRole("button", { name: "Pausar efeitos" })).toHaveAttribute("aria-pressed", "false");
-  expect(pause.closest("aside")).not.toHaveClass("is-motion-paused");
+  const scene = document.querySelector(".login-scene-photo");
+  expect(scene).toHaveAttribute("src", "/images/login-scene-hd.webp");
+  expect(scene).toHaveAttribute("alt", "");
+  expect(scene).toHaveAttribute("aria-hidden", "true");
+  expect(document.querySelector(".login-brand-symbol")).toHaveAttribute("src", "/branding/loadx-login-mark.svg");
+  expect(document.querySelector(".login-globe")).toHaveAttribute("src", "/images/login-globe.svg");
+  expect(document.querySelector(".login-brand-live")).toBeInTheDocument();
 });

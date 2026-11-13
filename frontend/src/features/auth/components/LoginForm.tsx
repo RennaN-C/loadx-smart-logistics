@@ -7,7 +7,7 @@ import { ApiError } from "../../../types/api";
 import { useAuth } from "../hooks/useAuth";
 import { mapLoginErrorToMessage } from "./loginErrorMessages";
 import { AlertBanner } from "../../../components/AlertBanner";
-import { BrandMark, Icon } from "../../../components/Icon";
+import { Icon } from "../../../components/Icon";
 
 export function LoginForm() {
   const { login, pendingMfa, beginMfa } = useAuth();
@@ -40,22 +40,22 @@ export function LoginForm() {
       {errorMessage ? <AlertBanner>{errorMessage}</AlertBanner> : null}
 
       <div className="login-card-intro">
-        <span className="login-access-mark" aria-hidden="true"><BrandMark size={25} /></span>
-        <p className="login-access-eyebrow">ACESSO À PLATAFORMA</p>
-        <h2>Entrar</h2>
-        <p className="login-lede">Sua operação começa com uma visão clara.<br />Use suas credenciais internas para continuar.</p>
+        <img className="login-access-mark" src="/branding/loadx-login-mark.svg" width={88} height={46} alt="" aria-hidden="true" />
+        <h2 aria-label="Bem-vindo ao LoadX">Bem-vindo ao Load<span className="login-card-highlight">X</span></h2>
+        <p className="login-card-subtitle">Smart Logistics</p>
+        <p className="login-lede">Acesse sua conta para planejar cargas<br />e acompanhar sua operação logística.</p>
       </div>
 
       <fieldset disabled={isSubmitting} className="login-fieldset">
         <div className="login-field">
           <label className="login-field-label" htmlFor="email">
-            E-MAIL
+            E-mail
           </label>
           <input
             type="email"
             id="email"
             name="email"
-            placeholder="nome@empresa.com"
+            placeholder="Digite seu e-mail"
             autoComplete="username"
             required
             value={email}
@@ -66,8 +66,20 @@ export function LoginForm() {
         <div className="login-field">
           <div className="login-field-label-row">
             <label className="login-field-label" htmlFor="password">
-              SENHA
+              Senha
             </label>
+          </div>
+          <div className="login-password-control">
+            <input
+              type={showPassword ? "text" : "password"}
+              id="password"
+              name="password"
+              placeholder="Digite sua senha"
+              autoComplete="current-password"
+              required
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+            />
             <button
               type="button"
               className="login-toggle"
@@ -78,18 +90,10 @@ export function LoginForm() {
               {showPassword ? "Ocultar" : "Mostrar"}
             </button>
           </div>
-          <input
-            type={showPassword ? "text" : "password"}
-            id="password"
-            name="password"
-            placeholder="••••••••"
-            autoComplete="current-password"
-            required
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-          />
         </div>
       </fieldset>
+
+      <Link className="login-recovery-link" to="/password-recovery">Esqueci minha senha</Link>
 
       <button type="submit" className="btn-primary login-submit" disabled={isSubmitting}>
         {isSubmitting ? (
@@ -102,7 +106,6 @@ export function LoginForm() {
         )}
       </button>
 
-      <Link className="login-recovery-link" to="/password-recovery">Esqueci minha senha</Link>
       <p className="login-hint">Não tem acesso? Fale com o administrador do sistema.</p>
     </form>
   );

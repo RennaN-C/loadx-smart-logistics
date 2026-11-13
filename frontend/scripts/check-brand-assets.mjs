@@ -21,4 +21,15 @@ for (const name of ["favicon-16.png", "favicon-32.png"]) {
 }
 const component = readFileSync(new URL("../src/components/Icon.tsx", import.meta.url), "utf8");
 assert.ok(component.includes("/branding/loadx-mark-128.png"), "Marca oficial ausente do BrandMark");
-console.log("Identidade LoadX: favicons, HTML e BrandMark validados.");
+const loginArtName = "login-scene-hd.webp";
+const loginArt = readFileSync(new URL(`../public/images/${loginArtName}`, import.meta.url));
+assert.equal(loginArt.toString("ascii", 0, 4), "RIFF", `${loginArtName}: RIFF inválido`);
+assert.equal(loginArt.toString("ascii", 8, 12), "WEBP", `${loginArtName}: assinatura WebP inválida`);
+assert.ok(loginArt.length < 1_200_000, `${loginArtName}: imagem acima de 1,2 MB`);
+const loginMark = readFileSync(new URL("../public/branding/loadx-login-mark.svg", import.meta.url), "utf8");
+assert.ok(loginMark.includes('viewBox="0 0 164 86"'), "Marca vetorial do login ausente");
+assert.ok(!loginMark.includes("<image"), "Marca do login deve ser vetorial");
+const brandPanel = readFileSync(new URL("../src/features/auth/components/BrandPanel.tsx", import.meta.url), "utf8");
+assert.ok(brandPanel.includes(`/images/${loginArtName}`), "Arte aprovada não referenciada pelo login");
+assert.ok(brandPanel.includes("/images/login-globe.svg"), "Globo separado do cenário ausente");
+console.log("Identidade LoadX: favicons, BrandMark, marca vetorial e cenário do login validados.");

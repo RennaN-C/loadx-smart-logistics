@@ -65,14 +65,14 @@ describe("LoginForm", () => {
     vi.mocked(useAuth).mockReturnValue({ status: "unauthenticated", user: null, login, updateUser: vi.fn(), logout: vi.fn() });
 
     render(<MemoryRouter><LoginForm /></MemoryRouter>);
-    expect(document.querySelector(".login-access-mark .loadx-brand-mark")).toHaveAttribute("src", "/branding/loadx-mark-128.png");
+    expect(document.querySelector(".login-access-mark")).toHaveAttribute("src", "/branding/loadx-login-mark.svg");
 
-    fireEvent.change(screen.getByLabelText("E-MAIL"), { target: { value: "admin@example.test" } });
-    fireEvent.change(screen.getByLabelText("SENHA"), { target: { value: "senha-local" } });
+    fireEvent.change(screen.getByLabelText("E-mail"), { target: { value: "admin@example.test" } });
+    fireEvent.change(screen.getByLabelText("Senha"), { target: { value: "senha-local" } });
     fireEvent.click(screen.getByRole("button", { name: "Entrar" }));
 
     expect(await screen.findByText("Entrando…")).toBeInTheDocument();
-    expect(screen.getByLabelText("E-MAIL")).toBeDisabled();
+    expect(screen.getByLabelText("E-mail")).toBeDisabled();
     expect(login).toHaveBeenCalledWith("admin@example.test", "senha-local");
 
     resolveLogin();
@@ -86,12 +86,36 @@ describe("LoginForm", () => {
 
     render(<MemoryRouter><LoginForm /></MemoryRouter>);
 
-    fireEvent.change(screen.getByLabelText("E-MAIL"), { target: { value: "admin@example.test" } });
-    fireEvent.change(screen.getByLabelText("SENHA"), { target: { value: "senha-errada" } });
+    fireEvent.change(screen.getByLabelText("E-mail"), { target: { value: "admin@example.test" } });
+    fireEvent.change(screen.getByLabelText("Senha"), { target: { value: "senha-errada" } });
     fireEvent.click(screen.getByRole("button", { name: "Entrar" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "E-mail ou senha inválidos. Verifique e tente novamente.",
     );
   });
+});
+
+
+it("alterna visibilidade sem apagar a senha e preserva recuperação real", () => {
+  vi.mocked(useAuth).mockReturnValue({ status: "unauthenticated", user: null, login: vi.fn(), updateUser: vi.fn(), logout: vi.fn() });
+  render(<MemoryRouter><LoginForm /></MemoryRouter>);
+  const password = screen.getByLabelText("Senha");
+  fireEvent.change(password, { target: { value: "senha-ficticia" } });
+  expect(password).toHaveAttribute("type", "password");
+  fireEvent.click(screen.getByRole("button", { name: "Mostrar senha" }));
+  expect(password).toHaveAttribute("type", "text");
+  expect(password).toHaveValue("senha-ficticia");
+  fireEvent.click(screen.getByRole("button", { name: "Ocultar senha" }));
+  expect(password).toHaveAttribute("type", "password");
+  expect(screen.getByRole("link", { name: "Esqueci minha senha" })).toHaveAttribute("href", "/password-recovery");
+});
+
+
+it("mantém cabeçalho LoadX real separado da arte e botão Entrar acessível", () => {
+  vi.mocked(useAuth).mockReturnValue({ status: "unauthenticated", user: null, login: vi.fn(), updateUser: vi.fn(), logout: vi.fn() });
+  render(<MemoryRouter><LoginForm /></MemoryRouter>);
+  expect(screen.getByRole("heading", { name: "Bem-vindo ao LoadX" })).toBeInTheDocument();
+  expect(screen.getByText("Smart Logistics")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Entrar" })).toBeEnabled();
 });

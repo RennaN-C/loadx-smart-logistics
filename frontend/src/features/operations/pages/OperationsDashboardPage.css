@@ -138,3 +138,21 @@
   .overview-indicator-groups .ops-kpi-label { font-size: .68rem; }
   .overview-indicator-groups .ops-kpi-note { font-size: .72rem; }
 }
+
+/* Four comparable operational cards, as in the supplied overview. */
+.overview-indicator-groups { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+.overview-indicator-groups .ops-block, .overview-indicator-groups .ops-block:last-child { grid-column: auto; padding: 20px; background: var(--surface-gradient); box-shadow: inset 0 1px var(--surface-edge); }
+.overview-indicator-groups .ops-block-head { align-items: flex-start; gap: 10px; }
+.overview-indicator-groups .ops-block-head h2 { font-size: 1rem; }
+.overview-indicator-groups .ops-grid { gap: 12px; }
+.overview-indicator-groups .ops-kpi { padding-left: 0; }
+.overview-indicator-groups .ops-kpi::before { display: none; }
+.overview-indicator-groups .ops-kpi-label { font-size: .68rem; }
+.overview-indicator-groups .ops-kpi-value { font-weight: 750; font-variant-numeric: tabular-nums; }
+.overview-indicator-groups .ops-kpi-note { font-size: .76rem; line-height: 1.5; }
+.overview-indicator-groups .ops-distribution { margin-top: 10px; padding-top: 12px; }
+.overview-indicator-groups .ops-distribution-track { height: 10px; }
+.overview-indicator-groups .ops-distribution ul { gap: 8px; }
+.overview-indicator-groups .ops-distribution li { font-size: .68rem; }
+@media (max-width: 1350px) { .overview-indicator-groups { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 620px) { .overview-indicator-groups { grid-template-columns: minmax(0, 1fr); } }

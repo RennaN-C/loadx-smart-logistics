@@ -437,3 +437,49 @@
 @media(max-width:900px) { .planning-page > .entity-header { grid-template-columns:1fr; } .planning-page > .entity-header .entity-toolbar { justify-content:flex-start; max-width:none; } }
 .planning-page > .tabs { margin-block:8px; }
 .planning-page .viewer { margin-top:0; gap:10px; }
+
+/* Filters above the introduction, with record identity and comparable facts below. */
+.plan-history-controls { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin: 22px 0 18px; }
+.plan-history-controls .plan-operation-filters { margin: 0; }
+.plan-history-toolbar { display: block; padding: 16px 22px; margin: 0 0 14px; background: var(--surface-gradient); box-shadow: inset 0 1px var(--surface-edge); }
+.plan-history-toolbar h2 { margin-bottom: 4px; }
+.plan-history-toolbar .entity-lede, .plan-history-toolbar .entity-form-help { margin: 3px 0; font-size: .83rem; line-height: 1.5; }
+.plan-history-controls .plan-history-filters select { background: var(--surface-gradient); }
+.plan-history-controls .plan-history-filters label:last-child select { min-width: 195px; }
+.plan-history-row { grid-template-columns: minmax(165px, .9fr) minmax(230px, 1.4fr) auto; padding: 16px 22px; gap: 18px; background: var(--surface-gradient); box-shadow: inset 0 1px var(--surface-edge); }
+.plan-history-title { margin-bottom: 6px; }
+.plan-history-row a.plan-history-plate { font-family: inherit; font-size: 1.08rem; font-weight: 750; letter-spacing: -.015em; }
+.plan-history-identification p { margin: 4px 0; font-size: .82rem; }
+.plan-history-identification time { font-size: .78rem; }
+.plan-history-state { display: inline-flex; margin-bottom: 2px; }
+.plan-history-summary .plan-operation-summary { gap: 4px; margin: 4px 0; }
+.plan-history-summary .plan-operation-summary p { font-size: .76rem; margin: 0; }
+.plan-history-summary > .entity-form-help { font-size: .72rem; margin: 4px 0; }
+.plan-history-facts { gap: 14px 24px; margin: 12px 0 !important; }
+.plan-history-facts > span { display: flex; align-items: center; gap: 9px; }
+.plan-history-facts small { display: block; color: var(--muted); font-size: .68rem; }
+.plan-history-facts strong { display: block; color: var(--ink); font-size: .9rem; font-variant-numeric: tabular-nums; }
+.plan-history-occupancy::before, .plan-history-occupancy > span { height: 8px; }
+.plan-history-row > .btn-secondary { justify-content: center; font-size: .82rem; }
+.planning-activity { margin-top: 22px; background: var(--surface-gradient); box-shadow: inset 0 1px var(--surface-edge); padding: 22px; }
+.planning-activity h2 { font-size: .95rem; }
+.planning-activity li > strong { font-size: .85rem; }
+.planning-activity li p, .planning-activity li small { font-size: .75rem; }
+.planning-activity-meta { font-size: .7rem; }
+.planning-activity li::before { width: 9px; height: 9px; left: -5px; }
+@media (min-width: 1450px) { .planning-workspace-with-activity { grid-template-columns: minmax(0, 1fr) 320px; } }
+@media (max-width: 1150px) { .plan-history-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); } .plan-history-row > .btn-secondary { grid-column: 1 / -1; justify-self: start; } }
+@media (max-width: 620px) { .plan-history-row { grid-template-columns: minmax(0, 1fr); padding: 18px; gap: 12px; } .plan-history-controls, .plan-history-controls .plan-history-filters, .plan-history-controls .plan-history-filters label { width: 100%; } .plan-history-controls .plan-history-filters label:last-child select { min-width: 0; } .plan-history-row > .btn-secondary { width: 100%; } .plan-history-toolbar { padding: 16px; } }
+.planning-page.entity-page { padding-top: 20px; }
+.planning-page > .entity-header { margin-block: 6px; }
+.planning-page .plan-workspace-nav { margin-block: 18px 12px; }
+.plan-history-controls { margin-top: 12px; }
+.plan-history-summary { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 5px 10px; }
+.plan-history-summary .plan-operation-summary { display: contents; }
+.plan-history-summary .plan-operation-summary > .status-pill { grid-column: 2; grid-row: 1; justify-self: start; }
+.plan-history-state { grid-column: 1; grid-row: 1; margin: 0; }
+.plan-history-summary .plan-operation-summary > p, .plan-history-summary .plan-operation-links, .plan-history-summary > .entity-form-help, .plan-history-summary > .plan-history-facts, .plan-history-summary > .plan-history-occupancy, .plan-history-summary > .plan-history-rejected, .plan-history-summary > a { grid-column: 1 / -1; }
+.plan-history-facts { margin-block: 6px !important; }
+.plan-history-row { padding-block: 14px; }
+@media (max-width: 620px) { .plan-history-summary { grid-template-columns: minmax(0, 1fr); } .plan-history-summary .plan-operation-summary > .status-pill { grid-column: 1; grid-row: auto; } }
+.plan-persisted-reference a { color: var(--accent-strong); text-underline-offset: 3px; }

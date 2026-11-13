@@ -59,16 +59,16 @@ export function TripListPage() {
         </div>
       </header>
 
-      <div className="entity-toolbar">
-        <label>Situação
+      <div className="entity-toolbar registry-filterbar trip-list-filters">
+        <label className="registry-filter-field">Situação
           <select value={tripStatusFilter} onChange={(e) => { setTripStatusFilter(e.target.value as TripStatus | ""); goToPage(1); }} aria-label="Filtrar viagens por situação">
             <option value="">Todas</option>
             {(["SCHEDULED","IN_ROUTE","INTERRUPTED","FINISHED","CANCELED"] as TripStatus[]).map(key => <option key={key} value={key}>{TRIP_STATUS_LABELS[key]}</option>)}
           </select>
         </label>
-        <label>Buscar viagem
+        <label className="registry-filter-field registry-filter-search">Buscar viagem
           <input aria-label="Buscar viagem por identificador" value={search} maxLength={120}
-            onChange={e => { setSearch(e.target.value); goToPage(1); }} placeholder="Identificador (mínimo 2 caracteres)" />
+            onChange={e => { setSearch(e.target.value); goToPage(1); }} placeholder="Digite ao menos 2 caracteres" />
         </label>
       </div>
 
