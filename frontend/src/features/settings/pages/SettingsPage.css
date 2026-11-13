@@ -52,3 +52,11 @@
   .settings-operation-link { padding: 22px; }
 }
 @media (prefers-reduced-motion: reduce) { .settings-operation-link { transition: none; } }
+
+/* Preferências reais substituem as abas que eram apenas coleções de atalhos. */
+.settings-preference-grid { display: grid; gap: 16px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.settings-preference-grid > .account-section { min-width: 0; margin: 0; padding: 22px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+.settings-preference-grid .appearance-options { grid-template-columns: minmax(0, 1fr); }
+.settings-preference-grid .notification-preference-options { min-width: 0; }
+.settings-preference-grid h2 { font-size: 1.05rem; margin-top: 0; }
+@media (max-width: 1050px) { .settings-preference-grid { grid-template-columns: minmax(0, 1fr); } }

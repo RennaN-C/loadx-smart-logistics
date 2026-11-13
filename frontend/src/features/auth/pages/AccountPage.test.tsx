@@ -41,7 +41,7 @@ describe("OC92 Meu perfil", () => {
   });
   it("preserva notificações OC103 junto da segurança OC98 e dispositivos confiáveis", async () => {
     await show();
-    fireEvent.click(screen.getByText("Aparência e notificações"));
+    fireEvent.click(screen.getByRole("tab", { name: "Preferências" }));
     await screen.findByRole("form", { name: "Preferências de notificações" });
     expect(getNotificationPreferences).toHaveBeenCalled();
     expect(screen.getByRole("link", { name: /Abrir central/ })).toHaveAttribute("href", "/notifications");
@@ -53,10 +53,10 @@ describe("OC92 Meu perfil", () => {
   });
   it.each<Role>(["ADMIN", "LOGISTICS_MANAGER", "CHECKER", "DRIVER"])("%s acessa sua conta por URL e menu sem novos privilégios", async (role) => {
     vi.mocked(getCurrentUser).mockResolvedValue({ ...USER, role }); await show();
-    fireEvent.click(screen.getByText("Aparência e notificações"));
+    fireEvent.click(screen.getByRole("tab", { name: "Preferências" }));
     expect(screen.getByRole("radio", { name: /Automático/ })).toBeInTheDocument();
     expect(screen.getByLabelText("Nome")).toHaveValue(USER.name);
-    expect(screen.getByRole("form", { name: "Dados pessoais" })).toHaveTextContent({ CUSTOM: "Personalizado", ADMIN: "Administrador", LOGISTICS_MANAGER: "Gestor de logística", CHECKER: "Conferente", DRIVER: "Motorista" }[role]);
+    expect(screen.getByRole("form", { name: "Dados pessoais", hidden: true })).toHaveTextContent({ CUSTOM: "Personalizado", ADMIN: "Administrador", LOGISTICS_MANAGER: "Gestor de logística", CHECKER: "Conferente", DRIVER: "Motorista" }[role]);
     expect(screen.queryByLabelText("Perfil de acesso")).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Meu perfil" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("link", { name: "Voltar ao início" })).toHaveClass("entity-header-link");

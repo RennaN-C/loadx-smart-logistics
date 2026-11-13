@@ -71,6 +71,16 @@ export function IntegrationHealthPanel() {
     {report && <>
       {error && <p className="integration-health-stale">Exibindo a última consulta bem-sucedida; os dados abaixo podem estar desatualizados.</p>}
       <div className="integration-health-summary" data-status={report.overall_status}><strong>{report.overall_status === "DEGRADED" ? "Saúde degradada: há falha ou demora na resposta." : "Há serviços simulados ou com verificação limitada."}</strong><p>Consulta em <time dateTime={report.checked_at}>{new Date(report.checked_at).toLocaleString("pt-BR")}</time></p></div>
+      {report.components.length > 0 ? <div className="integration-health-totals" aria-label="Resumo dos estados dos serviços">
+        {([
+          ["Disponíveis", report.components.filter((item) => item.status === "AVAILABLE").length],
+          ["Simulados ou limitados", report.components.filter((item) => item.status === "SIMULATED" || item.status === "LIMITED").length],
+          ["Não configurados", report.components.filter((item) => item.status === "NOT_CONFIGURED" || item.status === "NOT_IMPLEMENTED").length],
+          ["Com falha", report.components.filter((item) => item.status === "UNAVAILABLE" || item.status === "TIMEOUT").length],
+        ] as const).map(([title, count]) =>
+          <div className="integration-health-total" key={title}><span>{title}</span><strong>{count}</strong></div>
+        )}
+      </div> : null}
       {report.components.length ? <ul className="integration-health-grid">{report.components.map((item) => <HealthCard key={item.component} item={item} />)}</ul> : <p className="integration-health-empty">Nenhum indicador foi disponibilizado nesta consulta.</p>}
       <details className="integration-health-reference"><summary>Referência do diagnóstico</summary><p><code>{report.correlation_id}</code>. Falhas desta consulta podem ser correlacionadas aos eventos operacionais sanitizados. Histórico persistente de integrações não está disponível nesta etapa.</p></details>
     </>}

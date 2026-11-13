@@ -40,3 +40,11 @@
   .integration-health-card { padding: 20px; }
 }
 @media (prefers-reduced-motion: reduce) { .integration-health-card { transition: none; } }
+
+/* Visão gerencial dos estados retornados pela API: não calcula métricas fictícias. */
+.integration-health-totals { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 20px; }
+.integration-health-total { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
+.integration-health-total span { color: var(--muted); font-size: .75rem; }
+.integration-health-total strong { color: var(--ink); font-size: 1.35rem; font-variant-numeric: tabular-nums; }
+@media (max-width: 1000px) { .integration-health-totals { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .integration-health-totals { grid-template-columns: minmax(0, 1fr); } }
