@@ -1,6 +1,6 @@
 # Deploy do LoadX — desenvolvimento, Vercel e Render
 
-O **ambiente web de testes** deve publicar a branch `desenvolvimento` como fonte única. O menu PowerShell dispara **redeploy manual**, sem push, merge, migrations, release ou atualização da `main`. O `pentest-lab` permanece apenas como histórico de homologação.
+O **ambiente web de testes** deve publicar a branch `desenvolvimento` como fonte única. O menu PowerShell dispara **redeploy manual**, sem push, merge, migrations, release ou atualização da `main`. A antiga branch `pentest-lab` foi aposentada em 13/11/2026. Seu estado final está preservado em `archive/pentest-lab-pre-migracao-2026-11-13`; o ambiente ativo de testes/homologação é `desenvolvimento`.
 
 > A branch do serviço Render e a branch de produção do projeto Vercel são **configurações hospedadas**, não são escolhidas pelo `frontend/vercel.json`. Atualizar somente este repositório **não** troca essas configurações. Mantenha a URL do backend existente até planejar uma migração de domínio separada.
 
@@ -9,7 +9,7 @@ O **ambiente web de testes** deve publicar a branch `desenvolvimento` como fonte
 **Vercel — projeto `loadx-smart-logistics-frontend`:**
 
 1. Abra [Vercel](https://vercel.com/rennan-cardoso/loadx-smart-logistics-frontend) → **Settings → Git**. Confirme repositório `RennaN-C/loadx-smart-logistics`, diretório raiz `frontend` e **Production Branch = `desenvolvimento`**.
-2. Em **Settings → Git → Deploy Hooks**, crie um hook exclusivo para a branch **`desenvolvimento`**. Nome sugerido: `loadx-desenvolvimento-manual`. **Não reutilize o hook de `pentest-lab`**: o hook guarda a branch.
+2. Em **Settings → Git → Deploy Hooks**, crie um hook exclusivo para a branch **`desenvolvimento`**. Nome sugerido: `loadx-desenvolvimento-manual`. Use exclusivamente o hook criado para `desenvolvimento`; hooks antigos da `pentest-lab` não devem ser reutilizados.
 3. Preserve a configuração do proxy da API em `frontend/vercel.json`. Não altere CORS, JWT/cookies ou variáveis de ambiente sem validar login/MFA.
 
 **Render — serviço existente `loadx-pentest-api`:**
@@ -63,4 +63,4 @@ Depois que ambos os provedores estiverem configurados para `desenvolvimento`, ca
 
 O menu `-Acao status` lista as solicitações ao GitHub Actions. Para confirmar execução real, confira o SHA e estado `READY` na Vercel, o SHA e estado `live` no Render, `GET /ready` e fluxos básicos de login/planejamento. Configure verificações de deploy no provedor quando quiser tornar a CI um gate obrigatório também para **auto-deploy**.
 
-Manter a `main` separada preserva as releases estáveis; `pentest-lab` não deve ser mesclada inteira em `desenvolvimento` sem revisão das alterações exclusivas.
+Manter a `main` separada preserva as releases estáveis; A branch histórica `pentest-lab` foi arquivada; não restaure seu conteúdo integralmente. Consulte o backup apenas para recuperar histórico ou investigar regressões.

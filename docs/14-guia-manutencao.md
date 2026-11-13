@@ -40,7 +40,7 @@ Abra `http://localhost:5173` para o frontend e `http://localhost:8000/docs` para
 2. Localize a tela ou regra usando a tabela acima. Consulte os contratos em [docs/05](05-contratos-api.md) e as regras em [docs/04](04-regras-negocio.md).
 3. Altere o menor conjunto de arquivos possível. Não duplique o mesmo estado, regra de negócio ou componente em pastas diferentes.
 4. Atualize o teste do comportamento e a documentação **quando o contrato mudar**.
-5. Abra PR para `desenvolvimento`, vinculada à Issue, e aguarde CI/revisão. Para mudanças em `pentest-lab`, isole os ajustes exclusivos da homologação.
+5. Abra PR para `desenvolvimento`, vinculada à Issue, e aguarde CI/revisão. Não há mais fluxo de trabalho em `pentest-lab`; o backup histórico não recebe commits.
 
 ## 4. Valide antes da PR
 
@@ -83,7 +83,6 @@ O menu somente solicita um redeploy no GitHub Actions. Não use o comando para s
 
 - `main`: referência das releases estáveis; não é local para experimentos.
 - `desenvolvimento`: integração de melhorias revisadas e testadas.
-- `pentest-lab`: homologação que pode ter mudanças exclusivas de interface e deploy.
 - `feat/`, `fix/`, `chore/`: branches pequenas de trabalho.
 
-**Não sincronize `pentest-lab` inteira sobre `desenvolvimento`**: promova por PR apenas os arquivos e contratos necessários, preservando o histórico e o código específico de cada ambiente. Multiempresa ainda é proposta ([ADR-049](decisions/ADR-049-multiempresa-organizacoes-isolamento.md)), não funcionalidade pronta.
+O estado final da antiga `pentest-lab` está preservado na branch `archive/pentest-lab-pre-migracao-2026-11-13`, somente para consulta. Não desenvolva nem faça deploy a partir dela. Multiempresa ainda é proposta ([ADR-049](decisions/ADR-049-multiempresa-organizacoes-isolamento.md)), não funcionalidade pronta.
