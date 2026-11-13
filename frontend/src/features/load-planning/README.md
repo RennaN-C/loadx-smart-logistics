@@ -149,7 +149,7 @@ parte completa e aprovada reutiliza a continuidade real já existente.
 
 `CONFIRMADO`: aparência utiliza tokens existentes, controles nativos, foco visível,
 feedback real e grade responsiva. Evidências Chromium em
-[docs/evidencias/oc89](../../../../docs/evidencias/oc89/README.md).
+[docs/evidencias/oc89](https://github.com/RennaN-C/loadx-smart-logistics/blob/8948cf2e649c25aab1fe7bc30076dcdf1a40744c/docs/evidencias/oc89/README.md).
 `RISCO IDENTIFICADO`: o backend não publica prova de otimalidade nem justificativa
 individual por alternativa descartada; a interface descreve a estratégia heurística
 documentada e a solução salva, sem inventar por que um caminhão específico falhou.
@@ -161,7 +161,7 @@ Rascunhos não calculados continuam locais à tela, sem localStorage.
 destinos reais, mantendo novo planejamento como ação explícita. A listagem usa
 somente os resumos paginados existentes e separa situação do plano, continuidade
 operacional, ocupação e recusas. Evidências responsivas claro/escuro em
-`docs/evidencias/qa-v12-pentest/ui-lote6.md`.
+[`docs/evidencias/qa-v12-pentest/ui-lote6.md`](https://github.com/RennaN-C/loadx-smart-logistics/blob/8948cf2e649c25aab1fe7bc30076dcdf1a40744c/docs/evidencias/qa-v12-pentest/ui-lote6.md).
 
 
 ## Recuperação idempotente (#254)
@@ -211,7 +211,7 @@ pelo backend, medidas e peso máximo. É uma consulta sem reserva; a otimizaçã
 revalida tudo. A carga pode usar um caminhão se couber; não força divisão
 artificial. O limite permanece 200 volumes físicos, até 10 caminhões.
 
-Evidências: docs/evidencias/qa-v12-pentest/planejamento-multi-atividade/.
+Evidências: [planejamento multi-caminhão arquivado](https://github.com/RennaN-C/loadx-smart-logistics/tree/8948cf2e649c25aab1fe7bc30076dcdf1a40744c/docs/evidencias/qa-v12-pentest/planejamento-multi-atividade).
 
 ## Prontidão e mensagens das ações — Issue #302
 

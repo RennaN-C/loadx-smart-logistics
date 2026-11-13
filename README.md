@@ -12,6 +12,28 @@ O **LoadX Smart Logistics** é um projeto acadêmico de Engenharia de Software q
 
 ---
 
+## Onde fica cada coisa
+
+| Diretório | O que contém |
+| --- | --- |
+| `backend/app/modules/` | Regras de negócio, serviços e endpoints separados por domínio |
+| `backend/app/integrations/` | Adaptadores para serviços externos |
+| `backend/migrations/` | Histórico Alembic obrigatório para montar bancos |
+| `backend/tests/` | Testes unitários e de integração |
+| `frontend/src/app/` | Rotas, layout e composição da aplicação |
+| `frontend/src/features/` | Telas e recursos por funcionalidade |
+| `frontend/src/components/` | Componentes compartilhados |
+| `frontend/public/` | Arquivos estáticos efetivamente usados pela interface |
+| `qa/browser/` | Testes E2E de navegador |
+| `infra/` e `.github/workflows/` | Infraestrutura e automação/CI |
+| `docs/` | Guias atuais, decisões arquiteturais, histórico e índice de QA |
+
+**Começando:** [executar o ambiente](docs/13-guia-execucao-ambientes.md) · [manutenção manual](docs/14-guia-manutencao.md) · [guia de documentação](docs/README.md) · [contribuir](CONTRIBUTING.md) · [instruções para IA](AGENTS.md).
+
+Para investigar código, procure primeiro o módulo em `backend/app/modules/<modulo>/` e sua tela em `frontend/src/features/<recurso>/`. Não altere migrações antigas; gere uma migração nova quando necessário.
+
+---
+
 ## Sobre o projeto
 
 No transporte de mercadorias, não basta saber quantos itens devem ser enviados. É preciso considerar o **espaço útil do veículo**, a **massa transportada**, a **ordem de carregamento**, as **restrições de cada produto**, a **disponibilidade da frota** e o andamento das entregas.
@@ -29,9 +51,7 @@ A aplicação utiliza um **otimizador determinístico**, em vez de depender de I
 
 A v1.2.0 reformulou a apresentação do sistema, com identidade visual consistente, menu por áreas, tabelas e formulários reorganizados, melhor tratamento de estados de carregamento/erro e adaptações para diferentes tamanhos de tela. O fluxo de planejamento foi dividido em **Pedidos → Modalidade → Veículos → Revisão** para deixar a sequência mais clara.
 
-![Captura de referência da Visão Geral do LoadX em tema escuro](docs/evidencias/qa-v12-pentest/ui-refinamento-39/overview-dark-1600.png)
-
-*Exemplo visual registrado durante o refinamento da interface da v1.2.0. A imagem é evidência de uma etapa de revisão, não uma certificação de todos os estados da aplicação.*
+As capturas históricas foram retiradas do checkout de desenvolvimento para manter o repositório leve. A [referência visual antiga](https://github.com/RennaN-C/loadx-smart-logistics/blob/8948cf2e649c25aab1fe7bc30076dcdf1a40744c/docs/evidencias/qa-v12-pentest/ui-refinamento-39/overview-dark-1600.png) permanece consultável pelo histórico do Git.
 
 ## Funcionalidades do sistema
 
@@ -156,7 +176,7 @@ Clientes, produtos, motoristas e caminhões cadastrados
           Finalizar operação e consultar relatório
 ```
 
-**Exemplo de demonstração:** cadastre dois caminhões elegíveis, prepare um pedido que não caiba em apenas um deles e escolha a modalidade automática. Depois do cálculo, confira os veículos selecionados, a distribuição dos volumes e a cena 3D de cada parte. Um cenário local com **24 volumes distribuídos entre dois caminhões** foi registrado nos [ensaios do projeto](docs/evidencias/qa-v12-pentest/planejamento-multi-atividade/README.md).
+**Exemplo de demonstração:** cadastre dois caminhões elegíveis, prepare um pedido que não caiba em apenas um deles e escolha a modalidade automática. Depois do cálculo, confira os veículos selecionados, a distribuição dos volumes e a cena 3D de cada parte. Um cenário local com **24 volumes distribuídos entre dois caminhões** foi registrado nos [ensaios históricos do projeto](https://github.com/RennaN-C/loadx-smart-logistics/blob/8948cf2e649c25aab1fe7bc30076dcdf1a40744c/docs/evidencias/qa-v12-pentest/planejamento-multi-atividade/README.md).
 
 Para detalhes sobre estados, regras e exceções, consulte o [fluxo operacional](docs/06-fluxo-operacional.md) e as [regras de negócio](docs/04-regras-negocio.md).
 

@@ -22,4 +22,4 @@ perfis não recebem esses eventos na consulta agregada.
 depois da paginação autorizada. A interface mantém o identificador curto na
 listagem e revela UUIDs completos somente nos detalhes, traduz estados conhecidos
 e converte a tabela em cartões responsivos sem alterar filtros server-side.
-Evidências em `docs/evidencias/qa-v12-pentest/ui-lote6.md`.
+Evidências em [`docs/evidencias/qa-v12-pentest/ui-lote6.md`](https://github.com/RennaN-C/loadx-smart-logistics/blob/8948cf2e649c25aab1fe7bc30076dcdf1a40744c/docs/evidencias/qa-v12-pentest/ui-lote6.md).

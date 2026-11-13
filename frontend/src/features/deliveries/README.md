@@ -186,4 +186,4 @@ links preservam UUID completo e nomes acessíveis por recurso. Carregamentos
 reutiliza os rótulos do detalhe da conferência. Filtros reiniciam a página,
 loading/erro/retry/vazio são explícitos e o total vem da API, sem reconstruir
 estados de domínio no navegador. Tokens, RBAC e contratos HTTP preservados.
-Evidências: [UI01](../../../../docs/evidencias/qa-v12-pentest/ui-lote1.md).
+Evidências: [UI01](https://github.com/RennaN-C/loadx-smart-logistics/blob/8948cf2e649c25aab1fe7bc30076dcdf1a40744c/docs/evidencias/qa-v12-pentest/ui-lote1.md).

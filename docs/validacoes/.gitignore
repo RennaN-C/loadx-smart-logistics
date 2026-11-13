@@ -1,0 +1,4 @@
+# Saída local de comparação visual não pertence ao controle de versão.
+*
+!.gitignore
+!README.md

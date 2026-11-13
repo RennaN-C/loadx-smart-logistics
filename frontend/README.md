@@ -1,6 +1,6 @@
 # Frontend
 
-> **Versão oficial:** [v1.2.0](https://github.com/RennaN-C/loadx-smart-logistics/releases/tag/v1.2.0), publicada em 26/10/2026. A interface contém navegação reformulada, planejamento por etapas, Frota/Documentação, configurações administrativas, relatórios e visualização 3D. Leia o [README principal](../README.md), o [roadmap](../docs/planejamento/roadmap-versoes.md) e o [guia de execução](../docs/13-guia-execucao-ambientes.md). A tag da release é imutável; a branch de desenvolvimento pode evoluir.
+> **Release estável mais recente desta linha:** [v1.3.0](https://github.com/RennaN-C/loadx-smart-logistics/releases/tag/v1.3.0), com o assistente Loxi. A interface contém navegação reformulada, planejamento por etapas, Frota/Documentação, configurações administrativas, relatórios e visualização 3D. Leia o [README principal](../README.md), o [roadmap](../docs/planejamento/roadmap-versoes.md) e o [guia de execução](../docs/13-guia-execucao-ambientes.md). A tag da release é imutável; a branch de desenvolvimento pode evoluir.
 
 **Validação local:** utilizar Node.js da `.nvmrc`, instalar com `npm ci` e verificar `npm run lint`, `npm test -- --run` e `npm run build`. Testes de interface com dados fictícios não provam operação remota.
 
@@ -152,7 +152,7 @@ garantir persistência após recarregar. Alterações e limpeza em outra aba sã
 sincronizadas; logout não apaga a preferência.
 
 `CONFIRMADO`: a validação visual em Chromium está em
-[docs/evidencias/issue-212](../docs/evidencias/issue-212/README.md).
+[docs/evidencias/issue-212](https://github.com/RennaN-C/loadx-smart-logistics/blob/8948cf2e649c25aab1fe7bc30076dcdf1a40744c/docs/evidencias/issue-212/README.md).
 `PENDENTE DE DEFINIÇÃO`: validação conjunta das telas MFA/recuperação da PR #211
 após sua integração; nenhum código da OC98 foi incorporado nesta manutenção.
 
@@ -171,7 +171,7 @@ A agenda oferece calendário diário/semanal e lista dos mesmos eventos históri
 em UTC. O intervalo da API continua limitado às opções existentes.
 
 `CONFIRMADO`: contratos, RBAC, MFA e coordenadas 3D foram preservados. Evidências,
-comandos e limites estão na [revisão visual](../docs/evidencias/qa-v12-pentest/ui-refinamento-39/README.md).
+comandos e limites estão na [revisão visual](https://github.com/RennaN-C/loadx-smart-logistics/blob/8948cf2e649c25aab1fe7bc30076dcdf1a40744c/docs/evidencias/qa-v12-pentest/ui-refinamento-39/README.md).
 
 ## Dados e acompanhamento — 25/10/2026
 
@@ -180,10 +180,10 @@ Execução permanece no planejamento e Configurações usa navegação horizonta
 coerente com a frota. Transições novas respeitam redução de movimento.
 O seed local é documentado em [backend/scripts](../backend/scripts/README.md).
 Evidências e limites da revisão estão em
-[população e gráficos](../docs/evidencias/qa-v12-pentest/ui-populacao-graficos/README.md).
+[população e gráficos](https://github.com/RennaN-C/loadx-smart-logistics/blob/8948cf2e649c25aab1fe7bc30076dcdf1a40744c/docs/evidencias/qa-v12-pentest/ui-populacao-graficos/README.md).
 
 ## Gravação e avaliação de usabilidade local
 
 `CONFIRMADO`: [roteiro e dados de gravação](../docs/usabilidade/README.md)
-e [ensaio técnico com login/MFA reais](../docs/evidencias/usabilidade-local/README.md)
+e [ensaio técnico com login/MFA reais](https://github.com/RennaN-C/loadx-smart-logistics/blob/8948cf2e649c25aab1fe7bc30076dcdf1a40744c/docs/evidencias/usabilidade-local/README.md)
 acompanham os ajustes de prontidão do planejamento da Issue #302.

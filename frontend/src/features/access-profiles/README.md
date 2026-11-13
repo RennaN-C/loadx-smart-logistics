@@ -21,7 +21,7 @@ recurso. Leitura/gestão são independentes; cadastro de perfil explica dependê
 
 Testes: componente/API/integração OC86, negação por perfil, reservadas, versão,
 loading/erro/vazio, confirmação, paginação e projeção. Evidências Chromium reais
-em docs/evidencias/oc112, com temas claro/escuro, sistema e teclado. Sem novas
+na [evidência OC112 arquivada](https://github.com/RennaN-C/loadx-smart-logistics/tree/8948cf2e649c25aab1fe7bc30076dcdf1a40744c/docs/evidencias/oc112), com temas claro/escuro, sistema e teclado. Sem novas
 dependências, MFA, recuperação ou integração CoreFlow.
 
 ## UX unificada da OC112
