@@ -52,7 +52,7 @@ ajuste.
 
 `CONFIRMADO`: versões PATCH normalmente não são pré-planejadas neste roadmap. Elas surgem quando uma versão publicada exige correção compatível.
 
-`DECISÃO SEMVER (30/10/2026)`: o Loxi, a integração Groq, as novas consultas e a experiência 3D são funcionalidades compatíveis. Por isso a release é **v1.3.0 (MINOR)**, não PATCH. A antiga proposta de CoreFlow/multiempresa é renumerada como **v1.4.0**, sem antecipar implementação.
+`DECISÃO SEMVER (30/10/2026)`: o Loxi, a integração Groq, as novas consultas e a experiência 3D são funcionalidades compatíveis. Por isso a release é **v1.3.0 (MINOR)**, não PATCH. A proposta multiempresa foi direcionada à **v1.4.0**; em 14/11/2026 o planejamento foi consolidado como plataforma SaaS independente.
 
 `DECISÃO NECESSÁRIA`: o marco atualmente chamado de v2.0.0 somente deverá usar
 esse número se introduzir mudança incompatível que justifique incremento de
@@ -171,17 +171,13 @@ Planejamento detalhado:
 ## Objetivo
 
 `CONFIRMADO`: a v1.2.0 concentra a maior etapa de consolidação funcional do LoadX
-antes da futura camada de multi-tenancy logístico e integração com CoreFlow. O objetivo
+antes da futura camada de multi-tenancy logístico e administração SaaS própria. O objetivo
 é fechar lacunas de administração, segurança, operação, frota, cadastros, auditoria,
 integrações e experiência de uso, sem retirar a autoridade das regras de domínio do backend.
 
-`CONFIRMADO`: a v1.2.0 continua **monoempresa e standalone**. Ela não implementa
-CoreFlow, SSO, entitlement externo ou tenant_id no domínio.
+`CONFIRMADO`: a v1.2.0 continua **monoempresa e standalone**. Ela não implementa tenancy, licenciamento, billing ou tenant_id no domínio.
 
-`DECISÃO ARQUITETURAL`: as OCs administrativas da v1.2.0 devem continuar úteis no
-modo standalone, mas não podem tornar o LoadX proprietário permanente de identidade
-global, organização, licenciamento ou SUPERADMIN de plataforma. As Issues #128, #129,
-#136, #137, #145 e #159 registram essa fronteira de compatibilidade.
+`REGISTRO HISTÓRICO, SUBSTITUÍDO EM 14/11/2026`: as OCs administrativas da v1.2.0 eram limitadas ao escopo operacional. A v1.4.0 passa a dar ao próprio LoadX a responsabilidade de identidade global, organização, licenciamento e administração de plataforma. As Issues #128, #129, #136, #137, #145 e #159 permanecem referências históricas.
 
 ### Hierarquia de perfis do LoadX na v1.2.0
 
@@ -191,8 +187,8 @@ operacional e não pode administrar usuários, credenciais de terceiros,
 configuração institucional, segurança de conta ou perfis/permissões. `CHECKER`
 opera conferência e `DRIVER` operações próprias validadas por vínculo.
 
-O planejamento previu ajustar a matriz de permissões antes da expansão das telas OC85/OC86. A OC112 compreendeu perfis personalizados e permissões logísticas, mantendo a autorização no backend. Nem `ADMIN` nem perfil customizado obtém direito
-de plataforma, SSO, tenant ou entitlement CoreFlow; todas as regras de domínio,
+O planejamento previu ajustar a matriz de permissões antes da expansão das telas OC85/OC86. A OC112 compreendeu perfis personalizados e permissões logísticas, mantendo a autorização no backend. Nem `ADMIN` nem perfil customizado obtém automaticamente direito
+de plataforma, gestão comercial, tenant ou entitlement de módulos; todas as regras de domínio,
 auditoria e autoria das ações continuam obrigatórias.
 
 ## Planejamento histórico do ciclo v1.2.0
@@ -289,7 +285,7 @@ O planejamento da v1.2.0 estabeleceu os seguintes objetivos; seu aceite de códi
 - **Experiência visual:** cartões operacionais, painel conversacional expansível, interface responsiva e prévia 3D compacta sob demanda, preservando o visualizador já existente.
 - **Segurança:** acesso por perfis/permissões, limites e falhas explícitas do provider, proteção contra injeção de instruções e leitura autorizada. O chat **não executa comandos de escrita**; ações de alteração continuam nas telas e services apropriados.
 
-**Limites mantidos:** LoadX monoempresa/standalone, limite atual de **200 volumes físicos totais** por otimização síncrona e até **10 veículos candidatos**; não inclui CoreFlow, tenant_id, WhatsApp Business real, storage externo de produção nem automações de escrita pelo Loxi. A disponibilização da chave e o teste Groq ao vivo dependem de configuração do ambiente.
+**Limites mantidos:** LoadX monoempresa/standalone, limite atual de **200 volumes físicos totais** por otimização síncrona e até **10 veículos candidatos**; não inclui multiempresa, tenant_id, cobrança SaaS, WhatsApp Business real, storage externo de produção nem automações de escrita pelo Loxi. A disponibilização da chave e o teste Groq ao vivo dependem de configuração do ambiente.
 
 **Gate de publicação:** checks Backend, Frontend, Segurança e SonarCloud na PR. Após merge, o job de publicação exige a CI interna da `main` aprovada **e valida explicitamente o check SonarCloud do SHA exato do push** antes de criar tag/release; falha, ausência e timeout bloqueiam publicação. Isso não representa deploy no Render/Vercel.
 
@@ -322,132 +318,70 @@ Priorizar este backlog juntamente com o planejamento da próxima versão; a orde
 
 ---
 
-# v1.4.0 — SaaS multiempresa, licenciamento e integração com CoreFlow
+# v1.4.0 — LoadX Platform: SaaS multiempresa e licenciamento
 
-`CONFIRMADO` (14/11/2026): o planejamento técnico inicial de multiempresa, onboarding, catálogo comercial, assinaturas, billing e entitlements está em [docs/planejamento/v1.4.0](v1.4.0/00-visao-geral.md). A ADR-049 continua sendo a base de tenancy; ADR-050 e ADR-051 detalham ownership comercial e gateway, ainda como propostas.
+**Decisão de produto (14/11/2026):** o LoadX passa a ser uma plataforma SaaS autônoma, proprietária de identidade global, organizações, administração central, catálogo, licenças, billing e entitlements.
 
-`RECOMENDAÇÃO`: evoluir o LoadX de produto monoempresa para **módulo logístico
-multi-tenant**, capaz de operar integrado ao CoreFlow sem duplicar o control plane
-da plataforma.
+- [Planejamento técnico v1.4.0](v1.4.0/00-visao-geral.md)
+- [Épico #439](https://github.com/RennaN-C/loadx-smart-logistics/issues/439) e Issues #440–#447
+- [ADR-049](../decisions/ADR-049-multiempresa-organizacoes-isolamento.md) — tenancy e isolamento
+- [ADR-050](../decisions/ADR-050-control-plane-comercial-billing-entitlements.md) — plataforma autônoma e modular
+- [ADR-051](../decisions/ADR-051-gateway-pagamentos-port-adapter.md) — pagamentos com port/adapters
 
-`CONFIRMADO`: o planejamento técnico está em docs/planejamento/v1.4.0/00-visao-geral.md e o épico comercial é [Issue #439](https://github.com/RennaN-C/loadx-smart-logistics/issues/439). O backlog inicial é composto pelas Issues #440–#447. A numeração de OCs permanece não reservada até a definição dos contratos de implementação.
+## Núcleo LoadX Platform
 
-## Ownership no alvo integrado
+- Conta global, autenticação, MFA, sessão e recuperação.
+- Organizações, solicitação de cadastro, aprovação pelo proprietário e memberships.
+- Painel geral exclusivo para o proprietário do LoadX.
+- Planos versionados, módulos incluídos/adicionais, limites e licenças.
+- Assinaturas, cobranças automáticas, gateways, webhooks e conciliação.
+- Bloqueio imediato ao fim do período já pago; dados preservados.
+- Auditoria, permissões de plataforma e proteção de dados entre empresas.
 
-### CoreFlow — control plane
+## Produto comercial inicial: LoadX Logistics
 
-O CoreFlow deverá ser a fonte de verdade para:
+O domínio atual passa a ser isolado por organização, preservando pedidos, produtos, clientes, frota, motoristas, planejamento, otimizador, carregamento, viagens, entregas, ocorrências, relatórios, anexos e Loxi.
 
-- organização/tenant e estado da empresa;
-- identidade global do usuário;
-- acesso do usuário à organização;
-- licenciamento e entitlement de acesso ao módulo LoadX;
-- administração de plataforma;
-- futuro Membership quando necessário.
+A visualização 3D **permanece integrada e destacada** dentro da experiência de planejamento de cargas. Não separar o visualizador das regras físicas do otimizador de maneira prematura.
 
-### LoadX — domínio logístico
+## Evolução de módulos e nichos
 
-O LoadX continuará sendo a fonte de verdade para:
+Visão de longo prazo:
+- **LoadX Platform:** núcleo SaaS compartilhado;
+- **LoadX Logistics:** primeiro módulo setorial;
+- **LoadX 3D:** eventual capacidade compartilhada de visualização e simulação 3D, com contratos próprios, reutilizável por mais de um módulo;
+- **Outros módulos setoriais:** somente após validação de necessidade e regras próprias.
 
-- clientes e dados logísticos necessários ao módulo;
-- pedidos e volumes;
-- caminhões, motoristas e frota;
-- planejamento, packing e otimização;
-- carregamentos, viagens e entregas;
-- ocorrências, evidências e anexos;
-- permissões logísticas internas;
-- integrações e configurações específicas da operação logística.
+Esses módulos adicionais não integram o escopo de implementação da v1.4.0. A arquitetura deve permitir sua introdução futura com os mesmos usuários, empresas, permissões, contratos e pagamentos. Manter monólito modular e evitar microserviços por antecipação.
 
-`CONFIRMADO`: CoreFlow e LoadX permanecem aplicações e bancos independentes.
-Integração ocorre por API/contrato seguro e, quando aplicável, eventos. Nenhum
-serviço acessa diretamente as tabelas do outro.
+## Plano de execução
 
-## Direção arquitetural
-
-- adicionar um identificador estável de tenant/organização às entidades de domínio do LoadX;
-- fazer backfill dos dados monoempresa atuais para um tenant inicial;
-- aplicar escopo de tenant em clientes, motoristas, caminhões, produtos, pedidos,
-  planos, carregamentos, viagens, entregas, ocorrências, relatórios, evidências,
-  anexos, notificações, auditoria e configurações logísticas;
-- revisar unicidades atuais para que valores como documento, placa e identificadores
-  de negócio tenham escopo correto por tenant quando a regra permitir;
-- resolver tenant sempre a partir de contexto autenticado/confiável, nunca de
-  parâmetro livre enviado pelo cliente;
-- criar testes negativos obrigatórios provando que Tenant A não lê, altera ou
-  relaciona dados do Tenant B;
-- definir um vínculo estável entre o tenant do CoreFlow e o tenant local do LoadX,
-  preferencialmente preservando o mesmo UUID quando o contrato aprovado permitir;
-- definir contrato de lançamento/SSO em que o CoreFlow autoriza o acesso ao módulo e
-  o LoadX cria/valida sua própria sessão; secrets de sessão não são compartilhados;
-- separar entitlement de plataforma de permissões logísticas do LoadX;
-- manter compatibilidade standalone somente enquanto for necessária e explicitamente
-  suportada, sem espalhar condicionais pelos domínios;
-- manter integrações externas atrás de ports/adapters e preparar outbox/idempotência
-  para comunicação confiável com a plataforma.
-
-## O que não pertence ao LoadX v1.3
-
-Não criar no LoadX um segundo control plane para:
-
-- SUPERADMIN de plataforma;
-- catálogo global de organizações;
-- planos comerciais;
-- billing SaaS;
-- Module Registry;
-- licenciamento global;
-- entitlement de módulos;
-- credencial global duplicada quando o CoreFlow for a fonte de identidade.
-
-Essas capacidades pertencem ao CoreFlow no modo integrado.
-
-## Compatibilidade de usuários e permissões
-
-Os perfis atuais do LoadX continuam representando responsabilidades logísticas.
-No alvo integrado:
-
-```text
-CoreFlow
-  entitlement: loadx.access
-        ↓
-LoadX
-  permissões logísticas efetivas
-```
-
-Não assumir conversão direta entre `admin/manager/staff` do CoreFlow e
-`ADMIN/LOGISTICS_MANAGER/CHECKER/DRIVER` do LoadX. O contrato de integração deverá
-definir vínculo explícito de usuário e permissões do módulo.
-
-## Distribuição candidata
-
-| OC | Responsável principal | Capacidade planejada |
+| Issue | Escopo | Responsável |
 |---|---|---|
-| A definir | **Rennan** | ADR conjunta CoreFlow↔LoadX, tenant_id, migrations, autorização e isolamento |
-| A definir | João | Revisão de queries, índices, unicidades e desempenho tenant-scoped |
-| A definir | Marlon | Contexto visual da organização e experiência de entrada no módulo |
-| A definir | Marcelo | SSO/module launch, eventos, integrações e observabilidade entre sistemas |
+| #440 | Fechar contratos núcleo SaaS e comparar gateways | Rennan |
+| #441 | Organização, membership, isolamento e migração legada | Rennan |
+| #442 | Solicitação, aprovação e convite de empresas | Rennan |
+| #443 | Planos, catálogo de módulos, adicionais e limites | Rennan |
+| #444 | Assinaturas, licenças, vencimento e entitlements | Rennan |
+| #445 | Gateway, checkout, webhook, idempotência e conciliação | Rennan |
+| #446 | Painel do proprietário e portal financeiro | A atribuir |
+| #447 | Testes cross-tenant, cobrança e piloto | A atribuir |
 
-## Gates obrigatórios antes da implementação da v1.4.0
+A Issue #430 do João Weber, sobre desempenho do otimizador, permanece independente.
 
-- definir no CoreFlow o contrato mínimo de módulo externo e entitlement do LoadX;
-- definir ownership de identidade, organização e permissões;
-- definir contrato de tenant e identificadores compartilhados;
-- definir estratégia de SSO/module launch sem compartilhar segredo de sessão;
-- definir modo de compatibilidade standalone durante a transição;
-- aprovar ADR conjunta nos dois repositórios;
-- inventariar todas as tabelas/queries do LoadX que precisarão de escopo tenant;
-- definir migration/backfill e rollback antes de tocar o schema.
+## Gates antes da publicação
 
-`DECISÃO NECESSÁRIA`: Membership multi-organização do CoreFlow não precisa bloquear
-o primeiro piloto se o contrato atual User→Tenant for suficiente. Porém, nenhum
-contrato do LoadX deve impedir a adoção posterior de Membership.
+- Inventário de schema, FKs, unicidades, rotas, workers e dados legados.
+- Bootstrap seguro da única conta proprietária, com recuperação excepcional auditada.
+- Backfill e migração auditáveis para organização legada.
+- Testes negativos de acesso cruzado por API, jobs, anexos, auditoria e Loxi.
+- Seleção do primeiro gateway após condições comerciais e Sandbox.
+- Testes de webhook, reconciliação e vencimento imediato.
+- Piloto isolado com duas organizações e dados sintéticos.
+- Sem release, cobrança real ou alteração em produção antes de validação e autorização.
 
-`RECOMENDAÇÃO`: manter bancos PostgreSQL separados. O LoadX pode usar banco
-compartilhado entre seus próprios tenants com coluna tenant_id, enquanto CoreFlow
-mantém seu banco independente.
+A plataforma e seus módulos devem manter identidade visual e experiência unificadas, mesmo quando a navegação e permissões variem por módulo.
 
-`PENDENTE DE DEFINIÇÃO`: contrato exato de SSO/module launch, service-to-service
-authentication, sincronização/vínculo de usuários, estratégia de eventos, lifecycle
-de tenant desativado e eventual mapeamento entre Person do CoreFlow e Customer do LoadX.
 ---
 
 # v1.5.0 — Rastreamento e acompanhamento em tempo real
@@ -664,8 +598,8 @@ Uma versão somente deve ser considerada pronta para promoção quando:
 10. Planejamento futuro não é autorização automática de implementação.
 11. Numeração de OC não é reutilizada.
 12. O SemVer da release é decidido pelo tipo real da mudança.
-13. No modo integrado futuro, identidade, organização e licenciamento de plataforma pertencem ao CoreFlow; o LoadX preserva ownership do domínio logístico.
-14. CoreFlow e LoadX não compartilham tabelas nem secrets de sessão; integração ocorre por contratos explícitos.
+13. O LoadX será proprietário de identidade global, organizações, licenciamento, billing e administração geral da plataforma.
+14. Módulos setoriais futuros utilizarão o mesmo núcleo SaaS e terão contratos de domínio e permissões próprias.
 
 ---
 
@@ -673,7 +607,7 @@ Uma versão somente deve ser considerada pronta para promoção quando:
 
 **Versões anteriores já publicadas:** [v1.0.0](https://github.com/RennaN-C/loadx-smart-logistics/releases/tag/v1.0.0), [v1.1.0](https://github.com/RennaN-C/loadx-smart-logistics/releases/tag/v1.1.0) e [v1.2.0](https://github.com/RennaN-C/loadx-smart-logistics/releases/tag/v1.2.0) em 26/10/2026.
 
-**Código desta versão:** [v1.3.0 / PR #388](https://github.com/RennaN-C/loadx-smart-logistics/pull/388) — Loxi e planejamento/3D; conferir publicação em [Releases](https://github.com/RennaN-C/loadx-smart-logistics/releases). **Próximo ciclo funcional proposto:** v1.4.0 — multi-tenancy logístico e integração com CoreFlow, ainda sem autorização de desenvolvimento. O backlog transversal (escala ≥1.000 volumes, embalagens, ações do Loxi e confiabilidade) não possui versão aprovada.
+**Código desta versão:** [v1.3.0 / PR #388](https://github.com/RennaN-C/loadx-smart-logistics/pull/388) — Loxi e planejamento/3D; conferir publicação em [Releases](https://github.com/RennaN-C/loadx-smart-logistics/releases). **Próximo ciclo funcional proposto:** v1.4.0 — LoadX Platform multiempresa, licenciamento e cobrança, ainda sem autorização de implementação. O backlog transversal (escala ≥1.000 volumes, embalagens, ações do Loxi e confiabilidade) não possui versão aprovada.
 
 **Manutenção:** acompanhar as Issues ativas listadas na seção v1.3.0, sobretudo #268, #256, #254 e #382. Não reescrever tags anteriores; cada correção exige classificação SemVer adequada e nova validação.
 
