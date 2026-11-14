@@ -17,28 +17,32 @@
 
 O pagamento automático descreve a geração e conciliação automatizada das cobranças. O débito também será automático somente quando o meio de pagamento oferecer essa capacidade e o pagador tiver autorizado: cartão recorrente ou Pix Automático elegível. Pix comum e boleto podem gerar cobranças recorrentes sem débito automático; nesses casos, o cliente precisa efetuar o pagamento de cada cobrança.
 
-## 2. Limite arquitetural: LoadX e CoreFlow
+## 2. LoadX como plataforma SaaS autônoma e modular
 
-Esta especificação complementa a ADR-049 e não a substitui.
+**DECISÃO DE PRODUTO (14/11/2026):** o LoadX será o responsável permanente pelo seu próprio núcleo SaaS, sem depender de outra plataforma para identidade, organizações, administração, planos, licenças, pagamentos ou módulos.
 
-### Modo integrado
+### Núcleo LoadX Platform
+- Login, MFA, sessões, usuários e identidades globais.
+- Empresas, solicitações, aprovações e memberships por organização.
+- Administração geral exclusiva do proprietário do LoadX, separada dos administradores das empresas.
+- Planos, módulos, limites, adicionais, assinaturas, cobrança e entitlements.
+- Auditoria administrativa e integração com gateways.
 
-O CoreFlow é o control plane e a fonte de verdade para:
-- organizações e estado comercial da empresa;
-- identidade global e acesso do usuário às organizações;
-- operadores e administração da plataforma;
-- catálogo comercial global;
-- assinaturas, licenciamento e entitlements de acesso ao LoadX.
+O papel `PLATFORM_OWNER` será inicialmente concedido apenas a uma identidade autorizada, sem cadastro público nem autoelevação. Um procedimento excepcional de recuperação precisa ser seguro e auditado. O proprietário da plataforma não ganha acesso automático a informações operacionais privadas dos clientes.
 
-O LoadX permanece responsável pelo domínio logístico, pelas permissões operacionais e pela aplicação dos direitos recebidos do control plane. A integração ocorre por contratos autenticados e versionados, nunca por acesso direto ao banco do CoreFlow.
+### Primeiro módulo de negócio
+**LoadX Logistics** continua sendo o produto comercial inicial: clientes, produtos, pedidos, frota, motoristas, planejamento e otimização de cargas, carregamento, viagens, entregas e relatórios.
 
-### Modo standalone/transição
+### Módulos para outros nichos
+No futuro, o mesmo núcleo poderá atender novas atividades e setores por módulos de negócio próprios, cada um com dados, permissões, limites e entitlements. **Novos nichos não fazem parte da implementação v1.4.0.**
 
-Se o LoadX precisar vender e operar antes de o CoreFlow estar disponível, poderá existir um adapter local de control plane, isolado em um bounded context próprio. Esse adapter implementa os mesmos contratos de organização, catálogo, assinatura, billing e entitlement, sem espalhar dependências comerciais pelos módulos logísticos.
+### Papel do 3D
+O 3D atual permanece integrado e destacado no planejamento de cargas, exibindo o resultado real do algoritmo, sem decidir ou recalcular validade física no frontend.
 
-A implementação local é uma estratégia de execução standalone, não uma decisão para duplicar permanentemente o CoreFlow. No modo integrado, o adapter local deixa de ser autoridade e não pode haver dupla escrita ou divergência de licenças.
+No futuro, componentes de visualização 3D poderão ser extraídos para uma capacidade compartilhada, com contratos versionados de cenas, objetos e unidades, reutilizável por outros módulos. Um produto comercial autônomo "LoadX 3D" é hipótese futura e não dá acesso às regras de negócio/otimizador logístico sem o entitlement correspondente.
 
-**Gate obrigatório:** antes de produção, confirmar se o primeiro lançamento comercial será standalone com adapter local ou se o CoreFlow já fornecerá os contratos necessários. A implementação não deve presumir que o CoreFlow já existe ou está pronto.
+### Direção técnica
+Preservar monólito modular com FastAPI, SQLAlchemy, PostgreSQL e React; separar núcleo SaaS, módulos de negócio e capacidade visual com fronteiras explícitas. Não antecipar microserviços ou novos bancos sem necessidade comprovada.
 
 ## 3. Domínios e ownership
 
@@ -47,13 +51,14 @@ A implementação local é uma estratégia de execução standalone, não uma de
 | Organizations | Identidade e estado da organização |
 | Identity | Conta global do usuário |
 | Memberships | Vínculo e papel do usuário em cada organização |
-| Platform Operations | Solicitações, aprovação e administração comercial no modo standalone |
+| Platform Operations | Solicitações, aprovação e administração central da plataforma |
 | Catalog | Planos, versões, módulos, adicionais e limites |
 | Subscriptions | Contratos e períodos de assinatura |
 | Billing | Clientes do provedor, faturas, pagamentos e conciliação |
 | Licensing | Ciclo de vida comercial e eventos da licença |
 | Entitlements | Direitos efetivos de módulos e limites |
 | LoadX Logistics | Regras, dados e permissões operacionais |
+| Shared 3D (futuro) | Componentes reutilizáveis de visualização, sem substituir a lógica física logística |
 
 Permissão logística e entitlement comercial são verificações independentes. Um usuário precisa ter ambas para executar uma funcionalidade: o plano precisa liberar o módulo e o membership precisa autorizar a ação.
 
@@ -131,7 +136,7 @@ Concessões manuais não podem ser permanentes por acidente, não substituem pag
 
 Limites configuráveis por plano podem incluir usuários, caminhões, operações, volume de otimizações, consumo de IA e armazenamento. O catálogo define o valor; serviços de domínio aplicam a regra. Não duplicar limites no frontend.
 
-A visualização 3D permanece integrada ao planejamento de carga, que é capacidade central do LoadX. Não deve ser vendida como módulo isolado que permita acesso a dados ou cálculos sem o entitlement de planejamento.
+A visualização 3D atual permanece integrada ao planejamento de cargas. Um futuro módulo reutilizável de visualização 3D dependerá de contratos de cena próprios; não concede automaticamente acesso ao algoritmo ou aos dados logísticos.
 
 ### Modelo lógico proposto
 
@@ -141,7 +146,7 @@ A visualização 3D permanece integrada ao planejamento de carga, que é capacid
 | organization_memberships | Vínculos e papéis |
 | organization_invitations | Convites seguros |
 | registration_requests | Solicitações públicas |
-| standalone_platform_operators | Operadores do adapter local standalone, quando necessário |
+| platform_operator_grants | Concessões administrativas globais, inicialmente apenas ao proprietário da plataforma |
 | plans | Catálogo de planos |
 | plan_versions | Snapshot imutável de preço e regras |
 | modules | Catálogo de módulos |
@@ -311,7 +316,7 @@ Nenhum endpoint pode confiar em organization_id fornecido livremente pelo client
 
 ## 11. Interfaces
 
-### Administração da plataforma no modo standalone
+### Administração geral da plataforma LoadX
 
 - Dashboard comercial e operacional;
 - solicitações de cadastro e análise;
@@ -322,7 +327,7 @@ Nenhum endpoint pode confiar em organization_id fornecido livremente pelo client
 - auditoria da plataforma;
 - saúde dos adapters e fila de webhooks.
 
-Operadores de plataforma são separados dos administradores de cada organização. Não existe cadastro público de operador, autoelevação ou acesso operacional irrestrito a dados dos clientes. Acesso excepcional de suporte deve ser temporário, justificado e auditado.
+O proprietário da plataforma é separado dos administradores de cada empresa. Não existe cadastro público de operador, autoelevação ou acesso operacional irrestrito aos dados dos clientes. Acesso excepcional de suporte deve ser temporário, justificado e auditado.
 
 ### Portal da empresa
 
@@ -344,13 +349,13 @@ O frontend pode ocultar módulos sem entitlement para melhorar a experiência, m
 
 | Fase | Entrega | Dependência / gate |
 |---|---|---|
-| 0 | Inventário de tabelas, rotas, jobs, contratos e decisão CoreFlow/standalone; ADRs revisadas; avaliação comercial dos gateways | Antes de migrations |
+| 0 | Inventário de tabelas, rotas, jobs e contratos do núcleo SaaS; ADRs revisadas; avaliação comercial dos gateways | Antes de migrations |
 | 1 | Organizações, memberships, sessão contextual e backfill do legado | Fase 0; testes cross-tenant |
 | 2 | Solicitação pública, verificação de e-mail, análise, aprovação e convite do primeiro administrador | Fase 1 |
 | 3 | Catálogo versionado, módulos, adicionais, limites e serviço de entitlements | Fases 1 e 2 |
 | 4 | Assinaturas, faturas, pagamentos e máquina de estados da licença | Fase 3 |
 | 5 | Adapter do provedor escolhido, checkout, webhooks, idempotência e reconciliação | Fase 0 e 4 |
-| 6 | Painel de plataforma standalone e portal financeiro do cliente | Contratos de API das fases 2–5 |
+| 6 | Painel geral do LoadX e portal financeiro do cliente | Contratos de API das fases 2–5 |
 | 7 | Homologação, teste de isolamento, segurança, carga, recuperação e piloto com duas organizações | Todas as fases |
 
 A ordem detalhada de execução pode sobrepor trabalho de interface e documentação, mas a liberação comercial depende de todos os gates anteriores.
@@ -398,7 +403,7 @@ A ordem detalhada de execução pode sobrepor trabalho de interface e documenta�
 
 ## 14. Decisões ainda pendentes
 
-1. Confirmar se o primeiro lançamento será standalone com adapter comercial local ou se CoreFlow já estará pronto para ser o control plane.
+1. Definir contratos entre o núcleo SaaS e módulos setoriais, com caminho para evolução futura do 3D sem comprometer a logística.
 2. Escolher o gateway inicial após comparar propostas comerciais e homologar os fluxos reais.
 3. Definir preços, ciclos mensais/anuais, descontos e política de reajuste.
 4. Definir período de teste gratuito, se haverá.
@@ -421,7 +426,7 @@ A implementação começa por Issues pequenas, com responsável, contrato, crit�
 
 Epic: [#439 — Plataforma comercial e licenciamento do LoadX](https://github.com/RennaN-C/loadx-smart-logistics/issues/439)
 
-- [#440 — Gate: ownership standalone/CoreFlow e gateway](https://github.com/RennaN-C/loadx-smart-logistics/issues/440)
+- [#440 — Gate: contratos da plataforma e gateway](https://github.com/RennaN-C/loadx-smart-logistics/issues/440)
 - [#441 — Fundação multiempresa e migração legada](https://github.com/RennaN-C/loadx-smart-logistics/issues/441)
 - [#442 — Onboarding, aprovação e convites](https://github.com/RennaN-C/loadx-smart-logistics/issues/442)
 - [#443 — Catálogo de planos, módulos e limites](https://github.com/RennaN-C/loadx-smart-logistics/issues/443)
