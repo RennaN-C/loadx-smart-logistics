@@ -169,7 +169,8 @@ class OrganizationInvitation(Base):
             name="custom_profile_role",
         ),
         CheckConstraint(
-            "length(email_normalized) > 0 AND email_normalized = lower(trim(email_normalized))",
+            "length(email_normalized) > 0 AND "
+            "email_normalized = lower(trim(email_normalized))",
             name="email_normalized",
         ),
         CheckConstraint("length(token_hash) = 64", name="token_hash_length"),
@@ -239,7 +240,9 @@ class OrganizationInvitation(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
-    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
     accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 

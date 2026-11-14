@@ -21,10 +21,20 @@ def upgrade() -> None:
         sa.Column("legal_name", sa.String(160), nullable=False),
         sa.Column("display_name", sa.String(160), nullable=False),
         sa.Column("cnpj", sa.String(14), nullable=True),
-        sa.Column("status", sa.String(16), server_default=sa.text("'ACTIVE'"), nullable=False),
-        sa.Column("is_legacy", sa.Boolean(), server_default=sa.text("false"), nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "status", sa.String(16), server_default=sa.text("'ACTIVE'"), nullable=False
+        ),
+        sa.Column(
+            "is_legacy", sa.Boolean(), server_default=sa.text("false"), nullable=False
+        ),
+        sa.Column(
+            "created_at", sa.DateTime(timezone=True),
+            server_default=sa.func.now(), nullable=False
+        ),
+        sa.Column(
+            "updated_at", sa.DateTime(timezone=True),
+            server_default=sa.func.now(), nullable=False
+        ),
         sa.CheckConstraint(
             "status IN ('PENDING', 'ACTIVE', 'SUSPENDED', 'CANCELED')",
             name="ck_organizations__status_allowed",
@@ -97,10 +107,28 @@ def upgrade() -> None:
         sa.Column("role", sa.String(32), nullable=False),
         sa.Column("custom_profile_id", sa.Uuid(), nullable=True),
         sa.Column("driver_id", sa.Uuid(), nullable=True),
-        sa.Column("status", sa.String(16), server_default=sa.text("'ACTIVE'"), nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
-        sa.Column("accepted_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "status",
+            sa.String(16),
+            server_default=sa.text("'ACTIVE'"),
+            nullable=False,
+        ),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
+        sa.Column(
+            "accepted_at", sa.DateTime(timezone=True),
+            server_default=sa.func.now(), nullable=False
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
         sa.CheckConstraint(
             "role IN ('ADMIN', 'CHECKER', 'DRIVER', 'LOGISTICS_MANAGER', 'CUSTOM')",
             name="ck_organization_memberships__role_allowed",
@@ -196,7 +224,12 @@ def upgrade() -> None:
         sa.Column("invited_by_user_id", sa.Uuid(), nullable=False),
         sa.Column("accepted_by_user_id", sa.Uuid(), nullable=True),
         sa.Column("revoked_by_user_id", sa.Uuid(), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
         sa.Column("expires_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("accepted_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("revoked_at", sa.DateTime(timezone=True), nullable=True),
@@ -209,7 +242,8 @@ def upgrade() -> None:
             name="ck_organization_invitations__custom_profile_role",
         ),
         sa.CheckConstraint(
-            "length(email_normalized) > 0 AND email_normalized = lower(trim(email_normalized))",
+            "length(email_normalized) > 0 AND "
+            "email_normalized = lower(trim(email_normalized))",
             name="ck_organization_invitations__email_normalized",
         ),
         sa.CheckConstraint(
@@ -258,7 +292,9 @@ def upgrade() -> None:
             ondelete="RESTRICT",
         ),
         sa.PrimaryKeyConstraint("id", name="pk_organization_invitations"),
-        sa.UniqueConstraint("token_hash", name="uq_organization_invitations__token_hash"),
+        sa.UniqueConstraint(
+            "token_hash", name="uq_organization_invitations__token_hash"
+        ),
     )
     op.create_index(
         "uq_organization_invitations__pending_email",
@@ -278,7 +314,10 @@ def upgrade() -> None:
         sa.Column("id", sa.SmallInteger(), server_default=sa.text("1"), nullable=False),
         sa.Column("user_id", sa.Uuid(), nullable=False),
         sa.Column("granted_by_user_id", sa.Uuid(), nullable=True),
-        sa.Column("granted_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "granted_at", sa.DateTime(timezone=True),
+            server_default=sa.func.now(), nullable=False
+        ),
         sa.Column("reason", sa.String(255), nullable=False),
         sa.CheckConstraint("id = 1", name="ck_platform_owner_grants__singleton"),
         sa.CheckConstraint(
