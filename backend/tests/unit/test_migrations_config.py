@@ -25,13 +25,15 @@ def test_alembic_env_uses_application_metadata() -> None:
         in env_content
     )
     assert "from app.modules.orders import models as orders_models" in env_content
+    assert "from app.modules.organizations import models as organizations_models" in env_content
 
 
 def test_alembic_has_current_revision_head() -> None:
     config = Config(str(BACKEND_ROOT / "alembic.ini"))
     script = ScriptDirectory.from_config(config)
 
-    assert script.get_heads() == ["20261023_0035"]
+    assert script.get_heads() == ["20261114_0036"]
+    assert script.get_revision("20261114_0036").down_revision == "20261023_0035"
     assert script.get_revision("20261023_0035").down_revision == "20261021_0034"
     assert script.get_revision("20261021_0033").down_revision == "20261021_0032"
     assert script.get_revision("20261021_0032").down_revision == "20261021_0031"

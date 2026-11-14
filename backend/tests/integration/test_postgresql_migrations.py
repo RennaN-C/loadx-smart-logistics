@@ -27,9 +27,21 @@ def test_postgresql_16_reaches_alembic_head(postgres_engine: Engine) -> None:
                 "SELECT tablename FROM pg_tables WHERE schemaname = 'public'"
             ).scalars()
         )
+        auth_session_columns = set(
+            connection.exec_driver_sql(
+                "SELECT column_name FROM information_schema.columns "
+                "WHERE table_schema = 'public' AND table_name = 'auth_sessions'"
+            ).scalars()
+        )
+        legacy_organization = connection.exec_driver_sql(
+            "SELECT status, is_legacy FROM organizations "
+            "WHERE id = '00000000-0000-4000-8000-000000000301'"
+        ).one()
 
     assert server_version_num // 10_000 == 16
-    assert revision == "20261023_0035"
+    assert revision == "20261114_0036"
+    assert "active_organization_id" in auth_session_columns
+    assert legacy_organization == ("ACTIVE", True)
     assert {
         "users",
         "customers",
@@ -48,6 +60,10 @@ def test_postgresql_16_reaches_alembic_head(postgres_engine: Engine) -> None:
         "auth_login_throttles",
         "auth_sessions",
         "auth_trusted_devices",
+        "organizations",
+        "organization_memberships",
+        "organization_invitations",
+        "platform_owner_grants",
         "trips",
         "deliveries",
         "delivery_evidences",

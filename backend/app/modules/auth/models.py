@@ -7,6 +7,7 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     ForeignKey,
+    ForeignKeyConstraint,
     Integer,
     String,
     UniqueConstraint,
@@ -67,6 +68,15 @@ class AuthSession(Base):
             "absolute_expires_at > created_at",
             name="absolute_expiration_after_creation",
         ),
+        ForeignKeyConstraint(
+            ["active_organization_id", "user_id"],
+            [
+                "organization_memberships.organization_id",
+                "organization_memberships.user_id",
+            ],
+            name="fk_auth_sessions__active_organization_membership",
+            ondelete="RESTRICT",
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
@@ -75,6 +85,9 @@ class AuthSession(Base):
         ForeignKey(USERS_FK, ondelete="CASCADE"),
         nullable=False,
         index=True,
+    )
+    active_organization_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, nullable=True, index=True
     )
     token_hash: Mapped[str] = mapped_column(
         String(64),

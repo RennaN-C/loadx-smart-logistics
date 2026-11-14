@@ -11,6 +11,7 @@ from app.core.security_events import SecurityEvent, emit_security_event
 from app.database.integrity import get_integrity_constraint_name
 from app.modules.auth.sessions import AuthSessionService
 from app.modules.drivers.service import DriverNotFoundError, DriverService
+from app.modules.organizations.repository import OrganizationMembershipRepository
 from app.modules.status_history.schemas import AuditEventCreate
 from app.modules.status_history.service import AuditService
 from app.modules.users.models import User
@@ -46,6 +47,7 @@ class UserService:
     def __init__(self, db: Session) -> None:
         self.db = db
         self.repository = UserRepository(db)
+        self.organization_memberships = OrganizationMembershipRepository(db)
         self.auth_sessions = AuthSessionService(db)
         self.driver_service = DriverService(db)
         self.audit_service = AuditService(db)
@@ -146,6 +148,7 @@ class UserService:
 
         def persist_user_with_audit() -> User:
             created_user = self.repository.add(user)
+            self.organization_memberships.sync_legacy_membership(created_user)
             if actor_id is not None:
                 self.audit_service.stage_administrative_event(
                     AuditEventCreate(
@@ -227,6 +230,7 @@ class UserService:
 
         def persist_user_revoke_sessions_and_audit() -> User:
             updated_user = self.repository.update(user)
+            self.organization_memberships.sync_legacy_membership(updated_user)
             if "email" in changed_fields:
                 self.auth_sessions.stage_invalidate_access_credentials(user.id)
             if security_changed:
@@ -323,7 +327,10 @@ class UserService:
             constraint_name = get_integrity_constraint_name(exc)
             if constraint_name == "uq_users__email":
                 raise UserEmailAlreadyExistsError from exc
-            if constraint_name == "uq_users__driver_id":
+            if constraint_name in {
+                "uq_users__driver_id",
+                "uq_organization_memberships__organization_driver",
+            }:
                 raise UserDriverAlreadyLinkedError from exc
             if constraint_name == "fk_users__drivers":
                 raise UserDriverNotFoundError from exc

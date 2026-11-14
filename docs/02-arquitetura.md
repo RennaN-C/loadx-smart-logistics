@@ -168,3 +168,24 @@ Responsabilidades por pasta:
   HSTS é emitido quando `APP_ENV=production`.
 - `PENDENTE DE DEFINIÇÃO`: recuperação de senha e MFA possuem ocorrências futuras
   próprias.
+
+
+## LoadX Platform — fundação multiempresa v1.4.0
+
+O LoadX é proprietário do núcleo SaaS. Identidade global, organizações,
+memberships, convites, administração geral, planos, licenças e pagamentos
+pertencem ao próprio LoadX.
+
+A arquitetura separa:
+- **Identidade global:** conta, credenciais, MFA, sessões e dispositivos.
+- **Contexto organizacional:** membership e organização ativa derivados no
+  backend; o cliente nunca escolhe o tenant por header ou payload arbitrário.
+- **Módulos de negócio:** primeiro LoadX Logistics; futuros nichos reutilizarão
+  o núcleo sem compartilhar permissões ou dados de domínio.
+- **Infraestrutura:** monólito modular, SQLAlchemy e PostgreSQL compartilhado.
+
+A fase 1 cria o registro de organizações, membership, convite, grant singleton
+do proprietário e contexto de organização na sessão. A aplicação permanece
+single-tenant até que todos os recursos operacionais tenham \`organization_id\`,
+FKs compostas e consultas escopadas. RLS é defesa adicional posterior, não
+substitui os filtros explícitos no backend.

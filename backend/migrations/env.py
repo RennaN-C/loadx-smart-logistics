@@ -53,6 +53,7 @@ def import_models() -> None:
     from app.modules.status_history import models as status_history_models  # noqa: F401
     from app.modules.trucks import models as trucks_models  # noqa: F401
     from app.modules.users import models as users_models  # noqa: F401
+    from app.modules.organizations import models as organizations_models  # noqa: F401
 
 
 import_models()

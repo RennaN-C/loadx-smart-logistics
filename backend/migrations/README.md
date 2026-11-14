@@ -9,17 +9,7 @@ O Alembic versiona toda alteração estrutural do PostgreSQL.
 - `migrations/script.py.mako`: template das revisions.
 - `migrations/versions`: migrations versionadas.
 
-`CONFIRMADO`: o head atual é `20261021_0030` (#222), sobre `20261021_0029` (OC98),
-`20261020_0028` (OC90), `20261020_0027`
-(OC109), `20261020_0026` (OC103) e `20261020_0025` (OC84). Historicamente OC105 sucede OC87
-`20261007_0015` e evidências OC80 `20261007_0014`. A OC87 cria necessidade/partes/claims e triggers de integridade
-diferidas; downgrade remove esses registros/triggers e tipos de histórico próprios.
-A revisão `20260830_0011` adiciona
-`trips.created_at` para ordenação determinística e sucede as migrations de
-ocorrências e carregamento. `20260809_0007` vincula usuários a motoristas;
-`20260809_0008` fecha o catálogo auditável e cria `trips` e `deliveries`. As
-revisões anteriores da OC60 criam `auth_login_throttles`, sem e-mail ou IP
-brutos, e `auth_sessions`, que persiste somente o hash do identificador opaco.
+`CONFIRMADO`: o head atual é `20261114_0036`, que sucede `20261023_0035` e mantém a cadeia histórica linear. A migration 0036 cria o registro organizacional e o contexto de sessão, sem alterar os agregados logísticos. As revisões anteriores continuam documentadas abaixo como histórico.
 
 ## Comandos
 
@@ -180,3 +170,17 @@ IDEMPOTENCY_PAYLOAD_MISMATCH. Concorrência: 409 OPTIMIZATION_IN_PROGRESS.
 somente para o ator e com a mesma permissão create. Não cria nada.
 Migration 20261023_0035 → 20261021_0034; downgrade recusa registros existentes.
 Sem alteração de regras físicas, RBAC efetivo, MFA ou OC90/OC94.
+
+
+## 20261114_0036 — fundação de organizações
+
+Cria \`organizations\`, \`organization_memberships\`, \`organization_invitations\`
+e \`platform_owner_grants\`. A organização legada é criada a partir de
+\`company_profiles\` quando disponível e todos os usuários existentes recebem
+membership com seus campos de compatibilidade preservados. Sessões recebem
+\`active_organization_id\` por backfill e FK composta com usuário/membership.
+
+A migration não semeia proprietário, não cria uma segunda empresa e não habilita
+RLS. Downgrade é bloqueado se houver convites, grant do proprietário, outras
+organizações ou memberships divergentes dos campos legados. Não usar reset ou
+stamp para contornar o bloqueio.
