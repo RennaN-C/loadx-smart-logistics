@@ -65,3 +65,10 @@ Proposta para revisão:
 
 
 - [ADR-044 — Entregas por parte de distribuição](ADR-044-entregas-por-parte-distribuicao.md) — OC90, proposta implementada para revisão.
+
+
+- [ADR-049 — Multiempresa SaaS: organizações, vínculos e isolamento](ADR-049-multiempresa-organizacoes-isolamento.md) — proposta de tenancy.
+- [ADR-050 — Control plane comercial e ownership de licenças SaaS](ADR-050-control-plane-comercial-billing-entitlements.md) — proposta; define a fronteira standalone/CoreFlow.
+- [ADR-051 — Gateway de pagamentos por port/adapters](ADR-051-gateway-pagamentos-port-adapter.md) — proposta; Asaas e Mercado Pago em avaliação.
+
+O planejamento comercial e de entregas da v1.4.0 está em [docs/planejamento/v1.4.0](../planejamento/v1.4.0/00-visao-geral.md). ADRs propostas não autorizam implementação ou alteração de produção.

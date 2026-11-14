@@ -322,14 +322,15 @@ Priorizar este backlog juntamente com o planejamento da próxima versão; a orde
 
 ---
 
-# v1.4.0 — Multi-tenancy logístico e integração com CoreFlow
+# v1.4.0 — SaaS multiempresa, licenciamento e integração com CoreFlow
+
+`CONFIRMADO` (14/11/2026): o planejamento técnico inicial de multiempresa, onboarding, catálogo comercial, assinaturas, billing e entitlements está em [docs/planejamento/v1.4.0](v1.4.0/00-visao-geral.md). A ADR-049 continua sendo a base de tenancy; ADR-050 e ADR-051 detalham ownership comercial e gateway, ainda como propostas.
 
 `RECOMENDAÇÃO`: evoluir o LoadX de produto monoempresa para **módulo logístico
 multi-tenant**, capaz de operar integrado ao CoreFlow sem duplicar o control plane
 da plataforma.
 
-`CONFIRMADO`: esta seção é **roadmap, não planejamento executável**. Nenhuma OC ou
-Issue funcional da v1.4.0 foi criada ou reservada.
+`CONFIRMADO`: esta seção possui planejamento técnico e backlog inicial em elaboração. As Issues de execução serão vinculadas após a aprovação dos gates de arquitetura e não reservam números de OC antecipadamente.
 
 ## Ownership no alvo integrado
 
@@ -425,7 +426,7 @@ definir vínculo explícito de usuário e permissões do módulo.
 | A definir | Marlon | Contexto visual da organização e experiência de entrada no módulo |
 | A definir | Marcelo | SSO/module launch, eventos, integrações e observabilidade entre sistemas |
 
-## Pré-requisitos antes de abrir Issues da v1.3
+## Gates obrigatórios antes da implementação da v1.4.0
 
 - definir no CoreFlow o contrato mínimo de módulo externo e entitlement do LoadX;
 - definir ownership de identidade, organização e permissões;

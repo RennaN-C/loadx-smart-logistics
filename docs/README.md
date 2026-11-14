@@ -11,6 +11,7 @@ A documentação está separada entre **uso e manutenção atual**, **decisões 
 | Consultar as rotas | [Contratos de API](05-contratos-api.md) |
 | Fazer alterações no código | [Guia de manutenção manual](14-guia-manutencao.md), [CONTRIBUTING](../CONTRIBUTING.md), [AGENTS](../AGENTS.md), [padrões](08-padroes-desenvolvimento.md) |
 | Entender decisões de design/segurança | [Registro de ADRs](decisions/README.md) |
+| Consultar o planejamento SaaS v1.4.0 | [Multiempresa, planos, licenças e billing](planejamento/v1.4.0/00-visao-geral.md) |
 | Ver o comportamento de uma versão | [Releases](releases/), [CHANGELOG](../CHANGELOG.md) e [roadmap](planejamento/roadmap-versoes.md) |
 | Analisar qualidade e pendências | [Riscos](11-riscos-pendencias.md), [qualidade](qualidade/) e [histórico de QA](evidencias/README.md) |
 | Preparar testes de usabilidade | [Roteiro de usabilidade](usabilidade/README.md) |
