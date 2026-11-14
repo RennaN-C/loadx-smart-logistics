@@ -2,7 +2,7 @@
 
 - **Status:** PROPOSTA — requer implementação por fases e decisão de migração.
 - **Escopo:** LoadX Smart Logistics.
-- **Issue:** [#416](https://github.com/RennaN-C/loadx-smart-logistics/issues/416).
+- **Planejamento atual:** [Épico #439](https://github.com/RennaN-C/loadx-smart-logistics/issues/439). Issue #416 preservada como referência histórica.
 - **Não altera:** permissões atuais, login, dados, migrações ou deploy do ambiente corrente.
 
 ## 1. Contexto verificado
@@ -17,7 +17,7 @@ O banco do LoadX atende hoje a um contexto de empresa por instalação:
 
 ## 2. Fluxo escolhido para o produto
 
-1. Administrador autorizado cadastra uma organização (nome, CNPJ opcional/validado, status, domínio/email corporativo quando pertinente) e torna-se o primeiro administrador.
+1. Uma empresa solicita acesso publicamente, verifica o contato e aguarda análise pelo proprietário do LoadX. A aprovação cria organização pendente de contratação e convite ao primeiro administrador, sem acesso operacional até pagamento confirmado.
 2. Um administrador da organização convida usuários pelo email (convite expirável, token hash, uso único, revogável, auditado); escolhe papel/perfil **naquela organização**.
 3. Quem recebe o convite pode já ter conta global. Aceitar convite acrescenta membership, não cria identidade duplicada.
 4. Login é por email e senha globais, com MFA como exigido. Após autenticar, se houver uma membership ativa, a organização é selecionada automaticamente; com mais de uma, aparecerá o seletor **antes de entrar na operação**.
@@ -69,9 +69,9 @@ Exemplo: Empresa Aurora tem 3 usuários com perfis diferentes. O operador B tamb
 
 **Fase 3 — isolamento:** aplicar escopo em repositórios SQLAlchemy e endpoints, FK/índices compostos e RLS (se escolhido), depois constraints `NOT NULL`. Cobrir comandos assíncronos e integrações. Revalidar todos os testes e a política de permissões.
 
-**Fase 4 — experiência:** convite e aceite, seletor após login/MFA, topo com empresa atual, gestão de membros, remoção de memberships, bloqueio de empresa suspensa, limpeza de cache/estado na troca.
+**Fase 4 — experiência:** solicitação e aprovação administrativa, convite e aceite, pagamento como gate de liberação, seletor após login/MFA, topo com empresa atual, gestão de membros, remoção de memberships, bloqueio de empresa suspensa, limpeza de cache/estado na troca.
 
-**Fase 5 — pilotagem:** ativar sob feature flag em pentest separado com 2 empresas e massa de dados não confidencial; revisar permissões, segurança, desempenho e migração/rollback. Somente depois considerar habilitação na versão comercial e mesclar em produção.
+**Fase 5 — pilotagem:** ativar sob feature flag em ambiente isolado com 2 empresas e dados sintéticos; revisar permissões, segurança, desempenho e migração/rollback. Não recriar a antiga branch pentest-lab; o isolamento deve ser de ambiente, banco e dados. Somente depois considerar habilitação comercial.
 
 ## 6. Critérios de aceite
 
@@ -79,6 +79,8 @@ Exemplo: Empresa Aurora tem 3 usuários com perfis diferentes. O operador B tamb
 - Trocar empresa altera RBAC, visibilidade e cache, sem confundir perfis/sessões/MFA.
 - Convite expirado, repetido, cancelado, para usuário suspenso ou último admin removido são recusados.
 - Jobs e outbox carregam `organization_id`; notificação nunca aparece na caixa da outra empresa.
+- Aprovação cadastral não libera operações: assinatura e pagamento confirmado são requisitos independentes.
+- O núcleo de identidade, organizações e licenças pertence ao LoadX, com futuros módulos de negócio reutilizando esses serviços.
 - Testes de migração e backup/rollback aprovados com legado realista antes de qualquer alteração de banco remoto.
 
 ## 7. Decisão sobre “Dados da empresa” e outras configurações
