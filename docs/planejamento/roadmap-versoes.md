@@ -330,7 +330,7 @@ Priorizar este backlog juntamente com o planejamento da próxima versão; a orde
 multi-tenant**, capaz de operar integrado ao CoreFlow sem duplicar o control plane
 da plataforma.
 
-`CONFIRMADO`: esta seção possui planejamento técnico e backlog inicial em elaboração. As Issues de execução serão vinculadas após a aprovação dos gates de arquitetura e não reservam números de OC antecipadamente.
+`CONFIRMADO`: o planejamento técnico está em docs/planejamento/v1.4.0/00-visao-geral.md e o épico comercial é [Issue #439](https://github.com/RennaN-C/loadx-smart-logistics/issues/439). O backlog inicial é composto pelas Issues #440–#447. A numeração de OCs permanece não reservada até a definição dos contratos de implementação.
 
 ## Ownership no alvo integrado
 

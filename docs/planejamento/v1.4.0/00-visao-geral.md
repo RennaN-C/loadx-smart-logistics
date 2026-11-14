@@ -415,3 +415,19 @@ Nenhuma dessas pendências autoriza inventar comportamento no código. Devem vir
 Este planejamento não altera o comportamento do LoadX. Não cria tabelas, não modifica autenticação, não altera os dados existentes, não integra gateway, não habilita multiempresa, não executa migration, não altera secrets e não realiza deploy ou release.
 
 A implementação começa por Issues pequenas, com responsável, contrato, critérios de aceite e testes definidos, respeitando a branch desenvolvimento e os gates de revisão do repositório.
+
+
+## 16. Rastreamento no GitHub
+
+Epic: [#439 — Plataforma comercial e licenciamento do LoadX](https://github.com/RennaN-C/loadx-smart-logistics/issues/439)
+
+- [#440 — Gate: ownership standalone/CoreFlow e gateway](https://github.com/RennaN-C/loadx-smart-logistics/issues/440)
+- [#441 — Fundação multiempresa e migração legada](https://github.com/RennaN-C/loadx-smart-logistics/issues/441)
+- [#442 — Onboarding, aprovação e convites](https://github.com/RennaN-C/loadx-smart-logistics/issues/442)
+- [#443 — Catálogo de planos, módulos e limites](https://github.com/RennaN-C/loadx-smart-logistics/issues/443)
+- [#444 — Assinaturas, entitlements e vencimento](https://github.com/RennaN-C/loadx-smart-logistics/issues/444)
+- [#445 — Gateway, checkout, webhooks e conciliação](https://github.com/RennaN-C/loadx-smart-logistics/issues/445)
+- [#446 — Painel de plataforma e portal financeiro](https://github.com/RennaN-C/loadx-smart-logistics/issues/446)
+- [#447 — Homologação e piloto](https://github.com/RennaN-C/loadx-smart-logistics/issues/447)
+
+A Issue [#430](https://github.com/RennaN-C/loadx-smart-logistics/issues/430) permanece independente e não faz parte deste épico.
