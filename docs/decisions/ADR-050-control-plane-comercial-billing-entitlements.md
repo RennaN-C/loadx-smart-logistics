@@ -1,114 +1,112 @@
-# ADR-050 — Control plane comercial e ownership de licenças SaaS
+# ADR-050 — LoadX como plataforma SaaS autônoma e modular
 
-- **Status:** PROPOSTA — requer aprovação antes da implementação.
-- **Escopo:** LoadX Smart Logistics, roadmap v1.4.0.
-- **Relacionada:** ADR-049 — Multiempresa SaaS: organizações, vínculos e isolamento.
-- **Não altera:** código, banco, autenticação, dados ou deploy atuais.
+- **Status:** ACEITA como direção de produto em 14/11/2026; implementação depende de contratos, migrações e testes.
+- **Escopo:** evolução multiempresa e comercial do LoadX, com expansão setorial futura.
+- **Relacionadas:** ADR-049 (multiempresa e isolamento), ADR-051 (integração de pagamentos).
+- **Não altera:** código, dados, autenticação nem deploy.
 
 ## Contexto
 
-O LoadX atual é monoempresa e standalone. A ADR-049 define a evolução multiempresa e o roadmap v1.4.0 estabelece o CoreFlow como futuro control plane, responsável por organização, identidade global, acesso, licenciamento, entitlements e administração de plataforma.
+O LoadX é atualmente uma aplicação de logística monoempresa, com autenticação, permissões, otimização de cargas e visualização 3D. A evolução aprovada cria uma plataforma SaaS que aceita várias organizações, solicitações de cadastro, aprovação pelo proprietário, planos, módulos híbridos, cobrança automática, licenças e controle de acesso.
 
-A nova direção comercial exige solicitações de cadastro, aprovação, catálogo de planos, módulos híbridos, assinaturas, pagamentos automáticos e bloqueio imediato após o período pago.
+O **LoadX é proprietário integral e definitivo de seu núcleo de plataforma**. Não depende de outro produto para identidade, organizações, pagamentos, licenciamento, entitlements ou administração.
 
-Criar permanentemente um segundo control plane no domínio logístico duplicaria ownership, identidade, administração e direitos comerciais.
+## 1. Núcleo único: LoadX Platform
 
-## Decisão proposta
+O núcleo SaaS mantém uma fonte de verdade para:
+- identidade global, autenticação, MFA e sessões;
+- organizações, solicitações, convites e memberships;
+- administração geral e auditoria da plataforma;
+- catálogo de planos e módulos, versões, preços, limites e adicionais;
+- assinaturas, faturas, pagamentos, reconciliação, licenças e entitlements.
 
-### 1. Ownership por modo de execução
+Os módulos de negócio usam interfaces de identidade, tenant, autorização e entitlement do núcleo, sem duplicar seus bancos de contas ou cobrança.
 
-**Modo integrado com CoreFlow**
-- CoreFlow é a fonte de verdade de organização, identidade global, memberships globais, operadores de plataforma, catálogo comercial, assinaturas, billing e entitlements.
-- LoadX consome contexto e entitlements por contratos autenticados e versionados.
-- LoadX mantém somente permissões e regras do domínio logístico.
-- Nenhum acesso direto às tabelas ou ao banco do CoreFlow.
-- Não existe dupla escrita de assinatura, pagamento, licença ou membership.
+## 2. Administrador geral exclusivo
 
-**Modo standalone/transição**
-- Um adapter local pode implementar temporariamente os contratos de control plane para permitir comercialização antes da disponibilidade do CoreFlow.
-- O adapter fica isolado em bounded context próprio e não é importado pelos módulos logísticos.
-- Operadores locais são distintos de ADMIN, LOGISTICS_MANAGER, CHECKER e DRIVER.
-- A migração para CoreFlow substitui a autoridade do adapter local; IDs externos e vínculos são mapeados por contrato explícito.
-- A operação integrada não pode manter duas fontes de verdade.
+O papel `PLATFORM_OWNER` pertence inicialmente a **uma única identidade autorizada**. Não existe cadastro público, interface para promover alguém a esse papel ou autoelevação. Concessão e recuperação excepcional de acesso requerem mecanismo restrito e auditável.
 
-A escolha do modo de execução para o primeiro lançamento comercial é gate obrigatório de arquitetura.
+`PLATFORM_OWNER` é diferente de `ADMIN` da organização, `LOGISTICS_MANAGER`, `CHECKER` e `DRIVER`.
 
-### 2. Separação de autorização
+Ser proprietário da plataforma não significa receber automaticamente acesso de leitura a informações operacionais confidenciais de uma transportadora. Acesso excepcional de suporte exige justificativa, autorização, duração limitada e auditoria.
 
-A autorização efetiva de uma ação exige:
-1. organização ativa e membership validada;
-2. organização e licença em estado que permita uso;
-3. entitlement do módulo/recurso habilitado;
-4. permissão logística correspondente.
+## 3. Módulos e fronteiras
 
-Entitlement comercial não concede papel administrativo. RBAC logístico não libera módulo comercial.
+**LoadX Logistics** será o primeiro módulo de negócio comercial e contém cadastros logísticos, produtos, pedidos, frota, motoristas, otimização/planejamento de carga, carregamento, viagens, entregas, documentos, relatórios e Loxi com contexto autorizado.
 
-### 3. Catálogo e versão contratual
+**LoadX 3D** é uma possibilidade futura de módulo/capacidade reutilizável. O visualizador atual continuará integrado e destacado no planejamento, reproduzindo resultados autorizados do algoritmo. Uma futura biblioteca/capacidade de cena não substitui as validações físicas, limites e regras do otimizador. Qualquer comercialização separada de 3D depende de API, autorização, limites, dados e modelo de preço próprios.
 
-- Planos e módulos usam códigos estáveis.
-- Versões publicadas de planos são imutáveis.
-- Preço, periodicidade, módulos incluídos e limites ficam em snapshot versionado.
-- Adicionais contratados são itens explícitos da assinatura.
-- Concessões administrativas são temporárias, justificadas e auditadas.
-- Alterar o catálogo não modifica contratos já assinados sem regra de migração/consentimento.
+**Outros nichos** poderão receber módulos de domínio distintos com suas próprias permissões, dados e fluxos, usando o mesmo núcleo SaaS. Nenhuma dessas expansões integra automaticamente a v1.4.0.
 
-### 4. Licença e vencimento
+Adotar **monólito modular**, sem microserviços prematuros; separar responsabilidades por contratos internos estáveis. A independência de módulos é lógica/arquitetural, não exige deploy ou banco isolado para cada módulo.
 
-A assinatura é o contrato comercial; a licença efetiva é a projeção dos direitos contratados e do estado financeiro.
+## 4. Autorização efetiva
 
-O acesso exige organização ativa, assinatura elegível, período pago vigente e entitlement liberado.
+Toda ação operacional exige simultaneamente:
+1. usuário autenticado e organização ativa validada no backend;
+2. membership válida e permissão naquela organização;
+3. organização ativa e em estado permitido;
+4. assinatura elegível, período já pago vigente e entitlement do módulo;
+5. limites contratados verificados pelo serviço de domínio.
 
-A validade termina em paid_through_at. Não existe carência. Cobrança pendente não prorroga período. Pagamento confirmado após o bloqueio pode reativar a licença se o contrato não estiver cancelado ou suspenso. Suspensão administrativa pode bloquear imediatamente com motivo e auditoria.
+RBAC operacional não concede um entitlement comercial e um entitlement comercial não concede privilégios operacionais.
 
-O vencimento nunca exclui dados operacionais.
+Nunca autorizar pelo `organization_id` enviado livremente pelo frontend. A autorização e o isolamento devem abranger banco, API, workers, relatórios, anexos, notificações, auditoria, pesquisa e Loxi, conforme ADR-049.
 
-### 5. Onboarding
+## 5. Planos, assinatura e vencimento
 
-O fluxo obrigatório é solicitação, verificação do contato, revisão administrativa, aprovação/rejeição auditada, convite do primeiro administrador, contratação, pagamento confirmado e ativação.
+- Planos publicados usam versões imutáveis, com preço, ciclo, módulos e limites.
+- Contratações conservam o snapshot do que foi aceito.
+- Módulos adicionais contratados são itens explícitos da assinatura.
+- Concessões manuais são temporárias, justificadas e auditadas.
+- A assinatura não se confunde com fatura, pagamento nem entitlement.
+- A validade da licença é determinada pelo instante UTC `paid_through_at`, a partir do servidor/banco.
+- Ao terminar o período pago, o bloqueio é **imediato**, sem tolerância.
+- Cobrança pendente não estende licença.
+- Pagamento autenticado e confirmado pelo gateway pode renovar/reativar, conforme estado contratual.
+- Suspensão administrativa pode bloquear imediatamente, com motivo e auditoria.
+- O vencimento não apaga dados; o portal financeiro permanece acessível para regularização.
 
-A solicitação pública não concede acesso operacional. Aprovação não equivale a ativação. O convite é de uso único, expirável e revogável. Identidades globais existentes são reutilizadas.
+## 6. Onboarding híbrido
 
-### 6. Modelo de dados
+1. Solicitação pública com validação e verificação do contato.
+2. Aprovação ou rejeição exclusiva pelo proprietário do LoadX.
+3. Organização criada em estado pendente e convite ao primeiro administrador.
+4. Primeiro administrador aceita convite e escolhe contratação.
+5. Checkout do provedor de pagamento.
+6. Webhook autenticado e conferência financeira no provedor.
+7. Licença ativada e entitlements calculados; empresa acessa operações.
 
-O modelo lógico inicial e os campos estão em docs/planejamento/v1.4.0/00-visao-geral.md.
+Aprovação não dá acesso operacional e redirect do checkout não comprova pagamento.
 
-As tabelas de catálogo, assinatura, billing e entitlement só devem ser criadas após:
-- confirmar o modo standalone ou integrado;
-- mapear entidades existentes e ownership;
-- revisar a ADR-049;
-- definir contrato de sincronização e idempotência;
-- validar o modelo físico com migrations PostgreSQL.
+## 7. Dados e migrations
 
-Não criar uma tabela platform_admins permanente no domínio logístico. No modo standalone, uma tabela de concessões de operador local pode existir somente dentro do adapter e com caminho de migração definido.
+Criar organização legada, executar backfill de cadastros e registros existentes, revisar escopo de índices e FKs, impedir vínculos cross-tenant e validar isolamento em todas as rotas e jobs.
+
+Garantir upgrade e rollback seguros, preservação de histórico, testes PostgreSQL, feature flags e homologação com duas organizações. Avaliar RLS somente com testes reais de papéis de banco, pool, workers e possibilidade de bypass.
+
+O modelo lógico candidato está em `docs/planejamento/v1.4.0/00-visao-geral.md`; nomes e estruturas físicas requerem revisão antes de migrations.
 
 ## Consequências
 
-**Positivas**
-- Evita duplicar o CoreFlow.
-- Permite operar standalone sem acoplar billing ao domínio logístico.
-- Separa direito comercial de permissão operacional.
-- Facilita trocar o adapter local pelo CoreFlow.
-- Mantém auditoria, expiração e concessões explícitas.
+**Benefícios:** plataforma única independente, licença centralizada, faturamento consistente, módulo logístico preservado e base para expansão multissetorial.
 
-**Custos e riscos**
-- Exige contratos e adapters bem definidos.
-- Exige migração cuidadosa do legado e de todas as consultas para tenancy.
-- O modo inicial de operação precisa ser escolhido antes de implementar administração e billing.
-- Sincronização externa exige autenticação serviço-a-serviço, idempotência, reconciliação e tratamento de indisponibilidade.
+**Custos/riscos:** maior responsabilidade por segurança, cobrança, suporte, LGPD e isolamento; migração ampla de monoempresa para multiempresa; necessidade de idempotência e reconciliação financeira.
 
 ## Alternativas rejeitadas
 
-- Colocar assinatura, pagamento e plano diretamente em users ou company_profiles.
-- Usar ADMIN do LoadX como SUPERADMIN de plataforma.
-- Confiar em organization_id/X-Company-ID enviado pelo frontend.
-- Duplicar no LoadX e CoreFlow a mesma assinatura ou entitlement.
-- Liberar acesso apenas ocultando menus no frontend.
+- Fazer depender o núcleo do LoadX de outra plataforma administrativa.
+- Duplicar identidades, cadastros de empresas, assinaturas ou pagamentos.
+- Usar `ADMIN` logístico como proprietário da plataforma.
+- Tratar ocultação de menus como controle de segurança.
+- Criar automaticamente novos módulos setoriais ou separar 3D do otimizador antes de validar seus contratos.
 
 ## Critérios de aceite
 
-- Ownership por modo de execução documentado e testado.
-- Nenhuma rota logística consulta billing diretamente.
-- Nenhum entitlement é aceito sem origem autenticada.
-- Operador de plataforma não recebe automaticamente acesso operacional aos dados da empresa.
-- Troca de modo/adapter preserva IDs, contratos e histórico.
-- Testes demonstram isolamento entre empresas e separação entre entitlement e RBAC.
+- Núcleo SaaS pertence integralmente ao LoadX, sem dependência externa para autoridade de identidade ou licença.
+- Somente a identidade proprietária possui autorização de administração central.
+- O proprietário não herda acesso irrestrito a dados operacionais.
+- Tenancy, entitlement, RBAC e pagamento são verificações distintas e obrigatórias.
+- Contratos, faturas e eventos preservam histórico, idempotência e trilhas de auditoria.
+- O planejamento logístico e seu 3D continuam funcionando integralmente.
+- A inclusão futura de outros módulos não exige reconstruir login, cadastro de empresas ou pagamentos.
