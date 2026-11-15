@@ -30,9 +30,7 @@ def upgrade() -> None:
     )
     # Orphan plans block the upgrade instead of receiving an invented owner.
     op.alter_column("load_plans", "organization_id", nullable=False)
-    op.alter_column(
-        "load_plans", "organization_id", server_default=LEGACY_DEFAULT
-    )
+    op.alter_column("load_plans", "organization_id", server_default=LEGACY_DEFAULT)
     op.create_foreign_key(
         "fk_load_plans__organizations",
         "load_plans",
@@ -108,10 +106,6 @@ def downgrade() -> None:
         ["id"],
         ondelete="RESTRICT",
     )
-    op.drop_constraint(
-        "uq_load_plans__organization_id", "load_plans", type_="unique"
-    )
-    op.drop_constraint(
-        "fk_load_plans__organizations", "load_plans", type_="foreignkey"
-    )
+    op.drop_constraint("uq_load_plans__organization_id", "load_plans", type_="unique")
+    op.drop_constraint("fk_load_plans__organizations", "load_plans", type_="foreignkey")
     op.drop_column("load_plans", "organization_id")
