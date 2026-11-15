@@ -194,6 +194,7 @@ Sessões opacas e revogáveis do frontend próprio.
 
 - `id`: UUID, PK.
 - `user_id`: UUID, FK obrigatória para `users.id`.
+- `active_organization_id`: UUID obrigatório, preenchido pelo servidor e vinculado à membership correspondente.
 - `token_hash`: texto hexadecimal de 64 caracteres, obrigatório e único.
 - `created_at`: timestamptz UTC, obrigatório.
 - `last_seen_at`: timestamptz UTC, obrigatório.
@@ -204,6 +205,7 @@ Sessões opacas e revogáveis do frontend próprio.
 Índices e constraints:
 
 - `fk_auth_sessions__users` com `ON DELETE CASCADE`.
+- `fk_auth_sessions__active_organization_membership`: FK composta para `organization_memberships(organization_id,user_id)`.
 - `uq_auth_sessions__token_hash`.
 - `ix_auth_sessions__user_id`.
 - `ix_auth_sessions__idle_expires_at`.
@@ -992,9 +994,10 @@ estável `00000000-0000-4000-8000-000000000301`.
 | `organization_invitations` | Convite com hash do token, expiração, aceite e revogação |
 | `platform_owner_grants` | Concessão singleton do proprietário geral; inicia vazia |
 
-`auth_sessions.active_organization_id` guarda o contexto atribuído pelo
-servidor. A FK composta para `organization_memberships(organization_id,user_id)`
-impede que a sessão aponte para uma organização da qual o usuário não participa.
+`auth_sessions.active_organization_id` é `NOT NULL` e guarda o contexto
+atribuído pelo servidor após o backfill das sessões existentes. A FK composta
+para `organization_memberships(organization_id,user_id)` impede que a sessão
+aponte para uma organização da qual o usuário não participa.
 
 `CONFIRMADO` (#448): constraints de convites exigem aceite no intervalo
 `created_at <= accepted_at < expires_at` e revogação a partir de `created_at`,
