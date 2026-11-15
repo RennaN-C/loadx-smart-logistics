@@ -202,7 +202,7 @@ A data de vencimento comercial e o período pago precisam ser apresentados clara
 
 ## 8. Provedores de pagamento
 
-### Comparativo preliminar (fontes públicas consultadas em 15/11/2026)
+### Comparativo preliminar (fontes públicas consultadas em 14/11/2026)
 
 | Critério | Asaas | Mercado Pago |
 |---|---|---|
@@ -224,7 +224,7 @@ O Pix Automático é um produto separado. Exige autorização prévia do pagador
 A documentação atual lista como critérios de elegibilidade: conta PJ aprovada, sem pendências cadastrais, CNPJ ativo há pelo menos seis meses e sem restrições relacionadas ao Pix. A elegibilidade pode mudar e deve ser acompanhada por webhook.
 
 **Tarifas públicas e variação por visualização**:
-- Pix e boleto: as visualizações oficiais consultadas em 15/11/2026 retornaram valores diferentes (R$ 1,59/R$ 0,79 e R$ 2,15/R$ 1,08; o índice da página também exibiu R$ 1,99/R$ 0,99). Não tratar um desses pares como tarifa universal ou contratada.
+- Pix e boleto: as visualizações oficiais consultadas em 14/11/2026 retornaram valores diferentes (R$ 1,59/R$ 0,79 e R$ 2,15/R$ 1,08; o índice da página também exibiu R$ 1,99/R$ 0,99). Não tratar um desses pares como tarifa universal ou contratada.
 - Pix Automático não tem taxa adicional própria segundo o FAQ oficial; aplicam-se as taxas padrão de recebimento Pix da conta. A tarifa válida para o LoadX deve ser consultada no painel Asaas em **Menu do usuário → Taxas**.
 - Cartão de crédito: R$ 0,49 + 2,99% à vista; R$ 0,49 + 3,49% de 2 a 6 parcelas; R$ 0,49 + 3,99% de 7 a 12; R$ 0,49 + 4,29% de 13 a 21. A página também exibe percentuais promocionais menores para novos clientes, sujeitos às regras e ao prazo promocional.
 - A página informa que as condições aplicadas ao contrato podem diferir das tarifas públicas. Antecipação também tem custo e análise próprios.
