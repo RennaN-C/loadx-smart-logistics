@@ -173,10 +173,9 @@ def test_public_limit_still_rejects_before_expansion(count, monkeypatch):
         pytest.fail("limit must be enforced before materialization")
 
     monkeypatch.setattr(engine, "expand_order_items", forbidden)
+    oversized_items = (replace(case.items[0], quantity=count),)
     with pytest.raises(engine.LoadPlanVolumeLimitExceededError) as error:
-        engine.calculate_load_plan(
-            case.trucks[0], (replace(case.items[0], quantity=count),)
-        )
+        engine.calculate_load_plan(case.trucks[0], oversized_items)
     assert error.value.max_volumes == engine.MAX_VOLUMES == 200
 
 
