@@ -1,6 +1,7 @@
 """Runner failure paths stay bounded and cannot silently count as success."""
 
 import argparse
+import json
 from unittest.mock import Mock
 
 import pytest
@@ -78,6 +79,25 @@ def test_git_revision_never_interprets_backend_root_as_git_cli_option(
     check_output.assert_called_once_with(
         ["git", "rev-parse", "--verify", "HEAD"], cwd=resolved, text=True
     )
+
+
+def test_worker_receives_configuration_only_as_json_stdin(monkeypatch):
+    process = Mock(pid=999999999, returncode=0)
+    process.poll.return_value = 0
+    process.communicate.return_value = '{"status": "success"}', ""
+    popen = Mock(return_value=process)
+    monkeypatch.setattr(runner.subprocess, "Popen", popen)
+    args = arguments(backend_root="--upload-pack=unsafe")
+    result = runner.run_case(args, "engine", "dense", 25, 1)
+    assert result["status"] == "success"
+    assert popen.call_args.args[0] == [
+        runner.sys.executable,
+        "-m",
+        "benchmarks.benchmark_scalability",
+        "--worker",
+    ]
+    payload = json.loads(process.communicate.call_args.kwargs["input"])
+    assert payload["backend_root"] == "--upload-pack=unsafe"
 
 
 @pytest.mark.parametrize("count", [25, 50, 100, 200, 500, 1000])
