@@ -10,7 +10,6 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.modules.access_profiles.models import AccessProfile
 from app.modules.auth.models import AuthSession
 from app.modules.auth.sessions import AuthSessionInvalidError, AuthSessionService
 from app.modules.company_profile.models import PROFILE_ID, CompanyProfile
@@ -307,6 +306,11 @@ def test_organization_migration_backfills_legacy_profile_users_and_sessions(
     migration = import_module(
         "migrations.versions.20261114_0036_organization_foundation"
     )
+    newer_migrations = [
+        import_module(
+            "migrations.versions.20261115_0037_scope_legacy_profiles_company"
+        ),
+    ]
     now = datetime.now(UTC)
     user_id = uuid.uuid4()
     session_id = uuid.uuid4()
@@ -316,13 +320,18 @@ def test_organization_migration_backfills_legacy_profile_users_and_sessions(
     with session_factory() as db:
         connection = db.connection()
         with Operations.context(MigrationContext.configure(connection)):
+            for newer_migration in reversed(newer_migrations):
+                newer_migration.downgrade()
             migration.downgrade()
 
         if profile_id is not None:
-            db.add(
-                AccessProfile(
-                    id=profile_id, name="Perfil legado", name_key="perfil legado"
-                )
+            # Match the historical 0035 table; the ORM already has G01 columns.
+            db.execute(
+                text(
+                    "INSERT INTO access_profiles(id, name, name_key, description) "
+                    "VALUES (:id, 'Perfil legado', 'perfil legado', '')"
+                ),
+                {"id": profile_id},
             )
         if driver_id is not None:
             db.add(
@@ -388,6 +397,8 @@ def test_organization_migration_backfills_legacy_profile_users_and_sessions(
 
         with Operations.context(MigrationContext.configure(connection)):
             migration.upgrade()
+            for newer_migration in newer_migrations:
+                newer_migration.upgrade()
 
         row = db.execute(
             text(

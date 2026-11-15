@@ -98,6 +98,36 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
         connection.exec_driver_sql(
             "INSERT INTO drivers(id,name,document,phone,license_number,license_category,active) VALUES ('00000000-0000-4000-8000-000000000202','Legado fictício','12345678909','11900000000','12345678900','D',false)"
         )
+    # Exercise the 0037 backfill with actual legacy profile + company rows.
+    _run_alembic(test_url, "upgrade", "20261114_0036")
+    with engine.begin() as connection:
+        connection.exec_driver_sql(
+            """
+            INSERT INTO company_profiles (
+                id, legal_name, display_name, cnpj, phone, email, logo_reference
+            ) VALUES (
+                '00000000-0000-0000-0000-000000000091',
+                'Empresa migrada LTDA', 'Empresa migrada',
+                '11222333000181', '11900000000',
+                'contato@example.test', 'https://example.test/logo.svg'
+            )
+            """
+        )
+        connection.exec_driver_sql(
+            """
+            INSERT INTO access_profiles(id, name, name_key, description)
+            VALUES (
+                '00000000-0000-4000-8000-000000000777',
+                'Perfil legado', 'perfil legado', ''
+            )
+            """
+        )
+        connection.exec_driver_sql(
+            """
+            INSERT INTO access_profile_permissions(profile_id, permission_code)
+            VALUES ('00000000-0000-4000-8000-000000000777', 'loadx.trucks.read')
+            """
+        )
     _run_alembic(test_url, "upgrade", "head")
     with engine.connect() as connection:
         assert tuple(
@@ -105,12 +135,53 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
                 "SELECT reference,category,expires_at,legacy_backfill FROM driver_documents WHERE driver_id='00000000-0000-4000-8000-000000000202'"
             ).one()
         ) == ("12345678900", "D", None, True)
+        profile_org = connection.exec_driver_sql(
+            "SELECT organization_id::text FROM access_profiles "
+            "WHERE id='00000000-0000-4000-8000-000000000777'"
+        ).scalar_one()
+        permission_org = connection.exec_driver_sql(
+            "SELECT organization_id::text FROM access_profile_permissions "
+            "WHERE profile_id='00000000-0000-4000-8000-000000000777'"
+        ).scalar_one()
+        assert profile_org == "00000000-0000-4000-8000-000000000301"
+        assert permission_org == "00000000-0000-4000-8000-000000000301"
+        assert tuple(
+            connection.exec_driver_sql(
+                "SELECT legal_name, display_name, cnpj, phone, email, logo_reference "
+                "FROM organizations "
+                "WHERE id='00000000-0000-4000-8000-000000000301'"
+            ).one()
+        ) == (
+            "Empresa migrada LTDA",
+            "Empresa migrada",
+            "11222333000181",
+            "11900000000",
+            "contato@example.test",
+            "https://example.test/logo.svg",
+        )
+    with engine.begin() as connection:
+        connection.exec_driver_sql(
+            "DELETE FROM access_profile_permissions "
+            "WHERE profile_id='00000000-0000-4000-8000-000000000777'"
+        )
+        connection.exec_driver_sql(
+            "DELETE FROM access_profiles WHERE id='00000000-0000-4000-8000-000000000777'"
+        )
+        connection.exec_driver_sql(
+            "DELETE FROM company_profiles WHERE id='00000000-0000-0000-0000-000000000091'"
+        )
+        connection.exec_driver_sql(
+            "UPDATE organizations SET legal_name='Empresa legada', "
+            "display_name='Empresa legada', cnpj=NULL, phone=NULL, "
+            "email=NULL, logo_reference=NULL "
+            "WHERE id='00000000-0000-4000-8000-000000000301'"
+        )
 
     with engine.connect() as connection:
         head_revision = connection.exec_driver_sql(
             "SELECT version_num FROM alembic_version"
         ).scalar_one()
-        assert head_revision == "20261114_0036"
+        assert head_revision == "20261115_0037"
 
     # Descend through OC94 and trusted-device revisions explicitly; -1 would
     # only reach 0030 now and would not exercise the trusted-device rollback.

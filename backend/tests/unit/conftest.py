@@ -12,7 +12,14 @@ def db_session(request: pytest.FixtureRequest) -> Generator[Session, None, None]
 
     tables: Sequence[Table] = request.module.SQLITE_TABLES
     organization_model = None
-    if any(table.name == "users" for table in tables):
+    scoped_names = {
+        "users",
+        "customers",
+        "products",
+        "access_profiles",
+        "access_profile_permissions",
+    }
+    if any(table.name in scoped_names for table in tables):
         from app.modules.organizations.models import (
             LEGACY_ORGANIZATION_ID,
             Organization,
@@ -20,7 +27,10 @@ def db_session(request: pytest.FixtureRequest) -> Generator[Session, None, None]
         )
 
         organization_model = Organization
-        tables = (*tables, Organization.__table__, OrganizationMembership.__table__)
+        if not any(table.name == "organizations" for table in tables):
+            tables = (*tables, Organization.__table__)
+        if any(table.name == "users" for table in tables):
+            tables = (*tables, OrganizationMembership.__table__)
     if any(table.name == "auth_sessions" for table in tables):
         from app.modules.auth.models import (
             AuthChallenge,

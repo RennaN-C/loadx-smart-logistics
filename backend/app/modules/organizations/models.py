@@ -6,6 +6,7 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     ForeignKey,
+    ForeignKeyConstraint,
     Index,
     SmallInteger,
     String,
@@ -42,7 +43,9 @@ class Organization(Base):
             "length(trim(legal_name)) > 0 AND length(trim(display_name)) > 0",
             name="names_not_empty",
         ),
-        CheckConstraint("cnpj IS NULL OR length(cnpj) = 14", name="cnpj_length"),
+        CheckConstraint(
+            "cnpj IS NULL OR cnpj ~ '^[0-9]{14}$'", name="cnpj_format"
+        ).ddl_if(dialect="postgresql"),
         Index(
             "uq_organizations__cnpj",
             "cnpj",
@@ -63,6 +66,9 @@ class Organization(Base):
     legal_name: Mapped[str] = mapped_column(String(160), nullable=False)
     display_name: Mapped[str] = mapped_column(String(160), nullable=False)
     cnpj: Mapped[str | None] = mapped_column(String(14), nullable=True)
+    phone: Mapped[str | None] = mapped_column(String(11), nullable=True)
+    email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    logo_reference: Mapped[str | None] = mapped_column(String(2048), nullable=True)
     status: Mapped[str] = mapped_column(
         String(16), nullable=False, default="ACTIVE", server_default=text("'ACTIVE'")
     )
@@ -83,6 +89,12 @@ class Organization(Base):
 class OrganizationMembership(Base):
     __tablename__ = "organization_memberships"
     __table_args__ = (
+        ForeignKeyConstraint(
+            ["organization_id", "custom_profile_id"],
+            ["access_profiles.organization_id", "access_profiles.id"],
+            name="fk_organization_memberships__organization_profile",
+            ondelete="RESTRICT",
+        ),
         UniqueConstraint(
             "organization_id",
             "user_id",
@@ -134,9 +146,7 @@ class OrganizationMembership(Base):
         ForeignKey("users.id", ondelete="RESTRICT"), nullable=False
     )
     role: Mapped[str] = mapped_column(String(32), nullable=False)
-    custom_profile_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("access_profiles.id", ondelete="RESTRICT"), nullable=True
-    )
+    custom_profile_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
     driver_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("drivers.id", ondelete="RESTRICT"), nullable=True
     )
@@ -160,6 +170,12 @@ class OrganizationMembership(Base):
 class OrganizationInvitation(Base):
     __tablename__ = "organization_invitations"
     __table_args__ = (
+        ForeignKeyConstraint(
+            ["organization_id", "custom_profile_id"],
+            ["access_profiles.organization_id", "access_profiles.id"],
+            name="fk_organization_invitations__organization_profile",
+            ondelete="RESTRICT",
+        ),
         CheckConstraint(
             "role IN ('ADMIN', 'CHECKER', 'DRIVER', 'LOGISTICS_MANAGER', 'CUSTOM')",
             name="role_allowed",
@@ -218,9 +234,7 @@ class OrganizationInvitation(Base):
     )
     email_normalized: Mapped[str] = mapped_column(String(255), nullable=False)
     role: Mapped[str] = mapped_column(String(32), nullable=False)
-    custom_profile_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("access_profiles.id", ondelete="RESTRICT"), nullable=True
-    )
+    custom_profile_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
     token_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     invited_by_user_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey(
