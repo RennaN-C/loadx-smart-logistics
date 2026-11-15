@@ -7,7 +7,7 @@
 
 ## Contexto
 
-O LoadX precisa gerar cobranças recorrentes, conciliar pagamentos, renovar assinaturas e ativar entitlements somente após confirmação financeira. Foram avaliados preliminarmente Asaas e Mercado Pago com base nas documentações oficiais e páginas públicas de tarifas consultadas em 15/11/2026.
+O LoadX precisa gerar cobranças recorrentes, conciliar pagamentos, renovar assinaturas e ativar entitlements somente após confirmação financeira. Foram avaliados preliminarmente Asaas e Mercado Pago com base nas documentações oficiais e páginas públicas de tarifas consultadas em 14/11/2026.
 
 ## Decisão proposta
 
@@ -32,7 +32,7 @@ O primeiro lançamento integra somente um provedor. A arquitetura suporta mais d
 
 A troca do provedor padrão não migra automaticamente assinaturas existentes. Tokens de cartão e credenciais não são transferidos entre provedores; quando necessário, o cliente autoriza novo checkout.
 
-### 3. Avaliação atualizada (15/11/2026)
+### 3. Avaliação atualizada (14/11/2026)
 
 #### Asaas
 
@@ -48,7 +48,7 @@ A troca do provedor padrão não migra automaticamente assinaturas existentes. T
 A documentação atual lista como critérios: conta PJ aprovada, sem pendências cadastrais, CNPJ ativo há pelo menos seis meses e sem restrições relacionadas ao Pix. A elegibilidade pode mudar e deve ser acompanhada pelo evento `PIX_AUTOMATIC_RECURRING_ELIGIBILITY_UPDATED`. A condição efetiva precisa ser confirmada na conta do LoadX.
 
 **Tarifas públicas e variação por visualização**
-- Pix e boleto: a página oficial apresentou valores diferentes entre visualizações consultadas em 15/11/2026. Foram observados pares de R$ 1,59/R$ 0,79 e R$ 2,15/R$ 1,08; o índice da própria página também retornou R$ 1,99/R$ 0,99. Não há base segura para fixar um único valor público como tarifa aplicável à conta LoadX.
+- Pix e boleto: a página oficial apresentou valores diferentes entre visualizações consultadas em 14/11/2026. Foram observados pares de R$ 1,59/R$ 0,79 e R$ 2,15/R$ 1,08; o índice da própria página também retornou R$ 1,99/R$ 0,99. Não há base segura para fixar um único valor público como tarifa aplicável à conta LoadX.
 - O FAQ do Pix Automático informa que não há custo adicional pelo produto: aplicam-se as taxas padrão de recebimento Pix da conta. Portanto, a tarifa efetiva deve ser capturada no painel Asaas em **Menu do usuário → Taxas**.
 - Cartão de crédito: R$ 0,49 + 2,99% à vista; R$ 0,49 + 3,49% de 2 a 6 parcelas; R$ 0,49 + 3,99% de 7 a 12; R$ 0,49 + 4,29% de 13 a 21. A página também exibe percentuais promocionais menores para novos clientes, sujeitos às regras e ao prazo promocional.
 - As condições do contrato podem diferir das tarifas padrão; a conta deve ser consultada antes da decisão.
@@ -73,7 +73,7 @@ Fontes oficiais:
 - A documentação desse produto descreve CIT para o primeiro pagamento/consentimento e MIT para cobranças recorrentes iniciadas pelo comerciante.
 
 **Tarifas públicas de Checkout online**
-- Uma visualização da página oficial consultada em 15/11/2026 exibia Pix a 0,99%; cartão a 4,98% na hora, 4,49% em 14 dias ou 3,98% em 30 dias; boleto a R$ 3,49 em até três dias.
+- Uma visualização da página oficial consultada em 14/11/2026 exibia Pix a 0,99%; cartão a 4,98% na hora, 4,49% em 14 dias ou 3,98% em 30 dias; boleto a R$ 3,49 em até três dias.
 - Outras visualizações públicas do Checkout exibiram 4,48% em 14 dias, 2,95% em 30 dias e boleto a R$ 3,99. Isso reforça que a página/condição exibida pode variar; confirmar os valores e prazos no painel da conta.
 - São referências públicas de Checkout online, não uma proposta contratada para a API de Assinaturas ou Pagamentos Automáticos. Não transportar automaticamente essas tarifas para produtos avançados.
 
