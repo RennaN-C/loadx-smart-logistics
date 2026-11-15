@@ -3,6 +3,7 @@
 import uuid
 
 import pytest
+from sqlalchemy import insert
 from sqlalchemy.exc import IntegrityError
 
 from app.modules.drivers.document_repository import DocumentRepository
@@ -98,15 +99,17 @@ def test_only_seeded_cnh_may_be_global_or_use_reserved_code(session_factory):
             (None, "UNSCOPED_CUSTOM"),
             (org_b.id, "CNH"),
         ):
+            # Use a Core INSERT to send an explicit NULL to PostgreSQL.
+            # The ORM applies the legacy organization default for None,
+            # which would mask a broken database CHECK constraint.
             with pytest.raises(IntegrityError), db.begin_nested():
-                db.add(
-                    DriverDocumentType(
+                db.execute(
+                    insert(DriverDocumentType).values(
                         organization_id=org_id,
                         code=code,
                         name="Tipo proibido",
                     )
                 )
-                db.flush()
 
 
 @pytest.mark.parametrize("record_kind", ["document", "policy"])
