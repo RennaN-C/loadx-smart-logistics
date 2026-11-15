@@ -1,7 +1,6 @@
 import type { TruckSnapshot } from "../../load-planning/types";
 import { vehicleBounds } from "./sceneBackdrop";
 import { SCENE_SCALE } from "./sceneGeometry";
-import { DECK_HEIGHT } from "./truckShell";
 
 /**
  * Posições de câmera prontas. Girar até achar o ângulo certo é trabalho que a
@@ -11,12 +10,13 @@ import { DECK_HEIGHT } from "./truckShell";
  * Tudo derivado das medidas do caminhão — um baú de 9 m precisa de mais recuo
  * que um de 4 m para caber no enquadramento.
  */
-export const VIEW_PRESETS = ["isometric", "side", "top", "rear", "inside"] as const;
+export const VIEW_PRESETS = ["isometric", "front", "side", "top", "rear", "inside"] as const;
 
 export type ViewPreset = (typeof VIEW_PRESETS)[number];
 
 export const VIEW_LABELS: Record<ViewPreset, string> = {
   isometric: "Isométrica",
+  front: "Frontal",
   side: "Lateral",
   top: "Topo",
   rear: "Traseira",
@@ -25,6 +25,7 @@ export const VIEW_LABELS: Record<ViewPreset, string> = {
 
 export const VIEW_HINTS: Record<ViewPreset, string> = {
   isometric: "Visão geral da carga e do caminhão.",
+  front: "Mostra a frente do veículo e a largura do compartimento.",
   side: "Mostra as camadas e a altura de empilhamento.",
   top: "Mostra o aproveitamento do piso.",
   rear: "É o que o conferente vê ao abrir a porta.",
@@ -158,6 +159,10 @@ export function viewCamera(
   };
 
   switch (preset) {
+    case "front": {
+      const dir = normalize([0, 0.06, -1]);
+      return place(vehicleCenter, dir, fitDistance(vehicle, vehicleCenter, dir, aspect));
+    }
     case "side": {
       // de fora da lateral direita, quase no nível da carga
       const dir = normalize([1, 0.08, 0]);
@@ -179,7 +184,7 @@ export function viewCamera(
       const recuo = fitDistance(porta, portaCentro, [0, 0, 1], aspect);
 
       return {
-        position: [width / 2, DECK_HEIGHT + height * 0.5, length + recuo],
+        position: [width / 2, deck + height * 0.5, length + recuo],
         target: cargoCenter,
       };
     }

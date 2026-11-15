@@ -261,7 +261,7 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
             """
         )
     _run_alembic(test_url, "upgrade", "20261115_0042")
-    # Validate G05-A against a real plan row created by the prior schema.
+    # Exercise G05-A against a plan created before its organization column exists.
     with engine.begin() as connection:
         connection.exec_driver_sql(
             """
@@ -719,6 +719,10 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
             INSERT INTO orders (id, customer_id, priority, delivery_address)
             VALUES ('00000000-0000-4000-8000-000000000098', '00000000-0000-4000-8000-000000000099', 'NORMAL', 'Destino contratado antigo')
         """)
+    # OC99 updates existing orders. Commit its RI trigger events before
+    # subsequent migrations (G04 adds columns to the same table).
+    # This still exercises the historical 0017 backfill and full upgrade.
+    _run_alembic(test_url, "upgrade", "20261008_0017")
     _run_alembic(test_url, "upgrade", "head")
     with engine.connect() as connection:
         legacy = connection.exec_driver_sql(
@@ -741,6 +745,10 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
             ).scalar_one()
             == "Destino contratado antigo"
         )
+    # OC99 updates existing orders. Commit its RI trigger events before
+    # subsequent migrations (G04 adds columns to the same table).
+    # This still exercises the historical 0017 backfill and full upgrade.
+    _run_alembic(test_url, "upgrade", "20261008_0017")
     _run_alembic(test_url, "upgrade", "head")
     _run_alembic(test_url, "check")
     with engine.begin() as connection:

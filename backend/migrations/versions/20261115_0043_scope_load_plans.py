@@ -21,22 +21,24 @@ def upgrade() -> None:
     # All current operational trucks must belong to the legacy company.
     # Verify the actual recorded owner of each existing plan's truck;
     # do not infer ownership from its creator or silently migrate foreign data.
-    connection = op.get_bind()
-    if connection.execute(
+    # Server-side preflight works in online migrations and offline SQL.
+    op.execute(
         sa.text(
+            f"""
+            DO $loadx_g05a$
+            BEGIN
+                IF EXISTS (
+                    SELECT 1 FROM load_plans AS plan
+                    JOIN trucks AS truck ON truck.id = plan.truck_id
+                    WHERE truck.organization_id <> CAST('{LEGACY_ID}' AS uuid)
+                ) THEN
+                    RAISE EXCEPTION 'G05-A upgrade refused: a non-legacy truck owns an existing plan.';
+                END IF;
+            END
+            $loadx_g05a$;
             """
-            SELECT EXISTS (
-                SELECT 1 FROM load_plans AS plan
-                JOIN trucks AS truck ON truck.id = plan.truck_id
-                WHERE truck.organization_id <> CAST(:legacy AS uuid)
-            )
-            """
-        ),
-        {"legacy": LEGACY_ID},
-    ).scalar():
-        raise RuntimeError(
-            "G05-A upgrade refused: a non-legacy truck owns an existing plan."
         )
+    )
 
     # The checked legacy ownership permits a NOT NULL DEFAULT backfill,
     # avoiding UPDATE followed by ALTER on a table with RI triggers.
@@ -83,22 +85,23 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    bind = op.get_bind()
-    if bind.execute(
+    # Refuse to collapse multi-tenant data on downgrade; offline-safe.
+    op.execute(
         sa.text(
+            f"""
+            DO $loadx_g05a$
+            BEGIN
+                IF EXISTS (
+                    SELECT 1 FROM load_plans
+                    WHERE organization_id <> CAST('{LEGACY_ID}' AS uuid)
+                ) THEN
+                    RAISE EXCEPTION 'G05-A downgrade refused: non-legacy plans or recalculations cannot be collapsed into the legacy organization.';
+                END IF;
+            END
+            $loadx_g05a$;
             """
-            SELECT EXISTS (
-                SELECT 1 FROM load_plans
-                WHERE organization_id <> CAST(:legacy AS uuid)
-            )
-            """
-        ),
-        {"legacy": LEGACY_ID},
-    ).scalar():
-        raise RuntimeError(
-            "G05-A downgrade refused: non-legacy plans or recalculations "
-            "cannot be collapsed into the legacy organization."
         )
+    )
 
     op.drop_constraint(
         "fk_load_plans__organization_recalculated_from",
