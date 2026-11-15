@@ -94,7 +94,11 @@ class DriverDocumentType(Base):
     organization_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("organizations.id", ondelete="RESTRICT"),
         nullable=True,
-        default=lambda: LEGACY_ORGANIZATION_ID,
+        default=lambda context: (
+            None
+            if context.get_current_parameters().get("id") == CNH_TYPE_ID
+            else LEGACY_ORGANIZATION_ID
+        ),
     )
 
 
