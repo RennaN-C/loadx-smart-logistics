@@ -8,13 +8,17 @@ from app.core.pagination import PageResult, PaginationParams
 from app.modules.deliveries.models import Trip
 from app.modules.load_planning.models import LoadPlan
 from app.modules.loading.models import LoadingSession
+from app.modules.organizations.models import LEGACY_ORGANIZATION_ID
 from app.modules.trucks.models import Truck
 from app.shared.search import search_pattern
 
 
 class TruckRepository:
-    def __init__(self, db: Session) -> None:
+    def __init__(
+        self, db: Session, organization_id: uuid.UUID = LEGACY_ORGANIZATION_ID
+    ) -> None:
         self.db = db
+        self.organization_id = organization_id
 
     def list(
         self,
@@ -24,7 +28,9 @@ class TruckRepository:
         search: str | None = None,
     ) -> PageResult[Truck]:
         direction = asc if pagination.sort_order == "asc" else desc
-        filters = [] if active is None else [Truck.active.is_(active)]
+        filters = [Truck.organization_id == self.organization_id]
+        if active is not None:
+            filters.append(Truck.active.is_(active))
         pattern = search_pattern(search)
         if pattern is not None:
             filters.append(
@@ -50,25 +56,42 @@ class TruckRepository:
         )
 
     def list_all(self) -> Sequence[Truck]:
-        statement = select(Truck).order_by(Truck.id.asc())
+        statement = (
+            select(Truck)
+            .where(Truck.organization_id == self.organization_id)
+            .order_by(Truck.id.asc())
+        )
         return self.db.scalars(statement).all()
 
     def get(self, truck_id: uuid.UUID) -> Truck | None:
-        return self.db.get(Truck, truck_id)
+        return self.db.scalar(
+            select(Truck).where(
+                Truck.id == truck_id,
+                Truck.organization_id == self.organization_id,
+            )
+        )
 
     def get_many(self, truck_ids: Sequence[uuid.UUID]) -> Sequence[Truck]:
         unique_ids = tuple(sorted(set(truck_ids), key=lambda value: value.int))
         if not unique_ids:
             return ()
         statement = (
-            select(Truck).where(Truck.id.in_(unique_ids)).order_by(Truck.id.asc())
+            select(Truck)
+            .where(
+                Truck.id.in_(unique_ids),
+                Truck.organization_id == self.organization_id,
+            )
+            .order_by(Truck.id.asc())
         )
         return self.db.scalars(statement).all()
 
     def get_for_update(self, truck_id: uuid.UUID) -> Truck | None:
         statement = (
             select(Truck)
-            .where(Truck.id == truck_id)
+            .where(
+                Truck.id == truck_id,
+                Truck.organization_id == self.organization_id,
+            )
             .with_for_update()
             .execution_options(populate_existing=True)
             .execution_options(populate_existing=True)
@@ -111,7 +134,14 @@ class TruckRepository:
                 Trip,
                 Trip.load_plan_id == LoadPlan.id,
             )
-            .where(active_operation)
+            .where(
+                active_operation,
+                LoadPlan.truck_id.in_(
+                    select(Truck.id).where(
+                        Truck.organization_id == self.organization_id
+                    )
+                ),
+            )
         )
         if truck_ids is not None:
             statement = statement.where(LoadPlan.truck_id.in_(truck_ids))
@@ -126,7 +156,8 @@ class TruckRepository:
             field: set(
                 self.db.scalars(
                     select(getattr(Truck, field)).where(
-                        getattr(Truck, field).in_(keys.get(field, set()))
+                        getattr(Truck, field).in_(keys.get(field, set())),
+                        Truck.organization_id == self.organization_id,
                     )
                 )
             )
@@ -134,7 +165,10 @@ class TruckRepository:
         }
 
     def get_by_plate(self, plate: str) -> Truck | None:
-        statement = select(Truck).where(Truck.plate == plate)
+        statement = select(Truck).where(
+            Truck.plate == plate,
+            Truck.organization_id == self.organization_id,
+        )
         return self.db.scalar(statement)
 
     def add(self, truck: Truck) -> Truck:

@@ -13,7 +13,6 @@ from app.core.config import settings
 from app.modules.auth.models import AuthSession
 from app.modules.auth.sessions import AuthSessionInvalidError, AuthSessionService
 from app.modules.company_profile.models import PROFILE_ID, CompanyProfile
-from app.modules.drivers.models import Driver
 from app.modules.organizations.models import (
     LEGACY_ORGANIZATION_ID,
     Organization,
@@ -311,6 +310,7 @@ def test_organization_migration_backfills_legacy_profile_users_and_sessions(
             "migrations.versions.20261115_0037_scope_legacy_profiles_company"
         ),
         import_module("migrations.versions.20261115_0038_scope_customers_products"),
+        import_module("migrations.versions.20261115_0039_scope_fleet_registry"),
     ]
     now = datetime.now(UTC)
     user_id = uuid.uuid4()
@@ -335,15 +335,17 @@ def test_organization_migration_backfills_legacy_profile_users_and_sessions(
                 {"id": profile_id},
             )
         if driver_id is not None:
-            db.add(
-                Driver(
-                    id=driver_id,
-                    name="Motorista fictício",
-                    document="98765432100",
-                    phone="11900000000",
-                    license_number="98765432100",
-                    license_category="D",
-                )
+            # The historical schema predates the G03 organization column.
+            db.execute(
+                text(
+                    "INSERT INTO drivers("
+                    "id, name, document, phone, license_number, license_category"
+                    ") VALUES ("
+                    ":id, 'Motorista fictício', '98765432100', "
+                    "'11900000000', '98765432100', 'D'"
+                    ")"
+                ),
+                {"id": driver_id},
             )
         db.flush()
 

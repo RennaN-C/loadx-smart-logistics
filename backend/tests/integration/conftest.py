@@ -162,9 +162,25 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
             )
             """
         )
+    _run_alembic(test_url, "upgrade", "20261115_0038")
+    # Exercise G03 over the existing legacy fleet, not a fresh 0039 schema.
+    with engine.begin() as connection:
+        connection.exec_driver_sql(
+            """
+            INSERT INTO trucks(
+                id, plate, model, internal_width_cm, internal_height_cm,
+                internal_length_cm, max_weight_kg
+            ) VALUES (
+                '00000000-0000-4000-8000-000000000790',
+                'G03T123', 'Frota legada', 200, 220, 600, 4000
+            )
+            """
+        )
     _run_alembic(test_url, "upgrade", "head")
     with engine.connect() as connection:
         for table, row_id in (
+            ("drivers", "00000000-0000-4000-8000-000000000202"),
+            ("trucks", "00000000-0000-4000-8000-000000000790"),
             ("customers", "00000000-0000-4000-8000-000000000787"),
             ("products", "00000000-0000-4000-8000-000000000788"),
             ("customer_addresses", "00000000-0000-4000-8000-000000000789"),
@@ -204,6 +220,9 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
         )
     with engine.begin() as connection:
         connection.exec_driver_sql(
+            "DELETE FROM trucks WHERE id='00000000-0000-4000-8000-000000000790'"
+        )
+        connection.exec_driver_sql(
             "DELETE FROM customer_addresses WHERE id='00000000-0000-4000-8000-000000000789'"
         )
         connection.exec_driver_sql(
@@ -233,7 +252,7 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
         head_revision = connection.exec_driver_sql(
             "SELECT version_num FROM alembic_version"
         ).scalar_one()
-        assert head_revision == "20261115_0038"
+        assert head_revision == "20261115_0039"
 
     # Descend through OC94 and trusted-device revisions explicitly; -1 would
     # only reach 0030 now and would not exercise the trusted-device rollback.

@@ -6,12 +6,16 @@ from sqlalchemy.orm import Session
 
 from app.core.pagination import PageResult, PaginationParams
 from app.modules.drivers.models import Driver
+from app.modules.organizations.models import LEGACY_ORGANIZATION_ID
 from app.shared.search import search_pattern
 
 
 class DriverRepository:
-    def __init__(self, db: Session) -> None:
+    def __init__(
+        self, db: Session, organization_id: uuid.UUID = LEGACY_ORGANIZATION_ID
+    ) -> None:
         self.db = db
+        self.organization_id = organization_id
 
     def list(
         self,
@@ -21,7 +25,9 @@ class DriverRepository:
         search: str | None = None,
     ) -> PageResult[Driver]:
         direction = asc if pagination.sort_order == "asc" else desc
-        filters = [] if active is None else [Driver.active.is_(active)]
+        filters = [Driver.organization_id == self.organization_id]
+        if active is not None:
+            filters.append(Driver.active.is_(active))
         pattern = search_pattern(search)
         if pattern is not None:
             filters.append(or_(Driver.name.ilike(pattern, escape="\\")))
@@ -47,17 +53,28 @@ class DriverRepository:
             return {}
         return dict(
             self.db.execute(
-                select(Driver.id, Driver.name).where(Driver.id.in_(driver_ids))
+                select(Driver.id, Driver.name).where(
+                    Driver.id.in_(driver_ids),
+                    Driver.organization_id == self.organization_id,
+                )
             ).all()
         )
 
     def get(self, driver_id: uuid.UUID) -> Driver | None:
-        return self.db.get(Driver, driver_id)
+        return self.db.scalar(
+            select(Driver).where(
+                Driver.id == driver_id,
+                Driver.organization_id == self.organization_id,
+            )
+        )
 
     def get_for_update(self, driver_id: uuid.UUID) -> Driver | None:
         statement = (
             select(Driver)
-            .where(Driver.id == driver_id)
+            .where(
+                Driver.id == driver_id,
+                Driver.organization_id == self.organization_id,
+            )
             .with_for_update()
             .execution_options(populate_existing=True)
         )
@@ -70,7 +87,8 @@ class DriverRepository:
             field: set(
                 self.db.scalars(
                     select(getattr(Driver, field)).where(
-                        getattr(Driver, field).in_(keys.get(field, set()))
+                        getattr(Driver, field).in_(keys.get(field, set())),
+                        Driver.organization_id == self.organization_id,
                     )
                 )
             )
@@ -78,16 +96,28 @@ class DriverRepository:
         }
 
     def get_by_document(self, document: str) -> Driver | None:
-        statement = select(Driver).where(Driver.document == document)
+        statement = select(Driver).where(
+            Driver.document == document,
+            Driver.organization_id == self.organization_id,
+        )
         return self.db.scalar(statement)
 
     def get_by_license_number(self, license_number: str) -> Driver | None:
-        statement = select(Driver).where(Driver.license_number == license_number)
+        statement = select(Driver).where(
+            Driver.license_number == license_number,
+            Driver.organization_id == self.organization_id,
+        )
         return self.db.scalar(statement)
 
     def get_by_phone(self, phone: str) -> Driver | None:
         statement = (
-            select(Driver).where(Driver.phone == phone).order_by(Driver.id).limit(2)
+            select(Driver)
+            .where(
+                Driver.phone == phone,
+                Driver.organization_id == self.organization_id,
+            )
+            .order_by(Driver.id)
+            .limit(2)
         )
         drivers = tuple(self.db.scalars(statement))
         return drivers[0] if len(drivers) == 1 else None
