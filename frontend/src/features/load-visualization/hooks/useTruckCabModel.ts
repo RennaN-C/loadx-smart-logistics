@@ -46,7 +46,9 @@ export function useTruckCabModel(): Group | null {
 
     carregar()
       .then((cena) => {
-        if (vivo) setModelo(cena);
+        // Scene nodes cannot have two parents. Clone the graph per viewer;
+        // immutable geometry/materials stay shared with the bounded GLB cache.
+        if (vivo) setModelo(cena.clone(true));
       })
       .catch(() => {
         // silêncio proposital: ver o comentário acima

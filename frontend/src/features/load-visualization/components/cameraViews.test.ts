@@ -78,7 +78,7 @@ describe("viewCamera", () => {
     // A mira era o centro da carga, e a cabine ocupa 2,3 m ANTES de z = 0:
     // o veículo nascia encostado numa borda. Agora as vistas de fora miram o
     // centro do veículo e recuam pela projeção real da caixa dele.
-    for (const preset of ["isometric", "side", "top"] as const) {
+    for (const preset of ["isometric", "front", "side", "top"] as const) {
       for (const aspect of [2.4, 1.6, 0.8]) {
         const view = viewCamera(truck(), preset, DECK, aspect);
         for (const canto of cantosDoVeiculo()) {
@@ -135,6 +135,16 @@ describe("viewCamera", () => {
     const { position } = viewCamera(truck({ lengthCm: 600 }), "rear", DECK);
 
     expect(position[2]).toBeGreaterThan(6);
+  });
+
+  it("enquadra a vista frontal à frente da cabine sem deformar o caminhão", () => {
+    for (const lengthCm of [400, 600, 1200]) {
+      const view = viewCamera(truck({ lengthCm }), "front", DECK, 0.65);
+      expect(view.position[2]).toBeLessThan(-CAB_LENGTH);
+      for (const corner of cantosDoVeiculo(lengthCm / 100)) {
+        expect(noQuadro(view, corner, 0.65)).toBe(true);
+      }
+    }
   });
 
   it("põe a vista interna DENTRO do baú, mirando o fundo", () => {

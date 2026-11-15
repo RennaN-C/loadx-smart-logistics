@@ -68,6 +68,9 @@ const PLAN = {
   totalWeightKg: 1230,
   loadedCount: 3,
   unloadedCount: 0,
+  internalVolumeCm3: 37_440_000,
+  usedVolumeCm3: 2_000_000,
+  status: "CALCULATED",
 } as unknown as LoadPlan;
 
 /** Props da última renderização da cena. */
@@ -228,4 +231,99 @@ it("retira a geometria antiga enquanto o próximo caminhão carrega, mesmo sem k
   await screen.findByTestId("cena");
   expect(ultimaCena().truck.widthCm).toBe(100);
   expect(ultimaCena().items.map(volume => volume.id)).toEqual(["v7"]);
+});
+
+describe("professional inspection workspace", () => {
+  beforeEach(() => {
+    cenaProps.length = 0;
+    vi.mocked(getLoadPlanVisualization).mockReset().mockResolvedValue(VIEW);
+  });
+
+  it("selects and clears a volume using the accessible keyboard control", async () => {
+    render(<LoadViewer planId="lp1" plan={PLAN} />);
+    const select = await screen.findByRole("combobox", { name: "Selecionar volume" });
+    fireEvent.change(select, { target: { value: "v2" } });
+    expect(ultimaCena().selectedId).toBe("v2");
+    expect(screen.getByRole("region", { name: "Detalhes do volume selecionado" })).toHaveTextContent("COD-2");
+    expect(screen.getByRole("region", { name: "Detalhes do volume selecionado" })).toHaveTextContent("40×30×60 cm");
+    fireEvent.click(screen.getByRole("button", { name: "Limpar seleção" }));
+    expect(select).toHaveValue("");
+    expect(ultimaCena().selectedId).toBeNull();
+    expect(screen.queryByRole("region", { name: "Detalhes do volume selecionado" })).not.toBeInTheDocument();
+  });
+
+  it("reframes the current camera without refetching or losing the selected volume", async () => {
+    render(<LoadViewer planId="lp1" plan={PLAN} />);
+    fireEvent.change(await screen.findByLabelText("Selecionar volume"), { target: { value: "v3" } });
+    fireEvent.click(screen.getByRole("button", { name: "Frontal" }));
+    const previousToken = ultimaCena().resetToken;
+    fireEvent.click(screen.getByRole("button", { name: "Centralizar câmera" }));
+    expect(ultimaCena().view).toBe("front");
+    expect(ultimaCena().resetToken).toBe((previousToken ?? 0) + 1);
+    expect(ultimaCena().selectedId).toBe("v3");
+    expect(getLoadPlanVisualization).toHaveBeenCalledTimes(1);
+  });
+
+  it("displays truck capacity and published metrics without deriving a new occupancy", async () => {
+    render(<LoadViewer planId="lp1" plan={PLAN} />);
+    await screen.findByTestId("cena");
+    const capacity = screen.getByRole("complementary", { name: "Informações da carga" });
+    expect(capacity).toHaveTextContent("8.000 kg");
+    expect(capacity).toHaveTextContent("1.230 kg");
+    expect(capacity).toHaveTextContent("6.770 kg");
+    expect(capacity).toHaveTextContent("37,44 m³");
+    expect(capacity).toHaveTextContent("35,44 m³");
+    // The deliberately distinct published occupancy must remain authoritative.
+    expect(screen.getByRole("meter", { name: "Ocupação volumétrica" })).toHaveAttribute("value", "42.5");
+  });
+
+  it("supports 200 distinct volumes and preserves their API positions and dimensions", async () => {
+    const volumes = Array.from({ length: 200 }, (_, index) => ({
+      ...item(index + 1), volumeIndex: index + 1,
+      xCm: (index % 5) * 40, yCm: Math.floor(index / 50) * 30,
+      zCm: Math.floor((index % 50) / 5) * 60,
+    }));
+    vi.mocked(getLoadPlanVisualization).mockResolvedValue({ ...VIEW, items: volumes });
+    render(<LoadViewer planId="lp1" plan={{ ...PLAN, loadedCount: 200 }} />);
+    const select = await screen.findByRole("combobox", { name: "Selecionar volume" });
+    expect(within(select).getAllByRole("option")).toHaveLength(201);
+    fireEvent.change(select, { target: { value: "v200" } });
+    expect(ultimaCena().selectedId).toBe("v200");
+    expect(ultimaCena().items).toEqual(volumes);
+    expect(screen.getByRole("region", { name: "Detalhes do volume selecionado" })).toHaveTextContent("COD-200");
+  });
+
+  it("keeps the selected detail synchronized during automatic playback", async () => {
+    await abrirPassoAPasso();
+    vi.useFakeTimers();
+    try {
+      fireEvent.click(screen.getByRole("button", { name: "Tocar" }));
+      act(() => { vi.advanceTimersByTime(421); });
+      expect(ultimaCena().selectedId).toBe("v2");
+      expect(screen.getByRole("region", { name: "Detalhes do volume selecionado" })).toHaveTextContent("COD-2");
+      act(() => { vi.advanceTimersByTime(840); });
+      expect(ultimaCena().selectedId).toBe("v3");
+      expect(screen.getByRole("button", { name: "Tocar" })).toBeInTheDocument();
+    } finally { vi.useRealTimers(); }
+  });
+
+  it("does not steal arrow keys from the loading slider or volume selector", async () => {
+    await abrirPassoAPasso();
+    fireEvent.keyDown(screen.getByRole("slider", { name: "Passo do carregamento" }), { key: "ArrowRight" });
+    expect(ultimaCena().enteringId).toBe("v1");
+    fireEvent.keyDown(screen.getByLabelText("Selecionar volume"), { key: "ArrowRight" });
+    expect(ultimaCena().enteringId).toBe("v1");
+    fireEvent.keyDown(window, { key: "ArrowRight", ctrlKey: true });
+    expect(ultimaCena().enteringId).toBe("v1");
+    fireEvent.keyDown(window, { key: "ArrowRight" });
+    expect(ultimaCena().enteringId).toBe("v2");
+  });
+
+  it("shows the empty state without mounting a WebGL scene", async () => {
+    vi.mocked(getLoadPlanVisualization).mockResolvedValue({ ...VIEW, items: [] });
+    render(<LoadViewer planId="lp1" plan={{ ...PLAN, loadedCount: 0 }} />);
+    expect(await screen.findByText(/Nenhum volume foi carregado neste plano/)).toBeInTheDocument();
+    expect(screen.queryByTestId("cena")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Selecionar volume")).not.toBeInTheDocument();
+  });
 });

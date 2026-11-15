@@ -125,3 +125,25 @@ fieldset.distribution-confirm { border: 0; border-top: 1px solid var(--line); pa
   .distribution-vehicles:not(.distribution-vehicles-many) .distribution-vehicle-select { display: none; }
   .distribution-page .distribution-vehicles:not(.distribution-vehicles-many) .distribution-vehicle { display: grid; grid-template-areas: 'heading heading state' 'model model model' 'metrics metrics occupancy' 'bar bar bar'; }
 }
+
+/* Fleet navigation belongs to this workspace; selection never changes the plan. */
+.distribution-page .distribution-fleet-selector { display:block; margin-block:18px; }
+.distribution-fleet-selector legend { font-size:.8rem; font-weight:650; padding:0; }
+.distribution-fleet-selector legend > span { display:inline-grid; place-items:center; min-width:24px; height:24px; margin-left:6px; border-radius:6px; color:var(--accent-strong); background:var(--accent-bg); font-size:.72rem; }
+.distribution-fleet-heading { display:flex; justify-content:space-between; align-items:center; gap:8px 18px; flex-wrap:wrap; margin:6px 0; color:var(--muted); font-size:.73rem; }
+.distribution-fleet-heading p { margin:0; }
+.distribution-fleet-heading output { white-space:nowrap; }
+.distribution-fleet-heading strong { color:var(--accent-strong); }
+.distribution-fleet-selector .distribution-vehicle-list { display:flex; gap:10px; overflow-x:auto; padding:3px 3px 8px; scroll-snap-type:x proximity; }
+.distribution-fleet-selector .distribution-vehicle-list .distribution-vehicle { display:grid; flex:1 0 250px; min-width:0; grid-template-columns:minmax(0,1fr) auto; grid-template-areas:"heading state" "model metrics" "bar occupancy"; gap:6px 12px; padding:12px 16px; scroll-snap-align:start; }
+.distribution-fleet-selector .distribution-vehicle[aria-pressed='true'] { background:linear-gradient(135deg,var(--accent-bg),var(--card)); box-shadow:inset 3px 0 var(--accent); }
+.distribution-fleet-selector .distribution-vehicle-heading strong { font-size:1.05rem; }
+.distribution-fleet-selector .distribution-vehicle-heading small { font-size:.65rem; }
+.distribution-fleet-selector .distribution-vehicle-metrics { gap:6px 14px; font-size:.7rem; }
+.distribution-fleet-selector .distribution-vehicle-metrics strong { font-size:.82rem; }
+.distribution-fleet-selector .distribution-vehicle-occupancy { font-size:.7rem; align-items:center; }
+.distribution-fleet-selector .distribution-vehicle-select { display:grid; max-width:580px; margin-bottom:10px; }
+.distribution-fleet-selector .distribution-vehicle-select select { min-height:40px; font-size:.76rem; padding:10px; }
+@media (min-width:701px) { .distribution-fleet-selector .distribution-vehicle-select { display:none; } }
+.distribution-fleet-selector.distribution-vehicles-many .distribution-vehicle-select { display:grid; }
+@media (max-width:700px) { .distribution-fleet-selector .distribution-vehicle-list { display:none; } .distribution-fleet-heading { font-size:.7rem; } }
