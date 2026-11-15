@@ -330,7 +330,7 @@ def worker(args) -> dict:
     }
 
 
-def run_case(args, operation, profile, count, trucks, *, instrument=False):
+def _worker_command(args, operation, profile, count, trucks, instrument) -> list[str]:
     command = [
         sys.executable,
         "-m",
@@ -361,6 +361,55 @@ def run_case(args, operation, profile, count, trucks, *, instrument=False):
         command.append("--experimental-limit")
     if args.allocations:
         command.append("--allocations")
+    return command
+
+
+def _resident_peak_kib(pid: int) -> int:
+    try:
+        status = Path(f"/proc/{pid}/status").read_text()
+    except FileNotFoundError:
+        return 0
+    for line in status.splitlines():
+        if line.startswith("VmHWM:"):
+            return int(line.split()[1])
+    return 0
+
+
+def _failure_status(stderr: str, returncode: int) -> str:
+    if "MemoryError" in stderr:
+        return "memory_limit"
+    if returncode == -24:
+        return "cpu_limit"
+    return "error"
+
+
+def _await_worker(process, args, row, started, observation) -> None:
+    while True:
+        observation["rss_kib"] = max(
+            observation["rss_kib"], _resident_peak_kib(process.pid)
+        )
+        if time.perf_counter() - started >= args.timeout:
+            process.kill()
+            process.communicate()
+            row.update(status="timeout", timeout_s=args.timeout)
+            return
+        try:
+            stdout, stderr = process.communicate(timeout=0.1)
+        except subprocess.TimeoutExpired:
+            continue
+        if process.returncode == 0:
+            row.update(json.loads(stdout))
+        else:
+            row.update(
+                status=_failure_status(stderr, process.returncode),
+                returncode=process.returncode,
+                error=stderr[-3000:],
+            )
+        return
+
+
+def run_case(args, operation, profile, count, trucks, *, instrument=False):
+    command = _worker_command(args, operation, profile, count, trucks, instrument)
     row = {
         "operation": operation,
         "profile": profile,
@@ -372,52 +421,23 @@ def run_case(args, operation, profile, count, trucks, *, instrument=False):
     process = subprocess.Popen(
         command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
     )
-    observed_rss_kib = 0
+    observation = {"rss_kib": 0}
     try:
-        while True:
-            try:
-                status_file = Path(f"/proc/{process.pid}/status").read_text()
-                for line in status_file.splitlines():
-                    if line.startswith("VmHWM:"):
-                        observed_rss_kib = max(observed_rss_kib, int(line.split()[1]))
-            except FileNotFoundError:
-                pass
-            if time.perf_counter() - started >= args.timeout:
-                process.kill()
-                process.communicate()
-                row.update(status="timeout", timeout_s=args.timeout)
-                break
-            try:
-                stdout, stderr = process.communicate(timeout=0.1)
-            except subprocess.TimeoutExpired:
-                continue
-            if process.returncode == 0:
-                row.update(json.loads(stdout))
-            else:
-                row.update(
-                    status="memory_limit"
-                    if "MemoryError" in stderr
-                    else "cpu_limit"
-                    if process.returncode == -24
-                    else "error",
-                    returncode=process.returncode,
-                    error=stderr[-3000:],
-                )
-            break
+        _await_worker(process, args, row, started, observation)
     except KeyboardInterrupt:
         process.kill()
         process.communicate()
         row.update(
             status="interrupted",
             process_elapsed_s=time.perf_counter() - started,
-            observed_process_peak_rss_kib=observed_rss_kib,
+            observed_process_peak_rss_kib=observation["rss_kib"],
         )
         raise _InterruptedCase(row) from None
     finally:
         if process.poll() is None:
             process.kill()
             process.communicate()
-    row["observed_process_peak_rss_kib"] = observed_rss_kib
+    row["observed_process_peak_rss_kib"] = observation["rss_kib"]
     row["process_elapsed_s"] = time.perf_counter() - started
     return row
 
