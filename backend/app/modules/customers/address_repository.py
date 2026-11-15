@@ -6,11 +6,15 @@ from sqlalchemy.orm import Session
 
 from app.core.pagination import PageResult, PaginationParams
 from app.modules.customers.models import CustomerAddress
+from app.modules.organizations.models import LEGACY_ORGANIZATION_ID
 
 
 class CustomerAddressRepository:
-    def __init__(self, db: Session) -> None:
+    def __init__(
+        self, db: Session, organization_id: uuid.UUID = LEGACY_ORGANIZATION_ID
+    ) -> None:
         self.db = db
+        self.organization_id = organization_id
 
     def list(
         self,
@@ -19,7 +23,10 @@ class CustomerAddressRepository:
         *,
         active: bool | None,
     ) -> PageResult[CustomerAddress]:
-        filters = [CustomerAddress.customer_id == customer_id]
+        filters = [
+            CustomerAddress.customer_id == customer_id,
+            CustomerAddress.organization_id == self.organization_id,
+        ]
         if active is not None:
             filters.append(CustomerAddress.active.is_(active))
         direction = asc if pagination.sort_order == "asc" else desc
@@ -43,7 +50,10 @@ class CustomerAddressRepository:
     def all(self, customer_id: uuid.UUID) -> Sequence[CustomerAddress]:
         statement = (
             select(CustomerAddress)
-            .where(CustomerAddress.customer_id == customer_id)
+            .where(
+                CustomerAddress.customer_id == customer_id,
+                CustomerAddress.organization_id == self.organization_id,
+            )
             .order_by(CustomerAddress.created_at, CustomerAddress.id)
             .execution_options(populate_existing=True)
         )
@@ -57,6 +67,7 @@ class CustomerAddressRepository:
             .where(
                 CustomerAddress.id == address_id,
                 CustomerAddress.customer_id == customer_id,
+                CustomerAddress.organization_id == self.organization_id,
             )
             .with_for_update()
             .execution_options(populate_existing=True)

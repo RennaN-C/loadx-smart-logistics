@@ -6,20 +6,30 @@ from sqlalchemy import (
     Boolean,
     CheckConstraint,
     DateTime,
+    ForeignKey,
     Numeric,
     String,
     Text,
+    UniqueConstraint,
     Uuid,
     func,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database.base import Base
+from app.modules.organizations.models import LEGACY_ORGANIZATION_ID
 
 
 class Product(Base):
     __tablename__ = "products"
     __table_args__ = (
+        UniqueConstraint("organization_id", "id", name="uq_products__organization_id"),
+        UniqueConstraint(
+            "organization_id",
+            "code",
+            name="uq_products__organization_code",
+        ),
         CheckConstraint(
             "width_cm > 0 AND height_cm > 0 AND length_cm > 0",
             name="dimensions_positive",
@@ -28,7 +38,13 @@ class Product(Base):
     )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    code: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("organizations.id", ondelete="RESTRICT"),
+        nullable=False,
+        default=lambda: LEGACY_ORGANIZATION_ID,
+        server_default=text("'00000000-0000-4000-8000-000000000301'"),
+    )
+    code: Mapped[str] = mapped_column(String(64), nullable=False)
     name: Mapped[str] = mapped_column(String(160), nullable=False, index=True)
     description: Mapped[str | None] = mapped_column(Text)
     width_cm: Mapped[int] = mapped_column(nullable=False)
