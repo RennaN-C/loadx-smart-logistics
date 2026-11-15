@@ -67,18 +67,34 @@ def test_interruption_kills_worker_and_propagates(monkeypatch):
     assert process.communicate.call_count == 2
 
 
-def test_git_revision_never_interprets_backend_root_as_git_cli_option(
-    tmp_path, monkeypatch
-):
+def test_git_revision_reads_metadata_without_executing_git(tmp_path, monkeypatch):
     backend = tmp_path / "checkout --upload-pack=unsafe" / "backend"
     (backend / "app/modules/load_planning/optimizer").mkdir(parents=True)
-    check_output = Mock(return_value="abcdef123456\n")
+    git_dir = backend.parent / ".git"
+    (git_dir / "refs/heads").mkdir(parents=True)
+    (git_dir / "HEAD").write_text("ref: refs/heads/test\n")
+    (git_dir / "refs/heads/test").write_text("a" * 40 + "\n")
+    check_output = Mock()
     monkeypatch.setattr(runner.subprocess, "check_output", check_output)
     resolved = runner._resolve_backend_root(str(backend))
-    assert runner._git_revision(resolved) == "abcdef123456"
-    check_output.assert_called_once_with(
-        ["git", "rev-parse", "--verify", "HEAD"], cwd=resolved, text=True
+    assert runner._git_revision(resolved) == "a" * 40
+    check_output.assert_not_called()
+
+
+def test_git_revision_resolves_packed_worktree_refs(tmp_path):
+    backend = tmp_path / "checkout" / "backend"
+    (backend / "app/modules/load_planning/optimizer").mkdir(parents=True)
+    common_dir = tmp_path / "metadata"
+    git_dir = common_dir / "worktrees/benchmark"
+    git_dir.mkdir(parents=True)
+    (backend.parent / ".git").write_text(f"gitdir: {git_dir}\n")
+    (git_dir / "HEAD").write_text("ref: refs/heads/benchmark\n")
+    (git_dir / "commondir").write_text("../..\n")
+    (common_dir / "packed-refs").write_text(
+        "b" * 40 + " refs/heads/benchmark\n"
     )
+    assert runner._git_revision(backend) == "b" * 40
+
 
 
 def test_worker_receives_configuration_only_as_json_stdin(monkeypatch):
