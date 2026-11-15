@@ -56,7 +56,7 @@ class CustomerRepository:
         """Composable SQL projection; never materialize the customer collection."""
         return select(Customer.id).where(
             Customer.organization_id == self.organization_id,
-            Customer.name.ilike(search_pattern(search), escape="\\")
+            Customer.name.ilike(search_pattern(search), escape="\\"),
         )
 
     def get(self, customer_id: uuid.UUID) -> Customer | None:
