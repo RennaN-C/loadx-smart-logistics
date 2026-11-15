@@ -6,13 +6,17 @@ from sqlalchemy.orm import Session
 
 from app.core.pagination import PageResult, PaginationParams
 from app.modules.products.models import Product
+from app.modules.organizations.models import LEGACY_ORGANIZATION_ID
 from app.modules.products.schemas import ProductRestriction
 from app.shared.search import search_pattern
 
 
 class ProductRepository:
-    def __init__(self, db: Session) -> None:
+    def __init__(
+        self, db: Session, organization_id: uuid.UUID = LEGACY_ORGANIZATION_ID
+    ) -> None:
         self.db = db
+        self.organization_id = organization_id
 
     def list(
         self,
@@ -23,7 +27,9 @@ class ProductRepository:
         restriction: ProductRestriction | None = None,
     ) -> PageResult[Product]:
         direction = asc if pagination.sort_order == "asc" else desc
-        filters = [] if active is None else [Product.active.is_(active)]
+        filters = [Product.organization_id == self.organization_id]
+        if active is not None:
+            filters.append(Product.active.is_(active))
         pattern = search_pattern(search)
         if pattern is not None:
             filters.append(
@@ -66,7 +72,12 @@ class ProductRepository:
         )
 
     def get(self, product_id: uuid.UUID) -> Product | None:
-        return self.db.get(Product, product_id)
+        return self.db.scalar(
+            select(Product).where(
+                Product.id == product_id,
+                Product.organization_id == self.organization_id,
+            )
+        )
 
     def get_many(
         self,
@@ -78,7 +89,12 @@ class ProductRepository:
         if not unique_ids:
             return ()
         statement = (
-            select(Product).where(Product.id.in_(unique_ids)).order_by(Product.id.asc())
+            select(Product)
+            .where(
+                Product.id.in_(unique_ids),
+                Product.organization_id == self.organization_id,
+            )
+            .order_by(Product.id.asc())
         )
         if for_update:
             statement = statement.with_for_update().execution_options(
@@ -89,7 +105,10 @@ class ProductRepository:
     def get_for_update(self, product_id: uuid.UUID) -> Product | None:
         statement = (
             select(Product)
-            .where(Product.id == product_id)
+            .where(
+                Product.id == product_id,
+                Product.organization_id == self.organization_id,
+            )
             .with_for_update()
             .execution_options(populate_existing=True)
         )
@@ -102,7 +121,8 @@ class ProductRepository:
             field: set(
                 self.db.scalars(
                     select(getattr(Product, field)).where(
-                        getattr(Product, field).in_(keys.get(field, set()))
+                        getattr(Product, field).in_(keys.get(field, set())),
+                        Product.organization_id == self.organization_id,
                     )
                 )
             )
@@ -110,7 +130,10 @@ class ProductRepository:
         }
 
     def get_by_code(self, code: str) -> Product | None:
-        statement = select(Product).where(Product.code == code)
+        statement = select(Product).where(
+            Product.code == code,
+            Product.organization_id == self.organization_id,
+        )
         return self.db.scalar(statement)
 
     def add(self, product: Product) -> Product:
