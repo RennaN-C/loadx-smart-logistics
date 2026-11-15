@@ -21,27 +21,29 @@ def upgrade() -> None:
     # Multiempresa is not operational yet. Every existing order/item must
     # belong to the legacy company through customer and product ownership.
     # Refuse to invent legacy ownership for any non-legacy parent.
-    connection = op.get_bind()
-    if connection.execute(
+    # A server-side guard works in both online migrations and --sql output.
+    # Do not query op.get_bind() here: offline mode cannot return rows.
+    op.execute(
         sa.text(
+            f"""
+            DO $loadx_g04$
+            BEGIN
+                IF EXISTS (
+                    SELECT 1 FROM orders AS o
+                    JOIN customers AS c ON c.id = o.customer_id
+                    WHERE c.organization_id <> CAST('{LEGACY}' AS uuid)
+                ) OR EXISTS (
+                    SELECT 1 FROM order_items AS i
+                    JOIN products AS p ON p.id = i.product_id
+                    WHERE p.organization_id <> CAST('{LEGACY}' AS uuid)
+                ) THEN
+                    RAISE EXCEPTION 'G04 upgrade refused: non-legacy customer or product ownership requires tenant-specific reconciliation before migration.';
+                END IF;
+            END
+            $loadx_g04$;
             """
-            SELECT EXISTS (
-                SELECT 1 FROM orders AS o
-                JOIN customers AS c ON c.id = o.customer_id
-                WHERE c.organization_id <> CAST(:legacy AS uuid)
-            ) OR EXISTS (
-                SELECT 1 FROM order_items AS i
-                JOIN products AS p ON p.id = i.product_id
-                WHERE p.organization_id <> CAST(:legacy AS uuid)
-            )
-            """
-        ),
-        {"legacy": LEGACY},
-    ).scalar():
-        raise RuntimeError(
-            "G04 upgrade refused: non-legacy customer or product ownership "
-            "requires tenant-specific reconciliation before migration."
         )
+    )
 
     # ADD COLUMN with NOT NULL DEFAULT materializes the verified legacy
     # value without UPDATE. An UPDATE before ALTER TABLE in the same
@@ -121,25 +123,26 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    connection = op.get_bind()
-    if connection.execute(
+    # Fail closed during downgrade, including when rendering offline SQL.
+    op.execute(
         sa.text(
+            f"""
+            DO $loadx_g04$
+            BEGIN
+                IF EXISTS (
+                    SELECT 1 FROM orders
+                    WHERE organization_id <> CAST('{LEGACY}' AS uuid)
+                ) OR EXISTS (
+                    SELECT 1 FROM order_items
+                    WHERE organization_id <> CAST('{LEGACY}' AS uuid)
+                ) THEN
+                    RAISE EXCEPTION 'G04 downgrade refused: orders from non-legacy organizations cannot be collapsed into the global catalog.';
+                END IF;
+            END
+            $loadx_g04$;
             """
-            SELECT EXISTS (
-                SELECT 1 FROM orders
-                WHERE organization_id <> CAST(:legacy AS uuid)
-            ) OR EXISTS (
-                SELECT 1 FROM order_items
-                WHERE organization_id <> CAST(:legacy AS uuid)
-            )
-            """
-        ),
-        {"legacy": LEGACY},
-    ).scalar():
-        raise RuntimeError(
-            "G04 downgrade refused: orders from non-legacy organizations "
-            "cannot be collapsed into the global catalog."
         )
+    )
 
     op.drop_constraint(
         "fk_order_items__organization_product",
