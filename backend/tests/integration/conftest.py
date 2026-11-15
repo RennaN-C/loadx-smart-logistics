@@ -169,22 +169,25 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
             ("products", "00000000-0000-4000-8000-000000000788"),
             ("customer_addresses", "00000000-0000-4000-8000-000000000789"),
         ):
-            assert connection.exec_driver_sql(
+            owner = connection.exec_driver_sql(
                 f"SELECT organization_id::text FROM {table} WHERE id='{row_id}'"
-            ).scalar_one() == "00000000-0000-4000-8000-000000000301"
+            ).scalar_one()
+            assert owner == "00000000-0000-4000-8000-000000000301"
         assert tuple(
             connection.exec_driver_sql(
                 "SELECT reference,category,expires_at,legacy_backfill FROM driver_documents WHERE driver_id='00000000-0000-4000-8000-000000000202'"
             ).one()
         ) == ("12345678900", "D", None, True)
-        assert connection.exec_driver_sql(
+        profile_org = connection.exec_driver_sql(
             "SELECT organization_id::text FROM access_profiles "
             "WHERE id='00000000-0000-4000-8000-000000000777'"
-        ).scalar_one() == "00000000-0000-4000-8000-000000000301"
-        assert connection.exec_driver_sql(
+        ).scalar_one()
+        permission_org = connection.exec_driver_sql(
             "SELECT organization_id::text FROM access_profile_permissions "
             "WHERE profile_id='00000000-0000-4000-8000-000000000777'"
-        ).scalar_one() == "00000000-0000-4000-8000-000000000301"
+        ).scalar_one()
+        assert profile_org == "00000000-0000-4000-8000-000000000301"
+        assert permission_org == "00000000-0000-4000-8000-000000000301"
         assert tuple(
             connection.exec_driver_sql(
                 "SELECT legal_name, display_name, cnpj, phone, email, logo_reference "
