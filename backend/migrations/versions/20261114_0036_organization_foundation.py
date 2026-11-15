@@ -399,16 +399,24 @@ def upgrade() -> None:
         ["active_organization_id"],
     )
 
-    if bind.execute(
+    op.execute(
         sa.text(
-            "SELECT EXISTS ("
-            "SELECT 1 FROM auth_sessions "
-            "WHERE active_organization_id IS NULL)"
+            """
+            DO $
+            BEGIN
+                IF EXISTS (
+                    SELECT 1
+                    FROM auth_sessions
+                    WHERE active_organization_id IS NULL
+                ) THEN
+                    RAISE EXCEPTION
+                        'Migration blocked: one or more auth sessions have no organization context.';
+                END IF;
+            END
+            $;
+            """
         )
-    ).scalar_one():
-        raise RuntimeError(
-            "Migration blocked: one or more auth sessions have no organization context."
-        )
+    )
 
     op.alter_column(
         "auth_sessions",
