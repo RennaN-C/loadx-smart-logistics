@@ -307,7 +307,9 @@ def test_organization_migration_backfills_legacy_profile_users_and_sessions(
         "migrations.versions.20261114_0036_organization_foundation"
     )
     newer_migrations = [
-        import_module("migrations.versions.20261115_0037_scope_legacy_profiles_company"),
+        import_module(
+            "migrations.versions.20261115_0037_scope_legacy_profiles_company"
+        ),
     ]
     now = datetime.now(UTC)
     user_id = uuid.uuid4()
