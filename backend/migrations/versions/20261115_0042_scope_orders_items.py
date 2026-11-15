@@ -61,9 +61,7 @@ def upgrade() -> None:
         ondelete="RESTRICT",
     )
 
-    op.add_column(
-        "order_items", sa.Column("organization_id", sa.Uuid(), nullable=True)
-    )
+    op.add_column("order_items", sa.Column("organization_id", sa.Uuid(), nullable=True))
     op.execute(
         """
         UPDATE order_items AS child
@@ -73,20 +71,14 @@ def upgrade() -> None:
         """
     )
     op.alter_column("order_items", "organization_id", nullable=False)
-    op.alter_column(
-        "order_items", "organization_id", server_default=LEGACY_DEFAULT
-    )
+    op.alter_column("order_items", "organization_id", server_default=LEGACY_DEFAULT)
     op.create_unique_constraint(
         "uq_order_items__organization_id",
         "order_items",
         ["organization_id", "id"],
     )
-    op.drop_constraint(
-        "fk_order_items__orders", "order_items", type_="foreignkey"
-    )
-    op.drop_constraint(
-        "fk_order_items__products", "order_items", type_="foreignkey"
-    )
+    op.drop_constraint("fk_order_items__orders", "order_items", type_="foreignkey")
+    op.drop_constraint("fk_order_items__products", "order_items", type_="foreignkey")
     op.create_foreign_key(
         "fk_order_items__organization_order",
         "order_items",
@@ -150,9 +142,7 @@ def downgrade() -> None:
         ["order_id"],
         ["id"],
     )
-    op.drop_constraint(
-        "uq_order_items__organization_id", "order_items", type_="unique"
-    )
+    op.drop_constraint("uq_order_items__organization_id", "order_items", type_="unique")
     op.drop_column("order_items", "organization_id")
 
     op.drop_constraint(
@@ -160,9 +150,7 @@ def downgrade() -> None:
         "orders",
         type_="foreignkey",
     )
-    op.drop_constraint(
-        "fk_orders__organization_customer", "orders", type_="foreignkey"
-    )
+    op.drop_constraint("fk_orders__organization_customer", "orders", type_="foreignkey")
     op.create_foreign_key(
         "fk_orders__customers",
         "orders",
@@ -171,7 +159,5 @@ def downgrade() -> None:
         ["id"],
     )
     op.drop_constraint("uq_orders__organization_id", "orders", type_="unique")
-    op.drop_constraint(
-        "fk_orders__organizations", "orders", type_="foreignkey"
-    )
+    op.drop_constraint("fk_orders__organizations", "orders", type_="foreignkey")
     op.drop_column("orders", "organization_id")
