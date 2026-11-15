@@ -235,6 +235,7 @@ Fontes:
 - https://docs.asaas.com/docs/pix-automatico
 - https://docs.asaas.com/docs/faq-2
 - https://docs.asaas.com/docs/eventos-para-pix-autom%C3%A1tico
+- https://central.ajuda.asaas.com/hc/pt-br/articles/41912520942235-Quais-s%C3%A3o-as-taxas-do-Pix-Autom%C3%A1tico-no-Asaas
 - https://www.asaas.com/precos-e-taxas
 
 ### Mercado Pago
