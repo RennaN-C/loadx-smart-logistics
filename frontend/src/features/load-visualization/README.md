@@ -384,8 +384,13 @@ conforme a política de documentação do repositório.
 para `feat/3d-planner-professional`, evitando publicar acidentalmente um preview
 com o proxy compartilhado. As regras de rewrite, headers e demais branches
 permanecem iguais. `node qa/browser/prepare-planner-preview.cjs` prepara um
-artefato separado em `.tmp`, com manifest SHA-1/tamanho e configuração estática
+artefato separado em `.tmp`, com manifest SHA-256/tamanho e configuração estática
 503, sem código backend, dependências, `.env` ou mudanças no projeto remoto.
+
+`CONFIRMADO`: cada entrada do manifest local usa `sha256` para conferir conteúdo
+e identificar duplicatas. Esse inventário de auditoria não é um payload de
+upload da Vercel; o cliente de publicação deve respeitar o contrato próprio do
+provedor, sem interpretar `sha256` como o campo `sha` de transporte.
 
 `CONFIRMADO`: para validar o deployment protegido, `PLANNER_SHARE_URL` pode
 receber um link temporário autorizado da Vercel somente no processo de QA. O

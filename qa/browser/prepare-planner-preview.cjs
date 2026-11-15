@@ -30,7 +30,7 @@ function write(relative, bytes) {
   const target = path.join(destination, relative);
   fs.mkdirSync(path.dirname(target), { recursive: true });
   fs.writeFileSync(target, bytes);
-  manifest.push({ file: relative.replaceAll("\\", "/"), size: bytes.length, sha: crypto.createHash("sha1").update(bytes).digest("hex") });
+  manifest.push({ file: relative.replaceAll("\\", "/"), size: bytes.length, sha256: crypto.createHash("sha256").update(bytes).digest("hex") });
 }
 function copy(directory, relative = "") {
   for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
@@ -53,4 +53,4 @@ write("vercel.json", encoded);
 write("frontend/vercel.json", encoded);
 assert(manifest.some((file) => file.file === "frontend/public/index.html"));
 fs.writeFileSync(path.join(root, ".tmp/3d-planner/preview-manifest.json"), JSON.stringify(manifest, null, 2));
-console.log(JSON.stringify({ destination, files: manifest.length, uniqueFiles: new Set(manifest.map((file) => file.sha)).size, apiStatus: 503, sharedProjectSettingsChanged: false }));
+console.log(JSON.stringify({ destination, files: manifest.length, uniqueFiles: new Set(manifest.map((file) => file.sha256)).size, apiStatus: 503, sharedProjectSettingsChanged: false }));
