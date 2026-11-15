@@ -66,6 +66,21 @@ def test_interruption_kills_worker_and_propagates(monkeypatch):
     assert process.communicate.call_count == 2
 
 
+
+def test_git_revision_never_interprets_backend_root_as_git_cli_option(
+    tmp_path, monkeypatch
+):
+    backend = tmp_path / "checkout --upload-pack=unsafe" / "backend"
+    (backend / "app/modules/load_planning/optimizer").mkdir(parents=True)
+    check_output = Mock(return_value="abcdef123456\n")
+    monkeypatch.setattr(runner.subprocess, "check_output", check_output)
+    resolved = runner._resolve_backend_root(str(backend))
+    assert runner._git_revision(resolved) == "abcdef123456"
+    check_output.assert_called_once_with(
+        ["git", "rev-parse", "--verify", "HEAD"], cwd=resolved, text=True
+    )
+
+
 @pytest.mark.parametrize("count", [25, 50, 100, 200, 500, 1000])
 def test_dense_profile_can_fit_every_volume_without_weight_rejections(count):
     case = build_case("dense", count, 1)
