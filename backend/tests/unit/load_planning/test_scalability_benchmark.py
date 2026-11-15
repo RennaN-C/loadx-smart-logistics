@@ -58,8 +58,10 @@ def test_interruption_kills_worker_and_propagates(monkeypatch):
     process.poll.return_value = -9
     process.communicate.side_effect = (KeyboardInterrupt, ("", ""))
     monkeypatch.setattr(runner.subprocess, "Popen", Mock(return_value=process))
-    with pytest.raises(KeyboardInterrupt):
-        runner.run_case(arguments(), "engine", "dense", 25, 1)
+    args = arguments()
+    with pytest.raises(runner._InterruptedCase) as error:
+        runner.run_case(args, "engine", "dense", 25, 1)
+    assert error.value.row["status"] == "interrupted"
     process.kill.assert_called_once()
     assert process.communicate.call_count == 2
 
