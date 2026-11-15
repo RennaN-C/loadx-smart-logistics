@@ -104,8 +104,14 @@ def test_initial_migration_renders_expected_check_constraint_names() -> None:
     assert "CONSTRAINT ck_auth_login_throttles__scope_allowed" in result.stdout
     assert "CREATE TABLE auth_sessions" in result.stdout
     assert "DO $loadx$" in result.stdout
-    assert "Migration blocked: one or more auth sessions have no organization context." in result.stdout
-    assert "ALTER TABLE auth_sessions ALTER COLUMN active_organization_id SET NOT NULL" in result.stdout
+    assert (
+        "Migration blocked: one or more auth sessions have no organization context."
+        in result.stdout
+    )
+    assert (
+        "ALTER TABLE auth_sessions ALTER COLUMN active_organization_id SET NOT NULL"
+        in result.stdout
+    )
     assert "CREATE TABLE external_commands" in result.stdout
     assert "uq_external_commands__integration_id_event_hash" in result.stdout
     assert "CONSTRAINT fk_auth_sessions__users" in result.stdout
