@@ -94,3 +94,18 @@ COUNT e SELECT usam os mesmos predicados antes de OFFSET/LIMIT; ordenação
 created_at/id na mesma direção. Envelope, RBAC e schemas detalhados/resumidos
 permanecem preservados, sem novos dados pessoais.
 Contrato completo: [docs/05](../../../../docs/05-contratos-api.md).
+
+## G02 — tenant ownership (implementação incremental)
+
+A migration `20261115_0038` associa clientes, endereços e produtos à
+organização legada e torna os documentos/códigos únicos **por organização**.
+Os repositories filtram listagem, busca, UUID e verificação de duplicidade pelo
+`organization_id` de compatibilidade. A FK composta impede que um endereço
+da organização A referencie cliente da B.
+
+**Não liberar segunda organização:** os pedidos, os planos, o carregamento,
+as viagens, busca global e demais consumidores ainda precisam migrar seus
+relacionamentos e filtros. O `server_default` de organização legada é
+transitório e deverá ser removido antes de qualquer acesso operacional de
+outra empresa. O UUID organizacional não vem do body ou header HTTP.
+
