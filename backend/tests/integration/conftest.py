@@ -176,9 +176,46 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
             )
             """
         )
+    _run_alembic(test_url, "upgrade", "20261115_0039")
+    # G03-B1 must backfill rows created by the historical fleet schema.
+    with engine.begin() as connection:
+        connection.exec_driver_sql(
+            """
+            INSERT INTO truck_maintenances(
+                id, truck_id, kind, starts_at, description
+            ) VALUES (
+                '00000000-0000-4000-8000-000000000791',
+                '00000000-0000-4000-8000-000000000790',
+                'PREVENTIVE', NOW(), 'Manutenção legada'
+            )
+            """
+        )
+        connection.exec_driver_sql(
+            """
+            INSERT INTO truck_documents(id, truck_id, kind, reference)
+            VALUES (
+                '00000000-0000-4000-8000-000000000792',
+                '00000000-0000-4000-8000-000000000790',
+                'CRLV', 'Documento legado'
+            )
+            """
+        )
+        connection.exec_driver_sql(
+            """
+            INSERT INTO truck_document_policies(id, truck_id, kind, required)
+            VALUES (
+                '00000000-0000-4000-8000-000000000793',
+                '00000000-0000-4000-8000-000000000790',
+                'CRLV', TRUE
+            )
+            """
+        )
     _run_alembic(test_url, "upgrade", "head")
     with engine.connect() as connection:
         for table, row_id in (
+            ("truck_maintenances", "00000000-0000-4000-8000-000000000791"),
+            ("truck_documents", "00000000-0000-4000-8000-000000000792"),
+            ("truck_document_policies", "00000000-0000-4000-8000-000000000793"),
             ("drivers", "00000000-0000-4000-8000-000000000202"),
             ("trucks", "00000000-0000-4000-8000-000000000790"),
             ("customers", "00000000-0000-4000-8000-000000000787"),
@@ -194,6 +231,11 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
                 "SELECT reference,category,expires_at,legacy_backfill FROM driver_documents WHERE driver_id='00000000-0000-4000-8000-000000000202'"
             ).one()
         ) == ("12345678900", "D", None, True)
+        driver_doc_owner = connection.exec_driver_sql(
+            "SELECT organization_id::text FROM driver_documents "
+            "WHERE driver_id='00000000-0000-4000-8000-000000000202'"
+        ).scalar_one()
+        assert driver_doc_owner == "00000000-0000-4000-8000-000000000301"
         profile_org = connection.exec_driver_sql(
             "SELECT organization_id::text FROM access_profiles "
             "WHERE id='00000000-0000-4000-8000-000000000777'"
@@ -219,6 +261,17 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
             "https://example.test/logo.svg",
         )
     with engine.begin() as connection:
+        connection.exec_driver_sql(
+            "DELETE FROM truck_document_policies "
+            "WHERE id='00000000-0000-4000-8000-000000000793'"
+        )
+        connection.exec_driver_sql(
+            "DELETE FROM truck_documents WHERE id='00000000-0000-4000-8000-000000000792'"
+        )
+        connection.exec_driver_sql(
+            "DELETE FROM truck_maintenances "
+            "WHERE id='00000000-0000-4000-8000-000000000791'"
+        )
         connection.exec_driver_sql(
             "DELETE FROM trucks WHERE id='00000000-0000-4000-8000-000000000790'"
         )
@@ -252,7 +305,7 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
         head_revision = connection.exec_driver_sql(
             "SELECT version_num FROM alembic_version"
         ).scalar_one()
-        assert head_revision == "20261115_0039"
+        assert head_revision == "20261115_0040"
 
     # Descend through OC94 and trusted-device revisions explicitly; -1 would
     # only reach 0030 now and would not exercise the trusted-device rollback.

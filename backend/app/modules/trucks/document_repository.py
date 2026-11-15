@@ -9,19 +9,26 @@ from sqlalchemy import asc, desc, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.core.pagination import PageResult, PaginationParams
+from app.modules.organizations.models import LEGACY_ORGANIZATION_ID
 from app.modules.trucks.models import TruckDocument, TruckDocumentPolicy
 
 DocumentRecord = TypeVar("DocumentRecord", TruckDocument, TruckDocumentPolicy)
 
 
 class DocumentRepository:
-    def __init__(self, db: Session) -> None:
+    def __init__(
+        self, db: Session, organization_id: uuid.UUID = LEGACY_ORGANIZATION_ID
+    ) -> None:
         self.db = db
+        self.organization_id = organization_id
 
     def list(
         self, truck_id: uuid.UUID, pagination: PaginationParams
     ) -> PageResult[TruckDocument]:
-        filters = (TruckDocument.truck_id == truck_id,)
+        filters = (
+            TruckDocument.truck_id == truck_id,
+            TruckDocument.organization_id == self.organization_id,
+        )
         total = (
             self.db.scalar(
                 select(func.count()).select_from(TruckDocument).where(*filters)
@@ -43,6 +50,7 @@ class DocumentRepository:
             select(TruckDocument)
             .where(
                 TruckDocument.truck_id == truck_id,
+                TruckDocument.organization_id == self.organization_id,
                 TruckDocument.kind == kind,
                 TruckDocument.superseded_at.is_(None),
             )
@@ -52,7 +60,11 @@ class DocumentRepository:
     def get(self, truck_id: uuid.UUID, identifier: uuid.UUID) -> TruckDocument | None:
         return self.db.scalar(
             select(TruckDocument)
-            .where(TruckDocument.truck_id == truck_id, TruckDocument.id == identifier)
+            .where(
+                TruckDocument.truck_id == truck_id,
+                TruckDocument.organization_id == self.organization_id,
+                TruckDocument.id == identifier,
+            )
             .execution_options(populate_existing=True)
         )
 
@@ -60,7 +72,10 @@ class DocumentRepository:
         return list(
             self.db.scalars(
                 select(TruckDocumentPolicy)
-                .where(TruckDocumentPolicy.truck_id == truck_id)
+                .where(
+                    TruckDocumentPolicy.truck_id == truck_id,
+                    TruckDocumentPolicy.organization_id == self.organization_id,
+                )
                 .order_by(TruckDocumentPolicy.kind)
             ).all()
         )
@@ -70,6 +85,7 @@ class DocumentRepository:
             select(TruckDocumentPolicy)
             .where(
                 TruckDocumentPolicy.truck_id == truck_id,
+                TruckDocumentPolicy.organization_id == self.organization_id,
                 TruckDocumentPolicy.kind == kind,
             )
             .execution_options(populate_existing=True)
@@ -85,6 +101,7 @@ class DocumentRepository:
             select(TruckDocument.id)
             .where(
                 TruckDocument.truck_id == TruckDocumentPolicy.truck_id,
+                TruckDocument.organization_id == self.organization_id,
                 TruckDocument.kind == TruckDocumentPolicy.kind,
                 TruckDocument.superseded_at.is_(None),
                 or_(TruckDocument.issued_at.is_(None), TruckDocument.issued_at <= at),
@@ -93,7 +110,9 @@ class DocumentRepository:
             .exists()
         )
         query = select(TruckDocumentPolicy.truck_id).where(
-            TruckDocumentPolicy.required.is_(True), ~valid
+            TruckDocumentPolicy.required.is_(True),
+            TruckDocumentPolicy.organization_id == self.organization_id,
+            ~valid,
         )
         if truck_ids is not None:
             query = query.where(TruckDocumentPolicy.truck_id.in_(truck_ids))

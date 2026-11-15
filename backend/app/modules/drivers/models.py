@@ -7,6 +7,7 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     ForeignKey,
+    ForeignKeyConstraint,
     Index,
     String,
     UniqueConstraint,
@@ -74,6 +75,17 @@ class DriverDocumentType(Base):
 class DriverDocument(Base):
     __tablename__ = "driver_documents"
     __table_args__ = (
+        ForeignKeyConstraint(
+            ["organization_id", "driver_id"],
+            ["drivers.organization_id", "drivers.id"],
+            name="fk_driver_documents__organization_driver",
+            ondelete="RESTRICT",
+        ),
+        UniqueConstraint(
+            "organization_id",
+            "id",
+            name="uq_driver_documents__organization_id",
+        ),
         CheckConstraint("length(trim(reference)) > 0", name="reference_required"),
         CheckConstraint(
             "issued_at IS NULL OR expires_at IS NULL OR expires_at > issued_at",
@@ -90,8 +102,12 @@ class DriverDocument(Base):
         Index("ix_driver_documents__driver_created", "driver_id", "created_at"),
     )
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    driver_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("drivers.id", ondelete="RESTRICT"), nullable=False
+    driver_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid,
+        nullable=False,
+        default=lambda: LEGACY_ORGANIZATION_ID,
+        server_default=text("'00000000-0000-4000-8000-000000000301'"),
     )
     document_type_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("driver_document_types.id", ondelete="RESTRICT"), nullable=False
@@ -112,6 +128,17 @@ class DriverDocument(Base):
 class DriverDocumentPolicy(Base):
     __tablename__ = "driver_document_policies"
     __table_args__ = (
+        ForeignKeyConstraint(
+            ["organization_id", "driver_id"],
+            ["drivers.organization_id", "drivers.id"],
+            name="fk_driver_document_policies__organization_driver",
+            ondelete="RESTRICT",
+        ),
+        UniqueConstraint(
+            "organization_id",
+            "id",
+            name="uq_driver_document_policies__organization_id",
+        ),
         UniqueConstraint(
             "driver_id",
             "document_type_id",
@@ -122,8 +149,12 @@ class DriverDocumentPolicy(Base):
         ).ddl_if(dialect="postgresql"),
     )
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    driver_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("drivers.id", ondelete="RESTRICT"), nullable=False
+    driver_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid,
+        nullable=False,
+        default=lambda: LEGACY_ORGANIZATION_ID,
+        server_default=text("'00000000-0000-4000-8000-000000000301'"),
     )
     document_type_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("driver_document_types.id", ondelete="RESTRICT"), nullable=False
