@@ -5,12 +5,16 @@ from sqlalchemy.orm import Session
 
 from app.core.pagination import PageResult, PaginationParams
 from app.modules.customers.models import Customer
+from app.modules.organizations.models import LEGACY_ORGANIZATION_ID
 from app.shared.search import search_pattern
 
 
 class CustomerRepository:
-    def __init__(self, db: Session) -> None:
+    def __init__(
+        self, db: Session, organization_id: uuid.UUID = LEGACY_ORGANIZATION_ID
+    ) -> None:
         self.db = db
+        self.organization_id = organization_id
 
     def list(
         self,
@@ -20,7 +24,9 @@ class CustomerRepository:
         search: str | None = None,
     ) -> PageResult[Customer]:
         direction = asc if pagination.sort_order == "asc" else desc
-        filters = [] if active is None else [Customer.active.is_(active)]
+        filters = [Customer.organization_id == self.organization_id]
+        if active is not None:
+            filters.append(Customer.active.is_(active))
         pattern = search_pattern(search)
         if pattern is not None:
             filters.append(
@@ -49,16 +55,25 @@ class CustomerRepository:
     def matching_name_ids(self, search: str) -> Select[tuple[uuid.UUID]]:
         """Composable SQL projection; never materialize the customer collection."""
         return select(Customer.id).where(
-            Customer.name.ilike(search_pattern(search), escape="\\")
+            Customer.organization_id == self.organization_id,
+            Customer.name.ilike(search_pattern(search), escape="\\"),
         )
 
     def get(self, customer_id: uuid.UUID) -> Customer | None:
-        return self.db.get(Customer, customer_id)
+        return self.db.scalar(
+            select(Customer).where(
+                Customer.id == customer_id,
+                Customer.organization_id == self.organization_id,
+            )
+        )
 
     def get_for_update(self, customer_id: uuid.UUID) -> Customer | None:
         statement = (
             select(Customer)
-            .where(Customer.id == customer_id)
+            .where(
+                Customer.id == customer_id,
+                Customer.organization_id == self.organization_id,
+            )
             .with_for_update()
             .execution_options(populate_existing=True)
         )
@@ -71,7 +86,8 @@ class CustomerRepository:
             field: set(
                 self.db.scalars(
                     select(getattr(Customer, field)).where(
-                        getattr(Customer, field).in_(keys.get(field, set()))
+                        getattr(Customer, field).in_(keys.get(field, set())),
+                        Customer.organization_id == self.organization_id,
                     )
                 )
             )
@@ -79,7 +95,10 @@ class CustomerRepository:
         }
 
     def get_by_document(self, document: str) -> Customer | None:
-        statement = select(Customer).where(Customer.document == document)
+        statement = select(Customer).where(
+            Customer.document == document,
+            Customer.organization_id == self.organization_id,
+        )
         return self.db.scalar(statement)
 
     def add(self, customer: Customer) -> Customer:
