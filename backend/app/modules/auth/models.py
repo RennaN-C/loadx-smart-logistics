@@ -86,8 +86,8 @@ class AuthSession(Base):
         nullable=False,
         index=True,
     )
-    active_organization_id: Mapped[uuid.UUID | None] = mapped_column(
-        Uuid, nullable=True, index=True
+    active_organization_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, nullable=False, index=True
     )
     token_hash: Mapped[str] = mapped_column(
         String(64),
