@@ -41,8 +41,19 @@ class DocumentService:
     def approve_type(
         self, data: DriverDocumentTypeCreate, *, actor: uuid.UUID
     ) -> DriverDocumentType:
+        if data.code == "CNH":
+            raise ApiError(
+                409,
+                "DRIVER_DOCUMENT_TYPE_DUPLICATE",
+                "CNH é um tipo global reservado.",
+            )
         try:
-            record = self.repository.save(DriverDocumentType(**data.model_dump()))
+            record = self.repository.save(
+                DriverDocumentType(
+                    organization_id=self.repository.organization_id,
+                    **data.model_dump(),
+                )
+            )
             stage_document_audit(
                 self.db,
                 record,
@@ -55,7 +66,10 @@ class DocumentService:
             return record
         except IntegrityError as error:
             self.db.rollback()
-            if get_integrity_constraint_name(error) != "uq_driver_document_types__code":
+            if get_integrity_constraint_name(error) not in {
+                "uq_driver_document_types__code",
+                "uq_driver_document_types__organization_code",
+            }:
                 raise
             raise ApiError(
                 409,
@@ -165,7 +179,7 @@ class DocumentService:
         try:
             driver = self.drivers.get_driver_for_update(driver_id)
             ensure_record_active(driver, "DRIVER")
-            self.get_type(data.document_type_id)
+            document_type = self.get_type(data.document_type_id)
             self.validate_license(data)
             self.replace_current(driver_id, data, replacing, actor)
             if data.document_type_id == CNH_TYPE_ID:
@@ -173,7 +187,12 @@ class DocumentService:
                 driver.license_category = data.category
                 driver.license_expires_at = data.expires_at
             record = self.repository.save(
-                DriverDocument(driver_id=driver_id, **data.model_dump())
+                DriverDocument(
+                    organization_id=driver.organization_id,
+                    driver_id=driver_id,
+                    document_type_organization_id=document_type.organization_id,
+                    **data.model_dump(),
+                )
             )
             stage_document_audit(
                 self.db, record, "DRIVER_DOCUMENT_CREATED", "DRIVER_DOCUMENT", actor
@@ -215,7 +234,7 @@ class DocumentService:
         try:
             driver = self.drivers.get_driver_for_update(driver_id)
             ensure_record_active(driver, "DRIVER")
-            self.get_type(type_id)
+            document_type = self.get_type(type_id)
             if type_id != CNH_TYPE_ID and data.allowed_categories:
                 raise ApiError(
                     422,
@@ -236,7 +255,10 @@ class DocumentService:
             ) != (data.required, data.allowed_categories)
             if policy is None:
                 policy = DriverDocumentPolicy(
-                    driver_id=driver_id, document_type_id=type_id
+                    organization_id=driver.organization_id,
+                    driver_id=driver_id,
+                    document_type_id=type_id,
+                    document_type_organization_id=document_type.organization_id,
                 )
             policy.required = data.required
             policy.allowed_categories = list(data.allowed_categories)
