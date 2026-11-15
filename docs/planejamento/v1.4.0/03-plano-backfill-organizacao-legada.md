@@ -77,6 +77,8 @@ Executar em uma cópia isolada da base, antes da migration 0036. Guardar o resul
 O bloco abaixo produz uma linha por tabela, sem usar estimativas de `reltuples`:
 
 ```sql
+DROP TABLE IF EXISTS pg_temp.tenancy_preflight_counts;
+
 CREATE TEMP TABLE tenancy_preflight_counts (
     table_name text PRIMARY KEY,
     row_count bigint NOT NULL
