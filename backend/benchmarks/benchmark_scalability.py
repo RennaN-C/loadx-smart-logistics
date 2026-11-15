@@ -16,6 +16,7 @@ import time
 from collections import Counter
 from dataclasses import asdict, is_dataclass
 from decimal import ROUND_HALF_UP, Decimal
+from itertools import product
 from pathlib import Path
 from uuid import UUID
 
@@ -517,9 +518,7 @@ def _run_worker_entry(args) -> None:
 
 def _resolve_backend_root(value: str) -> Path:
     root = Path(value).expanduser().resolve(strict=True)
-    if not root.is_dir() or not (
-        root / "app/modules/load_planning/optimizer"
-    ).is_dir():
+    if not root.is_dir() or not (root / "app/modules/load_planning/optimizer").is_dir():
         raise ValueError("backend-root must point to a backend checkout")
     return root
 
@@ -575,14 +574,14 @@ def _benchmark_metadata(args) -> dict:
 
 
 def _iter_cases(args):
-    for operation in args.operations:
-        for profile in args.profiles:
-            for count in args.counts:
-                truck_counts = [1] if operation == "engine" else args.truck_counts
-                for trucks in truck_counts:
-                    if operation == "compare" and trucks == 1:
-                        continue
-                    yield operation, profile, count, trucks
+    for operation, profile, count in product(
+        args.operations, args.profiles, args.counts
+    ):
+        truck_counts = [1] if operation == "engine" else args.truck_counts
+        for trucks in truck_counts:
+            if operation == "compare" and trucks == 1:
+                continue
+            yield operation, profile, count, trucks
 
 
 def _run_matrix(args, payload) -> None:
