@@ -522,13 +522,59 @@ def _resolve_backend_root(value: str) -> Path:
     return root
 
 
+def _git_directory(backend_root: Path) -> Path:
+    marker = backend_root.parent / ".git"
+    if marker.is_dir():
+        return marker
+    directive = marker.read_text().strip()
+    if not directive.startswith("gitdir: "):
+        raise ValueError("invalid worktree .git pointer")
+    location = Path(directive.removeprefix("gitdir: ").strip())
+    if not location.is_absolute():
+        location = marker.parent / location
+    return location.resolve(strict=True)
+
+
+def _git_common_directory(git_dir: Path) -> Path:
+    pointer = git_dir / "commondir"
+    if not pointer.is_file():
+        return git_dir
+    location = Path(pointer.read_text().strip())
+    if not location.is_absolute():
+        location = git_dir / location
+    return location.resolve(strict=True)
+
+
+def _git_ref_value(ref: str, git_dir: Path, common_dir: Path) -> str:
+    if not ref.startswith("refs/") or any(
+        part in ("", ".", "..") for part in ref.split("/")
+    ):
+        raise ValueError("invalid symbolic Git reference")
+    for directory in (git_dir, common_dir):
+        loose = directory / ref
+        if loose.is_file():
+            return loose.read_text().strip()
+        packed = directory / "packed-refs"
+        if packed.is_file():
+            for line in packed.read_text().splitlines():
+                parts = line.split(" ", 1)
+                if len(parts) == 2 and parts[1] == ref:
+                    return parts[0]
+    raise ValueError("Git reference not found in checkout")
+
+
 def _git_revision(backend_root: Path) -> str:
-    # Never interpret user-supplied paths as Git command-line arguments.
-    return subprocess.check_output(
-        ["git", "rev-parse", "--verify", "HEAD"],
-        cwd=backend_root,
-        text=True,
-    ).strip()
+    # Read HEAD as data. Do not invoke an external command for a CLI-provided path.
+    git_dir = _git_directory(backend_root)
+    head = (git_dir / "HEAD").read_text().strip()
+    if head.startswith("ref: "):
+        ref = head.removeprefix("ref: ").strip()
+        head = _git_ref_value(ref, git_dir, _git_common_directory(git_dir))
+    if len(head) not in (40, 64) or any(
+        digit not in "0123456789abcdefABCDEF" for digit in head
+    ):
+        raise ValueError("invalid Git HEAD SHA")
+    return head
 
 
 def _benchmark_metadata(args) -> dict:
