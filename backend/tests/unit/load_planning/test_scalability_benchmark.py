@@ -2,6 +2,8 @@
 
 import argparse
 import json
+import sys
+from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
@@ -111,6 +113,17 @@ def test_worker_receives_configuration_only_as_json_stdin(monkeypatch):
     ]
     payload = json.loads(process.communicate.call_args.kwargs["input"])
     assert payload["backend_root"] == "--upload-pack=unsafe"
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="worker uses Linux resource limits")
+def test_real_worker_json_round_trip_runs_small_engine():
+    backend_root = Path(__file__).resolve().parents[3]
+    args = arguments(backend_root=str(backend_root), memory_mib=768, timeout=30)
+    result = runner.run_case(args, "engine", "dense", 1, 1)
+    assert result["status"] == "success"
+    assert result["placed"] == 1
+    assert result["rejected"] == 0
+    assert result["fingerprint"]
 
 
 @pytest.mark.parametrize("count", [25, 50, 100, 200, 500, 1000])
