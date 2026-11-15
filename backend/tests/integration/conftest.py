@@ -234,8 +234,42 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
             )
             """
         )
+    _run_alembic(test_url, "upgrade", "20261115_0041")
+    # G04 must migrate already existing order/customer/product references.
+    with engine.begin() as connection:
+        connection.exec_driver_sql(
+            """
+            INSERT INTO orders(
+                id, customer_id, priority, delivery_address
+            ) VALUES (
+                '00000000-0000-4000-8000-000000000796',
+                '00000000-0000-4000-8000-000000000787',
+                'NORMAL', 'Endereço legado'
+            )
+            """
+        )
+        connection.exec_driver_sql(
+            """
+            INSERT INTO order_items(
+                id, order_id, product_id, quantity, delivery_sequence
+            ) VALUES (
+                '00000000-0000-4000-8000-000000000797',
+                '00000000-0000-4000-8000-000000000796',
+                '00000000-0000-4000-8000-000000000788',
+                3, 1
+            )
+            """
+        )
     _run_alembic(test_url, "upgrade", "head")
     with engine.connect() as connection:
+        for table, row_id in (
+            ("orders", "00000000-0000-4000-8000-000000000796"),
+            ("order_items", "00000000-0000-4000-8000-000000000797"),
+        ):
+            owner = connection.exec_driver_sql(
+                f"SELECT organization_id::text FROM {table} WHERE id='{row_id}'"
+            ).scalar_one()
+            assert owner == "00000000-0000-4000-8000-000000000301"
         custom_type_owner = connection.exec_driver_sql(
             "SELECT organization_id::text FROM driver_document_types "
             "WHERE id='00000000-0000-4000-8000-000000000794'"
@@ -324,6 +358,12 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
             "DELETE FROM trucks WHERE id='00000000-0000-4000-8000-000000000790'"
         )
         connection.exec_driver_sql(
+            "DELETE FROM order_items WHERE id='00000000-0000-4000-8000-000000000797'"
+        )
+        connection.exec_driver_sql(
+            "DELETE FROM orders WHERE id='00000000-0000-4000-8000-000000000796'"
+        )
+        connection.exec_driver_sql(
             "DELETE FROM customer_addresses WHERE id='00000000-0000-4000-8000-000000000789'"
         )
         connection.exec_driver_sql(
@@ -353,7 +393,7 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
         head_revision = connection.exec_driver_sql(
             "SELECT version_num FROM alembic_version"
         ).scalar_one()
-        assert head_revision == "20261115_0041"
+        assert head_revision == "20261115_0042"
 
     # Descend through OC94 and trusted-device revisions explicitly; -1 would
     # only reach 0030 now and would not exercise the trusted-device rollback.
@@ -649,6 +689,10 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
             INSERT INTO orders (id, customer_id, priority, delivery_address)
             VALUES ('00000000-0000-4000-8000-000000000098', '00000000-0000-4000-8000-000000000099', 'NORMAL', 'Destino contratado antigo')
         """)
+    # OC99 updates existing orders. Commit its RI trigger events before
+    # subsequent migrations (G04 adds columns to the same table).
+    # This still exercises the historical 0017 backfill and full upgrade.
+    _run_alembic(test_url, "upgrade", "20261008_0017")
     _run_alembic(test_url, "upgrade", "head")
     with engine.connect() as connection:
         legacy = connection.exec_driver_sql(
@@ -671,6 +715,10 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
             ).scalar_one()
             == "Destino contratado antigo"
         )
+    # OC99 updates existing orders. Commit its RI trigger events before
+    # subsequent migrations (G04 adds columns to the same table).
+    # This still exercises the historical 0017 backfill and full upgrade.
+    _run_alembic(test_url, "upgrade", "20261008_0017")
     _run_alembic(test_url, "upgrade", "head")
     _run_alembic(test_url, "check")
     with engine.begin() as connection:

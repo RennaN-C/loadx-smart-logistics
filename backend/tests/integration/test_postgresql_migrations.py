@@ -44,7 +44,7 @@ def test_postgresql_16_reaches_alembic_head(postgres_engine: Engine) -> None:
         ).one()
 
     assert server_version_num // 10_000 == 16
-    assert revision == "20261115_0041"
+    assert revision == "20261115_0042"
     assert "active_organization_id" in auth_session_columns
     assert auth_session_context_nullable == "NO"
     assert legacy_organization == ("ACTIVE", True)
@@ -133,7 +133,10 @@ def test_postgresql_rejects_foreign_key_violation(
         with pytest.raises(IntegrityError) as raised:
             db.flush()
 
-        assert get_integrity_constraint_name(raised.value) == "fk_orders__customers"
+        assert (
+            get_integrity_constraint_name(raised.value)
+            == "fk_orders__organization_customer"
+        )
 
 
 def test_postgresql_rejects_dimension_check_violation(
