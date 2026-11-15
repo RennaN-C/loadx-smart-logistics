@@ -24,11 +24,11 @@ from app.modules.organizations.models import LEGACY_ORGANIZATION_ID
 class Product(Base):
     __tablename__ = "products"
     __table_args__ = (
+        UniqueConstraint("organization_id", "id", name="uq_products__organization_id"),
         UniqueConstraint(
-            "organization_id", "id", name="uq_products__organization_id"
-        ),
-        UniqueConstraint(
-            "organization_id", "code", name="uq_products__organization_code"
+            "organization_id",
+            "code",
+            name="uq_products__organization_code",
         ),
         CheckConstraint(
             "width_cm > 0 AND height_cm > 0 AND length_cm > 0",
