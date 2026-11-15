@@ -128,8 +128,50 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
             VALUES ('00000000-0000-4000-8000-000000000777', 'loadx.trucks.read')
             """
         )
+    _run_alembic(test_url, "upgrade", "20261115_0037")
+    # Verify G02's backfill against rows written by the PREVIOUS schema.
+    with engine.begin() as connection:
+        connection.exec_driver_sql(
+            """
+            INSERT INTO customers(id,name,document,address,city,state)
+            VALUES (
+                '00000000-0000-4000-8000-000000000787',
+                'Cliente legado', '00000000000199', 'Rua antiga',
+                'Curitiba', 'PR'
+            )
+            """
+        )
+        connection.exec_driver_sql(
+            """
+            INSERT INTO products(
+                id,code,name,width_cm,height_cm,length_cm,weight_kg
+            ) VALUES (
+                '00000000-0000-4000-8000-000000000788',
+                'G02-LEGACY-SKU', 'Produto legado', 10, 20, 30, 3.250
+            )
+            """
+        )
+        connection.exec_driver_sql(
+            """
+            INSERT INTO customer_addresses(
+                id,customer_id,label,address,city,state
+            ) VALUES (
+                '00000000-0000-4000-8000-000000000789',
+                '00000000-0000-4000-8000-000000000787',
+                'Principal', 'Rua antiga', 'Curitiba', 'PR'
+            )
+            """
+        )
     _run_alembic(test_url, "upgrade", "head")
     with engine.connect() as connection:
+        for table, row_id in (
+            ("customers", "00000000-0000-4000-8000-000000000787"),
+            ("products", "00000000-0000-4000-8000-000000000788"),
+            ("customer_addresses", "00000000-0000-4000-8000-000000000789"),
+        ):
+            assert connection.exec_driver_sql(
+                f"SELECT organization_id::text FROM {table} WHERE id='{row_id}'"
+            ).scalar_one() == "00000000-0000-4000-8000-000000000301"
         assert tuple(
             connection.exec_driver_sql(
                 "SELECT reference,category,expires_at,legacy_backfill FROM driver_documents WHERE driver_id='00000000-0000-4000-8000-000000000202'"
@@ -158,6 +200,15 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
             "https://example.test/logo.svg",
         )
     with engine.begin() as connection:
+        connection.exec_driver_sql(
+            "DELETE FROM customer_addresses WHERE id='00000000-0000-4000-8000-000000000789'"
+        )
+        connection.exec_driver_sql(
+            "DELETE FROM products WHERE id='00000000-0000-4000-8000-000000000788'"
+        )
+        connection.exec_driver_sql(
+            "DELETE FROM customers WHERE id='00000000-0000-4000-8000-000000000787'"
+        )
         connection.exec_driver_sql(
             "DELETE FROM access_profile_permissions "
             "WHERE profile_id='00000000-0000-4000-8000-000000000777'"
