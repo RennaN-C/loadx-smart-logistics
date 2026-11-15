@@ -1,7 +1,6 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
 from heapq import heappop, heappush
-from itertools import combinations
 from uuid import UUID
 
 from app.modules.load_planning.optimizer.contracts import (
@@ -197,17 +196,22 @@ def is_delivery_depth_configuration_valid(
     """Require later deliveries to be at least as deep as earlier deliveries."""
 
     validated = _validate_placements(placements, bounds, "placements")
-    for first, second in combinations(validated, 2):
-        if first.volume.delivery_sequence == second.volume.delivery_sequence:
-            continue
+    # For two delivery groups every pair is valid iff min(later distances)
+    # >= max(earlier distances). Equal delivery sequences impose no constraint.
+    # Group extrema are exact integers; no tolerance or geometric approximation.
+    distances: dict[int, tuple[int, int]] = {}
+    for placement in validated:
+        sequence = placement.volume.delivery_sequence
+        distance = _door_distance_cm(placement, bounds)
+        minimum, maximum = distances.get(sequence, (distance, distance))
+        distances[sequence] = min(minimum, distance), max(maximum, distance)
 
-        later, earlier = (
-            (first, second)
-            if first.volume.delivery_sequence > second.volume.delivery_sequence
-            else (second, first)
-        )
-        if _door_distance_cm(later, bounds) < _door_distance_cm(earlier, bounds):
+    previous_maximum = 0
+    for sequence in sorted(distances):
+        minimum, maximum = distances[sequence]
+        if minimum < previous_maximum:
             return False
+        previous_maximum = max(previous_maximum, maximum)
     return True
 
 

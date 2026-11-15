@@ -1837,3 +1837,44 @@ def test_plan_collection_openapi_documents_filters_and_errors() -> None:
         parameter["name"] for parameter in collection["parameters"]
     }
     assert "get" in operations["/api/v1/load-plans/{load_plan_id}/continuity"]
+
+
+@pytest.mark.parametrize("count", [201, 500, 1000])
+@pytest.mark.parametrize("operation", ["plan", "compare", "preflight", "optimize"])
+def test_scalability_work_does_not_bypass_public_preflight_limit(
+    client: TestClient,
+    session_factory: SessionFactory,
+    manager: AuthenticatedUser,
+    monkeypatch: pytest.MonkeyPatch,
+    count: int,
+    operation: str,
+) -> None:
+    from app.modules.load_planning import distribution_service
+    from app.modules.load_planning.optimizer import engine
+
+    scenario = seed_planning_scenario(session_factory, quantity=count)
+    second_truck = seed_comparison_truck(session_factory)
+
+    def forbidden_expansion(*_args):
+        pytest.fail("oversized input must fail before expansion/calculation")
+
+    monkeypatch.setattr(engine, "expand_order_items", forbidden_expansion)
+    monkeypatch.setattr(distribution_service, "expand_order_items", forbidden_expansion)
+    payload = {"order_ids": [str(scenario.order_id)]}
+    if operation == "plan":
+        path = "/api/v1/load-plans"
+        payload["truck_id"] = str(scenario.truck_id)
+    elif operation == "compare":
+        path = "/api/v1/load-plans/compare-trucks"
+        payload["truck_ids"] = [str(scenario.truck_id), str(second_truck)]
+    else:
+        path = f"/api/v1/load-distributions/{operation}"
+    response = client.post(path, json=payload, headers=manager.headers)
+    assert response.status_code == 422
+    assert response.json()["code"] == "LOAD_PLAN_VOLUME_LIMIT_EXCEEDED"
+    assert response.json()["details"] == [
+        {"field": "order_ids", "volume_count": count, "max_volumes": 200}
+    ]
+    with session_factory() as db:
+        assert db.scalars(select(LoadPlan)).all() == []
+        assert db.get(Order, scenario.order_id).status == "READY"

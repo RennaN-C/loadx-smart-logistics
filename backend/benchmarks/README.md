@@ -34,6 +34,80 @@ conservação de todos os volumes e `algorithm_version = heuristic-v1`.
 máquina e versão do Python. Este benchmark básico não define SLA nem limiar de
 aprovação; compare resultados somente em ambientes equivalentes.
 
+## Issue #430 — matriz geométrica e multi-caminhão
+
+`CONFIRMADO`: `benchmark_scalability.py` e `scalability_cases.py` complementam
+o perfil leve da OC21. Usam somente dados sintéticos, UUIDs determinísticos e
+dez perfis: homogêneo, heterogêneo, não empilhável, frágil, entregas, capacidades
+diferentes, sobrecapacidade, denso, distribuição necessária e adversarial.
+Dimensões/peso não causam rejeições triviais nos perfis homogêneo/denso.
+
+Execute de `backend`, em ambiente **isolado**, sem outras medições concorrentes:
+
+```bash
+python -m benchmarks.benchmark_scalability --operations engine \
+  --counts 25 50 100 200 --output /tmp/baseline-engine.json
+python -m benchmarks.benchmark_scalability --operations multi \
+  --profiles dense distribution fleet --truck-counts 1 2 3 5 10 \
+  --output /tmp/baseline-multi.json
+python -m benchmarks.benchmark_scalability --operations compare \
+  --profiles dense heterogeneous --truck-counts 2 3 5 10 \
+  --output /tmp/baseline-comparison.json
+python -m benchmarks.benchmark_scalability --operations engine \
+  --profiles dense heterogeneous adversarial deliveries --counts 100 \
+  --instrument --output /tmp/profile.json
+```
+
+`--backend-root /caminho/checkout/backend` usa outro checkout da engine como
+oráculo/base; o construtor dos cenários continua sendo este runner. Conserve a
+revisão e o hash dos arquivos indicados no JSON. Execuções posteriores usam os
+mesmos argumentos e entradas. Não misture números de profiling/tracemalloc com
+tempos oficiais: instrumentação altera significativamente o custo.
+
+`CONFIRMADO`: cada caso usa subprocesso novo, timeout de parede (`--timeout`,
+default 45 s) e limite de espaço de endereçamento (`--memory-mib`, default
+768 MiB); revisões atuais também limitam CPU no filho. Timeout mata/recolhe o
+filho; Ctrl+C encerra o filho e propaga a interrupção. Não há benchmark pesado
+na CI padrão. Os limites do runner são contenção de laboratório, **não SLO HTTP**.
+
+Warmup (default 1) não entra nas três amostras oficiais. JSON registra amostras,
+mínimo/mediana/máximo/desvio padrão; p95 fica nulo com essa amostragem pequena.
+RSS é `ru_maxrss` Linux (KiB), incluindo intérprete/inputs/resultados e cópia
+canônica, capturado antes do oráculo físico. O pai também observa VmHWM, quando
+possível, inclusive em casos interrompidos. Tracemalloc é opcional, numa rodada
+separada com `--allocations`; não mede toda a memória residente.
+
+`--instrument` executa uma rodada separada com cProfile e contagem de chamadas,
+estados criados e pares de profundidade visitados pela implementação-base.
+`classify_aabb_relation` conta avaliações exatas de colisão (incluindo a final);
+`_contact_rectangle` conta avaliações de contato de apoio; os demais nomes de
+função não devem ser interpretados como pares ou estados. Linhas de profiler
+distinguem expansão, ordenação, posicionamento, sequência e revalidação.
+
+`CONFIRMADO`: os resultados passam por oráculo independente que usa células
+inteiras em centímetros, checando colisão, apoio integral, flags, ancestrais,
+profundidade, sequência, peso, rotação e conservação de identidades. O oráculo
+fica fora das amostras de tempo, mas dentro do timeout do processo. Um caso que
+não termina essa verificação não é registrado como sucesso. Canonicalização e
+SHA-256 permitem comparar **todo** o resultado antes/depois, não apenas métricas.
+
+Somente após avaliar a progressão anterior, execute experimentalmente:
+
+```bash
+python -m benchmarks.benchmark_scalability --operations engine \
+  --profiles dense heterogeneous adversarial --counts 500 --experimental-limit \
+  --timeout 30 --output /tmp/experimental-500.json
+```
+
+`RISCO IDENTIFICADO`: `--experimental-limit` altera somente constantes da engine
+e comparação **dentro do filho de benchmark**. Não é configuração da aplicação,
+não afeta HTTP/preflight, não persiste, nem autoriza 500/1.000 em produção.
+Avaliar 1.000 exige evidência favorável em 500. Casos timeout/memória/erro ou
+distribuição incompleta válida são explicitamente distintos de sucesso completo.
+O runner exige Linux (`resource`, `/proc` e cgroup v2). Não executar no Render.
+
+Resultados e decisão de limite: [Issue #430](../../docs/evidencias/issue-430/README.md).
+
 ## OC95 — busca e filtros server-side
 
 `CONFIRMADO`: `benchmark_server_side_filters.py` captura as consultas reais dos
