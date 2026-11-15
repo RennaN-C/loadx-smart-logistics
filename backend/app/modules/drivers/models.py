@@ -60,16 +60,48 @@ class Driver(Base):
 CNH_TYPE_ID = uuid.UUID("00000000-0000-4000-8000-000000000102")
 
 
+def _document_type_owner_default(context) -> uuid.UUID | None:
+    """CNH is global; every other type must belong to the driver organization."""
+    values = context.get_current_parameters()
+    if values.get("document_type_id") == CNH_TYPE_ID:
+        return None
+    return values.get("organization_id") or LEGACY_ORGANIZATION_ID
+
+
 class DriverDocumentType(Base):
     __tablename__ = "driver_document_types"
     __table_args__ = (
         CheckConstraint(
             "length(trim(code)) > 0 AND length(trim(name)) > 0", name="labels_required"
         ),
+        CheckConstraint(
+            "(id = '00000000-0000-4000-8000-000000000102' "
+            "AND organization_id IS NULL AND code = 'CNH') OR "
+            "(id <> '00000000-0000-4000-8000-000000000102' "
+            "AND organization_id IS NOT NULL AND code <> 'CNH')",
+            name="scope_valid",
+        ).ddl_if(dialect="postgresql"),
+        UniqueConstraint(
+            "organization_id",
+            "code",
+            name="uq_driver_document_types__organization_code",
+        ),
+        UniqueConstraint(
+            "id", "organization_id", name="uq_driver_document_types__id_organization"
+        ),
     )
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    code: Mapped[str] = mapped_column(String(32), nullable=False, unique=True)
+    code: Mapped[str] = mapped_column(String(32), nullable=False)
     name: Mapped[str] = mapped_column(String(120), nullable=False)
+    organization_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("organizations.id", ondelete="RESTRICT"),
+        nullable=True,
+        default=lambda context: (
+            None
+            if context.get_current_parameters().get("id") == CNH_TYPE_ID
+            else LEGACY_ORGANIZATION_ID
+        ),
+    )
 
 
 class DriverDocument(Base):
@@ -86,6 +118,19 @@ class DriverDocument(Base):
             "id",
             name="uq_driver_documents__organization_id",
         ),
+        ForeignKeyConstraint(
+            ["document_type_id", "document_type_organization_id"],
+            ["driver_document_types.id", "driver_document_types.organization_id"],
+            name="fk_driver_documents__type_org_scope",
+            ondelete="RESTRICT",
+        ),
+        CheckConstraint(
+            "(document_type_id = '00000000-0000-4000-8000-000000000102' "
+            "AND document_type_organization_id IS NULL) OR "
+            "(document_type_id <> '00000000-0000-4000-8000-000000000102' "
+            "AND document_type_organization_id = organization_id)",
+            name="type_org_scope",
+        ).ddl_if(dialect="postgresql"),
         CheckConstraint("length(trim(reference)) > 0", name="reference_required"),
         CheckConstraint(
             "issued_at IS NULL OR expires_at IS NULL OR expires_at > issued_at",
@@ -111,6 +156,9 @@ class DriverDocument(Base):
     )
     document_type_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("driver_document_types.id", ondelete="RESTRICT"), nullable=False
+    )
+    document_type_organization_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, nullable=True, default=_document_type_owner_default
     )
     legacy_backfill: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, server_default="false"
@@ -139,6 +187,19 @@ class DriverDocumentPolicy(Base):
             "id",
             name="uq_driver_document_policies__organization_id",
         ),
+        ForeignKeyConstraint(
+            ["document_type_id", "document_type_organization_id"],
+            ["driver_document_types.id", "driver_document_types.organization_id"],
+            name="fk_driver_document_policies__type_org_scope",
+            ondelete="RESTRICT",
+        ),
+        CheckConstraint(
+            "(document_type_id = '00000000-0000-4000-8000-000000000102' "
+            "AND document_type_organization_id IS NULL) OR "
+            "(document_type_id <> '00000000-0000-4000-8000-000000000102' "
+            "AND document_type_organization_id = organization_id)",
+            name="type_org_scope",
+        ).ddl_if(dialect="postgresql"),
         UniqueConstraint(
             "driver_id",
             "document_type_id",
@@ -158,6 +219,9 @@ class DriverDocumentPolicy(Base):
     )
     document_type_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("driver_document_types.id", ondelete="RESTRICT"), nullable=False
+    )
+    document_type_organization_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, nullable=True, default=_document_type_owner_default
     )
     required: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, server_default="false"
