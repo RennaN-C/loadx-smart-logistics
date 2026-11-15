@@ -16,6 +16,7 @@ from app.modules.load_planning.distribution_models import (
 from app.modules.load_planning.models import LoadPlan, LoadPlanItem, LoadPlanOrder
 from app.modules.loading.reference_service import LoadingReferenceService
 from app.modules.orders.reference_service import OrderReferenceService
+from app.modules.organizations.models import LEGACY_ORGANIZATION_ID
 
 
 @dataclass(frozen=True, slots=True)
@@ -40,8 +41,11 @@ class LoadPlanSummary:
 
 
 class LoadPlanRepository:
-    def __init__(self, db: Session) -> None:
+    def __init__(
+        self, db: Session, organization_id: uuid.UUID = LEGACY_ORGANIZATION_ID
+    ) -> None:
         self.db = db
+        self.organization_id = organization_id
 
     def list(
         self,
@@ -53,7 +57,7 @@ class LoadPlanRepository:
         operation_scope: str = "all",
         hide_inactive: bool = False,
     ) -> PageResult[LoadPlanSummary]:
-        filters = []
+        filters = [LoadPlan.organization_id == self.organization_id]
         if status is not None:
             filters.append(LoadPlan.status == status)
         if truck_id is not None:
@@ -196,8 +200,7 @@ class LoadPlanRepository:
         summary["order_count"] = summary.pop("operation_order_count")
         return summary
 
-    @staticmethod
-    def _operation_projection():
+    def _operation_projection(self):
         orders = OrderReferenceService.planning_status_projection()
         counts = (
             select(
@@ -301,6 +304,7 @@ class LoadPlanRepository:
             .outerjoin(counts, counts.c.load_plan_id == LoadPlan.id)
             .outerjoin(trip, trip.c.load_plan_id == LoadPlan.id)
             .outerjoin(loading, loading.c.load_plan_id == LoadPlan.id)
+            .where(LoadPlan.organization_id == self.organization_id)
             .subquery()
         )
 
@@ -312,7 +316,10 @@ class LoadPlanRepository:
                 selectinload(LoadPlan.items),
                 selectinload(LoadPlan.recalculated_from),
             )
-            .where(LoadPlan.id == load_plan_id)
+            .where(
+                LoadPlan.id == load_plan_id,
+                LoadPlan.organization_id == self.organization_id,
+            )
         )
         return self.db.scalar(statement)
 
@@ -323,7 +330,10 @@ class LoadPlanRepository:
                 selectinload(LoadPlan.orders),
                 selectinload(LoadPlan.items),
             )
-            .where(LoadPlan.id == load_plan_id)
+            .where(
+                LoadPlan.id == load_plan_id,
+                LoadPlan.organization_id == self.organization_id,
+            )
             .with_for_update()
             .execution_options(populate_existing=True)
         )
@@ -338,12 +348,19 @@ class LoadPlanRepository:
             return False
         statement = (
             select(LoadPlanItem.id)
-            .where(LoadPlanItem.order_item_id.in_(identifiers))
+            .join(LoadPlan, LoadPlan.id == LoadPlanItem.load_plan_id)
+            .where(
+                LoadPlanItem.order_item_id.in_(identifiers),
+                LoadPlan.organization_id == self.organization_id,
+            )
             .limit(1)
         )
         return self.db.scalar(statement) is not None
 
     def add(self, load_plan: LoadPlan) -> LoadPlan:
+        if load_plan.organization_id not in (None, self.organization_id):
+            raise ValueError("Load plan belongs to a different organization.")
+        load_plan.organization_id = self.organization_id
         items = list(load_plan.items)
         load_plan.items = []
         self.db.add(load_plan)
@@ -353,6 +370,8 @@ class LoadPlanRepository:
         return load_plan
 
     def update(self, load_plan: LoadPlan) -> LoadPlan:
+        if load_plan.organization_id != self.organization_id:
+            raise ValueError("Load plan belongs to a different organization.")
         self.db.add(load_plan)
         self.db.flush()
         return load_plan
