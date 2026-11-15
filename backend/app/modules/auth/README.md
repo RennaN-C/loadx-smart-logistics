@@ -277,10 +277,11 @@ fora desta entrega. Nunca confiar em navegador público/compartilhado.
 
 ## Contexto organizacional — fase 1 da v1.4.0
 
-`auth_sessions.active_organization_id` é preenchido no servidor a partir de
-membership ativa. A sessão é recusada se a membership for suspensa/removida ou
-a organização deixar de estar ativa. O cliente não pode enviar o contexto por
-header ou payload.
+`auth_sessions.active_organization_id` é `NOT NULL` e preenchido no servidor
+a partir de membership ativa. A migration valida o backfill antes de aplicar a
+restrição no PostgreSQL. A sessão é recusada se a membership for
+suspensa/removida ou a organização deixar de estar ativa. O cliente não pode
+enviar o contexto por header ou payload.
 
 `CONFIRMADO` (#448): o contexto é obrigatório e limitado à organização legada
 nesta fase. Sessões sem contexto ou com outra organização são revogadas na
