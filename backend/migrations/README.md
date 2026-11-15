@@ -179,6 +179,7 @@ e `platform_owner_grants`. A organização legada é criada a partir de
 `company_profiles` quando disponível e todos os usuários existentes recebem
 membership com seus campos de compatibilidade preservados. Sessões recebem
 `active_organization_id` por backfill e FK composta com usuário/membership.
+Após validar que nenhuma sessão ficou sem contexto, a migration aplica `NOT NULL`.
 
 A migration não semeia proprietário, não cria uma segunda empresa e não habilita
 RLS. Downgrade é bloqueado se houver convites, grant do proprietário, outras
