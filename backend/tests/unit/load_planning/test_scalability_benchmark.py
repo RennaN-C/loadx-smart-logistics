@@ -66,7 +66,6 @@ def test_interruption_kills_worker_and_propagates(monkeypatch):
     assert process.communicate.call_count == 2
 
 
-
 def test_git_revision_never_interprets_backend_root_as_git_cli_option(
     tmp_path, monkeypatch
 ):
