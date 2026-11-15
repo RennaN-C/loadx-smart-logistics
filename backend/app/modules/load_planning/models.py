@@ -132,9 +132,7 @@ class LoadPlan(Base):
         server_default=text("'00000000-0000-4000-8000-000000000301'"),
     )
     truck_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False, index=True)
-    recalculated_from_id: Mapped[uuid.UUID | None] = mapped_column(
-        Uuid, index=True
-    )
+    recalculated_from_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, index=True)
     status: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
 
     truck_snapshot_plate: Mapped[str] = mapped_column(String(16), nullable=False)
