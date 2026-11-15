@@ -1,5 +1,11 @@
 # Issue #430 — escalabilidade da heuristic-v1
 
+> `CONFIRMADO`: este documento registra a entrega e as medições históricas de
+> `c366fb9e`. A integração posterior com `desenvolvimento` está documentada em
+> [integração e revalidação](integracao-desenvolvimento.md). Os tempos e resultados
+> RAW abaixo permanecem os originalmente medidos; não são novas medições da base
+> integrada. O merge posterior ocorreu somente nesta branch de trabalho.
+
 `CONFIRMADO`: investigação e otimização na branch
 `joao/expandir-capacidade-otimizador`, Identificador N/A. Base obtida por fetch:
 `cb9c6f7d7f0e1b2829cae938a15e2fc63d6be09e`. A Issue permanece aberta;
