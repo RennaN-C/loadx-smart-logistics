@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import TypeVar
 
-from sqlalchemy import asc, desc, func, select
+from sqlalchemy import asc, desc, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.core.pagination import PageResult, PaginationParams
@@ -31,12 +31,27 @@ class DocumentRepository:
     def types(self) -> list[DriverDocumentType]:
         return list(
             self.db.scalars(
-                select(DriverDocumentType).order_by(DriverDocumentType.code)
+                select(DriverDocumentType)
+                .where(
+                    or_(
+                        DriverDocumentType.id == CNH_TYPE_ID,
+                        DriverDocumentType.organization_id == self.organization_id,
+                    )
+                )
+                .order_by(DriverDocumentType.code)
             ).all()
         )
 
     def get_type(self, identifier: uuid.UUID) -> DriverDocumentType | None:
-        return self.db.get(DriverDocumentType, identifier)
+        return self.db.scalar(
+            select(DriverDocumentType).where(
+                DriverDocumentType.id == identifier,
+                or_(
+                    DriverDocumentType.id == CNH_TYPE_ID,
+                    DriverDocumentType.organization_id == self.organization_id,
+                ),
+            )
+        )
 
     def list_documents(
         self, driver_id: uuid.UUID, pagination: PaginationParams
