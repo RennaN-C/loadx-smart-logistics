@@ -64,15 +64,11 @@ def test_session_requires_legacy_membership_even_when_another_is_active(
 
 
 @pytest.mark.parametrize("path", ["/api/v1/auth/me", "/api/v1/products"])
-def test_session_rejects_nonlegacy_organization_context(
-    client, session_factory, path
-):
+def test_session_rejects_nonlegacy_organization_context(client, session_factory, path):
     with session_factory() as db:
         user = create_foundation_user(db)
         issued = AuthSessionService(db).create_session(user.id)
-        organization = Organization(
-            legal_name="Outra empresa", display_name="Outra"
-        )
+        organization = Organization(legal_name="Outra empresa", display_name="Outra")
         db.add(organization)
         db.flush()
         db.add(
@@ -111,6 +107,8 @@ def test_session_organization_context_is_required_by_database(session_factory):
 
         db.refresh(issued.auth_session)
         assert issued.auth_session.active_organization_id == LEGACY_ORGANIZATION_ID
+
+
 def test_client_headers_cannot_choose_organization(client, session_factory):
     with session_factory() as db:
         user = create_foundation_user(db)
