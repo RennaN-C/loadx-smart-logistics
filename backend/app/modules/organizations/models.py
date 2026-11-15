@@ -47,8 +47,7 @@ class Organization(Base):
             "cnpj IS NULL OR cnpj ~ '^[0-9]{14}$'", name="cnpj_format"
         ).ddl_if(dialect="postgresql"),
         CheckConstraint(
-            "cnpj IS NULL OR (length(cnpj) = 14 AND "
-            "cnpj NOT GLOB '*[^0-9]*')",
+            "cnpj IS NULL OR (length(cnpj) = 14 AND cnpj NOT GLOB '*[^0-9]*')",
             name="cnpj_format_sqlite",
         ).ddl_if(dialect="sqlite"),
         Index(
