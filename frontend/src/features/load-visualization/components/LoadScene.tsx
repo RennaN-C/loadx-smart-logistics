@@ -1,309 +1,179 @@
-import { Canvas, useFrame } from "@react-three/fiber";
-import { useEffect, useMemo, useRef } from "react";
-import { BackSide, BoxGeometry, type Group } from "three";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { memo, useEffect, useLayoutEffect, useMemo, useRef, useSyncExternalStore, type RefObject } from "react";
+import { BackSide, type Group } from "three";
 
 import type { PlacedItem, TruckSnapshot } from "../../load-planning/types";
+import { useTruckCabModel } from "../hooks/useTruckCabModel";
+import { Backdrop } from "./Backdrop";
 import { cargoTextures, kraftVariant } from "./cargoTexture";
 import { viewCamera, type ViewPreset } from "./cameraViews";
-import { deliveryColor, itemBox, truckBox } from "./sceneGeometry";
 import { classifyProduct } from "./productKind";
-import { TruckCabMesh } from "./TruckCabMesh";
-import { cabFrontWheels } from "./truckCabModel";
-import { Backdrop } from "./Backdrop";
 import { SceneCamera } from "./SceneCamera";
 import { vehicleBounds } from "./sceneBackdrop";
-import { TruckShellMesh } from "./TruckShellMesh";
-import { useTruckCabModel } from "../hooks/useTruckCabModel";
+import { deliveryColor, itemBox, truckBox } from "./sceneGeometry";
+import { createSceneResources, type SceneResources } from "./sceneResources";
+import { TruckCabMesh } from "./TruckCabMesh";
+import { cabFrontWheels } from "./truckCabModel";
 import { truckShell } from "./truckShell";
+import { TruckShellMesh } from "./TruckShellMesh";
 
-/** Quanto o desenho do baú afunda para não coincidir com a base dos volumes. */
 const SHELL_SINK = 0.012;
-
-/** Duração da entrada de um volume no passo a passo, em segundos. */
 const ENTRY_SECONDS = 0.55;
-/** Onde o volume nasce antes de entrar: um pouco além da porta. */
 const ENTRY_MARGIN = 1.4;
+
+function subscribeReducedMotion(listener: () => void) {
+  const query = window.matchMedia("(prefers-reduced-motion: reduce)");
+  query.addEventListener("change", listener);
+  return () => query.removeEventListener("change", listener);
+}
+function reducedMotionSnapshot() {
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function EntryMotion({ group, finalZ, doorZ }: {
+  readonly group: RefObject<Group>;
+  readonly finalZ: number;
+  readonly doorZ: number;
+}) {
+  const invalidate = useThree((state) => state.invalidate);
+  const progress = useRef(0);
+  useLayoutEffect(() => {
+    const node = group.current;
+    progress.current = 0;
+    if (node) node.position.z = doorZ + ENTRY_MARGIN;
+    invalidate();
+    return () => {
+      if (node) node.position.z = finalZ;
+      invalidate();
+    };
+  }, [group, finalZ, doorZ, invalidate]);
+
+  useFrame((_, delta) => {
+    if (!group.current || progress.current >= 1) return;
+    // A demand renderer can resume after being idle; don't consume idle time.
+    progress.current = Math.min(1, progress.current + Math.min(delta, 0.05) / ENTRY_SECONDS);
+    const eased = 1 - (1 - progress.current) ** 3;
+    group.current.position.z = doorZ + ENTRY_MARGIN + (finalZ - doorZ - ENTRY_MARGIN) * eased;
+    if (progress.current < 1) invalidate();
+  });
+  return null;
+}
 
 interface VolumeProps {
   readonly item: PlacedItem;
   readonly selected: boolean;
   readonly dimmed: boolean;
   readonly realistic: boolean;
-  /** Já resolvido por quem chama: só é `true` com o realce ligado E item frágil. */
   readonly fragile: boolean;
-  /** Este é o volume que está ENTRANDO agora no passo a passo. */
   readonly entering: boolean;
-  /** Z da porta do baú: de onde o volume entra deslizando. */
+  readonly reducedMotion: boolean;
   readonly doorZ: number;
   readonly onSelect: (id: string) => void;
+  readonly resources: SceneResources;
 }
 
-function Volume({
-  item,
-  selected,
-  dimmed,
-  realistic,
-  fragile,
-  entering,
-  doorZ,
-  onSelect,
-}: VolumeProps) {
-  // As medidas vêm do item, JÁ ROTACIONADAS pelo backend. Volume grande é
-  // grande na cena; se todos aparecem iguais, é porque foram cadastrados iguais.
+const Volume = memo(function Volume({ item, selected, dimmed, realistic, fragile, entering,
+  reducedMotion, doorZ, onSelect, resources }: VolumeProps) {
   const box = itemBox(item);
-  const color = deliveryColor(item.deliverySequence);
-  // O nome cadastrado decide a aparência: "TV 50" vira tela, não caixa.
-  // O tom do papelão sai do CÓDIGO do produto: pilha do mesmo item fica
-  // uniforme, pilhas diferentes não saem todas iguais.
-  const faces = realistic
-    ? cargoTextures(classifyProduct(item.productName), kraftVariant(item.productCode))
-    : null;
-  // uma geometria por volume, reaproveitada entre quadros
-  const geometria = useMemo(
-    () => new BoxGeometry(box.size[0], box.size[1], box.size[2]),
-    [box.size],
-  );
-
-  /**
-   * Entrada deslizando da porta. A câmera fica parada de propósito — quem
-   * confere precisa manter o próprio ângulo —, então o movimento do volume é o
-   * único sinal de qual está entrando agora.
-   *
-   * O progresso vive num ref, não em estado: animar por estado dispararia um
-   * render do React a cada quadro, e quem já está dentro do laço de renderização
-   * do Three não precisa disso.
-   */
   const group = useRef<Group>(null);
-  const progress = useRef(1);
-
-  useEffect(() => {
-    progress.current = entering ? 0 : 1;
-  }, [entering, item.id]);
-
-  useFrame((_, delta) => {
-    if (group.current === null) return;
-
-    if (progress.current < 1) {
-      progress.current = Math.min(1, progress.current + delta / ENTRY_SECONDS);
-    }
-    // desacelera no fim, que é como uma caixa encosta no lugar
-    const eased = 1 - (1 - progress.current) ** 3;
-    const partida = doorZ + ENTRY_MARGIN;
-    group.current.position.z = partida + (box.position[2] - partida) * eased;
-  });
+  const color = deliveryColor(item.deliverySequence);
+  const faces = realistic ? cargoTextures(classifyProduct(item.productName), kraftVariant(item.productCode)) : null;
 
   return (
-    <group ref={group} position={box.position}>
-      <mesh
-        castShadow={realistic && !dimmed}
-        receiveShadow={realistic && !dimmed}
-        onClick={(event) => {
-          event.stopPropagation();
-          onSelect(item.id);
+    <group ref={group} position={box.position} scale={box.size}>
+      {entering && !reducedMotion ? <EntryMotion group={group} finalZ={box.position[2]} doorZ={doorZ} /> : null}
+      <mesh geometry={resources.unitBox}
+        material={faces ? resources.cargoMaterials(faces, dimmed) : resources.flatCargoMaterial(color, dimmed)}
+        castShadow={realistic && !dimmed} receiveShadow={realistic && !dimmed}
+        onClick={(event) => { event.stopPropagation(); onSelect(item.id); }}
+        onPointerOver={(event) => {
+          const canvas = event.nativeEvent.target;
+          if (canvas instanceof HTMLCanvasElement) canvas.style.cursor = "pointer";
         }}
-      >
-        <boxGeometry args={box.size} />
-        {faces ? (
-          // um material por face: a frente do produto olha para a porta do baú
-          faces.map((texture, index) => (
-            <meshStandardMaterial
-              key={`${item.id}-${index}`}
-              attach={`material-${index}`}
-              map={texture ?? undefined}
-              // A mesma imagem serve de relevo: a fibra, a fita e a cinta
-              // deixam de ser desenho e passam a pegar luz como superfície.
-              bumpMap={texture ?? undefined}
-              bumpScale={0.35}
-              // Sem `color`: tingir deixaria a TV laranja, e TV laranja não é
-              // TV. A cor da entrega migrou para a aresta, logo abaixo.
-              roughness={0.88}
-              metalness={0}
-              transparent={dimmed}
-              opacity={dimmed ? 0.12 : 1}
-            />
-          ))
-        ) : (
-          <meshLambertMaterial
-            color={selected ? "#ffffff" : color}
-            transparent
-            opacity={dimmed ? 0.12 : 0.92}
-          />
-        )}
-      </mesh>
-
-      {/* Contorno: separa volumes encostados, que sem ele viram um bloco só.
-          No modo realista ele ganha a COR DA ENTREGA — é assim que o
-          agrupamento sobrevive sem pintar o produto, que precisa manter as
-          cores dele para ser reconhecido.
-
-          São as 12 ARESTAS, não uma caixa em modo arame. A caixa antiga ficava
-          0,1% maior que o volume, o que dá dois décimos de milímetro num volume
-          de 40 cm — dentro da margem de erro do buffer de profundidade, ou seja,
-          piscava. Aresta não tem superfície e não entra nessa disputa. */}
-      <lineSegments>
-        <edgesGeometry args={[geometria]} />
-        <lineBasicMaterial
-          color={fragile ? "#e0685a" : realistic ? color : "#14181d"}
-          transparent
-          opacity={dimmed ? 0.06 : fragile ? 1 : realistic ? 0.75 : 0.35}
-        />
+        onPointerOut={(event) => {
+          const canvas = event.nativeEvent.target;
+          if (canvas instanceof HTMLCanvasElement) canvas.style.cursor = "";
+        }} />
+      <lineSegments geometry={resources.unitEdges}>
+        <lineBasicMaterial color={fragile ? "#e0685a" : color} transparent
+          opacity={dimmed ? 0.07 : selected || fragile ? 1 : 0.68} />
       </lineSegments>
-
-      {/* Selecionado ganha uma gaiola de acento: com textura, clarear o volume
-          deixou de ser sinal suficiente. */}
-      {selected ? (
-        <mesh>
-          <boxGeometry args={[box.size[0] * 1.02, box.size[1] * 1.02, box.size[2] * 1.02]} />
-          <meshBasicMaterial color="#c97a22" wireframe />
-        </mesh>
-      ) : null}
+      {selected ? <lineSegments geometry={resources.unitEdges} scale={[1.012, 1.012, 1.012]} renderOrder={3}>
+        <lineBasicMaterial color="#f0ad55" depthTest={false} transparent opacity={0.95} />
+      </lineSegments> : null}
     </group>
   );
-}
+});
 
 export interface LoadSceneProps {
   readonly truck: TruckSnapshot;
   readonly items: readonly PlacedItem[];
   readonly selectedId: string | null;
   readonly onSelect: (id: string | null) => void;
-  /** Itens visíveis; usado pela animação de carregamento (OC33). */
   readonly visibleIds: ReadonlySet<string> | null;
-  /** Exterior do caminhão ligado; desligado mostra só o baú e a carga. */
   readonly showTruck: boolean;
-  /** Superfície do produto e sombras; desligado volta às cores chapadas. */
   readonly realistic: boolean;
-  /** Ângulo de onde a cena é olhada. */
   readonly view: ViewPreset;
-  /** Realça os volumes marcados como frágeis no cadastro. */
   readonly highlightFragile: boolean;
-  /** Volume que entra deslizando agora; null fora do passo a passo. */
   readonly enteringId: string | null;
+  readonly resetToken?: number;
 }
 
-export function LoadScene({
-  truck,
-  items,
-  selectedId,
-  onSelect,
-  visibleIds,
-  showTruck,
-  realistic,
-  view,
-  highlightFragile,
-  enteringId,
-}: LoadSceneProps) {
+function SceneContent({ truck, items, selectedId, onSelect, visibleIds, showTruck, realistic,
+  view, highlightFragile, enteringId, resetToken = 0 }: LoadSceneProps) {
+  const resources = useMemo(createSceneResources, []);
+  useEffect(() => () => resources.dispose(), [resources]);
+  const reducedMotion = useSyncExternalStore(subscribeReducedMotion, reducedMotionSnapshot, () => true);
   const box = truckBox(truck);
-  const shell = truckShell(truck);
-  // Cabine importada. Chega depois do primeiro quadro; até lá, e se falhar,
-  // vale a cabine desenhada em código.
+  const shell = useMemo(() => truckShell(truck), [truck]);
   const cabModel = useTruckCabModel();
-  // A carga sobe junto com o piso do baú. As coordenadas dos volumes seguem
-  // intactas dentro do grupo — nenhuma conversão a mais, nenhuma chance de
-  // divergir do que o backend calculou.
+  const cabWheels = useMemo(() => cabModel ? cabFrontWheels(truck) : [], [cabModel, truck]);
   const deck = showTruck ? shell.deckHeight : 0;
   const bounds = vehicleBounds(truck, showTruck);
-  const camera = viewCamera(truck, view, deck);
-
-  // A sombra precisa enquadrar o baú inteiro, senão só parte da carga projeta.
-  const alcance = Math.max(box.size[0], box.size[1], box.size[2]) * 1.2;
+  const reach = Math.max(...box.size) * 1.2;
   const cx = box.position[0];
 
-  // Reaproveitada entre renders: criar geometria a cada quadro vaza memória de GPU.
-  const caixaDoBau = useMemo(
-    () => new BoxGeometry(box.size[0], box.size[1], box.size[2]),
-    [box.size],
-  );
+  return <>
+    <Backdrop bounds={bounds} realistic={realistic} />
+    <hemisphereLight args={["#e4edf5", "#5a5046", realistic ? 1.15 : 1.4]} />
+    <directionalLight position={[reach * 0.8, reach * 1.3, reach * 0.7]} intensity={realistic ? 1.8 : 1.1}
+      castShadow={realistic} shadow-mapSize={items.length > 300 ? [1024, 1024] : [2048, 2048]}
+      shadow-camera-left={-reach} shadow-camera-right={reach} shadow-camera-top={reach}
+      shadow-camera-bottom={-reach} shadow-camera-far={reach * 4} shadow-bias={-0.0006} shadow-normalBias={0.018} />
+    <directionalLight position={[-reach, reach * 0.65, -reach]} intensity={0.55} color="#c2d8ee" />
+    <directionalLight position={[cx, reach * 0.5, -reach * 0.8]} intensity={0.32} color="#f2d2a5" />
+    {showTruck ? <TruckShellMesh shell={shell} hideCab={cabModel !== null}
+      sharedGeometry={resources.unitBox} cabWheels={cabWheels} /> : null}
+    {showTruck && cabModel ? <TruckCabMesh model={cabModel} truck={truck} /> : null}
 
-  return (
-    <Canvas
-      camera={{
-        position: camera.position,
-        fov: 45,
-        // O padrão vai de 0,1 a 1000 e joga fora precisão de profundidade num
-        // cenário de ~20 m. Apertar o alcance é o que dá margem para superfícies
-        // próximas não brigarem.
-        near: 0.05,
-        far: 200,
-      }}
-      shadows={realistic}
-      onPointerMissed={() => onSelect(null)}
-    >
-      <Backdrop bounds={bounds} realistic={realistic} />
+    <group position={[0, deck, 0]}>
+      <mesh geometry={resources.unitBox} position={[box.position[0], -0.055, box.position[2]]}
+        scale={[box.size[0], 0.05, box.size[2]]} receiveShadow={realistic}>
+        <meshStandardMaterial color="#8e9aa3" roughness={0.78} metalness={0.22} />
+      </mesh>
+      <mesh geometry={resources.unitBox} position={[box.position[0], box.position[1] - SHELL_SINK, box.position[2]]}
+        scale={box.size}>
+        <meshLambertMaterial color="#c8d6df" side={BackSide} transparent opacity={0.15} depthWrite={false} />
+      </mesh>
+      <lineSegments geometry={resources.unitEdges} position={box.position} scale={box.size}>
+        <lineBasicMaterial color="#8c9cab" transparent opacity={0.78} />
+      </lineSegments>
+      {items.map((item) => <Volume key={item.id} item={item} selected={item.id === selectedId}
+        dimmed={visibleIds !== null && !visibleIds.has(item.id)} realistic={realistic}
+        fragile={highlightFragile && item.fragile} entering={item.id === enteringId}
+        reducedMotion={reducedMotion} doorZ={box.size[2]} onSelect={onSelect} resources={resources} />)}
+    </group>
+    <SceneCamera truck={truck} view={view} deck={deck} resetToken={resetToken} />
+  </>;
+}
 
-      {realistic ? (
-        <>
-          {/* Céu por cima, chão quente por baixo: dá volume às caixas sem
-              precisar de mapa de ambiente, que custaria bytes no chunk. */}
-          <hemisphereLight args={["#dfe7f2", "#6b5b46", 0.85]} />
-          <directionalLight
-            position={[alcance * 0.8, alcance * 1.3, alcance * 0.7]}
-            intensity={1.5}
-            castShadow
-            shadow-mapSize={[2048, 2048]}
-            shadow-camera-left={-alcance}
-            shadow-camera-right={alcance}
-            shadow-camera-top={alcance}
-            shadow-camera-bottom={-alcance}
-            shadow-camera-far={alcance * 4}
-            shadow-bias={-0.0012}
-          />
-          <directionalLight position={[-alcance, alcance * 0.5, -alcance]} intensity={0.32} />
-          {/* rasante de trás: separa uma caixa da outra nas pilhas do fundo,
-              onde a luz principal não alcança e tudo virava um bloco escuro */}
-          <directionalLight position={[cx, alcance * 0.35, -alcance * 0.8]} intensity={0.22} />
-        </>
-      ) : (
-        <>
-          <ambientLight intensity={0.75} />
-          <directionalLight position={[6, 10, 8]} intensity={1.1} />
-          <directionalLight position={[-6, 4, -6]} intensity={0.35} />
-        </>
-      )}
-
-      {showTruck ? (
-        <TruckShellMesh
-          shell={shell}
-          hideCab={cabModel !== null}
-          cabWheels={cabModel ? cabFrontWheels(truck) : []}
-        />
-      ) : null}
-      {showTruck && cabModel ? <TruckCabMesh model={cabModel} truck={truck} /> : null}
-
-      <group position={[0, deck, 0]}>
-        {/* Baú: caixa vista por dentro, para não tapar a carga.
-            Afundado alguns milímetros de propósito. Com o piso exatamente na
-            altura em que os volumes se apoiam, as duas superfícies disputavam o
-            mesmo valor de profundidade e a placa alternava entre elas a cada
-            quadro — o piso piscava ao girar a câmera. Os volumes NÃO se movem:
-            quem desce é só o desenho do baú. */}
-        <mesh position={[box.position[0], box.position[1] - SHELL_SINK, box.position[2]]} receiveShadow={realistic}>
-          <boxGeometry args={box.size} />
-          <meshLambertMaterial color="#d9d5c7" side={BackSide} transparent opacity={0.35} />
-        </mesh>
-        {/* Só as 12 arestas, em vez de uma segunda caixa em modo arame. A caixa
-            duplicada era coplanar com a de cima — mesma briga —, e o arame ainda
-            desenhava as diagonais de cada face, que não existem no baú. */}
-        <lineSegments position={box.position}>
-          <edgesGeometry args={[caixaDoBau]} />
-          <lineBasicMaterial color="#5f5b52" />
-        </lineSegments>
-
-        {items.map((item) => (
-          <Volume
-            key={item.id}
-            item={item}
-            selected={item.id === selectedId}
-            dimmed={visibleIds !== null && !visibleIds.has(item.id)}
-            realistic={realistic}
-            fragile={highlightFragile && item.fragile}
-            entering={item.id === enteringId}
-            doorZ={box.size[2]}
-            onSelect={onSelect}
-          />
-        ))}
-      </group>
-
-      <SceneCamera truck={truck} view={view} deck={deck} />
-    </Canvas>
-  );
+export function LoadScene(props: LoadSceneProps) {
+  const deck = props.showTruck ? truckShell(props.truck).deckHeight : 0;
+  const camera = viewCamera(props.truck, props.view, deck);
+  return <Canvas frameloop="demand" dpr={[1, 1.5]} shadows={props.realistic}
+    camera={{ position: camera.position, fov: 45, near: 0.05, far: 200 }}
+    onPointerMissed={() => props.onSelect(null)}
+    role="img" aria-label={`Carga em 3D do caminhão ${props.truck.plate}`}>
+    <SceneContent {...props} />
+  </Canvas>;
 }

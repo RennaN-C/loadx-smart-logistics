@@ -8,6 +8,7 @@ interface SceneCameraProps {
   readonly truck: TruckSnapshot;
   readonly view: ViewPreset;
   readonly deck: number;
+  readonly resetToken?: number;
 }
 
 /**
@@ -20,11 +21,11 @@ interface SceneCameraProps {
  * `size` muda em redimensionamento de verdade, não a cada quadro, então a
  * câmera não volta ao preset enquanto a pessoa gira a cena.
  */
-export function SceneCamera({ truck, view, deck }: SceneCameraProps) {
+export function SceneCamera({ truck, view, deck, resetToken = 0 }: SceneCameraProps) {
   const size = useThree((state) => state.size);
   const aspect = size.height > 0 ? size.width / size.height : 1;
 
   const { position, target } = viewCamera(truck, view, deck, aspect);
 
-  return <CameraControls target={target} position={position} />;
+  return <CameraControls target={target} position={position} resetToken={resetToken} />;
 }

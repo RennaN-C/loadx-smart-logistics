@@ -291,12 +291,13 @@ Junto disso, a câmera passou a usar `near: 0.05` e `far: 200`. O padrão vai de
 desperdiça precisão de profundidade num cenário de vinte metros — apertar o alcance é o que dá
 margem para superfícies próximas conviverem.
 
-## Por que a cena não tem teste de render
+## Testes unitários e renderização real
 
 WebGL não existe em jsdom, então renderizar `<Canvas>` no Vitest quebraria. A estratégia é: toda a
 matemática mora em `sceneGeometry.ts` e é testada de verdade (inclusive um caso que confirma que o
 volume fica dentro do baú); a cena em si é uma casca declarativa. Nos testes de `PlanningPage`, o
-`LoadViewer` é mockado.
+`LoadViewer` é mockado. A validação WebGL real é feita separadamente pelo roteiro
+de navegador descrito na seção da Issue #455 abaixo.
 
 ## Carregamento sob demanda
 
@@ -326,3 +327,62 @@ retira geometria anterior durante a consulta; respostas tardias são descartadas
 SceneBoundary limita falhas WebGL ao visualizador; métricas e tabela continuam
 operacionais. Não houve alteração em LoadScene, CameraControls, materiais,
 posições, rotações, dimensões, capacidades ou regras de cor.
+
+## Experiência profissional — Issue #455
+
+`CONFIRMADO`: o workspace identifica placa/modelo e situação do plano, separa
+indicadores da cena, oferece seleção de volume por lista acessível e consulta de
+capacidade, peso utilizado e espaço remanescente. Ocupação e peso continuam sendo
+os valores publicados pelo backend; saldos são apenas diferenças aritméticas
+entre os totais recebidos, sem validação ou aprovação geométrica no navegador.
+
+`CONFIRMADO`: câmera possui vistas isométrica, frontal, lateral, superior,
+traseira e interna. Selecionar novamente uma vista e **Centralizar câmera**
+reenquadram sem refetch ou perda da seleção. Órbita, zoom, pan, expansão, Escape
+e retorno do foco permanecem funcionais. Atalhos da sequência não interceptam
+campos de formulário. O detalhe acompanha a reprodução automática.
+
+`CONFIRMADO`: caixas e contornos usam geometria unitária compartilhada e escala
+exata das dimensões recebidas. Materiais são reutilizados por textura/estado e
+recursos próprios são descartados ao desmontar. Cabines clonam o grafo por viewer,
+preservando geometria/texturas do cache limitado. Renderização ocorre sob demanda,
+com DPR limitado a 1,5; movimentos solicitam frames somente enquanto necessários.
+A entrada de volumes respeita `prefers-reduced-motion`.
+
+`CONFIRMADO`: acabamento de piso, estrutura, iluminação, rodas e refletores foi
+melhorado sem invadir o espaço útil ou alterar posições, rotações e medidas da
+carga. Não há detector de colisão no frontend; volumes rejeitados usam os motivos
+publicados pelo backend. Nenhuma dependência de aplicação foi adicionada.
+
+### Validação reproduzível
+
+Na pasta `frontend`, com Node 22.23.1: `npm run lint`, `npx tsc -b --pretty false`,
+`npm test -- --run` e `npm run build`. O orçamento de 250 KiB gzip continua ativo.
+
+Na raiz, com Playwright instalado separadamente como ferramenta de QA:
+
+```powershell
+$env:PLAYWRIGHT_MODULE_PATH = '<diretorio-de-qa>/node_modules/playwright'
+node qa/browser/planner-professional.cjs --url http://127.0.0.1:5187 --phase after --out .tmp/3d-planner/after
+```
+
+`CONFIRMADO`: o roteiro usa a aplicação real e WebGL, com fixtures fictícias
+exclusivamente no navegador. Cobre dois veículos, 200 volumes em um veículo,
+seleção, câmera, expansão/foco, tema claro/escuro, 375/1600 px, vazio, erro/retry,
+perfil sem leitura e ausência de mutações. Mede chamadas de desenho em repouso.
+`RISCO IDENTIFICADO`: esses testes comprovam a interface; não homologam o
+otimizador, a autenticação ou o isolamento do backend.
+
+`CONFIRMADO`: preview visual foi autorizado separadamente pelo responsável.
+Seu artefato deve negar `/api` com 503, preservar CSP e fallback SPA e conter
+somente o build estático aprovado. Não reutilizar o rewrite do ambiente
+compartilhado nem alterar o projeto Vercel/Render. Fixtures de teste nunca
+integram o bundle da aplicação. Evidências ficam em `.tmp` ou anexos da PR,
+conforme a política de documentação do repositório.
+
+`CONFIRMADO`: `frontend/vercel.json` desabilita deploy Git automático somente
+para `feat/3d-planner-professional`, evitando publicar acidentalmente um preview
+com o proxy compartilhado. As regras de rewrite, headers e demais branches
+permanecem iguais. `node qa/browser/prepare-planner-preview.cjs` prepara um
+artefato separado em `.tmp`, com manifest SHA-1/tamanho e configuração estática
+503, sem código backend, dependências, `.env` ou mudanças no projeto remoto.

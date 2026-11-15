@@ -1,12 +1,13 @@
 import { useDialogLifecycle } from "../../../components/useDialogLifecycle";
 import { Icon } from "../../../components/Icon";
 import { SceneBoundary } from "./SceneBoundary";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 
 import { AlertBanner } from "../../../components/AlertBanner";
 import { ApiError } from "../../../types/api";
 import { getLoadPlanVisualization } from "../../load-planning/api/loadPlansApi";
-import { REJECTION_LABELS, ROTATION_LABELS } from "../../load-planning/components/loadPlanLabels";
+import { PLAN_STATUS_LABELS, REJECTION_LABELS, ROTATION_LABELS, planStatusTone } from "../../load-planning/components/loadPlanLabels";
+import { StatusPill } from "../../../components/StatusPill";
 import { mapLoadPlanErrorToMessage } from "../../load-planning/components/loadPlansErrorMessages";
 import type { LoadPlan, LoadPlanVisualization, PlacedItem } from "../../load-planning/types";
 import { VIEW_HINTS, VIEW_LABELS, VIEW_PRESETS, type ViewPreset } from "./cameraViews";
@@ -16,6 +17,8 @@ import "./LoadViewer.css";
 
 /** Passo da animação de carregamento, em ms por volume. */
 const STEP_MS = 420;
+const displayNumber = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 });
+const displayCapacity = (value: number) => Number.isFinite(value) ? displayNumber.format(value) : "—";
 
 interface LoadViewerProps {
   readonly planId: string;
@@ -32,6 +35,7 @@ export function LoadViewer(props: LoadViewerProps) {
 }
 
 function LoadViewerWorkspace({ planId, plan }: LoadViewerProps) {
+  const controlId = useId();
   const [expanded, setExpanded] = useState(false);
   const workspace = useRef<HTMLDivElement>(null);
   useDialogLifecycle(workspace, expanded, () => setExpanded(false));
@@ -44,12 +48,18 @@ function LoadViewerWorkspace({ planId, plan }: LoadViewerProps) {
   const [realistic, setRealistic] = useState(true);
   // `view` já é a visualização carregada; este é o ÂNGULO da câmera.
   const [angle, setAngle] = useState<ViewPreset>("isometric");
+  const [resetToken, setResetToken] = useState(0);
   const [highlightFragile, setHighlightFragile] = useState(false);
 
   // OC33: quantos volumes já "entraram" no baú. null = carga completa, sem animar.
   const [step, setStep] = useState<number | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const timer = useRef<number | null>(null);
+  const selectVolume = useCallback((id: string | null) => {
+    setIsPlaying(false);
+    setStep(null);
+    setSelectedId(id);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -117,6 +127,7 @@ function LoadViewerWorkspace({ planId, plan }: LoadViewerProps) {
   }, [ordered, step]);
 
   const current = step === null ? null : (ordered[step] ?? null);
+  const detailId = current?.id ?? selectedId;
 
   const goTo = useCallback(
     (next: number) => {
@@ -135,6 +146,9 @@ function LoadViewerWorkspace({ planId, plan }: LoadViewerProps) {
     if (step === null) return;
 
     const onKey = (event: KeyboardEvent) => {
+      const target = event.target;
+      if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey ||
+        (target instanceof HTMLElement && (target.isContentEditable || target.closest("input, select, textarea, [role='slider']")))) return;
       if (event.key === "ArrowRight") {
         event.preventDefault();
         goTo(step + 1);
@@ -148,7 +162,7 @@ function LoadViewerWorkspace({ planId, plan }: LoadViewerProps) {
     return () => window.removeEventListener("keydown", onKey);
   }, [goTo, step]);
 
-  const selected: PlacedItem | undefined = ordered.find((item) => item.id === selectedId);
+  const selected: PlacedItem | undefined = ordered.find((item) => item.id === detailId);
 
   if (isLoading) {
     return (
@@ -168,47 +182,63 @@ function LoadViewerWorkspace({ planId, plan }: LoadViewerProps) {
 
   return (
     <div ref={workspace} className={`viewer${expanded ? " is-expanded" : ""}`} data-plan-id={planId} role={expanded ? "dialog" : undefined} aria-modal={expanded || undefined} aria-label={expanded ? "Visualização 3D da carga" : undefined} tabIndex={expanded ? -1 : undefined}>
-      <div className="viewer-toolbar"><div><h3>Carga em 3D</h3></div><button type="button" className="btn-secondary" onClick={() => setExpanded((value) => !value)}>{expanded ? "Sair do modo expandido" : "Expandir visualização 3D"}</button></div>
+      <div className="viewer-toolbar">
+        <div className="viewer-identity">
+          <span className="viewer-identity-icon"><Icon name="truck" size={24} /></span>
+          <div><span className="viewer-eyebrow">PLANEJAMENTO DE CARGA</span><h3>{view.truck.plate} <span>· {view.truck.model}</span></h3></div>
+        </div>
+        <div className="viewer-toolbar-actions"><StatusPill tone={planStatusTone(plan.status)}>{PLAN_STATUS_LABELS[plan.status]}</StatusPill><button type="button" className="btn-secondary" onClick={() => setExpanded((value) => !value)}>{expanded ? "Sair do modo expandido" : "Expandir visualização 3D"}</button></div>
+      </div>
       {/* Números do backend, não recalculados aqui. */}
       <div className="viewer-canvas">
+        <div className="viewer-camera-bar">
+          <div className="viewer-views" role="group" aria-label="Ângulo da câmera">
+            {VIEW_PRESETS.map((preset) => <button key={preset} type="button" className={preset === angle ? "viewer-view is-active" : "viewer-view"} aria-pressed={preset === angle} title={VIEW_HINTS[preset]} onClick={() => { setAngle(preset); setResetToken((value) => value + 1); }}>{VIEW_LABELS[preset]}</button>)}
+          </div>
+          <button type="button" className="viewer-reset" onClick={() => setResetToken((value) => value + 1)} title="Reenquadrar o veículo no ângulo atual">Centralizar câmera</button>
+        </div>
+        <div className="viewer-scene-frame" role="img" aria-label={`Carga de ${view.truck.plate}: ${plan.loadedCount} volumes. Use o seletor de volumes para consultar os detalhes pelo teclado.`}>
         <SceneBoundary>
         <LoadScene
           truck={view.truck}
           items={ordered}
-          selectedId={selectedId}
-          onSelect={setSelectedId}
+          selectedId={detailId}
+          onSelect={selectVolume}
           visibleIds={visibleIds}
           showTruck={showTruck}
           realistic={realistic}
           view={angle}
           highlightFragile={highlightFragile}
           enteringId={current?.id ?? null}
+          resetToken={resetToken}
         />
         </SceneBoundary>
+        </div>
+        <div className="viewer-scene-caption"><span><span className="viewer-live-dot" aria-hidden="true" />Área útil · {displayCapacity(view.truck.widthCm)} × {displayCapacity(view.truck.heightCm)} × {displayCapacity(view.truck.lengthCm)} cm</span><span>Arraste para girar · roda para zoom · botão direito para mover</span></div>
       </div>
 
       <div className="viewer-controls">
-        <label className="viewer-toggle" htmlFor="viewer-fragile">
+        <label className="viewer-toggle" htmlFor={`${controlId}-fragile`}>
           <input
-            id="viewer-fragile"
+            id={`${controlId}-fragile`}
             type="checkbox"
             checked={highlightFragile}
             onChange={(event) => setHighlightFragile(event.target.checked)}
           />
           <span>Destacar frágeis</span>
         </label>
-        <label className="viewer-toggle" htmlFor="viewer-realistic">
+        <label className="viewer-toggle" htmlFor={`${controlId}-realistic`}>
           <input
-            id="viewer-realistic"
+            id={`${controlId}-realistic`}
             type="checkbox"
             checked={realistic}
             onChange={(event) => setRealistic(event.target.checked)}
           />
           <span>Realista</span>
         </label>
-        <label className="viewer-toggle" htmlFor="viewer-show-truck">
+        <label className="viewer-toggle" htmlFor={`${controlId}-truck`}>
           <input
-            id="viewer-show-truck"
+            id={`${controlId}-truck`}
             type="checkbox"
             checked={showTruck}
             onChange={(event) => setShowTruck(event.target.checked)}
@@ -230,11 +260,6 @@ function LoadViewerWorkspace({ planId, plan }: LoadViewerProps) {
           {step === null ? "Ver carregamento" : "Ver carga completa"}
         </button>
 
-        {step === null ? (
-          <span className="viewer-hint">
-            Arraste para girar, role para aproximar. Clique num volume para ver os detalhes.
-          </span>
-        ) : null}
       </div>
 
       {step !== null && current ? (
@@ -294,23 +319,6 @@ function LoadViewerWorkspace({ planId, plan }: LoadViewerProps) {
         </div>
       ) : null}
 
-      <div className="viewer-side">
-      <div className="viewer-views" role="group" aria-label="Ângulo da câmera">
-        {VIEW_PRESETS.map((preset) => (
-          <button
-            key={preset}
-            type="button"
-            className={preset === angle ? "viewer-view is-active" : "viewer-view"}
-            aria-pressed={preset === angle}
-            title={VIEW_HINTS[preset]}
-            onClick={() => setAngle(preset)}
-          >
-            {VIEW_LABELS[preset]}
-          </button>
-        ))}
-      </div>
-
-
       <div className="viewer-kpis">
         <div className="viewer-kpi">
           <Icon name="planning" size={24} />
@@ -339,9 +347,24 @@ function LoadViewerWorkspace({ planId, plan }: LoadViewerProps) {
           <span className="viewer-kpi-value">{plan.unloadedCount}</span>
         </div>
       </div>
-
-
-        <section>
+      <aside className="viewer-side" aria-label="Informações da carga">
+        <section className="viewer-capacity viewer-panel">
+          <h4>Veículo e capacidade</h4>
+          <dl><div><dt>Capacidade de peso</dt><dd>{displayCapacity(view.truck.maxWeightKg)} kg</dd></div><div><dt>Peso utilizado</dt><dd>{displayCapacity(plan.totalWeightKg)} kg</dd></div><div><dt>Margem de peso</dt><dd>{displayCapacity(Math.max(0, view.truck.maxWeightKg - plan.totalWeightKg))} kg</dd></div><div><dt>Volume útil</dt><dd>{displayCapacity(plan.internalVolumeCm3 / 1_000_000)} m³</dd></div><div><dt>Espaço disponível</dt><dd>{displayCapacity(Math.max(0, plan.internalVolumeCm3 - plan.usedVolumeCm3) / 1_000_000)} m³</dd></div></dl>
+          <div className="viewer-utilization"><span>Ocupação volumétrica</span><strong>{displayCapacity(plan.occupancyPercent)}%</strong></div>
+          <meter min={0} max={100} value={plan.occupancyPercent} aria-label="Ocupação volumétrica" />
+          <p className="viewer-panel-note">Métricas do plano salvo. A sequência é uma simulação visual do carregamento.</p>
+        </section>
+        <section className="viewer-volume-picker viewer-panel">
+          <h4>Inspecionar volume</h4>
+          <label htmlFor={`${controlId}-volume`}>Selecionar volume</label>
+          <select id={`${controlId}-volume`} value={detailId ?? ""} onChange={(event) => { setIsPlaying(false); setStep(null); setSelectedId(event.target.value || null); }}>
+            <option value="">Escolha um volume na carga</option>
+            {ordered.map((item) => <option key={item.id} value={item.id}>#{item.loadingSequence} · {item.productCode} · {item.productName} · un. {item.volumeIndex}</option>)}
+          </select>
+          {selected ? <button type="button" className="viewer-clear" onClick={() => { setIsPlaying(false); setStep(null); setSelectedId(null); }}>Limpar seleção</button> : <p className="viewer-panel-note">Clique no volume em 3D ou escolha na lista para consultar posição, medidas e entrega.</p>}
+        </section>
+        <section className="viewer-deliveries viewer-panel">
           <h4>Entregas</h4>
           <ul className="viewer-legend">
             {deliverySequences(view.items).map((sequence) => (
@@ -357,7 +380,7 @@ function LoadViewerWorkspace({ planId, plan }: LoadViewerProps) {
         </section>
 
         {selected ? (
-          <section className="viewer-detail">
+          <section className="viewer-detail" aria-label="Detalhes do volume selecionado" aria-live="polite">
             <h4>{selected.productCode}</h4>
             <p className="viewer-detail-name">{selected.productName}</p>
             <dl>
@@ -394,7 +417,7 @@ function LoadViewerWorkspace({ planId, plan }: LoadViewerProps) {
         ) : null}
 
         {view.unloadedItems.length > 0 ? (
-          <section>
+          <section className="viewer-panel viewer-rejections">
             <h4>Fora da carga ({view.unloadedItems.length})</h4>
             <ul className="viewer-unloaded">
               {view.unloadedItems.map((item) => (
@@ -406,7 +429,7 @@ function LoadViewerWorkspace({ planId, plan }: LoadViewerProps) {
             </ul>
           </section>
         ) : null}
-      </div>
+      </aside>
     </div>
   );
 }

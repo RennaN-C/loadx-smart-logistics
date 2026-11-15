@@ -1,3 +1,5 @@
+import { memo } from "react";
+import type { BoxGeometry } from "three";
 import type { Box } from "./sceneGeometry";
 import { WHEEL_WIDTH, type TruckShell, type Wheel } from "./truckShell";
 
@@ -7,16 +9,18 @@ function Panel({
   opacity = 1,
   metalness = 0.1,
   roughness = 0.7,
+  geometry,
 }: {
   box: Box;
   color: string;
   opacity?: number;
   metalness?: number;
   roughness?: number;
+  geometry?: BoxGeometry;
 }) {
   return (
-    <mesh position={box.position} castShadow receiveShadow>
-      <boxGeometry args={box.size} />
+    <mesh position={box.position} geometry={geometry} scale={geometry ? box.size : undefined} castShadow receiveShadow>
+      {!geometry ? <boxGeometry args={box.size} /> : null}
       <meshStandardMaterial
         color={color}
         metalness={metalness}
@@ -76,19 +80,21 @@ interface TruckShellMeshProps {
    * desenha. Vazio quando a cabine é a desenhada em código.
    */
   readonly cabWheels?: readonly Wheel[];
+  readonly sharedGeometry?: BoxGeometry;
 }
 
-export function TruckShellMesh({
+export const TruckShellMesh = memo(function TruckShellMesh({
   shell,
   hideCab = false,
   cabWheels = [],
+  sharedGeometry,
 }: TruckShellMeshProps) {
   return (
     <group>
-      <Panel box={shell.chassis} color="#33373d" roughness={0.8} metalness={0.3} />
+      <Panel geometry={sharedGeometry} box={shell.chassis} color="#33373d" roughness={0.8} metalness={0.3} />
       {hideCab ? null : (
         <>
-          <Panel box={shell.cab} color="#eceae4" roughness={0.35} metalness={0.15} />
+          <Panel geometry={sharedGeometry} box={shell.cab} color="#eceae4" roughness={0.35} metalness={0.15} />
           <Panel
             box={shell.windshield}
             color="#1d2733"
@@ -96,20 +102,35 @@ export function TruckShellMesh({
             roughness={0.08}
             metalness={0.2}
           />
-          <Panel box={shell.bumper} color="#4e535a" roughness={0.6} metalness={0.35} />
+          <Panel geometry={sharedGeometry} box={shell.bumper} color="#4e535a" roughness={0.6} metalness={0.35} />
         </>
       )}
-      <Panel box={shell.fuelTank} color="#aeb4bc" roughness={0.28} metalness={0.85} />
-      <Panel box={shell.rearGuard} color="#4e535a" roughness={0.6} metalness={0.35} />
+      <Panel geometry={sharedGeometry} box={shell.fuelTank} color="#aeb4bc" roughness={0.28} metalness={0.85} />
+      <Panel geometry={sharedGeometry} box={shell.rearGuard} color="#4e535a" roughness={0.6} metalness={0.35} />
+      {/* Reflectors and tail lamps remain outside the usable cargo compartment. */}
+      <Panel geometry={sharedGeometry} box={{
+        position: [shell.rearGuard.position[0], shell.rearGuard.position[1], shell.rearGuard.position[2] + 0.056],
+        size: [shell.rearGuard.size[0] * 0.72, 0.035, 0.012],
+      }} color="#dca350" roughness={0.32} metalness={0.3} />
+      {[-1, 1].map((side) => <group key={`tail-${side}`} position={[
+        shell.rearGuard.position[0] + side * shell.rearGuard.size[0] * 0.43,
+        shell.rearGuard.position[1] + 0.22,
+        shell.rearGuard.position[2],
+      ]}>
+        <mesh geometry={sharedGeometry} scale={[0.2, 0.12, 0.06]}>
+          {!sharedGeometry ? <boxGeometry args={[1, 1, 1]} /> : null}
+          <meshStandardMaterial color="#c34d45" emissive="#6e211d" emissiveIntensity={0.3} roughness={0.3} />
+        </mesh>
+      </group>)}
 
       {shell.roofRails.map((box, index) => (
-        <Panel key={`rail-${index}`} box={box} color="#6f7681" roughness={0.5} metalness={0.5} />
+        <Panel geometry={sharedGeometry} key={`rail-${index}`} box={box} color="#6f7681" roughness={0.5} metalness={0.5} />
       ))}
       {shell.cornerPosts.map((box, index) => (
-        <Panel key={`post-${index}`} box={box} color="#6f7681" roughness={0.5} metalness={0.5} />
+        <Panel geometry={sharedGeometry} key={`post-${index}`} box={box} color="#6f7681" roughness={0.5} metalness={0.5} />
       ))}
       {shell.doorFrame.map((box, index) => (
-        <Panel key={`door-${index}`} box={box} color="#5f666f" roughness={0.5} metalness={0.5} />
+        <Panel geometry={sharedGeometry} key={`door-${index}`} box={box} color="#5f666f" roughness={0.5} metalness={0.5} />
       ))}
       {/* Para-lama em z negativo fica sob a cabine, e o modelo importado já
           traz o próprio arco de roda ali. O critério é a posição e não a ordem
@@ -117,15 +138,15 @@ export function TruckShellMesh({
       {shell.fenders
         .filter((box) => !hideCab || box.position[2] >= 0)
         .map((box, index) => (
-          <Panel key={`fender-${index}`} box={box} color="#3c4046" roughness={0.75} metalness={0.2} />
+          <Panel geometry={sharedGeometry} key={`fender-${index}`} box={box} color="#3c4046" roughness={0.75} metalness={0.2} />
         ))}
       {shell.sideSkirts.map((box, index) => (
-        <Panel key={`skirt-${index}`} box={box} color="#d5d2ca" roughness={0.55} metalness={0.1} />
+        <Panel geometry={sharedGeometry} key={`skirt-${index}`} box={box} color="#d5d2ca" roughness={0.55} metalness={0.1} />
       ))}
       {hideCab
         ? null
         : shell.mirrors.map((box, index) => (
-            <Panel key={`mirror-${index}`} box={box} color="#2f343a" roughness={0.3} metalness={0.4} />
+            <Panel geometry={sharedGeometry} key={`mirror-${index}`} box={box} color="#2f343a" roughness={0.3} metalness={0.4} />
           ))}
 
       {/* Mesmo critério dos para-lamas: à frente da parede de carga quem manda
@@ -135,4 +156,4 @@ export function TruckShellMesh({
       ))}
     </group>
   );
-}
+});
