@@ -442,7 +442,7 @@ def run_case(args, operation, profile, count, trucks, *, instrument=False):
     return row
 
 
-def main() -> None:
+def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--backend-root", default=str(Path(__file__).resolve().parents[1])
@@ -499,19 +499,43 @@ def main() -> None:
         parser.error(
             "positive limits/iterations/counts and non-negative warmup required"
         )
-    if args.worker:
-        import resource
 
-        budget = args.memory_mib * 1024 * 1024
-        resource.setrlimit(resource.RLIMIT_AS, (budget, budget))
-        cpu_seconds = math.ceil(args.timeout)
-        resource.setrlimit(resource.RLIMIT_CPU, (cpu_seconds, cpu_seconds + 1))
-        print(json.dumps(worker(args)))
-        return
-    if args.output is None:
+    if not args.worker and args.output is None:
         parser.error("--output is required")
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    payload = {
+    return args
+
+
+def _run_worker_entry(args) -> None:
+    import resource
+
+    budget = args.memory_mib * 1024 * 1024
+    resource.setrlimit(resource.RLIMIT_AS, (budget, budget))
+    cpu_seconds = math.ceil(args.timeout)
+    resource.setrlimit(resource.RLIMIT_CPU, (cpu_seconds, cpu_seconds + 1))
+    print(json.dumps(worker(args)))
+
+
+def _resolve_backend_root(value: str) -> Path:
+    root = Path(value).expanduser().resolve(strict=True)
+    if not root.is_dir() or not (
+        root / "app/modules/load_planning/optimizer"
+    ).is_dir():
+        raise ValueError("backend-root must point to a backend checkout")
+    return root
+
+
+def _git_revision(backend_root: Path) -> str:
+    # Never interpret user-supplied paths as Git command-line arguments.
+    return subprocess.check_output(
+        ["git", "rev-parse", "--verify", "HEAD"],
+        cwd=backend_root,
+        text=True,
+    ).strip()
+
+
+def _benchmark_metadata(args) -> dict:
+    backend_root = _resolve_backend_root(args.backend_root)
+    return {
         "python": sys.version,
         "platform": platform.platform(),
         "cpu_count": os.cpu_count(),
@@ -530,16 +554,12 @@ def main() -> None:
         ],
         "cgroup_memory_max": Path("/sys/fs/cgroup/memory.max").read_text().strip(),
         "cgroup_cpu_max": Path("/sys/fs/cgroup/cpu.max").read_text().strip(),
-        "backend_revision": subprocess.check_output(
-            ["git", "-C", args.backend_root, "rev-parse", "HEAD"], text=True
-        ).strip(),
+        "backend_revision": _git_revision(backend_root),
         "optimizer_tree_sha256": hashlib.sha256(
             b"".join(
                 path.name.encode() + path.read_bytes()
                 for path in sorted(
-                    (
-                        Path(args.backend_root) / "app/modules/load_planning/optimizer"
-                    ).glob("*.py")
+                    (backend_root / "app/modules/load_planning/optimizer").glob("*.py")
                 )
             )
         ).hexdigest(),
@@ -552,38 +572,51 @@ def main() -> None:
         },
         "cases": [],
     }
+
+
+def _iter_cases(args):
     for operation in args.operations:
         for profile in args.profiles:
             for count in args.counts:
-                for trucks in [1] if operation == "engine" else args.truck_counts:
+                truck_counts = [1] if operation == "engine" else args.truck_counts
+                for trucks in truck_counts:
                     if operation == "compare" and trucks == 1:
                         continue
-                    interrupted = False
-                    try:
-                        row = run_case(
-                            args,
-                            operation,
-                            profile,
-                            count,
-                            trucks,
-                            instrument=args.instrument,
-                        )
-                    except _InterruptedCase as error:
-                        row = error.row
-                        interrupted = True
-                    payload["cases"].append(row)
-                    args.output.write_text(json.dumps(payload, indent=2) + "\n")
-                    if interrupted:
-                        raise SystemExit(130)
-                    print(
-                        operation,
-                        profile,
-                        count,
-                        trucks,
-                        row["status"],
-                        row.get("median_s"),
-                        flush=True,
-                    )
+                    yield operation, profile, count, trucks
+
+
+def _run_matrix(args, payload) -> None:
+    for operation, profile, count, trucks in _iter_cases(args):
+        interrupted = False
+        try:
+            row = run_case(
+                args, operation, profile, count, trucks, instrument=args.instrument
+            )
+        except _InterruptedCase as error:
+            row = error.row
+            interrupted = True
+        payload["cases"].append(row)
+        args.output.write_text(json.dumps(payload, indent=2) + "\n")
+        if interrupted:
+            raise SystemExit(130)
+        print(
+            operation,
+            profile,
+            count,
+            trucks,
+            row["status"],
+            row.get("median_s"),
+            flush=True,
+        )
+
+
+def main() -> None:
+    args = _parse_args()
+    if args.worker:
+        _run_worker_entry(args)
+        return
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    _run_matrix(args, _benchmark_metadata(args))
 
 
 if __name__ == "__main__":
