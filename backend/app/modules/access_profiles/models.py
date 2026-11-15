@@ -24,8 +24,14 @@ class AccessProfile(Base):
     __tablename__ = "access_profiles"
     __table_args__ = (
         CheckConstraint("version > 0", name="positive_version"),
-        UniqueConstraint("organization_id", "id", name="uq_access_profiles__organization_id"),
-        UniqueConstraint("organization_id", "name_key", name="uq_access_profiles__organization_name_key"),
+        UniqueConstraint(
+            "organization_id", "id", name="uq_access_profiles__organization_id"
+        ),
+        UniqueConstraint(
+            "organization_id",
+            "name_key",
+            name="uq_access_profiles__organization_name_key",
+        ),
         CheckConstraint(
             "name_key = lower(trim(name)) AND length(name_key) > 0",
             name="normalized_name",
