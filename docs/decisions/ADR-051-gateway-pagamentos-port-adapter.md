@@ -47,12 +47,11 @@ A troca do provedor padrão não migra automaticamente assinaturas existentes. T
 **Elegibilidade do Pix Automático**
 A documentação atual lista como critérios: conta PJ aprovada, sem pendências cadastrais, CNPJ ativo há pelo menos seis meses e sem restrições relacionadas ao Pix. A elegibilidade pode mudar e deve ser acompanhada pelo evento `PIX_AUTOMATIC_RECURRING_ELIGIBILITY_UPDATED`. A condição efetiva precisa ser confirmada na conta do LoadX.
 
-**Tarifas públicas padrão**
-- Pix recebido: R$ 1,59 por transação.
-- Boleto recebido: R$ 1,59 por transação.
-- Cartão de crédito: R$ 0,49 + 2,99% à vista; R$ 0,49 + 3,49% de 2 a 6 parcelas; R$ 0,49 + 3,99% de 7 a 12; R$ 0,49 + 4,29% de 13 a 21.
-- A página também exibe preços promocionais para novos clientes durante três meses: Pix/boleto por R$ 0,79 e percentuais menores no cartão. Esses valores promocionais não devem ser usados como custo recorrente de longo prazo.
-- A página informa que as condições do contrato podem diferir das tarifas padrão. A conta deve ser consultada antes da decisão.
+**Tarifas públicas e variação por visualização**
+- Pix e boleto: a página oficial apresentou valores diferentes entre visualizações consultadas em 15/11/2026. Foram observados pares de R$ 1,59/R$ 0,79 e R$ 2,15/R$ 1,08; o índice da própria página também retornou R$ 1,99/R$ 0,99. Não há base segura para fixar um único valor público como tarifa aplicável à conta LoadX.
+- O FAQ do Pix Automático informa que não há custo adicional pelo produto: aplicam-se as taxas padrão de recebimento Pix da conta. Portanto, a tarifa efetiva deve ser capturada no painel Asaas em **Menu do usuário → Taxas**.
+- Cartão de crédito: R$ 0,49 + 2,99% à vista; R$ 0,49 + 3,49% de 2 a 6 parcelas; R$ 0,49 + 3,99% de 7 a 12; R$ 0,49 + 4,29% de 13 a 21. A página também exibe percentuais promocionais menores para novos clientes, sujeitos às regras e ao prazo promocional.
+- As condições do contrato podem diferir das tarifas padrão; a conta deve ser consultada antes da decisão.
 - Antecipação tem custos e análise próprios; não confundir prazo de liquidação padrão com antecipação.
 
 Fontes oficiais:
