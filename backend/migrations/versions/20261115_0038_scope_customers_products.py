@@ -103,9 +103,7 @@ def upgrade() -> None:
         ["organization_id", "id"],
         ondelete="RESTRICT",
     )
-    op.drop_index(
-        "uq_customer_addresses__primary", table_name="customer_addresses"
-    )
+    op.drop_index("uq_customer_addresses__primary", table_name="customer_addresses")
     op.create_index(
         "uq_customer_addresses__primary",
         "customer_addresses",
@@ -139,9 +137,7 @@ def downgrade() -> None:
             "cannot be collapsed into global registries."
         )
 
-    op.drop_index(
-        "uq_customer_addresses__primary", table_name="customer_addresses"
-    )
+    op.drop_index("uq_customer_addresses__primary", table_name="customer_addresses")
     op.create_index(
         "uq_customer_addresses__primary",
         "customer_addresses",
