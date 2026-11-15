@@ -90,11 +90,8 @@ def test_git_revision_resolves_packed_worktree_refs(tmp_path):
     (backend.parent / ".git").write_text(f"gitdir: {git_dir}\n")
     (git_dir / "HEAD").write_text("ref: refs/heads/benchmark\n")
     (git_dir / "commondir").write_text("../..\n")
-    (common_dir / "packed-refs").write_text(
-        "b" * 40 + " refs/heads/benchmark\n"
-    )
+    (common_dir / "packed-refs").write_text("b" * 40 + " refs/heads/benchmark\n")
     assert runner._git_revision(backend) == "b" * 40
-
 
 
 def test_worker_receives_configuration_only_as_json_stdin(monkeypatch):
