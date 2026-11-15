@@ -72,10 +72,9 @@ Fontes oficiais:
 - A documentação desse produto descreve CIT para o primeiro pagamento/consentimento e MIT para cobranças recorrentes iniciadas pelo comerciante.
 
 **Tarifas públicas de Checkout online**
-- Pix: 0,99% para disponibilização imediata.
-- Cartão de crédito: 4,98% na hora, 4,49% em 14 dias ou 3,98% em 30 dias.
-- Boleto: R$ 3,49, com disponibilização em até três dias.
-- São referências públicas do Checkout online, não uma proposta contratada para a API de Assinaturas ou Pagamentos Automáticos. A própria página orienta consultar/configurar custos e prazos na conta.
+- Uma visualização da página oficial consultada em 15/11/2026 exibia Pix a 0,99%; cartão a 4,98% na hora, 4,49% em 14 dias ou 3,98% em 30 dias; boleto a R$ 3,49 em até três dias.
+- Outras visualizações públicas do Checkout exibiram 4,48% em 14 dias, 2,95% em 30 dias e boleto a R$ 3,99. Isso reforça que a página/condição exibida pode variar; confirmar os valores e prazos no painel da conta.
+- São referências públicas de Checkout online, não uma proposta contratada para a API de Assinaturas ou Pagamentos Automáticos. Não transportar automaticamente essas tarifas para produtos avançados.
 
 Fontes oficiais:
 - https://www.mercadopago.com.br/developers/pt/docs/subscriptions/overview
