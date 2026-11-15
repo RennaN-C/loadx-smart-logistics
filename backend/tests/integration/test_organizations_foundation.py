@@ -314,6 +314,9 @@ def test_organization_migration_backfills_legacy_profile_users_and_sessions(
         import_module(
             "migrations.versions.20261115_0040_scope_fleet_documents_maintenance"
         ),
+        import_module(
+            "migrations.versions.20261115_0041_scope_driver_document_types"
+        ),
     ]
     now = datetime.now(UTC)
     user_id = uuid.uuid4()
