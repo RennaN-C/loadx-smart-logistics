@@ -210,8 +210,45 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
             )
             """
         )
+    _run_alembic(test_url, "upgrade", "20261115_0040")
+    # Backfill legacy custom document types and their dependent policy.
+    with engine.begin() as connection:
+        connection.exec_driver_sql(
+            """
+            INSERT INTO driver_document_types(id, code, name)
+            VALUES (
+                '00000000-0000-4000-8000-000000000794',
+                'G03B2_LEGACY', 'Tipo documental legado'
+            )
+            """
+        )
+        connection.exec_driver_sql(
+            """
+            INSERT INTO driver_document_policies(
+                id, driver_id, document_type_id, required, allowed_categories
+            ) VALUES (
+                '00000000-0000-4000-8000-000000000795',
+                '00000000-0000-4000-8000-000000000202',
+                '00000000-0000-4000-8000-000000000794',
+                TRUE, '[]'
+            )
+            """
+        )
     _run_alembic(test_url, "upgrade", "head")
     with engine.connect() as connection:
+        assert connection.exec_driver_sql(
+            "SELECT organization_id::text FROM driver_document_types "
+            "WHERE id='00000000-0000-4000-8000-000000000794'"
+        ).scalar_one() == "00000000-0000-4000-8000-000000000301"
+        assert connection.exec_driver_sql(
+            "SELECT document_type_organization_id::text "
+            "FROM driver_document_policies "
+            "WHERE id='00000000-0000-4000-8000-000000000795'"
+        ).scalar_one() == "00000000-0000-4000-8000-000000000301"
+        assert connection.exec_driver_sql(
+            "SELECT organization_id FROM driver_document_types "
+            "WHERE id='00000000-0000-4000-8000-000000000102'"
+        ).scalar_one() is None
         for table, row_id in (
             ("truck_maintenances", "00000000-0000-4000-8000-000000000791"),
             ("truck_documents", "00000000-0000-4000-8000-000000000792"),
@@ -261,6 +298,14 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
             "https://example.test/logo.svg",
         )
     with engine.begin() as connection:
+        connection.exec_driver_sql(
+            "DELETE FROM driver_document_policies "
+            "WHERE id='00000000-0000-4000-8000-000000000795'"
+        )
+        connection.exec_driver_sql(
+            "DELETE FROM driver_document_types "
+            "WHERE id='00000000-0000-4000-8000-000000000794'"
+        )
         connection.exec_driver_sql(
             "DELETE FROM truck_document_policies "
             "WHERE id='00000000-0000-4000-8000-000000000793'"
