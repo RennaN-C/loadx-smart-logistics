@@ -18,16 +18,34 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database.base import Base
+from app.modules.organizations.models import LEGACY_ORGANIZATION_ID
 
 
 class Driver(Base):
     __tablename__ = "drivers"
+    __table_args__ = (
+        UniqueConstraint("organization_id", "id", name="uq_drivers__organization_id"),
+        UniqueConstraint(
+            "organization_id", "document", name="uq_drivers__organization_document"
+        ),
+        UniqueConstraint(
+            "organization_id",
+            "license_number",
+            name="uq_drivers__organization_license_number",
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("organizations.id", ondelete="RESTRICT"),
+        nullable=False,
+        default=lambda: LEGACY_ORGANIZATION_ID,
+        server_default=text("'00000000-0000-4000-8000-000000000301'"),
+    )
     name: Mapped[str] = mapped_column(String(160), nullable=False)
-    document: Mapped[str] = mapped_column(String(32), nullable=False, unique=True)
+    document: Mapped[str] = mapped_column(String(32), nullable=False)
     phone: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
-    license_number: Mapped[str] = mapped_column(String(32), nullable=False, unique=True)
+    license_number: Mapped[str] = mapped_column(String(32), nullable=False)
     license_category: Mapped[str | None] = mapped_column(String(8))
     license_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     active: Mapped[bool] = mapped_column(

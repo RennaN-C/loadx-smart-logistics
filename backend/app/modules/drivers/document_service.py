@@ -186,12 +186,17 @@ class DocumentService:
             constraint = get_integrity_constraint_name(error)
             if constraint not in {
                 "uq_drivers__license_number",
+                "uq_drivers__organization_license_number",
                 "uq_driver_documents__current_type",
             }:
                 raise
+            license_conflict = constraint in {
+                "uq_drivers__license_number",
+                "uq_drivers__organization_license_number",
+            }
             code = (
                 "DRIVER_LICENSE_NUMBER_ALREADY_EXISTS"
-                if get_integrity_constraint_name(error) == "uq_drivers__license_number"
+                if license_conflict
                 else "DRIVER_DOCUMENT_DUPLICATE"
             )
             raise ApiError(409, code, "CNH ou versão corrente duplicada.") from error

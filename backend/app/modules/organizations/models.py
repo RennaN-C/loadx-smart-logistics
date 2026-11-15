@@ -95,6 +95,12 @@ class OrganizationMembership(Base):
             name="fk_organization_memberships__organization_profile",
             ondelete="RESTRICT",
         ),
+        ForeignKeyConstraint(
+            ["organization_id", "driver_id"],
+            ["drivers.organization_id", "drivers.id"],
+            name="fk_organization_memberships__organization_driver",
+            ondelete="RESTRICT",
+        ),
         UniqueConstraint(
             "organization_id",
             "user_id",
@@ -147,9 +153,7 @@ class OrganizationMembership(Base):
     )
     role: Mapped[str] = mapped_column(String(32), nullable=False)
     custom_profile_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
-    driver_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("drivers.id", ondelete="RESTRICT"), nullable=True
-    )
+    driver_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
     status: Mapped[str] = mapped_column(
         String(16), nullable=False, default="ACTIVE", server_default=text("'ACTIVE'")
     )

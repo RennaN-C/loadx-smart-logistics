@@ -19,11 +19,18 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database.base import Base
+from app.modules.organizations.models import LEGACY_ORGANIZATION_ID
 
 
 class Truck(Base):
     __tablename__ = "trucks"
     __table_args__ = (
+        UniqueConstraint("organization_id", "id", name="uq_trucks__organization_id"),
+        UniqueConstraint(
+            "organization_id",
+            "plate",
+            name="uq_trucks__organization_plate",
+        ),
         CheckConstraint(
             "internal_width_cm > 0 AND internal_height_cm > 0 AND internal_length_cm > 0",
             name="dimensions_positive",
@@ -39,7 +46,13 @@ class Truck(Base):
     )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    plate: Mapped[str] = mapped_column(String(16), nullable=False, unique=True)
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("organizations.id", ondelete="RESTRICT"),
+        nullable=False,
+        default=lambda: LEGACY_ORGANIZATION_ID,
+        server_default=text("'00000000-0000-4000-8000-000000000301'"),
+    )
+    plate: Mapped[str] = mapped_column(String(16), nullable=False)
     model: Mapped[str] = mapped_column(String(120), nullable=False)
     internal_width_cm: Mapped[int] = mapped_column(nullable=False)
     internal_height_cm: Mapped[int] = mapped_column(nullable=False)

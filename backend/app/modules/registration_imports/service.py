@@ -51,10 +51,13 @@ DUPLICATE_CONSTRAINTS = {
     "uq_customers__document": "document",
     "uq_customers__organization_document": "document",
     "uq_drivers__document": "document",
+    "uq_drivers__organization_document": "document",
     "uq_drivers__license_number": "license_number",
+    "uq_drivers__organization_license_number": "license_number",
     "uq_products__code": "code",
     "uq_products__organization_code": "code",
     "uq_trucks__plate": "plate",
+    "uq_trucks__organization_plate": "plate",
 }
 
 
