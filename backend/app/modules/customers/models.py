@@ -24,11 +24,11 @@ from app.modules.organizations.models import LEGACY_ORGANIZATION_ID
 class Customer(Base):
     __tablename__ = "customers"
     __table_args__ = (
+        UniqueConstraint("organization_id", "id", name="uq_customers__organization_id"),
         UniqueConstraint(
-            "organization_id", "id", name="uq_customers__organization_id"
-        ),
-        UniqueConstraint(
-            "organization_id", "document", name="uq_customers__organization_document"
+            "organization_id",
+            "document",
+            name="uq_customers__organization_document",
         ),
     )
 
