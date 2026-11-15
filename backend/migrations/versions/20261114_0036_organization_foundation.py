@@ -402,7 +402,7 @@ def upgrade() -> None:
     op.execute(
         sa.text(
             """
-            DO $
+            DO $loadx$
             BEGIN
                 IF EXISTS (
                     SELECT 1
@@ -413,7 +413,7 @@ def upgrade() -> None:
                         'Migration blocked: one or more auth sessions have no organization context.';
                 END IF;
             END
-            $;
+            $loadx$;
             """
         )
     )
