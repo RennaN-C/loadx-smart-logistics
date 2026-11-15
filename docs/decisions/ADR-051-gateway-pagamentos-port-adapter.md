@@ -7,7 +7,7 @@
 
 ## Contexto
 
-O LoadX precisa gerar cobranças recorrentes, conciliar pagamentos, renovar assinaturas e ativar entitlements somente após confirmação financeira. Foram avaliados preliminarmente Asaas e Mercado Pago com base nas documentações oficiais consultadas em 14/11/2026.
+O LoadX precisa gerar cobranças recorrentes, conciliar pagamentos, renovar assinaturas e ativar entitlements somente após confirmação financeira. Foram avaliados preliminarmente Asaas e Mercado Pago com base nas documentações oficiais e páginas públicas de tarifas consultadas em 15/11/2026.
 
 ## Decisão proposta
 
