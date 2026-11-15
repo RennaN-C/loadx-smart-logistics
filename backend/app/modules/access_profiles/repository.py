@@ -41,8 +41,10 @@ class ProfileRepository:
         ).all()
 
     def count(self) -> int:
-        statement = select(func.count()).select_from(AccessProfile).where(
-            AccessProfile.organization_id == self.organization_id
+        statement = (
+            select(func.count())
+            .select_from(AccessProfile)
+            .where(AccessProfile.organization_id == self.organization_id)
         )
         return self.db.scalar(statement) or 0
 
