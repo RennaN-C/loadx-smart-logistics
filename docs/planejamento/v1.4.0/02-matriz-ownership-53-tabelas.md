@@ -46,7 +46,7 @@ As quatro tabelas novas da fundação (#449) não entram na contagem das 53: **o
 | 14 | **customer_addresses** | HERDADO | Endereço pertence ao cliente. FK composta **(organization_id, customer_id)** e unicidade/índice de endereço primário no escopo do cliente e tenant. |
 | 15 | **products** | ORG | Catálogo de produtos é da empresa. **code** passa a ser único por organização; snapshots históricos continuam preservados em itens de planejamento. |
 | 16 | **drivers** | ORG | Cadastro de motorista pertence à empresa. Documento e número de CNH deixam de ser chaves globais e passam a ser únicos por organização, conforme validação de negócio. Membership que representa motorista deve referenciar o driver da mesma organização. |
-| 17 | **driver_document_types** | GLOBAL | Catálogo compartilhado de tipos documentais, controlado pelo produto. Se no futuro houver tipos customizados, criar extensão organizacional separada, sem alterar a semântica do catálogo global. |
+| 17 | **driver_document_types** | MISTO | O tipo nativo CNH (`CNH_TYPE_ID`) é catálogo global e vem semeado pela migration 0020. Porém, o endpoint POST `/driver-document-types` usa `DriverManager` e permite que um gestor operacional crie tipos; no SaaS, esses tipos customizados devem pertencer à organização. Recomendação: manter tipos de sistema globais e escopar tipos criados por empresas, com unicidade global para códigos reservados e `(organization_id, code)` para códigos customizados. Alternativamente, tornar o catálogo inteiramente global exige mover a gestão para `PLATFORM_OWNER`; não assumir isso sem decisão explícita. |
 | 18 | **driver_documents** | HERDADO | Documento pertence ao motorista. FK composta para o motorista da mesma organização; **document_type_id** permanece referência ao catálogo global. |
 | 19 | **driver_document_policies** | HERDADO | Política documental pertence ao motorista/empresa. FK composta para driver e referência global para o tipo documental. |
 | 20 | **trucks** | ORG | Frota pertence à empresa. Placa passa a ser única por organização, não globalmente. |
@@ -73,11 +73,11 @@ As quatro tabelas novas da fundação (#449) não entram na contagem das 53: **o
 | 41 | **occurrences** | HERDADO | Ocorrência pertence à viagem e, quando aplicável, à entrega da mesma organização. Fotos/URLs precisam seguir o mesmo escopo de arquivo. |
 | 42 | **delivery_evidences** | HERDADO | Evidência pertence à entrega e ao evento de histórico correspondente. Validar ambos no mesmo tenant e exigir membership do autor/revogador. |
 | 43 | **status_history** | ORG | Histórico polimórfico é tenant-owned. Adicionar organization_id obrigatório e validar **entity_type/entity_id** contra o recurso real do mesmo tenant; não confiar apenas no UUID ou em uma FK inexistente. |
-| 44 | **audit_events** | MISTO | Pode registrar ação de plataforma/identidade ou mutação de empresa. Adicionar escopo explícito (**PLATFORM**/**ORGANIZATION**) e organization_id obrigatório para eventos organizacionais. Não inferir tenant pelo actor_id; manter auditoria append-only e validar o alvo por tipo. |
+| 44 | **audit_events** | MISTO | A tabela reúne eventos de usuário/identidade, perfis de acesso, cadastros e operações de empresa, além de eventos administrativos. Adicionar escopo explícito (`PLATFORM`/`ORGANIZATION`) e `organization_id` obrigatório no segundo caso; impor CHECK de coerência entre escopo e tenant. Depois da migração de RBAC, separar eventos de identidade global (`USER_IDENTITY`) dos eventos de vínculo (`MEMBERSHIP`) e de perfil organizacional (`ACCESS_PROFILE`). Não inferir tenant pelo `actor_id`; manter append-only e validar o alvo por tipo. Se auditoria da plataforma exigir retenção/ACL distinta, preferir tabela própria `platform_audit_events` em vez de ampliar permissões sobre auditoria operacional. |
 | 45 | **operational_attachments** | HERDADO | Anexo aponta exatamente para um de order, trip, delivery ou occurrence. Adicionar organization_id e FKs/validação por recurso; downloads, revogação, URLs temporárias e object-storage keys precisam validar o tenant. |
 | 46 | **operational_notifications** | HERDADO | Notificação operacional herda o tenant do trip/occurrence/status history e do motorista destinatário. Todas as origens e destinatários precisam ser da mesma organização. |
 | 47 | **notification_recipients** | HERDADO | Recibo de leitura pertence à notificação e ao usuário/membership destinatário. FK composta deve provar que o usuário é membro da organização da notificação. |
-| 48 | **notification_preferences** | MISTO | **SECURITY** permanece preferência global da identidade; **TRIPS** e **OCCURRENCES** são preferências por organização/membership. Redesenhar chave e índices: unicidade global para SECURITY e **(user_id, organization_id, category)** para categorias operacionais; impedir preferência operacional sem tenant. |
+| 48 | **notification_preferences** | GLOBAL | O contrato atual é pessoal e global: a tela fica em Meu Perfil, a API consulta/salva por `user_id`, e a PK atual é `(user_id, category)`. `SECURITY` é obrigatória; `TRIPS` e `OCCURRENCES` controlam novas associações para a identidade em todas as organizações. Preservar esse comportamento como padrão. Se a empresa precisar impor política própria de notificações, criar uma entidade separada de política organizacional; não converter silenciosamente a preferência pessoal em configuração por tenant. |
 | 49 | **outbox_events** | HERDADO | Evento de entrega externa herda organization_id da notificação. Idempotency key e deduplicação devem incluir o tenant, preservando reprocessamento seguro. |
 | 50 | **outbox_attempts** | HERDADO | Tentativa pertence ao outbox event. FK composta e índices de worker devem preservar o tenant em leases, retries e processamento assíncrono. |
 | 51 | **outbox_retry_commands** | HERDADO | Comando de reprocessamento pertence ao evento e à organização dele. **actor_id** é identidade global, mas precisa de membership e permissão no tenant. |
@@ -93,7 +93,7 @@ As quatro tabelas novas da fundação (#449) não entram na contagem das 53: **o
 | **organization_invitations** | Organização | Convite pertence à organização; token somente em hash, expirável, revogável e de uso único |
 | **platform_owner_grants** | Plataforma/global | Concessão singleton do proprietário; não dá acesso automático aos dados operacionais dos tenants |
 
-A migration 0036 já adiciona **active_organization_id** à tabela existente **auth_sessions**. Na fase de scoping, as referências **custom_profile_id** e **driver_id** em membership também precisarão de integridade composta com os registros da mesma organização.
+A migration 0036 já adiciona **active_organization_id** à tabela existente **auth_sessions**. Antes de liberar uma segunda organização, a fundação também precisa de integridade contextual nas referências internas: `organization_memberships(organization_id, custom_profile_id)` e `(organization_id, driver_id)` devem apontar para perfil e motorista da mesma organização; `organization_invitations(organization_id, custom_profile_id)` deve apontar para perfil da organização convidada. Os campos de ator do convite exigem validação de autorização contextual (membro ativo ou concessão de plataforma explicitamente permitida); FK simples para `users.id` prova apenas identidade, não autorização.
 
 ## 5. Decisões transversais obrigatórias
 
@@ -125,6 +125,16 @@ Também revisar chaves de idempotência e deduplicação em **external_commands*
 - **audit_events:** separar explicitamente eventos de plataforma dos eventos de empresa; preservar a trilha histórica sem atribuir tenant por inferência do ator.
 - **company_profiles:** transferir os campos restantes (telefone, e-mail e logo) para o cadastro da organização antes de descontinuar a tabela singleton.
 - **users:** manter e-mail/credenciais globais, mas retirar papel/perfil/motorista globais como fonte de autorização após migração para membership.
+
+
+### 5.5 Reconciliação com a auditoria preliminar da PR #449
+
+A revisão direta dos contratos atuais identificou duas diferenças importantes em relação à classificação preliminar da auditoria:
+
+- **driver_document_types:** a migration 0020 semeia o tipo global reservado CNH, mas o endpoint de criação é autorizado por `DriverManager`. Portanto, não é seguro assumir que todo o catálogo é controlado exclusivamente pela plataforma. A matriz classifica como MISTO e recomenda separar tipos nativos globais de tipos customizados por organização, ou então mudar explicitamente a gestão para `PLATFORM_OWNER`.
+- **notification_preferences:** o código atual e a interface em Meu Perfil persistem preferências por `user_id/category`, sem contexto de empresa. A matriz preserva o contrato como GLOBAL. Uma futura política imposta pela empresa deve ser uma entidade separada; não deve sobrescrever a preferência pessoal.
+
+Essas decisões foram baseadas nos models, services, routers, schemas e migration atuais, e devem ser reconciliadas com o texto da auditoria #449 antes de iniciar migrations de scoping.
 
 ## 6. Ordem recomendada de implementação
 
