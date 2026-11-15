@@ -63,7 +63,7 @@ def upgrade() -> None:
         ["id", "organization_id"],
     )
     op.create_check_constraint(
-        "ck_driver_document_types__scope_valid", TYPE_TABLE, TYPE_CHECK
+        op.f("ck_driver_document_types__scope_valid"), TYPE_TABLE, TYPE_CHECK
     )
 
     for table in CHILDREN:
@@ -88,7 +88,7 @@ def upgrade() -> None:
             ["id", "organization_id"],
             ondelete="RESTRICT",
         )
-        op.create_check_constraint(f"ck_{table}__type_org_scope", table, DOC_CHECK)
+        op.create_check_constraint(op.f(f"ck_{table}__type_org_scope"), table, DOC_CHECK)
 
 
 def downgrade() -> None:
@@ -111,11 +111,11 @@ def downgrade() -> None:
         )
 
     for table in reversed(CHILDREN):
-        op.drop_constraint(f"ck_{table}__type_org_scope", table, type_="check")
+        op.drop_constraint(op.f(f"ck_{table}__type_org_scope"), table, type_="check")
         op.drop_constraint(f"fk_{table}__type_org_scope", table, type_="foreignkey")
         op.drop_column(table, "document_type_organization_id")
     op.drop_constraint(
-        "ck_driver_document_types__scope_valid", TYPE_TABLE, type_="check"
+        op.f("ck_driver_document_types__scope_valid"), TYPE_TABLE, type_="check"
     )
     op.drop_constraint(
         "uq_driver_document_types__id_organization", TYPE_TABLE, type_="unique"
