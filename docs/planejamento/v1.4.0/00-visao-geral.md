@@ -245,8 +245,8 @@ O produto separado **Pagamentos Automáticos (Payments API)** permite MIT com ca
 
 **Tarifas públicas de referência para Checkout online**:
 - Pix: 0,99% com disponibilização imediata.
-- Cartão de crédito: 4,98% na hora, 4,49% em 14 dias ou 3,98% em 30 dias.
-- Boleto: R$ 3,49, com disponibilização em até três dias.
+- Uma visualização da página oficial exibia cartão a 4,98% na hora, 4,49% em 14 dias ou 3,98% em 30 dias; boleto a R$ 3,49 em até três dias.
+- Outras visualizações públicas exibiram 4,48% em 14 dias, 2,95% em 30 dias e boleto a R$ 3,99. Confirmar valores e prazos no painel da conta.
 - Esses valores não são uma proposta comercial para a API de Assinaturas ou Pagamentos Automáticos; os custos e prazos efetivos devem ser consultados na conta.
 
 Fontes:
