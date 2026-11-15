@@ -33,6 +33,11 @@ def test_postgresql_16_reaches_alembic_head(postgres_engine: Engine) -> None:
                 "WHERE table_schema = 'public' AND table_name = 'auth_sessions'"
             ).scalars()
         )
+        auth_session_context_nullable = connection.exec_driver_sql(
+            "SELECT is_nullable FROM information_schema.columns "
+            "WHERE table_schema = 'public' AND table_name = 'auth_sessions' "
+            "AND column_name = 'active_organization_id'"
+        ).scalar_one()
         legacy_organization = connection.exec_driver_sql(
             "SELECT status, is_legacy FROM organizations "
             "WHERE id = '00000000-0000-4000-8000-000000000301'"
@@ -41,6 +46,7 @@ def test_postgresql_16_reaches_alembic_head(postgres_engine: Engine) -> None:
     assert server_version_num // 10_000 == 16
     assert revision == "20261114_0036"
     assert "active_organization_id" in auth_session_columns
+    assert auth_session_context_nullable == "NO"
     assert legacy_organization == ("ACTIVE", True)
     assert {
         "users",
