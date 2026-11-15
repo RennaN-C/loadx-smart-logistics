@@ -6,17 +6,24 @@ from sqlalchemy import asc, desc, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.core.pagination import PageResult, PaginationParams
+from app.modules.organizations.models import LEGACY_ORGANIZATION_ID
 from app.modules.trucks.models import TruckMaintenance
 
 
 class MaintenanceRepository:
-    def __init__(self, db: Session) -> None:
+    def __init__(
+        self, db: Session, organization_id: uuid.UUID = LEGACY_ORGANIZATION_ID
+    ) -> None:
         self.db = db
+        self.organization_id = organization_id
 
     def list(
         self, truck_id: uuid.UUID, pagination: PaginationParams
     ) -> PageResult[TruckMaintenance]:
-        filters = (TruckMaintenance.truck_id == truck_id,)
+        filters = (
+            TruckMaintenance.truck_id == truck_id,
+            TruckMaintenance.organization_id == self.organization_id,
+        )
         direction = asc if pagination.sort_order == "asc" else desc
         total = (
             self.db.scalar(
@@ -41,7 +48,9 @@ class MaintenanceRepository:
         return self.db.scalar(
             select(TruckMaintenance)
             .where(
-                TruckMaintenance.truck_id == truck_id, TruckMaintenance.id == identifier
+                TruckMaintenance.truck_id == truck_id,
+                TruckMaintenance.organization_id == self.organization_id,
+                TruckMaintenance.id == identifier,
             )
             .with_for_update()
             .execution_options(populate_existing=True)
@@ -55,6 +64,7 @@ class MaintenanceRepository:
     ) -> frozenset[uuid.UUID]:
         query = select(TruckMaintenance.truck_id).where(
             TruckMaintenance.closed_at.is_(None),
+            TruckMaintenance.organization_id == self.organization_id,
             TruckMaintenance.starts_at <= at,
             or_(TruckMaintenance.ends_at.is_(None), TruckMaintenance.ends_at > at),
         )
