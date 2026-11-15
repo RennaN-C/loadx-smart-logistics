@@ -18,18 +18,43 @@ LEGACY_DEFAULT = sa.text("'00000000-0000-4000-8000-000000000301'")
 
 
 def upgrade() -> None:
-    op.add_column("orders", sa.Column("organization_id", sa.Uuid(), nullable=True))
-    op.execute(
-        """
-        UPDATE orders AS child
-        SET organization_id = owner.organization_id
-        FROM customers AS owner
-        WHERE child.customer_id = owner.id
-        """
+    # Multiempresa is not operational yet. Every existing order/item must
+    # belong to the legacy company through customer and product ownership.
+    # Refuse to invent legacy ownership for any non-legacy parent.
+    connection = op.get_bind()
+    if connection.execute(
+        sa.text(
+            """
+            SELECT EXISTS (
+                SELECT 1 FROM orders AS o
+                JOIN customers AS c ON c.id = o.customer_id
+                WHERE c.organization_id <> CAST(:legacy AS uuid)
+            ) OR EXISTS (
+                SELECT 1 FROM order_items AS i
+                JOIN products AS p ON p.id = i.product_id
+                WHERE p.organization_id <> CAST(:legacy AS uuid)
+            )
+            """
+        ),
+        {"legacy": LEGACY},
+    ).scalar():
+        raise RuntimeError(
+            "G04 upgrade refused: non-legacy customer or product ownership "
+            "requires tenant-specific reconciliation before migration."
+        )
+
+    # ADD COLUMN with NOT NULL DEFAULT materializes the verified legacy
+    # value without UPDATE. An UPDATE before ALTER TABLE in the same
+    # PostgreSQL transaction leaves pending RI/constraint trigger events.
+    op.add_column(
+        "orders",
+        sa.Column(
+            "organization_id",
+            sa.Uuid(),
+            nullable=False,
+            server_default=LEGACY_DEFAULT,
+        ),
     )
-    # Any orphan or inconsistent source fails before a constraint is relaxed.
-    op.alter_column("orders", "organization_id", nullable=False)
-    op.alter_column("orders", "organization_id", server_default=LEGACY_DEFAULT)
     op.create_foreign_key(
         "fk_orders__organizations",
         "orders",
@@ -61,17 +86,15 @@ def upgrade() -> None:
         ondelete="RESTRICT",
     )
 
-    op.add_column("order_items", sa.Column("organization_id", sa.Uuid(), nullable=True))
-    op.execute(
-        """
-        UPDATE order_items AS child
-        SET organization_id = owner.organization_id
-        FROM orders AS owner
-        WHERE child.order_id = owner.id
-        """
+    op.add_column(
+        "order_items",
+        sa.Column(
+            "organization_id",
+            sa.Uuid(),
+            nullable=False,
+            server_default=LEGACY_DEFAULT,
+        ),
     )
-    op.alter_column("order_items", "organization_id", nullable=False)
-    op.alter_column("order_items", "organization_id", server_default=LEGACY_DEFAULT)
     op.create_unique_constraint(
         "uq_order_items__organization_id",
         "order_items",
