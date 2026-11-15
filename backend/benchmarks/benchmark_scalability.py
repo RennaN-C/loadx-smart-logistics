@@ -20,7 +20,7 @@ from pathlib import Path
 from uuid import UUID
 
 
-class _InterruptedCase(KeyboardInterrupt):
+class _InterruptedCase(Exception):
     def __init__(self, row: dict) -> None:
         self.row = row
 
@@ -43,13 +43,76 @@ def fingerprint(value) -> str:
     ).hexdigest()
 
 
-def _physical_check(plan, source) -> None:
-    """Independent integer-cell oracle for the small synthetic boxes, not engine helpers.
+def _check_shape(row, plan) -> None:
+    from itertools import permutations
 
-    Checks exact partition, bounds, rotations, no positive overlap, full support,
-    direct/ancestral flags, depth, loading order, weight and metrics.
-    """
-    from itertools import combinations, permutations
+    x, y, z = row.position_x_cm, row.position_y_cm, row.position_z_cm
+    w, h, length = row.used_width_cm, row.used_height_cm, row.used_length_cm
+    original = (
+        row.volume.original_width_cm,
+        row.volume.original_height_cm,
+        row.volume.original_length_cm,
+    )
+    assert (w, h, length) in (
+        set(permutations(original)) if row.volume.rotation_allowed else {original}
+    )
+    assert min(x, y, z) >= 0
+    assert x + w <= plan.capacity.internal_width_cm
+    assert y + h <= plan.capacity.internal_height_cm
+    assert z + length <= plan.capacity.internal_length_cm
+
+
+def _check_support(row, tops, ancestors) -> set:
+    supporters = set()
+    if row.position_y_cm == 0:
+        return supporters
+    x, y, z = row.position_x_cm, row.position_y_cm, row.position_z_cm
+    for a in range(x, x + row.used_width_cm):
+        for c in range(z, z + row.used_length_cm):
+            assert (a, y, c) in tops
+            lower = tops[a, y, c]
+            assert lower.volume.stackable and not lower.volume.fragile
+            assert lower.loading_sequence < row.loading_sequence
+            supporters.add(lower.identity)
+            supporters.update(ancestors[lower.identity])
+    return supporters
+
+
+def _check_placed_box(row, plan, occupied, tops, ancestors) -> None:
+    _check_shape(row, plan)
+    x, y, z = row.position_x_cm, row.position_y_cm, row.position_z_cm
+    w, h, length = row.used_width_cm, row.used_height_cm, row.used_length_cm
+    cells = {
+        (a, b, c)
+        for a in range(x, x + w)
+        for b in range(y, y + h)
+        for c in range(z, z + length)
+    }
+    assert not occupied.intersection(cells)
+    occupied.update(cells)
+    ancestors[row.identity] = _check_support(row, tops, ancestors)
+    for a in range(x, x + w):
+        for c in range(z, z + length):
+            tops[a, y + h, c] = row
+
+
+def _check_delivery_depth(placed) -> None:
+    from itertools import combinations
+
+    for first, second in combinations(placed, 2):
+        if first.volume.delivery_sequence == second.volume.delivery_sequence:
+            continue
+        later, earlier = sorted(
+            (first, second), key=lambda row: -row.volume.delivery_sequence
+        )
+        assert (
+            later.position_z_cm + later.used_length_cm
+            <= earlier.position_z_cm + earlier.used_length_cm
+        )
+
+
+def _physical_check(plan, source) -> None:
+    """Independent integer-cell oracle; checks the complete physical result."""
 
     placed, rejected = plan.placed_volumes, plan.rejected_volumes
     identities = [row.identity for row in (*placed, *rejected)]
@@ -60,57 +123,14 @@ def _physical_check(plan, source) -> None:
     tops = {}
     ancestors = {}
     for row in sorted(placed, key=lambda row: row.position_y_cm):
-        x, y, z = row.position_x_cm, row.position_y_cm, row.position_z_cm
-        w, h, length = row.used_width_cm, row.used_height_cm, row.used_length_cm
-        original = (
-            row.volume.original_width_cm,
-            row.volume.original_height_cm,
-            row.volume.original_length_cm,
-        )
-        assert (w, h, length) in (
-            set(permutations(original)) if row.volume.rotation_allowed else {original}
-        )
-        assert min(x, y, z) >= 0
-        assert x + w <= plan.capacity.internal_width_cm
-        assert y + h <= plan.capacity.internal_height_cm
-        assert z + length <= plan.capacity.internal_length_cm
-        cells = {
-            (a, b, c)
-            for a in range(x, x + w)
-            for b in range(y, y + h)
-            for c in range(z, z + length)
-        }
-        assert not occupied.intersection(cells)
-        occupied.update(cells)
-        supporters = set()
-        if y:
-            for a in range(x, x + w):
-                for c in range(z, z + length):
-                    assert (a, y, c) in tops
-                    lower = tops[a, y, c]
-                    assert lower.volume.stackable and not lower.volume.fragile
-                    assert lower.loading_sequence < row.loading_sequence
-                    supporters.add(lower.identity)
-                    supporters.update(ancestors[lower.identity])
-        ancestors[row.identity] = supporters
-        for a in range(x, x + w):
-            for c in range(z, z + length):
-                tops[a, y + h, c] = row
+        _check_placed_box(row, plan, occupied, tops, ancestors)
     by_id = {row.identity: row for row in placed}
     assert all(
         not by_id[identity].volume.fragile
         for ids in ancestors.values()
         for identity in ids
     )
-    for first, second in combinations(placed, 2):
-        if first.volume.delivery_sequence != second.volume.delivery_sequence:
-            later, earlier = sorted(
-                (first, second), key=lambda row: -row.volume.delivery_sequence
-            )
-            assert (
-                later.position_z_cm + later.used_length_cm
-                <= earlier.position_z_cm + earlier.used_length_cm
-            )
+    _check_delivery_depth(placed)
     assert sorted(row.loading_sequence for row in placed) == list(
         range(1, len(placed) + 1)
     )
