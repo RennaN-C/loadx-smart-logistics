@@ -16,6 +16,8 @@ def db_session(request: pytest.FixtureRequest) -> Generator[Session, None, None]
         "users",
         "customers",
         "products",
+        "orders",
+        "order_items",
         "drivers",
         "trucks",
         "access_profiles",

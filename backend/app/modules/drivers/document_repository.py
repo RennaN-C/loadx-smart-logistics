@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import TypeVar
 
-from sqlalchemy import asc, desc, func, select
+from sqlalchemy import asc, desc, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.core.pagination import PageResult, PaginationParams
@@ -15,29 +15,51 @@ from app.modules.drivers.models import (
     DriverDocumentPolicy,
     DriverDocumentType,
 )
+from app.modules.organizations.models import LEGACY_ORGANIZATION_ID
 from app.shared.document_validity import document_status
 
 Record = TypeVar("Record", DriverDocument, DriverDocumentPolicy, DriverDocumentType)
 
 
 class DocumentRepository:
-    def __init__(self, db: Session) -> None:
+    def __init__(
+        self, db: Session, organization_id: uuid.UUID = LEGACY_ORGANIZATION_ID
+    ) -> None:
         self.db = db
+        self.organization_id = organization_id
 
     def types(self) -> list[DriverDocumentType]:
         return list(
             self.db.scalars(
-                select(DriverDocumentType).order_by(DriverDocumentType.code)
+                select(DriverDocumentType)
+                .where(
+                    or_(
+                        DriverDocumentType.id == CNH_TYPE_ID,
+                        DriverDocumentType.organization_id == self.organization_id,
+                    )
+                )
+                .order_by(DriverDocumentType.code)
             ).all()
         )
 
     def get_type(self, identifier: uuid.UUID) -> DriverDocumentType | None:
-        return self.db.get(DriverDocumentType, identifier)
+        return self.db.scalar(
+            select(DriverDocumentType).where(
+                DriverDocumentType.id == identifier,
+                or_(
+                    DriverDocumentType.id == CNH_TYPE_ID,
+                    DriverDocumentType.organization_id == self.organization_id,
+                ),
+            )
+        )
 
     def list_documents(
         self, driver_id: uuid.UUID, pagination: PaginationParams
     ) -> PageResult[DriverDocument]:
-        filters = (DriverDocument.driver_id == driver_id,)
+        filters = (
+            DriverDocument.driver_id == driver_id,
+            DriverDocument.organization_id == self.organization_id,
+        )
         total = (
             self.db.scalar(
                 select(func.count()).select_from(DriverDocument).where(*filters)
@@ -63,6 +85,7 @@ class DocumentRepository:
             select(DriverDocument)
             .where(
                 DriverDocument.driver_id == driver_id,
+                DriverDocument.organization_id == self.organization_id,
                 DriverDocument.document_type_id == type_id,
                 DriverDocument.superseded_at.is_(None),
             )
@@ -73,7 +96,9 @@ class DocumentRepository:
         return self.db.scalar(
             select(DriverDocument)
             .where(
-                DriverDocument.driver_id == driver_id, DriverDocument.id == identifier
+                DriverDocument.driver_id == driver_id,
+                DriverDocument.organization_id == self.organization_id,
+                DriverDocument.id == identifier,
             )
             .execution_options(populate_existing=True)
         )
@@ -82,7 +107,10 @@ class DocumentRepository:
         return list(
             self.db.scalars(
                 select(DriverDocumentPolicy)
-                .where(DriverDocumentPolicy.driver_id == driver_id)
+                .where(
+                    DriverDocumentPolicy.driver_id == driver_id,
+                    DriverDocumentPolicy.organization_id == self.organization_id,
+                )
                 .execution_options(populate_existing=True)
             ).all()
         )

@@ -176,9 +176,120 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
             )
             """
         )
+    _run_alembic(test_url, "upgrade", "20261115_0039")
+    # G03-B1 must backfill rows created by the historical fleet schema.
+    with engine.begin() as connection:
+        connection.exec_driver_sql(
+            """
+            INSERT INTO truck_maintenances(
+                id, truck_id, kind, starts_at, description
+            ) VALUES (
+                '00000000-0000-4000-8000-000000000791',
+                '00000000-0000-4000-8000-000000000790',
+                'PREVENTIVE', NOW(), 'Manutenção legada'
+            )
+            """
+        )
+        connection.exec_driver_sql(
+            """
+            INSERT INTO truck_documents(id, truck_id, kind, reference)
+            VALUES (
+                '00000000-0000-4000-8000-000000000792',
+                '00000000-0000-4000-8000-000000000790',
+                'CRLV', 'Documento legado'
+            )
+            """
+        )
+        connection.exec_driver_sql(
+            """
+            INSERT INTO truck_document_policies(id, truck_id, kind, required)
+            VALUES (
+                '00000000-0000-4000-8000-000000000793',
+                '00000000-0000-4000-8000-000000000790',
+                'CRLV', TRUE
+            )
+            """
+        )
+    _run_alembic(test_url, "upgrade", "20261115_0040")
+    # Backfill legacy custom document types and their dependent policy.
+    with engine.begin() as connection:
+        connection.exec_driver_sql(
+            """
+            INSERT INTO driver_document_types(id, code, name)
+            VALUES (
+                '00000000-0000-4000-8000-000000000794',
+                'G03B2_LEGACY', 'Tipo documental legado'
+            )
+            """
+        )
+        connection.exec_driver_sql(
+            """
+            INSERT INTO driver_document_policies(
+                id, driver_id, document_type_id, required, allowed_categories
+            ) VALUES (
+                '00000000-0000-4000-8000-000000000795',
+                '00000000-0000-4000-8000-000000000202',
+                '00000000-0000-4000-8000-000000000794',
+                TRUE, '[]'
+            )
+            """
+        )
+    _run_alembic(test_url, "upgrade", "20261115_0041")
+    # G04 must migrate already existing order/customer/product references.
+    with engine.begin() as connection:
+        connection.exec_driver_sql(
+            """
+            INSERT INTO orders(
+                id, customer_id, priority, delivery_address
+            ) VALUES (
+                '00000000-0000-4000-8000-000000000796',
+                '00000000-0000-4000-8000-000000000787',
+                'NORMAL', 'Endereço legado'
+            )
+            """
+        )
+        connection.exec_driver_sql(
+            """
+            INSERT INTO order_items(
+                id, order_id, product_id, quantity, delivery_sequence
+            ) VALUES (
+                '00000000-0000-4000-8000-000000000797',
+                '00000000-0000-4000-8000-000000000796',
+                '00000000-0000-4000-8000-000000000788',
+                3, 1
+            )
+            """
+        )
     _run_alembic(test_url, "upgrade", "head")
     with engine.connect() as connection:
         for table, row_id in (
+            ("orders", "00000000-0000-4000-8000-000000000796"),
+            ("order_items", "00000000-0000-4000-8000-000000000797"),
+        ):
+            owner = connection.exec_driver_sql(
+                f"SELECT organization_id::text FROM {table} WHERE id='{row_id}'"
+            ).scalar_one()
+            assert owner == "00000000-0000-4000-8000-000000000301"
+        custom_type_owner = connection.exec_driver_sql(
+            "SELECT organization_id::text FROM driver_document_types "
+            "WHERE id='00000000-0000-4000-8000-000000000794'"
+        ).scalar_one()
+        custom_policy_owner = connection.exec_driver_sql(
+            "SELECT document_type_organization_id::text "
+            "FROM driver_document_policies "
+            "WHERE id='00000000-0000-4000-8000-000000000795'"
+        ).scalar_one()
+        cnh_owner = connection.exec_driver_sql(
+            "SELECT organization_id FROM driver_document_types "
+            "WHERE id='00000000-0000-4000-8000-000000000102'"
+        ).scalar_one()
+        assert custom_type_owner == "00000000-0000-4000-8000-000000000301"
+        assert custom_policy_owner == "00000000-0000-4000-8000-000000000301"
+        assert cnh_owner is None
+        for table, row_id in (
+            ("truck_maintenances", "00000000-0000-4000-8000-000000000791"),
+            ("truck_documents", "00000000-0000-4000-8000-000000000792"),
+            ("truck_document_policies", "00000000-0000-4000-8000-000000000793"),
             ("drivers", "00000000-0000-4000-8000-000000000202"),
             ("trucks", "00000000-0000-4000-8000-000000000790"),
             ("customers", "00000000-0000-4000-8000-000000000787"),
@@ -194,6 +305,11 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
                 "SELECT reference,category,expires_at,legacy_backfill FROM driver_documents WHERE driver_id='00000000-0000-4000-8000-000000000202'"
             ).one()
         ) == ("12345678900", "D", None, True)
+        driver_doc_owner = connection.exec_driver_sql(
+            "SELECT organization_id::text FROM driver_documents "
+            "WHERE driver_id='00000000-0000-4000-8000-000000000202'"
+        ).scalar_one()
+        assert driver_doc_owner == "00000000-0000-4000-8000-000000000301"
         profile_org = connection.exec_driver_sql(
             "SELECT organization_id::text FROM access_profiles "
             "WHERE id='00000000-0000-4000-8000-000000000777'"
@@ -220,7 +336,32 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
         )
     with engine.begin() as connection:
         connection.exec_driver_sql(
+            "DELETE FROM driver_document_policies "
+            "WHERE id='00000000-0000-4000-8000-000000000795'"
+        )
+        connection.exec_driver_sql(
+            "DELETE FROM driver_document_types "
+            "WHERE id='00000000-0000-4000-8000-000000000794'"
+        )
+        connection.exec_driver_sql(
+            "DELETE FROM truck_document_policies "
+            "WHERE id='00000000-0000-4000-8000-000000000793'"
+        )
+        connection.exec_driver_sql(
+            "DELETE FROM truck_documents WHERE id='00000000-0000-4000-8000-000000000792'"
+        )
+        connection.exec_driver_sql(
+            "DELETE FROM truck_maintenances "
+            "WHERE id='00000000-0000-4000-8000-000000000791'"
+        )
+        connection.exec_driver_sql(
             "DELETE FROM trucks WHERE id='00000000-0000-4000-8000-000000000790'"
+        )
+        connection.exec_driver_sql(
+            "DELETE FROM order_items WHERE id='00000000-0000-4000-8000-000000000797'"
+        )
+        connection.exec_driver_sql(
+            "DELETE FROM orders WHERE id='00000000-0000-4000-8000-000000000796'"
         )
         connection.exec_driver_sql(
             "DELETE FROM customer_addresses WHERE id='00000000-0000-4000-8000-000000000789'"
@@ -252,7 +393,7 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
         head_revision = connection.exec_driver_sql(
             "SELECT version_num FROM alembic_version"
         ).scalar_one()
-        assert head_revision == "20261115_0039"
+        assert head_revision == "20261115_0042"
 
     # Descend through OC94 and trusted-device revisions explicitly; -1 would
     # only reach 0030 now and would not exercise the trusted-device rollback.

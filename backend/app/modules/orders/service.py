@@ -129,6 +129,7 @@ class OrderService:
         )
 
         order = Order(
+            organization_id=self.repository.organization_id,
             customer_id=data.customer_id,
             status="DRAFT",
             priority=data.priority,
@@ -364,7 +365,10 @@ class OrderService:
             raise OrderProductNotFoundError(missing_product_ids)
 
     def _build_order_item(self, item: OrderItemCreate) -> OrderItem:
-        return OrderItem(**item.model_dump())
+        return OrderItem(
+            organization_id=self.repository.organization_id,
+            **item.model_dump(),
+        )
 
     def _stage_status_change(
         self,
@@ -397,9 +401,16 @@ class OrderService:
         except IntegrityError as exc:
             self.db.rollback()
             constraint_name = get_integrity_constraint_name(exc)
-            if constraint_name == "fk_orders__customers":
+            if constraint_name in {
+                "fk_orders__customers",
+                "fk_orders__organization_customer",
+                "fk_orders__organization_customer_address",
+            }:
                 raise OrderCustomerNotFoundError from exc
-            if constraint_name == "fk_order_items__products":
+            if constraint_name in {
+                "fk_order_items__products",
+                "fk_order_items__organization_product",
+            }:
                 raise OrderProductNotFoundError(product_ids) from exc
             if constraint_name in {
                 "fk_load_plan_items__order_items",

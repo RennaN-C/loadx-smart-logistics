@@ -12,16 +12,31 @@ from sqlalchemy import (
     UniqueConstraint,
     Uuid,
     func,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base
+from app.modules.organizations.models import LEGACY_ORGANIZATION_ID
 
 
 class Order(Base):
     __tablename__ = "orders"
     __table_args__ = (
+        UniqueConstraint("organization_id", "id", name="uq_orders__organization_id"),
+        ForeignKeyConstraint(
+            ["organization_id", "customer_id"],
+            ["customers.organization_id", "customers.id"],
+            name="fk_orders__organization_customer",
+            ondelete="RESTRICT",
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "customer_address_id"],
+            ["customer_addresses.organization_id", "customer_addresses.id"],
+            name="fk_orders__organization_customer_address",
+            ondelete="RESTRICT",
+        ),
         ForeignKeyConstraint(
             ["customer_address_id", "customer_id"],
             ["customer_addresses.id", "customer_addresses.customer_id"],
@@ -35,9 +50,13 @@ class Order(Base):
     )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    customer_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("customers.id"), nullable=False, index=True
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("organizations.id", ondelete="RESTRICT"),
+        nullable=False,
+        default=lambda: LEGACY_ORGANIZATION_ID,
+        server_default=text("'00000000-0000-4000-8000-000000000301'"),
     )
+    customer_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False, index=True)
     status: Mapped[str] = mapped_column(
         String(32), nullable=False, default="DRAFT", server_default="DRAFT", index=True
     )
@@ -61,6 +80,21 @@ class Order(Base):
 class OrderItem(Base):
     __tablename__ = "order_items"
     __table_args__ = (
+        UniqueConstraint(
+            "organization_id", "id", name="uq_order_items__organization_id"
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "order_id"],
+            ["orders.organization_id", "orders.id"],
+            name="fk_order_items__organization_order",
+            ondelete="RESTRICT",
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "product_id"],
+            ["products.organization_id", "products.id"],
+            name="fk_order_items__organization_product",
+            ondelete="RESTRICT",
+        ),
         CheckConstraint("quantity > 0", name="quantity_positive"),
         CheckConstraint("delivery_sequence > 0", name="delivery_sequence_positive"),
         UniqueConstraint(
@@ -72,12 +106,14 @@ class OrderItem(Base):
     )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    order_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("orders.id"), nullable=False, index=True
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid,
+        nullable=False,
+        default=lambda: LEGACY_ORGANIZATION_ID,
+        server_default=text("'00000000-0000-4000-8000-000000000301'"),
     )
-    product_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("products.id"), nullable=False, index=True
-    )
+    order_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False, index=True)
+    product_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False, index=True)
     quantity: Mapped[int] = mapped_column(Integer, nullable=False)
     delivery_sequence: Mapped[int] = mapped_column(Integer, nullable=False)
     order: Mapped[Order] = relationship(back_populates="items")
