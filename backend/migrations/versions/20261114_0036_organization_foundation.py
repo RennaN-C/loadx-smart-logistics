@@ -399,6 +399,25 @@ def upgrade() -> None:
         ["active_organization_id"],
     )
 
+    if bind.execute(
+        sa.text(
+            "SELECT EXISTS ("
+            "SELECT 1 FROM auth_sessions "
+            "WHERE active_organization_id IS NULL)"
+        )
+    ).scalar_one():
+        raise RuntimeError(
+            "Migration blocked: one or more auth sessions have no organization context."
+        )
+
+    op.alter_column(
+        "auth_sessions",
+        "active_organization_id",
+        existing_type=sa.Uuid(),
+        existing_nullable=True,
+        nullable=False,
+    )
+
 
 def downgrade() -> None:
     bind = op.get_bind()
