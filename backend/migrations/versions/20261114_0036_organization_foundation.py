@@ -28,24 +28,28 @@ def upgrade() -> None:
             "is_legacy", sa.Boolean(), server_default=sa.text("false"), nullable=False
         ),
         sa.Column(
-            "created_at", sa.DateTime(timezone=True),
-            server_default=sa.func.now(), nullable=False
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
         ),
         sa.Column(
-            "updated_at", sa.DateTime(timezone=True),
-            server_default=sa.func.now(), nullable=False
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
         ),
         sa.CheckConstraint(
             "status IN ('PENDING', 'ACTIVE', 'SUSPENDED', 'CANCELED')",
-            name="ck_organizations__status_allowed",
+            name=op.f("ck_organizations__status_allowed"),
         ),
         sa.CheckConstraint(
             "length(trim(legal_name)) > 0 AND length(trim(display_name)) > 0",
-            name="ck_organizations__names_not_empty",
+            name=op.f("ck_organizations__names_not_empty"),
         ),
         sa.CheckConstraint(
             "cnpj IS NULL OR length(cnpj) = 14",
-            name="ck_organizations__cnpj_length",
+            name=op.f("ck_organizations__cnpj_length"),
         ),
         sa.PrimaryKeyConstraint("id", name="pk_organizations"),
     )
@@ -120,8 +124,10 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column(
-            "accepted_at", sa.DateTime(timezone=True),
-            server_default=sa.func.now(), nullable=False
+            "accepted_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
         ),
         sa.Column(
             "updated_at",
@@ -131,47 +137,53 @@ def upgrade() -> None:
         ),
         sa.CheckConstraint(
             "role IN ('ADMIN', 'CHECKER', 'DRIVER', 'LOGISTICS_MANAGER', 'CUSTOM')",
-            name="ck_organization_memberships__role_allowed",
+            name=op.f("ck_organization_memberships__role_allowed"),
         ),
         sa.CheckConstraint(
             "status IN ('ACTIVE', 'SUSPENDED', 'REMOVED')",
-            name="ck_organization_memberships__status_allowed",
+            name=op.f("ck_organization_memberships__status_allowed"),
         ),
         sa.CheckConstraint(
             "(role = 'CUSTOM') = (custom_profile_id IS NOT NULL)",
-            name="ck_organization_memberships__custom_profile_role",
+            name=op.f("ck_organization_memberships__custom_profile_role"),
         ),
         sa.CheckConstraint(
             "driver_id IS NULL OR role = 'DRIVER'",
-            name="ck_organization_memberships__driver_role_required",
+            name=op.f("ck_organization_memberships__driver_role_required"),
         ),
         sa.ForeignKeyConstraint(
-            ["organization_id"], ["organizations.id"],
+            ["organization_id"],
+            ["organizations.id"],
             name="fk_organization_memberships__organizations",
             ondelete="RESTRICT",
         ),
         sa.ForeignKeyConstraint(
-            ["user_id"], ["users.id"],
+            ["user_id"],
+            ["users.id"],
             name="fk_organization_memberships__users",
             ondelete="RESTRICT",
         ),
         sa.ForeignKeyConstraint(
-            ["custom_profile_id"], ["access_profiles.id"],
+            ["custom_profile_id"],
+            ["access_profiles.id"],
             name="fk_organization_memberships__access_profiles",
             ondelete="RESTRICT",
         ),
         sa.ForeignKeyConstraint(
-            ["driver_id"], ["drivers.id"],
+            ["driver_id"],
+            ["drivers.id"],
             name="fk_organization_memberships__drivers",
             ondelete="RESTRICT",
         ),
         sa.PrimaryKeyConstraint("id", name="pk_organization_memberships"),
         sa.UniqueConstraint(
-            "organization_id", "user_id",
+            "organization_id",
+            "user_id",
             name="uq_organization_memberships__organization_user",
         ),
         sa.UniqueConstraint(
-            "id", "organization_id",
+            "id",
+            "organization_id",
             name="uq_organization_memberships__id_organization",
         ),
     )
@@ -235,59 +247,73 @@ def upgrade() -> None:
         sa.Column("revoked_at", sa.DateTime(timezone=True), nullable=True),
         sa.CheckConstraint(
             "role IN ('ADMIN', 'CHECKER', 'DRIVER', 'LOGISTICS_MANAGER', 'CUSTOM')",
-            name="ck_organization_invitations__role_allowed",
+            name=op.f("ck_organization_invitations__role_allowed"),
         ),
         sa.CheckConstraint(
             "(role = 'CUSTOM') = (custom_profile_id IS NOT NULL)",
-            name="ck_organization_invitations__custom_profile_role",
+            name=op.f("ck_organization_invitations__custom_profile_role"),
         ),
         sa.CheckConstraint(
             "length(email_normalized) > 0 AND "
             "email_normalized = lower(trim(email_normalized))",
-            name="ck_organization_invitations__email_normalized",
+            name=op.f("ck_organization_invitations__email_normalized"),
         ),
         sa.CheckConstraint(
             "length(token_hash) = 64",
-            name="ck_organization_invitations__token_hash_length",
+            name=op.f("ck_organization_invitations__token_hash_length"),
         ),
         sa.CheckConstraint(
             "expires_at > created_at",
-            name="ck_organization_invitations__expiration_after_creation",
+            name=op.f("ck_organization_invitations__expiration_after_creation"),
         ),
         sa.CheckConstraint(
             "(accepted_at IS NULL) = (accepted_by_user_id IS NULL)",
-            name="ck_organization_invitations__accepted_actor_consistent",
+            name=op.f("ck_organization_invitations__accepted_actor_consistent"),
         ),
         sa.CheckConstraint(
             "(revoked_at IS NULL) = (revoked_by_user_id IS NULL)",
-            name="ck_organization_invitations__revoked_actor_consistent",
+            name=op.f("ck_organization_invitations__revoked_actor_consistent"),
         ),
         sa.CheckConstraint(
             "accepted_at IS NULL OR revoked_at IS NULL",
-            name="ck_organization_invitations__terminal_state_exclusive",
+            name=op.f("ck_organization_invitations__terminal_state_exclusive"),
+        ),
+        sa.CheckConstraint(
+            "accepted_at IS NULL OR "
+            "(accepted_at >= created_at AND accepted_at < expires_at)",
+            name=op.f("ck_organization_invitations__acceptance_within_validity"),
+        ),
+        sa.CheckConstraint(
+            "revoked_at IS NULL OR revoked_at >= created_at",
+            name=op.f("ck_organization_invitations__revocation_after_creation"),
         ),
         sa.ForeignKeyConstraint(
-            ["organization_id"], ["organizations.id"],
+            ["organization_id"],
+            ["organizations.id"],
             name="fk_organization_invitations__organizations",
             ondelete="RESTRICT",
         ),
         sa.ForeignKeyConstraint(
-            ["custom_profile_id"], ["access_profiles.id"],
+            ["custom_profile_id"],
+            ["access_profiles.id"],
             name="fk_organization_invitations__access_profiles",
             ondelete="RESTRICT",
         ),
         sa.ForeignKeyConstraint(
-            ["invited_by_user_id"], ["users.id"],
+            ["invited_by_user_id"],
+            ["users.id"],
             name="fk_organization_invitations__invited_by_user",
             ondelete="RESTRICT",
         ),
         sa.ForeignKeyConstraint(
-            ["accepted_by_user_id"], ["users.id"],
+            ["accepted_by_user_id"],
+            ["users.id"],
             name="fk_organization_invitations__accepted_by_user",
             ondelete="RESTRICT",
         ),
         sa.ForeignKeyConstraint(
-            ["revoked_by_user_id"], ["users.id"],
+            ["revoked_by_user_id"],
+            ["users.id"],
             name="fk_organization_invitations__revoked_by_user",
             ondelete="RESTRICT",
         ),
@@ -315,22 +341,26 @@ def upgrade() -> None:
         sa.Column("user_id", sa.Uuid(), nullable=False),
         sa.Column("granted_by_user_id", sa.Uuid(), nullable=True),
         sa.Column(
-            "granted_at", sa.DateTime(timezone=True),
-            server_default=sa.func.now(), nullable=False
+            "granted_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
         ),
         sa.Column("reason", sa.String(255), nullable=False),
-        sa.CheckConstraint("id = 1", name="ck_platform_owner_grants__singleton"),
+        sa.CheckConstraint("id = 1", name=op.f("ck_platform_owner_grants__singleton")),
         sa.CheckConstraint(
             "length(trim(reason)) > 0",
-            name="ck_platform_owner_grants__reason_not_empty",
+            name=op.f("ck_platform_owner_grants__reason_not_empty"),
         ),
         sa.ForeignKeyConstraint(
-            ["user_id"], ["users.id"],
+            ["user_id"],
+            ["users.id"],
             name="fk_platform_owner_grants__user",
             ondelete="RESTRICT",
         ),
         sa.ForeignKeyConstraint(
-            ["granted_by_user_id"], ["users.id"],
+            ["granted_by_user_id"],
+            ["users.id"],
             name="fk_platform_owner_grants__granted_by_user",
             ondelete="RESTRICT",
         ),
@@ -381,9 +411,7 @@ def downgrade() -> None:
     if bind.execute(
         sa.text("SELECT EXISTS (SELECT 1 FROM platform_owner_grants)")
     ).scalar_one():
-        raise RuntimeError(
-            "Downgrade blocked: preserve the platform owner grant."
-        )
+        raise RuntimeError("Downgrade blocked: preserve the platform owner grant.")
     if bind.execute(
         sa.text(
             """

@@ -1,3 +1,5 @@
+from tests.integration.auth_helpers import delete_fixture_organization_context
+
 """Personal inbox contracts, real PostgreSQL transactions and independent actors."""
 
 import uuid
@@ -501,6 +503,7 @@ def test_custom_profiles_follow_effective_permissions_and_revocation(
                 )
             )
             db.execute(delete(AuthSession).where(AuthSession.user_id == user_id))
+            delete_fixture_organization_context(db, [user_id])
             db.execute(delete(User).where(User.id == user_id))
             db.execute(
                 delete(ProfilePermission).where(

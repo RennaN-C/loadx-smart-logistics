@@ -174,13 +174,19 @@ Sem alteração de regras físicas, RBAC efetivo, MFA ou OC90/OC94.
 
 ## 20261114_0036 — fundação de organizações
 
-Cria \`organizations\`, \`organization_memberships\`, \`organization_invitations\`
-e \`platform_owner_grants\`. A organização legada é criada a partir de
-\`company_profiles\` quando disponível e todos os usuários existentes recebem
+Cria `organizations`, `organization_memberships`, `organization_invitations`
+e `platform_owner_grants`. A organização legada é criada a partir de
+`company_profiles` quando disponível e todos os usuários existentes recebem
 membership com seus campos de compatibilidade preservados. Sessões recebem
-\`active_organization_id\` por backfill e FK composta com usuário/membership.
+`active_organization_id` por backfill e FK composta com usuário/membership.
 
 A migration não semeia proprietário, não cria uma segunda empresa e não habilita
 RLS. Downgrade é bloqueado se houver convites, grant do proprietário, outras
 organizações ou memberships divergentes dos campos legados. Não usar reset ou
 stamp para contornar o bloqueio.
+
+`CONFIRMADO` (#448): a revisão da PR #449 corrige os nomes das constraints da
+0036 com `op.f`, evitando que a convenção do metadata aplique o prefixo duas
+vezes. Trata-se da migration nova desta PR, ainda não integrada; nenhuma
+migration de release publicada foi alterada. `alembic check` deve confirmar a
+equivalência com os models após upgrade/downgrade/upgrade no PostgreSQL 16.

@@ -19,7 +19,10 @@ from app.modules.auth.sessions import AuthSessionService
 from app.modules.auth.totp import totp_code
 from app.modules.users.schemas import UserCreate, UserUpdate
 from app.modules.users.service import UserService
-from tests.integration.auth_helpers import issue_session_headers
+from tests.integration.auth_helpers import (
+    delete_fixture_organization_context,
+    issue_session_headers,
+)
 
 PASSWORD = "senha-local-segura"
 NEW_PASSWORD = "outra-frase-segura-local"
@@ -402,6 +405,7 @@ def test_concurrent_consumption_has_exactly_one_winner(postgres_engine, kind):
     finally:
         with Session(postgres_engine) as db:
             db.execute(delete(AuditEvent).where(AuditEvent.entity_id == user_id))
+            delete_fixture_organization_context(db, [user_id])
             db.execute(delete(User).where(User.id == user_id))
             db.execute(
                 delete(AuthLoginThrottle).where(

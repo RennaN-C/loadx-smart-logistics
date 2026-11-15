@@ -40,6 +40,7 @@ from app.modules.products.models import Product
 from app.modules.status_history.models import StatusHistory
 from app.modules.trucks.models import Truck
 from app.modules.users.models import User
+from tests.integration.auth_helpers import delete_fixture_organization_context
 from tests.integration.notification_helpers import clear_outbox_fixture
 from tests.unit.test_delivery_service import create_user, prepare_receipt_delivery
 from tests.unit.test_external_command_validation import KEY, NOW, command_body, sign
@@ -165,6 +166,7 @@ def scenario(postgres_engine: Engine) -> Generator[Scenario, None, None]:
             db.execute(delete(Product).where(Product.id == product_id))
             db.execute(delete(Customer).where(Customer.id == customer_id))
             db.execute(delete(Truck).where(Truck.id == truck_id))
+            delete_fixture_organization_context(db, actors.values())
             db.execute(delete(User).where(User.id.in_(actors.values())))
             db.execute(
                 delete(Driver).where(Driver.id.in_((result.driver_id, other_driver_id)))

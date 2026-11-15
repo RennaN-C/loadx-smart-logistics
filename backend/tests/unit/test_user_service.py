@@ -301,7 +301,6 @@ def test_get_user_raises_when_not_found(db_session: Session) -> None:
         service.get_user(uuid.uuid4())
 
 
-
 def test_create_user_creates_legacy_organization_membership(
     db_session: Session,
 ) -> None:

@@ -980,38 +980,43 @@ Sem alteração de regras físicas, RBAC efetivo, MFA ou OC90/OC94.
 ## v1.4.0 — fundação de organizações e contexto de sessão (migration 20261114_0036)
 
 **Decisão:** o LoadX mantém identidade global e relaciona cada usuário às
-organizações por \`organization_memberships\`. A organização legada usa o UUID
-estável \`00000000-0000-4000-8000-000000000301\`.
+organizações por `organization_memberships`. A organização legada usa o UUID
+estável `00000000-0000-4000-8000-000000000301`.
 
 ### Tabelas novas
 
 | Tabela | Responsabilidade |
 |---|---|
-| \`organizations\` | Registro e estado de cada organização |
-| \`organization_memberships\` | Papel, perfil customizado, motorista e estado do vínculo por empresa |
-| \`organization_invitations\` | Convite com hash do token, expiração, aceite e revogação |
-| \`platform_owner_grants\` | Concessão singleton do proprietário geral; inicia vazia |
+| `organizations` | Registro e estado de cada organização |
+| `organization_memberships` | Papel, perfil customizado, motorista e estado do vínculo por empresa |
+| `organization_invitations` | Convite com hash do token, expiração, aceite e revogação |
+| `platform_owner_grants` | Concessão singleton do proprietário geral; inicia vazia |
 
-\`auth_sessions.active_organization_id\` guarda o contexto atribuído pelo
-servidor. A FK composta para \`organization_memberships(organization_id,user_id)\`
+`auth_sessions.active_organization_id` guarda o contexto atribuído pelo
+servidor. A FK composta para `organization_memberships(organization_id,user_id)`
 impede que a sessão aponte para uma organização da qual o usuário não participa.
+
+`CONFIRMADO` (#448): constraints de convites exigem aceite no intervalo
+`created_at <= accepted_at < expires_at` e revogação a partir de `created_at`,
+além de ator consistente e exclusividade entre aceite e revogação. Sessões
+operacionais exigem membership legada ativa durante esta fase de transição.
 
 ### Backfill e compatibilidade
 
 - A organização legada é criada usando nome, nome de exibição e CNPJ de
-  \`company_profiles\`; se o cadastro estiver ausente, usa identificação neutra
-  \`Empresa legada\`.
+  `company_profiles`; se o cadastro estiver ausente, usa identificação neutra
+  `Empresa legada`.
 - Cada usuário existente recebe uma membership ativa, preservando UUID, role,
   custom_profile_id e driver_id.
 - Sessões existentes recebem a organização legada.
-- Enquanto endpoints e repositórios são migrados, \`users.role\`,
-  \`users.custom_profile_id\` e \`users.driver_id\` permanecem como campos de
+- Enquanto endpoints e repositórios são migrados, `users.role`,
+  `users.custom_profile_id` e `users.driver_id` permanecem como campos de
   compatibilidade. A membership é espelhada pelo UserService, mas ainda não é a
   fonte de autorização operacional.
 
 ### Limites deliberados
 
-Esta migration **não** adiciona ainda \`organization_id\` às tabelas logísticas,
+Esta migration **não** adiciona ainda `organization_id` às tabelas logísticas,
 não implementa troca de empresa, onboarding, autorização contextual ou políticas
 RLS. Não há segunda organização operacional. As fases seguintes devem adicionar
 tenant ownership a todos os recursos e relações, migrar os repositórios e

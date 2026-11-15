@@ -25,7 +25,10 @@ def test_alembic_env_uses_application_metadata() -> None:
         in env_content
     )
     assert "from app.modules.orders import models as orders_models" in env_content
-    assert "from app.modules.organizations import models as organizations_models" in env_content
+    assert (
+        "from app.modules.organizations import models as organizations_models"
+        in env_content
+    )
 
 
 def test_alembic_has_current_revision_head() -> None:

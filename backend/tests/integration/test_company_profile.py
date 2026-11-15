@@ -14,6 +14,7 @@ from app.modules.company_profile.service import CompanyProfileService
 from app.modules.status_history.models import AuditEvent
 from app.modules.status_history.service import AuditService
 from app.modules.users.models import User
+from tests.integration.auth_helpers import delete_fixture_organization_context
 from tests.integration.test_users_api import authorization_headers, create_user_in_db
 
 PAYLOAD = {
@@ -260,6 +261,7 @@ def test_concurrent_first_save_preserves_singleton(postgres_engine):
         with factory() as db:
             db.execute(delete(AuditEvent).where(AuditEvent.actor_id == admin.id))
             db.execute(delete(CompanyProfile))
+            delete_fixture_organization_context(db, [admin.id])
             db.execute(delete(User).where(User.id == admin.id))
             db.commit()
 

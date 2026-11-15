@@ -4,6 +4,13 @@
 de migrations com `alembic upgrade head`. Não use SQLite,
 `Base.metadata.create_all`, banco de desenvolvimento, staging ou produção.
 
+`CONFIRMADO` (#448): fixtures que inserem usuários diretamente devem criar a
+membership legada antes de emitir sessões. O helper de autenticação prepara
+somente esse dado de teste ausente; a produção recusa usuários sem vínculo.
+Fixtures com commits reais removem sessões e memberships antes dos usuários,
+usando `delete_fixture_organization_context`, preservando as FKs RESTRICT do
+schema oficial. Não enfraquecer constraints para permitir limpeza de testes.
+
 ## Banco exclusivo
 
 O serviço `db-test` fica em `compose.test.yaml`, usa o banco `loadx_test`, não

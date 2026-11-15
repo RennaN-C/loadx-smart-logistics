@@ -24,6 +24,12 @@ membership e organização ativas. O valor nunca é aceito de header, query stri
 ou payload do cliente. Sessões com membership suspensa/removida ou organização
 inativa são recusadas.
 
+`CONFIRMADO` (#448): durante esta transição, emissão e resolução de sessões
+aceitam exclusivamente a membership ativa de `LEGACY_ORGANIZATION_ID`. Conta
+sem membership, sessão sem contexto ou com contexto de outra organização são
+recusadas, mesmo que exista outro vínculo ativo. Não há fallback sem tenant nem
+seleção automática de outra empresa enquanto os recursos operacionais são globais.
+
 ## Limites de segurança desta fase
 
 A aplicação continua operando em uma única organização. Ainda não há endpoints

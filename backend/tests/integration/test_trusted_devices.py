@@ -26,7 +26,10 @@ from app.modules.status_history.models import AuditEvent
 from app.modules.status_history.service import AuditService
 from app.modules.users.schemas import UserCreate, UserUpdate
 from app.modules.users.service import UserService
-from tests.integration.auth_helpers import issue_session_headers
+from tests.integration.auth_helpers import (
+    delete_fixture_organization_context,
+    issue_session_headers,
+)
 
 NOW = datetime(2026, 10, 19, 12, tzinfo=UTC)
 PASSWORD = "Frase ficticia de acesso segura 2026!"
@@ -573,6 +576,7 @@ def test_concurrent_opt_in_has_exactly_one_winner(postgres_engine):
     finally:
         with factory() as db:
             db.execute(delete(AuditEvent).where(AuditEvent.entity_id == user.id))
+            delete_fixture_organization_context(db, [user.id])
             db.execute(delete(User).where(User.id == user.id))
             db.execute(
                 delete(AuthLoginThrottle).where(AuthLoginThrottle.id.not_in(prior))
@@ -628,6 +632,7 @@ def test_revocation_serializes_with_new_session(postgres_engine):
     finally:
         with factory() as db:
             db.execute(delete(AuditEvent).where(AuditEvent.entity_id == user.id))
+            delete_fixture_organization_context(db, [user.id])
             db.execute(delete(User).where(User.id == user.id))
             db.execute(
                 delete(AuthLoginThrottle).where(AuthLoginThrottle.id.not_in(prior))

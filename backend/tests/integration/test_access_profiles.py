@@ -18,7 +18,10 @@ from app.modules.status_history.service import AuditService
 from app.modules.users.models import User
 from app.modules.users.schemas import UserCreate, UserUpdate
 from app.modules.users.service import UserService
-from tests.integration.auth_helpers import issue_session_headers
+from tests.integration.auth_helpers import (
+    delete_fixture_organization_context,
+    issue_session_headers,
+)
 
 PASSWORD = "Frase ficticia de acesso 2026!"
 
@@ -329,6 +332,7 @@ def concurrent_profiles(postgres_engine):
         with factory() as db:
             db.execute(delete(AuditEvent).where(AuditEvent.actor_id.in_(user_ids)))
             db.execute(delete(AuthSession).where(AuthSession.user_id.in_(user_ids)))
+            delete_fixture_organization_context(db, user_ids)
             db.execute(delete(User).where(User.id.in_(user_ids)))
             db.execute(
                 delete(ProfilePermission).where(
@@ -336,6 +340,7 @@ def concurrent_profiles(postgres_engine):
                 )
             )
             db.execute(delete(AccessProfile).where(AccessProfile.id == profile.id))
+            delete_fixture_organization_context(db, [admin_id])
             db.execute(delete(User).where(User.id == admin_id))
             db.commit()
 

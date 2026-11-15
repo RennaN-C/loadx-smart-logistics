@@ -57,9 +57,7 @@ class OrganizationMembershipRepository:
         self.db.flush()
         return membership
 
-    def active_organization_id_for_user(
-        self, user_id: uuid.UUID
-    ) -> uuid.UUID | None:
+    def active_organization_id_for_user(self, user_id: uuid.UUID) -> uuid.UUID | None:
         return self.db.scalar(
             select(OrganizationMembership.organization_id)
             .join(
@@ -67,6 +65,7 @@ class OrganizationMembershipRepository:
                 Organization.id == OrganizationMembership.organization_id,
             )
             .where(
+                OrganizationMembership.organization_id == LEGACY_ORGANIZATION_ID,
                 OrganizationMembership.user_id == user_id,
                 OrganizationMembership.status == "ACTIVE",
                 Organization.status == "ACTIVE",
@@ -88,9 +87,7 @@ class OrganizationMembershipRepository:
             is not None
         )
 
-    def is_active_member(
-        self, user_id: uuid.UUID, organization_id: uuid.UUID
-    ) -> bool:
+    def is_active_member(self, user_id: uuid.UUID, organization_id: uuid.UUID) -> bool:
         return (
             self.db.scalar(
                 select(OrganizationMembership.id)
@@ -99,6 +96,7 @@ class OrganizationMembershipRepository:
                     Organization.id == OrganizationMembership.organization_id,
                 )
                 .where(
+                    OrganizationMembership.organization_id == LEGACY_ORGANIZATION_ID,
                     OrganizationMembership.user_id == user_id,
                     OrganizationMembership.organization_id == organization_id,
                     OrganizationMembership.status == "ACTIVE",

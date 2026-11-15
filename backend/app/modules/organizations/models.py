@@ -187,6 +187,15 @@ class OrganizationInvitation(Base):
             "accepted_at IS NULL OR revoked_at IS NULL",
             name="terminal_state_exclusive",
         ),
+        CheckConstraint(
+            "accepted_at IS NULL OR "
+            "(accepted_at >= created_at AND accepted_at < expires_at)",
+            name="acceptance_within_validity",
+        ),
+        CheckConstraint(
+            "revoked_at IS NULL OR revoked_at >= created_at",
+            name="revocation_after_creation",
+        ),
         UniqueConstraint("token_hash", name="uq_organization_invitations__token_hash"),
         Index(
             "uq_organization_invitations__pending_email",

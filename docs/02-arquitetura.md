@@ -186,6 +186,6 @@ A arquitetura separa:
 
 A fase 1 cria o registro de organizações, membership, convite, grant singleton
 do proprietário e contexto de organização na sessão. A aplicação permanece
-single-tenant até que todos os recursos operacionais tenham \`organization_id\`,
+single-tenant até que todos os recursos operacionais tenham `organization_id`,
 FKs compostas e consultas escopadas. RLS é defesa adicional posterior, não
 substitui os filtros explícitos no backend.

@@ -88,10 +88,7 @@ class AuthSessionService:
         active_organization_id = self.memberships.active_organization_id_for_user(
             user_id
         )
-        if (
-            active_organization_id is None
-            and self.memberships.has_membership_for_user(user_id)
-        ):
+        if active_organization_id is None:
             raise AuthSessionInvalidError
 
         now = self.now_provider()
@@ -161,9 +158,8 @@ class AuthSessionService:
         if not user.active:
             self.revoke_all_for_user(user.id)
             raise AuthSessionInactiveUserError
-        has_membership = self.memberships.has_membership_for_user(user.id)
         invalid_organization_context = (
-            auth_session.active_organization_id is None and has_membership
+            auth_session.active_organization_id is None
         ) or (
             auth_session.active_organization_id is not None
             and not self.memberships.is_active_member(

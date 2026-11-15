@@ -1,6 +1,6 @@
 # v1.4.0 — SaaS multiempresa, licenciamento e cobrança
 
-**Status:** planejamento técnico aprovado para detalhamento e abertura de Issues. Implementação, alteração de banco remoto, ativação de cobrança e publicação ainda não autorizadas.
+**Status:** `CONFIRMADO`: implementação incremental autorizada pelo responsável em 14/11/2026, iniciando pela Issue #448 / PR #449. Merge, alteração de banco remoto, deploy, release e ativação de cobrança dependem de autorização explícita. O gateway continua pendente de escolha.
 
 **Escopo:** transformar o LoadX em uma solução SaaS multiempresa, com entrada controlada de clientes, planos comerciais, módulos híbridos, assinaturas, pagamentos automáticos e administração da plataforma.
 
@@ -441,9 +441,9 @@ A Issue [#430](https://github.com/RennaN-C/loadx-smart-logistics/issues/430) per
 ## Situação da implementação multiempresa
 
 A [fase 1 — Issue #448](https://github.com/RennaN-C/loadx-smart-logistics/issues/448)
-está sendo implementada em branch própria com PR para \`desenvolvimento\`.
+está sendo implementada em branch própria com PR para `desenvolvimento`.
 A migration 0036 introduz o núcleo organizacional e contexto de sessão, mas não
-ativa multiempresa. O próximo gate é adicionar \`organization_id\` aos recursos
+ativa multiempresa. O próximo gate é adicionar `organization_id` aos recursos
 operacionais, corrigir relações e consultas e testar isolamento negativo em
 PostgreSQL 16. RLS somente será habilitado depois de validar contexto por
 transação, pool de conexões e workers.

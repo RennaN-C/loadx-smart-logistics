@@ -141,3 +141,38 @@ Até concluir as fases seguintes:
 - RLS não permite acesso sem contexto, com contexto anterior ou por papel de
   banco que ignore políticas.
 - Backup e rollback são ensaiados em banco isolado PostgreSQL 16.
+
+## 9. Revisão da PR #449 — Issue #448
+
+`CONFIRMADO`: a revisão identificou e corrigiu três problemas da fundação:
+
+- A CI parava na formatação de cinco arquivos, antes de migrations/Pytest.
+- Os nomes explícitos de CHECKs da migration 0036 recebiam novamente o prefixo
+  da convenção SQLAlchemy. `op.f` conserva o nome final e permite comparar o
+  schema real com os models usando `alembic check`.
+- A emissão escolhia a primeira membership ativa, inclusive de outra empresa,
+  e contas sem qualquer membership podiam receber sessão sem contexto. Agora
+  emissão e resolução exigem exclusivamente a organização legada ativa; sessão
+  sem contexto ou com outra empresa é rejeitada/revogada antes da operação.
+
+`CONFIRMADO`: constraints também impedem aceite de convite fora da validade e
+revogação anterior à criação. Testes negativos cobrem API autenticada,
+headers arbitrários, FK composta de sessão, estados de membership/organização,
+consistência dos convites, grant singleton e preservação no downgrade. O
+backfill é exercitado com os cinco papéis, perfil customizado e motorista.
+
+`CONFIRMADO`: a preparação e limpeza das fixtures de autenticação/concorrência
+foram ajustadas ao novo schema: usuários inseridos diretamente recebem o vínculo
+legado de teste e sessões são removidas antes de memberships/usuários. As FKs de
+produção permanecem RESTRICT. Sem essa ordem, falhas de teardown deixavam dados
+persistidos e contaminavam testes seguintes.
+
+`CONFIRMADO`: em Linux/Python 3.12 com PostgreSQL 16 local exclusivo,
+`pytest -q tests/integration/test_organizations_foundation.py
+tests/integration/test_postgresql_migrations.py` passou com **36 testes**, incluindo
+a preparação por Alembic, ciclos de upgrade/downgrade e `alembic check`.
+
+`RISCO IDENTIFICADO`: este bloqueio de sessão é uma proteção transitória; não
+comprova isolamento dos recursos logísticos. A Issue #441 permanece necessária
+para ownership, filtros, RBAC contextual e integridade cross-tenant. Não ativar
+segunda empresa, RLS ou operação comercial com base apenas na Issue #448.

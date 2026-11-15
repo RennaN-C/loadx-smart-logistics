@@ -101,8 +101,8 @@ em lote, sem N+1 por membro. Login/me recebem grants resolvidos no banco.
 ## Membership de compatibilidade — fase 1 da v1.4.0
 
 O UserService cria e sincroniza a membership da organização legada ao criar ou
-alterar usuários. Nesta fase, \`users.role\`, \`users.custom_profile_id\` e
-\`users.driver_id\` permanecem como projeção legada usada pelo RBAC atual.
+alterar usuários. Nesta fase, `users.role`, `users.custom_profile_id` e
+`users.driver_id` permanecem como projeção legada usada pelo RBAC atual.
 Não usar essa sincronização como autorização multiempresa: a autorização
 contextual e a transferência definitiva desses campos para membership são
 entregas posteriores.
