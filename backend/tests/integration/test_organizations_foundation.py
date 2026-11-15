@@ -10,7 +10,6 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.modules.access_profiles.models import AccessProfile
 from app.modules.auth.models import AuthSession
 from app.modules.auth.sessions import AuthSessionInvalidError, AuthSessionService
 from app.modules.company_profile.models import PROFILE_ID, CompanyProfile
