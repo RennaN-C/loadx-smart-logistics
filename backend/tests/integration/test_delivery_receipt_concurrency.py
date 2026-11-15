@@ -18,6 +18,7 @@ from app.modules.products.models import Product
 from app.modules.status_history.models import StatusHistory
 from app.modules.trucks.models import Truck
 from app.modules.users.models import User
+from tests.integration.auth_helpers import delete_fixture_organization_context
 from tests.integration.notification_helpers import clear_outbox_fixture
 from tests.unit.test_delivery_service import prepare_receipt_delivery
 
@@ -111,6 +112,7 @@ def test_concurrent_receipts_refresh_locked_state_and_share_one_completion(
             db.execute(delete(Product).where(Product.id == product_id))
             db.execute(delete(Customer).where(Customer.id == customer_id))
             db.execute(delete(Truck).where(Truck.id == truck_id))
+            delete_fixture_organization_context(db, [manager_id])
             db.execute(delete(User).where(User.id == manager_id))
             db.execute(delete(Driver).where(Driver.id == driver_id))
             db.commit()

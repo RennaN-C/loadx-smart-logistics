@@ -28,10 +28,13 @@ def test_core_catalog_tables_use_uuid_primary_key() -> None:
 def test_core_catalog_unique_constraints_follow_documented_names() -> None:
     expected_unique_constraints = {
         "users": {"uq_users__email", "uq_users__driver_id"},
-        "customers": {"uq_customers__document"},
-        "drivers": {"uq_drivers__document", "uq_drivers__license_number"},
-        "trucks": {"uq_trucks__plate"},
-        "products": {"uq_products__code"},
+        "customers": {"uq_customers__organization_document"},
+        "drivers": {
+            "uq_drivers__organization_document",
+            "uq_drivers__organization_license_number",
+        },
+        "trucks": {"uq_trucks__organization_plate"},
+        "products": {"uq_products__organization_code"},
     }
 
     for table_name, expected_names in expected_unique_constraints.items():

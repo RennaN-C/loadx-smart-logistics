@@ -184,9 +184,15 @@ class DriverService:
         except IntegrityError as exc:
             self.db.rollback()
             constraint_name = get_integrity_constraint_name(exc)
-            if constraint_name == "uq_drivers__license_number":
+            if constraint_name in {
+                "uq_drivers__license_number",
+                "uq_drivers__organization_license_number",
+            }:
                 raise DriverLicenseNumberAlreadyExistsError from exc
-            if constraint_name == "uq_drivers__document":
+            if constraint_name in {
+                "uq_drivers__document",
+                "uq_drivers__organization_document",
+            }:
                 raise DriverDocumentAlreadyExistsError from exc
             raise
         except Exception:

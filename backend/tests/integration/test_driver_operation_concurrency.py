@@ -19,6 +19,7 @@ from app.modules.products.models import Product
 from app.modules.status_history.models import StatusHistory
 from app.modules.trucks.models import Truck
 from app.modules.users.models import User
+from tests.integration.auth_helpers import delete_fixture_organization_context
 from tests.integration.test_truck_operation_concurrency import _create_plan
 
 
@@ -117,6 +118,7 @@ def test_concurrent_driver_allocation_creates_only_one_trip(
             db.execute(delete(Product).where(Product.id.in_(product_ids)))
             db.execute(delete(Customer).where(Customer.id.in_(customer_ids)))
             db.execute(delete(Truck).where(Truck.id.in_(truck_ids)))
+            delete_fixture_organization_context(db, [manager_id])
             db.execute(delete(User).where(User.id == manager_id))
             db.execute(delete(Driver).where(Driver.id == driver_id))
             db.commit()

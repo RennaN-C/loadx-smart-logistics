@@ -238,7 +238,10 @@ class TruckService:
             self.db.refresh(truck)
         except IntegrityError as exc:
             self.db.rollback()
-            if get_integrity_constraint_name(exc) == "uq_trucks__plate":
+            if get_integrity_constraint_name(exc) in {
+                "uq_trucks__plate",
+                "uq_trucks__organization_plate",
+            }:
                 raise TruckPlateAlreadyExistsError from exc
             raise
         except Exception:

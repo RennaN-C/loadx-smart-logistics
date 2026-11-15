@@ -273,3 +273,21 @@ com opt-in não cria cookie. Trocar senha/fator ou revogar confiança invalida
 imediatamente o bypass; operações sensíveis ainda pedem fator real.
 `RISCO IDENTIFICADO`: habilitar flags/deploy e teste manual final permanecem
 fora desta entrega. Nunca confiar em navegador público/compartilhado.
+
+
+## Contexto organizacional — fase 1 da v1.4.0
+
+`auth_sessions.active_organization_id` é `NOT NULL` e preenchido no servidor
+a partir de membership ativa. A migration valida o backfill antes de aplicar a
+restrição no PostgreSQL. A sessão é recusada se a membership for
+suspensa/removida ou a organização deixar de estar ativa. O cliente não pode
+enviar o contexto por header ou payload.
+
+`CONFIRMADO` (#448): o contexto é obrigatório e limitado à organização legada
+nesta fase. Sessões sem contexto ou com outra organização são revogadas na
+resolução; contas sem membership legada ativa não recebem nova sessão.
+
+O contexto ainda não é exposto como seletor/troca de empresa e não substitui
+`User.role` na autorização. O produto continua single-tenant até concluir
+organization_id, FKs compostas, filtros explícitos e testes de isolamento em
+todos os módulos.

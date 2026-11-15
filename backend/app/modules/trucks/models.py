@@ -8,6 +8,7 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     ForeignKey,
+    ForeignKeyConstraint,
     Index,
     Numeric,
     String,
@@ -19,11 +20,18 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database.base import Base
+from app.modules.organizations.models import LEGACY_ORGANIZATION_ID
 
 
 class Truck(Base):
     __tablename__ = "trucks"
     __table_args__ = (
+        UniqueConstraint("organization_id", "id", name="uq_trucks__organization_id"),
+        UniqueConstraint(
+            "organization_id",
+            "plate",
+            name="uq_trucks__organization_plate",
+        ),
         CheckConstraint(
             "internal_width_cm > 0 AND internal_height_cm > 0 AND internal_length_cm > 0",
             name="dimensions_positive",
@@ -39,7 +47,13 @@ class Truck(Base):
     )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    plate: Mapped[str] = mapped_column(String(16), nullable=False, unique=True)
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("organizations.id", ondelete="RESTRICT"),
+        nullable=False,
+        default=lambda: LEGACY_ORGANIZATION_ID,
+        server_default=text("'00000000-0000-4000-8000-000000000301'"),
+    )
+    plate: Mapped[str] = mapped_column(String(16), nullable=False)
     model: Mapped[str] = mapped_column(String(120), nullable=False)
     internal_width_cm: Mapped[int] = mapped_column(nullable=False)
     internal_height_cm: Mapped[int] = mapped_column(nullable=False)
@@ -59,6 +73,17 @@ class Truck(Base):
 class TruckMaintenance(Base):
     __tablename__ = "truck_maintenances"
     __table_args__ = (
+        ForeignKeyConstraint(
+            ["organization_id", "truck_id"],
+            ["trucks.organization_id", "trucks.id"],
+            name="fk_truck_maintenances__organization_truck",
+            ondelete="RESTRICT",
+        ),
+        UniqueConstraint(
+            "organization_id",
+            "id",
+            name="uq_truck_maintenances__organization_id",
+        ),
         CheckConstraint("kind IN ('PREVENTIVE', 'CORRECTIVE')", name="kind_allowed"),
         CheckConstraint("ends_at IS NULL OR ends_at > starts_at", name="period_valid"),
         CheckConstraint("cost IS NULL OR cost >= 0", name="cost_nonnegative"),
@@ -76,8 +101,12 @@ class TruckMaintenance(Base):
         Index("ix_truck_maintenances__truck_period", "truck_id", "starts_at"),
     )
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    truck_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("trucks.id", ondelete="RESTRICT"), nullable=False
+    truck_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid,
+        nullable=False,
+        default=lambda: LEGACY_ORGANIZATION_ID,
+        server_default=text("'00000000-0000-4000-8000-000000000301'"),
     )
     kind: Mapped[str] = mapped_column(String(16), nullable=False)
     starts_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
@@ -99,6 +128,17 @@ class TruckMaintenance(Base):
 class TruckDocument(Base):
     __tablename__ = "truck_documents"
     __table_args__ = (
+        ForeignKeyConstraint(
+            ["organization_id", "truck_id"],
+            ["trucks.organization_id", "trucks.id"],
+            name="fk_truck_documents__organization_truck",
+            ondelete="RESTRICT",
+        ),
+        UniqueConstraint(
+            "organization_id",
+            "id",
+            name="uq_truck_documents__organization_id",
+        ),
         CheckConstraint(
             "kind IN ('CRLV', 'LICENSING', 'INSURANCE')", name="kind_allowed"
         ),
@@ -118,8 +158,12 @@ class TruckDocument(Base):
         Index("ix_truck_documents__truck_created", "truck_id", "created_at"),
     )
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    truck_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("trucks.id", ondelete="RESTRICT"), nullable=False
+    truck_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid,
+        nullable=False,
+        default=lambda: LEGACY_ORGANIZATION_ID,
+        server_default=text("'00000000-0000-4000-8000-000000000301'"),
     )
     kind: Mapped[str] = mapped_column(String(16), nullable=False)
     reference: Mapped[str] = mapped_column(String(120), nullable=False)
@@ -135,6 +179,17 @@ class TruckDocument(Base):
 class TruckDocumentPolicy(Base):
     __tablename__ = "truck_document_policies"
     __table_args__ = (
+        ForeignKeyConstraint(
+            ["organization_id", "truck_id"],
+            ["trucks.organization_id", "trucks.id"],
+            name="fk_truck_document_policies__organization_truck",
+            ondelete="RESTRICT",
+        ),
+        UniqueConstraint(
+            "organization_id",
+            "id",
+            name="uq_truck_document_policies__organization_id",
+        ),
         CheckConstraint(
             "kind IN ('CRLV', 'LICENSING', 'INSURANCE')", name="kind_allowed"
         ),
@@ -143,8 +198,12 @@ class TruckDocumentPolicy(Base):
         ),
     )
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    truck_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("trucks.id", ondelete="RESTRICT"), nullable=False
+    truck_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid,
+        nullable=False,
+        default=lambda: LEGACY_ORGANIZATION_ID,
+        server_default=text("'00000000-0000-4000-8000-000000000301'"),
     )
     kind: Mapped[str] = mapped_column(String(16), nullable=False)
     required: Mapped[bool] = mapped_column(

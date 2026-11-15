@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.modules.company_profile.models import CompanyProfile
 from app.modules.company_profile.repository import CompanyProfileRepository
 from app.modules.company_profile.schemas import CompanyProfileInput
+from app.modules.organizations.models import LEGACY_ORGANIZATION_ID, Organization
 from app.modules.status_history.schemas import AuditEventCreate
 from app.modules.status_history.service import AuditService
 
@@ -34,6 +35,13 @@ class CompanyProfileService:
             )
             for key, value in values.items():
                 setattr(profile, key, value)
+            # G01 transitional mirror: the legacy endpoint stays compatible
+            # until all consumers read the organization scoped institution.
+            organization = self.db.get(Organization, LEGACY_ORGANIZATION_ID)
+            if organization is None or not organization.is_legacy:
+                raise RuntimeError("Legacy organization is missing or invalid.")
+            for key, value in values.items():
+                setattr(organization, key, value)
             if changed:
                 profile.updated_at = datetime.now(timezone.utc)
                 self.audit.stage_administrative_event(

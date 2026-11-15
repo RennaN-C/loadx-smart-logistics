@@ -30,6 +30,20 @@ O papel `PLATFORM_OWNER` pertence inicialmente a **uma única identidade autoriz
 
 Ser proprietário da plataforma não significa receber automaticamente acesso de leitura a informações operacionais confidenciais de uma transportadora. Acesso excepcional de suporte exige justificativa, autorização, duração limitada e auditoria.
 
+### Bootstrap inicial e recuperação
+
+A concessão inicial será um procedimento de provisionamento **fora do fluxo HTTP**, sem cadastro público, tela de promoção, autoelevação ou seed em migration:
+
+1. Criar a identidade pelo fluxo normal de contas, confirmar sua titularidade fora de banda e habilitar MFA antes da concessão.
+2. Um operador autorizado executa um comando administrativo de uso único em ambiente operacional restrito, informando o UUID exato do usuário e um motivo não vazio.
+3. O comando valida que o usuário existe, está ativo e possui MFA habilitado; adquire bloqueio transacional do registro singleton; e confirma que ainda não existe concessão.
+4. Na mesma transação, grava o único grant (`id = 1`), com o usuário, horário do banco e motivo. `granted_by_user_id` fica nulo somente no bootstrap inicial, pois ainda não existe um proprietário autenticado no produto.
+5. A execução, o operador responsável, a aprovação e o resultado são registrados no log de auditoria protegido da operação. O comando não imprime nem persiste credenciais.
+
+O procedimento falha fechado se já existir um grant. Não haverá opção de força, variável de ambiente que promova usuário automaticamente, endpoint público ou alteração por interface web.
+
+Recuperação ou transferência posterior exige procedimento break-glass com aprovação de duas pessoas e trilha append-only de auditoria da plataforma. Não se deve sobrescrever ou apagar o grant atual até existir histórico auditável da concessão anterior e da nova. A recuperação não concede acesso operacional aos dados dos tenants.
+
 ## 3. Módulos e fronteiras
 
 **LoadX Logistics** será o primeiro módulo de negócio comercial e contém cadastros logísticos, produtos, pedidos, frota, motoristas, otimização/planejamento de carga, carregamento, viagens, entregas, documentos, relatórios e Loxi com contexto autorizado.

@@ -15,6 +15,7 @@ from app.modules.auth.identity_repository import IdentityRepository
 from app.modules.auth.models import AuthSession, AuthTrustedDevice
 from app.modules.auth.repository import AuthSessionRepository
 from app.modules.auth.schemas import MFA_REQUIRED_ROLES
+from app.modules.organizations.repository import OrganizationMembershipRepository
 from app.modules.users.models import User
 
 SESSION_TOKEN_BYTES = 32
@@ -59,6 +60,7 @@ class AuthSessionService:
     ) -> None:
         self.db = db
         self.repository = AuthSessionRepository(db)
+        self.memberships = OrganizationMembershipRepository(db)
         self.secret_key = secret_key.encode()
         self.now_provider = now_provider or (lambda: datetime.now(UTC))
 
@@ -83,11 +85,18 @@ class AuthSessionService:
                 raise AuthSessionInvalidError
             if password_only:
                 trusted_device = self._validate_login_factor(user, trusted_device_token)
+        active_organization_id = self.memberships.active_organization_id_for_user(
+            user_id
+        )
+        if active_organization_id is None:
+            raise AuthSessionInvalidError
+
         now = self.now_provider()
         token = secrets.token_urlsafe(SESSION_TOKEN_BYTES)
         auth_session = self.repository.add(
             AuthSession(
                 user_id=user_id,
+                active_organization_id=active_organization_id,
                 token_hash=self.hash_token(token),
                 created_at=now,
                 last_seen_at=now,
@@ -149,6 +158,23 @@ class AuthSessionService:
         if not user.active:
             self.revoke_all_for_user(user.id)
             raise AuthSessionInactiveUserError
+        invalid_organization_context = (
+            auth_session.active_organization_id is None
+        ) or (
+            auth_session.active_organization_id is not None
+            and not self.memberships.is_active_member(
+                user.id, auth_session.active_organization_id
+            )
+        )
+        if invalid_organization_context:
+            self.repository.revoke(auth_session, now)
+            self.db.commit()
+            emit_security_event(
+                SecurityEvent.SESSION_REVOKED,
+                session_id=str(auth_session.id),
+                user_id=str(auth_session.user_id),
+            )
+            raise AuthSessionInvalidError
 
         auth_session.last_seen_at = now
         auth_session.idle_expires_at = min(

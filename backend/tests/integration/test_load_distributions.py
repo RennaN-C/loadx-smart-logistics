@@ -38,6 +38,7 @@ from app.modules.status_history.models import StatusHistory
 from app.modules.status_history.service import StatusHistoryService
 from app.modules.trucks.models import Truck
 from app.modules.users.models import User
+from tests.integration.auth_helpers import delete_fixture_organization_context
 from tests.integration.test_load_planning_api import (
     create_authenticated_user,
     seed_planning_scenario,
@@ -197,6 +198,7 @@ def distribution_scenario(postgres_engine):
                     delete(StatusHistory).where(StatusHistory.changed_by == user.id)
                 )
                 db.execute(delete(AuthSession).where(AuthSession.user_id == user.id))
+                delete_fixture_organization_context(db, [user.id])
                 db.execute(delete(User).where(User.id == user.id))
                 db.commit()
 
@@ -622,6 +624,7 @@ def test_roles_cannot_create_or_approve_distribution(distribution_scenario, role
     finally:
         with s.factory() as db:
             db.execute(delete(AuthSession).where(AuthSession.user_id == user.id))
+            delete_fixture_organization_context(db, [user.id])
             db.execute(delete(User).where(User.id == user.id))
             db.commit()
 
@@ -968,6 +971,7 @@ def test_oc88_optimize_requires_authentication_and_manager_role(
         finally:
             with s.factory() as db:
                 db.execute(delete(AuthSession).where(AuthSession.user_id == user.id))
+                delete_fixture_organization_context(db, [user.id])
                 db.execute(delete(User).where(User.id == user.id))
                 db.commit()
 

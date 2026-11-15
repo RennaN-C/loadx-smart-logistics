@@ -98,19 +98,262 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
         connection.exec_driver_sql(
             "INSERT INTO drivers(id,name,document,phone,license_number,license_category,active) VALUES ('00000000-0000-4000-8000-000000000202','Legado fictício','12345678909','11900000000','12345678900','D',false)"
         )
+    # Exercise the 0037 backfill with actual legacy profile + company rows.
+    _run_alembic(test_url, "upgrade", "20261114_0036")
+    with engine.begin() as connection:
+        connection.exec_driver_sql(
+            """
+            INSERT INTO company_profiles (
+                id, legal_name, display_name, cnpj, phone, email, logo_reference
+            ) VALUES (
+                '00000000-0000-0000-0000-000000000091',
+                'Empresa migrada LTDA', 'Empresa migrada',
+                '11222333000181', '11900000000',
+                'contato@example.test', 'https://example.test/logo.svg'
+            )
+            """
+        )
+        connection.exec_driver_sql(
+            """
+            INSERT INTO access_profiles(id, name, name_key, description)
+            VALUES (
+                '00000000-0000-4000-8000-000000000777',
+                'Perfil legado', 'perfil legado', ''
+            )
+            """
+        )
+        connection.exec_driver_sql(
+            """
+            INSERT INTO access_profile_permissions(profile_id, permission_code)
+            VALUES ('00000000-0000-4000-8000-000000000777', 'loadx.trucks.read')
+            """
+        )
+    _run_alembic(test_url, "upgrade", "20261115_0037")
+    # Verify G02's backfill against rows written by the PREVIOUS schema.
+    with engine.begin() as connection:
+        connection.exec_driver_sql(
+            """
+            INSERT INTO customers(id,name,document,address,city,state)
+            VALUES (
+                '00000000-0000-4000-8000-000000000787',
+                'Cliente legado', '00000000000199', 'Rua antiga',
+                'Curitiba', 'PR'
+            )
+            """
+        )
+        connection.exec_driver_sql(
+            """
+            INSERT INTO products(
+                id,code,name,width_cm,height_cm,length_cm,weight_kg
+            ) VALUES (
+                '00000000-0000-4000-8000-000000000788',
+                'G02-LEGACY-SKU', 'Produto legado', 10, 20, 30, 3.250
+            )
+            """
+        )
+        connection.exec_driver_sql(
+            """
+            INSERT INTO customer_addresses(
+                id,customer_id,label,address,city,state
+            ) VALUES (
+                '00000000-0000-4000-8000-000000000789',
+                '00000000-0000-4000-8000-000000000787',
+                'Principal', 'Rua antiga', 'Curitiba', 'PR'
+            )
+            """
+        )
+    _run_alembic(test_url, "upgrade", "20261115_0038")
+    # Exercise G03 over the existing legacy fleet, not a fresh 0039 schema.
+    with engine.begin() as connection:
+        connection.exec_driver_sql(
+            """
+            INSERT INTO trucks(
+                id, plate, model, internal_width_cm, internal_height_cm,
+                internal_length_cm, max_weight_kg
+            ) VALUES (
+                '00000000-0000-4000-8000-000000000790',
+                'G03T123', 'Frota legada', 200, 220, 600, 4000
+            )
+            """
+        )
+    _run_alembic(test_url, "upgrade", "20261115_0039")
+    # G03-B1 must backfill rows created by the historical fleet schema.
+    with engine.begin() as connection:
+        connection.exec_driver_sql(
+            """
+            INSERT INTO truck_maintenances(
+                id, truck_id, kind, starts_at, description
+            ) VALUES (
+                '00000000-0000-4000-8000-000000000791',
+                '00000000-0000-4000-8000-000000000790',
+                'PREVENTIVE', NOW(), 'Manutenção legada'
+            )
+            """
+        )
+        connection.exec_driver_sql(
+            """
+            INSERT INTO truck_documents(id, truck_id, kind, reference)
+            VALUES (
+                '00000000-0000-4000-8000-000000000792',
+                '00000000-0000-4000-8000-000000000790',
+                'CRLV', 'Documento legado'
+            )
+            """
+        )
+        connection.exec_driver_sql(
+            """
+            INSERT INTO truck_document_policies(id, truck_id, kind, required)
+            VALUES (
+                '00000000-0000-4000-8000-000000000793',
+                '00000000-0000-4000-8000-000000000790',
+                'CRLV', TRUE
+            )
+            """
+        )
+    _run_alembic(test_url, "upgrade", "20261115_0040")
+    # Backfill legacy custom document types and their dependent policy.
+    with engine.begin() as connection:
+        connection.exec_driver_sql(
+            """
+            INSERT INTO driver_document_types(id, code, name)
+            VALUES (
+                '00000000-0000-4000-8000-000000000794',
+                'G03B2_LEGACY', 'Tipo documental legado'
+            )
+            """
+        )
+        connection.exec_driver_sql(
+            """
+            INSERT INTO driver_document_policies(
+                id, driver_id, document_type_id, required, allowed_categories
+            ) VALUES (
+                '00000000-0000-4000-8000-000000000795',
+                '00000000-0000-4000-8000-000000000202',
+                '00000000-0000-4000-8000-000000000794',
+                TRUE, '[]'
+            )
+            """
+        )
     _run_alembic(test_url, "upgrade", "head")
     with engine.connect() as connection:
+        custom_type_owner = connection.exec_driver_sql(
+            "SELECT organization_id::text FROM driver_document_types "
+            "WHERE id='00000000-0000-4000-8000-000000000794'"
+        ).scalar_one()
+        custom_policy_owner = connection.exec_driver_sql(
+            "SELECT document_type_organization_id::text "
+            "FROM driver_document_policies "
+            "WHERE id='00000000-0000-4000-8000-000000000795'"
+        ).scalar_one()
+        cnh_owner = connection.exec_driver_sql(
+            "SELECT organization_id FROM driver_document_types "
+            "WHERE id='00000000-0000-4000-8000-000000000102'"
+        ).scalar_one()
+        assert custom_type_owner == "00000000-0000-4000-8000-000000000301"
+        assert custom_policy_owner == "00000000-0000-4000-8000-000000000301"
+        assert cnh_owner is None
+        for table, row_id in (
+            ("truck_maintenances", "00000000-0000-4000-8000-000000000791"),
+            ("truck_documents", "00000000-0000-4000-8000-000000000792"),
+            ("truck_document_policies", "00000000-0000-4000-8000-000000000793"),
+            ("drivers", "00000000-0000-4000-8000-000000000202"),
+            ("trucks", "00000000-0000-4000-8000-000000000790"),
+            ("customers", "00000000-0000-4000-8000-000000000787"),
+            ("products", "00000000-0000-4000-8000-000000000788"),
+            ("customer_addresses", "00000000-0000-4000-8000-000000000789"),
+        ):
+            owner = connection.exec_driver_sql(
+                f"SELECT organization_id::text FROM {table} WHERE id='{row_id}'"
+            ).scalar_one()
+            assert owner == "00000000-0000-4000-8000-000000000301"
         assert tuple(
             connection.exec_driver_sql(
                 "SELECT reference,category,expires_at,legacy_backfill FROM driver_documents WHERE driver_id='00000000-0000-4000-8000-000000000202'"
             ).one()
         ) == ("12345678900", "D", None, True)
+        driver_doc_owner = connection.exec_driver_sql(
+            "SELECT organization_id::text FROM driver_documents "
+            "WHERE driver_id='00000000-0000-4000-8000-000000000202'"
+        ).scalar_one()
+        assert driver_doc_owner == "00000000-0000-4000-8000-000000000301"
+        profile_org = connection.exec_driver_sql(
+            "SELECT organization_id::text FROM access_profiles "
+            "WHERE id='00000000-0000-4000-8000-000000000777'"
+        ).scalar_one()
+        permission_org = connection.exec_driver_sql(
+            "SELECT organization_id::text FROM access_profile_permissions "
+            "WHERE profile_id='00000000-0000-4000-8000-000000000777'"
+        ).scalar_one()
+        assert profile_org == "00000000-0000-4000-8000-000000000301"
+        assert permission_org == "00000000-0000-4000-8000-000000000301"
+        assert tuple(
+            connection.exec_driver_sql(
+                "SELECT legal_name, display_name, cnpj, phone, email, logo_reference "
+                "FROM organizations "
+                "WHERE id='00000000-0000-4000-8000-000000000301'"
+            ).one()
+        ) == (
+            "Empresa migrada LTDA",
+            "Empresa migrada",
+            "11222333000181",
+            "11900000000",
+            "contato@example.test",
+            "https://example.test/logo.svg",
+        )
+    with engine.begin() as connection:
+        connection.exec_driver_sql(
+            "DELETE FROM driver_document_policies "
+            "WHERE id='00000000-0000-4000-8000-000000000795'"
+        )
+        connection.exec_driver_sql(
+            "DELETE FROM driver_document_types "
+            "WHERE id='00000000-0000-4000-8000-000000000794'"
+        )
+        connection.exec_driver_sql(
+            "DELETE FROM truck_document_policies "
+            "WHERE id='00000000-0000-4000-8000-000000000793'"
+        )
+        connection.exec_driver_sql(
+            "DELETE FROM truck_documents WHERE id='00000000-0000-4000-8000-000000000792'"
+        )
+        connection.exec_driver_sql(
+            "DELETE FROM truck_maintenances "
+            "WHERE id='00000000-0000-4000-8000-000000000791'"
+        )
+        connection.exec_driver_sql(
+            "DELETE FROM trucks WHERE id='00000000-0000-4000-8000-000000000790'"
+        )
+        connection.exec_driver_sql(
+            "DELETE FROM customer_addresses WHERE id='00000000-0000-4000-8000-000000000789'"
+        )
+        connection.exec_driver_sql(
+            "DELETE FROM products WHERE id='00000000-0000-4000-8000-000000000788'"
+        )
+        connection.exec_driver_sql(
+            "DELETE FROM customers WHERE id='00000000-0000-4000-8000-000000000787'"
+        )
+        connection.exec_driver_sql(
+            "DELETE FROM access_profile_permissions "
+            "WHERE profile_id='00000000-0000-4000-8000-000000000777'"
+        )
+        connection.exec_driver_sql(
+            "DELETE FROM access_profiles WHERE id='00000000-0000-4000-8000-000000000777'"
+        )
+        connection.exec_driver_sql(
+            "DELETE FROM company_profiles WHERE id='00000000-0000-0000-0000-000000000091'"
+        )
+        connection.exec_driver_sql(
+            "UPDATE organizations SET legal_name='Empresa legada', "
+            "display_name='Empresa legada', cnpj=NULL, phone=NULL, "
+            "email=NULL, logo_reference=NULL "
+            "WHERE id='00000000-0000-4000-8000-000000000301'"
+        )
 
     with engine.connect() as connection:
         head_revision = connection.exec_driver_sql(
             "SELECT version_num FROM alembic_version"
         ).scalar_one()
-        assert head_revision == "20261023_0035"
+        assert head_revision == "20261115_0041"
 
     # Descend through OC94 and trusted-device revisions explicitly; -1 would
     # only reach 0030 now and would not exercise the trusted-device rollback.

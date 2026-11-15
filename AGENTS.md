@@ -6,7 +6,7 @@ Este arquivo é a fonte principal de contexto para qualquer IA que ajude a progr
 assistido por IA. Este `AGENTS.md` continua sendo a fonte obrigatória de contexto
 e restrições para agentes de IA.
 
-## Situação das versões (13/11/2026)
+## Situação das versões (14/11/2026)
 
 A v1.3.0 corresponde à linha de código **Loxi e Experiência Inteligente**. Confira a [release oficial](https://github.com/RennaN-C/loadx-smart-logistics/releases/tag/v1.3.0), o [roadmap](docs/planejamento/roadmap-versoes.md) e as [notas da v1.3.0](docs/releases/v1.3.0.md) antes de afirmar que algo foi publicado ou implantado. Multiempresa SaaS é uma **proposta em fases**, descrita na [ADR-049](docs/decisions/ADR-049-multiempresa-organizacoes-isolamento.md) e na [Issue #416](https://github.com/RennaN-C/loadx-smart-logistics/issues/416), e **não está implementada** neste código. Não reescrever tags já publicadas; manutenção deve passar por PR.
 

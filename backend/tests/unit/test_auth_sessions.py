@@ -14,6 +14,7 @@ from app.modules.auth.sessions import (
 from app.modules.drivers.models import (
     Driver,
 )
+from app.modules.organizations.repository import OrganizationMembershipRepository
 from app.modules.users.models import User
 
 SQLITE_TABLES = (
@@ -41,6 +42,8 @@ def create_user(db_session: Session, *, active: bool = True) -> User:
         active=active,
     )
     db_session.add(user)
+    db_session.flush()
+    OrganizationMembershipRepository(db_session).sync_legacy_membership(user)
     db_session.commit()
     db_session.refresh(user)
     return user

@@ -28,7 +28,10 @@ from app.modules.trucks.models import Truck
 from app.modules.users.models import User
 from app.modules.users.schemas import UserCreate
 from app.modules.users.service import UserService
-from tests.integration.auth_helpers import issue_session_headers
+from tests.integration.auth_helpers import (
+    delete_fixture_organization_context,
+    issue_session_headers,
+)
 from tests.unit.test_registration_import_csv import SAMPLES, csv_file
 
 MODELS = {
@@ -516,6 +519,7 @@ def test_concurrent_confirmation_uses_real_commits(postgres_engine, same_event):
             db.execute(delete(AuditEvent).where(AuditEvent.actor_id == actor_id))
             db.execute(delete(Product).where(Product.code == sample["code"].upper()))
             db.execute(delete(AuthSession).where(AuthSession.user_id == actor_id))
+            delete_fixture_organization_context(db, [actor_id])
             db.execute(delete(User).where(User.id == actor_id))
             db.commit()
 
