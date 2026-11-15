@@ -31,9 +31,7 @@ def upgrade() -> None:
         ["id"],
         ondelete="RESTRICT",
     )
-    op.drop_constraint(
-        op.f("uq_customers__document"), "customers", type_="unique"
-    )
+    op.drop_constraint(op.f("uq_customers__document"), "customers", type_="unique")
     op.create_unique_constraint(
         op.f("uq_customers__organization_document"),
         "customers",
