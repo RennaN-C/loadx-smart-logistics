@@ -121,7 +121,10 @@ class ProductService:
             self.db.refresh(product)
         except IntegrityError as exc:
             self.db.rollback()
-            if get_integrity_constraint_name(exc) == "uq_products__code":
+            if get_integrity_constraint_name(exc) in {
+                "uq_products__code",
+                "uq_products__organization_code",
+            }:
                 raise ProductCodeAlreadyExistsError from exc
             raise
         except Exception:
