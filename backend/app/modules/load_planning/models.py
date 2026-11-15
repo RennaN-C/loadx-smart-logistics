@@ -172,17 +172,43 @@ class LoadPlan(Base):
     )
     orders: Mapped[list["LoadPlanOrder"]] = relationship(
         back_populates="load_plan",
+        foreign_keys="LoadPlanOrder.load_plan_id",
         order_by="LoadPlanOrder.order_id",
     )
     items: Mapped[list["LoadPlanItem"]] = relationship(
         back_populates="load_plan",
+        foreign_keys="LoadPlanItem.load_plan_id",
         order_by="LoadPlanItem.order_item_id, LoadPlanItem.volume_index",
     )
 
 
 class LoadPlanOrder(Base):
     __tablename__ = "load_plan_orders"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["organization_id", "load_plan_id"],
+            ["load_plans.organization_id", "load_plans.id"],
+            name="fk_load_plan_orders__organization_plan",
+            ondelete="RESTRICT",
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "order_id"],
+            ["orders.organization_id", "orders.id"],
+            name="fk_load_plan_orders__organization_order",
+            ondelete="RESTRICT",
+        ),
+        UniqueConstraint(
+            "organization_id", "load_plan_id", "order_id",
+            name="uq_load_plan_orders__org_plan_order",
+        ),
+    )
 
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid,
+        nullable=False,
+        default=lambda: LEGACY_ORGANIZATION_ID,
+        server_default=text("'00000000-0000-4000-8000-000000000301'"),
+    )
     load_plan_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("load_plans.id", ondelete="RESTRICT"), primary_key=True
     )
@@ -190,12 +216,36 @@ class LoadPlanOrder(Base):
         ForeignKey("orders.id", ondelete="RESTRICT"), primary_key=True, index=True
     )
 
-    load_plan: Mapped[LoadPlan] = relationship(back_populates="orders")
+    load_plan: Mapped[LoadPlan] = relationship(
+        back_populates="orders", foreign_keys=[load_plan_id]
+    )
 
 
 class LoadPlanItem(Base):
     __tablename__ = "load_plan_items"
     __table_args__ = (
+        ForeignKeyConstraint(
+            ["organization_id", "load_plan_id", "order_id"],
+            [
+                "load_plan_orders.organization_id",
+                "load_plan_orders.load_plan_id",
+                "load_plan_orders.order_id",
+            ],
+            name="fk_load_plan_items__organization_plan_order",
+            ondelete="RESTRICT",
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "order_item_id"],
+            ["order_items.organization_id", "order_items.id"],
+            name="fk_load_plan_items__organization_order_item",
+            ondelete="RESTRICT",
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "product_id"],
+            ["products.organization_id", "products.id"],
+            name="fk_load_plan_items__organization_product",
+            ondelete="RESTRICT",
+        ),
         ForeignKeyConstraint(
             ("load_plan_id", "order_id"),
             ("load_plan_orders.load_plan_id", "load_plan_orders.order_id"),
@@ -341,6 +391,12 @@ class LoadPlanItem(Base):
     )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid,
+        nullable=False,
+        default=lambda: LEGACY_ORGANIZATION_ID,
+        server_default=text("'00000000-0000-4000-8000-000000000301'"),
+    )
     load_plan_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("load_plans.id", ondelete="RESTRICT"),
         nullable=False,
@@ -388,4 +444,6 @@ class LoadPlanItem(Base):
     placed: Mapped[bool] = mapped_column(Boolean, nullable=False)
     rejection_reason: Mapped[str | None] = mapped_column(String(64))
 
-    load_plan: Mapped[LoadPlan] = relationship(back_populates="items")
+    load_plan: Mapped[LoadPlan] = relationship(
+        back_populates="items", foreign_keys=[load_plan_id]
+    )
