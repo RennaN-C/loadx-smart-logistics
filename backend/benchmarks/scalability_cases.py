@@ -28,6 +28,27 @@ class ScalabilityCase:
     trucks: tuple[TruckCapacityInput, ...]
 
 
+
+def _truck_dimensions(
+    profile: str, count: int, index: int, truck_count: int
+) -> tuple[int, int, int]:
+    default = (100, 100, max(100, ceil(count / 100) * 10))
+    if profile == "non_stackable":
+        return 100, 10, ceil(count / 10) * 10
+    if profile == "distribution":
+        # Exactly ceil(n/k) floor slots per vehicle; >1 truck is necessary.
+        return 10, 10, ceil(count / truck_count) * 10
+    if profile == "dense":
+        return 50, 50, ceil(count / 25) * 10
+    if profile == "over_capacity":
+        return 30, 20, max(10, count // 12 * 10)
+    if profile == "adversarial":
+        return 47, 43, max(30, ceil(count / 16) * 11)
+    if profile == "fleet":
+        return 40 + index * 7, 30 + index * 3, max(30, ceil(count / 40) * 10)
+    return default
+
+
 def build_case(profile: str, count: int, truck_count: int) -> ScalabilityCase:
     if profile not in PROFILES or count <= 0 or not 1 <= truck_count <= 10:
         raise ValueError("invalid synthetic case")
@@ -58,23 +79,6 @@ def build_case(profile: str, count: int, truck_count: int) -> ScalabilityCase:
         )
     trucks = []
     for index in range(truck_count):
-        width, height, length = 100, 100, max(100, ceil(count / 100) * 10)
-        if profile == "non_stackable":
-            height, length = 10, ceil(count / 10) * 10
-        elif profile == "distribution":
-            # Exactly ceil(n/k) floor slots per vehicle; >1 truck is necessary.
-            width, height, length = 10, 10, ceil(count / truck_count) * 10
-        elif profile == "dense":
-            width, height, length = 50, 50, ceil(count / 25) * 10
-        elif profile == "over_capacity":
-            width, height, length = 30, 20, max(10, count // 12 * 10)
-        elif profile == "adversarial":
-            width, height, length = 47, 43, max(30, ceil(count / 16) * 11)
-        elif profile == "fleet":
-            width, height, length = (
-                40 + index * 7,
-                30 + index * 3,
-                max(30, ceil(count / 40) * 10),
-            )
-        trucks.append(TruckCapacityInput(width, height, length, Decimal(100000)))
+        dimensions = _truck_dimensions(profile, count, index, truck_count)
+        trucks.append(TruckCapacityInput(*dimensions, Decimal(100000)))
     return ScalabilityCase(tuple(items), tuple(trucks))
