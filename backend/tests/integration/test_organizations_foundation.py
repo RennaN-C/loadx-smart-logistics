@@ -63,30 +63,25 @@ def test_session_requires_legacy_membership_even_when_another_is_active(
             AuthSessionService(db).create_session(user.id)
 
 
-@pytest.mark.parametrize("context", ["missing", "other"])
 @pytest.mark.parametrize("path", ["/api/v1/auth/me", "/api/v1/products"])
-def test_session_rejects_missing_or_nonlegacy_context(
-    client, session_factory, context, path
+def test_session_rejects_nonlegacy_organization_context(
+    client, session_factory, path
 ):
     with session_factory() as db:
         user = create_foundation_user(db)
-        service = AuthSessionService(db)
-        issued = service.create_session(user.id)
-        if context == "other":
-            organization = Organization(
-                legal_name="Outra empresa", display_name="Outra"
+        issued = AuthSessionService(db).create_session(user.id)
+        organization = Organization(
+            legal_name="Outra empresa", display_name="Outra"
+        )
+        db.add(organization)
+        db.flush()
+        db.add(
+            OrganizationMembership(
+                organization_id=organization.id, user_id=user.id, role="ADMIN"
             )
-            db.add(organization)
-            db.flush()
-            db.add(
-                OrganizationMembership(
-                    organization_id=organization.id, user_id=user.id, role="ADMIN"
-                )
-            )
-            db.flush()
-            issued.auth_session.active_organization_id = organization.id
-        else:
-            issued.auth_session.active_organization_id = None
+        )
+        db.flush()
+        issued.auth_session.active_organization_id = organization.id
         db.commit()
 
         response = client.get(
@@ -100,6 +95,22 @@ def test_session_rejects_missing_or_nonlegacy_context(
         assert issued.auth_session.revoked_at is not None
 
 
+def test_session_organization_context_is_required_by_database(session_factory):
+    with session_factory() as db:
+        user = create_foundation_user(db)
+        issued = AuthSessionService(db).create_session(user.id)
+
+        with pytest.raises(IntegrityError), db.begin_nested():
+            db.execute(
+                text(
+                    "UPDATE auth_sessions "
+                    "SET active_organization_id = NULL WHERE id = :session_id"
+                ),
+                {"session_id": issued.auth_session.id},
+            )
+
+        db.refresh(issued.auth_session)
+        assert issued.auth_session.active_organization_id == LEGACY_ORGANIZATION_ID
 def test_client_headers_cannot_choose_organization(client, session_factory):
     with session_factory() as db:
         user = create_foundation_user(db)
