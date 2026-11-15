@@ -148,25 +148,7 @@ def _physical_check(plan, source) -> None:
     assert plan.metrics.unloaded_count == len(rejected)
 
 
-def worker(args) -> dict:
-    import resource
-
-    # The alternate checkout is used ONLY by this isolated manual runner/oracle.
-    sys.path.insert(0, str(Path(args.backend_root).resolve()))
-    from app.modules.load_planning.optimizer import (
-        comparison,
-        engine,
-        loading_sequence,
-        multi_truck,
-    )
-    from app.modules.load_planning.optimizer.volumes import expand_order_items
-    from benchmarks.scalability_cases import build_case
-
-    if args.experimental_limit:
-        engine.MAX_VOLUMES = comparison.MAX_VOLUMES = args.count
-    case = build_case(args.profile, args.count, args.trucks)
-    volumes = expand_order_items(case.items)
-
+def _make_calculator(args, case, volumes, comparison, engine, multi_truck):
     def calculate():
         if args.operation == "engine":
             return engine.calculate_load_plan(case.trucks[0], case.items)
@@ -186,52 +168,33 @@ def worker(args) -> dict:
             case.items,
         )
 
-    counts = Counter()
-    profiler = None
-    if args.instrument:
-        # Deliberately separate from official wall timings. Count actual pair visits.
-        original_pairs = getattr(loading_sequence, "combinations", None)
+    return calculate
+
+
+def _start_profiler(counts, loading_sequence, multi_truck):
+    # Instrumentation applies only to the isolated benchmark worker.
+    original_pairs = getattr(loading_sequence, "combinations", None)
+    if original_pairs is not None:
 
         def pairs(*arguments):
             for pair in original_pairs(*arguments):
                 counts["depth_pair_visits"] += 1
                 yield pair
 
-        if original_pairs is not None:
-            loading_sequence.combinations = pairs
-        original_state = multi_truck._SearchState
+        loading_sequence.combinations = pairs
+    original_state = multi_truck._SearchState
 
-        def state(**kwargs):
-            counts["search_states_created"] += 1
-            return original_state(**kwargs)
+    def state(**kwargs):
+        counts["search_states_created"] += 1
+        return original_state(**kwargs)
 
-        multi_truck._SearchState = state
-        profiler = cProfile.Profile()
-        profiler.enable()
-    elif args.allocations:
-        import tracemalloc
+    multi_truck._SearchState = state
+    profiler = cProfile.Profile()
+    profiler.enable()
+    return profiler
 
-        tracemalloc.start()
-    else:
-        for _ in range(args.warmup):
-            calculate()
-    samples = []
-    fingerprints = []
-    result = None
-    for _ in range(1 if args.instrument or args.allocations else args.iterations):
-        started = time.perf_counter()
-        result = calculate()
-        samples.append(time.perf_counter() - started)
-        if not args.instrument and not args.allocations:
-            fingerprints.append(fingerprint(result))
-    if profiler:
-        profiler.disable()
-    assert not fingerprints or len(set(fingerprints)) == 1
-    rss_kib = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-    allocation_peak = None
-    if args.allocations:
-        allocation_peak = tracemalloc.get_traced_memory()[1]
-        tracemalloc.stop()
+
+def _checked_plans(args, result, volumes):
     if args.operation == "engine":
         plans, remaining, attempts = (result,), result.rejected_volumes, 1
     elif args.operation == "multi":
@@ -258,30 +221,89 @@ def worker(args) -> dict:
         }
         source = tuple(volume for volume in volumes if volume.identity in plan_ids)
         _physical_check(plan, source if args.operation == "multi" else volumes)
-    profile_rows = []
-    if profiler:
-        import pstats
+    return plans, remaining, attempts
 
-        for (filename, line, name), (
-            primitive,
-            calls,
-            own,
-            cumulative,
-            _,
-        ) in pstats.Stats(profiler).stats.items():
-            if "/optimizer/" in filename:
-                counts[name] += calls
-                profile_rows.append(
-                    {
-                        "file": Path(filename).name,
-                        "line": line,
-                        "function": name,
-                        "calls": calls,
-                        "own_s": own,
-                        "cumulative_s": cumulative,
-                    }
-                )
-        profile_rows.sort(key=lambda row: -row["cumulative_s"])
+
+def _profile_rows(profiler, counts) -> list[dict]:
+    if not profiler:
+        return []
+    import pstats
+
+    profile_rows = []
+    for (filename, line, name), (
+        primitive,
+        calls,
+        own,
+        cumulative,
+        _,
+    ) in pstats.Stats(profiler).stats.items():
+        if "/optimizer/" in filename:
+            counts[name] += calls
+            profile_rows.append(
+                {
+                    "file": Path(filename).name,
+                    "line": line,
+                    "function": name,
+                    "calls": calls,
+                    "own_s": own,
+                    "cumulative_s": cumulative,
+                }
+            )
+    profile_rows.sort(key=lambda row: -row["cumulative_s"])
+    return profile_rows
+
+
+def worker(args) -> dict:
+    import resource
+
+    # The alternate checkout is used ONLY by this isolated manual runner/oracle.
+    sys.path.insert(0, str(Path(args.backend_root).resolve()))
+    from app.modules.load_planning.optimizer import (
+        comparison,
+        engine,
+        loading_sequence,
+        multi_truck,
+    )
+    from app.modules.load_planning.optimizer.volumes import expand_order_items
+    from benchmarks.scalability_cases import build_case
+
+    if args.experimental_limit:
+        engine.MAX_VOLUMES = comparison.MAX_VOLUMES = args.count
+    case = build_case(args.profile, args.count, args.trucks)
+    volumes = expand_order_items(case.items)
+
+    calculate = _make_calculator(args, case, volumes, comparison, engine, multi_truck)
+
+    counts = Counter()
+    profiler = None
+    if args.instrument:
+        profiler = _start_profiler(counts, loading_sequence, multi_truck)
+    elif args.allocations:
+        import tracemalloc
+
+        tracemalloc.start()
+    else:
+        for _ in range(args.warmup):
+            calculate()
+    samples = []
+    fingerprints = []
+    result = None
+    for _ in range(1 if args.instrument or args.allocations else args.iterations):
+        started = time.perf_counter()
+        result = calculate()
+        samples.append(time.perf_counter() - started)
+        if not args.instrument and not args.allocations:
+            fingerprints.append(fingerprint(result))
+    if profiler:
+        profiler.disable()
+    assert not fingerprints or len(set(fingerprints)) == 1
+    rss_kib = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    allocation_peak = None
+    if args.allocations:
+        allocation_peak = tracemalloc.get_traced_memory()[1]
+        tracemalloc.stop()
+    plans, remaining, attempts = _checked_plans(args, result, volumes)
+    profile_rows = _profile_rows(profiler, counts)
     return {
         "status": "incomplete_valid"
         if args.operation == "multi" and remaining
