@@ -51,9 +51,7 @@ def upgrade() -> None:
         WHERE id <> '{CNH}'::uuid
         """
     )
-    op.drop_constraint(
-        "uq_driver_document_types__code", TYPE_TABLE, type_="unique"
-    )
+    op.drop_constraint("uq_driver_document_types__code", TYPE_TABLE, type_="unique")
     op.create_unique_constraint(
         "uq_driver_document_types__organization_code",
         TYPE_TABLE,
@@ -90,9 +88,7 @@ def upgrade() -> None:
             ["id", "organization_id"],
             ondelete="RESTRICT",
         )
-        op.create_check_constraint(
-            f"ck_{table}__type_org_scope", table, DOC_CHECK
-        )
+        op.create_check_constraint(f"ck_{table}__type_org_scope", table, DOC_CHECK)
 
 
 def downgrade() -> None:
@@ -115,12 +111,8 @@ def downgrade() -> None:
         )
 
     for table in reversed(CHILDREN):
-        op.drop_constraint(
-            f"ck_{table}__type_org_scope", table, type_="check"
-        )
-        op.drop_constraint(
-            f"fk_{table}__type_org_scope", table, type_="foreignkey"
-        )
+        op.drop_constraint(f"ck_{table}__type_org_scope", table, type_="check")
+        op.drop_constraint(f"fk_{table}__type_org_scope", table, type_="foreignkey")
         op.drop_column(table, "document_type_organization_id")
     op.drop_constraint(
         "ck_driver_document_types__scope_valid", TYPE_TABLE, type_="check"
@@ -131,9 +123,7 @@ def downgrade() -> None:
     op.drop_constraint(
         "uq_driver_document_types__organization_code", TYPE_TABLE, type_="unique"
     )
-    op.create_unique_constraint(
-        "uq_driver_document_types__code", TYPE_TABLE, ["code"]
-    )
+    op.create_unique_constraint("uq_driver_document_types__code", TYPE_TABLE, ["code"])
     op.drop_constraint(
         "fk_driver_document_types__organizations", TYPE_TABLE, type_="foreignkey"
     )
