@@ -259,7 +259,7 @@ Mapeamento:
 
 Regras adicionais:
 
-- `USER_CREATED` atual registra `active`, `driver_id`, `email`, `name` e `role`, mas não inclui `custom_profile_id` em `changed_fields`. Para o evento de membership, obter o perfil do snapshot da membership criada pela 0036; não inventar o campo no histórico.
+- `USER_CREATED` atual registra `active`, `driver_id`, `email`, `name` e `role`, mas não inclui `custom_profile_id` em `changed_fields`. A membership criada pela 0036 permite validar o vínculo atual, **não reconstruir com certeza o perfil histórico do momento da criação**. O evento derivado só pode conter os campos efetivamente registrados; qualquer alegação sobre `custom_profile_id` passado exige fonte histórica independente. Em caso de ambiguidade, sinalizar quarentena e bloquear o cutover.
 - Um `USER_UPDATED` pode conter campos globais, de membership e de preferências. Dividir em até três eventos, mantendo o mesmo instante e ator.
 - Para preservar a origem, adicionar `source_event_id`: eventos originais reclassificados recebem seu próprio UUID; cópias geradas pela divisão recebem novo UUID e apontam para o mesmo `source_event_id`.
 - `actor_id` continua sendo identidade global. Para eventos ORGANIZATION, comprovar membership do ator na organização legada; para PLATFORM, não exigir membership.
@@ -431,7 +431,64 @@ RLS não faz parte deste backfill. Se adotada posteriormente, deve ser provada c
 - [ ] Revisão independente de segurança concluída.
 - [ ] Feature flag ainda desligada até autorização explícita.
 
-## 11. Situação desta entrega
+## 11. Sequência de migrations por grupos pequenos (proposta de execução)
+
+Cada grupo deve ter PR própria e, se necessário, três migrations aditivas separadas (**expand → backfill → constraints/contract**). Não numerar revisões Alembic antecipadamente: criar a próxima revisão sobre a HEAD real da branch `desenvolvimento` no momento da implementação. Nunca reescrever a migration 0036 depois de integrada. Todas as tabelas aqui citadas são existentes; os grupos abaixo cobrem as **40 tabelas ORG/HERDADO**, mais os casos MISTO/LEGADO.
+
+| Grupo | Tabelas / mudança principal | Dependência | Gate de saída |
+|---|---|---|---|
+| G01 — Acesso e perfil institucional | `access_profiles`, `access_profile_permissions`; migração de campos restantes de `company_profiles` para `organizations`; preparar vínculos de memberships/convites | #449, matriz #454 e plano #458 aprovados | Preservação de 6 campos, scopes de perfil e CNPJ com 14 dígitos |
+| G02 — Cadastros base | `customers`, `customer_addresses`, `products` | G01 | FKs de endereço/cliente; código e documento únicos por organização |
+| G03 — Motoristas e frota | `drivers`, `driver_documents`, `driver_document_policies`, `trucks`, `truck_maintenances`, `truck_documents`, `truck_document_policies`; catálogo MISTO `driver_document_types`; concluir FK composta de memberships/convites que referenciam driver/perfil | G01, G02 | Catálogo CNH global, tipos customizados isolados, FKs contextuais |
+| G04 — Pedidos | `orders`, `order_items` | G02, G03 | Cliente, endereço, item e produto sempre da organização do pedido |
+| G05 — Planejamento | `load_plans`, `load_plan_orders`, `load_plan_items`, `optimization_requests` | G04 | Plano, caminhão, pedidos e proveniência coerentes; idempotência por organização |
+| G06 — Distribuição e carregamento | `load_distributions`, `load_distribution_orders`, `load_distribution_parts`, `load_distribution_volumes`, `loading_sessions`, `loading_session_items` | G05 | Volumes, partes e carregamentos amarrados ao mesmo plano/tenant |
+| G07 — Viagens e entregas | `trips`, `deliveries`, `delivery_exceptions`, `trip_interruption_events`, `trip_cancellations` | G06 | Transições, cancelamento, interrupção, FKs e chaves idempotentes isoladas |
+| G08 — Ocorrências e histórico operacional | `status_history`, `occurrences`, `delivery_evidences` | G07 | Histórico polimórfico validado contra dono real; evidências sem FK cruzada |
+| G09 — Auditoria e anexos | `operational_attachments`; catálogo MISTO `audit_events` | G08 | Preservar eventos originais, origem de derivados, quarentena zero, arquivos sem URL cruzada |
+| G10 — Notificações e outbox | `operational_notifications`, `notification_recipients`, `outbox_events`, `outbox_attempts`, `outbox_retry_commands`; preferências MISTO `notification_preferences` | G08, G09 | Escopo de destinatário, retry e lease preservado em worker; SECURITY global |
+| G11 — Integrações e importações | `external_commands`, `registration_imports` | G04, G10 | Idempotência contextual, validação de dados importados e usuário/membership |
+
+**Contagem auditável:** G01=2, G02=3, G03=7, G04=2, G05=4, G06=6, G07=5, G08=3, G09=1, G10=5, G11=2. Total **40 tabelas ORG/HERDADO**. `driver_document_types`, `audit_events` e `notification_preferences` entram como MISTO; `company_profiles` é LEGADO. As oito GLOBAL e `auth_sessions` seguem sua regra específica na fundação, sem receber `organization_id` operacional arbitrário.
+
+**Contratos de código por grupo:** migrar models e migrations em conjunto, acrescentar testes de Alembic (upgrade, backfill, downgrade seguro e `alembic check`), adaptar repositórios e serviços para escopo da organização validada e cobrir consultas simples, listagens, agregações e jobs. Enquanto não houver propagação completa do contexto, manter só a organização legada operacional. Um grupo com coluna de tenant mas filtro ausente **não está pronto** para segunda empresa.
+
+**Separação de responsabilidades:** a migration é responsável por integridade persistida; service e repository por escopo e autorização; worker por contexto durável; frontend por apresentar a empresa selecionada sem ser autoridade. Usar `(organization_id, id)` nas relações entre entidades operacionais e `(organization_id, user_id)` para vínculos de ator autorizáveis. Verificar triggers legadas após cada fase.
+
+## 12. Matriz mínima dos testes negativos cross-tenant (PostgreSQL 16)
+
+Preparar organizações sintéticas **A** e **B**, com o mesmo usuário global vinculado a ambas em papéis diferentes e outro usuário restrito a B. IDs de B devem ser **conhecidos** nos testes de A. O conjunto de teste não utiliza dados reais e não ativa a funcionalidade em produção.
+
+| Cenário | Ação maliciosa/limite | Resultado esperado |
+|---|---|---|
+| Consultas por ID | Usuário da A pede pedido, produto, motorista, caminhão, plano ou entrega da B por UUID | 404 ou erro de autorização sem revelar conteúdo/existência |
+| Listas, buscas, relatórios | Filtrar, ordenar, paginar ou exportar registros com valores similares nos dois tenants | Somente dados da organização ativa |
+| FK cruzada SQL | Inserir pedido de A referenciando cliente/endereço de B, ou item de A referenciando produto de B | `ForeignKeyViolation` (SQLSTATE `23503`) ou violação equivalente de integridade contextual |
+| Distribuição | Associar plano/volume/parte/pedido de organizações distintas | Bloqueio transacional; nenhuma linha parcial |
+| Sessão e membership | Forjar header de organização, usar sessão revogada, suspender membership ou trocar de tenant | Não herdar contexto antigo, nem permissões da outra empresa |
+| Idempotência | Repetir chave de operação válida na A na organização B | Escopo distinto; nenhuma resposta/dado reaproveitado entre tenants |
+| Arquivos e evidências | Usar UUID, object-key ou URL temporária de B pela sessão de A | Negado; nenhum conteúdo ou URL válido exposto |
+| Polimórficos | Consultar `status_history`, `audit_events` e anexos de B usando `entity_id` conhecido | Isolamento de leitura e escrita; origem/escopo validados |
+| Notificação/outbox | Reprocessar evento B com ator de A e executar worker após trocar contexto | Bloqueio sem vazar tenant em lease/retry/cache |
+| Loxi/relatórios | Pedir à IA e aos PDFs dados identificados de B usando sessão da A | Contexto de A aplicado em todas as ferramentas e consultas |
+| Conexões | Reutilizar conexão do pool depois de rollback, erro ou outra organização | Nenhum contexto anterior é reaproveitado; RLS somente se comprovado na role runtime |
+| Backfill/restore | Aplicar migration duas vezes quando suportado, forçar falha na metade, restaurar snapshot e tentar downgrade após segunda org | Contagens preservadas, falha segura e rollback destrutivo proibido |
+
+Para cada cenário, testar na API e — quando houver vínculo relacional — também no PostgreSQL 16 com a role de runtime. O teste deve verificar **ausência de vazamento**, não apenas status HTTP. Conservar evidência de SQLSTATE, contagem antes/depois e estado das transações. A cobertura 3D/otimização deve provar que nenhuma visualização ou explicação do algoritmo referencia volume de outra organização.
+
+### Pendência de fidelidade histórica da auditoria
+
+Os eventos antigos não trazem necessariamente todos os valores anteriores, nem o perfil personalizado válido em cada instante. A membership atual **não é fonte histórica**. Antes de migrar o `audit_events` misto, o implementador deve preservar o evento original, estabelecer uma representação derivada rastreável por `source_event_id`, manter temporalidade/ator e deixar valores não comprováveis explicitamente ausentes (ou em quarentena). Proibido fabricar trilha de auditoria a partir do estado atual.
+
+### Gate para iniciar código e executar no banco
+
+1. Revisão **independente** registrada nas PRs #449, #454 e #458; CI e Quality Gate aprovados no head final.
+2. Integração ordenada na `desenvolvimento`, sem rebase que apague histórico de migrations.
+3. Clone isolado PostgreSQL 16 com snapshot restaurado, variáveis de teste separadas e workers externos desativados.
+4. Baseline real de contagens, órfãos e integridade sem pendências; migrations G01–G11 só então são liberadas por PR.
+5. Execução final de duas organizações em laboratório e revisão de segurança antes de habilitar segunda organização.
+
+## 13. Situação desta entrega
 
 Este plano foi preparado por inspeção do código, models, services, ADR-049 e migration 0036. **Nenhuma contagem de produção foi consultada**, nenhum banco remoto foi acessado e nenhum backfill/migration de scoping foi executado.
 
