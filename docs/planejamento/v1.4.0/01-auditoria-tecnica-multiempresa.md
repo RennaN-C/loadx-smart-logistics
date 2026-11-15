@@ -7,9 +7,9 @@
 
 ## 1. Conclusão executiva
 
-O LoadX ainda é estruturalmente single-tenant. O PostgreSQL possui 51 tabelas
-mapeadas pelo ORM, mas os modelos operacionais não carregam um contexto de
-organização. Os repositórios fazem consultas por ID, filtros funcionais e
+O LoadX ainda é estruturalmente single-tenant. A conferência dos módulos
+importados pelo Alembic identificou 53 tabelas mapeadas pelo ORM em 24 arquivos
+de modelos, mas os modelos operacionais não carregam um contexto de organização. Os repositórios fazem consultas por ID, filtros funcionais e
 relações sem escopo organizacional. A sessão opaca autentica o usuário, mas
 antes da migration 0036 não registrava uma organização ativa.
 
@@ -53,6 +53,12 @@ polimórfico esteja associado e validado contra a organização da sessão.
   a organização precisa ser validada com o único pai efetivo e em downloads.
 - Notificações, destinatários, preferências, outbox, tentativas e comandos de
   reprocessamento precisam herdar e preservar o tenant em cada transição.
+- `notification_preferences` hoje usa (user_id, category): `SECURITY` deve
+  permanecer global, enquanto `TRIPS` e `OCCURRENCES` precisam ser específicas
+  da organização/membership.
+- `optimization_requests` hoje usa (user_id, request_key): a chave de
+  idempotência precisa incluir a organização e validar a distribuição no mesmo
+  tenant, evitando colisões quando um usuário participa de várias empresas.
 - `external_commands`, `registration_imports`, relatórios, busca e Loxi não
   podem confiar apenas no usuário ou em IDs de recursos enviados pelo cliente.
 - Triggers e constraints de integridade das migrations 0025–0034 também devem
@@ -60,12 +66,13 @@ polimórfico esteja associado e validado contra a organização da sessão.
 
 ## 3. Tabelas e ownership
 
-A auditoria identificou 51 tabelas ORM. Identidade e segurança global incluem
-`users` e as tabelas `auth_*`; catálogos compartilhados incluem
+A conferência identificou 53 tabelas ORM na branch `desenvolvimento`.
+A contagem anterior de 51 deixou de considerar `notification_preferences` e
+`optimization_requests`, que também entram na matriz. Identidade e segurança
+global incluem `users` e as tabelas `auth_*`; catálogos compartilhados incluem
 `access_permissions` e `driver_document_types`. Os demais registros de negócio,
 histórico, documentos, notificações e integrações precisam de ownership por
-organização ou de uma decisão explícita de permanecer global (por exemplo,
-preferências puramente pessoais).
+organização ou de uma decisão explícita de permanecer global.
 
 A classificação final deverá ser registrada antes das migrations de scoping.
 Não inferir tenant a partir de `actor_id`: um usuário poderá pertencer a mais
@@ -93,6 +100,8 @@ de uma organização.
   aceite e revogação.
 - `platform_owner_grants`: singleton que permite no máximo um proprietário
   geral. A migration não concede o grant automaticamente.
+- A migration adiciona quatro tabelas à base anterior: após a 0036, o metadata
+  passa a conter 57 tabelas ORM.
 - `auth_sessions.active_organization_id`: contexto derivado no backend e FK
   composta para garantir membership do usuário.
 - Backfill: uma organização legada é criada a partir de `company_profiles`;
