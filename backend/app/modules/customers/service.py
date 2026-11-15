@@ -126,7 +126,10 @@ class CustomerService:
             self.db.refresh(customer)
         except IntegrityError as exc:
             self.db.rollback()
-            if get_integrity_constraint_name(exc) == "uq_customers__document":
+            if get_integrity_constraint_name(exc) in {
+                "uq_customers__document",
+                "uq_customers__organization_document",
+            }:
                 raise CustomerDocumentAlreadyExistsError from exc
             raise
         except Exception:
