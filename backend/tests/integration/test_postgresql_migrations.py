@@ -133,7 +133,7 @@ def test_postgresql_rejects_foreign_key_violation(
         with pytest.raises(IntegrityError) as raised:
             db.flush()
 
-        assert get_integrity_constraint_name(raised.value) == "fk_orders__customers"
+        assert get_integrity_constraint_name(raised.value) == "fk_orders__organization_customer"
 
 
 def test_postgresql_rejects_dimension_check_violation(
