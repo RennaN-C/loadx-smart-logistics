@@ -28,7 +28,7 @@ O pagamento automático descreve a geração e conciliação automatizada das co
 - Planos, módulos, limites, adicionais, assinaturas, cobrança e entitlements.
 - Auditoria administrativa e integração com gateways.
 
-O papel `PLATFORM_OWNER` será inicialmente concedido apenas a uma identidade autorizada, sem cadastro público nem autoelevação. Um procedimento excepcional de recuperação precisa ser seguro e auditado. O proprietário da plataforma não ganha acesso automático a informações operacionais privadas dos clientes.
+O papel `PLATFORM_OWNER` será inicialmente concedido apenas a uma identidade autorizada, sem cadastro público nem autoelevação. O bootstrap será um comando administrativo de uso único, fora do fluxo HTTP, exigindo usuário ativo, MFA habilitado, UUID explícito e motivo; a concessão singleton não será semeada por migration. Recuperação/transferência exigirá break-glass com aprovação de duas pessoas e trilha append-only. O proprietário da plataforma não ganha acesso automático a informações operacionais privadas dos clientes.
 
 ### Primeiro módulo de negócio
 **LoadX Logistics** continua sendo o produto comercial inicial: clientes, produtos, pedidos, frota, motoristas, planejamento e otimização de cargas, carregamento, viagens, entregas e relatórios.
