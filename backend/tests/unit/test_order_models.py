@@ -22,8 +22,16 @@ def test_order_tables_use_uuid_primary_key() -> None:
 
 def test_order_foreign_keys_follow_documented_names() -> None:
     expected_foreign_keys = {
-        "orders": {"fk_orders__customers"},
-        "order_items": {"fk_order_items__orders", "fk_order_items__products"},
+        "orders": {
+            "fk_orders__organizations",
+            "fk_orders__organization_customer",
+            "fk_orders__organization_customer_address",
+            "fk_orders__customer_addresses",
+        },
+        "order_items": {
+            "fk_order_items__organization_order",
+            "fk_order_items__organization_product",
+        },
     }
 
     for table_name, expected_names in expected_foreign_keys.items():
