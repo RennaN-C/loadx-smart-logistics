@@ -30,6 +30,13 @@ async function createContext(browser, { width = 1600, theme = "dark", role = "CH
     viewport: { width, height: width < 600 ? 900 : 1000 },
     colorScheme: theme, reducedMotion: "reduce",
   });
+  // Optional short-lived Vercel share link; never stored in fixtures or reports.
+  if (process.env.PLANNER_SHARE_URL) {
+    const share = new URL(process.env.PLANNER_SHARE_URL);
+    assert.equal(share.origin, target.origin, "Share access must target this exact preview");
+    const access = await context.request.get(share.href);
+    assert.equal(access.status(), 200, "Authorized preview access must succeed");
+  }
   await context.addInitScript(() => {
     window.__plannerQa = { draws: 0, contextLosses: 0 };
     for (const kind of [window.WebGLRenderingContext, window.WebGL2RenderingContext]) {

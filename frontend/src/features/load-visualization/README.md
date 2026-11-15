@@ -386,3 +386,10 @@ com o proxy compartilhado. As regras de rewrite, headers e demais branches
 permanecem iguais. `node qa/browser/prepare-planner-preview.cjs` prepara um
 artefato separado em `.tmp`, com manifest SHA-1/tamanho e configuração estática
 503, sem código backend, dependências, `.env` ou mudanças no projeto remoto.
+
+`CONFIRMADO`: para validar o deployment protegido, `PLANNER_SHARE_URL` pode
+receber um link temporário autorizado da Vercel somente no processo de QA. O
+roteiro exige a mesma origem do preview e não grava cookies ou esse link nos
+relatórios. Primeiro verificar 503 real em `/api` (inclusive POST); somente depois
+executar as fixtures interceptadas. O workflow UI02 usa Ubuntu 24.04, compatível
+com seu Playwright fixado, evitando a incompatibilidade observada no runner 26.04.
