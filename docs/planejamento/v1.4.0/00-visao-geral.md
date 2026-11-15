@@ -60,6 +60,8 @@ Preservar monólito modular com FastAPI, SQLAlchemy, PostgreSQL e React; separar
 | LoadX Logistics | Regras, dados e permissões operacionais |
 | Shared 3D (futuro) | Componentes reutilizáveis de visualização, sem substituir a lógica física logística |
 
+A classificação detalhada das 53 tabelas existentes, incluindo dados globais, tenant-owned, herdados, mistos e legados, está registrada na [Matriz de ownership multiempresa](02-matriz-ownership-53-tabelas.md). A matriz é um contrato prévio de implementação e não habilita uma segunda organização.
+
 Permissão logística e entitlement comercial são verificações independentes. Um usuário precisa ter ambas para executar uma funcionalidade: o plano precisa liberar o módulo e o membership precisa autorizar a ação.
 
 ## 4. Onboarding de empresas
