@@ -211,7 +211,7 @@ A data de vencimento comercial e o período pago precisam ser apresentados clara
 | Boleto recorrente | Sim; o pagador paga cada fatura | Há divergência entre visão comercial e referência de meios de pagamento; não assumir sem homologação |
 | Débito automático via Pix | Pix Automático após autorização e elegibilidade da conta PJ | Não identificado no produto de Pagamentos Automáticos |
 | MIT sem CVV | Não é o mesmo produto; cartão recorrente depende da assinatura | Produto separado com cartão armazenado e habilitação comercial |
-| Tarifas públicas de referência | Pix/boleto R$ 1,59; cartão a partir de R$ 0,49 + 2,99% (padrão) | Checkout: Pix 0,99%; cartão 3,98%–4,98% conforme prazo; boleto R$ 3,49 |
+| Tarifas públicas de referência | Pix/boleto variaram entre visualizações da página; tarifa efetiva deve ser consultada na conta. Cartão padrão a partir de R$ 0,49 + 2,99% | Checkout público: Pix 0,99%; cartão 3,98%–4,98%; boleto R$ 3,49–3,99 em páginas/condições diferentes |
 | Webhook | Token de acesso do webhook | Assinatura HMAC |
 | Seleção final | Pendente de condição comercial e elegibilidade reais | Pendente de condição comercial, habilitação e Sandbox |
 
