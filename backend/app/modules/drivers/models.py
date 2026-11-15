@@ -82,7 +82,9 @@ class DriverDocumentType(Base):
             name="scope_valid",
         ).ddl_if(dialect="postgresql"),
         UniqueConstraint(
-            "organization_id", "code", name="uq_driver_document_types__organization_code"
+            "organization_id",
+            "code",
+            name="uq_driver_document_types__organization_code",
         ),
         UniqueConstraint(
             "id", "organization_id", name="uq_driver_document_types__id_organization"
