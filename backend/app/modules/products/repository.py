@@ -5,8 +5,8 @@ from sqlalchemy import asc, desc, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.core.pagination import PageResult, PaginationParams
-from app.modules.products.models import Product
 from app.modules.organizations.models import LEGACY_ORGANIZATION_ID
+from app.modules.products.models import Product
 from app.modules.products.schemas import ProductRestriction
 from app.shared.search import search_pattern
 
