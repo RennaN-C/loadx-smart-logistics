@@ -204,62 +204,77 @@ A data de vencimento comercial e o período pago precisam ser apresentados clara
 
 ## 8. Provedores de pagamento
 
-### Comparativo preliminar
+### Comparativo preliminar (fontes públicas consultadas em 14/11/2026)
 
 | Critério | Asaas | Mercado Pago |
 |---|---|---|
-| Assinaturas por API | Sim | Sim |
-| Cartão recorrente | Sim | Sim |
-| Pix e boleto | Sim | Sim |
-| Pix Automático | Documentado, sujeito a elegibilidade da conta | Não confirmado no produto de assinaturas avaliado |
-| Webhook autenticado | Token de acesso do webhook | Assinatura HMAC |
-| Retentativas | Conforme produto/configuração | Retentativas automáticas documentadas |
-| Sandbox | Sim | Sim |
-| Condições comerciais | Dependem da conta/contrato | Dependem da conta/contrato e produto |
+| Assinatura recorrente por API | Sim; boleto/Pix geram cobrança por ciclo, cartão pode ser automático | Sim; `preapproval` documentado com cartão tokenizado; meios offline exigem validação específica |
+| Pix pago manualmente | Sim; cobrança de cada ciclo, pagador confirma | A página de Assinaturas menciona Pix, mas a disponibilidade exata na API precisa ser confirmada no Sandbox |
+| Boleto recorrente | Sim; o pagador paga cada fatura | Há divergência entre visão comercial e referência de meios de pagamento; não assumir sem homologação |
+| Débito automático via Pix | Pix Automático após autorização e elegibilidade da conta PJ | Não identificado no produto de Pagamentos Automáticos |
+| MIT sem CVV | Não é o mesmo produto; cartão recorrente depende da assinatura | Produto separado com cartão armazenado e habilitação comercial |
+| Tarifas públicas de referência | Pix/boleto variaram entre visualizações da página; tarifa efetiva deve ser consultada na conta. Cartão padrão a partir de R$ 0,49 + 2,99% | Checkout público: Pix 0,99%; cartão 3,98%–4,98%; boleto R$ 3,49–3,99 em páginas/condições diferentes |
+| Webhook | Token de acesso do webhook | Assinatura HMAC |
+| Seleção final | Pendente de condição comercial e elegibilidade reais | Pendente de condição comercial, habilitação e Sandbox |
 
 ### Asaas
 
-A documentação oficial descreve API REST, clientes, cobranças, assinaturas recorrentes, Checkout hospedado e webhooks. As assinaturas podem gerar cobranças periódicas por boleto, Pix ou cartão. A criação da assinatura não confirma recebimento; cada cobrança precisa ser conciliada.
+A API oferece cobranças e assinaturas recorrentes. Em assinaturas, boleto e Pix geram uma cobrança por ciclo que o pagador precisa liquidar; o QR Code Pix na fatura não representa débito automático. Cartão de crédito pode ser cobrado automaticamente nas datas configuradas.
 
-O Pix Automático permite débito recorrente após autorização do pagador. A documentação consultada informa requisitos para a conta recebedora, incluindo PJ, CNPJ ativo há pelo menos seis meses, cadastro aprovado, CNAE compatível e chave Pix ativa. A disponibilidade deve ser confirmada na conta comercial real.
+O Pix Automático é um produto separado. Exige autorização prévia do pagador; o primeiro QR Code reúne pagamento inicial e consentimento. A autorização só deve ser usada depois de confirmada como `ACTIVE`. A API permite `paymentCreationMode = MANUAL` (a aplicação cria as cobranças) ou `SUBSCRIPTION` (o Asaas as gera pela assinatura).
+
+A documentação atual lista como critérios de elegibilidade: conta PJ aprovada, sem pendências cadastrais, CNPJ ativo há pelo menos seis meses e sem restrições relacionadas ao Pix. A elegibilidade pode mudar e deve ser acompanhada por webhook.
+
+**Tarifas públicas e variação por visualização**:
+- Pix e boleto: as visualizações oficiais consultadas em 14/11/2026 retornaram valores diferentes (R$ 1,59/R$ 0,79 e R$ 2,15/R$ 1,08; o índice da página também exibiu R$ 1,99/R$ 0,99). Não tratar um desses pares como tarifa universal ou contratada.
+- Pix Automático não tem taxa adicional própria segundo o FAQ oficial; aplicam-se as taxas padrão de recebimento Pix da conta. A tarifa válida para o LoadX deve ser consultada no painel Asaas em **Menu do usuário → Taxas**.
+- Cartão de crédito: R$ 0,49 + 2,99% à vista; R$ 0,49 + 3,49% de 2 a 6 parcelas; R$ 0,49 + 3,99% de 7 a 12; R$ 0,49 + 4,29% de 13 a 21. A página também exibe percentuais promocionais menores para novos clientes, sujeitos às regras e ao prazo promocional.
+- A página informa que as condições aplicadas ao contrato podem diferir das tarifas públicas. Antecipação também tem custo e análise próprios.
 
 Fontes:
-- https://docs.asaas.com/docs/visao-geral
 - https://docs.asaas.com/docs/assinaturas
-- https://docs.asaas.com/docs/checkout-asaas
+- https://docs.asaas.com/docs/faq-assinaturas
 - https://docs.asaas.com/docs/pix-automatico
-- https://docs.asaas.com/docs/webhooks-2
+- https://docs.asaas.com/docs/faq-2
+- https://docs.asaas.com/docs/eventos-para-pix-autom%C3%A1tico
+- https://central.ajuda.asaas.com/hc/pt-br/articles/41912520942235-Quais-s%C3%A3o-as-taxas-do-Pix-Autom%C3%A1tico-no-Asaas
 - https://www.asaas.com/precos-e-taxas
 
 ### Mercado Pago
 
-A documentação oficial descreve API de assinaturas com ou sem plano associado, frequência recorrente, faturas, pagamentos e tentativas automáticas. A documentação de assinaturas lista meios online e offline, incluindo Pix e boleto.
+A solução pública de Assinaturas descreve recorrência e menciona Pix e boleto. Porém, a referência técnica de assinatura com plano associado usa `card_token_id`, enquanto a tabela geral de meios de pagamento marca boleto como indisponível para Assinaturas. Essa diferença de escopo precisa ser esclarecida na conta e no Sandbox antes de prometer Pix/boleto pela API. Até a homologação, não classificar esses meios como débito automático.
 
-O produto avançado de pagamentos automáticos sem CVV, baseado em cartão armazenado e transações iniciadas pelo comerciante, requer habilitação comercial e possui requisitos próprios. Não confundir esse produto com a geração de faturas recorrentes via assinatura.
+O produto separado **Pagamentos Automáticos (Payments API)** permite MIT com cartão armazenado, sem solicitar CVV a cada cobrança. Exige conta de vendedor, contato comercial e habilitação específica da aplicação. É uma solução de cartão, não Pix Automático.
 
-Webhooks usam assinatura secreta HMAC no header x-signature e precisam de validação antes de processar eventos.
+**Tarifas públicas de referência para Checkout online**:
+- Pix: 0,99% com disponibilização imediata.
+- Uma visualização da página oficial exibia cartão a 4,98% na hora, 4,49% em 14 dias ou 3,98% em 30 dias; boleto a R$ 3,49 em até três dias.
+- Outras visualizações públicas exibiram 4,48% em 14 dias, 2,95% em 30 dias e boleto a R$ 3,99. Confirmar valores e prazos no painel da conta.
+- Esses valores não são uma proposta comercial para a API de Assinaturas ou Pagamentos Automáticos; os custos e prazos efetivos devem ser consultados na conta.
 
 Fontes:
 - https://www.mercadopago.com.br/developers/pt/docs/subscriptions/overview
 - https://www.mercadopago.com.br/developers/pt/reference/online-payments/subscriptions/overview
-- https://www.mercadopago.com.br/developers/pt/docs/subscriptions/additional-content/your-integrations/notifications/webhooks
+- https://www.mercadopago.com.br/developers/pt/docs/subscriptions/integration-configuration/subscription-associated-plan
+- https://www.mercadopago.com.br/developers/pt/docs/sales-processing/payment-methods
 - https://www.mercadopago.com.br/developers/pt/docs/automatic-payments/overview
 - https://www.mercadopago.com.br/developers/pt/docs/automatic-payments/prerequisites
+- https://www.mercadopago.com.br/ferramentas-para-vender/check-out
 
 ### Recomendação
 
-Asaas é o candidato preliminar para a primeira integração por combinar API de cobrança/assinatura, Checkout e possibilidade de Pix Automático. Mercado Pago permanece alternativa válida, especialmente para assinaturas e cartão recorrente.
+Asaas continua como candidato preliminar quando Pix Automático é requisito, mas depende de elegibilidade real da conta. Mercado Pago continua como alternativa para cartão recorrente/MIT se houver habilitação comercial. Não há vencedor financeiro sem as condições contratadas, os prazos de liquidação e o volume/ticket do LoadX.
 
 A decisão final exige:
 - proposta comercial/tarifário aplicado à conta do LoadX;
-- confirmação de elegibilidade para Pix Automático ou produto equivalente;
-- custos por Pix, boleto, cartão, estorno e antecipação;
+- confirmação de elegibilidade para Pix Automático ou habilitação de Pagamentos Automáticos;
+- custos de estorno, chargeback e antecipação;
 - prazos de liquidação e disponibilidade de saldo;
-- retentativas e regras de inadimplência;
-- limites de API, suporte, Sandbox e processo de homologação;
-- teste ponta a ponta dos meios que serão realmente oferecidos.
+- retentativas e regras de cobrança recusada;
+- limites de API, suporte e processo de homologação;
+- teste ponta a ponta de checkout, primeira cobrança, renovação, recusa, reembolso, webhook e cancelamento.
 
-Tarifas públicas não são diretamente comparáveis entre produtos e prazos diferentes. Não fixar preço do LoadX usando taxas promocionais ou sem confirmar a condição comercial efetiva.
+Tarifas promocionais e preços públicos de Checkout não são diretamente comparáveis a taxas negociadas ou produtos avançados. Não fixar preço do LoadX sem confirmar a condição comercial efetiva da conta.
 
 ## 9. Arquitetura de integração de pagamento
 
