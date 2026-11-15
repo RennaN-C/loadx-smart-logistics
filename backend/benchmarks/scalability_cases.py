@@ -28,7 +28,6 @@ class ScalabilityCase:
     trucks: tuple[TruckCapacityInput, ...]
 
 
-
 def _truck_dimensions(
     profile: str, count: int, index: int, truck_count: int
 ) -> tuple[int, int, int]:
