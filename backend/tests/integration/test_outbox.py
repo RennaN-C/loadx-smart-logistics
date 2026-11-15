@@ -1,3 +1,5 @@
+from tests.integration.auth_helpers import delete_fixture_organization_context
+
 """OC109 PostgreSQL 16: independent workers, transactions and personal inbox."""
 
 import uuid
@@ -661,6 +663,7 @@ def test_custom_operational_grants_never_authorize_outbox_admin(client, queued):
     finally:
         with s.factory() as db:
             db.execute(delete(AuthSession).where(AuthSession.user_id == user_id))
+            delete_fixture_organization_context(db, [user_id])
             db.execute(delete(User).where(User.id == user_id))
             db.execute(
                 delete(ProfilePermission).where(

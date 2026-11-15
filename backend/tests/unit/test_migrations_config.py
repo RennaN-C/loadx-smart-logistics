@@ -25,13 +25,18 @@ def test_alembic_env_uses_application_metadata() -> None:
         in env_content
     )
     assert "from app.modules.orders import models as orders_models" in env_content
+    assert (
+        "from app.modules.organizations import models as organizations_models"
+        in env_content
+    )
 
 
 def test_alembic_has_current_revision_head() -> None:
     config = Config(str(BACKEND_ROOT / "alembic.ini"))
     script = ScriptDirectory.from_config(config)
 
-    assert script.get_heads() == ["20261023_0035"]
+    assert script.get_heads() == ["20261114_0036"]
+    assert script.get_revision("20261114_0036").down_revision == "20261023_0035"
     assert script.get_revision("20261023_0035").down_revision == "20261021_0034"
     assert script.get_revision("20261021_0033").down_revision == "20261021_0032"
     assert script.get_revision("20261021_0032").down_revision == "20261021_0031"
@@ -98,6 +103,15 @@ def test_initial_migration_renders_expected_check_constraint_names() -> None:
     assert "CREATE TABLE auth_login_throttles" in result.stdout
     assert "CONSTRAINT ck_auth_login_throttles__scope_allowed" in result.stdout
     assert "CREATE TABLE auth_sessions" in result.stdout
+    assert "DO $loadx$" in result.stdout
+    assert (
+        "Migration blocked: one or more auth sessions have no organization context."
+        in result.stdout
+    )
+    assert (
+        "ALTER TABLE auth_sessions ALTER COLUMN active_organization_id SET NOT NULL"
+        in result.stdout
+    )
     assert "CREATE TABLE external_commands" in result.stdout
     assert "uq_external_commands__integration_id_event_hash" in result.stdout
     assert "CONSTRAINT fk_auth_sessions__users" in result.stdout

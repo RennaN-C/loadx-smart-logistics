@@ -11,6 +11,16 @@ def db_session(request: pytest.FixtureRequest) -> Generator[Session, None, None]
     """Provide an isolated SQLite session for service-level unit tests."""
 
     tables: Sequence[Table] = request.module.SQLITE_TABLES
+    organization_model = None
+    if any(table.name == "users" for table in tables):
+        from app.modules.organizations.models import (
+            LEGACY_ORGANIZATION_ID,
+            Organization,
+            OrganizationMembership,
+        )
+
+        organization_model = Organization
+        tables = (*tables, Organization.__table__, OrganizationMembership.__table__)
     if any(table.name == "auth_sessions" for table in tables):
         from app.modules.auth.models import (
             AuthChallenge,
@@ -63,6 +73,17 @@ def db_session(request: pytest.FixtureRequest) -> Generator[Session, None, None]
 
     for table in tables:
         table.create(engine, checkfirst=True)
+    if organization_model is not None:
+        with engine.begin() as connection:
+            connection.execute(
+                organization_model.__table__.insert().values(
+                    id=LEGACY_ORGANIZATION_ID,
+                    legal_name="Empresa de teste",
+                    display_name="Empresa de teste",
+                    status="ACTIVE",
+                    is_legacy=True,
+                )
+            )
     if any(table.name == "trips" for table in tables):
         from app.modules.access_profiles.models import (
             PermissionReference,

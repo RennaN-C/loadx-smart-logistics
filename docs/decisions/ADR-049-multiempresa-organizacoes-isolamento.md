@@ -1,6 +1,6 @@
-# ADR-049 — Multiempresa SaaS: organizações, vínculos e isolamento (proposta)
+# ADR-049 — Multiempresa SaaS: organizações, vínculos e isolamento
 
-- **Status:** PROPOSTA — requer implementação por fases e decisão de migração.
+- **Status:** APROVADA para implementação incremental em 14/11/2026; a ativação multi-tenant permanece bloqueada até concluir scoping e testes.
 - **Escopo:** LoadX Smart Logistics.
 - **Planejamento atual:** [Épico #439](https://github.com/RennaN-C/loadx-smart-logistics/issues/439). Issue #416 preservada como referência histórica.
 - **Não altera:** permissões atuais, login, dados, migrações ou deploy do ambiente corrente.
@@ -91,4 +91,4 @@ Exemplo: Empresa Aurora tem 3 usuários com perfis diferentes. O operador B tamb
 
 ## 8. Limites e pendências
 
-Este ADR documenta o objetivo comercial e o contrato de segurança, **não habilita multiempresa**. Não executar alterações nos dados atuais apenas com base neste texto. A migração abrangente exige revisão independente, testes completos e aprovação de publicação.
+Este ADR aprova a direção e o contrato de segurança, mas **não habilita segunda organização**. A migration 20261114_0036 cria apenas o registro organizacional, memberships, convites, grant singleton vazio e contexto de sessão; não adiciona ainda organization_id aos recursos logísticos nem aplica filtros de tenant. A implementação deve continuar por fases, com migrations auditáveis, scoping de todos os repositórios e relações, testes PostgreSQL de acesso cruzado e revisão de RLS antes de liberar onboarding ou publicar.

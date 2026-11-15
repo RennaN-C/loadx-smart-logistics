@@ -1,3 +1,5 @@
+from tests.integration.auth_helpers import delete_fixture_organization_context
+
 """Real PostgreSQL transactions; fault injection models an unread committed response."""
 
 import uuid
@@ -222,6 +224,7 @@ def test_recovery_is_actor_scoped_and_rbac_protected(
     finally:
         with s.factory() as db:
             db.execute(delete(AuthSession).where(AuthSession.user_id == other.id))
+            delete_fixture_organization_context(db, [other.id])
             db.execute(delete(User).where(User.id == other.id))
             if profile_id:
                 db.execute(

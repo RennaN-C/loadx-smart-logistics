@@ -1,6 +1,7 @@
 import uuid
 
 import pytest
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.security import verify_password
@@ -9,6 +10,10 @@ from app.modules.auth.models import AuthSession
 from app.modules.auth.sessions import AuthSessionService
 from app.modules.drivers.models import (
     Driver,
+)
+from app.modules.organizations.models import (
+    LEGACY_ORGANIZATION_ID,
+    OrganizationMembership,
 )
 from app.modules.users.models import User
 from app.modules.users.schemas import UserCreate, UserUpdate
@@ -294,3 +299,42 @@ def test_get_user_raises_when_not_found(db_session: Session) -> None:
 
     with pytest.raises(UserNotFoundError):
         service.get_user(uuid.uuid4())
+
+
+def test_create_user_creates_legacy_organization_membership(
+    db_session: Session,
+) -> None:
+    user = UserService(db_session).create_user(make_user_create())
+
+    membership = db_session.scalar(
+        select(OrganizationMembership).where(
+            OrganizationMembership.organization_id == LEGACY_ORGANIZATION_ID,
+            OrganizationMembership.user_id == user.id,
+        )
+    )
+
+    assert membership is not None
+    assert membership.role == user.role
+    assert membership.custom_profile_id == user.custom_profile_id
+    assert membership.driver_id == user.driver_id
+    assert membership.status == "ACTIVE"
+
+
+def test_update_user_keeps_legacy_membership_in_sync(
+    db_session: Session,
+) -> None:
+    service = UserService(db_session)
+    first_admin = service.create_user(make_user_create())
+    service.create_user(make_user_create("second-admin@example.test"))
+
+    updated = service.update_user(first_admin.id, UserUpdate(role="CHECKER"))
+    membership = db_session.scalar(
+        select(OrganizationMembership).where(
+            OrganizationMembership.organization_id == LEGACY_ORGANIZATION_ID,
+            OrganizationMembership.user_id == first_admin.id,
+        )
+    )
+
+    assert updated.role == "CHECKER"
+    assert membership is not None
+    assert membership.role == "CHECKER"
