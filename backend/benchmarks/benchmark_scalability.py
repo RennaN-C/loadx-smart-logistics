@@ -331,38 +331,28 @@ def worker(args) -> dict:
     }
 
 
-def _worker_command(args, operation, profile, count, trucks, instrument) -> list[str]:
-    command = [
-        sys.executable,
-        "-m",
-        "benchmarks.benchmark_scalability",
-        "--worker",
-        "--backend-root",
-        args.backend_root,
-        "--operation",
-        operation,
-        "--profile",
-        profile,
-        "--count",
-        str(count),
-        "--trucks",
-        str(trucks),
-        "--iterations",
-        str(args.iterations),
-        "--warmup",
-        str(args.warmup),
-        "--memory-mib",
-        str(args.memory_mib),
-        "--timeout",
-        str(args.timeout),
-    ]
-    if instrument:
-        command.append("--instrument")
-    if args.experimental_limit:
-        command.append("--experimental-limit")
-    if args.allocations:
-        command.append("--allocations")
-    return command
+def _worker_command() -> list[str]:
+    # Fixed executable and flags: scenario input is JSON over stdin, never CLI.
+    return [sys.executable, "-m", "benchmarks.benchmark_scalability", "--worker"]
+
+
+def _worker_input(args, operation, profile, count, trucks, instrument) -> str:
+    return json.dumps(
+        {
+            "backend_root": args.backend_root,
+            "operation": operation,
+            "profile": profile,
+            "count": count,
+            "trucks": trucks,
+            "iterations": args.iterations,
+            "warmup": args.warmup,
+            "memory_mib": args.memory_mib,
+            "timeout": args.timeout,
+            "instrument": instrument,
+            "allocations": args.allocations,
+            "experimental_limit": args.experimental_limit,
+        }
+    )
 
 
 def _resident_peak_kib(pid: int) -> int:
@@ -384,7 +374,8 @@ def _failure_status(stderr: str, returncode: int) -> str:
     return "error"
 
 
-def _await_worker(process, args, row, started, observation) -> None:
+def _await_worker(process, args, row, started, observation, worker_input) -> None:
+    pending_input = worker_input
     while True:
         observation["rss_kib"] = max(
             observation["rss_kib"], _resident_peak_kib(process.pid)
@@ -395,8 +386,9 @@ def _await_worker(process, args, row, started, observation) -> None:
             row.update(status="timeout", timeout_s=args.timeout)
             return
         try:
-            stdout, stderr = process.communicate(timeout=0.1)
+            stdout, stderr = process.communicate(input=pending_input, timeout=0.1)
         except subprocess.TimeoutExpired:
+            pending_input = None
             continue
         if process.returncode == 0:
             row.update(json.loads(stdout))
@@ -410,7 +402,8 @@ def _await_worker(process, args, row, started, observation) -> None:
 
 
 def run_case(args, operation, profile, count, trucks, *, instrument=False):
-    command = _worker_command(args, operation, profile, count, trucks, instrument)
+    command = _worker_command()
+    payload = _worker_input(args, operation, profile, count, trucks, instrument)
     row = {
         "operation": operation,
         "profile": profile,
@@ -420,11 +413,15 @@ def run_case(args, operation, profile, count, trucks, *, instrument=False):
     }
     started = time.perf_counter()
     process = subprocess.Popen(
-        command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+        command,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
     )
     observation = {"rss_kib": 0}
     try:
-        _await_worker(process, args, row, started, observation)
+        _await_worker(process, args, row, started, observation, payload)
     except KeyboardInterrupt:
         process.kill()
         process.communicate()
@@ -509,6 +506,8 @@ def _parse_args() -> argparse.Namespace:
 def _run_worker_entry(args) -> None:
     import resource
 
+    # Internal child mode accepts a JSON record, not untrusted CLI options.
+    args = argparse.Namespace(**json.load(sys.stdin))
     budget = args.memory_mib * 1024 * 1024
     resource.setrlimit(resource.RLIMIT_AS, (budget, budget))
     cpu_seconds = math.ceil(args.timeout)
