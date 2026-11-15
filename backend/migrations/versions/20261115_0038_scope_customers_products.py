@@ -168,12 +168,8 @@ def downgrade() -> None:
     op.drop_constraint(
         op.f("uq_products__organization_code"), "products", type_="unique"
     )
-    op.drop_constraint(
-        op.f("uq_products__organization_id"), "products", type_="unique"
-    )
-    op.create_unique_constraint(
-        op.f("uq_products__code"), "products", ["code"]
-    )
+    op.drop_constraint(op.f("uq_products__organization_id"), "products", type_="unique")
+    op.create_unique_constraint(op.f("uq_products__code"), "products", ["code"])
     op.drop_constraint(
         op.f("fk_products__organizations"), "products", type_="foreignkey"
     )
