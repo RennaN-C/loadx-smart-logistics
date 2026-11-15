@@ -18,19 +18,37 @@ LEGACY_DEFAULT = sa.text("'00000000-0000-4000-8000-000000000301'")
 
 
 def upgrade() -> None:
-    op.add_column("load_plans", sa.Column("organization_id", sa.Uuid(), nullable=True))
-    # Trust the recorded truck ownership, never the actor or client input.
-    op.execute(
-        """
-        UPDATE load_plans AS plan
-        SET organization_id = truck.organization_id
-        FROM trucks AS truck
-        WHERE plan.truck_id = truck.id
-        """
+    # All current operational trucks must belong to the legacy company.
+    # Verify the actual recorded owner of each existing plan's truck;
+    # do not infer ownership from its creator or silently migrate foreign data.
+    connection = op.get_bind()
+    if connection.execute(
+        sa.text(
+            """
+            SELECT EXISTS (
+                SELECT 1 FROM load_plans AS plan
+                JOIN trucks AS truck ON truck.id = plan.truck_id
+                WHERE truck.organization_id <> CAST(:legacy AS uuid)
+            )
+            """
+        ),
+        {"legacy": LEGACY_ID},
+    ).scalar():
+        raise RuntimeError(
+            "G05-A upgrade refused: a non-legacy truck owns an existing plan."
+        )
+
+    # The checked legacy ownership permits a NOT NULL DEFAULT backfill,
+    # avoiding UPDATE followed by ALTER on a table with RI triggers.
+    op.add_column(
+        "load_plans",
+        sa.Column(
+            "organization_id",
+            sa.Uuid(),
+            nullable=False,
+            server_default=LEGACY_DEFAULT,
+        ),
     )
-    # Orphan plans block the upgrade instead of receiving an invented owner.
-    op.alter_column("load_plans", "organization_id", nullable=False)
-    op.alter_column("load_plans", "organization_id", server_default=LEGACY_DEFAULT)
     op.create_foreign_key(
         "fk_load_plans__organizations",
         "load_plans",
