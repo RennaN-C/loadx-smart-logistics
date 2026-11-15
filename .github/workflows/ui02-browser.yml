@@ -11,7 +11,7 @@ permissions:
 jobs:
   browser-ui02:
     name: Chromium e PostgreSQL 16 isolado
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 35
     env:
       APP_ENV: local
