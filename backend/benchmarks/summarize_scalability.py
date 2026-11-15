@@ -6,12 +6,18 @@ import json
 from pathlib import Path
 
 
-def summarize(directory: Path) -> dict:
+def _read_cases(directory: Path) -> list[dict]:
     cases = []
     for pattern in ("baseline-*.json", "optimized-*.json", "experimental-*.json"):
         for path in sorted(directory.glob(pattern)):
-            for row in json.loads(path.read_text())["cases"]:
-                cases.append({"source": path.name, **row})
+            cases.extend(
+                {"source": path.name, **row}
+                for row in json.loads(path.read_text())["cases"]
+            )
+    return cases
+
+
+def _write_measurements(directory: Path, cases: list[dict]) -> None:
     fields = (
         "source",
         "operation",
@@ -40,6 +46,9 @@ def summarize(directory: Path) -> dict:
         )
         writer.writeheader()
         writer.writerows(cases)
+
+
+def _compare_cases(cases: list[dict]) -> tuple[list[dict], list[tuple]]:
     baseline, optimized = {}, {}
     for row in cases:
         if row.get("instrumented") or "fingerprint" not in row:
@@ -70,6 +79,13 @@ def summarize(directory: Path) -> dict:
                 "ratio": before["median_s"] / after["median_s"],
             }
         )
+    return comparisons, mismatches
+
+
+def summarize(directory: Path) -> dict:
+    cases = _read_cases(directory)
+    _write_measurements(directory, cases)
+    comparisons, mismatches = _compare_cases(cases)
     result = {
         "compared_complete_outputs": len(comparisons),
         "mismatches": mismatches,
