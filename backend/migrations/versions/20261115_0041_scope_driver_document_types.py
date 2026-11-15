@@ -88,7 +88,9 @@ def upgrade() -> None:
             ["id", "organization_id"],
             ondelete="RESTRICT",
         )
-        op.create_check_constraint(op.f(f"ck_{table}__type_org_scope"), table, DOC_CHECK)
+        op.create_check_constraint(
+            op.f(f"ck_{table}__type_org_scope"), table, DOC_CHECK
+        )
 
 
 def downgrade() -> None:
