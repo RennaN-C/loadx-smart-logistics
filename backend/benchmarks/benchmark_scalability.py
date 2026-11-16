@@ -256,26 +256,8 @@ def _profile_rows(profiler, counts) -> list[dict]:
     return profile_rows
 
 
-def worker(args) -> dict:
+def _measure_workload(args, calculate, loading_sequence, multi_truck):
     import resource
-
-    # The alternate checkout is used ONLY by this isolated manual runner/oracle.
-    sys.path.insert(0, str(Path(args.backend_root).resolve()))
-    from app.modules.load_planning.optimizer import (
-        comparison,
-        engine,
-        loading_sequence,
-        multi_truck,
-    )
-    from app.modules.load_planning.optimizer.volumes import expand_order_items
-    from benchmarks.scalability_cases import build_case
-
-    if args.experimental_limit:
-        engine.MAX_VOLUMES = comparison.MAX_VOLUMES = args.count
-    case = build_case(args.profile, args.count, args.trucks)
-    volumes = expand_order_items(case.items)
-
-    calculate = _make_calculator(args, case, volumes, comparison, engine, multi_truck)
 
     counts = Counter()
     profiler = None
@@ -305,6 +287,36 @@ def worker(args) -> dict:
     if args.allocations:
         allocation_peak = tracemalloc.get_traced_memory()[1]
         tracemalloc.stop()
+    return result, samples, counts, profiler, allocation_peak, rss_kib
+
+
+def worker(args) -> dict:
+    # The alternate checkout is used ONLY by this isolated manual runner/oracle.
+    sys.path.insert(0, str(Path(args.backend_root).resolve()))
+    from app.modules.load_planning.optimizer import (
+        comparison,
+        engine,
+        loading_sequence,
+        multi_truck,
+    )
+    from app.modules.load_planning.optimizer.volumes import expand_order_items
+    from benchmarks.scalability_cases import build_case
+
+    if args.experimental_limit:
+        engine.MAX_VOLUMES = comparison.MAX_VOLUMES = args.count
+    case = build_case(args.profile, args.count, args.trucks)
+    volumes = expand_order_items(case.items)
+
+    calculate = _make_calculator(args, case, volumes, comparison, engine, multi_truck)
+
+    (
+        result,
+        samples,
+        counts,
+        profiler,
+        allocation_peak,
+        rss_kib,
+    ) = _measure_workload(args, calculate, loading_sequence, multi_truck)
     plans, remaining, attempts = _checked_plans(args, result, volumes)
     profile_rows = _profile_rows(profiler, counts)
     return {
