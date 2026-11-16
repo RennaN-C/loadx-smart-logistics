@@ -542,15 +542,15 @@ def _validated_worker_args() -> argparse.Namespace:
     return argparse.Namespace(**values)
 
 
-def _run_worker_entry(args) -> None:
+def _run_worker_entry(_cli_args) -> None:
     import resource
 
-    args = _validated_worker_args()
-    budget = args.memory_mib * 1024 * 1024
+    worker_args = _validated_worker_args()
+    budget = worker_args.memory_mib * 1024 * 1024
     resource.setrlimit(resource.RLIMIT_AS, (budget, budget))
-    cpu_seconds = math.ceil(args.timeout)
+    cpu_seconds = math.ceil(worker_args.timeout)
     resource.setrlimit(resource.RLIMIT_CPU, (cpu_seconds, cpu_seconds + 1))
-    print(json.dumps(worker(args)))
+    print(json.dumps(worker(worker_args)))
 
 
 def _resolve_backend_root(value: str) -> Path:
