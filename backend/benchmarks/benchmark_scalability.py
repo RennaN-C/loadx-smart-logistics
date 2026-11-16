@@ -695,7 +695,9 @@ def _private_output_directory() -> Path:
 
 
 def _write_benchmark_json(filename: str, payload: dict) -> None:
-    # File descriptors and O_NOFOLLOW prevent path traversal and symlink overwrite.
+    # Revalidate at the filesystem boundary, not only at the CLI entry point.
+    if not _OUTPUT_FILE_PATTERN.fullmatch(filename):
+        raise ValueError("invalid benchmark output filename")
     directory = _private_output_directory()
     directory_fd = os.open(
         directory, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
