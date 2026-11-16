@@ -670,7 +670,7 @@ def _iter_cases(args):
 
 
 _OUTPUT_DIRECTORY = Path("/tmp/loadx-benchmarks")
-_OUTPUT_FILE_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,95}\\.json")
+_OUTPUT_FILE_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,95}\.json")
 
 
 def _safe_output_name(requested: Path) -> str:
@@ -713,7 +713,7 @@ def _write_benchmark_json(filename: str, payload: dict) -> None:
                 raise PermissionError("unsafe benchmark output file")
             handle.truncate(0)
             json.dump(payload, handle, indent=2)
-            handle.write("\\n")
+            handle.write("\n")
     finally:
         os.close(directory_fd)
 
