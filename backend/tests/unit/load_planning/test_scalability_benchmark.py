@@ -151,6 +151,39 @@ def test_worker_rejects_untrusted_json_payload(tmp_path, monkeypatch, field, bad
         runner._validated_worker_args()
 
 
+@pytest.mark.parametrize(
+    "filename",
+    ["../../etc/passwd.json", "/tmp/unsafe.json", "subdir/result.json", "bad;name.json"],
+)
+def test_output_rejects_untrusted_paths(filename):
+    with pytest.raises(ValueError):
+        runner._safe_output_name(Path(filename))
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="requires Linux safe file handles")
+def test_private_output_writes_json_without_arbitrary_path(tmp_path, monkeypatch):
+    output_dir = tmp_path / "private-benchmarks"
+    monkeypatch.setattr(runner, "_OUTPUT_DIRECTORY", output_dir)
+    filename = runner._safe_output_name(Path("baseline-engine.json"))
+    runner._write_benchmark_json(filename, {"cases": [{"status": "success"}]})
+    saved = json.loads((output_dir / filename).read_text())
+    assert saved == {"cases": [{"status": "success"}]}
+    assert output_dir.stat().st_mode & 0o777 == 0o700
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="requires Linux O_NOFOLLOW")
+def test_private_output_refuses_symlink_overwrite(tmp_path, monkeypatch):
+    output_dir = tmp_path / "private-benchmarks"
+    output_dir.mkdir(mode=0o700)
+    monkeypatch.setattr(runner, "_OUTPUT_DIRECTORY", output_dir)
+    victim = tmp_path / "victim.json"
+    victim.write_text("protected")
+    (output_dir / "baseline-engine.json").symlink_to(victim)
+    with pytest.raises(OSError):
+        runner._write_benchmark_json("baseline-engine.json", {"data": "malicious"})
+    assert victim.read_text() == "protected"
+
+
 @pytest.mark.skipif(sys.platform != "linux", reason="worker uses Linux resource limits")
 def test_real_worker_json_round_trip_runs_small_engine():
     backend_root = Path(__file__).resolve().parents[3]
