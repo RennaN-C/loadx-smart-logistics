@@ -102,7 +102,7 @@ git worktree add --detach /tmp/loadx-issue430-reference cb9c6f7d7f0e1b2829cae938
 cd backend
 python -m benchmarks.benchmark_scalability \
   --backend-root /tmp/loadx-issue430-reference/backend --operations engine \
-  --timeout 30 --output /tmp/loadx-benchmarks/baseline-engine.json
+  --timeout 30 --output ~/.loadx/benchmarks/baseline-engine.json
 # Repetir sem --backend-root para medir o código otimizado.
 python -m benchmarks.summarize_scalability ../docs/evidencias/issue-430
 ```
