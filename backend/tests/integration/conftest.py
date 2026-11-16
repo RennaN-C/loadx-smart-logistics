@@ -319,14 +319,20 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
         )
     _run_alembic(test_url, "upgrade", "head")
     with engine.connect() as connection:
-        assert connection.exec_driver_sql(
-            "SELECT organization_id::text FROM load_plan_orders "
-            "WHERE load_plan_id='00000000-0000-4000-8000-000000000798'"
-        ).scalar_one() == "00000000-0000-4000-8000-000000000301"
-        assert connection.exec_driver_sql(
-            "SELECT organization_id::text FROM load_plan_items "
-            "WHERE id='00000000-0000-4000-8000-000000000799'"
-        ).scalar_one() == "00000000-0000-4000-8000-000000000301"
+        assert (
+            connection.exec_driver_sql(
+                "SELECT organization_id::text FROM load_plan_orders "
+                "WHERE load_plan_id='00000000-0000-4000-8000-000000000798'"
+            ).scalar_one()
+            == "00000000-0000-4000-8000-000000000301"
+        )
+        assert (
+            connection.exec_driver_sql(
+                "SELECT organization_id::text FROM load_plan_items "
+                "WHERE id='00000000-0000-4000-8000-000000000799'"
+            ).scalar_one()
+            == "00000000-0000-4000-8000-000000000301"
+        )
         plan_owner = connection.exec_driver_sql(
             "SELECT organization_id::text FROM load_plans "
             "WHERE id='00000000-0000-4000-8000-000000000798'"
