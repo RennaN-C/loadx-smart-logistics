@@ -2,3 +2,11 @@
 *
 !.gitignore
 !README.md
+# Exceção solicitada na Issue #430: medições sintéticas reproduzíveis, sem logs/dumps.
+!issue-430/
+!issue-430/README.md
+!issue-430/inventario.md
+!issue-430/proposta-assincrona.md
+!issue-430/integracao-desenvolvimento.md
+!issue-430/*.json
+!issue-430/*.csv

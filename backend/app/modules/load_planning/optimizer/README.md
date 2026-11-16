@@ -224,6 +224,37 @@ a estratégia como heurística, não como solver exato global.
 A engine física existente continua sendo a autoridade para dimensões, peso,
 rotação, posicionamento, colisão, apoio, fragilidade, profundidade e sequência.
 
+## Issue #430 — escalabilidade sem alterar a heurística
+
+`CONFIRMADO`: a busca da engine usa um índice espacial **local à chamada** para
+reduzir pares de colisão. A grade tem até oito células por eixo, usa intervalos
+inteiros semiabertos e aplica o mesmo predicado AABB exato aos possíveis pares.
+O índice não decide apoio, não muda pontos/rotações nem a ordem first-fit. Cada
+caixa aceita é indexada; rejeições não alteram o índice. A varredura completa de
+colisões na revalidação final permanece independente desse índice.
+
+`CONFIRMADO`: profundidade agrupa distâncias por sequência de entrega. Para
+grupos diferentes, `min(distâncias posteriores) >= max(distâncias anteriores)`
+é equivalente a validar todos os pares. Dentro de um grupo não há restrição de
+profundidade. Validação de entrada, igualdade permitida e porta em `z=L` são
+preservadas. Testes comparam a decisão com um oráculo par a par.
+
+`CONFIRMADO`: apoio integral, ancestrais, fragilidade, peso Decimal, sequência
+topológica, métricas e revalidação final continuam obrigatórios. Os resultados
+de referência incluem todas as posições, rotações, identidades, rejeições e
+métricas. A versão continua `heuristic-v1`: são mudanças internas equivalentes.
+Nenhum cache global, biblioteca, migration ou novo status foi introduzido.
+
+`CONFIRMADO`: o limite público continua **200 volumes físicos**, comparação de
+2–10 candidatos, distribuição com até dez partes e fronteira de 64 estados.
+O preflight automático consulta a frota elegível inteira: dez partes não é uma
+garantia de apenas dez candidatos examinados. Essa diferença é relevante para
+dimensionamento; não se adicionou um corte de frota que mudaria a seleção.
+
+Medições, gargalos, limites experimentais e pendências operacionais estão em
+[evidências da Issue #430](../../../../../docs/evidencias/issue-430/README.md).
+O runner manual fica em [benchmarks](../../../../benchmarks/README.md).
+
 ## Regressão de limite multi-caminhão — 25/10/2026
 
 `CONFIRMADO`: teste adicional distribui 200 identidades físicas em dez caminhões

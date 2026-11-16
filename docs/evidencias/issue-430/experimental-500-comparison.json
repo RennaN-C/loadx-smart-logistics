@@ -1,0 +1,91 @@
+{
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "cpu_count": 3,
+  "cpu": "model name\t: INTEL(R) XEON(R) PLATINUM 8573C",
+  "memory": [
+    "MemTotal:       10207480 kB",
+    "MemAvailable:    9359000 kB"
+  ],
+  "cgroup_memory_max": "8589934592",
+  "cgroup_cpu_max": "200000 100000",
+  "backend_revision": "cb9c6f7d7f0e1b2829cae938a15e2fc63d6be09e",
+  "optimizer_tree_sha256": "e9e2bb178419128c3066d107ec14d49d2eefb39fc8bfd802e3b4e2b377c6b4cf",
+  "case_builder_sha256": "48f09633ce741255ec2bb60c4917c4d1985fa04de6cc1d6fc08189041c68e6b0",
+  "method": "perf_counter; fresh process per case; ru_maxrss Linux KiB before independent oracle; profile separate from wall samples",
+  "settings": {
+    "backend_root": "/workspace/loadx-smart-logistics/backend",
+    "counts": [
+      500
+    ],
+    "profiles": [
+      "dense",
+      "heterogeneous"
+    ],
+    "operations": [
+      "compare"
+    ],
+    "truck_counts": [
+      2,
+      3
+    ],
+    "timeout": 20.0,
+    "memory_mib": 768,
+    "warmup": 0,
+    "iterations": 1,
+    "experimental_limit": true,
+    "instrument": false,
+    "allocations": false,
+    "worker": false,
+    "operation": "engine",
+    "profile": "dense",
+    "count": 25,
+    "trucks": 1
+  },
+  "cases": [
+    {
+      "operation": "compare",
+      "profile": "dense",
+      "volumes": 500,
+      "trucks": 2,
+      "instrumented": false,
+      "status": "timeout",
+      "timeout_s": 20.0,
+      "observed_process_peak_rss_kib": 16616,
+      "process_elapsed_s": 20.067201467999894
+    },
+    {
+      "operation": "compare",
+      "profile": "dense",
+      "volumes": 500,
+      "trucks": 3,
+      "instrumented": false,
+      "status": "timeout",
+      "timeout_s": 20.0,
+      "observed_process_peak_rss_kib": 16636,
+      "process_elapsed_s": 20.075618881000082
+    },
+    {
+      "operation": "compare",
+      "profile": "heterogeneous",
+      "volumes": 500,
+      "trucks": 2,
+      "instrumented": false,
+      "status": "timeout",
+      "timeout_s": 20.0,
+      "observed_process_peak_rss_kib": 16660,
+      "process_elapsed_s": 20.069249836999916
+    },
+    {
+      "operation": "compare",
+      "profile": "heterogeneous",
+      "volumes": 500,
+      "trucks": 3,
+      "instrumented": false,
+      "status": "timeout",
+      "timeout_s": 20.0,
+      "observed_process_peak_rss_kib": 16660,
+      "process_elapsed_s": 20.077584434000073
+    }
+  ]
+}
