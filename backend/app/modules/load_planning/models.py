@@ -198,7 +198,9 @@ class LoadPlanOrder(Base):
             ondelete="RESTRICT",
         ),
         UniqueConstraint(
-            "organization_id", "load_plan_id", "order_id",
+            "organization_id",
+            "load_plan_id",
+            "order_id",
             name="uq_load_plan_orders__org_plan_order",
         ),
     )
