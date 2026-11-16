@@ -46,16 +46,16 @@ Execute de `backend`, em ambiente **isolado**, sem outras medições concorrente
 
 ```bash
 python -m benchmarks.benchmark_scalability --operations engine \
-  --counts 25 50 100 200 --output /tmp/loadx-benchmarks/baseline-engine.json
+  --counts 25 50 100 200 --output ~/.loadx/benchmarks/baseline-engine.json
 python -m benchmarks.benchmark_scalability --operations multi \
   --profiles dense distribution fleet --truck-counts 1 2 3 5 10 \
-  --output /tmp/loadx-benchmarks/baseline-multi.json
+  --output ~/.loadx/benchmarks/baseline-multi.json
 python -m benchmarks.benchmark_scalability --operations compare \
   --profiles dense heterogeneous --truck-counts 2 3 5 10 \
-  --output /tmp/loadx-benchmarks/baseline-comparison.json
+  --output ~/.loadx/benchmarks/baseline-comparison.json
 python -m benchmarks.benchmark_scalability --operations engine \
   --profiles dense heterogeneous adversarial deliveries --counts 100 \
-  --instrument --output /tmp/loadx-benchmarks/profile.json
+  --instrument --output ~/.loadx/benchmarks/profile.json
 ```
 
 `--backend-root /caminho/checkout/backend` usa outro checkout da engine como
@@ -96,7 +96,7 @@ Somente após avaliar a progressão anterior, execute experimentalmente:
 ```bash
 python -m benchmarks.benchmark_scalability --operations engine \
   --profiles dense heterogeneous adversarial --counts 500 --experimental-limit \
-  --timeout 30 --output /tmp/loadx-benchmarks/experimental-500.json
+  --timeout 30 --output ~/.loadx/benchmarks/experimental-500.json
 ```
 
 `RISCO IDENTIFICADO`: `--experimental-limit` altera somente constantes da engine
@@ -107,7 +107,7 @@ distribuição incompleta válida são explicitamente distintos de sucesso compl
 O runner exige Linux (`resource`, `/proc` e cgroup v2). Não executar no Render.
 
 Por segurança, `--output` aceita somente um nome JSON simples ou um arquivo em
-`/tmp/loadx-benchmarks/`. O diretório é criado como privado (0700), e a escrita
+`~/.loadx/benchmarks/`. O diretório é criado como privado (0700), e a escrita
 recusa symlinks, hardlinks e caminhos arbitrários. Arquivos de evidência no Git
 são copiados **após** revisão manual; o benchmark não escreve diretamente no repositório.
 
