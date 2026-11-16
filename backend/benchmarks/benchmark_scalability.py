@@ -681,14 +681,14 @@ def _iter_cases(args):
             yield operation, profile, count, trucks
 
 
-_OUTPUT_DIRECTORY = Path("/tmp/loadx-benchmarks")
+_OUTPUT_DIRECTORY = Path.home() / ".loadx" / "benchmarks"
 _OUTPUT_FILE_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,95}\.json")
 
 
 def _safe_output_name(requested: Path) -> str:
     # Only simple JSON names in the fixed private benchmark directory are accepted.
     if requested.parent not in (Path("."), _OUTPUT_DIRECTORY):
-        raise ValueError("benchmark output must be under /tmp/loadx-benchmarks")
+        raise ValueError("benchmark output must be under ~/.loadx/benchmarks")
     filename = requested.name
     if not _OUTPUT_FILE_PATTERN.fullmatch(filename):
         raise ValueError("invalid benchmark output filename")
@@ -697,7 +697,7 @@ def _safe_output_name(requested: Path) -> str:
 
 def _private_output_directory() -> Path:
     directory = _OUTPUT_DIRECTORY
-    directory.mkdir(mode=0o700, exist_ok=True)
+    directory.mkdir(mode=0o700, parents=True, exist_ok=True)
     info = directory.lstat()
     if not stat.S_ISDIR(info.st_mode):
         raise ValueError("benchmark output directory must not be a symlink")
