@@ -716,9 +716,7 @@ def _write_benchmark_json(filename: str, payload: dict) -> None:
     if not _OUTPUT_FILE_PATTERN.fullmatch(filename):
         raise ValueError("invalid benchmark output filename")
     directory = _private_output_directory()
-    directory_fd = os.open(
-        directory, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
-    )
+    directory_fd = os.open(directory, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
     try:
         flags = os.O_WRONLY | os.O_CREAT | os.O_NOFOLLOW
         file_fd = os.open(filename, flags, mode=0o600, dir_fd=directory_fd)
