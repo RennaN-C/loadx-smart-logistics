@@ -330,6 +330,9 @@ posições, rotações, dimensões, capacidades ou regras de cor.
 
 ## Experiência profissional — Issue #455
 
+`CONFIRMADO`: a branch `feat/3d-studio-reflections` também desativa publicação
+Git automática; sua validação usa o artefato estático isolado, sem proxy da API.
+
 `CONFIRMADO`: o modo realista usa um ambiente de estúdio procedural filtrado
 por PMREM para reflexos nos metais, vidros e verniz da cabine. Não baixa HDRs
 externos nem renderiza reflexos a cada quadro. O ambiente restaura o estado
