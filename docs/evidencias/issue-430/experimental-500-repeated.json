@@ -1,0 +1,78 @@
+{
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "cpu_count": 3,
+  "cpu": "model name\t: INTEL(R) XEON(R) PLATINUM 8573C",
+  "memory": [
+    "MemTotal:       10207480 kB",
+    "MemAvailable:    9375116 kB"
+  ],
+  "cgroup_memory_max": "8589934592",
+  "cgroup_cpu_max": "200000 100000",
+  "backend_revision": "cb9c6f7d7f0e1b2829cae938a15e2fc63d6be09e",
+  "optimizer_tree_sha256": "e9e2bb178419128c3066d107ec14d49d2eefb39fc8bfd802e3b4e2b377c6b4cf",
+  "case_builder_sha256": "48f09633ce741255ec2bb60c4917c4d1985fa04de6cc1d6fc08189041c68e6b0",
+  "method": "perf_counter; fresh process per case; ru_maxrss Linux KiB before independent oracle; profile separate from wall samples",
+  "settings": {
+    "backend_root": "/workspace/loadx-smart-logistics/backend",
+    "counts": [
+      500
+    ],
+    "profiles": [
+      "dense"
+    ],
+    "operations": [
+      "engine"
+    ],
+    "truck_counts": [
+      1,
+      2,
+      3,
+      5,
+      10
+    ],
+    "timeout": 60.0,
+    "memory_mib": 768,
+    "warmup": 1,
+    "iterations": 3,
+    "experimental_limit": true,
+    "instrument": false,
+    "allocations": false,
+    "worker": false,
+    "operation": "engine",
+    "profile": "dense",
+    "count": 25,
+    "trucks": 1
+  },
+  "cases": [
+    {
+      "operation": "engine",
+      "profile": "dense",
+      "volumes": 500,
+      "trucks": 1,
+      "instrumented": false,
+      "status": "success",
+      "samples_s": [
+        10.77471642899991,
+        10.635092673000145,
+        11.736228815000231
+      ],
+      "min_s": 10.635092673000145,
+      "median_s": 10.77471642899991,
+      "max_s": 11.736228815000231,
+      "stdev_s": 0.5995139232314722,
+      "p95_s": null,
+      "peak_rss_kib": 18964,
+      "python_peak_bytes": null,
+      "placed": 500,
+      "rejected": 0,
+      "selected_trucks": 1,
+      "engine_calls": 1,
+      "fingerprint": "330ce3031e6aa2e01ac9ca146a9ac72e2bed351468b956d0abb7600fdf2fb7e7",
+      "counts": {},
+      "profile_rows": [],
+      "observed_process_peak_rss_kib": 72180,
+      "process_elapsed_s": 45.96857032099979
+    }
+  ]
+}

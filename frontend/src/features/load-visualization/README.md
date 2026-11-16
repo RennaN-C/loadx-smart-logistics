@@ -330,6 +330,15 @@ posições, rotações, dimensões, capacidades ou regras de cor.
 
 ## Experiência profissional — Issue #455
 
+`CONFIRMADO`: a branch `feat/3d-studio-reflections` também desativa publicação
+Git automática; sua validação usa o artefato estático isolado, sem proxy da API.
+
+`CONFIRMADO`: o modo realista usa um ambiente de estúdio procedural filtrado
+por PMREM para reflexos nos metais, vidros e verniz da cabine. Não baixa HDRs
+externos nem renderiza reflexos a cada quadro. O ambiente restaura o estado
+anterior e libera seu render target ao desmontar. Pintura com clearcoat, vidros
+escuros e alumínio com rugosidade própria preservam as dimensões do modelo.
+
 `CONFIRMADO`: o workspace identifica placa/modelo e situação do plano, separa
 indicadores da cena, oferece seleção de volume por lista acessível e consulta de
 capacidade, peso utilizado e espaço remanescente. Ocupação e peso continuam sendo

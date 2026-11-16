@@ -43,7 +43,7 @@ function Tyre({ wheel }: { wheel: Wheel }) {
       {/* aro */}
       <mesh>
         <cylinderGeometry args={[wheel.radius * 0.52, wheel.radius * 0.52, WHEEL_WIDTH + 0.02, 20]} />
-        <meshStandardMaterial color="#9aa0a8" roughness={0.35} metalness={0.75} />
+        <meshStandardMaterial color="#bcc5ce" roughness={0.22} metalness={0.92} />
       </mesh>
       {/* cubo central: o detalhe que faz a roda parecer roda e não disco */}
       <mesh>
@@ -105,7 +105,7 @@ export const TruckShellMesh = memo(function TruckShellMesh({
           <Panel geometry={sharedGeometry} box={shell.bumper} color="#4e535a" roughness={0.6} metalness={0.35} />
         </>
       )}
-      <Panel geometry={sharedGeometry} box={shell.fuelTank} color="#aeb4bc" roughness={0.28} metalness={0.85} />
+      <Panel geometry={sharedGeometry} box={shell.fuelTank} color="#aeb4bc" roughness={0.22} metalness={0.9} />
       <Panel geometry={sharedGeometry} box={shell.rearGuard} color="#4e535a" roughness={0.6} metalness={0.35} />
       {/* Reflectors and tail lamps remain outside the usable cargo compartment. */}
       <Panel geometry={sharedGeometry} box={{
@@ -124,10 +124,10 @@ export const TruckShellMesh = memo(function TruckShellMesh({
       </group>)}
 
       {shell.roofRails.map((box, index) => (
-        <Panel geometry={sharedGeometry} key={`rail-${index}`} box={box} color="#6f7681" roughness={0.5} metalness={0.5} />
+        <Panel geometry={sharedGeometry} key={`rail-${index}`} box={box} color="#9ba8b4" roughness={0.3} metalness={0.8} />
       ))}
       {shell.cornerPosts.map((box, index) => (
-        <Panel geometry={sharedGeometry} key={`post-${index}`} box={box} color="#6f7681" roughness={0.5} metalness={0.5} />
+        <Panel geometry={sharedGeometry} key={`post-${index}`} box={box} color="#9ba8b4" roughness={0.3} metalness={0.8} />
       ))}
       {shell.doorFrame.map((box, index) => (
         <Panel geometry={sharedGeometry} key={`door-${index}`} box={box} color="#5f666f" roughness={0.5} metalness={0.5} />

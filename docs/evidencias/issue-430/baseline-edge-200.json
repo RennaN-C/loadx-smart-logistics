@@ -1,0 +1,116 @@
+{
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "cpu_count": 3,
+  "cpu": "model name\t: INTEL(R) XEON(R) PLATINUM 8573C",
+  "memory": [
+    "MemTotal:       10207480 kB",
+    "MemAvailable:    9354332 kB"
+  ],
+  "cgroup_memory_max": "8589934592",
+  "cgroup_cpu_max": "200000 100000",
+  "backend_revision": "cb9c6f7d7f0e1b2829cae938a15e2fc63d6be09e",
+  "optimizer_tree_sha256": "937477ed8ba09bb0f43cab3dbcabd92798eed5f4dd43fb5b490e7f612d2c413d",
+  "case_builder_sha256": "48f09633ce741255ec2bb60c4917c4d1985fa04de6cc1d6fc08189041c68e6b0",
+  "method": "perf_counter; fresh process per case; ru_maxrss Linux KiB before independent oracle; profile separate from wall samples",
+  "settings": {
+    "backend_root": "/tmp/loadx-issue430-reference/backend",
+    "counts": [
+      200
+    ],
+    "profiles": [
+      "heterogeneous",
+      "deliveries",
+      "adversarial"
+    ],
+    "operations": [
+      "engine"
+    ],
+    "truck_counts": [
+      1,
+      2,
+      3,
+      5,
+      10
+    ],
+    "timeout": 35.0,
+    "memory_mib": 768,
+    "warmup": 0,
+    "iterations": 1,
+    "experimental_limit": false,
+    "instrument": false,
+    "allocations": false,
+    "worker": false,
+    "operation": "engine",
+    "profile": "dense",
+    "count": 25,
+    "trucks": 1
+  },
+  "cases": [
+    {
+      "operation": "engine",
+      "profile": "heterogeneous",
+      "volumes": 200,
+      "trucks": 1,
+      "instrumented": false,
+      "status": "success",
+      "samples_s": [
+        16.899731359000043
+      ],
+      "min_s": 16.899731359000043,
+      "median_s": 16.899731359000043,
+      "max_s": 16.899731359000043,
+      "stdev_s": null,
+      "p95_s": null,
+      "peak_rss_kib": 16768,
+      "python_peak_bytes": null,
+      "placed": 200,
+      "rejected": 0,
+      "selected_trucks": 1,
+      "engine_calls": 1,
+      "fingerprint": "9cb3a47658e1e8079d3139ae3a11748a2cca3035fcca72a7041180d656092959",
+      "counts": {},
+      "profile_rows": [],
+      "observed_process_peak_rss_kib": 45256,
+      "process_elapsed_s": 17.181909743000006
+    },
+    {
+      "operation": "engine",
+      "profile": "deliveries",
+      "volumes": 200,
+      "trucks": 1,
+      "instrumented": false,
+      "status": "timeout",
+      "timeout_s": 35.0,
+      "observed_process_peak_rss_kib": 15544,
+      "process_elapsed_s": 35.028679022999995
+    },
+    {
+      "operation": "engine",
+      "profile": "adversarial",
+      "volumes": 200,
+      "trucks": 1,
+      "instrumented": false,
+      "status": "success",
+      "samples_s": [
+        8.722121681999852
+      ],
+      "min_s": 8.722121681999852,
+      "median_s": 8.722121681999852,
+      "max_s": 8.722121681999852,
+      "stdev_s": null,
+      "p95_s": null,
+      "peak_rss_kib": 16384,
+      "python_peak_bytes": null,
+      "placed": 126,
+      "rejected": 74,
+      "selected_trucks": 1,
+      "engine_calls": 1,
+      "fingerprint": "8f46c5e2a3e0828a8b6ccf3bcc132f44647d0d70e6e9a2385907154fd3fd1887",
+      "counts": {},
+      "profile_rows": [],
+      "observed_process_peak_rss_kib": 39648,
+      "process_elapsed_s": 8.944452842999908
+    }
+  ]
+}
