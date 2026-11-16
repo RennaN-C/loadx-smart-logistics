@@ -1,0 +1,48 @@
+name: Diagnostico temporario Sonar PR 480
+on:
+  pull_request:
+    branches: [desenvolvimento]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  sonarqube-issues:
+    if: github.event_name != 'pull_request' || github.event.pull_request.number == 480
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - name: Consultar problemas publicos do SonarCloud sem autenticacao
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          import urllib.error
+          import urllib.parse
+          import urllib.request
+          base = "https://sonarcloud.io/api/issues/search"
+          params = {"componentKeys": "RennaN-C_loadx-smart-logistics",
+                    "pullRequest": "480", "resolved": "false", "ps": "100"}
+          url = base + "?" + urllib.parse.urlencode(params)
+          request = urllib.request.Request(url, headers={"Accept": "application/json"})
+          try:
+              with urllib.request.urlopen(request, timeout=20) as response:
+                  result = json.load(response)
+          except urllib.error.HTTPError as exc:
+              print(f"Sonar API HTTP {exc.code}; detailed issues require Sonar session")
+              raise SystemExit(0) from None
+          except Exception as exc:
+              print(f"Sonar API unavailable: {type(exc).__name__}: {exc}")
+              raise SystemExit(0) from None
+          issues = result.get("issues", [])
+          print(f"SONAR_DIAGNOSTIC total={result.get('total', len(issues))} reported={len(issues)}")
+          for issue in issues:
+              print(json.dumps({
+                  "rule": issue.get("rule"),
+                  "severity": issue.get("severity"),
+                  "type": issue.get("type"),
+                  "message": issue.get("message"),
+                  "component": issue.get("component"),
+                  "line": issue.get("line"),
+                  "status": issue.get("status"),
+              }, ensure_ascii=False))
+          PY
