@@ -16,6 +16,7 @@ from app.modules.load_planning.optimizer.contracts import (
 from app.modules.load_planning.optimizer.geometry import (
     InternalDimensions,
     PositionedAABB,
+    _CollisionIndex,
     fits_within_bounds,
     is_collision_free,
 )
@@ -259,9 +260,15 @@ def _validate_candidate_for_engine(
     placed_candidates: tuple[PlacementCandidate, ...],
     placed_boxes: tuple[PositionedAABB, ...],
     bounds: InternalDimensions,
+    collision_index: _CollisionIndex | None = None,
 ) -> bool:
     frontier.saw_candidate = True
-    if not is_collision_free(candidate.box, placed_boxes):
+    collision_free = (
+        collision_index.is_collision_free(candidate.box)
+        if collision_index is not None
+        else is_collision_free(candidate.box, placed_boxes)
+    )
+    if not collision_free:
         return False
     frontier.saw_collision_free = True
 
@@ -423,6 +430,7 @@ def calculate_volume_load_plan(
         capacity.internal_length_cm,
     )
     placed_candidates: list[PlacementCandidate] = []
+    collision_index = _CollisionIndex(bounds)
     rejected_volumes: list[RejectedVolume] = []
     current_weight_kg = Decimal(0)
 
@@ -457,6 +465,7 @@ def calculate_volume_load_plan(
             placed_candidates=placed_snapshot,
             placed_boxes=placed_boxes,
             bounds=bounds,
+            collision_index=collision_index,
         )
 
         try:
@@ -479,6 +488,7 @@ def calculate_volume_load_plan(
             )
         else:
             placed_candidates.append(candidate)
+            collision_index.add(candidate.box)
             current_weight_kg = next_weight_kg
 
     try:

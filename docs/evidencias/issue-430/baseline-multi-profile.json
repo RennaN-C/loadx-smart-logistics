@@ -1,0 +1,1257 @@
+{
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "cpu_count": 3,
+  "cpu": "model name\t: INTEL(R) XEON(R) PLATINUM 8573C",
+  "memory": [
+    "MemTotal:       10207480 kB",
+    "MemAvailable:    9332160 kB"
+  ],
+  "cgroup_memory_max": "8589934592",
+  "cgroup_cpu_max": "200000 100000",
+  "backend_revision": "cb9c6f7d7f0e1b2829cae938a15e2fc63d6be09e",
+  "optimizer_tree_sha256": "937477ed8ba09bb0f43cab3dbcabd92798eed5f4dd43fb5b490e7f612d2c413d",
+  "case_builder_sha256": "48f09633ce741255ec2bb60c4917c4d1985fa04de6cc1d6fc08189041c68e6b0",
+  "method": "perf_counter; fresh process per case; ru_maxrss Linux KiB before independent oracle; profile separate from wall samples",
+  "settings": {
+    "backend_root": "/tmp/loadx-issue430-reference/backend",
+    "counts": [
+      200
+    ],
+    "profiles": [
+      "distribution"
+    ],
+    "operations": [
+      "multi"
+    ],
+    "truck_counts": [
+      10
+    ],
+    "timeout": 35.0,
+    "memory_mib": 768,
+    "warmup": 1,
+    "iterations": 3,
+    "experimental_limit": false,
+    "instrument": true,
+    "allocations": false,
+    "worker": false,
+    "operation": "engine",
+    "profile": "dense",
+    "count": 25,
+    "trucks": 1
+  },
+  "cases": [
+    {
+      "operation": "multi",
+      "profile": "distribution",
+      "volumes": 200,
+      "trucks": 10,
+      "instrumented": true,
+      "status": "success",
+      "samples_s": [
+        3.466832982999904
+      ],
+      "min_s": 3.466832982999904,
+      "median_s": 3.466832982999904,
+      "max_s": 3.466832982999904,
+      "stdev_s": null,
+      "p95_s": null,
+      "peak_rss_kib": 19840,
+      "python_peak_bytes": null,
+      "placed": 200,
+      "rejected": 0,
+      "selected_trucks": 10,
+      "engine_calls": 10,
+      "fingerprint": "67204725c7b5a464e69b1e0893189e1dcb7e9bc9c45cd9da54a8cb716f10d44f",
+      "counts": {
+        "search_states_created": 2098,
+        "depth_pair_visits": 19000,
+        "_validate_candidates": 1,
+        "validate_individual_volumes": 11,
+        "__post_init__": 141120,
+        "_validate_order_item": 1300,
+        "select_first_valid_candidate": 1100,
+        "assign_loading_sequences": 20,
+        "candidate_direct_support_rejections": 200,
+        "_analyze_validated_configuration": 250,
+        "_revalidate_final_result": 10,
+        "_validate_placement": 3100,
+        "calculate_volume_load_plan": 10,
+        "classify_aabb_relation": 206100,
+        "_validate_volume": 2200,
+        "calculate_load_metrics": 20,
+        "order_volumes": 11,
+        "generate_rotations": 2400,
+        "is_delivery_depth_configuration_valid": 230,
+        "_support_rejection_reasons": 200,
+        "generate_candidate_points": 1100,
+        "_validate_ordering_fields": 1300,
+        "_validate_placements": 500,
+        "is_collision_free": 20300,
+        "calculate_truck_capacity": 10,
+        "_calculate_occupancy_percent": 20,
+        "_sum_weights": 20,
+        "expand_order_items": 1300,
+        "calculate": 2097,
+        "optimize_multi_truck": 1,
+        "<lambda>": 66600,
+        "_identity_key": 1711260,
+        "_assignment_key": 9866,
+        "<genexpr>": 5314372,
+        "_validate_volumes": 1,
+        "_candidate_key": 10,
+        "_is_validated_configuration_valid": 30,
+        "calculate_next_weight": 1300,
+        "_validate_identity": 3100,
+        "push_ready": 400,
+        "_ensure_unique_identities": 250,
+        "internal_volume_cm3": 50058,
+        "_solution_key": 8,
+        "_dedupe_key": 2089,
+        "order_item_id": 1712960,
+        "volume_index": 1711660,
+        "volume": 42340,
+        "identity": 31000,
+        "position_y_cm": 9500,
+        "position_z_cm": 400,
+        "used_width_cm": 6200,
+        "_calculate_next_weight_deterministically": 1300,
+        "_require_finite_decimal": 3900,
+        "_require_positive_int": 15550,
+        "_validate_positive_cm": 176730,
+        "_validate_non_negative_cm": 176700,
+        "_validate_non_negative_coordinate": 182400,
+        "__init__": 900,
+        "_validate_positive_int": 7800,
+        "_has_dimensionally_viable_rotation": 1100,
+        "is_fully_supported": 2700,
+        "is_candidate_delivery_depth_valid": 200,
+        "_validate_volume_sequence": 40,
+        "_ensure_unique_partition": 20,
+        "_make_rejection": 900,
+        "_require_invariant": 700,
+        "_fleet_capacity_key": 9866,
+        "_weight_context": 1310,
+        "_validate_candidate_for_engine": 20100,
+        "_ordering_key": 1300,
+        "_door_distance_cm": 400,
+        "analyze_support_configuration": 220,
+        "is_support_configuration_valid": 30,
+        "used_height_cm": 3100,
+        "used_length_cm": 6600,
+        "rejection_reason": 900,
+        "fits_within_bounds": 82100,
+        "_validate_placed_boxes": 2200,
+        "_partial_key": 9858
+      },
+      "profile_rows": [
+        {
+          "file": "multi_truck.py",
+          "line": 228,
+          "function": "optimize_multi_truck",
+          "calls": 1,
+          "own_s": 0.026149606000000002,
+          "cumulative_s": 3.4667442370000003
+        },
+        {
+          "file": "multi_truck.py",
+          "line": 255,
+          "function": "calculate",
+          "calls": 2097,
+          "own_s": 0.023994648,
+          "cumulative_s": 1.9333293580000002
+        },
+        {
+          "file": "engine.py",
+          "line": 401,
+          "function": "calculate_volume_load_plan",
+          "calls": 10,
+          "own_s": 0.009400857,
+          "cumulative_s": 1.76163932
+        },
+        {
+          "file": "placement.py",
+          "line": 198,
+          "function": "select_first_valid_candidate",
+          "calls": 1100,
+          "own_s": 0.079322501,
+          "cumulative_s": 1.6092214020000002
+        },
+        {
+          "file": "multi_truck.py",
+          "line": 147,
+          "function": "_partial_key",
+          "calls": 9858,
+          "own_s": 0.020710777,
+          "cumulative_s": 1.1692878180000001
+        },
+        {
+          "file": "engine.py",
+          "line": 255,
+          "function": "_validate_candidate_for_engine",
+          "calls": 20100,
+          "own_s": 0.008168979,
+          "cumulative_s": 0.9925101380000001
+        },
+        {
+          "file": "geometry.py",
+          "line": 97,
+          "function": "is_collision_free",
+          "calls": 20300,
+          "own_s": 0.06619905100000001,
+          "cumulative_s": 0.9318523350000001
+        },
+        {
+          "file": "geometry.py",
+          "line": 117,
+          "function": "<genexpr>",
+          "calls": 226400,
+          "own_s": 0.066009864,
+          "cumulative_s": 0.7768664470000001
+        },
+        {
+          "file": "multi_truck.py",
+          "line": 101,
+          "function": "_assignment_key",
+          "calls": 9866,
+          "own_s": 0.005211444,
+          "cumulative_s": 0.7296739120000001
+        },
+        {
+          "file": "multi_truck.py",
+          "line": 105,
+          "function": "<genexpr>",
+          "calls": 59914,
+          "own_s": 0.103531223,
+          "cumulative_s": 0.713529682
+        },
+        {
+          "file": "geometry.py",
+          "line": 73,
+          "function": "classify_aabb_relation",
+          "calls": 206100,
+          "own_s": 0.324163755,
+          "cumulative_s": 0.7108565830000001
+        },
+        {
+          "file": "multi_truck.py",
+          "line": 84,
+          "function": "_identity_key",
+          "calls": 1707360,
+          "own_s": 0.43802655900000004,
+          "cumulative_s": 0.6630871260000001
+        },
+        {
+          "file": "multi_truck.py",
+          "line": 108,
+          "function": "<genexpr>",
+          "calls": 1051008,
+          "own_s": 0.21319093700000002,
+          "cumulative_s": 0.609998459
+        },
+        {
+          "file": "multi_truck.py",
+          "line": 366,
+          "function": "<lambda>",
+          "calls": 2089,
+          "own_s": 0.000622637,
+          "cumulative_s": 0.262920594
+        },
+        {
+          "file": "placement.py",
+          "line": 159,
+          "function": "generate_candidate_points",
+          "calls": 1100,
+          "own_s": 0.023239139000000002,
+          "cumulative_s": 0.21050236400000003
+        },
+        {
+          "file": "geometry.py",
+          "line": 56,
+          "function": "__post_init__",
+          "calls": 58900,
+          "own_s": 0.057322585,
+          "cumulative_s": 0.204103361
+        },
+        {
+          "file": "multi_truck.py",
+          "line": 264,
+          "function": "<genexpr>",
+          "calls": 251477,
+          "own_s": 0.044839754,
+          "cumulative_s": 0.139627985
+        },
+        {
+          "file": "multi_truck.py",
+          "line": 174,
+          "function": "_dedupe_key",
+          "calls": 2089,
+          "own_s": 0.018505558000000002,
+          "cumulative_s": 0.134173591
+        },
+        {
+          "file": "contracts.py",
+          "line": 45,
+          "function": "order_item_id",
+          "calls": 1712960,
+          "own_s": 0.11842192800000001,
+          "cumulative_s": 0.11842192800000001
+        },
+        {
+          "file": "multi_truck.py",
+          "line": 178,
+          "function": "<genexpr>",
+          "calls": 209529,
+          "own_s": 0.036031993000000005,
+          "cumulative_s": 0.11245723
+        },
+        {
+          "file": "contracts.py",
+          "line": 49,
+          "function": "volume_index",
+          "calls": 1711660,
+          "own_s": 0.10760541500000001,
+          "cumulative_s": 0.10760541500000001
+        },
+        {
+          "file": "placement.py",
+          "line": 67,
+          "function": "__post_init__",
+          "calls": 60800,
+          "own_s": 0.027997963,
+          "cumulative_s": 0.095528339
+        },
+        {
+          "file": "multi_truck.py",
+          "line": 115,
+          "function": "_fleet_capacity_key",
+          "calls": 9866,
+          "own_s": 0.018835324,
+          "cumulative_s": 0.09417370300000001
+        },
+        {
+          "file": "geometry.py",
+          "line": 90,
+          "function": "<genexpr>",
+          "calls": 824400,
+          "own_s": 0.078515993,
+          "cumulative_s": 0.078515993
+        },
+        {
+          "file": "geometry.py",
+          "line": 30,
+          "function": "_validate_non_negative_cm",
+          "calls": 176700,
+          "own_s": 0.047000575,
+          "cumulative_s": 0.07631733
+        },
+        {
+          "file": "multi_truck.py",
+          "line": 378,
+          "function": "<lambda>",
+          "calls": 603,
+          "own_s": 0.000188626,
+          "cumulative_s": 0.072593926
+        },
+        {
+          "file": "geometry.py",
+          "line": 25,
+          "function": "_validate_positive_cm",
+          "calls": 176730,
+          "own_s": 0.044148672,
+          "cumulative_s": 0.070479738
+        },
+        {
+          "file": "placement.py",
+          "line": 56,
+          "function": "_validate_non_negative_coordinate",
+          "calls": 182400,
+          "own_s": 0.041484002000000006,
+          "cumulative_s": 0.067530376
+        },
+        {
+          "file": "multi_truck.py",
+          "line": 164,
+          "function": "<genexpr>",
+          "calls": 982098,
+          "own_s": 0.065792272,
+          "cumulative_s": 0.065792272
+        },
+        {
+          "file": "multi_truck.py",
+          "line": 162,
+          "function": "<genexpr>",
+          "calls": 982098,
+          "own_s": 0.062303282,
+          "cumulative_s": 0.062303282
+        },
+        {
+          "file": "engine.py",
+          "line": 215,
+          "function": "_support_rejection_reasons",
+          "calls": 200,
+          "own_s": 0.0030733120000000004,
+          "cumulative_s": 0.044757241
+        },
+        {
+          "file": "support.py",
+          "line": 269,
+          "function": "analyze_support_configuration",
+          "calls": 220,
+          "own_s": 0.00042713,
+          "cumulative_s": 0.044123026
+        },
+        {
+          "file": "engine.py",
+          "line": 285,
+          "function": "_revalidate_final_result",
+          "calls": 10,
+          "own_s": 0.001926301,
+          "cumulative_s": 0.042431457000000006
+        },
+        {
+          "file": "volumes.py",
+          "line": 137,
+          "function": "validate_individual_volumes",
+          "calls": 11,
+          "own_s": 0.0037454690000000004,
+          "cumulative_s": 0.036172252
+        },
+        {
+          "file": "support.py",
+          "line": 186,
+          "function": "_analyze_validated_configuration",
+          "calls": 250,
+          "own_s": 0.015531955000000002,
+          "cumulative_s": 0.034274321
+        },
+        {
+          "file": "multi_truck.py",
+          "line": 119,
+          "function": "<genexpr>",
+          "calls": 59914,
+          "own_s": 0.013503758000000001,
+          "cumulative_s": 0.026771071
+        },
+        {
+          "file": "loading_sequence.py",
+          "line": 236,
+          "function": "assign_loading_sequences",
+          "calls": 20,
+          "own_s": 0.0015119850000000002,
+          "cumulative_s": 0.025170698000000002
+        },
+        {
+          "file": "engine.py",
+          "line": 196,
+          "function": "_calculate_next_weight_deterministically",
+          "calls": 1300,
+          "own_s": 0.0030851620000000002,
+          "cumulative_s": 0.024104611
+        },
+        {
+          "file": "rotations.py",
+          "line": 52,
+          "function": "generate_rotations",
+          "calls": 2400,
+          "own_s": 0.013013055,
+          "cumulative_s": 0.021054494
+        },
+        {
+          "file": "loading_sequence.py",
+          "line": 193,
+          "function": "is_delivery_depth_configuration_valid",
+          "calls": 230,
+          "own_s": 0.002269934,
+          "cumulative_s": 0.020207155
+        },
+        {
+          "file": "volumes.py",
+          "line": 91,
+          "function": "expand_order_items",
+          "calls": 1300,
+          "own_s": 0.004207345,
+          "cumulative_s": 0.019057625
+        },
+        {
+          "file": "multi_truck.py",
+          "line": 121,
+          "function": "<genexpr>",
+          "calls": 59914,
+          "own_s": 0.01199174,
+          "cumulative_s": 0.018268881
+        },
+        {
+          "file": "engine.py",
+          "line": 189,
+          "function": "_weight_context",
+          "calls": 1310,
+          "own_s": 0.0034471130000000003,
+          "cumulative_s": 0.016662664
+        },
+        {
+          "file": "loading_sequence.py",
+          "line": 125,
+          "function": "_validate_placements",
+          "calls": 250,
+          "own_s": 0.005713669,
+          "cumulative_s": 0.01629127
+        },
+        {
+          "file": "loading_sequence.py",
+          "line": 214,
+          "function": "is_candidate_delivery_depth_valid",
+          "calls": 200,
+          "own_s": 0.00030443500000000004,
+          "cumulative_s": 0.016193166000000002
+        },
+        {
+          "file": "geometry.py",
+          "line": 92,
+          "function": "<genexpr>",
+          "calls": 156360,
+          "own_s": 0.015709266,
+          "cumulative_s": 0.015709266
+        },
+        {
+          "file": "placement.py",
+          "line": 81,
+          "function": "__post_init__",
+          "calls": 20100,
+          "own_s": 0.011542572000000001,
+          "cumulative_s": 0.015501815
+        },
+        {
+          "file": "multi_truck.py",
+          "line": 318,
+          "function": "<genexpr>",
+          "calls": 209537,
+          "own_s": 0.014979921,
+          "cumulative_s": 0.014979921
+        },
+        {
+          "file": "engine.py",
+          "line": 147,
+          "function": "_has_dimensionally_viable_rotation",
+          "calls": 1100,
+          "own_s": 0.001891319,
+          "cumulative_s": 0.013436375
+        },
+        {
+          "file": "geometry.py",
+          "line": 65,
+          "function": "fits_within_bounds",
+          "calls": 82100,
+          "own_s": 0.012690295,
+          "cumulative_s": 0.012690295
+        },
+        {
+          "file": "placement.py",
+          "line": 140,
+          "function": "_validate_placed_boxes",
+          "calls": 2200,
+          "own_s": 0.005610386,
+          "cumulative_s": 0.012668887
+        },
+        {
+          "file": "support.py",
+          "line": 277,
+          "function": "is_support_configuration_valid",
+          "calls": 30,
+          "own_s": 6.050300000000001e-05,
+          "cumulative_s": 0.011792448
+        },
+        {
+          "file": "multi_truck.py",
+          "line": 308,
+          "function": "<genexpr>",
+          "calls": 44037,
+          "own_s": 0.008230902,
+          "cumulative_s": 0.011721437000000001
+        },
+        {
+          "file": "support.py",
+          "line": 96,
+          "function": "_validate_placements",
+          "calls": 250,
+          "own_s": 0.0013164210000000001,
+          "cumulative_s": 0.011632877000000002
+        },
+        {
+          "file": "metrics.py",
+          "line": 150,
+          "function": "calculate_load_metrics",
+          "calls": 20,
+          "own_s": 0.000169493,
+          "cumulative_s": 0.011469625
+        },
+        {
+          "file": "ordering.py",
+          "line": 81,
+          "function": "order_volumes",
+          "calls": 11,
+          "own_s": 0.000975086,
+          "cumulative_s": 0.010036471
+        },
+        {
+          "file": "support.py",
+          "line": 54,
+          "function": "_validate_placement",
+          "calls": 3100,
+          "own_s": 0.006056733000000001,
+          "cumulative_s": 0.009807667
+        },
+        {
+          "file": "volumes.py",
+          "line": 65,
+          "function": "_validate_order_item",
+          "calls": 1300,
+          "own_s": 0.004208527,
+          "cumulative_s": 0.008619955
+        },
+        {
+          "file": "support.py",
+          "line": 249,
+          "function": "_is_validated_configuration_valid",
+          "calls": 30,
+          "own_s": 0.000654088,
+          "cumulative_s": 0.008275983
+        },
+        {
+          "file": "support.py",
+          "line": 113,
+          "function": "_ensure_unique_identities",
+          "calls": 250,
+          "own_s": 0.0020369900000000002,
+          "cumulative_s": 0.007764630000000001
+        },
+        {
+          "file": "engine.py",
+          "line": 190,
+          "function": "<genexpr>",
+          "calls": 6320,
+          "own_s": 0.0022619790000000003,
+          "cumulative_s": 0.007578458000000001
+        },
+        {
+          "file": "multi_truck.py",
+          "line": 210,
+          "function": "_validate_volumes",
+          "calls": 1,
+          "own_s": 5.816000000000001e-06,
+          "cumulative_s": 0.0071529620000000006
+        },
+        {
+          "file": "multi_truck.py",
+          "line": 123,
+          "function": "<genexpr>",
+          "calls": 59914,
+          "own_s": 0.0070930820000000006,
+          "cumulative_s": 0.0070930820000000006
+        },
+        {
+          "file": "multi_truck.py",
+          "line": 169,
+          "function": "<genexpr>",
+          "calls": 59826,
+          "own_s": 0.006286743,
+          "cumulative_s": 0.006286743
+        },
+        {
+          "file": "multi_truck.py",
+          "line": 44,
+          "function": "internal_volume_cm3",
+          "calls": 50058,
+          "own_s": 0.00627895,
+          "cumulative_s": 0.00627895
+        },
+        {
+          "file": "metrics.py",
+          "line": 72,
+          "function": "_validate_volume_sequence",
+          "calls": 40,
+          "own_s": 0.000626427,
+          "cumulative_s": 0.006049739
+        },
+        {
+          "file": "ordering.py",
+          "line": 46,
+          "function": "_validate_ordering_fields",
+          "calls": 1300,
+          "own_s": 0.002910278,
+          "cumulative_s": 0.005813850000000001
+        },
+        {
+          "file": "metrics.py",
+          "line": 45,
+          "function": "_validate_volume",
+          "calls": 2200,
+          "own_s": 0.0027122910000000004,
+          "cumulative_s": 0.0053296920000000005
+        },
+        {
+          "file": "placement.py",
+          "line": 189,
+          "function": "<lambda>",
+          "calls": 60800,
+          "own_s": 0.004757006,
+          "cumulative_s": 0.004757006
+        },
+        {
+          "file": "weight.py",
+          "line": 43,
+          "function": "calculate_next_weight",
+          "calls": 1300,
+          "own_s": 0.001969892,
+          "cumulative_s": 0.0047230710000000006
+        },
+        {
+          "file": "metrics.py",
+          "line": 89,
+          "function": "_ensure_unique_partition",
+          "calls": 20,
+          "own_s": 0.000667949,
+          "cumulative_s": 0.0036581820000000003
+        },
+        {
+          "file": "loading_sequence.py",
+          "line": 66,
+          "function": "volume",
+          "calls": 42340,
+          "own_s": 0.003530758,
+          "cumulative_s": 0.003530758
+        },
+        {
+          "file": "rotations.py",
+          "line": 47,
+          "function": "_require_positive_int",
+          "calls": 7200,
+          "own_s": 0.002278351,
+          "cumulative_s": 0.0034094100000000003
+        },
+        {
+          "file": "placement.py",
+          "line": 37,
+          "function": "__init__",
+          "calls": 900,
+          "own_s": 0.001881117,
+          "cumulative_s": 0.00322957
+        },
+        {
+          "file": "volumes.py",
+          "line": 49,
+          "function": "_validate_positive_int",
+          "calls": 7800,
+          "own_s": 0.00198308,
+          "cumulative_s": 0.0031587620000000003
+        },
+        {
+          "file": "placement.py",
+          "line": 104,
+          "function": "identity",
+          "calls": 31000,
+          "own_s": 0.0029401930000000002,
+          "cumulative_s": 0.0029401930000000002
+        },
+        {
+          "file": "loading_sequence.py",
+          "line": 107,
+          "function": "_validate_identity",
+          "calls": 3100,
+          "own_s": 0.001847845,
+          "cumulative_s": 0.002893988
+        },
+        {
+          "file": "weight.py",
+          "line": 35,
+          "function": "_require_finite_decimal",
+          "calls": 3900,
+          "own_s": 0.001823521,
+          "cumulative_s": 0.002753179
+        },
+        {
+          "file": "engine.py",
+          "line": 191,
+          "function": "<genexpr>",
+          "calls": 6320,
+          "own_s": 0.0016501240000000002,
+          "cumulative_s": 0.0023638450000000003
+        },
+        {
+          "file": "engine.py",
+          "line": 452,
+          "function": "<genexpr>",
+          "calls": 21000,
+          "own_s": 0.002021185,
+          "cumulative_s": 0.002021185
+        },
+        {
+          "file": "metrics.py",
+          "line": 40,
+          "function": "_require_positive_int",
+          "calls": 4420,
+          "own_s": 0.001136948,
+          "cumulative_s": 0.0017560660000000001
+        },
+        {
+          "file": "engine.py",
+          "line": 248,
+          "function": "_make_rejection",
+          "calls": 900,
+          "own_s": 0.000679365,
+          "cumulative_s": 0.0017285500000000001
+        },
+        {
+          "file": "ordering.py",
+          "line": 41,
+          "function": "_require_positive_int",
+          "calls": 3900,
+          "own_s": 0.001105815,
+          "cumulative_s": 0.001694977
+        },
+        {
+          "file": "engine.py",
+          "line": 309,
+          "function": "<genexpr>",
+          "calls": 1110,
+          "own_s": 0.000443354,
+          "cumulative_s": 0.001465537
+        },
+        {
+          "file": "loading_sequence.py",
+          "line": 296,
+          "function": "<genexpr>",
+          "calls": 420,
+          "own_s": 0.00035723700000000005,
+          "cumulative_s": 0.001339011
+        },
+        {
+          "file": "multi_truck.py",
+          "line": 179,
+          "function": "<genexpr>",
+          "calls": 12607,
+          "own_s": 0.001279257,
+          "cumulative_s": 0.001279257
+        },
+        {
+          "file": "rotations.py",
+          "line": 77,
+          "function": "<genexpr>",
+          "calls": 9600,
+          "own_s": 0.001255307,
+          "cumulative_s": 0.001255307
+        },
+        {
+          "file": "multi_truck.py",
+          "line": 347,
+          "function": "<lambda>",
+          "calls": 8,
+          "own_s": 4.39e-06,
+          "cumulative_s": 0.001182567
+        },
+        {
+          "file": "multi_truck.py",
+          "line": 129,
+          "function": "_solution_key",
+          "calls": 8,
+          "own_s": 1.1537000000000002e-05,
+          "cumulative_s": 0.001178177
+        },
+        {
+          "file": "support.py",
+          "line": 246,
+          "function": "<lambda>",
+          "calls": 3100,
+          "own_s": 0.000792665,
+          "cumulative_s": 0.001169149
+        },
+        {
+          "file": "loading_sequence.py",
+          "line": 267,
+          "function": "push_ready",
+          "calls": 400,
+          "own_s": 0.000402282,
+          "cumulative_s": 0.0010062670000000001
+        },
+        {
+          "file": "metrics.py",
+          "line": 111,
+          "function": "_sum_weights",
+          "calls": 20,
+          "own_s": 0.000161909,
+          "cumulative_s": 0.0009555420000000001
+        },
+        {
+          "file": "placement.py",
+          "line": 112,
+          "function": "position_y_cm",
+          "calls": 9500,
+          "own_s": 0.0008265830000000001,
+          "cumulative_s": 0.0008265830000000001
+        },
+        {
+          "file": "engine.py",
+          "line": 151,
+          "function": "<genexpr>",
+          "calls": 2200,
+          "own_s": 0.0006821720000000001,
+          "cumulative_s": 0.0006821720000000001
+        },
+        {
+          "file": "ordering.py",
+          "line": 69,
+          "function": "_ordering_key",
+          "calls": 1300,
+          "own_s": 0.00046897800000000005,
+          "cumulative_s": 0.000640438
+        },
+        {
+          "file": "placement.py",
+          "line": 120,
+          "function": "used_width_cm",
+          "calls": 6200,
+          "own_s": 0.0006280540000000001,
+          "cumulative_s": 0.0006280540000000001
+        },
+        {
+          "file": "placement.py",
+          "line": 128,
+          "function": "used_length_cm",
+          "calls": 6600,
+          "own_s": 0.000585338,
+          "cumulative_s": 0.000585338
+        },
+        {
+          "file": "placement.py",
+          "line": 220,
+          "function": "<genexpr>",
+          "calls": 2200,
+          "own_s": 0.0005460500000000001,
+          "cumulative_s": 0.0005460500000000001
+        },
+        {
+          "file": "engine.py",
+          "line": 101,
+          "function": "__post_init__",
+          "calls": 900,
+          "own_s": 0.000359576,
+          "cumulative_s": 0.000495945
+        },
+        {
+          "file": "metrics.py",
+          "line": 116,
+          "function": "<genexpr>",
+          "calls": 420,
+          "own_s": 0.00012887600000000002,
+          "cumulative_s": 0.00044040800000000004
+        },
+        {
+          "file": "support.py",
+          "line": 50,
+          "function": "_identity_key",
+          "calls": 3100,
+          "own_s": 0.000376484,
+          "cumulative_s": 0.000376484
+        },
+        {
+          "file": "support.py",
+          "line": 37,
+          "function": "is_fully_supported",
+          "calls": 2700,
+          "own_s": 0.000320615,
+          "cumulative_s": 0.000320615
+        },
+        {
+          "file": "placement.py",
+          "line": 124,
+          "function": "used_height_cm",
+          "calls": 3100,
+          "own_s": 0.000317789,
+          "cumulative_s": 0.000317789
+        },
+        {
+          "file": "engine.py",
+          "line": 129,
+          "function": "rejection_reason",
+          "calls": 900,
+          "own_s": 0.000310885,
+          "cumulative_s": 0.000310885
+        },
+        {
+          "file": "loading_sequence.py",
+          "line": 48,
+          "function": "__post_init__",
+          "calls": 400,
+          "own_s": 0.00017295600000000002,
+          "cumulative_s": 0.00027040500000000004
+        },
+        {
+          "file": "engine.py",
+          "line": 407,
+          "function": "<genexpr>",
+          "calls": 1110,
+          "own_s": 0.000167033,
+          "cumulative_s": 0.000251452
+        },
+        {
+          "file": "metrics.py",
+          "line": 107,
+          "function": "_identity_key",
+          "calls": 400,
+          "own_s": 0.000155508,
+          "cumulative_s": 0.000240255
+        },
+        {
+          "file": "loading_sequence.py",
+          "line": 174,
+          "function": "_door_distance_cm",
+          "calls": 400,
+          "own_s": 0.00015598600000000002,
+          "cumulative_s": 0.00022737200000000002
+        },
+        {
+          "file": "engine.py",
+          "line": 229,
+          "function": "<genexpr>",
+          "calls": 2100,
+          "own_s": 0.00020847900000000002,
+          "cumulative_s": 0.00020847900000000002
+        },
+        {
+          "file": "engine.py",
+          "line": 328,
+          "function": "<genexpr>",
+          "calls": 2100,
+          "own_s": 0.00019658500000000002,
+          "cumulative_s": 0.00019658500000000002
+        },
+        {
+          "file": "engine.py",
+          "line": 234,
+          "function": "<genexpr>",
+          "calls": 2100,
+          "own_s": 0.000195133,
+          "cumulative_s": 0.000195133
+        },
+        {
+          "file": "engine.py",
+          "line": 379,
+          "function": "<genexpr>",
+          "calls": 910,
+          "own_s": 0.000136823,
+          "cumulative_s": 0.000192969
+        },
+        {
+          "file": "metrics.py",
+          "line": 129,
+          "function": "_calculate_occupancy_percent",
+          "calls": 20,
+          "own_s": 9.4695e-05,
+          "cumulative_s": 0.00013788300000000002
+        },
+        {
+          "file": "metrics.py",
+          "line": 117,
+          "function": "<genexpr>",
+          "calls": 420,
+          "own_s": 8.604600000000001e-05,
+          "cumulative_s": 0.000127779
+        },
+        {
+          "file": "support.py",
+          "line": 303,
+          "function": "candidate_direct_support_rejections",
+          "calls": 200,
+          "own_s": 9.4876e-05,
+          "cumulative_s": 0.000126524
+        },
+        {
+          "file": "capacity.py",
+          "line": 31,
+          "function": "calculate_truck_capacity",
+          "calls": 10,
+          "own_s": 6.0206000000000006e-05,
+          "cumulative_s": 0.000118376
+        },
+        {
+          "file": "engine.py",
+          "line": 242,
+          "function": "<genexpr>",
+          "calls": 200,
+          "own_s": 8.0016e-05,
+          "cumulative_s": 8.0016e-05
+        },
+        {
+          "file": "engine.py",
+          "line": 417,
+          "function": "<genexpr>",
+          "calls": 1110,
+          "own_s": 7.982200000000001e-05,
+          "cumulative_s": 7.982200000000001e-05
+        },
+        {
+          "file": "engine.py",
+          "line": 280,
+          "function": "_require_invariant",
+          "calls": 700,
+          "own_s": 7.586000000000001e-05,
+          "cumulative_s": 7.586000000000001e-05
+        },
+        {
+          "file": "engine.py",
+          "line": 297,
+          "function": "<genexpr>",
+          "calls": 1110,
+          "own_s": 7.223900000000001e-05,
+          "cumulative_s": 7.223900000000001e-05
+        },
+        {
+          "file": "engine.py",
+          "line": 497,
+          "function": "<genexpr>",
+          "calls": 210,
+          "own_s": 4.7973e-05,
+          "cumulative_s": 7.065600000000001e-05
+        },
+        {
+          "file": "engine.py",
+          "line": 498,
+          "function": "<genexpr>",
+          "calls": 910,
+          "own_s": 6.4366e-05,
+          "cumulative_s": 6.4366e-05
+        },
+        {
+          "file": "engine.py",
+          "line": 293,
+          "function": "<genexpr>",
+          "calls": 910,
+          "own_s": 5.9256e-05,
+          "cumulative_s": 5.9256e-05
+        },
+        {
+          "file": "engine.py",
+          "line": 292,
+          "function": "<genexpr>",
+          "calls": 210,
+          "own_s": 4.0937000000000005e-05,
+          "cumulative_s": 5.8477e-05
+        },
+        {
+          "file": "support.py",
+          "line": 256,
+          "function": "<genexpr>",
+          "calls": 600,
+          "own_s": 5.7299e-05,
+          "cumulative_s": 5.7299e-05
+        },
+        {
+          "file": "support.py",
+          "line": 261,
+          "function": "<genexpr>",
+          "calls": 600,
+          "own_s": 4.8753000000000006e-05,
+          "cumulative_s": 4.8753000000000006e-05
+        },
+        {
+          "file": "metrics.py",
+          "line": 162,
+          "function": "<genexpr>",
+          "calls": 420,
+          "own_s": 4.6401000000000005e-05,
+          "cumulative_s": 4.6401000000000005e-05
+        },
+        {
+          "file": "loading_sequence.py",
+          "line": 170,
+          "function": "_identity_key",
+          "calls": 400,
+          "own_s": 4.5391e-05,
+          "cumulative_s": 4.5391e-05
+        },
+        {
+          "file": "placement.py",
+          "line": 116,
+          "function": "position_z_cm",
+          "calls": 400,
+          "own_s": 3.7914e-05,
+          "cumulative_s": 3.7914e-05
+        },
+        {
+          "file": "metrics.py",
+          "line": 115,
+          "function": "<genexpr>",
+          "calls": 420,
+          "own_s": 3.5169e-05,
+          "cumulative_s": 3.5169e-05
+        },
+        {
+          "file": "multi_truck.py",
+          "line": 183,
+          "function": "_validate_candidates",
+          "calls": 1,
+          "own_s": 1.007e-05,
+          "cumulative_s": 3.0514000000000003e-05
+        },
+        {
+          "file": "geometry.py",
+          "line": 41,
+          "function": "__post_init__",
+          "calls": 10,
+          "own_s": 1.1117e-05,
+          "cumulative_s": 2.7409e-05
+        },
+        {
+          "file": "capacity.py",
+          "line": 9,
+          "function": "_require_positive_int",
+          "calls": 30,
+          "own_s": 1.5631e-05,
+          "cumulative_s": 2.6269000000000002e-05
+        },
+        {
+          "file": "engine.py",
+          "line": 291,
+          "function": "<genexpr>",
+          "calls": 210,
+          "own_s": 2.3791000000000003e-05,
+          "cumulative_s": 2.3791000000000003e-05
+        },
+        {
+          "file": "multi_truck.py",
+          "line": 142,
+          "function": "<genexpr>",
+          "calls": 88,
+          "own_s": 9.005000000000001e-06,
+          "cumulative_s": 9.005000000000001e-06
+        },
+        {
+          "file": "multi_truck.py",
+          "line": 36,
+          "function": "__post_init__",
+          "calls": 10,
+          "own_s": 4.9120000000000006e-06,
+          "cumulative_s": 6.5340000000000005e-06
+        },
+        {
+          "file": "multi_truck.py",
+          "line": 88,
+          "function": "_candidate_key",
+          "calls": 10,
+          "own_s": 3.773e-06,
+          "cumulative_s": 5.582e-06
+        },
+        {
+          "file": "multi_truck.py",
+          "line": 201,
+          "function": "<genexpr>",
+          "calls": 11,
+          "own_s": 1.3690000000000001e-06,
+          "cumulative_s": 1.3690000000000001e-06
+        }
+      ],
+      "observed_process_peak_rss_kib": 20788,
+      "process_elapsed_s": 3.6453641250000146
+    }
+  ]
+}

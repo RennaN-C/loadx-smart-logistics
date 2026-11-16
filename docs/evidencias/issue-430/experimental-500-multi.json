@@ -1,0 +1,194 @@
+{
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "cpu_count": 3,
+  "cpu": "model name\t: INTEL(R) XEON(R) PLATINUM 8573C",
+  "memory": [
+    "MemTotal:       10207480 kB",
+    "MemAvailable:    9355980 kB"
+  ],
+  "cgroup_memory_max": "8589934592",
+  "cgroup_cpu_max": "200000 100000",
+  "backend_revision": "cb9c6f7d7f0e1b2829cae938a15e2fc63d6be09e",
+  "optimizer_tree_sha256": "e9e2bb178419128c3066d107ec14d49d2eefb39fc8bfd802e3b4e2b377c6b4cf",
+  "case_builder_sha256": "48f09633ce741255ec2bb60c4917c4d1985fa04de6cc1d6fc08189041c68e6b0",
+  "method": "perf_counter; fresh process per case; ru_maxrss Linux KiB before independent oracle; profile separate from wall samples",
+  "settings": {
+    "backend_root": "/workspace/loadx-smart-logistics/backend",
+    "counts": [
+      500
+    ],
+    "profiles": [
+      "dense",
+      "distribution",
+      "fleet"
+    ],
+    "operations": [
+      "multi"
+    ],
+    "truck_counts": [
+      2,
+      3
+    ],
+    "timeout": 20.0,
+    "memory_mib": 768,
+    "warmup": 0,
+    "iterations": 1,
+    "experimental_limit": true,
+    "instrument": false,
+    "allocations": false,
+    "worker": false,
+    "operation": "engine",
+    "profile": "dense",
+    "count": 25,
+    "trucks": 1
+  },
+  "cases": [
+    {
+      "operation": "multi",
+      "profile": "dense",
+      "volumes": 500,
+      "trucks": 2,
+      "instrumented": false,
+      "status": "success",
+      "samples_s": [
+        11.23765937600001
+      ],
+      "min_s": 11.23765937600001,
+      "median_s": 11.23765937600001,
+      "max_s": 11.23765937600001,
+      "stdev_s": null,
+      "p95_s": null,
+      "peak_rss_kib": 19968,
+      "python_peak_bytes": null,
+      "placed": 500,
+      "rejected": 0,
+      "selected_trucks": 1,
+      "engine_calls": 1,
+      "fingerprint": "d9f6209887482bd12f46e132d6bac3608155cc6a1a8cf8243aaa4dfd78a4f1bd",
+      "counts": {},
+      "profile_rows": [],
+      "observed_process_peak_rss_kib": 71872,
+      "process_elapsed_s": 11.660854666999967
+    },
+    {
+      "operation": "multi",
+      "profile": "dense",
+      "volumes": 500,
+      "trucks": 3,
+      "instrumented": false,
+      "status": "success",
+      "samples_s": [
+        10.871766865000154
+      ],
+      "min_s": 10.871766865000154,
+      "median_s": 10.871766865000154,
+      "max_s": 10.871766865000154,
+      "stdev_s": null,
+      "p95_s": null,
+      "peak_rss_kib": 19968,
+      "python_peak_bytes": null,
+      "placed": 500,
+      "rejected": 0,
+      "selected_trucks": 1,
+      "engine_calls": 1,
+      "fingerprint": "d9f6209887482bd12f46e132d6bac3608155cc6a1a8cf8243aaa4dfd78a4f1bd",
+      "counts": {},
+      "profile_rows": [],
+      "observed_process_peak_rss_kib": 71876,
+      "process_elapsed_s": 11.246045460999994
+    },
+    {
+      "operation": "multi",
+      "profile": "distribution",
+      "volumes": 500,
+      "trucks": 2,
+      "instrumented": false,
+      "status": "success",
+      "samples_s": [
+        3.768476383999996
+      ],
+      "min_s": 3.768476383999996,
+      "median_s": 3.768476383999996,
+      "max_s": 3.768476383999996,
+      "stdev_s": null,
+      "p95_s": null,
+      "peak_rss_kib": 20864,
+      "python_peak_bytes": null,
+      "placed": 500,
+      "rejected": 0,
+      "selected_trucks": 2,
+      "engine_calls": 2,
+      "fingerprint": "21f877b2ff1369fe9bfe8721c2bdcf44d83799febbbb74998a50df47765a9e16",
+      "counts": {},
+      "profile_rows": [],
+      "observed_process_peak_rss_kib": 57024,
+      "process_elapsed_s": 4.119532704999983
+    },
+    {
+      "operation": "multi",
+      "profile": "distribution",
+      "volumes": 500,
+      "trucks": 3,
+      "instrumented": false,
+      "status": "success",
+      "samples_s": [
+        2.9888364659998388
+      ],
+      "min_s": 2.9888364659998388,
+      "median_s": 2.9888364659998388,
+      "max_s": 2.9888364659998388,
+      "stdev_s": null,
+      "p95_s": null,
+      "peak_rss_kib": 21632,
+      "python_peak_bytes": null,
+      "placed": 500,
+      "rejected": 0,
+      "selected_trucks": 3,
+      "engine_calls": 3,
+      "fingerprint": "f855dd3e2f38d09af891c5568fd4527408f1b761295f5eef69afd6fb234b7b2b",
+      "counts": {},
+      "profile_rows": [],
+      "observed_process_peak_rss_kib": 48548,
+      "process_elapsed_s": 3.35180342700005
+    },
+    {
+      "operation": "multi",
+      "profile": "fleet",
+      "volumes": 500,
+      "trucks": 2,
+      "instrumented": false,
+      "status": "incomplete_valid",
+      "samples_s": [
+        9.967343589999928
+      ],
+      "min_s": 9.967343589999928,
+      "median_s": 9.967343589999928,
+      "max_s": 9.967343589999928,
+      "stdev_s": null,
+      "p95_s": null,
+      "peak_rss_kib": 20992,
+      "python_peak_bytes": null,
+      "placed": 144,
+      "rejected": 356,
+      "selected_trucks": 2,
+      "engine_calls": 4,
+      "fingerprint": "38d48c0310642e93f562cdec1effa429504c6f90d47549b5f973849105062360",
+      "counts": {},
+      "profile_rows": [],
+      "observed_process_peak_rss_kib": 39868,
+      "process_elapsed_s": 10.23995788000002
+    },
+    {
+      "operation": "multi",
+      "profile": "fleet",
+      "volumes": 500,
+      "trucks": 3,
+      "instrumented": false,
+      "status": "timeout",
+      "timeout_s": 20.0,
+      "observed_process_peak_rss_kib": 16928,
+      "process_elapsed_s": 20.07164730600016
+    }
+  ]
+}

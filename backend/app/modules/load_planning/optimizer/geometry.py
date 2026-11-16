@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 from enum import Enum
 
@@ -118,3 +118,61 @@ def is_collision_free(
         classify_aabb_relation(candidate_box, box) is not AABBRelation.POSITIVE_OVERLAP
         for box in validated_boxes
     )
+
+
+class _CollisionIndex:
+    """Exact broad phase for the engine's validated, append-only prefix.
+
+    At most eight cells per axis, independent of centimetre dimensions. Cell
+    membership only narrows the search; the existing AABB predicate decides.
+    Half-open integer intervals keep face/edge contact out of adjacent cells.
+    The public validator and final revalidation do not use this index.
+    """
+
+    def __init__(self, bounds: InternalDimensions) -> None:
+        self._cell_sizes = tuple(
+            max(1, (dimension + 7) // 8)
+            for dimension in (
+                bounds.internal_width_cm,
+                bounds.internal_height_cm,
+                bounds.internal_length_cm,
+            )
+        )
+        self._cells: dict[tuple[int, int, int], list[int]] = {}
+        self._boxes: list[PositionedAABB] = []
+
+    def _keys(self, box: PositionedAABB) -> Iterator[tuple[int, int, int]]:
+        sx, sy, sz = self._cell_sizes
+        for x in range(
+            box.position_x_cm // sx,
+            (box.position_x_cm + box.used_width_cm - 1) // sx + 1,
+        ):
+            for y in range(
+                box.position_y_cm // sy,
+                (box.position_y_cm + box.used_height_cm - 1) // sy + 1,
+            ):
+                for z in range(
+                    box.position_z_cm // sz,
+                    (box.position_z_cm + box.used_length_cm - 1) // sz + 1,
+                ):
+                    yield x, y, z
+
+    def add(self, box: PositionedAABB) -> None:
+        index = len(self._boxes)
+        self._boxes.append(box)
+        for key in self._keys(box):
+            self._cells.setdefault(key, []).append(index)
+
+    def is_collision_free(self, candidate_box: PositionedAABB) -> bool:
+        seen: set[int] = set()
+        for key in self._keys(candidate_box):
+            for index in self._cells.get(key, ()):
+                if index in seen:
+                    continue
+                seen.add(index)
+                if (
+                    classify_aabb_relation(candidate_box, self._boxes[index])
+                    is AABBRelation.POSITIVE_OVERLAP
+                ):
+                    return False
+        return True

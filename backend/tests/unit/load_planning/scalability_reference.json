@@ -1,0 +1,240 @@
+{
+  "base_revision": "cb9c6f7d7f0e1b2829cae938a15e2fc63d6be09e",
+  "case_builder": "benchmarks.scalability_cases.build_case",
+  "hash_contract": "SHA-256 canonical dataclass JSON, including every placement, rejection, metric and sequence",
+  "cases": [
+    {
+      "profile": "homogeneous",
+      "volumes": 25,
+      "fingerprint": "990a42b07b3c77c196e0e54bcc0329ac1ea984717d94710545a6d7c1237ae2b3"
+    },
+    {
+      "profile": "homogeneous",
+      "volumes": 50,
+      "fingerprint": "2f1b564bf4525bb3e1e2315f2e8a3933059bf12064b0d28ebac05430fb1a7368"
+    },
+    {
+      "profile": "homogeneous",
+      "volumes": 100,
+      "fingerprint": "1f688c325c07d9caf7698172006ef472799ecfead61af6fc57a112ea6514a1bf"
+    },
+    {
+      "profile": "homogeneous",
+      "volumes": 200,
+      "fingerprint": "6d7d61a7c8b9fda88fa2405df9dd6e864c813a434f42b367ea470fda0fd3dc60"
+    },
+    {
+      "profile": "heterogeneous",
+      "volumes": 25,
+      "fingerprint": "8a525679f11714b932429f61de13e56d95410863f903a84728f7c725b2ca10b7"
+    },
+    {
+      "profile": "heterogeneous",
+      "volumes": 50,
+      "fingerprint": "30846eac92c278e016121c5eb11c2f76536c24b865771a987362a98abc786054"
+    },
+    {
+      "profile": "heterogeneous",
+      "volumes": 100,
+      "fingerprint": "df4993207947558762ba4a5b8fad72cc81e084a679991d140de6ff73d8dd2c25"
+    },
+    {
+      "profile": "non_stackable",
+      "volumes": 25,
+      "fingerprint": "fd4de291b96313632c30bf1694574731a8ee7f10e2b2b9cfbbce7b87680b1d18"
+    },
+    {
+      "profile": "non_stackable",
+      "volumes": 50,
+      "fingerprint": "b55da55bd80800817c283b6c93cd92faf937107bf65a3ddf6dd89a673d587bcc"
+    },
+    {
+      "profile": "non_stackable",
+      "volumes": 100,
+      "fingerprint": "125cd75814db700802e6cbb5a414f16811335d4aaff937fdb367f83572e73d75"
+    },
+    {
+      "profile": "non_stackable",
+      "volumes": 200,
+      "fingerprint": "5c92ce69dddccdffaefff29ff455c9c2cc989a58ddb4d72b3758398a2bb5371e"
+    },
+    {
+      "profile": "fragile",
+      "volumes": 25,
+      "fingerprint": "0400a1edad4efe6fe19725f78e6853932d3ee05a4b0cb7a81d2c267fe1ae9151"
+    },
+    {
+      "profile": "fragile",
+      "volumes": 50,
+      "fingerprint": "9ed2a415df917cf658ac49e11f5da91adf17256325f195b77a991986ca0c090a"
+    },
+    {
+      "profile": "fragile",
+      "volumes": 100,
+      "fingerprint": "a87c78f80125bcb88bce00d116907fe47181313bd6e49ab51f73a6e828c15393"
+    },
+    {
+      "profile": "fragile",
+      "volumes": 200,
+      "fingerprint": "017391a7f937ac9d86878e8550bd0c99d335abf46c3d0387ee6ac3af7be072eb"
+    },
+    {
+      "profile": "deliveries",
+      "volumes": 25,
+      "fingerprint": "806198c6e1c2d0ce1c227a333b3f4addd12304442be99e3438331bf225607d05"
+    },
+    {
+      "profile": "deliveries",
+      "volumes": 50,
+      "fingerprint": "b85dfb7cbc62f1a4a82a33b5479cc3b1cc8c603d95deec20c4ad84037563bd11"
+    },
+    {
+      "profile": "deliveries",
+      "volumes": 100,
+      "fingerprint": "1dece11fe7d914736bcfb0f412e067e8311e1ebbaeb8ef95aeb1d4a0465c1b7e"
+    },
+    {
+      "profile": "fleet",
+      "volumes": 25,
+      "fingerprint": "833d975b10475d5faf418031e9c8d4afc1e2816e362b94bda63a4b5bc382f2ad"
+    },
+    {
+      "profile": "fleet",
+      "volumes": 50,
+      "fingerprint": "4cd35c17b3dab2fc0888f4f5b7954c1f02af32a9438ebc57c96d5896f734fc26"
+    },
+    {
+      "profile": "fleet",
+      "volumes": 100,
+      "fingerprint": "a777defadd410e447d0633f27edfab16ed392327fceccf7ae0f7d6763df4451b"
+    },
+    {
+      "profile": "fleet",
+      "volumes": 200,
+      "fingerprint": "9749560c9042cfd1b7624bcc50c45219833c38a63fbdca2ffff0d9069f9b970f"
+    },
+    {
+      "profile": "over_capacity",
+      "volumes": 25,
+      "fingerprint": "805f0459e3b703a8c251066f408b7eaa42a3b74a100e64950c78e139ed37663f"
+    },
+    {
+      "profile": "over_capacity",
+      "volumes": 50,
+      "fingerprint": "aaa1fe9060c3a22aaecbf4955146fee4701fabdf81e4ac4e43223fe5ffd5b89e"
+    },
+    {
+      "profile": "over_capacity",
+      "volumes": 100,
+      "fingerprint": "1159aa349be312b62fcfc4c95fe9aa52ca3f245d4a8aa6e1407af40dcfe722f6"
+    },
+    {
+      "profile": "over_capacity",
+      "volumes": 200,
+      "fingerprint": "9a58444f5748ba7d2e5a332f5d7026c36ca71c2544700fe0f32ff77be8013aee"
+    },
+    {
+      "profile": "dense",
+      "volumes": 25,
+      "fingerprint": "f01fe280451fede335e60dc14157f0b43b2642e188ed822bb41a76b5c0c4bb7b"
+    },
+    {
+      "profile": "dense",
+      "volumes": 50,
+      "fingerprint": "ca059584aafd3c8b5227a0d0790b71fd1e5dc497a3542452ac6d7c1ff9aa1a16"
+    },
+    {
+      "profile": "dense",
+      "volumes": 100,
+      "fingerprint": "5690cdd7bb89aa22c66222b741c22f4e9978cc9daa78512a97c8ba1bbf39e3f4"
+    },
+    {
+      "profile": "dense",
+      "volumes": 200,
+      "fingerprint": "0f2ee6716d1050145b925ba75d27a60eb899ef757a993af060f68de7241a09a1"
+    },
+    {
+      "profile": "distribution",
+      "volumes": 25,
+      "fingerprint": "f7a1890ff53415c646da0baa16ac6d8dc0260b37fc080f0110ca811ea8ece847"
+    },
+    {
+      "profile": "distribution",
+      "volumes": 50,
+      "fingerprint": "a03715cfac674135f07924058e912d306cd7ba8d441e91a0121a80a38ceda841"
+    },
+    {
+      "profile": "distribution",
+      "volumes": 100,
+      "fingerprint": "bb2dd7450282056cd7ba92a0cc7c6edff4d438e0a231053e3030468858c7637a"
+    },
+    {
+      "profile": "distribution",
+      "volumes": 200,
+      "fingerprint": "8202679d368635fad47acfd619975403405bd2ccd6f47c4e15770a21e7ee4f48"
+    },
+    {
+      "profile": "adversarial",
+      "volumes": 25,
+      "fingerprint": "ae3af2bd7b0334ef0067e5fb25c808e5411b5a02bc31cfc5b683ce5197379d2b"
+    },
+    {
+      "profile": "adversarial",
+      "volumes": 50,
+      "fingerprint": "4881567717afc89b125fb416e730a1f993cadcf5fa1ec3e8e8c4f128765665ab"
+    },
+    {
+      "profile": "adversarial",
+      "volumes": 100,
+      "fingerprint": "14dbe728c90a8e018a56bdc89101db56c7609128228dc52e4322f709f17fea94"
+    },
+    {
+      "profile": "heterogeneous",
+      "volumes": 200,
+      "fingerprint": "9cb3a47658e1e8079d3139ae3a11748a2cca3035fcca72a7041180d656092959"
+    },
+    {
+      "profile": "adversarial",
+      "volumes": 200,
+      "fingerprint": "8f46c5e2a3e0828a8b6ccf3bcc132f44647d0d70e6e9a2385907154fd3fd1887"
+    }
+  ],
+  "multi_cases": [
+    {
+      "profile": "dense",
+      "volumes": 100,
+      "trucks": 5,
+      "fingerprint": "461e07fcc209aa8c31dd56577565ef83d1571338eb6cd031b6ac5d8c8c39742e"
+    },
+    {
+      "profile": "distribution",
+      "volumes": 25,
+      "trucks": 2,
+      "fingerprint": "07f7dab2f2719942ef6e6b75411b7d5461205d43603be3d77eb100ab25530715"
+    },
+    {
+      "profile": "distribution",
+      "volumes": 50,
+      "trucks": 3,
+      "fingerprint": "9fe52ba8e7aac6ef2b4bf201d2fccefacab8308324fa5a4b47d50e674187ae84"
+    },
+    {
+      "profile": "distribution",
+      "volumes": 200,
+      "trucks": 10,
+      "fingerprint": "67204725c7b5a464e69b1e0893189e1dcb7e9bc9c45cd9da54a8cb716f10d44f"
+    },
+    {
+      "profile": "fleet",
+      "volumes": 25,
+      "trucks": 5,
+      "fingerprint": "c33a5fbadefe07c6dca8a7ac7f52fb2ab849bb0ea3572c3246db863a4fb54bf0"
+    },
+    {
+      "profile": "fleet",
+      "volumes": 50,
+      "trucks": 2,
+      "fingerprint": "947c6d66b15517f9e926c9e2666a7c4716c71f2036e33580360bdd23186f965b"
+    }
+  ]
+}
