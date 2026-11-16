@@ -535,7 +535,7 @@ def _validated_worker_args() -> argparse.Namespace:
     if values["profile"] not in PROFILES:
         raise ValueError("invalid worker profile")
     if not isinstance(values["backend_root"], str):
-        raise ValueError("invalid worker checkout")
+        raise TypeError("invalid worker checkout")
     values["backend_root"] = str(_resolve_backend_root(values["backend_root"]))
     if values["count"] > 200 and not values["experimental_limit"]:
         raise ValueError("oversized benchmark requires explicit experimental mode")
