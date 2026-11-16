@@ -361,6 +361,16 @@ class LoadPlanRepository:
         if load_plan.organization_id not in (None, self.organization_id):
             raise ValueError("Load plan belongs to a different organization.")
         load_plan.organization_id = self.organization_id
+        # Propagate the trusted repository context to every child before flush.
+        # Never rely on a legacy database default for non-legacy plans.
+        for link in load_plan.orders:
+            if link.organization_id not in (None, self.organization_id):
+                raise ValueError("Plan order belongs to a different organization.")
+            link.organization_id = self.organization_id
+        for item in load_plan.items:
+            if item.organization_id not in (None, self.organization_id):
+                raise ValueError("Plan item belongs to a different organization.")
+            item.organization_id = self.organization_id
         items = list(load_plan.items)
         load_plan.items = []
         self.db.add(load_plan)

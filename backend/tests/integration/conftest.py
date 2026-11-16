@@ -282,8 +282,57 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
             )
             """
         )
+    _run_alembic(test_url, "upgrade", "20261115_0043")
+    # Exercise G05-B against links and rejected volumes created by the old schema.
+    with engine.begin() as connection:
+        connection.exec_driver_sql(
+            """
+            INSERT INTO load_plan_orders(load_plan_id, order_id)
+            VALUES (
+                '00000000-0000-4000-8000-000000000798',
+                '00000000-0000-4000-8000-000000000796'
+            )
+            """
+        )
+        connection.exec_driver_sql(
+            """
+            INSERT INTO load_plan_items(
+                id, load_plan_id, order_id, order_item_id, product_id,
+                volume_index, order_item_snapshot_quantity,
+                order_item_snapshot_delivery_sequence, product_snapshot_code,
+                product_snapshot_name, product_snapshot_width_cm,
+                product_snapshot_height_cm, product_snapshot_length_cm,
+                product_snapshot_weight_kg, product_snapshot_fragile,
+                product_snapshot_stackable, product_snapshot_rotation_allowed,
+                placed, rejection_reason
+            ) VALUES (
+                '00000000-0000-4000-8000-000000000799',
+                '00000000-0000-4000-8000-000000000798',
+                '00000000-0000-4000-8000-000000000796',
+                '00000000-0000-4000-8000-000000000797',
+                '00000000-0000-4000-8000-000000000788',
+                1, 3, 1, 'G02-LEGACY-SKU', 'Produto legado',
+                10, 20, 30, 3.250, false, true, true,
+                false, 'NO_VALID_POSITION'
+            )
+            """
+        )
     _run_alembic(test_url, "upgrade", "head")
     with engine.connect() as connection:
+        assert (
+            connection.exec_driver_sql(
+                "SELECT organization_id::text FROM load_plan_orders "
+                "WHERE load_plan_id='00000000-0000-4000-8000-000000000798'"
+            ).scalar_one()
+            == "00000000-0000-4000-8000-000000000301"
+        )
+        assert (
+            connection.exec_driver_sql(
+                "SELECT organization_id::text FROM load_plan_items "
+                "WHERE id='00000000-0000-4000-8000-000000000799'"
+            ).scalar_one()
+            == "00000000-0000-4000-8000-000000000301"
+        )
         plan_owner = connection.exec_driver_sql(
             "SELECT organization_id::text FROM load_plans "
             "WHERE id='00000000-0000-4000-8000-000000000798'"
@@ -382,6 +431,13 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
             "WHERE id='00000000-0000-4000-8000-000000000791'"
         )
         connection.exec_driver_sql(
+            "DELETE FROM load_plan_items WHERE id='00000000-0000-4000-8000-000000000799'"
+        )
+        connection.exec_driver_sql(
+            "DELETE FROM load_plan_orders "
+            "WHERE load_plan_id='00000000-0000-4000-8000-000000000798'"
+        )
+        connection.exec_driver_sql(
             "DELETE FROM load_plans WHERE id='00000000-0000-4000-8000-000000000798'"
         )
         connection.exec_driver_sql(
@@ -423,7 +479,7 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
         head_revision = connection.exec_driver_sql(
             "SELECT version_num FROM alembic_version"
         ).scalar_one()
-        assert head_revision == "20261115_0043"
+        assert head_revision == "20261115_0044"
 
     # Descend through OC94 and trusted-device revisions explicitly; -1 would
     # only reach 0030 now and would not exercise the trusted-device rollback.

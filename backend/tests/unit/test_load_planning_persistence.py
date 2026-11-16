@@ -187,6 +187,9 @@ def test_provenance_foreign_keys_are_restrictive() -> None:
         "fk_load_plan_items__orders",
         "fk_load_plan_items__order_items",
         "fk_load_plan_items__order_item_provenance",
+        "fk_load_plan_items__organization_product",
+        "fk_load_plan_items__organization_plan_order",
+        "fk_load_plan_items__organization_order_item",
         "fk_load_plan_items__products",
     }
     foreign_keys = [
