@@ -15,6 +15,20 @@ Núcleo do sistema: expansão de volumes, rotações, pontos candidatos, colisõ
 
 Crie somente os arquivos necessários para a ocorrência atual.
 
+## Escalabilidade — Issue #430
+
+`CONFIRMADO`: otimizações internas de colisão e profundidade preservam
+`heuristic-v1`, identidades físicas e revalidação final. Não há alteração de
+schemas, preflight, transações, idempotência, persistência, disponibilidade,
+aprovação ou limite público de 200 volumes. Comparação independente e seleção
+multi-caminhão continuam operações distintas. A seleção reutiliza o cache por
+capacidade/identidades já existente, restrito à execução.
+
+`RISCO IDENTIFICADO`: medir a função pura com 500 volumes em processo isolado
+não habilita a mesma entrada por HTTP. Orçamentos de produção, concorrência,
+persistência e renderização precisam ser demonstrados antes de ampliar o
+contrato. Consulte [as evidências](../../../../docs/evidencias/issue-430/README.md).
+
 ## Estado incremental
 
 - `CONFIRMADO`: OC11 calcula e valida a capacidade do caminhão no núcleo puro.
