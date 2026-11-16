@@ -256,6 +256,20 @@ def _profile_rows(profiler, counts) -> list[dict]:
     return profile_rows
 
 
+def _collect_samples(args, calculate):
+    samples = []
+    fingerprints = []
+    result = None
+    for _ in range(1 if args.instrument or args.allocations else args.iterations):
+        started = time.perf_counter()
+        result = calculate()
+        samples.append(time.perf_counter() - started)
+        if not args.instrument and not args.allocations:
+            fingerprints.append(fingerprint(result))
+    assert not fingerprints or len(set(fingerprints)) == 1
+    return result, samples
+
+
 def _measure_workload(args, calculate, loading_sequence, multi_truck):
     import resource
 
@@ -270,18 +284,9 @@ def _measure_workload(args, calculate, loading_sequence, multi_truck):
     else:
         for _ in range(args.warmup):
             calculate()
-    samples = []
-    fingerprints = []
-    result = None
-    for _ in range(1 if args.instrument or args.allocations else args.iterations):
-        started = time.perf_counter()
-        result = calculate()
-        samples.append(time.perf_counter() - started)
-        if not args.instrument and not args.allocations:
-            fingerprints.append(fingerprint(result))
+    result, samples = _collect_samples(args, calculate)
     if profiler:
         profiler.disable()
-    assert not fingerprints or len(set(fingerprints)) == 1
     rss_kib = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
     allocation_peak = None
     if args.allocations:
