@@ -16,6 +16,7 @@ import { TruckCabMesh } from "./TruckCabMesh";
 import { cabFrontWheels } from "./truckCabModel";
 import { truckShell } from "./truckShell";
 import { TruckShellMesh } from "./TruckShellMesh";
+import { StudioEnvironment } from "./StudioEnvironment";
 
 const SHELL_SINK = 0.012;
 const ENTRY_SECONDS = 0.55;
@@ -135,6 +136,7 @@ function SceneContent({ truck, items, selectedId, onSelect, visibleIds, showTruc
 
   return <>
     <Backdrop bounds={bounds} realistic={realistic} />
+    {realistic ? <StudioEnvironment /> : null}
     <hemisphereLight args={["#e4edf5", "#5a5046", realistic ? 1.15 : 1.4]} />
     <directionalLight position={[reach * 0.8, reach * 1.3, reach * 0.7]} intensity={realistic ? 1.8 : 1.1}
       castShadow={realistic} shadow-mapSize={items.length > 300 ? [1024, 1024] : [2048, 2048]}

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { MeshPhysicalMaterial, MeshStandardMaterial } from "three";
 import type { Group, Mesh, Object3D } from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
@@ -17,13 +18,35 @@ let cache: Promise<Group> | null = null;
 
 function carregar(): Promise<Group> {
   cache ??= new GLTFLoader().loadAsync(CAB_MODEL_URL).then((gltf) => {
+    const paints = new Map<MeshStandardMaterial, MeshPhysicalMaterial>();
     gltf.scene.traverse((objeto: Object3D) => {
       const malha = objeto as Mesh;
       if (malha.isMesh) {
+        const materials = Array.isArray(malha.material) ? malha.material : [malha.material];
+        const refined = materials.map((material) => {
+          if (material instanceof MeshStandardMaterial && material.name === "col_kaca") {
+            material.color.set("#203345");
+            material.metalness = 0.65;
+            material.roughness = 0.06;
+          }
+          if (!(material instanceof MeshStandardMaterial) || material.name !== "col_body") return material;
+          let paint = paints.get(material);
+          if (!paint) {
+            paint = new MeshPhysicalMaterial();
+            MeshStandardMaterial.prototype.copy.call(paint, material);
+            paint.clearcoat = 1;
+            paint.clearcoatRoughness = 0.18;
+            paint.roughness = 0.28;
+            paints.set(material, paint);
+          }
+          return paint;
+        });
+        malha.material = Array.isArray(malha.material) ? refined : refined[0];
         malha.castShadow = true;
         malha.receiveShadow = true;
       }
     });
+    paints.forEach((_, original) => original.dispose());
     return gltf.scene;
   });
 
