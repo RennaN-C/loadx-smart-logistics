@@ -15,10 +15,12 @@ from sqlalchemy import (
     UniqueConstraint,
     Uuid,
     func,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base
+from app.modules.organizations.models import LEGACY_ORGANIZATION_ID
 
 LOAD_PLAN_STATUS_VALUES = ("CALCULATED", "APPROVED", "REJECTED", "CANCELED")
 ROTATION_CODE_VALUES = ("XYZ", "XZY", "YXZ", "YZX", "ZXY", "ZYX")
@@ -36,6 +38,21 @@ REJECTION_REASON_VALUES = (
 class LoadPlan(Base):
     __tablename__ = "load_plans"
     __table_args__ = (
+        ForeignKeyConstraint(
+            ["organization_id", "truck_id"],
+            ["trucks.organization_id", "trucks.id"],
+            name="fk_load_plans__organization_truck",
+            ondelete="RESTRICT",
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "recalculated_from_id"],
+            ["load_plans.organization_id", "load_plans.id"],
+            name="fk_load_plans__organization_recalculated_from",
+            ondelete="RESTRICT",
+        ),
+        UniqueConstraint(
+            "organization_id", "id", name="uq_load_plans__organization_id"
+        ),
         CheckConstraint(
             "status IN ('CALCULATED', 'APPROVED', 'REJECTED', 'CANCELED')",
             name="status_allowed",
@@ -108,12 +125,14 @@ class LoadPlan(Base):
     )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    truck_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("trucks.id", ondelete="RESTRICT"), nullable=False, index=True
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("organizations.id", ondelete="RESTRICT"),
+        nullable=False,
+        default=lambda: LEGACY_ORGANIZATION_ID,
+        server_default=text("'00000000-0000-4000-8000-000000000301'"),
     )
-    recalculated_from_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("load_plans.id", ondelete="RESTRICT"), index=True
-    )
+    truck_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False, index=True)
+    recalculated_from_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, index=True)
     status: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
 
     truck_snapshot_plate: Mapped[str] = mapped_column(String(16), nullable=False)

@@ -260,8 +260,35 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
             )
             """
         )
+    _run_alembic(test_url, "upgrade", "20261115_0042")
+    # Exercise G05-A against a plan created before its organization column exists.
+    with engine.begin() as connection:
+        connection.exec_driver_sql(
+            """
+            INSERT INTO load_plans(
+                id, truck_id, status, truck_snapshot_plate,
+                truck_snapshot_model, truck_snapshot_internal_width_cm,
+                truck_snapshot_internal_height_cm,
+                truck_snapshot_internal_length_cm,
+                truck_snapshot_max_weight_kg, internal_volume_cm3,
+                used_volume_cm3, occupancy_percent, total_weight_kg,
+                loaded_count, unloaded_count, algorithm_version
+            ) VALUES (
+                '00000000-0000-4000-8000-000000000798',
+                '00000000-0000-4000-8000-000000000790',
+                'REJECTED', 'G03T123', 'Frota legada',
+                100, 100, 100, 100, 1000000, 0, 0, 0,
+                0, 1, 'heuristic-v1'
+            )
+            """
+        )
     _run_alembic(test_url, "upgrade", "head")
     with engine.connect() as connection:
+        plan_owner = connection.exec_driver_sql(
+            "SELECT organization_id::text FROM load_plans "
+            "WHERE id='00000000-0000-4000-8000-000000000798'"
+        ).scalar_one()
+        assert plan_owner == "00000000-0000-4000-8000-000000000301"
         for table, row_id in (
             ("orders", "00000000-0000-4000-8000-000000000796"),
             ("order_items", "00000000-0000-4000-8000-000000000797"),
@@ -355,6 +382,9 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
             "WHERE id='00000000-0000-4000-8000-000000000791'"
         )
         connection.exec_driver_sql(
+            "DELETE FROM load_plans WHERE id='00000000-0000-4000-8000-000000000798'"
+        )
+        connection.exec_driver_sql(
             "DELETE FROM trucks WHERE id='00000000-0000-4000-8000-000000000790'"
         )
         connection.exec_driver_sql(
@@ -393,7 +423,7 @@ def _prepare_migrated_database(engine: Engine, test_url: URL) -> None:
         head_revision = connection.exec_driver_sql(
             "SELECT version_num FROM alembic_version"
         ).scalar_one()
-        assert head_revision == "20261115_0042"
+        assert head_revision == "20261115_0043"
 
     # Descend through OC94 and trusted-device revisions explicitly; -1 would
     # only reach 0030 now and would not exercise the trusted-device rollback.
