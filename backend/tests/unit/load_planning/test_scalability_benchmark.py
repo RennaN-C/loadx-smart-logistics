@@ -1,6 +1,7 @@
 """Runner failure paths stay bounded and cannot silently count as success."""
 
 import argparse
+from io import StringIO
 import json
 import sys
 from pathlib import Path
@@ -113,6 +114,40 @@ def test_worker_receives_configuration_only_as_json_stdin(monkeypatch):
     ]
     payload = json.loads(process.communicate.call_args.kwargs["input"])
     assert payload["backend_root"] == "--upload-pack=unsafe"
+
+
+@pytest.mark.parametrize(
+    "field,bad_value",
+    [
+        ("count", 1001),
+        ("memory_mib", -1),
+        ("timeout", float("inf")),
+        ("operation", "--unsafe"),
+        ("experimental_limit", "true"),
+        ("backend_root", 123),
+    ],
+)
+def test_worker_rejects_untrusted_json_payload(tmp_path, monkeypatch, field, bad_value):
+    backend = tmp_path / "backend"
+    (backend / "app/modules/load_planning/optimizer").mkdir(parents=True)
+    payload = {
+        "backend_root": str(backend),
+        "operation": "engine",
+        "profile": "dense",
+        "count": 1,
+        "trucks": 1,
+        "iterations": 1,
+        "warmup": 0,
+        "memory_mib": 768,
+        "timeout": 30,
+        "instrument": False,
+        "allocations": False,
+        "experimental_limit": False,
+    }
+    payload[field] = bad_value
+    monkeypatch.setattr(runner.sys, "stdin", StringIO(json.dumps(payload)))
+    with pytest.raises(ValueError):
+        runner._validated_worker_args()
 
 
 @pytest.mark.skipif(sys.platform != "linux", reason="worker uses Linux resource limits")
