@@ -503,11 +503,49 @@ def _parse_args() -> argparse.Namespace:
     return args
 
 
+def _validated_worker_args() -> argparse.Namespace:
+    # Treat stdin as untrusted even when spawned by the benchmark parent.
+    from benchmarks.scalability_cases import PROFILES
+
+    values = json.load(sys.stdin)
+    integers = {
+        "count": (1, 1000),
+        "trucks": (1, 10),
+        "iterations": (1, 100),
+        "warmup": (0, 20),
+        "memory_mib": (64, 16384),
+    }
+    flags = {"instrument", "allocations", "experimental_limit"}
+    strings = {"backend_root", "operation", "profile"}
+    required = set(integers) | flags | strings | {"timeout"}
+    if not isinstance(values, dict) or set(values) != required:
+        raise ValueError("invalid benchmark worker configuration")
+    for field, (minimum, maximum) in integers.items():
+        value = values[field]
+        if type(value) is not int or not minimum <= value <= maximum:
+            raise ValueError(f"invalid worker limit: {field}")
+    if type(values["timeout"]) not in (int, float) or not (
+        0 < values["timeout"] <= 300
+    ):
+        raise ValueError("invalid worker timeout")
+    if any(type(values[field]) is not bool for field in flags):
+        raise ValueError("invalid worker flags")
+    if values["operation"] not in ("engine", "multi", "compare"):
+        raise ValueError("invalid worker operation")
+    if values["profile"] not in PROFILES:
+        raise ValueError("invalid worker profile")
+    if not isinstance(values["backend_root"], str):
+        raise ValueError("invalid worker checkout")
+    values["backend_root"] = str(_resolve_backend_root(values["backend_root"]))
+    if values["count"] > 200 and not values["experimental_limit"]:
+        raise ValueError("oversized benchmark requires explicit experimental mode")
+    return argparse.Namespace(**values)
+
+
 def _run_worker_entry(args) -> None:
     import resource
 
-    # Internal child mode accepts a JSON record, not untrusted CLI options.
-    args = argparse.Namespace(**json.load(sys.stdin))
+    args = _validated_worker_args()
     budget = args.memory_mib * 1024 * 1024
     resource.setrlimit(resource.RLIMIT_AS, (budget, budget))
     cpu_seconds = math.ceil(args.timeout)
