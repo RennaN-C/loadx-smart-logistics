@@ -9,6 +9,8 @@ import json
 import math
 import os
 import platform
+import re
+import stat
 import statistics
 import subprocess
 import sys
@@ -667,7 +669,57 @@ def _iter_cases(args):
             yield operation, profile, count, trucks
 
 
+_OUTPUT_DIRECTORY = Path("/tmp/loadx-benchmarks")
+_OUTPUT_FILE_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,95}\\.json")
+
+
+def _safe_output_name(requested: Path) -> str:
+    # Only simple JSON names in the fixed private benchmark directory are accepted.
+    if requested.parent not in (Path("."), _OUTPUT_DIRECTORY):
+        raise ValueError("benchmark output must be under /tmp/loadx-benchmarks")
+    filename = requested.name
+    if not _OUTPUT_FILE_PATTERN.fullmatch(filename):
+        raise ValueError("invalid benchmark output filename")
+    return filename
+
+
+def _private_output_directory() -> Path:
+    directory = _OUTPUT_DIRECTORY
+    directory.mkdir(mode=0o700, exist_ok=True)
+    info = directory.lstat()
+    if not stat.S_ISDIR(info.st_mode):
+        raise ValueError("benchmark output directory must not be a symlink")
+    if info.st_uid != os.getuid() or stat.S_IMODE(info.st_mode) != 0o700:
+        raise PermissionError("benchmark output directory must be private")
+    return directory
+
+
+def _write_benchmark_json(filename: str, payload: dict) -> None:
+    # File descriptors and O_NOFOLLOW prevent path traversal and symlink overwrite.
+    directory = _private_output_directory()
+    directory_fd = os.open(
+        directory, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+    )
+    try:
+        flags = os.O_WRONLY | os.O_CREAT | os.O_NOFOLLOW
+        file_fd = os.open(filename, flags, mode=0o600, dir_fd=directory_fd)
+        with os.fdopen(file_fd, "w", encoding="utf-8") as handle:
+            info = os.fstat(handle.fileno())
+            if (
+                not stat.S_ISREG(info.st_mode)
+                or info.st_uid != os.getuid()
+                or info.st_nlink != 1
+            ):
+                raise PermissionError("unsafe benchmark output file")
+            handle.truncate(0)
+            json.dump(payload, handle, indent=2)
+            handle.write("\\n")
+    finally:
+        os.close(directory_fd)
+
+
 def _run_matrix(args, payload) -> None:
+    output_name = _safe_output_name(args.output)
     for operation, profile, count, trucks in _iter_cases(args):
         interrupted = False
         try:
@@ -678,7 +730,7 @@ def _run_matrix(args, payload) -> None:
             row = error.row
             interrupted = True
         payload["cases"].append(row)
-        args.output.write_text(json.dumps(payload, indent=2) + "\n")
+        _write_benchmark_json(output_name, payload)
         if interrupted:
             raise SystemExit(130)
         print(
@@ -697,7 +749,6 @@ def main() -> None:
     if args.worker:
         _run_worker_entry(args)
         return
-    args.output.parent.mkdir(parents=True, exist_ok=True)
     _run_matrix(args, _benchmark_metadata(args))
 
 
