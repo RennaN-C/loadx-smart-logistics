@@ -1,9 +1,9 @@
 """Runner failure paths stay bounded and cannot silently count as success."""
 
 import argparse
-from io import StringIO
 import json
 import sys
+from io import StringIO
 from pathlib import Path
 from unittest.mock import Mock
 
@@ -146,7 +146,8 @@ def test_worker_rejects_untrusted_json_payload(tmp_path, monkeypatch, field, bad
     }
     payload[field] = bad_value
     monkeypatch.setattr(runner.sys, "stdin", StringIO(json.dumps(payload)))
-    with pytest.raises(ValueError):
+    expected = TypeError if field == "backend_root" else ValueError
+    with pytest.raises(expected):
         runner._validated_worker_args()
 
 
