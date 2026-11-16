@@ -153,7 +153,12 @@ def test_worker_rejects_untrusted_json_payload(tmp_path, monkeypatch, field, bad
 
 @pytest.mark.parametrize(
     "filename",
-    ["../../etc/passwd.json", "/tmp/unsafe.json", "subdir/result.json", "bad;name.json"],
+    [
+        "../../etc/passwd.json",
+        "/tmp/unsafe.json",
+        "subdir/result.json",
+        "bad;name.json",
+    ],
 )
 def test_output_rejects_untrusted_paths(filename):
     with pytest.raises(ValueError):
