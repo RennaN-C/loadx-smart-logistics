@@ -18,8 +18,9 @@ from app.modules.load_planning.distribution_models import OptimizationRequest
 
 
 class OptimizationRepository:
-    def __init__(self, db: Session) -> None:
+    def __init__(self, db: Session, organization_id: uuid.UUID) -> None:
         self.db = db
+        self.organization_id = organization_id
 
     @contextmanager
     def session_lock(self, actor: uuid.UUID, key: uuid.UUID) -> Iterator[bool]:
@@ -30,7 +31,9 @@ class OptimizationRepository:
         Explicit unlock runs even after failure; invalidation closes a broken
         connection to prevent leaked session locks in the connection pool.
         """
-        digest = hashlib.sha256(b"optimize:v1:" + actor.bytes + key.bytes).digest()
+        digest = hashlib.sha256(
+            b"optimize:v2:" + self.organization_id.bytes + actor.bytes + key.bytes
+        ).digest()
         lock_id = int.from_bytes(digest[:8], byteorder="big", signed=True)
         bind = self.db.get_bind()
         engine = bind.engine if isinstance(bind, Connection) else bind
@@ -52,7 +55,9 @@ class OptimizationRepository:
                         raise
 
     def get(self, actor: uuid.UUID, key: uuid.UUID) -> OptimizationRequest | None:
-        return self.db.get(OptimizationRequest, (actor, key))
+        return self.db.get(OptimizationRequest, (self.organization_id, actor, key))
 
     def add(self, request: OptimizationRequest) -> None:
+        if request.organization_id != self.organization_id:
+            raise ValueError("Optimization request belongs to a different organization")
         self.db.add(request)

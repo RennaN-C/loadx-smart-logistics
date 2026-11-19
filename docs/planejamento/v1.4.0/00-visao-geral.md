@@ -455,12 +455,82 @@ Epic: [#439 — Plataforma comercial e licenciamento do LoadX](https://github.co
 A Issue [#430](https://github.com/RennaN-C/loadx-smart-logistics/issues/430) permanece independente e não faz parte deste épico.
 
 
-## Situação da implementação multiempresa
+## Situação da implementação — auditoria de 19/11/2026
 
-A [fase 1 — Issue #448](https://github.com/RennaN-C/loadx-smart-logistics/issues/448)
-está sendo implementada em branch própria com PR para `desenvolvimento`.
-A migration 0036 introduz o núcleo organizacional e contexto de sessão, mas não
-ativa multiempresa. O próximo gate é adicionar `organization_id` aos recursos
-operacionais, corrigir relações e consultas e testar isolamento negativo em
-PostgreSQL 16. RLS somente será habilitado depois de validar contexto por
-transação, pool de conexões e workers.
+`CONFIRMADO`: a base auditada de `desenvolvimento` é
+`2bef6071bf76053e2358f2f182097db59513b47c`. A fundação foi integrada pela
+PR #449; G01 (#463), G02 (#471), G03-A (#467), G03-B1 (#470), G03-B2 (#479),
+G04 (#475), G05-A (#478) e G05-B (#481) já foram integrados. O head Alembic
+dessa base é `20261115_0044`. Esses grupos não devem ser reimplementados.
+
+`CONFIRMADO`: a [CI pós-merge da base](https://github.com/RennaN-C/loadx-smart-logistics/actions/runs/43907737842)
+terminou com sucesso. Essa execução não comprova, por si só, o Quality Gate
+do SonarCloud, o deploy ou a homologação multiempresa. Cada PR seguinte precisa
+validar seus próprios checks no SHA final.
+
+Os estados abaixo distinguem a funcionalidade existente da evolução solicitada.
+**CONCLUÍDO** exige implementação, testes e integração; trabalho local permanece
+**EM ANDAMENTO**. P0 corresponde à fronteira de isolamento; P1 às evoluções
+dependentes e à homologação. As letras dos agentes identificam responsabilidades
+da missão, sem indicar que todas as frentes estejam executando simultaneamente.
+
+| Funcionalidade | Estado atual | Evidência no código ou histórico | Trabalho restante | Dependências | Prioridade | Agente responsável |
+|---|---|---|---|---|---|---|
+| Fundação e G01–G05-B | `CONFIRMADO`: integrados na base auditada | PRs #449, #463, #471, #467, #470, #479, #475, #478 e #481; migrations até `20261115_0044` | Preservar comportamento e repetir regressões nas próximas etapas; não confundir isolamento parcial com liberação multiempresa | Gates de cada nova PR | P0 | A — backend/dados |
+| G05-C: idempotência do otimizador | **EM ANDAMENTO**, implementação em validação | `backend/app/modules/load_planning/optimization_repository.py`, `distribution_models.py`; Issues #485 e #476 | Validar a migration e a recuperação isolada no SHA da PR; integrar após os gates | G05-B; FK composta da distribuição após G06 | P0 | A — backend/dados, coordenador |
+| G06: distribuições e carregamentos | **PENDENTE** de isolamento; fluxo multi-caminhão existente | `load_planning/distribution_models.py`, `distribution_repository.py`; `loading/models.py`, `repository.py` | Ownership das seis tabelas, backfill, FKs compostas, filtros e validação de volumes/partes no mesmo tenant | G05-C; cadastros, pedidos e planos isolados | P0 | A — backend/dados |
+| G07: viagens, entregas e cancelamentos | **PENDENTE** de isolamento; transições operacionais existentes | `deliveries/models.py`, `repository.py`, `interruption_service.py`, `cancellation_service.py` | Organização nas consultas, relações e idempotência; preservar transações e histórico de cancelamento/interrupção | G06 | P0 | A — backend/dados; B — segurança |
+| G08: histórico, ocorrências e evidências | **PENDENTE** de isolamento | `status_history/models.py`, `repository.py`; `occurrences/models.py` | Validar referências polimórficas, autoria, evidências, storage e downloads por organização | G07 | P0 | A — backend/dados; B — segurança |
+| G09: anexos e auditoria | **PENDENTE** de isolamento | `attachments/models.py`; `status_history/models.py` (`audit_events`) | FKs e downloads contextuais; separar auditoria PLATFORM/ORGANIZATION e preservar origem no backfill aprovado | G07–G08; matriz de ownership | P0 | A — backend/dados; G — qualidade |
+| G10: notificações, preferências e outbox | **PENDENTE** de isolamento | `notifications/models.py`, `outbox_models.py` | Preferências SECURITY globais e operacionais por membership; tenant em destinatários, deduplicação, workers e retries | G07–G09 | P0 | A — backend/dados; G — qualidade |
+| G11: comandos externos e importações | **PENDENTE** de isolamento | `external_commands/models.py`; `registration_imports/models.py` | Chaves por organização, contexto nos processamentos e validação de cada cadastro importado | Cadastros isolados; G10 | P0 | A — backend/dados; G — qualidade |
+| Login, troca de empresa e RBAC contextual | **PENDENTE** do fluxo completo; fundação organizacional existe | `organizations/models.py`; `auth/dependencies.py`; verificações de `User.role` nos consumidores | Seletor, substituição da sessão, permissões por membership, último administrador e limpeza de estado/cache | G01–G11 e testes negativos; licença antes da liberação comercial | P1 | B — identidade/segurança; F — frontend |
+| Onboarding, catálogo, assinaturas e portais SaaS | **PENDENTE**; núcleo comercial ainda não implementado | Models da fundação em `organizations`; contratos aprovados nas ADR-050/051 e Issues #442–#446 | Implementar os domínios comerciais, bootstrap seguro e portais separados; backend deve validar RBAC e entitlement independentemente | Isolamento; contratos das Issues #439–#447 | P1 | C — plataforma SaaS; F — frontend |
+| Gateway de pagamentos | **BLOQUEADO** para adapter/homologação por escolha comercial; contratos e simulações podem avançar | ADR-051; Issue #445 | Interface desacoplada, persistência e testes simulados; depois adapter e Sandbox do provedor escolhido | Núcleo comercial; decisão entre Asaas e Mercado Pago | P1 | C — plataforma SaaS; proprietário decide provedor |
+| Loxi | `CONFIRMADO`: chat e ferramentas de leitura implementados; **PENDENTE** de evolução multiempresa e escrita confirmável | `assistant/service.py`, `capabilities.py`, `context.py`; `load_planning/assistant_diagnostics.py` | Revalidar consultas, diagnósticos e permissões por organização; adicionar ações autorizadas, prévia, confirmação, idempotência e auditoria | G01–G11; RBAC e entitlements | P1 | D — Loxi; B — segurança |
+| Otimizador e escalabilidade | `CONFIRMADO`: engine determinística e limite público de 200 volumes preservados | `load_planning/optimizer/`; `backend/benchmarks/benchmark_scalability.py`; evidências da Issue #430 | Medir 500/1.000 em isolamento e concorrência; definir orçamento efetivo da API, cancelamento e segurança antes de ampliar limite | Capacidade medida; recuperação idempotente; decisão dos gates | P1 | E — algoritmo; G — qualidade |
+| Planejamento e visualizador 3D | `CONFIRMADO`: seleção cena/lista, câmeras, materiais e cleanup existentes | `frontend/src/features/load-visualization/components/LoadScene.tsx`, `LoadViewer.tsx`; `hooks/useTruckCabModel.ts` | Preservar PRs #461/#483; verificar WebGL, cenas grandes, acessibilidade e integração entre planos/caminhões | Payload isolado; testes de navegador | P1 | E — 3D; F — UX; G — qualidade |
+| Status, experiência completa e homologação | **PENDENTE** de auditoria ponta a ponta; fluxos e projeções existentes | `deliveries/cancellation_service.py`; `load_planning/distribution_service.py`; `frontend/src/features/load-planning/components/PlanHistory.tsx` | Reproduzir divergências antes de alterar regras; testar cancelamentos, filtros, responsividade, duas empresas, segurança e recuperação | Ondas anteriores; CI/Sonar e Sandbox | P1 | F — UX; G — qualidade |
+
+### Próxima migration e gate de G05-C
+
+`CONFIRMADO`: a implementação local de G05-C reserva `20261119_0045`, com
+`down_revision = 20261115_0044`. Esse identificador não descreve migration
+publicada ou aplicada remotamente; deve ser reconciliado com a base atualizada
+antes de integrar caso outra migration avance em paralelo.
+
+`CONFIRMADO`: a Issue #476 identifica que `optimization_requests.distribution_id`
+depende de `load_distributions`, pertencente a G06. A mudança segue expansão,
+chave/consultas/locks contextuais e, após G06, FK composta definitiva. Não apagar
+resultados históricos nem afirmar isolamento completo pela presença da coluna.
+O aceite local exige PostgreSQL 16 com backfill, contagens, replay A/B com mesmo
+ator/chave, UUID conhecido, concorrência, rollback e downgrade seguro, além de
+Ruff e regressões de recuperação. A conclusão depende dos resultados executados,
+da revisão e dos checks da PR no SHA final.
+
+`RISCO IDENTIFICADO`: após aplicar `0045`, a versão anterior da API não consegue
+gravar solicitações sem `organization_id`. Os advisory locks também usam chaves
+diferentes nas duas versões. A implantação exige coordenar o término das
+otimizações em curso e a troca da API com a aplicação da migration. Confirmar
+janela, backup restaurável e reconciliação antes de autorizar merge/auto-deploy.
+
+`CONFIRMADO`: G06 depende da integridade adiada de distribuição (`0015`), da
+proteção de planos em operação e da reconciliação após cancelamentos (`0028` e
+`0034`). A preparação de G06 precisa preservar esses triggers e identificar o
+tenant do checklist pelo plano da sessão e do item. Além dos repositórios donos,
+revisar referências em frota, agenda, entregas e relatórios do Loxi. A FK composta
+de recuperação entra quando `load_distributions` tiver ownership comprovado.
+
+`RISCO IDENTIFICADO`: na base auditada, diagnósticos assinados do Loxi estão
+vinculados ao ator e ao tempo, sem organização; a identidade usada para limpar
+a conversa no frontend contém usuário/papel/permissões, sem organização.
+Esses caminhos precisam de vínculo contextual e testes antes da troca de empresa.
+Os benchmarks existentes também não comprovam orçamento de concorrência HTTP
+nem autorizam elevar o limite público de volumes.
+
+`DECISÃO NECESSÁRIA`: escolher o gateway após avaliação comercial e Sandbox.
+Até lá, avançar contratos e simulações independentes do provedor. Segunda
+organização operacional, migrations remotas, merge com impacto no auto-deploy,
+release comercial e cobranças reais continuam sujeitos aos gates e às
+autorizações explícitas aplicáveis. RLS permanece defesa adicional a avaliar,
+sem substituir filtros e integridade contextual na aplicação.

@@ -12,6 +12,13 @@ operacional de múltiplas partes depende da OC90; uma só parte usa o fluxo atua
 
 ## OC88 — otimização automática multi-caminhão
 
+`CONFIRMADO` (G05-C / #476): idempotência e recuperação são contextualizadas pela
+organização autenticada, além do ator e da chave. O cliente não escolhe o escopo
+por body, query ou header. Os contratos HTTP existentes, códigos de conflito,
+replay do estado atual e limite público de 200 volumes permanecem vigentes.
+A segunda organização operacional continua bloqueada até o isolamento integral;
+a FK composta para o resultado de distribuição será concluída em G06.
+
 `CONFIRMADO`: `POST /api/v1/load-distributions/optimize` é operação protegida
 para `ADMIN` e `LOGISTICS_MANAGER`; `CHECKER` e `DRIVER` não podem criar
 propostas automáticas. O endpoint recebe

@@ -7,6 +7,8 @@ from sqlalchemy.orm import Session
 
 from app.core.responses import error_response, openapi_error_responses
 from app.database.session import get_db
+from app.modules.auth.dependencies import get_current_session
+from app.modules.auth.sessions import ResolvedAuthSession
 from app.modules.load_planning.assistant_diagnostics import issue_capacity_diagnostic
 from app.modules.load_planning.distribution_schemas import (
     DistributionAction,
@@ -57,8 +59,9 @@ ERRORS = (
 
 def get_distribution_service(
     db: Annotated[Session, Depends(get_db)],
+    session: Annotated[ResolvedAuthSession, Depends(get_current_session)],
 ) -> LoadDistributionService:
-    return LoadDistributionService(db)
+    return LoadDistributionService(db, session.auth_session.active_organization_id)
 
 
 Service = Annotated[LoadDistributionService, Depends(get_distribution_service)]
