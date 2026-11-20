@@ -35,7 +35,8 @@ def test_alembic_has_current_revision_head() -> None:
     config = Config(str(BACKEND_ROOT / "alembic.ini"))
     script = ScriptDirectory.from_config(config)
 
-    assert script.get_heads() == ["20261115_0044"]
+    assert script.get_heads() == ["20261119_0045"]
+    assert script.get_revision("20261119_0045").down_revision == "20261115_0044"
     assert script.get_revision("20261115_0044").down_revision == "20261115_0043"
     assert script.get_revision("20261115_0043").down_revision == "20261115_0042"
     assert script.get_revision("20261115_0042").down_revision == "20261115_0041"
@@ -137,3 +138,28 @@ def test_oc98_revision_chains_real_head():
 def test_trusted_devices_revision_extends_oc98():
     script = ScriptDirectory.from_config(Config("alembic.ini"))
     assert script.get_revision("20261021_0030").down_revision == "20261021_0029"
+
+
+def test_g05c_offline_downgrade_preserves_guard_before_dropping_context() -> None:
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "alembic",
+            "downgrade",
+            "20261119_0045:20261115_0044",
+            "--sql",
+        ],
+        cwd=BACKEND_ROOT,
+        capture_output=True,
+        check=True,
+        text=True,
+    )
+    assert "GROUP BY user_id, request_key HAVING count(*) > 1" in result.stdout
+    guard = result.stdout.index("G05-C downgrade refused")
+    drop = result.stdout.index(
+        "DROP CONSTRAINT fk_optimization_requests__organization_user"
+    )
+    assert guard < drop
+    assert "PRIMARY KEY (user_id, request_key)" in result.stdout
+    assert "DROP COLUMN organization_id" in result.stdout

@@ -53,6 +53,23 @@ Nenhuma execução automática ao montar tela nem polling contínuo.
 
 ## Limites e validação
 
+### Evolução contextual — G05-C / #476
+
+`CONFIRMADO` nesta implementação: a identidade persistida passa a ser
+`(organization_id, user_id, request_key)`, com organização obrigatória e FK para
+a membership. O contexto HTTP vem exclusivamente da sessão validada. O lock
+atual é de **sessão PostgreSQL**, com hash de organização/ator/chave; a transação
+de aquisição é encerrada antes do cálculo e o unlock explícito ocorre no finally.
+A descrição transacional acima registra a decisão inicial, anterior à correção
+para cálculos longos. Não há alteração no hash do payload, algoritmo, timeout,
+persistência atômica nem recuperação após resposta perdida.
+
+O replay valida planos, pedidos e proveniência antes de mapear o resultado;
+contexto não legado permanece recusado no service até G06–G11. A FK composta
+para a distribuição será acrescentada após o ownership de G06. A migration
+`20261119_0045` preserva dados legados comprovados e recusa ownership ambíguo;
+o downgrade recusa qualquer solicitação de outra organização, sem apagar dados.
+
 `RISCO IDENTIFICADO`: cálculo lento continua lento; #262 não é incorporada.
 Não há cancelamento de CPU pelo timeout, SLA HTTP, orçamento global novo ou job
 assíncrono. 404 significa ausência de commit observável, não falha definitiva;

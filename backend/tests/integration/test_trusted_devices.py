@@ -31,7 +31,9 @@ from tests.integration.auth_helpers import (
     issue_session_headers,
 )
 
-NOW = datetime(2026, 10, 19, 12, tzinfo=UTC)
+# HTTP and password login use the real clock. Keep synthetic enrollment and
+# TOTP steps in the recent past so freshly issued test devices remain valid.
+NOW = datetime.now(UTC) - timedelta(hours=1)
 PASSWORD = "Frase ficticia de acesso segura 2026!"
 NEW_PASSWORD = "Outra frase ficticia muito segura 2026!"
 BASE = "/api/v1/auth"

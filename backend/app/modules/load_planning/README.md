@@ -177,6 +177,25 @@ somente para o ator e com a mesma permissão create. Não cria nada.
 Migration 20261023_0035 → 20261021_0034; downgrade recusa registros existentes.
 Sem alteração de regras físicas, RBAC efetivo, MFA ou OC90/OC94.
 
+### G05-C — contexto da recuperação (#476)
+
+`CONFIRMADO` na implementação desta etapa: `optimization_requests` exige
+`organization_id` explícito; sua PK passa a `(organization_id, user_id, request_key)`
+e a FK composta do ator referencia a membership. O advisory lock de sessão
+inclui organização, ator e chave, permanece adquirido durante o cálculo sem
+transação aberta e é liberado mesmo após falha. O contexto HTTP vem da sessão
+validada, nunca de body, query ou header de organização.
+
+Antes do replay, os planos, pedidos e proveniência do resultado são conferidos
+contra o escopo. O estado atual da distribuição, inclusive cancelada, permanece
+recuperável. Não há novo cálculo no replay, TTL nem registro pendente confirmado.
+
+`RISCO IDENTIFICADO`: a FK composta da distribuição depende de G06. Até concluir
+G06–G11, a autenticação permanece restrita à organização legada; otimização e
+recuperação também recusam contexto operacional não legado no service. Testes
+de duas organizações nos repositórios não ativam uma segunda empresa. A migration
+`20261119_0045` sucede `20261115_0044`; aplicação remota depende de aprovação.
+
 ## Situação logística na recuperação — #255
 
 `CONFIRMADO`: `GET /load-plans` aceita `operation_scope=all|ongoing|completed`

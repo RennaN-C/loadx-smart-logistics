@@ -30,6 +30,7 @@ from app.modules.load_planning.distribution_schemas import (
     NeedVolumeRead,
     VolumeReference,
 )
+from app.modules.load_planning.models import LoadPlan
 from app.modules.load_planning.optimization_repository import OptimizationRepository
 from app.modules.load_planning.optimizer.capacity import TruckCapacityInput
 from app.modules.load_planning.optimizer.contracts import (
@@ -47,6 +48,7 @@ from app.modules.load_planning.optimizer.multi_truck import (
     optimize_multi_truck,
 )
 from app.modules.load_planning.optimizer.volumes import expand_order_items
+from app.modules.load_planning.repository import LoadPlanRepository
 from app.modules.load_planning.schemas import TruckSnapshotRead, map_load_plan_read
 from app.modules.load_planning.service import (
     InvalidLoadPlanInputError,
@@ -58,6 +60,7 @@ from app.modules.load_planning.service import (
     LoadPlanTruckNotFoundError,
 )
 from app.modules.orders.service import OrderService
+from app.modules.organizations.models import LEGACY_ORGANIZATION_ID
 from app.modules.products.service import ProductService
 from app.modules.status_history.schemas import StatusHistoryCreate
 from app.modules.status_history.service import StatusHistoryService
@@ -77,8 +80,11 @@ class DistributionError(Exception):
 
 
 class LoadDistributionService:
-    def __init__(self, db: Session) -> None:
+    def __init__(
+        self, db: Session, organization_id: uuid.UUID = LEGACY_ORGANIZATION_ID
+    ) -> None:
         self.db = db
+        self.organization_id = organization_id
         self.repository = LoadDistributionRepository(db)
         self.planning = LoadPlanningService(db)
         self.orders = OrderService(db)
@@ -189,14 +195,15 @@ class LoadDistributionService:
     def recover_optimization(
         self, key: uuid.UUID, *, changed_by: uuid.UUID
     ) -> DistributionRead:
-        repository = OptimizationRepository(self.db)
+        self._ensure_optimization_context()
+        repository = OptimizationRepository(self.db, self.organization_id)
         with repository.session_lock(changed_by, key) as acquired:
             if not acquired:
                 raise DistributionError("OPTIMIZATION_IN_PROGRESS")
             request = repository.get(changed_by, key)
             if request is None:
                 raise DistributionError("OPTIMIZATION_NOT_FOUND", status=404)
-            return self.get(request.distribution_id)
+            return self._recover_result(request)
 
     def optimize(
         self,
@@ -206,9 +213,10 @@ class LoadDistributionService:
         idempotency_key: uuid.UUID | None = None,
     ) -> DistributionRead:
         try:
+            self._ensure_optimization_context()
             if idempotency_key is None:
                 return self._optimize(data, changed_by=changed_by, request=None)
-            repository = OptimizationRepository(self.db)
+            repository = OptimizationRepository(self.db, self.organization_id)
             with repository.session_lock(changed_by, idempotency_key) as acquired:
                 if not acquired:
                     raise DistributionError("OPTIMIZATION_IN_PROGRESS")
@@ -219,10 +227,9 @@ class LoadDistributionService:
                 ).hexdigest()
                 request = repository.get(changed_by, idempotency_key)
                 if request is not None:
-                    if request.payload_hash != payload_hash:
-                        raise DistributionError("IDEMPOTENCY_PAYLOAD_MISMATCH")
-                    return self.get(request.distribution_id)
+                    return self._recover_result(request, payload_hash=payload_hash)
                 request = OptimizationRequest(
+                    organization_id=self.organization_id,
                     user_id=changed_by,
                     request_key=idempotency_key,
                     payload_hash=payload_hash,
@@ -231,6 +238,45 @@ class LoadDistributionService:
         except Exception:
             self.db.rollback()
             raise
+
+    def _ensure_optimization_context(self) -> None:
+        # G06 has not yet scoped distribution aggregates or their workers.
+        # Refuse a second operational organization, including direct service calls.
+        if self.organization_id != LEGACY_ORGANIZATION_ID:
+            raise DistributionError("AUTH_FORBIDDEN", status=403)
+
+    def _recover_result(
+        self, request: OptimizationRequest, *, payload_hash: str | None = None
+    ) -> DistributionRead:
+        # Until G06 can enforce the composite distribution FK, verify every
+        # parent before mapping any snapshot, identifier or persisted result.
+        distribution = self.repository.get(request.distribution_id)
+        if distribution is None or not distribution.parts or not distribution.orders:
+            raise DistributionError("OPTIMIZATION_NOT_FOUND", status=404)
+        repository = LoadPlanRepository(self.db, self.organization_id)
+        plans = {}
+        for part in distribution.parts:
+            plan = repository.get(part.load_plan_id)
+            if plan is None:
+                raise DistributionError("OPTIMIZATION_NOT_FOUND", status=404)
+            plans[part.load_plan_id] = plan
+        order_ids = {link.order_id for link in distribution.orders}
+        orders = self.orders.get_orders(tuple(order_ids))
+        if {order.id for order in orders} != order_ids:
+            raise DistributionError("OPTIMIZATION_NOT_FOUND", status=404)
+        provenance = {
+            (order.id, item.id, item.product_id)
+            for order in orders
+            for item in order.items
+        }
+        if any(
+            (volume.order_id, volume.order_item_id, volume.product_id) not in provenance
+            for volume in distribution.volumes
+        ):
+            raise DistributionError("OPTIMIZATION_NOT_FOUND", status=404)
+        if payload_hash is not None and request.payload_hash != payload_hash:
+            raise DistributionError("IDEMPOTENCY_PAYLOAD_MISMATCH")
+        return self._map_distribution(distribution, plans)
 
     def _optimize(
         self,
@@ -460,7 +506,9 @@ class LoadDistributionService:
             )
             if optimization_request is not None:
                 optimization_request.distribution_id = distribution.id
-                OptimizationRepository(self.db).add(optimization_request)
+                OptimizationRepository(self.db, self.organization_id).add(
+                    optimization_request
+                )
             return self._commit(distribution.id)
         except Exception as error:
             self._rollback(error)
@@ -509,9 +557,8 @@ class LoadDistributionService:
         return plan
 
     def _read_part(
-        self, part: LoadDistributionPart, distribution_id: uuid.UUID
+        self, part: LoadDistributionPart, distribution_id: uuid.UUID, plan: LoadPlan
     ) -> DistributionPartRead:
-        plan = self.planning.get_load_plan(part.load_plan_id)
         return DistributionPartRead(
             id=part.id,
             status=part.status,
@@ -529,6 +576,15 @@ class LoadDistributionService:
 
     def get(self, identifier: uuid.UUID) -> DistributionRead:
         distribution = self._get(identifier)
+        plans = {
+            part.load_plan_id: self.planning.get_load_plan(part.load_plan_id)
+            for part in distribution.parts
+        }
+        return self._map_distribution(distribution, plans)
+
+    def _map_distribution(
+        self, distribution: LoadDistribution, plans: dict[uuid.UUID, LoadPlan]
+    ) -> DistributionRead:
         return DistributionRead(
             id=distribution.id,
             status=distribution.status,
@@ -540,7 +596,7 @@ class LoadDistributionService:
             truck_count=len(distribution.parts),
             volume_count=len(distribution.volumes),
             parts=[
-                self._read_part(p, distribution.id)
+                self._read_part(p, distribution.id, plans[p.load_plan_id])
                 for p in sorted(distribution.parts, key=lambda p: p.id.int)
             ],
             volumes=[

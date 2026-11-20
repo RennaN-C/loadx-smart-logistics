@@ -1024,3 +1024,27 @@ não implementa troca de empresa, onboarding, autorização contextual ou polít
 RLS. Não há segunda organização operacional. As fases seguintes devem adicionar
 tenant ownership a todos os recursos e relações, migrar os repositórios e
 validar acesso cruzado antes de qualquer ativação.
+
+## G05-C — recuperação de otimizações por organização (#476)
+
+`CONFIRMADO`: a migration `20261119_0045`, após `20261115_0044`, acrescenta
+`optimization_requests.organization_id UUID NOT NULL`, sem default permanente.
+A PK passa a `(organization_id, user_id, request_key)`. FKs `RESTRICT` exigem
+organização existente e membership `(organization_id, user_id)` existente.
+A unicidade global de `distribution_id`, sua FK `RESTRICT`, o hash, a data UTC
+e os identificadores históricos permanecem preservados.
+
+O backfill valida a organização dos pedidos, planos e proveniência dos volumes
+da distribuição antes de atribuir a organização legada. Pais não legados ou
+misturados, ausência de qualquer pai ou membership inexistente interrompem a
+migration, sem correção silenciosa. A validação e o DDL são transacionais;
+o SQL offline contém as mesmas guardas executadas no PostgreSQL.
+
+O downgrade conserva solicitações legadas e recusa dados não legados ou colisão
+de `(user_id, request_key)`, antes de remover constraints ou contexto. Não apagar
+histórico para permitir rollback; avaliar migration compensatória.
+
+`PENDENTE DE DEFINIÇÃO` (G06): a FK composta de organização e distribuição exige
+ownership em `load_distributions`; a FK simples existente permanece nesta etapa.
+A aplicação deve validar também os pais da distribuição ao recuperar resultados.
+G05-C não habilita segunda organização operacional nem altera o cálculo físico.

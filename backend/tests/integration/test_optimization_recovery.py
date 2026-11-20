@@ -23,6 +23,7 @@ from app.modules.load_planning.distribution_schemas import DistributionNeedReque
 from app.modules.load_planning.distribution_service import (
     LoadDistributionService,
 )
+from app.modules.organizations.models import LEGACY_ORGANIZATION_ID
 from app.modules.users.models import User
 from tests.integration.auth_helpers import issue_session_headers
 from tests.integration.test_load_distributions import distribution_scenario
@@ -257,6 +258,7 @@ def test_record_constraints_and_populated_downgrade_protect_recovery(
     with s.factory() as db:
         db.add(
             OptimizationRequest(
+                organization_id=LEGACY_ORGANIZATION_ID,
                 user_id=s.user.id,
                 request_key=uuid.uuid4(),
                 payload_hash="x" * 64,
@@ -301,7 +303,9 @@ def test_abandoned_transaction_releases_lock_for_restart_without_pending_job(
     # so the CPU worker can calculate without an idle DB transaction.
     with (
         s.factory() as old_worker,
-        OptimizationRepository(old_worker).session_lock(s.user.id, key) as acquired,
+        OptimizationRepository(old_worker, LEGACY_ORGANIZATION_ID).session_lock(
+            s.user.id, key
+        ) as acquired,
     ):
         assert acquired
         assert recover(s, key).status_code == 409
@@ -335,7 +339,9 @@ def test_packing_runs_without_read_transaction_and_lock_is_still_held(
         # session advisory lock, although no transaction is held for packing.
         with (
             s.factory() as competing,
-            OptimizationRepository(competing).session_lock(s.user.id, key) as locked,
+            OptimizationRepository(competing, LEGACY_ORGANIZATION_ID).session_lock(
+                s.user.id, key
+            ) as locked,
         ):
             assert not locked
         observed.append(True)

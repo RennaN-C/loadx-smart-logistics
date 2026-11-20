@@ -136,6 +136,18 @@ class OptimizationRequest(Base):
     __tablename__ = "optimization_requests"
     __table_args__ = (
         CheckConstraint("length(payload_hash) = 64", name="payload_hash_length"),
+        ForeignKeyConstraint(
+            ["organization_id", "user_id"],
+            [
+                "organization_memberships.organization_id",
+                "organization_memberships.user_id",
+            ],
+            name="fk_optimization_requests__organization_user",
+            ondelete="RESTRICT",
+        ),
+    )
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("organizations.id", ondelete="RESTRICT"), primary_key=True
     )
     user_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("users.id", ondelete="RESTRICT"), primary_key=True
