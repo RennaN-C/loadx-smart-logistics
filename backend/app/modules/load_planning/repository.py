@@ -68,12 +68,16 @@ class LoadPlanRepository:
         # has been canceled. Resolve the authoritative distribution and current
         # part before filtering/counting so canceled items cannot leak into
         # default operational pages or distort pagination.
-        versions = select(
-            LoadDistributionPart.load_plan_id.label("plan_id"),
-            LoadDistributionPart.distribution_id,
-            LoadDistributionPart.status.label("part_status"),
-            LoadDistributionPart.load_plan_id.label("current_plan_id"),
-        ).cte("plan_list_versions", recursive=True)
+        versions = (
+            select(
+                LoadDistributionPart.load_plan_id.label("plan_id"),
+                LoadDistributionPart.distribution_id,
+                LoadDistributionPart.status.label("part_status"),
+                LoadDistributionPart.load_plan_id.label("current_plan_id"),
+            )
+            .where(LoadDistributionPart.organization_id == self.organization_id)
+            .cte("plan_list_versions", recursive=True)
+        )
         versions = versions.union(
             select(
                 LoadPlan.recalculated_from_id,
@@ -82,14 +86,21 @@ class LoadPlanRepository:
                 versions.c.current_plan_id,
             )
             .join(versions, LoadPlan.id == versions.c.plan_id)
-            .where(LoadPlan.recalculated_from_id.is_not(None))
+            .where(
+                LoadPlan.organization_id == self.organization_id,
+                LoadPlan.recalculated_from_id.is_not(None),
+            )
         )
         base = (
             select(LoadPlan.id)
             .select_from(LoadPlan)
             .outerjoin(versions, versions.c.plan_id == LoadPlan.id)
             .outerjoin(
-                LoadDistribution, LoadDistribution.id == versions.c.distribution_id
+                LoadDistribution,
+                and_(
+                    LoadDistribution.id == versions.c.distribution_id,
+                    LoadDistribution.organization_id == self.organization_id,
+                ),
             )
         )
         inactive = or_(
@@ -157,7 +168,10 @@ class LoadPlanRepository:
             .outerjoin(versions, versions.c.plan_id == LoadPlan.id)
             .outerjoin(
                 LoadDistribution,
-                LoadDistribution.id == versions.c.distribution_id,
+                and_(
+                    LoadDistribution.id == versions.c.distribution_id,
+                    LoadDistribution.organization_id == self.organization_id,
+                ),
             )
             .where(*filters)
             .order_by(direction(LoadPlan.created_at), direction(LoadPlan.id))
@@ -295,11 +309,18 @@ class LoadPlanRepository:
             .select_from(LoadPlan)
             .outerjoin(
                 LoadDistributionPart,
-                LoadDistributionPart.load_plan_id == LoadPlan.id,
+                and_(
+                    LoadDistributionPart.load_plan_id == LoadPlan.id,
+                    LoadDistributionPart.organization_id == LoadPlan.organization_id,
+                ),
             )
             .outerjoin(
                 LoadDistribution,
-                LoadDistribution.id == LoadDistributionPart.distribution_id,
+                and_(
+                    LoadDistribution.id == LoadDistributionPart.distribution_id,
+                    LoadDistribution.organization_id
+                    == LoadDistributionPart.organization_id,
+                ),
             )
             .outerjoin(counts, counts.c.load_plan_id == LoadPlan.id)
             .outerjoin(trip, trip.c.load_plan_id == LoadPlan.id)

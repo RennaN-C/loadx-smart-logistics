@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.modules.load_planning.distribution_repository import LoadDistributionRepository
 from app.modules.load_planning.optimizer.contracts import VolumeIdentity
 from app.modules.load_planning.repository import LoadPlanRepository
+from app.modules.organizations.models import LEGACY_ORGANIZATION_ID
 
 
 @dataclass(frozen=True, slots=True)
@@ -45,9 +46,11 @@ class DistributionOrderReference:
 class LoadPlanReferenceService:
     """Public cross-module queries owned by load planning."""
 
-    def __init__(self, db: Session) -> None:
-        self.repository = LoadPlanRepository(db)
-        self.distributions = LoadDistributionRepository(db)
+    def __init__(
+        self, db: Session, organization_id: uuid.UUID = LEGACY_ORGANIZATION_ID
+    ) -> None:
+        self.repository = LoadPlanRepository(db, organization_id)
+        self.distributions = LoadDistributionRepository(db, organization_id)
 
     def has_order_item_references(
         self,
@@ -66,6 +69,8 @@ class LoadPlanReferenceService:
         if part is None:
             return None
         distribution = self.distributions.get(part.distribution_id)
+        if distribution is None:
+            return None
         return DistributionPartReference(
             distribution_id=distribution.id,
             part_id=part.id,
@@ -118,7 +123,8 @@ class LoadPlanReferenceService:
         if part is not None:
             distribution = self.distributions.get(part.distribution_id)
             operational_ready = (
-                distribution.status in {"APPROVED", "INCOMPLETE"}
+                distribution is not None
+                and distribution.status in {"APPROVED", "INCOMPLETE"}
                 and part.status == "APPROVED"
                 and part.load_plan_id == load_plan_id
             )

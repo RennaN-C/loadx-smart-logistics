@@ -85,7 +85,7 @@ class LoadDistributionService:
     ) -> None:
         self.db = db
         self.organization_id = organization_id
-        self.repository = LoadDistributionRepository(db)
+        self.repository = LoadDistributionRepository(db, organization_id)
         self.planning = LoadPlanningService(db)
         self.orders = OrderService(db)
         self.products = ProductService(db)
@@ -126,6 +126,7 @@ class LoadDistributionService:
         return orders, items, products, {v.identity: v for v in volumes}
 
     def preflight(self, data: DistributionNeedRequest) -> DistributionNeedRead:
+        self._ensure_legacy_context()
         if self.repository.has_active_orders(data.order_ids):
             raise DistributionError("DISTRIBUTION_ORDER_CLAIMED")
         _, _, _, volumes = self._sources(data.order_ids, lock=False)
@@ -195,7 +196,7 @@ class LoadDistributionService:
     def recover_optimization(
         self, key: uuid.UUID, *, changed_by: uuid.UUID
     ) -> DistributionRead:
-        self._ensure_optimization_context()
+        self._ensure_legacy_context()
         repository = OptimizationRepository(self.db, self.organization_id)
         with repository.session_lock(changed_by, key) as acquired:
             if not acquired:
@@ -213,7 +214,7 @@ class LoadDistributionService:
         idempotency_key: uuid.UUID | None = None,
     ) -> DistributionRead:
         try:
-            self._ensure_optimization_context()
+            self._ensure_legacy_context()
             if idempotency_key is None:
                 return self._optimize(data, changed_by=changed_by, request=None)
             repository = OptimizationRepository(self.db, self.organization_id)
@@ -239,17 +240,17 @@ class LoadDistributionService:
             self.db.rollback()
             raise
 
-    def _ensure_optimization_context(self) -> None:
-        # G06 has not yet scoped distribution aggregates or their workers.
-        # Refuse a second operational organization, including direct service calls.
+    def _ensure_legacy_context(self) -> None:
+        # Loading, travel and status history remain single-organization.
+        # Refuse a second operational organization until all groups are scoped.
         if self.organization_id != LEGACY_ORGANIZATION_ID:
             raise DistributionError("AUTH_FORBIDDEN", status=403)
 
     def _recover_result(
         self, request: OptimizationRequest, *, payload_hash: str | None = None
     ) -> DistributionRead:
-        # Until G06 can enforce the composite distribution FK, verify every
-        # parent before mapping any snapshot, identifier or persisted result.
+        # Both request and result are scoped. Use the same snapshot through
+        # validation and mapping so a concurrent change cannot replace it.
         distribution = self.repository.get(request.distribution_id)
         if distribution is None or not distribution.parts or not distribution.orders:
             raise DistributionError("OPTIMIZATION_NOT_FOUND", status=404)
@@ -440,6 +441,7 @@ class LoadDistributionService:
         precomputed_parts: dict[uuid.UUID, LoadPlanResult] | None = None,
     ) -> DistributionRead:
         try:
+            self._ensure_legacy_context()
             trucks = self._lock_trucks([p.truck_id for p in data.parts])
             orders, items, products, volumes = self._sources(data.order_ids, lock=True)
             if self.repository.has_active_orders(data.order_ids):
@@ -452,7 +454,10 @@ class LoadDistributionService:
             if len(selected) != len(set(selected)) or set(selected) != set(volumes):
                 raise DistributionError("DISTRIBUTION_INVALID_PARTITION", status=422)
             distribution = LoadDistribution(
-                id=uuid.uuid4(), created_by=changed_by, status="PROPOSED"
+                id=uuid.uuid4(),
+                organization_id=self.organization_id,
+                created_by=changed_by,
+                status="PROPOSED",
             )
             self.repository.add(distribution)
             distribution.orders = [
@@ -616,6 +621,7 @@ class LoadDistributionService:
         )
 
     def _get(self, identifier, *, lock=False):
+        self._ensure_legacy_context()
         distribution = self.repository.get(identifier, for_update=lock)
         if distribution is None:
             raise DistributionError("DISTRIBUTION_NOT_FOUND", status=404)

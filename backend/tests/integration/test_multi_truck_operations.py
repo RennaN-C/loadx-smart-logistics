@@ -534,7 +534,7 @@ def test_migration_backfills_operated_single_part_and_preserves_legacy(
         assert set(db.scalars(select(StatusHistory.id)).all()) == set(before)
         assert (
             db.scalar(text("SELECT version_num FROM alembic_version"))
-            == "20261119_0045"
+            == "20261119_0046"
         )
 
 
@@ -694,7 +694,8 @@ def test_database_prevents_legacy_order_or_plan_becoming_multi_after_delivery(mu
         def attempt_attach_legacy_order():
             db.execute(
                 text(
-                    "INSERT INTO load_distribution_orders (distribution_id,order_id,active) VALUES (:distribution,:order,true)"
+                    "INSERT INTO load_distribution_orders (organization_id,distribution_id,order_id,active) "
+                    "SELECT organization_id,id,:order,true FROM load_distributions WHERE id=:distribution"
                 ),
                 {
                     "distribution": uuid.UUID(s.distribution["id"]),
@@ -710,7 +711,8 @@ def test_database_prevents_legacy_order_or_plan_becoming_multi_after_delivery(mu
         def attempt_attach_legacy_plan():
             db.execute(
                 text(
-                    "INSERT INTO load_distribution_parts (id,distribution_id,load_plan_id,status) VALUES (:id,:distribution,:plan,'PENDING')"
+                    "INSERT INTO load_distribution_parts (organization_id,id,distribution_id,load_plan_id,status) "
+                    "SELECT organization_id,:id,id,:plan,'PENDING' FROM load_distributions WHERE id=:distribution"
                 ),
                 {
                     "id": uuid.uuid4(),

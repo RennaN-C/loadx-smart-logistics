@@ -1048,3 +1048,44 @@ histórico para permitir rollback; avaliar migration compensatória.
 ownership em `load_distributions`; a FK simples existente permanece nesta etapa.
 A aplicação deve validar também os pais da distribuição ao recuperar resultados.
 G05-C não habilita segunda organização operacional nem altera o cálculo físico.
+
+## G06-A — distribuições multi-caminhão por organização (#487)
+
+`CONFIRMADO`: o contrato incremental da migration `20261119_0046`, após
+`20261119_0045`, acrescenta `organization_id UUID NOT NULL` explícito, sem default
+permanente, a `load_distributions`, `load_distribution_orders`,
+`load_distribution_parts` e `load_distribution_volumes`.
+
+| Tabela | Integridade de ownership adicionada |
+|---|---|
+| `load_distributions` | FK `RESTRICT` para organização; FK `(organization_id, created_by)` para membership; UNIQUE `(organization_id, id)` |
+| `load_distribution_orders` | FKs `RESTRICT` para distribuição e pedido da mesma organização; UNIQUE `(organization_id, distribution_id, order_id)` |
+| `load_distribution_parts` | FKs `RESTRICT` para distribuição e plano da mesma organização; UNIQUE `(organization_id, id, distribution_id)` |
+| `load_distribution_volumes` | FKs `RESTRICT` para vínculo distribuição/pedido, parte/distribuição, item e produto da mesma organização |
+
+As FKs, PKs e proveniência tripla anteriores permanecem. Os índices únicos
+parciais de pedido ativo e identidade ativa conservam seus nomes e passam a
+incluir `organization_id` como primeira coluna. A FK composta
+`optimization_requests(organization_id, distribution_id)` aponta para
+`load_distributions(organization_id, id)`, completando a dependência de G05-C.
+
+O preflight bloqueia alterações concorrentes das fontes de ownership e valida
+todos os pedidos, planos, itens e produtos vinculados, inclusive históricos
+inativos. Recusa distribuição sem fonte de ownership, pai não legado ou
+misturado, criador sem membership legada e solicitação de otimização com
+organização divergente. Só após essa prova atribui a organização legada fixa,
+com default temporário removido na mesma transação. Não executa UPDATE nos
+agregados nem desativa triggers; preserva IDs, datas, snapshots, status, claims,
+partição e histórico operacional.
+
+O downgrade recusa qualquer distribuição, filho ou solicitação não legada antes
+de remover constraints. Com dados exclusivamente legados, preserva as linhas e
+restaura os índices anteriores; não apaga registros para viabilizar rollback.
+As guardas são incluídas também no SQL Alembic offline.
+
+`RISCO IDENTIFICADO`: writers anteriores à 0046 não fornecem a organização
+obrigatória. Merge/migration remota exigem aprovação e rollout coordenado com
+interrupção dos writers antigos, sem pressupor compatibilidade entre versões.
+G06-B ainda deve isolar `loading_sessions` e `loading_session_items`; G07–G11,
+RBAC contextual e troca de organização continuam necessários. A segunda empresa
+operacional permanece desabilitada.

@@ -25,12 +25,27 @@ DISTRIBUTION_FK = "load_distributions.id"
 class LoadDistribution(Base):
     __tablename__ = "load_distributions"
     __table_args__ = (
+        UniqueConstraint(
+            "organization_id", "id", name="uq_load_distributions__organization_id"
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "created_by"],
+            [
+                "organization_memberships.organization_id",
+                "organization_memberships.user_id",
+            ],
+            name="fk_load_distributions__organization_user",
+            ondelete="RESTRICT",
+        ),
         CheckConstraint(
             "status IN ('PROPOSED', 'PARTIALLY_APPROVED', 'APPROVED', 'INCOMPLETE', 'CANCELED')",
             name="status_allowed",
         ),
     )
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("organizations.id", ondelete="RESTRICT"), nullable=False
+    )
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="PROPOSED")
     created_by: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("users.id", ondelete="RESTRICT"), nullable=False
@@ -38,23 +53,48 @@ class LoadDistribution(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
-    orders: Mapped[list["LoadDistributionOrder"]] = relationship()
-    parts: Mapped[list["LoadDistributionPart"]] = relationship()
+    orders: Mapped[list["LoadDistributionOrder"]] = relationship(
+        foreign_keys="[LoadDistributionOrder.organization_id, LoadDistributionOrder.distribution_id]"
+    )
+    parts: Mapped[list["LoadDistributionPart"]] = relationship(
+        foreign_keys="[LoadDistributionPart.organization_id, LoadDistributionPart.distribution_id]"
+    )
     volumes: Mapped[list["LoadDistributionVolume"]] = relationship(
-        primaryjoin="LoadDistribution.id == foreign(LoadDistributionVolume.distribution_id)"
+        primaryjoin="and_(LoadDistribution.id == foreign(LoadDistributionVolume.distribution_id), "
+        "LoadDistribution.organization_id == foreign(LoadDistributionVolume.organization_id))"
     )
 
 
 class LoadDistributionOrder(Base):
     __tablename__ = "load_distribution_orders"
     __table_args__ = (
+        UniqueConstraint(
+            "organization_id",
+            "distribution_id",
+            "order_id",
+            name="uq_load_distribution_orders__org_dist_order",
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "distribution_id"],
+            ["load_distributions.organization_id", DISTRIBUTION_FK],
+            name="fk_load_distribution_orders__org_distribution",
+            ondelete="RESTRICT",
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "order_id"],
+            ["orders.organization_id", "orders.id"],
+            name="fk_load_distribution_orders__org_order",
+            ondelete="RESTRICT",
+        ),
         Index(
             "uq_load_distribution_orders__active_order",
+            "organization_id",
             "order_id",
             unique=True,
             postgresql_where=text("active"),
         ),
     )
+    organization_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
     distribution_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey(DISTRIBUTION_FK, ondelete="RESTRICT"), primary_key=True
     )
@@ -67,12 +107,31 @@ class LoadDistributionOrder(Base):
 class LoadDistributionPart(Base):
     __tablename__ = "load_distribution_parts"
     __table_args__ = (
+        UniqueConstraint(
+            "organization_id",
+            "id",
+            "distribution_id",
+            name="uq_load_distribution_parts__org_id_dist",
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "distribution_id"],
+            ["load_distributions.organization_id", DISTRIBUTION_FK],
+            name="fk_load_distribution_parts__org_distribution",
+            ondelete="RESTRICT",
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "load_plan_id"],
+            ["load_plans.organization_id", "load_plans.id"],
+            name="fk_load_distribution_parts__org_plan",
+            ondelete="RESTRICT",
+        ),
         UniqueConstraint("id", "distribution_id"),
         CheckConstraint(
             "status IN ('PENDING', 'APPROVED', 'CANCELED')", name="status_allowed"
         ),
     )
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    organization_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
     distribution_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey(DISTRIBUTION_FK, ondelete="RESTRICT"),
         nullable=False,
@@ -87,6 +146,38 @@ class LoadDistributionPart(Base):
 class LoadDistributionVolume(Base):
     __tablename__ = "load_distribution_volumes"
     __table_args__ = (
+        ForeignKeyConstraint(
+            ["organization_id", "distribution_id", "order_id"],
+            [
+                "load_distribution_orders.organization_id",
+                "load_distribution_orders.distribution_id",
+                "load_distribution_orders.order_id",
+            ],
+            name="fk_load_distribution_volumes__org_dist_order",
+            ondelete="RESTRICT",
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "part_id", "distribution_id"],
+            [
+                "load_distribution_parts.organization_id",
+                "load_distribution_parts.id",
+                "load_distribution_parts.distribution_id",
+            ],
+            name="fk_load_distribution_volumes__org_part",
+            ondelete="RESTRICT",
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "order_item_id"],
+            ["order_items.organization_id", "order_items.id"],
+            name="fk_load_distribution_volumes__org_item",
+            ondelete="RESTRICT",
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "product_id"],
+            ["products.organization_id", "products.id"],
+            name="fk_load_distribution_volumes__org_product",
+            ondelete="RESTRICT",
+        ),
         ForeignKeyConstraint(
             ["distribution_id", "order_id"],
             [
@@ -113,6 +204,7 @@ class LoadDistributionVolume(Base):
         ),
         Index(
             "uq_load_distribution_volumes__active_identity",
+            "organization_id",
             "order_item_id",
             "volume_index",
             unique=True,
@@ -120,6 +212,7 @@ class LoadDistributionVolume(Base):
         ),
         Index("ix_load_distribution_volumes__part_id", "part_id"),
     )
+    organization_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
     distribution_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
     order_item_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
     volume_index: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -135,6 +228,12 @@ class OptimizationRequest(Base):
 
     __tablename__ = "optimization_requests"
     __table_args__ = (
+        ForeignKeyConstraint(
+            ["organization_id", "distribution_id"],
+            ["load_distributions.organization_id", DISTRIBUTION_FK],
+            name="fk_optimization_requests__org_distribution",
+            ondelete="RESTRICT",
+        ),
         CheckConstraint("length(payload_hash) = 64", name="payload_hash_length"),
         ForeignKeyConstraint(
             ["organization_id", "user_id"],

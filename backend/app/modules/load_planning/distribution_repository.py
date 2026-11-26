@@ -11,18 +11,25 @@ from app.modules.load_planning.distribution_models import (
     LoadDistributionVolume,
 )
 from app.modules.load_planning.models import LoadPlan
+from app.modules.organizations.models import LEGACY_ORGANIZATION_ID
 
 
 class LoadDistributionRepository:
-    def __init__(self, db: Session) -> None:
+    def __init__(
+        self, db: Session, organization_id: uuid.UUID = LEGACY_ORGANIZATION_ID
+    ) -> None:
         self.db = db
+        self.organization_id = organization_id
 
     def get(
         self, identifier: uuid.UUID, *, for_update: bool = False
     ) -> LoadDistribution | None:
         query = (
             select(LoadDistribution)
-            .where(LoadDistribution.id == identifier)
+            .where(
+                LoadDistribution.organization_id == self.organization_id,
+                LoadDistribution.id == identifier,
+            )
             .options(
                 selectinload(LoadDistribution.orders),
                 selectinload(LoadDistribution.parts),
@@ -34,6 +41,14 @@ class LoadDistributionRepository:
             query = query.with_for_update()
         return self.db.scalar(query)
 
+    def get_status(self, identifier: uuid.UUID) -> str | None:
+        return self.db.scalar(
+            select(LoadDistribution.status).where(
+                LoadDistribution.organization_id == self.organization_id,
+                LoadDistribution.id == identifier,
+            )
+        )
+
     def plan_part(self, load_plan_id: uuid.UUID) -> LoadDistributionPart | None:
         # Historical versions remain associated through their descendant chain.
         plan_id = load_plan_id
@@ -42,14 +57,18 @@ class LoadDistributionRepository:
             seen.add(plan_id)
             part = self.db.scalar(
                 select(LoadDistributionPart).where(
-                    LoadDistributionPart.load_plan_id == plan_id
+                    LoadDistributionPart.organization_id == self.organization_id,
+                    LoadDistributionPart.load_plan_id == plan_id,
                 )
             )
             if part is not None:
                 return part
             plan_id = self.db.scalar(
                 select(LoadPlan.id)
-                .where(LoadPlan.recalculated_from_id == plan_id)
+                .where(
+                    LoadPlan.organization_id == self.organization_id,
+                    LoadPlan.recalculated_from_id == plan_id,
+                )
                 .limit(1)
             )
         return None
@@ -59,6 +78,7 @@ class LoadDistributionRepository:
             self.db.scalar(
                 select(LoadDistributionOrder.order_id)
                 .where(
+                    LoadDistributionOrder.organization_id == self.organization_id,
                     LoadDistributionOrder.order_id.in_(order_ids),
                     LoadDistributionOrder.active.is_(True),
                 )
@@ -72,7 +92,8 @@ class LoadDistributionRepository:
     ) -> tuple[uuid.UUID, tuple[uuid.UUID, ...]] | None:
         distribution_id = self.db.scalar(
             select(LoadDistributionPart.distribution_id).where(
-                LoadDistributionPart.id == part_id
+                LoadDistributionPart.organization_id == self.organization_id,
+                LoadDistributionPart.id == part_id,
             )
         )
         if distribution_id is None:
@@ -81,6 +102,7 @@ class LoadDistributionRepository:
             self.db.scalars(
                 select(LoadDistributionVolume.part_id)
                 .where(
+                    LoadDistributionVolume.organization_id == self.organization_id,
                     LoadDistributionVolume.distribution_id == distribution_id,
                     LoadDistributionVolume.order_id == order_id,
                 )
@@ -93,5 +115,7 @@ class LoadDistributionRepository:
         return distribution_id, part_ids
 
     def add(self, distribution: LoadDistribution) -> None:
+        if distribution.organization_id != self.organization_id:
+            raise ValueError("Load distribution belongs to a different organization")
         self.db.add(distribution)
         self.db.flush()

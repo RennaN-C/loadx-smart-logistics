@@ -1,5 +1,21 @@
 # Contrato multi-caminhão — OC87
 
+## G06-A — escopo organizacional das distribuições
+
+`CONFIRMADO` no código desta etapa: a distribuição e seus vínculos de pedido,
+parte e volume compartilham `organization_id`. FKs compostas conferem o dono
+dos pedidos, planos, itens e produtos. A própria organização também compõe
+a referência da solicitação de otimização para o resultado persistido.
+
+As rotas usam a organização da sessão validada. Consultas de referência e
+contagens de distribuições canceladas do Loxi respeitam o mesmo recorte da
+operação legada. As regras de cobertura física, cancelamento, reprocessamento e
+as respostas HTTP/3D são preservadas.
+
+`PENDENTE`: o recorte de sessões e itens de carregamento segue em G06-B.
+O serviço permanece restrito à organização legada até o isolamento integral.
+Consulte a Issue #487 e o modelo de dados para o backfill e a reversão de `0046`.
+
 `CONFIRMADO`: contrato aditivo da Issue #130; decisões propostas na
 [ADR-028](../../../../docs/decisions/ADR-028-planejamento-multi-caminhao.md).
 Não seleciona frota automaticamente (OC88), não cria UI (OC89) e não implementa

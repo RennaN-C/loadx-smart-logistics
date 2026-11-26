@@ -3,6 +3,7 @@
 import uuid
 from datetime import UTC, datetime
 from importlib import import_module
+from types import SimpleNamespace
 
 import pytest
 from alembic.migration import MigrationContext
@@ -11,10 +12,6 @@ from sqlalchemy import inspect, text
 from sqlalchemy.exc import DBAPIError, IntegrityError
 
 from app.modules.customers.models import Customer
-from app.modules.load_planning.distribution_models import (
-    LoadDistribution,
-    LoadDistributionOrder,
-)
 from app.modules.orders.models import Order
 from app.modules.organizations.models import (
     LEGACY_ORGANIZATION_ID,
@@ -30,6 +27,16 @@ migration = import_module(
 
 def _run(db, operation):
     with Operations.context(MigrationContext.configure(db.connection())):
+        if operation == "downgrade" and "organization_id" in {
+            column["name"]
+            for column in inspect(db.connection()).get_columns("load_distributions")
+        }:
+            # Exercise the immutable G05-C contract against its actual schema.
+            # This DDL belongs to the fixture's outer transaction; rollback
+            # restores G06-A without changing another test's schema or data.
+            import_module(
+                "migrations.versions.20261119_0046_scope_load_distributions"
+            ).downgrade()
         getattr(migration, operation)()
 
 
@@ -63,9 +70,14 @@ def _historical_request(
                 status="ACTIVE",
             )
         )
-    distribution = LoadDistribution(status="CANCELED", created_by=user.id)
-    db.add(distribution)
-    db.flush()
+    distribution_id = uuid.uuid4()
+    db.execute(
+        text(
+            "INSERT INTO load_distributions(id,status,created_by) "
+            "VALUES (:id,'CANCELED',:actor)"
+        ),
+        {"id": distribution_id, "actor": user.id},
+    )
     if parent:
         customer = Customer(
             organization_id=owner_id,
@@ -86,18 +98,17 @@ def _historical_request(
         )
         db.add(order)
         db.flush()
-        db.add(
-            LoadDistributionOrder(
-                distribution_id=distribution.id,
-                order_id=order.id,
-                active=False,
-            )
+        db.execute(
+            text(
+                "INSERT INTO load_distribution_orders(distribution_id,order_id,active) "
+                "VALUES (:distribution,:order,false)"
+            ),
+            {"distribution": distribution_id, "order": order.id},
         )
-        db.flush()
     values = {
         "user": user.id,
         "key": uuid.uuid4(),
-        "distribution": distribution.id,
+        "distribution": distribution_id,
         "hash": "a" * 64,
         "created": datetime(2026, 11, 14, 12, 30, tzinfo=UTC),
     }
@@ -256,7 +267,6 @@ def test_organization_and_membership_are_required_without_default(session_factor
 
 
 def _attach_plan(db, distribution_id, organization_id):
-    from app.modules.load_planning.distribution_models import LoadDistributionPart
     from app.modules.load_planning.models import LoadPlan
     from app.modules.trucks.models import Truck
 
@@ -291,14 +301,15 @@ def _attach_plan(db, distribution_id, organization_id):
     )
     db.add(plan)
     db.flush()
-    part = LoadDistributionPart(
-        distribution_id=distribution_id,
-        load_plan_id=plan.id,
-        status="CANCELED",
+    part_id = uuid.uuid4()
+    db.execute(
+        text(
+            "INSERT INTO load_distribution_parts(id,distribution_id,load_plan_id,status) "
+            "VALUES (:id,:distribution,:plan,'CANCELED')"
+        ),
+        {"id": part_id, "distribution": distribution_id, "plan": plan.id},
     )
-    db.add(part)
-    db.flush()
-    return part
+    return SimpleNamespace(id=part_id, load_plan_id=plan.id)
 
 
 def test_upgrade_refuses_foreign_plan_even_with_legacy_orders(session_factory):
@@ -332,7 +343,6 @@ def test_upgrade_reconciles_full_volume_graph_and_preserves_its_identity(
     session_factory,
     foreign,
 ):
-    from app.modules.load_planning.distribution_models import LoadDistributionVolume
     from app.modules.orders.models import OrderItem
     from app.modules.products.models import Product
 
@@ -370,18 +380,21 @@ def test_upgrade_reconciles_full_volume_graph_and_preserves_its_identity(
         )
         db.add(item)
         db.flush()
-        volume = LoadDistributionVolume(
-            distribution_id=values["distribution"],
-            order_item_id=item.id,
-            volume_index=1,
-            order_id=order_id,
-            product_id=product.id,
-            snapshot_quantity=1,
-            part_id=part.id,
-            active=False,
+        db.execute(
+            text(
+                "INSERT INTO load_distribution_volumes "
+                "(distribution_id,order_item_id,volume_index,order_id,product_id,"
+                "snapshot_quantity,part_id,active) "
+                "VALUES (:distribution,:item,1,:order,:product,1,:part,false)"
+            ),
+            {
+                "distribution": values["distribution"],
+                "item": item.id,
+                "order": order_id,
+                "product": product.id,
+                "part": part.id,
+            },
         )
-        db.add(volume)
-        db.flush()
         before = _rows(db)
         graph_sql = text(
             "SELECT distribution_id, order_item_id, volume_index, order_id, "

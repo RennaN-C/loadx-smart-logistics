@@ -10,6 +10,7 @@ from app.modules.deliveries.models import Delivery, Trip
 from app.modules.load_planning.distribution_models import LoadDistribution
 from app.modules.load_planning.models import LoadPlan
 from app.modules.orders.models import Order
+from app.modules.organizations.models import LEGACY_ORGANIZATION_ID
 
 
 class AssistantMetricsRepository:
@@ -177,6 +178,7 @@ class AssistantMetricsRepository:
             "currently_canceled_distributions_created_in_period": int(
                 self.db.scalar(
                     select(func.count(LoadDistribution.id)).where(
+                        LoadDistribution.organization_id == LEGACY_ORGANIZATION_ID,
                         LoadDistribution.status == "CANCELED",
                         LoadDistribution.created_at >= start,
                         LoadDistribution.created_at < end,
@@ -190,6 +192,7 @@ class AssistantMetricsRepository:
         return self.db.execute(
             select(LoadDistribution.id, LoadDistribution.created_at)
             .where(
+                LoadDistribution.organization_id == LEGACY_ORGANIZATION_ID,
                 LoadDistribution.status == "CANCELED",
                 LoadDistribution.created_at >= start,
                 LoadDistribution.created_at < end,

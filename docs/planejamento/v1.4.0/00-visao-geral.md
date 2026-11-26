@@ -521,6 +521,22 @@ tenant do checklist pelo plano da sessão e do item. Além dos repositórios don
 revisar referências em frota, agenda, entregas e relatórios do Loxi. A FK composta
 de recuperação entra quando `load_distributions` tiver ownership comprovado.
 
+### Validação de G05-C e G06-A em 25/11/2026
+
+`CONFIRMADO`: a PR [#486](https://github.com/RennaN-C/loadx-smart-logistics/pull/486)
+está pronta para revisão. CI, segurança, contrato e SonarCloud passaram no
+commit `e1d16b0a`. O serviço Render de testes usa auto-deploy por commit da
+`desenvolvimento` e executa Alembic no build. O merge aguarda autorização e
+coordenação da troca da API com a migration.
+
+`EM ANDAMENTO`: a Issue [#487](https://github.com/RennaN-C/loadx-smart-logistics/issues/487)
+cobre G06-A, com migration `20261119_0046`, FKs compostas de distribuição e
+isolamento das consultas de distribuição e dos agregados do Loxi associados.
+Em PostgreSQL 16 local passaram 119 testes de integração e 51 testes unitários.
+A restauração de um backup fictício em `0044`, seguida de `0045` e `0046`,
+preservou a solicitação, a distribuição e seus três volumes. `alembic check`
+passou nos dois heads. G06-B ainda precisa isolar sessões e itens de carregamento.
+
 `RISCO IDENTIFICADO`: na base auditada, diagnósticos assinados do Loxi estão
 vinculados ao ator e ao tempo, sem organização; a identidade usada para limpar
 a conversa no frontend contém usuário/papel/permissões, sem organização.

@@ -80,7 +80,9 @@ def _actor(db, organization_ids):
 
 
 def _request(db, organization_id, actor_id, key):
-    result = LoadDistribution(created_by=actor_id, status="PROPOSED")
+    result = LoadDistribution(
+        organization_id=organization_id, created_by=actor_id, status="PROPOSED"
+    )
     db.add(result)
     db.flush()
     request = OptimizationRequest(
@@ -148,10 +150,11 @@ def test_database_rejects_missing_organization_or_membership(
         actor = _actor(db, [LEGACY_ORGANIZATION_ID])
         request = _request(
             db,
-            None if missing_organization else other.id,
+            LEGACY_ORGANIZATION_ID,
             actor.id,
             uuid.uuid4(),
         )
+        request.organization_id = None if missing_organization else other.id
         with pytest.raises(IntegrityError) as error, db.begin_nested():
             db.add(request)
             db.flush()
@@ -242,9 +245,14 @@ def foreign_optimization(distribution_scenario):
         request = _request(db, organization_id, s.user.id, key)
         distribution_id = request.distribution_id
         db.add(
-            LoadDistributionOrder(distribution_id=distribution_id, order_id=order_id)
+            LoadDistributionOrder(
+                organization_id=organization_id,
+                distribution_id=distribution_id,
+                order_id=order_id,
+            )
         )
         part = LoadDistributionPart(
+            organization_id=organization_id,
             distribution_id=distribution_id,
             load_plan_id=plan_id,
             status="PENDING",
@@ -253,6 +261,7 @@ def foreign_optimization(distribution_scenario):
         db.flush()
         db.add(
             LoadDistributionVolume(
+                organization_id=organization_id,
                 distribution_id=distribution_id,
                 part_id=part.id,
                 order_id=order_id,
@@ -362,22 +371,34 @@ def test_http_forged_tenant_does_not_change_optimization_identity(foreign_optimi
 
 def test_recovery_refuses_legacy_request_pointing_to_b_result(foreign_optimization):
     s, organization_id, key, distribution_id = foreign_optimization
-    # G06 adds the final composite result FK. Until then service validation must
-    # reject an inconsistent legacy row rather than returning foreign snapshots.
+    # G06-A closes the previously valid legacy corruption path at the database.
+    # The rejected write must retain the original B request and its result.
     with s.factory() as db:
         request_b = OptimizationRepository(db, organization_id).get(s.user.id, key)
-        db.delete(request_b)
-        db.flush()
-        OptimizationRepository(db, LEGACY_ORGANIZATION_ID).add(
-            OptimizationRequest(
-                organization_id=LEGACY_ORGANIZATION_ID,
-                user_id=s.user.id,
-                request_key=key,
-                payload_hash="a" * 64,
-                distribution_id=distribution_id,
+        with pytest.raises(IntegrityError) as error, db.begin_nested():
+            db.delete(request_b)
+            db.flush()
+            OptimizationRepository(db, LEGACY_ORGANIZATION_ID).add(
+                OptimizationRequest(
+                    organization_id=LEGACY_ORGANIZATION_ID,
+                    user_id=s.user.id,
+                    request_key=key,
+                    payload_hash="a" * 64,
+                    distribution_id=distribution_id,
+                )
             )
+            db.flush()
+        assert error.value.orig.sqlstate == "23503"
+        assert (
+            OptimizationRepository(db, LEGACY_ORGANIZATION_ID).get(s.user.id, key)
+            is None
         )
-        db.commit()
+        assert (
+            OptimizationRepository(db, organization_id)
+            .get(s.user.id, key)
+            .distribution_id
+            == distribution_id
+        )
     response = s.client.get(
         BASE + f"/optimization-requests/{key}",
         headers=s.user.headers,
@@ -402,7 +423,11 @@ def test_recovery_checks_foreign_order_even_when_every_plan_is_local(
     with s.factory() as db:
         foreign_source = db.scalar(
             select(Order)
-            .join(LoadDistributionOrder)
+            .join(
+                LoadDistributionOrder,
+                (LoadDistributionOrder.order_id == Order.id)
+                & (LoadDistributionOrder.organization_id == Order.organization_id),
+            )
             .where(
                 LoadDistributionOrder.distribution_id == foreign_distribution_id,
             )
@@ -419,33 +444,26 @@ def test_recovery_checks_foreign_order_even_when_every_plan_is_local(
         db.add(foreign_order)
         db.flush()
         foreign_order_id = foreign_order.id
-        db.add(
-            LoadDistributionOrder(
-                distribution_id=distribution_id,
-                order_id=foreign_order_id,
-            )
-        )
-        db.flush()
-        db.execute(text("SET CONSTRAINTS ALL IMMEDIATE"))
-        db.commit()
-    try:
-        response = s.client.get(
-            BASE + f"/optimization-requests/{key}",
-            headers=s.user.headers,
-        )
-        assert response.status_code == 404, response.text
-        assert response.json()["code"] == "OPTIMIZATION_NOT_FOUND"
-        assert str(foreign_order_id) not in response.text
-    finally:
-        with s.factory() as db:
-            db.execute(
-                delete(LoadDistributionOrder).where(
-                    LoadDistributionOrder.distribution_id == distribution_id,
-                    LoadDistributionOrder.order_id == foreign_order_id,
+        with pytest.raises(IntegrityError) as error, db.begin_nested():
+            db.add(
+                LoadDistributionOrder(
+                    organization_id=LEGACY_ORGANIZATION_ID,
+                    distribution_id=distribution_id,
+                    order_id=foreign_order_id,
                 )
             )
-            db.execute(delete(Order).where(Order.id == foreign_order_id))
-            db.commit()
+            db.flush()
+        assert error.value.orig.sqlstate == "23503"
+        # No commit is needed for this hostile edge: the surrounding session
+        # rolls back the unused synthetic order as well as the rejected link.
+        db.rollback()
+    response = s.client.get(
+        BASE + f"/optimization-requests/{key}",
+        headers=s.user.headers,
+    )
+    assert response.status_code == 200, response.text
+    assert response.json() == result.json()
+    assert str(foreign_order_id) not in response.text
 
 
 @pytest.mark.parametrize("operation", ["optimize", "recover"])

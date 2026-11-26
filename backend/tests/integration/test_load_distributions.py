@@ -767,6 +767,7 @@ def test_native_constraints_preserve_identity_and_provenance(
             if mutation == "duplicate_identity":
                 db.add(
                     LoadDistributionVolume(
+                        organization_id=volume.organization_id,
                         distribution_id=volume.distribution_id,
                         order_item_id=volume.order_item_id,
                         volume_index=volume.volume_index,

@@ -192,15 +192,15 @@ class LoadPlanningService:
     def get_distribution_state_for_plan(
         self, load_plan_id: uuid.UUID
     ) -> tuple[uuid.UUID | None, str | None, str | None, bool]:
-        part = LoadDistributionRepository(self.db).plan_part(load_plan_id)
+        distributions = LoadDistributionRepository(
+            self.db, self.repository.organization_id
+        )
+        part = distributions.plan_part(load_plan_id)
         if part is None:
             return None, None, None, True
-        from app.modules.load_planning.distribution_models import LoadDistribution
-
-        distribution = self.db.get(LoadDistribution, part.distribution_id)
         return (
             part.distribution_id,
-            distribution.status if distribution else None,
+            distributions.get_status(part.distribution_id),
             part.status,
             part.load_plan_id == load_plan_id,
         )
