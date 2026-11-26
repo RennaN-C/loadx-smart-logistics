@@ -149,3 +149,29 @@ o lote para completar e confira a saída. Documentos não são renovados à for�
 Para nova tomada após operar os dados, escolha outro lote.
 
 Roteiro, ficha e manifesto: [usabilidade local](../../docs/usabilidade/README.md).
+
+## G09 — reconciliação offline de preservação (#489)
+
+`CONFIRMADO`: `g09_reconciliation.py` fornece a função pura `reconcile`, usada
+com manifests sintéticos em memória. Não importa aplicação, configuração,
+SQLAlchemy, storage ou rede; não lê arquivos, não exporta dados e não executa
+migrations. Não existe comando para acessar banco remoto nem opção de aplicação.
+
+Execute de `backend` com Python 3.12:
+
+```powershell
+python -m pytest -q tests/unit/test_g09_reconciliation.py
+python -m ruff check scripts/g09_reconciliation.py tests/unit/test_g09_reconciliation.py
+python -m ruff format --check scripts/g09_reconciliation.py tests/unit/test_g09_reconciliation.py
+```
+
+`CONFIRMADO`: o relatório retornado contém somente contagens de origens,
+projeções, clones e anexos. Erros usam códigos fixos, sem reproduzir payload,
+valores pessoais, UUIDs ou caminhos. A função rejeita campos/categorias USER
+desconhecidos e partições incompatíveis com identidade/membership/preferências,
+mas não resolve a classificação completa dos eventos nem seus alvos reais.
+Não gera UUIDs de clones, não comprova completude de um export nem
+verifica os bytes dos anexos. Um resultado aceito não autoriza ativação multiempresa.
+
+Inventário, exemplo sintético, critérios restantes e dependências G07/G08/G10:
+[preparação G09](../../docs/planejamento/v1.4.0/04-preflight-g09-reconciliacao-offline.md).
