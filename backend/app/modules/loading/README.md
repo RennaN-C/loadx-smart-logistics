@@ -2,6 +2,25 @@
 
 Checklist e estados do processo físico após aprovação do plano.
 
+## Isolamento organizacional — G06-B (#488)
+
+`CONFIRMADO`: as rotas passam a organização da sessão autenticada ao serviço.
+Identificadores em body, query ou headers não selecionam empresa. Repositório e
+fronteira pública filtram sessões, itens, bloqueios e projeções por organização;
+UUID conhecido de outra empresa não permite ler ou conferir seu checklist.
+
+Sessão e itens persistem `organization_id` explícito. Cada item também persiste
+o `load_plan_id` da sessão; FKs compostas exigem a mesma organização e o mesmo
+plano do volume, inclusive quando dois planos pertencem à mesma empresa.
+Criação, repetição, conferência por código e transições mantêm os contratos
+anteriores. A migration local `20261125_0047` preserva UUIDs, estados e datas,
+recusa legado inconsistente e bloqueia downgrade com dados de outra empresa.
+
+`CONFIRMADO`: consumidores operacionais anteriores continuam restritos à
+organização legada. O serviço recusa uma segunda organização operacional;
+G07–G11, RBAC contextual e homologação integral permanecem pendentes.
+Implementação local e testes não equivalem a autorização de migration remota.
+
 ## Estado atual
 
 `CONFIRMADO`: o módulo persiste uma sessão por plano aprovado e um item de

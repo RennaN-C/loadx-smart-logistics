@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.modules.load_planning.reference_service import LoadPlanReferenceService
 from app.modules.loading.models import LoadingSession, LoadingSessionItem
 from app.modules.loading.repository import LoadingRepository
+from app.modules.organizations.models import LEGACY_ORGANIZATION_ID
 from app.modules.trucks.service import TruckService
 from app.shared.record_lifecycle import ensure_record_active
 
@@ -38,11 +39,20 @@ class LoadingChecklistIncompleteError(Exception):
     pass
 
 
+class LoadingOrganizationNotEnabledError(Exception):
+    """Second operational organization remains disabled until all groups are scoped."""
+
+
 class LoadingService:
-    def __init__(self, db: Session) -> None:
+    def __init__(
+        self, db: Session, organization_id: uuid.UUID = LEGACY_ORGANIZATION_ID
+    ) -> None:
+        if organization_id != LEGACY_ORGANIZATION_ID:
+            raise LoadingOrganizationNotEnabledError
         self.db = db
-        self.repository = LoadingRepository(db)
-        self.load_plan_reference_service = LoadPlanReferenceService(db)
+        self.organization_id = organization_id
+        self.repository = LoadingRepository(db, organization_id)
+        self.load_plan_reference_service = LoadPlanReferenceService(db, organization_id)
         self.truck_service = TruckService(db)
 
     def create_session(self, load_plan_id: uuid.UUID) -> LoadingSession:
@@ -63,10 +73,16 @@ class LoadingService:
                 raise LoadingPlanNotApprovedError
 
             session = LoadingSession(
+                organization_id=self.organization_id,
                 load_plan_id=load_plan_id,
                 status="PENDING",
                 items=[
-                    LoadingSessionItem(load_plan_item_id=item.id, status="PENDING")
+                    LoadingSessionItem(
+                        organization_id=self.organization_id,
+                        load_plan_id=load_plan_id,
+                        load_plan_item_id=item.id,
+                        status="PENDING",
+                    )
                     for item in items
                 ],
             )

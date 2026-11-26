@@ -21,6 +21,7 @@ from app.modules.operational_agenda.schemas import (
     AgendaKind,
     OperationalAgendaRead,
 )
+from app.modules.organizations.models import LEGACY_ORGANIZATION_ID
 from app.modules.users.models import User
 
 MAX_DAYS = 7
@@ -125,6 +126,7 @@ class OperationalAgendaService:
                 .select_from(LoadingSession)
                 .join(Trip, Trip.load_plan_id == LoadingSession.load_plan_id)
                 .join(LoadPlan, LoadPlan.id == Trip.load_plan_id)
+                .where(LoadingSession.organization_id == LEGACY_ORGANIZATION_ID)
             )
 
         def audited_trip_event(model, kind, timestamp):

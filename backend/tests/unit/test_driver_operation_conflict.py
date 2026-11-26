@@ -26,7 +26,11 @@ def test_plan_and_loading_without_trip_do_not_reserve_driver(
     db_session: Session,
 ) -> None:
     _, driver, plan, _ = seed_operational_plan(db_session)
-    db_session.add(LoadingSession(load_plan_id=plan.id, status="PENDING"))
+    db_session.add(
+        LoadingSession(
+            organization_id=plan.organization_id, load_plan_id=plan.id, status="PENDING"
+        )
+    )
     db_session.commit()
     service = DriverService(db_session)
     assert not service.has_operation_conflict(driver.id)

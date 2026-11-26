@@ -112,6 +112,7 @@ def test_loading_session_reserves_truck(
     plan = create_plan(db_session, truck)
     db_session.add(
         LoadingSession(
+            organization_id=plan.organization_id,
             load_plan_id=plan.id,
             status="PENDING",
         )
@@ -136,6 +137,7 @@ def test_finished_loading_without_trip_keeps_truck_reserved(
 
     db_session.add(
         LoadingSession(
+            organization_id=plan.organization_id,
             load_plan_id=plan.id,
             status="FINISHED",
             started_at=now,
@@ -183,6 +185,7 @@ def test_finished_trip_releases_truck(
 
     db_session.add(
         LoadingSession(
+            organization_id=plan.organization_id,
             load_plan_id=plan.id,
             status="FINISHED",
             started_at=now,
@@ -214,6 +217,7 @@ def test_other_plan_using_same_truck_causes_conflict(
 
     db_session.add(
         LoadingSession(
+            organization_id=other_plan.organization_id,
             load_plan_id=other_plan.id,
             status="PENDING",
         )

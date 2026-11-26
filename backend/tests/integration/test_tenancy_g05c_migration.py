@@ -29,6 +29,13 @@ def _run(db, operation):
     with Operations.context(MigrationContext.configure(db.connection())):
         if operation == "downgrade" and "organization_id" in {
             column["name"]
+            for column in inspect(db.connection()).get_columns("loading_sessions")
+        }:
+            import_module(
+                "migrations.versions.20261125_0047_scope_loading_sessions"
+            ).downgrade()
+        if operation == "downgrade" and "organization_id" in {
+            column["name"]
             for column in inspect(db.connection()).get_columns("load_distributions")
         }:
             # Exercise the immutable G05-C contract against its actual schema.

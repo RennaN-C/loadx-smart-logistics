@@ -8,6 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from app.modules.deliveries.models import Delivery, Trip
 from app.modules.load_planning.reference_service import LoadPlanReferenceService
 from app.modules.orders.models import Order
+from app.modules.organizations.models import LEGACY_ORGANIZATION_ID
 from app.modules.status_history.models import StatusHistory
 from app.modules.status_history.service import StatusHistoryService
 from tests.integration.oc90_helpers import seed_multi_flow
@@ -534,7 +535,7 @@ def test_migration_backfills_operated_single_part_and_preserves_legacy(
         assert set(db.scalars(select(StatusHistory.id)).all()) == set(before)
         assert (
             db.scalar(text("SELECT version_num FROM alembic_version"))
-            == "20261119_0046"
+            == "20261125_0047"
         )
 
 
@@ -736,7 +737,9 @@ def test_loading_start_rechecks_operational_boundary_for_stale_session(
     # Recheck startup even if a stale session was persisted outside the service.
     with session_factory() as db:
         loading = LoadingSession(
-            load_plan_id=uuid.UUID(s.parts[0]["load_plan"]["id"]), status="PENDING"
+            organization_id=LEGACY_ORGANIZATION_ID,
+            load_plan_id=uuid.UUID(s.parts[0]["load_plan"]["id"]),
+            status="PENDING",
         )
         db.add(loading)
         db.commit()

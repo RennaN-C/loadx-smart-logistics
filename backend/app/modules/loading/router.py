@@ -5,9 +5,11 @@ from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
+from app.core.exceptions import ApiError
 from app.core.responses import error_response, openapi_error_responses
 from app.database.session import get_db
-from app.modules.auth.dependencies import require_permission
+from app.modules.auth.dependencies import get_current_session, require_permission
+from app.modules.auth.sessions import ResolvedAuthSession
 from app.modules.loading.models import LoadingSession
 from app.modules.loading.schemas import (
     LoadingItemScan,
@@ -21,6 +23,7 @@ from app.modules.loading.service import (
     LoadingItemAlreadyCheckedError,
     LoadingItemNotFoundError,
     LoadingItemSessionMismatchError,
+    LoadingOrganizationNotEnabledError,
     LoadingPlanNotApprovedError,
     LoadingService,
     LoadingSessionNotFoundError,
@@ -36,8 +39,16 @@ Checker = Annotated[User, Depends(require_permission("loadx.loading.operate"))]
 Reader = Annotated[User, Depends(require_permission("loadx.loading.read"))]
 
 
-def get_loading_service(db: Annotated[Session, Depends(get_db)]) -> LoadingService:
-    return LoadingService(db)
+def get_loading_service(
+    db: Annotated[Session, Depends(get_db)],
+    session: Annotated[ResolvedAuthSession, Depends(get_current_session)],
+) -> LoadingService:
+    try:
+        return LoadingService(db, session.auth_session.active_organization_id)
+    except LoadingOrganizationNotEnabledError:
+        raise ApiError(
+            403, "AUTH_FORBIDDEN", "Usuário sem permissão para esta ação."
+        ) from None
 
 
 @router.post(

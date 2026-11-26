@@ -68,6 +68,10 @@ def test_legacy_distribution_survives_migration_round_trip(distribution_scenario
     )
     with scenario.factory() as db:
         with Operations.context(MigrationContext.configure(db.connection())):
+            loading_migration = import_module(
+                "migrations.versions.20261125_0047_scope_loading_sessions"
+            )
+            loading_migration.downgrade()
             migration.downgrade()
             assert (
                 db.scalar(
@@ -77,6 +81,7 @@ def test_legacy_distribution_survives_migration_round_trip(distribution_scenario
                 == created["status"]
             )
             migration.upgrade()
+            loading_migration.upgrade()
         restored = LoadDistributionRepository(db).get(identifier)
         assert {str(part.id) for part in restored.parts} == {
             part["id"] for part in created["parts"]

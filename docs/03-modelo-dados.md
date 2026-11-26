@@ -1089,3 +1089,41 @@ interrupção dos writers antigos, sem pressupor compatibilidade entre versões.
 G06-B ainda deve isolar `loading_sessions` e `loading_session_items`; G07–G11,
 RBAC contextual e troca de organização continuam necessários. A segunda empresa
 operacional permanece desabilitada.
+
+## G06-B — carregamento e checklist por organização (#488)
+
+`CONFIRMADO`: a migration local `20261125_0047`, após `20261119_0046`, acrescenta
+`organization_id UUID NOT NULL`, obrigatório e sem default permanente, a
+`loading_sessions` e `loading_session_items`. O checklist também recebe
+`load_plan_id UUID NOT NULL`, derivado exclusivamente do plano de sua sessão.
+O campo é necessário para provar o mesmo plano por FKs, além do mesmo tenant.
+
+| Tabela | Integridade adicionada |
+|---|---|
+| `loading_sessions` | FK `RESTRICT` para organização; FK `(organization_id, load_plan_id)` para plano; UNIQUE `(organization_id, id, load_plan_id)` |
+| `loading_session_items` | FK `RESTRICT` `(organization_id, loading_session_id, load_plan_id)` para sessão; FK `(organization_id, load_plan_id, load_plan_item_id)` para volume do plano |
+| `load_plan_items` | UNIQUE `(organization_id, load_plan_id, id)` para a referência do checklist |
+
+O preflight bloqueia alterações concorrentes e recusa sessão sem plano, pai não
+legado, item órfão ou checklist que já referencie volume de outro plano, inclusive
+da mesma organização. A organização é atribuída somente depois de provar o
+ownership do plano e sua concordância com o volume. A política de recusar pais
+não legados mantém o corte histórico das etapas anteriores; nenhum registro é
+reinterpretado a partir do usuário ou de entrada do cliente.
+
+O backfill de `loading_session_items.load_plan_id` usa o pai persistido da sessão;
+não altera planos nem seus volumes congelados. UUIDs, estados, datas, relações,
+checks, FKs simples, unicidade de sessão por plano e unicidade do checklist
+anteriores são preservados. As novas FKs impedem vincular sessão e volume de
+planos distintos, mesmo quando ambos pertencem à mesma empresa. Nenhum trigger
+operacional é desabilitado ou reescrito.
+
+O downgrade conserva as linhas e recusa qualquer carregamento/checklist não
+legado antes de remover constraints ou colunas. Upgrade e downgrade incluem as
+mesmas guardas no SQL Alembic offline. Falha de preflight ou constraint reverte a
+transação sem correção silenciosa ou perda de histórico.
+
+`RISCO IDENTIFICADO`: escritores anteriores à 0047 não fornecem as colunas
+obrigatórias; aprovação de merge/migration remota deve prever rollout coordenado.
+G07–G11 e autorização contextual ainda precisam ser concluídos antes de permitir
+segunda organização operacional; esta migration não ativa essa capacidade.

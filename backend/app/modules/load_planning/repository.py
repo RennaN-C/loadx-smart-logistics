@@ -240,7 +240,9 @@ class LoadPlanRepository:
             .subquery()
         )
         trip = DeliveryReferenceService.plan_operation_projection()
-        loading = LoadingReferenceService.plan_operation_projection()
+        loading = LoadingReferenceService.plan_operation_projection(
+            self.organization_id
+        )
         state = case(
             (LoadDistribution.status == "CANCELED", "CANCELED"),
             (LoadDistributionPart.status == "CANCELED", "CANCELED"),

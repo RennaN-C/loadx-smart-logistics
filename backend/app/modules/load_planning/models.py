@@ -226,6 +226,12 @@ class LoadPlanOrder(Base):
 class LoadPlanItem(Base):
     __tablename__ = "load_plan_items"
     __table_args__ = (
+        UniqueConstraint(
+            "organization_id",
+            "load_plan_id",
+            "id",
+            name="uq_load_plan_items__org_plan_id",
+        ),
         ForeignKeyConstraint(
             ["organization_id", "load_plan_id", "order_id"],
             [

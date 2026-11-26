@@ -14,11 +14,16 @@ from app.core.pagination import PageResponse, PageResult, Pagination, to_page_re
 from app.core.responses import openapi_error_responses
 from app.database.session import get_db
 from app.modules.access_profiles.catalog import Permission, has_permission
-from app.modules.auth.dependencies import require_any_permission, require_permission
+from app.modules.auth.dependencies import (
+    get_current_session,
+    require_any_permission,
+    require_permission,
+)
+from app.modules.auth.sessions import ResolvedAuthSession
 from app.modules.deliveries.models import Delivery, Trip
 from app.modules.deliveries.schemas import DeliveryRead
 from app.modules.drivers.service import DriverNotFoundError, DriverService
-from app.modules.loading.models import LoadingSession
+from app.modules.loading.reference_service import LoadingReferenceService
 from app.modules.users.models import User
 
 router = APIRouter(tags=["operations"])
@@ -50,19 +55,12 @@ def list_loading_sessions(
     pagination: Pagination,
     _current_user: LoadingReader,
     db: Db,
+    session: Annotated[ResolvedAuthSession, Depends(get_current_session)],
     status: LoadingStatus | None = None,
 ) -> PageResponse[LoadingListRead]:
-    direction = asc if pagination.sort_order == "asc" else desc
-    filters = [LoadingSession.status == status] if status is not None else []
-    total = db.scalar(select(func.count(LoadingSession.id)).where(*filters)) or 0
-    rows = db.scalars(
-        select(LoadingSession)
-        .where(*filters)
-        .order_by(direction(LoadingSession.id))
-        .offset(pagination.offset)
-        .limit(pagination.page_size)
-    ).all()
-    page = PageResult.create(rows, pagination, total)
+    page = LoadingReferenceService(
+        db, session.auth_session.active_organization_id
+    ).list_sessions(pagination, status=status)
     return to_page_response(
         page, (LoadingListRead.model_validate(row) for row in page.items)
     )
